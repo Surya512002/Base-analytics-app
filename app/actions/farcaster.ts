@@ -67,7 +67,6 @@ export async function fetchUserAnalytics(fid: number) {
 
 async function fetchRealNotifications(fid: number) {
     try {
-        // FIX: Changed 'fids: [fid]' to 'fid: fid'
         const response = await client.fetchAllNotifications({ 
             fid: fid, 
             limit: 100 
@@ -100,6 +99,35 @@ async function fetchRealNotifications(fid: number) {
     }
 }
 
-export async function fetchUserByAddress() {
-  return null; 
+// --- FIXED: This function now accepts 'address' ---
+export async function fetchUserByAddress(address: string) {
+  try {
+    const apiKey = process.env.NEYNAR_API_KEY;
+    if (!apiKey) return null;
+
+    const url = `https://api.neynar.com/v2/farcaster/user/by_verification?address=${address}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'x-api-key': apiKey
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const user = data?.user;
+
+    if (user && user.fid) {
+        return await fetchUserAnalytics(user.fid);
+    }
+    return null;
+
+  } catch (error) {
+    console.error("Error fetching user by address:", error);
+    return null;
+  }
 } 
