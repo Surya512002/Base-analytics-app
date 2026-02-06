@@ -5,26 +5,28 @@ import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
-// 1. Force Mobile "Native App" Feel (Prevents zooming)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Critical for "Mini-App" feel
+  userScalable: false,
   themeColor: "#0F172A",
 };
 
-// 2. Farcaster Frame Metadata
 export const metadata: Metadata = {
   title: "Base Analytics",
   description: "Track your on-chain engagement and streak.",
   manifest: "/manifest.json",
   other: {
+    // --- NEW: Base Verification ID ---
+    "base:app_id": "6985c4998dcaa0daf5755f7e", 
+    
+    // --- EXISTING: Farcaster Frame Tags ---
     "fc:frame": "vNext",
-    "fc:frame:image": "https://base.org/images/base-open-graph.png", // Replace with your own screenshot later
+    "fc:frame:image": "https://base.org/images/base-open-graph.png",
     "fc:frame:button:1": "Launch Analytics",
-    "fc:frame:button:1:action": "link", // This opens your app as a Mini-App
-    "fc:frame:button:1:target": "https://your-vercel-url.app", // You will update this after deploying
+    "fc:frame:button:1:action": "link",
+    "fc:frame:button:1:target": "https://base-analytics-app.vercel.app",
   },
 };
 
@@ -42,4 +44,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-} 
+}

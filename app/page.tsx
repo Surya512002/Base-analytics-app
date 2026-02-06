@@ -8,8 +8,8 @@ import { fetchUserAnalytics } from "./actions/farcaster";
 import { Contract, BrowserProvider, Eip1193Provider } from 'ethers';
 
 // --- 1. CONFIGURATION (Update these!) ---
-const CREATOR_USERNAME = "suryaprakash"; // Your Farcaster Username
-const APP_URL = "https://base-analytics-app.vercel.app"; // Your Vercel URL
+const CREATOR_USERNAME = "suryaprakash.eth"; // Your Farcaster Username
+const APP_URL = "https://base-analytics-app.vercel.app/"; // Your Vercel URL
 // Replace with your real deployed addresses from Remix
 const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
 const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
