@@ -6,13 +6,14 @@ import Image from 'next/image';
 import { TrendingUp, Repeat, MessageCircle, PenTool, CheckCircle2, Wallet, RefreshCcw, Zap, Trophy, Share2, Sun, Moon, Users, UserPlus } from 'lucide-react';
 import { fetchUserAnalytics } from "./actions/farcaster";
 import { Contract, BrowserProvider, Eip1193Provider } from 'ethers';
+import sdk from "@farcaster/frame-sdk"; // <--- NEW IMPORT
 
 // --- 1. CONFIGURATION (Update these!) ---
 const CREATOR_USERNAME = "suryaprakash.eth"; // Your Farcaster Username
 const APP_URL = "https://base-analytics-app.vercel.app/"; // Your Vercel URL
 // Replace with your real deployed addresses from Remix
 const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
-const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133";  
+const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133";
 
 // --- ABIs ---
 const CHECKIN_ABI = [
@@ -40,8 +41,8 @@ interface AnalyticsData {
   week: TimeframeStats;
   twoWeeks: TimeframeStats;
   neynarScore: number;
-  followers: number; // New Field
-  following: number; // New Field
+  followers: number;
+  following: number;
 }
 
 interface EthereumWindow extends Window {
@@ -60,6 +61,15 @@ export default function AnalyticsDashboard() {
   const [streak, setStreak] = useState(0);
   const [txLoading, setTxLoading] = useState(false);
   const [gmLoading, setGmLoading] = useState(false);
+
+  // --- NEW: TELL FARCASTER WE ARE READY ---
+  useEffect(() => {
+    const load = async () => {
+      // This tells the Farcaster app to hide the splash screen
+      sdk.actions.ready(); 
+    };
+    load();
+  }, []);
 
   // --- HELPER FUNCTIONS ---
   const fetchContractData = useCallback(async (address: string) => {
@@ -318,7 +328,7 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
             </div>
         </div>
 
-        {/* PROFILE SECTION - UPDATED WITH FOLLOWERS */}
+        {/* PROFILE SECTION */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center gap-6 justify-between">
             <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
               <div className="shrink-0">
@@ -344,7 +354,7 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
                           <p className="text-slate-400 text-sm font-medium mt-1">@{user.username}</p>
                       </div>
 
-                      {/* Followers & Following Stats (New) */}
+                      {/* Followers & Following Stats */}
                       <div className="flex gap-6 border-l border-slate-100 pl-6">
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">

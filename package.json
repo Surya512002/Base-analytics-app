@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@coinbase/onchainkit": "^1.1.2",
+    "@farcaster/frame-sdk": "^0.0.64",
     "@neynar/nodejs-sdk": "^3.131.0",
     "@neynar/react": "^1.2.22",
     "@pigment-css/react": "^0.0.30",
