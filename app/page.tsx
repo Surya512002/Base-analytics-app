@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { TrendingUp, Repeat, MessageCircle, PenTool, CheckCircle2, Wallet, RefreshCcw, Zap, Trophy, Share2, Sun, Moon, Users, UserPlus, LogOut, Power } from 'lucide-react';
 import { fetchUserAnalytics, fetchUserByAddress } from "./actions/farcaster";
 import { Contract, BrowserProvider, Eip1193Provider } from 'ethers';
-// --- NEW CORRECT IMPORT ---
+// ensure you installed: npm install @farcaster/miniapp-sdk
 import { sdk } from "@farcaster/miniapp-sdk";
 
 // --- 1. CONFIGURATION (Update these!) ---
@@ -15,7 +15,6 @@ const APP_URL = "https://base-analytics-app.vercel.app/"; // Your Vercel URL
 // Replace with your real deployed addresses from Remix
 const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
 const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
- 
 
 // --- ABIs ---
 const CHECKIN_ABI = [
@@ -60,6 +59,7 @@ export default function AnalyticsDashboard() {
   const [engagement, setEngagement] = useState<AnalyticsData | null>(null);
   const [timeframe, setTimeframe] = useState<'day' | 'week' | 'twoWeeks'>('week');
   const [loading, setLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
@@ -70,17 +70,22 @@ export default function AnalyticsDashboard() {
   // --- CRITICAL: CALL READY() ---
   useEffect(() => {
     const load = async () => {
-      try {
-        // This tells Farcaster to hide the splash screen
-        await sdk.actions.ready();
-        console.log("Farcaster MiniApp SDK Ready!");
-      } catch (err) {
-        console.error("SDK Ready failed:", err);
-      }
+        if (sdk && sdk.actions) {
+            try {
+                await sdk.actions.ready();
+                setIsReady(true);
+                console.log("Farcaster MiniApp SDK Ready!");
+            } catch (err) {
+                console.error("SDK Ready Failed:", err);
+                // Force ready anyway so UI shows up
+                setIsReady(true);
+            }
+        } else {
+            // Fallback for browser testing
+            setIsReady(true);
+        }
     };
-    
-    // Slight delay ensures the DOM is painted before we signal ready
-    setTimeout(load, 100);
+    load();
   }, []);
 
   // --- HELPER FUNCTIONS ---
@@ -102,7 +107,7 @@ export default function AnalyticsDashboard() {
     }
   }, []);
 
-  // --- WALLET CONNECTION & DISCONNECT ---
+  // --- WALLET CONNECTION ---
   const connectWallet = async () => {
     if (typeof window === 'undefined') return;
     const ethWindow = window as unknown as EthereumWindow;
@@ -123,7 +128,7 @@ export default function AnalyticsDashboard() {
             if (data) {
                 setEngagement(data as unknown as AnalyticsData);
             } else {
-                alert("No Farcaster account found for this wallet.");
+                alert("No Farcaster account found for this wallet. Try signing in with Neynar instead.");
             }
             setLoading(false);
         }
@@ -238,6 +243,12 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
   }, [user?.fid]);
 
   // --- RENDER LOGIC ---
+  if (!isReady) return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      </div>
+  );
+
   const displayUser = user || (engagement?.username ? { 
       username: engagement.username, 
       pfp_url: engagement.pfp 
