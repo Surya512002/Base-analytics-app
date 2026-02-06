@@ -63,19 +63,30 @@ export default function AnalyticsDashboard() {
   const [txLoading, setTxLoading] = useState(false);
   const [gmLoading, setGmLoading] = useState(false);
 
-  // --- 1. FORCE READY (Prevents Splash Screen Freeze) ---
+  // --- AGGRESSIVE READY CALL ---
   useEffect(() => {
-    const load = async () => {
-        if (sdk && sdk.actions) {
-            try {
+    const triggerReady = async () => {
+        try {
+            // Check if SDK is loaded
+            if (sdk && sdk.actions) {
                 await sdk.actions.ready();
-            } catch (e) {
-                console.error("SDK Ready failed", e);
+                console.log("✅ Farcaster SDK Ready signal sent");
+                setIsReady(true);
+            } else {
+                // If SDK isn't found immediately, try again in 500ms
+                console.warn("SDK not found, retrying...");
+                setTimeout(triggerReady, 500);
             }
+        } catch (e) {
+            console.error("❌ SDK Ready failed:", e);
+            // Even if it fails, we force the UI to show so it's not a blank screen
+            setIsReady(true);
         }
-        setIsReady(true);
     };
-    load();
+
+    // Attempt immediately, then again after a short delay to be safe
+    triggerReady();
+    setTimeout(triggerReady, 1000); 
   }, []);
 
   // --- 2. DATA FETCHING (Simplified to fix Memoization Error) ---

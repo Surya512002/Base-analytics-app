@@ -7,9 +7,10 @@
   "frame": {
     "version": "1",
     "name": "Base Analytics",
-    "iconUrl": "https://base.org/favicon.ico",
-    "homeUrl": "https://your-domain.vercel.app",
-    "imageUrl": "https://base.org/images/base-open-graph.png",
-    "buttonTitle": "Check Stats"
+    "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
+    "homeUrl": "https://base-analytics-app.vercel.app",
+    "splashImageUrl": "https://base-analytics-app.vercel.app/icon.png",
+    "splashBackgroundColor": "#f5f8ff",
+    "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook"
   }
-} 
+}

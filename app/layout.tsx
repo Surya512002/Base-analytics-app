@@ -16,17 +16,25 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Base Analytics",
   description: "Track your on-chain engagement and streak.",
-  manifest: "/manifest.json",
   other: {
-    // --- NEW: Base Verification ID ---
-    "base:app_id": "6985c4998dcaa0daf5755f7e", 
+    // --- 1. NEW MINI-APP METADATA (Required for v2) ---
+    "fc:frame": JSON.stringify({
+      version: "next",
+      imageUrl: "https://base-analytics-app.vercel.app/opengraph-image.png", // Ensure you have an OG image or use a public URL
+      button: {
+        title: "Launch Analytics",
+        action: {
+          type: "launch_frame",
+          name: "Base Analytics",
+          url: "https://base-analytics-app.vercel.app",
+          splashImageUrl: "https://base-analytics-app.vercel.app/icon.png", // 200x200px icon
+          splashBackgroundColor: "#f5f8ff"
+        }
+      }
+    }),
     
-    // --- EXISTING: Farcaster Frame Tags ---
-    "fc:frame": "vNext",
-    "fc:frame:image": "https://base.org/images/base-open-graph.png",
-    "fc:frame:button:1": "Launch Analytics",
-    "fc:frame:button:1:action": "link",
-    "fc:frame:button:1:target": "https://base-analytics-app.vercel.app",
+    // --- 2. BASE VERIFICATION ---
+    "base:app_id": "6985c4998dcaa0daf5755f7e", 
   },
 };
 
