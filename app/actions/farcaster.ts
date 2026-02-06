@@ -16,14 +16,16 @@ interface NeynarUser {
   score?: number;
 }
 
-interface NeynarNotification {
-  type: string;
+// Interface for a Cast (Post)
+interface NeynarCast {
+  hash: string;
   timestamp: string;
-  hash?: string;
-  text?: string;
-  author?: {
-    username: string;
-    fid: number;
+  reactions: {
+    likes_count: number;
+    recasts_count: number;
+  };
+  replies: {
+    count: number;
   };
 }
 
@@ -39,8 +41,8 @@ export async function fetchUserAnalytics(fid: number) {
     if (!userResponse.users.length) return null;
     const user = userResponse.users[0] as unknown as NeynarUser;
 
-    // 2. Fetch Engagement (With Fallback for Free Tier)
-    const dayStats = await fetchRealNotifications(fid, user.follower_count);
+    // 2. Fetch REAL Stats via the "Cast Loophole"
+    const dayStats = await fetchStatsFromCasts(fid);
 
     return {
       neynarScore: user.score || 0,
@@ -53,16 +55,16 @@ export async function fetchUserAnalytics(fid: number) {
       day: dayStats,
 
       week: {
-        likes: Math.floor(dayStats.likes * 7),
-        recasts: Math.floor(dayStats.recasts * 7),
-        replies: Math.floor(dayStats.replies * 7),
-        posts: Math.floor(dayStats.posts * 7),
+        likes: dayStats.likes * 7,
+        recasts: dayStats.recasts * 7,
+        replies: dayStats.replies * 7,
+        posts: dayStats.posts * 7,
       },
       twoWeeks: {
-        likes: Math.floor(dayStats.likes * 14),
-        recasts: Math.floor(dayStats.recasts * 14),
-        replies: Math.floor(dayStats.replies * 14),
-        posts: Math.floor(dayStats.posts * 14),
+        likes: dayStats.likes * 14,
+        recasts: dayStats.recasts * 14,
+        replies: dayStats.replies * 14,
+        posts: dayStats.posts * 14,
       }
     };
   } catch (error) {
@@ -71,71 +73,71 @@ export async function fetchUserAnalytics(fid: number) {
   }
 }
 
-async function fetchRealNotifications(fid: number, followerCount: number) {
+// --- THE LOOPHOLE METHOD ---
+// Instead of paying for notifications, we fetch your recent posts (Free)
+// and sum up the likes/replies on them.
+async function fetchStatsFromCasts(fid: number) {
     try {
-        console.log(`DEBUG: Fetching notifications for FID: ${fid}`);
+        console.log(`DEBUG: Fetching recent casts for FID: ${fid}`);
 
-        // We use RAW FETCH to avoid SDK issues and try the standard endpoint
+        // We fetch the user's last 50 casts (usually free on standard tier)
+        // Note: We use the raw URL to ensure we hit the correct v2 endpoint
         const apiKey = process.env.NEYNAR_API_KEY || "";
-        const url = `https://api.neynar.com/v2/farcaster/notifications?fids=${fid}&limit=50`;
+        const url = `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${fid}&limit=50&include_replies=true`;
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'accept': 'application/json',
                 'x-api-key': apiKey
-            }
+            },
+            cache: 'no-store'
         });
 
-        // --- HANDLER FOR FREE TIER (402 ERROR) ---
-        if (response.status === 402) {
-            console.warn("⚠️ Neynar 402 (Payment Required). Switching to ESTIMATED stats.");
-            return generateEstimatedStats(followerCount);
-        }
-
         if (!response.ok) {
-            console.error(`Neynar API Error: ${response.status}`);
-            return generateEstimatedStats(followerCount); // Fallback on any error
+            console.error(`Neynar Casts API Error: ${response.status}`);
+            return { likes: 0, recasts: 0, replies: 0, posts: 0 };
         }
 
         const data = await response.json();
-        const notifications = (data.notifications || []) as NeynarNotification[];
+        const casts = (data.casts || []) as NeynarCast[];
 
         const now = new Date();
         const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
         
         const stats = { likes: 0, recasts: 0, replies: 0, posts: 0 };
 
-        notifications.forEach((n) => {
-            const notificationTime = new Date(n.timestamp);
-            if (notificationTime > twentyFourHoursAgo) {
-                const type = n.type.toLowerCase();
-                if (type.includes('like') || type.includes('reaction')) stats.likes++;
-                if (type.includes('recast')) stats.recasts++;
-                if (type.includes('reply') || type.includes('mention')) stats.replies++;
+        casts.forEach((cast) => {
+            const castTime = new Date(cast.timestamp);
+
+            // We only look at posts made in the last 24 hours to count "New Posts"
+            if (castTime > twentyFourHoursAgo) {
+                stats.posts++;
+            }
+
+            // HOWEVER: Engagement counts accumulate over time.
+            // A post made 20 hours ago might have 50 likes. 
+            // This method counts ALL engagement on recent posts as "Current Engagement".
+            // It's a close-enough approximation for a free app.
+            
+            // Only count stats from relatively recent posts (e.g., last 48 hours)
+            // so we don't count likes from a viral post 3 years ago if it appeared in the feed.
+            const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+            
+            if (castTime > fortyEightHoursAgo) {
+                stats.likes += cast.reactions.likes_count;
+                stats.recasts += cast.reactions.recasts_count;
+                stats.replies += cast.replies.count;
             }
         });
 
-        stats.posts = Math.floor(Math.random() * 3) + 1; // Simulated daily posts
+        console.log("DEBUG: Loophole Stats Calculated:", JSON.stringify(stats));
         return stats;
 
     } catch (e) {
-        console.error("Error fetching notifications:", e);
-        // If everything fails, use estimates so the UI isn't broken
-        return generateEstimatedStats(followerCount);
+        console.error("Error fetching casts:", e);
+        return { likes: 0, recasts: 0, replies: 0, posts: 0 };
     }
-}
-
-// --- HELPER: Generates realistic-looking stats based on follower count ---
-function generateEstimatedStats(followers: number) {
-    // Assume ~2-5% engagement rate for "Realism"
-    const base = Math.max(followers, 10); // prevent 0
-    return {
-        likes: Math.floor(base * 0.05) + Math.floor(Math.random() * 5),
-        recasts: Math.floor(base * 0.01) + Math.floor(Math.random() * 2),
-        replies: Math.floor(base * 0.02) + Math.floor(Math.random() * 3),
-        posts: Math.floor(Math.random() * 2) + 1
-    };
 }
 
 export async function fetchUserByAddress(address: string) {
