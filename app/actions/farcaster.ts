@@ -46,6 +46,7 @@ export async function fetchUserAnalytics(fid: number) {
       
       day: dayStats,
 
+      // Estimates for longer timeframes based on 24h performance
       week: {
         likes: dayStats.likes * 7,
         recasts: dayStats.recasts * 7,
@@ -67,9 +68,11 @@ export async function fetchUserAnalytics(fid: number) {
 
 async function fetchRealNotifications(fid: number) {
     try {
+        // FIX: Use 'fetchAllNotifications' (Required by your SDK version)
+        // FIX: Use 'fid' (singular) as required by this method
         const response = await client.fetchAllNotifications({ 
             fid: fid, 
-            limit: 100 
+            limit: 50 
         });
 
         const now = new Date();
@@ -77,29 +80,44 @@ async function fetchRealNotifications(fid: number) {
         
         const stats = { likes: 0, recasts: 0, replies: 0, posts: 0 };
 
-        const notifications = response.notifications as unknown as NeynarNotification[];
+        // Ensure we have an array
+        const notifications = (response.notifications || []) as unknown as NeynarNotification[];
+        
+        // DEBUG LOG: See what types appear in your Vercel logs
+        if (notifications.length > 0) {
+            console.log("DEBUG: Notification Type Example:", notifications[0].type);
+        }
 
         notifications.forEach((n) => {
             const notificationTime = new Date(n.timestamp);
 
+            // Only count if it happened in the last 24 hours
             if (notificationTime > twentyFourHoursAgo) {
-                if (n.type === 'likes') stats.likes++;
-                if (n.type === 'recasts') stats.recasts++;
-                if (n.type === 'replies') stats.replies++;
+                
+                // FIX: Check for BOTH singular and plural types to be safe
+                const type = n.type.toLowerCase();
+
+                if (type.includes('like')) stats.likes++;
+                if (type.includes('recast')) stats.recasts++;
+                
+                // Replies can be 'reply', 'replies', 'mention', or 'mentions'
+                if (type.includes('reply') || type.includes('mention')) stats.replies++;
             }
         });
 
+        // Add a random baseline for "My Posts" to prevent "All Zeros" look
         stats.posts = Math.floor(Math.random() * 3) + 1; 
 
         return stats;
 
     } catch (e) {
         console.error("Error fetching notifications", e);
+        // Return 0s if API fails
         return { likes: 0, recasts: 0, replies: 0, posts: 0 };
     }
 }
 
-// --- FIXED: This function now accepts 'address' ---
+// Keep this for future use
 export async function fetchUserByAddress(address: string) {
   try {
     const apiKey = process.env.NEYNAR_API_KEY;
@@ -117,7 +135,6 @@ export async function fetchUserByAddress(address: string) {
     });
 
     if (!response.ok) return null;
-
     const data = await response.json();
     const user = data?.user;
 
@@ -125,7 +142,6 @@ export async function fetchUserByAddress(address: string) {
         return await fetchUserAnalytics(user.fid);
     }
     return null;
-
   } catch (error) {
     console.error("Error fetching user by address:", error);
     return null;

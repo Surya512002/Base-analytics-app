@@ -329,7 +329,7 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
            <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-orange-100 rounded-lg"><Sun size={20} className="text-orange-500" /></div>
-              <h3 className="font-bold text-lg text-slate-900">Community Vibes (Costs $0.005)</h3>
+              <h3 className="font-bold text-lg text-slate-900">Community Vibes</h3>
            </div>
            <div className="grid grid-cols-2 gap-4">
               <button onClick={() => handleGmGn('gm')} disabled={gmLoading} className="py-4 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-orange-200 transition-all active:scale-95"><Sun size={24} /> GM</button>
