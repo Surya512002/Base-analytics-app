@@ -2,12 +2,11 @@
 
 import { NeynarAPIClient } from "@neynar/nodejs-sdk";
 
-// Initialize Client for server-side calls
+// --- FIXED: Use the API KEY for data fetching ---
 const client = new NeynarAPIClient({
-  apiKey: process.env.NEXT_PUBLIC_NEYNAR_CLIENT_ID || ""
+  apiKey: process.env.NEYNAR_API_KEY || "" 
 });
 
-// Define types to fix "Unexpected any" errors
 interface NeynarUser {
   fid: number;
   username: string;
@@ -20,14 +19,16 @@ interface NeynarUser {
 
 export async function fetchUserAnalytics(fid: number) {
   try {
-    if (!process.env.NEXT_PUBLIC_NEYNAR_CLIENT_ID) return null;
+    // Check if API Key is missing
+    if (!process.env.NEYNAR_API_KEY) {
+        console.error("CRITICAL: NEYNAR_API_KEY is missing in Vercel!");
+        return null;
+    }
 
     const userResponse = await client.fetchBulkUsers({ fids: [fid] });
     
-    // Fix: Explicitly cast the response to avoid type errors
     if (!userResponse || !userResponse.users || userResponse.users.length === 0) return null;
     
-    // We force the type here to satisfy TypeScript
     const user = userResponse.users[0] as unknown as NeynarUser;
     
     return generateMockStats(user);
@@ -39,21 +40,20 @@ export async function fetchUserAnalytics(fid: number) {
 
 export async function fetchUserByAddress(address: string) {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_NEYNAR_CLIENT_ID;
+    // --- FIXED: Use API KEY for the header ---
+    const apiKey = process.env.NEYNAR_API_KEY;
     if (!apiKey) {
-        console.error("Missing Neynar API Key");
+        console.error("Missing NEYNAR_API_KEY");
         return null;
     }
 
-    // USE RAW FETCH to avoid SDK version mismatches
-    // Fix: Using 'x-api-key' header which is required for direct API calls
     const url = `https://api.neynar.com/v2/farcaster/user/by_verification?address=${address}`;
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'accept': 'application/json',
-        'x-api-key': apiKey // <--- FIXED: Was 'api_key'
+        'x-api-key': apiKey // Must be the API Key, not Client ID
       },
       cache: 'no-store'
     });
@@ -64,7 +64,7 @@ export async function fetchUserByAddress(address: string) {
     }
 
     const data = await response.json();
-    const user = data?.user as NeynarUser; // Fix: Typed casting
+    const user = data?.user as NeynarUser;
 
     if (user) {
         return generateMockStats(user);
@@ -77,7 +77,6 @@ export async function fetchUserByAddress(address: string) {
   }
 }
 
-// Helper function with proper types
 function generateMockStats(user: NeynarUser) {
     return {
       neynarScore: user.score || 0,
