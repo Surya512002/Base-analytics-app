@@ -1,0 +1,15 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE2ODksInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg1QTllMzExZDU3ZEJhZTI2RDk1MDhBNzQyMDFhMjNlMTk4NDQ1M0EzIn0",
+    "payload": "eyJkb21haW4iOiJ5b3VyLWRvbWFpbi52ZXJjZWwuYXBwIn0",
+    "signature": "MHgyYj..."
+  },
+  "frame": {
+    "version": "1",
+    "name": "Base Analytics",
+    "iconUrl": "https://base.org/favicon.ico",
+    "homeUrl": "https://your-domain.vercel.app",
+    "imageUrl": "https://base.org/images/base-open-graph.png",
+    "buttonTitle": "Check Stats"
+  }
+} 
