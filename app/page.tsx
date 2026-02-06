@@ -3,17 +3,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNeynarContext, NeynarAuthButton } from "@neynar/react";
 import Image from 'next/image';
-import { TrendingUp, Repeat, MessageCircle, PenTool, CheckCircle2, Wallet, RefreshCcw, Zap, Trophy, Share2, Sun, Moon, Users, UserPlus } from 'lucide-react';
-import { fetchUserAnalytics } from "./actions/farcaster";
+import { TrendingUp, Repeat, MessageCircle, PenTool, CheckCircle2, Wallet, RefreshCcw, Zap, Trophy, Share2, Sun, Moon, Users, UserPlus, LogOut, Power } from 'lucide-react';
+import { fetchUserAnalytics, fetchUserByAddress } from "./actions/farcaster";
 import { Contract, BrowserProvider, Eip1193Provider } from 'ethers';
-import sdk from "@farcaster/frame-sdk"; 
+// --- NEW CORRECT IMPORT ---
+import { sdk } from "@farcaster/miniapp-sdk";
 
-// --- CONFIGURATION ---
-const CREATOR_USERNAME = "suryaprakash"; 
-const APP_URL = "https://base-analytics-app.vercel.app"; 
-// REPLACE WITH YOUR REAL CONTRACT ADDRESSES
-const CHECKIN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
-const GM_GN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
+// --- 1. CONFIGURATION (Update these!) ---
+const CREATOR_USERNAME = "suryaprakash.eth"; // Your Farcaster Username
+const APP_URL = "https://base-analytics-app.vercel.app/"; // Your Vercel URL
+// Replace with your real deployed addresses from Remix
+const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
+const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
+ 
 
 // --- ABIs ---
 const CHECKIN_ABI = [
@@ -43,6 +45,9 @@ interface AnalyticsData {
   neynarScore: number;
   followers: number;
   following: number;
+  username?: string;
+  pfp?: string;
+  fid?: number;
 }
 
 interface EthereumWindow extends Window {
@@ -50,7 +55,7 @@ interface EthereumWindow extends Window {
 }
 
 export default function AnalyticsDashboard() {
-  const { user } = useNeynarContext();
+  const { user, logoutUser } = useNeynarContext();
   
   const [engagement, setEngagement] = useState<AnalyticsData | null>(null);
   const [timeframe, setTimeframe] = useState<'day' | 'week' | 'twoWeeks'>('week');
@@ -62,21 +67,21 @@ export default function AnalyticsDashboard() {
   const [txLoading, setTxLoading] = useState(false);
   const [gmLoading, setGmLoading] = useState(false);
 
- useEffect(() => {
-  const load = async () => {
-    try {
-      if (sdk && sdk.actions) {
+  // --- CRITICAL: CALL READY() ---
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // This tells Farcaster to hide the splash screen
         await sdk.actions.ready();
-        // setIsSDKLoaded(true); <--- DELETE THIS LINE TOO
-        console.log("Farcaster SDK Ready called successfully");
+        console.log("Farcaster MiniApp SDK Ready!");
+      } catch (err) {
+        console.error("SDK Ready failed:", err);
       }
-    } catch (err) {
-      console.error("SDK Ready failed:", err);
-    }
-  };
-
-  setTimeout(load, 100);
-}, []);
+    };
+    
+    // Slight delay ensures the DOM is painted before we signal ready
+    setTimeout(load, 100);
+  }, []);
 
   // --- HELPER FUNCTIONS ---
   const fetchContractData = useCallback(async (address: string) => {
@@ -97,6 +102,7 @@ export default function AnalyticsDashboard() {
     }
   }, []);
 
+  // --- WALLET CONNECTION & DISCONNECT ---
   const connectWallet = async () => {
     if (typeof window === 'undefined') return;
     const ethWindow = window as unknown as EthereumWindow;
@@ -107,8 +113,21 @@ export default function AnalyticsDashboard() {
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
+        
         setWalletAddress(address);
         fetchContractData(address);
+
+        if (!user && !engagement) {
+            setLoading(true);
+            const data = await fetchUserByAddress(address);
+            if (data) {
+                setEngagement(data as unknown as AnalyticsData);
+            } else {
+                alert("No Farcaster account found for this wallet.");
+            }
+            setLoading(false);
+        }
+
       } catch (error) {
         console.error("Connection failed", error);
       }
@@ -117,6 +136,19 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  const disconnectWallet = () => {
+      setWalletAddress(null);
+      setPoints(0);
+      setStreak(0);
+      if (!user) setEngagement(null);
+  };
+
+  const handleNeynarLogout = () => {
+      logoutUser(); 
+      setEngagement(null);
+  };
+
+  // --- CONTRACT INTERACTIONS ---
   const handleOnChainCheckIn = async () => {
     if (!walletAddress) return connectWallet();
     if (typeof window === 'undefined') return;
@@ -171,10 +203,8 @@ export default function AnalyticsDashboard() {
 
   const handleShare = () => {
     if (!engagement) return;
-    
     const currentStats = engagement[timeframe];
     const timeframeLabel = timeframe === 'twoWeeks' ? '2 Weeks' : timeframe.charAt(0).toUpperCase() + timeframe.slice(1);
-
     const text = `My Base Analytics (${timeframeLabel}):
 🔥 Neynar Score: ${(engagement.neynarScore * 100).toFixed(1)}%
 ❤️ Likes: ${currentStats.likes}
@@ -190,9 +220,7 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
     if (user?.fid) {
       setLoading(true);
       const data = await fetchUserAnalytics(user.fid);
-      if (data) {
-          setEngagement(data as unknown as AnalyticsData);
-      }
+      if (data) setEngagement(data as unknown as AnalyticsData);
       setLoading(false);
     }
   };
@@ -201,48 +229,43 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
     async function initData() {
       if (user?.fid) {
         setLoading(true);
-        console.log("Fetching analytics for FID:", user.fid);
         const data = await fetchUserAnalytics(user.fid);
-        if (data) {
-            console.log("Analytics received:", data);
-            setEngagement(data as unknown as AnalyticsData);
-        } else {
-            console.error("No analytics data received");
-        }
+        if (data) setEngagement(data as unknown as AnalyticsData);
         setLoading(false);
       }
     }
     initData();
   }, [user?.fid]);
 
-  useEffect(() => {
-    async function checkConnection() {
-      if (typeof window === 'undefined') return;
-      const ethWindow = window as unknown as EthereumWindow;
-      if (ethWindow.ethereum) {
-        try {
-          const provider = new BrowserProvider(ethWindow.ethereum);
-          const accounts = await provider.listAccounts();
-          if (accounts.length > 0) {
-            const address = await accounts[0].getAddress();
-            setWalletAddress(address);
-            fetchContractData(address);
-          }
-        } catch (error) {
-          console.error("Error checking wallet:", error);
-        }
-      }
-    }
-    checkConnection();
-  }, [fetchContractData]);
+  // --- RENDER LOGIC ---
+  const displayUser = user || (engagement?.username ? { 
+      username: engagement.username, 
+      pfp_url: engagement.pfp 
+  } : null);
 
-  if (!user) return (
+  if (!displayUser && !engagement) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
       <div className="w-16 h-16 bg-blue-600 rounded-2xl mb-6 flex items-center justify-center shadow-blue-200 shadow-xl">
         <TrendingUp className="text-white" size={32} />
       </div>
       <h1 className="text-2xl font-black text-slate-900 mb-2 italic tracking-tighter">BASE ANALYTICS</h1>
-      <NeynarAuthButton />
+      
+      <div className="space-y-4 w-full max-w-xs">
+          <NeynarAuthButton />
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Or check via Wallet</span></div>
+          </div>
+
+          <button 
+            onClick={connectWallet}
+            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition shadow-lg"
+          >
+            <Wallet size={18} />
+            Connect Wallet
+          </button>
+      </div>
     </div>
   );
 
@@ -258,16 +281,27 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
             </div>
             <span className="font-black italic tracking-tighter text-blue-600 text-lg">BASE</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            
             {!walletAddress ? (
-              <button onClick={connectWallet} className="bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition">
-                Connect Wallet
+              <button onClick={connectWallet} className="bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition flex items-center gap-2">
+                <Wallet size={14} /> Connect
               </button>
             ) : (
-              <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-xs font-bold border border-blue-100">
-                {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
+              <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 rounded-full p-1 pl-3">
+                <span className="text-blue-600 text-xs font-bold">
+                    {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
+                </span>
+                <button 
+                    onClick={disconnectWallet}
+                    className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-red-500 hover:bg-red-50"
+                    title="Disconnect Wallet"
+                >
+                    <Power size={12} />
+                </button>
               </div>
             )}
+
             <button onClick={handleRefresh} className={`p-2 rounded-full hover:bg-slate-100 transition-all ${loading ? 'animate-spin' : ''}`}>
               <RefreshCcw size={20} className="text-slate-400" />
             </button>
@@ -344,11 +378,20 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
         </div>
 
         {/* PROFILE SECTION */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center gap-6 justify-between">
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center gap-6 justify-between relative group">
+            
+            <button 
+                onClick={handleNeynarLogout}
+                className="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors p-2"
+                title="Sign Out of Farcaster"
+            >
+                <LogOut size={18} />
+            </button>
+
             <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
               <div className="shrink-0">
                   <Image 
-                      src={user.pfp_url || ''} 
+                      src={displayUser?.pfp_url || ''} 
                       alt="Profile" 
                       width={80}
                       height={80}
@@ -360,16 +403,14 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
               <div className="text-center sm:text-left w-full">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                       
-                      {/* Score */}
                       <div>
                           <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Neynar Score</p>
                           <h1 className="text-5xl font-black text-slate-900 tracking-tight">
                               {(engagement?.neynarScore ? engagement.neynarScore * 100 : 0).toFixed(1)}%
                           </h1>
-                          <p className="text-slate-400 text-sm font-medium mt-1">@{user.username}</p>
+                          <p className="text-slate-400 text-sm font-medium mt-1">@{displayUser?.username}</p>
                       </div>
 
-                      {/* Followers & Following Stats */}
                       <div className="flex gap-6 border-l border-slate-100 pl-6">
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
@@ -389,7 +430,6 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
             </div>
 
             <div className="flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-               {/* Timeframe Toggles */}
                <div className="bg-slate-50 p-1 rounded-xl flex gap-1 self-center w-full">
                   {(['day', 'week', 'twoWeeks'] as const).map((t) => (
                       <button 
