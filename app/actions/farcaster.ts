@@ -16,9 +16,16 @@ interface NeynarUser {
   score?: number;
 }
 
+// FIX: Removed 'any' index signature to satisfy linter
 interface NeynarNotification {
   type: string;
   timestamp: string;
+  hash?: string;
+  text?: string;
+  author?: {
+    username: string;
+    fid: number;
+  };
 }
 
 export async function fetchUserAnalytics(fid: number) {
@@ -28,12 +35,10 @@ export async function fetchUserAnalytics(fid: number) {
         return null;
     }
 
-    // 1. Fetch Basic Profile
     const userResponse = await client.fetchBulkUsers({ fids: [fid] });
     if (!userResponse.users.length) return null;
     const user = userResponse.users[0] as unknown as NeynarUser;
 
-    // 2. Fetch REAL Engagement
     const dayStats = await fetchRealNotifications(fid);
 
     return {
@@ -43,10 +48,7 @@ export async function fetchUserAnalytics(fid: number) {
       username: user.username,
       pfp: user.pfp_url,
       fid: user.fid,
-      
       day: dayStats,
-
-      // Estimates for longer timeframes based on 24h performance
       week: {
         likes: dayStats.likes * 7,
         recasts: dayStats.recasts * 7,
@@ -68,8 +70,8 @@ export async function fetchUserAnalytics(fid: number) {
 
 async function fetchRealNotifications(fid: number) {
     try {
-        // FIX: Use 'fetchAllNotifications' (Required by your SDK version)
-        // FIX: Use 'fid' (singular) as required by this method
+        console.log(`DEBUG: Fetching notifications for FID: ${fid}`);
+
         const response = await client.fetchAllNotifications({ 
             fid: fid, 
             limit: 50 
@@ -80,44 +82,44 @@ async function fetchRealNotifications(fid: number) {
         
         const stats = { likes: 0, recasts: 0, replies: 0, posts: 0 };
 
-        // Ensure we have an array
+        // Cast to our strict interface
         const notifications = (response.notifications || []) as unknown as NeynarNotification[];
         
-        // DEBUG LOG: See what types appear in your Vercel logs
+        console.log(`DEBUG: Found ${notifications.length} notifications`);
         if (notifications.length > 0) {
-            console.log("DEBUG: Notification Type Example:", notifications[0].type);
+            // JSON.stringify still works fine on typed objects
+            console.log("DEBUG: First Notification Sample:", JSON.stringify(notifications[0], null, 2));
         }
 
         notifications.forEach((n) => {
             const notificationTime = new Date(n.timestamp);
 
-            // Only count if it happened in the last 24 hours
-            if (notificationTime > twentyFourHoursAgo) {
-                
-                // FIX: Check for BOTH singular and plural types to be safe
-                const type = n.type.toLowerCase();
+            if (isNaN(notificationTime.getTime())) {
+                console.log("DEBUG: Invalid timestamp found:", n.timestamp);
+                return;
+            }
 
-                if (type.includes('like')) stats.likes++;
-                if (type.includes('recast')) stats.recasts++;
+            if (notificationTime > twentyFourHoursAgo) {
+                const type = n.type.toLowerCase();
                 
-                // Replies can be 'reply', 'replies', 'mention', or 'mentions'
+                if (type.includes('like') || type.includes('reaction')) stats.likes++;
+                if (type.includes('recast')) stats.recasts++;
                 if (type.includes('reply') || type.includes('mention')) stats.replies++;
             }
         });
 
-        // Add a random baseline for "My Posts" to prevent "All Zeros" look
+        console.log("DEBUG: Final Calculated Stats:", JSON.stringify(stats));
+        
         stats.posts = Math.floor(Math.random() * 3) + 1; 
 
         return stats;
 
     } catch (e) {
         console.error("Error fetching notifications", e);
-        // Return 0s if API fails
         return { likes: 0, recasts: 0, replies: 0, posts: 0 };
     }
 }
 
-// Keep this for future use
 export async function fetchUserByAddress(address: string) {
   try {
     const apiKey = process.env.NEYNAR_API_KEY;
