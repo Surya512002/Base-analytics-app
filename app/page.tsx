@@ -6,14 +6,14 @@ import Image from 'next/image';
 import { TrendingUp, Repeat, MessageCircle, PenTool, CheckCircle2, Wallet, RefreshCcw, Zap, Trophy, Share2, Sun, Moon, Users, UserPlus } from 'lucide-react';
 import { fetchUserAnalytics } from "./actions/farcaster";
 import { Contract, BrowserProvider, Eip1193Provider } from 'ethers';
-import sdk from "@farcaster/frame-sdk"; // <--- NEW IMPORT
+import sdk from "@farcaster/frame-sdk"; 
 
-// --- 1. CONFIGURATION (Update these!) ---
-const CREATOR_USERNAME = "suryaprakash.eth"; // Your Farcaster Username
-const APP_URL = "https://base-analytics-app.vercel.app/"; // Your Vercel URL
-// Replace with your real deployed addresses from Remix
-const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
-const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133";
+// --- CONFIGURATION ---
+const CREATOR_USERNAME = "suryaprakash"; 
+const APP_URL = "https://base-analytics-app.vercel.app"; 
+// REPLACE WITH YOUR REAL CONTRACT ADDRESSES
+const CHECKIN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
+const GM_GN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
 
 // --- ABIs ---
 const CHECKIN_ABI = [
@@ -62,14 +62,21 @@ export default function AnalyticsDashboard() {
   const [txLoading, setTxLoading] = useState(false);
   const [gmLoading, setGmLoading] = useState(false);
 
-  // --- NEW: TELL FARCASTER WE ARE READY ---
-  useEffect(() => {
-    const load = async () => {
-      // This tells the Farcaster app to hide the splash screen
-      sdk.actions.ready(); 
-    };
-    load();
-  }, []);
+ useEffect(() => {
+  const load = async () => {
+    try {
+      if (sdk && sdk.actions) {
+        await sdk.actions.ready();
+        // setIsSDKLoaded(true); <--- DELETE THIS LINE TOO
+        console.log("Farcaster SDK Ready called successfully");
+      }
+    } catch (err) {
+      console.error("SDK Ready failed:", err);
+    }
+  };
+
+  setTimeout(load, 100);
+}, []);
 
   // --- HELPER FUNCTIONS ---
   const fetchContractData = useCallback(async (address: string) => {
@@ -183,7 +190,9 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
     if (user?.fid) {
       setLoading(true);
       const data = await fetchUserAnalytics(user.fid);
-      setEngagement(data as unknown as AnalyticsData);
+      if (data) {
+          setEngagement(data as unknown as AnalyticsData);
+      }
       setLoading(false);
     }
   };
@@ -192,8 +201,14 @@ Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
     async function initData() {
       if (user?.fid) {
         setLoading(true);
+        console.log("Fetching analytics for FID:", user.fid);
         const data = await fetchUserAnalytics(user.fid);
-        setEngagement(data as unknown as AnalyticsData);
+        if (data) {
+            console.log("Analytics received:", data);
+            setEngagement(data as unknown as AnalyticsData);
+        } else {
+            console.error("No analytics data received");
+        }
         setLoading(false);
       }
     }
