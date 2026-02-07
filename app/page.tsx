@@ -11,13 +11,13 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ YOUR REAL ADDRESSES (Keep these!)
+// ✅ YOUR REAL ADDRESSES (Ensure these are correct!)
 const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
+// ✅ FIXED ABI: Removed the lowercase "checkin" to prevent errors
 const CHECKIN_ABI = [
   "function checkIn() external payable", 
-  "function checkin() external payable", 
   "function getUserData(address _user) external view returns (uint256, uint256, uint256)", 
   "function checkInFee() external view returns (uint256)"
 ];
@@ -236,8 +236,9 @@ export default function Page() {
       let fee = parseEther("0.000004");
       try { fee = await contract.checkInFee(); } catch { console.warn("Using default fee"); }
 
-      // ✅ REMOVED the placeholder address check (Since you have real addresses now)
-      const tx = await contract.checkIn({ 
+      // ✅ EXPLICIT CALL: Forces Ethers to use the specific function signature
+      // This solves the confusion between "checkIn" and "checkin"
+      const tx = await contract.getFunction("checkIn")({ 
           value: fee,
           gasLimit: 300000 
       });
@@ -270,7 +271,6 @@ export default function Page() {
         }
       }
 
-      // ✅ REMOVED the placeholder address check
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       let fee = parseEther("0.000004");
       try { fee = await contract.fee(); } catch {}
