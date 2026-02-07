@@ -266,10 +266,7 @@ export default function Page() {
         }
       }
       
-      // 2. Check Contract
-      if (CHECKIN_CONTRACT_ADDRESS === "0x100a14B0c760b0d8e617e0D9230226566b6fACB0") {
-          throw new Error("Contract Address not set! Please deploy the contract first.");
-      }
+      // 2. Check Contract Interaction
 
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       let fee = parseEther("0.000004");
@@ -311,11 +308,7 @@ export default function Page() {
             return;
         }
       }
-
-      if (GM_GN_CONTRACT_ADDRESS === "0xc801bCe6739D30C409151a544F0baEd10EB719dE") {
-          throw new Error("GM Contract Address not set!");
-      }
-
+      
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       let fee = parseEther("0.000004");
       try { fee = await contract.fee(); } catch {}
