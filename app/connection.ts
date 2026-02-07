@@ -6,7 +6,6 @@ interface WindowWithEthereum extends Window {
   coinbaseWalletExtension?: Eip1193Provider;
 }
 
-// Helper to wait (sleep)
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export async function getWalletProvider(type: 'farcaster' | 'coinbase' | 'metamask'): Promise<BrowserProvider> {
@@ -26,32 +25,38 @@ export async function getWalletProvider(type: 'farcaster' | 'coinbase' | 'metama
     selectedProvider = win.ethereum;
   }
   
-  // 3. FARCASTER (Robust Logic)
+  // 3. FARCASTER (Aggressive Polling Fix)
   else if (type === 'farcaster') {
-    // Attempt 1: Check SDK directly (bypassing TS types)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sdkProvider = (sdk as any).provider;
     
-    if (sdkProvider) {
-      selectedProvider = sdkProvider;
-    } 
-    // Attempt 2: Check window.ethereum (Standard Frame v2)
-    else if (win.ethereum) {
-      selectedProvider = win.ethereum;
-    } 
-    // Attempt 3: Poll for 3 seconds (Fixes Race Condition)
-    else {
-      console.log("Polling for Farcaster wallet...");
-      for (let i = 0; i < 6; i++) { // Try 6 times (3 seconds total)
-        await sleep(500);
+    // RETRY LOOP: Try to find the wallet for 5 seconds (20 checks)
+    for (let i = 0; i < 20; i++) {
+      
+      // Check 1: Farcaster SDK Provider (Primary)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((sdk as any).provider) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((sdk as any).provider) { selectedProvider = (sdk as any).provider; break; }
-        if (win.ethereum) { selectedProvider = win.ethereum; break; }
+        selectedProvider = (sdk as any).provider;
+        console.log("Found SDK Provider");
+        break;
       }
+
+      // Check 2: Window.ethereum (Standard Injection)
+      if (win.ethereum) {
+        selectedProvider = win.ethereum;
+        console.log("Found Window Ethereum");
+        break;
+      }
+
+      // Wait 250ms before trying again
+      await sleep(250);
     }
 
     if (!selectedProvider) {
-      throw new Error("Farcaster Wallet not found. Are you sure you are inside Warpcast?");
+      // Final desperate check
+      if (win.ethereum) selectedProvider = win.ethereum;
+      else {
+        throw new Error("Farcaster Wallet still loading... Please tap the button again.");
+      }
     }
   }
 

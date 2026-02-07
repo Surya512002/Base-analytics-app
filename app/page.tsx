@@ -5,7 +5,7 @@ import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, Refresh
 import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 // IMPORT THE NEW CONNECTION FILE
-import { connectWallet, getWalletProvider } from './connection';
+import { connectWallet } from './connection';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
@@ -327,22 +327,9 @@ export default function Page() {
     if (!wallet) return setShowConnectModal(true);
     
     try {
-      // 1. Get the robust provider
-      // Note: We blindly try 'farcaster' first if inside sdk, else we check window.ethereum
-      // For simplicity here, we assume if they connected via X, they want to sign via X.
-      // But we need a robust way to get "Current Provider".
-      // Strategy: Try getting the Farcaster provider first, fall back to window.ethereum
-      
-      let provider;
-      try {
-         provider = await getWalletProvider('farcaster'); 
-      } catch {
-         // Fallback to generic browser wallet
-         provider = await getWalletProvider('metamask');
-      }
-
       setTxLoading(true);
-      const signer = await provider.getSigner();
+      // Re-use connection logic to get the active signer
+      const { signer } = await connectWallet('farcaster'); 
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
       let fee = parseEther("0.000004");
@@ -378,9 +365,7 @@ export default function Page() {
     if (!wallet) return setShowConnectModal(true);
     try {
       setGmLoading(true);
-      // Simplified: Just grab window.ethereum for these standard txs or same fallback logic
-      const provider = await getWalletProvider('metamask'); // Most GM/GN bots use standard wallet
-      const signer = await provider.getSigner();
+      const { signer } = await connectWallet('farcaster');
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       const fee = await contract.fee();
       const tx = type === 'gm' ? await contract.gm({ value: fee }) : await contract.gn({ value: fee });
