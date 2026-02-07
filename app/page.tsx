@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-// FIXED: Added Share2 and Send back to imports
 import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight } from 'lucide-react';
 import { BrowserProvider, JsonRpcProvider, formatEther, parseEther, Contract, Eip1193Provider } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -9,7 +8,9 @@ import { sdk } from "@farcaster/miniapp-sdk";
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
-const APP_URL = "https://base-analytics-app.vercel.app";
+
+// DIRECT DEEP LINK FOR SHARING
+const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
 // CONTRACTS
 const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
@@ -338,10 +339,19 @@ export default function Page() {
             }
         }
         else if (type === 'farcaster') {
-            if (win.ethereum) {
+            // FIX: Force check SDK provider first (Bypassing TS check with 'any')
+            // Then fallback to window.ethereum
+            // This fixes "Farcaster Wallet not found" inside Warpcast
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sdkProvider = (sdk as any).provider;
+            
+            if (sdkProvider) {
+                selectedProvider = sdkProvider;
+            } else if (win.ethereum) {
                 selectedProvider = win.ethereum;
             } else {
-                return alert("Farcaster Wallet not found. \n\n⚠️ If you are on Chrome/Safari, this button won't work.\n\nPlease open this link INSIDE the Farcaster (Warpcast) App to connect automatically.");
+                return alert("Farcaster Wallet not found. \n\nAre you sure you opened this as a Frame?\nTry reloading Warpcast.");
             }
         }
 
@@ -361,12 +371,16 @@ export default function Page() {
     if (!wallet) return setShowConnectModal(true);
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
-    if (!win.ethereum) return; 
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sdkProvider = (sdk as any).provider;
+    
+    if (!win.ethereum && !sdkProvider) return; 
 
     try {
       setTxLoading(true);
       
-      const provider = new BrowserProvider(win.ethereum);
+      const provider = new BrowserProvider(sdkProvider || win.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
@@ -426,12 +440,12 @@ export default function Page() {
             await navigator.share({
                 title: 'My Base Analytics',
                 text: shareText,
-                url: APP_URL,
+                url: MINIAPP_URL, // Use Deep Link
             });
         } catch (err) { console.log('Share canceled', err); }
     } else {
         alert("Link copied to clipboard!");
-        navigator.clipboard.writeText(`${shareText}\n${APP_URL}`);
+        navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); // Use Deep Link
     }
   };
 
@@ -439,7 +453,7 @@ export default function Page() {
     if (!wallet) return;
     const identity = wallet.basename || `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
     const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
-    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(APP_URL)}`, '_blank');
+    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   if (!isReady) return <div className="min-h-screen bg-[#000510] flex items-center justify-center text-blue-500 font-mono">INITIALIZING BASE...</div>;
