@@ -25,39 +25,16 @@ export async function getWalletProvider(type: 'farcaster' | 'coinbase' | 'metama
     selectedProvider = win.ethereum;
   }
   
-  // 3. FARCASTER (Aggressive Polling Fix)
+  // 3. FARCASTER (Aggressive Polling)
   else if (type === 'farcaster') {
-    
-    // RETRY LOOP: Try to find the wallet for 5 seconds (20 checks)
     for (let i = 0; i < 20; i++) {
-      
-      // Check 1: Farcaster SDK Provider (Primary)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((sdk as any).provider) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        selectedProvider = (sdk as any).provider;
-        console.log("Found SDK Provider");
-        break;
-      }
-
-      // Check 2: Window.ethereum (Standard Injection)
-      if (win.ethereum) {
-        selectedProvider = win.ethereum;
-        console.log("Found Window Ethereum");
-        break;
-      }
-
-      // Wait 250ms before trying again
+      if ((sdk as any).provider) { selectedProvider = (sdk as any).provider; break; }
+      if (win.ethereum) { selectedProvider = win.ethereum; break; }
       await sleep(250);
     }
-
-    if (!selectedProvider) {
-      // Final desperate check
-      if (win.ethereum) selectedProvider = win.ethereum;
-      else {
-        throw new Error("Farcaster Wallet still loading... Please tap the button again.");
-      }
-    }
+    if (!selectedProvider && win.ethereum) selectedProvider = win.ethereum;
+    if (!selectedProvider) throw new Error("Farcaster Wallet not found. Please try again.");
   }
 
   if (!selectedProvider) throw new Error("No provider found");
@@ -68,6 +45,17 @@ export async function getWalletProvider(type: 'farcaster' | 'coinbase' | 'metama
 export async function connectWallet(type: 'farcaster' | 'coinbase' | 'metamask'): Promise<{ signer: JsonRpcSigner, address: string }> {
   try {
     const provider = await getWalletProvider(type);
+
+    // FORCE METAMASK TO SHOW ACCOUNT PICKER
+    if (type === 'metamask') {
+        try {
+            // This forces the "Select Account" popup to open
+            await provider.send("wallet_requestPermissions", [{ eth_accounts: {} }]);
+        } catch (e) {
+            console.log("Permissions request cancelled or not supported", e);
+        }
+    }
+
     const signer = await provider.getSigner();
     const address = await signer.getAddress();
     return { signer, address };

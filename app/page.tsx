@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
-// IMPORT THE NEW CONNECTION FILE
 import { connectWallet } from './connection';
 
 // --- CONFIGURATION ---
@@ -78,8 +77,10 @@ export default function Page() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-      sdk.actions.ready();
-      setIsReady(true);
+      try {
+        sdk.actions.ready();
+        setIsReady(true);
+      } catch (e) { console.error(e); }
     }
   }, []);
 
@@ -312,9 +313,10 @@ export default function Page() {
     }
   };
 
-  // --- CONNECT LOGIC (Updated to use connection.ts) ---
+  // --- CONNECT HANDLER ---
   const handleConnect = async (type: 'farcaster' | 'coinbase' | 'metamask') => {
     try {
+      // Connects and FORCES account selection for MetaMask
       const { address } = await connectWallet(type);
       analyzeWallet(address);
     } catch (e) {
@@ -323,12 +325,17 @@ export default function Page() {
     }
   };
 
+  // --- DISCONNECT HANDLER ---
+  const handleDisconnect = () => {
+    setWallet(null); // Clear UI state immediately
+  };
+
   const handleOnChainCheckIn = async () => {
     if (!wallet) return setShowConnectModal(true);
     
     try {
       setTxLoading(true);
-      // Re-use connection logic to get the active signer
+      
       const { signer } = await connectWallet('farcaster'); 
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
@@ -466,7 +473,8 @@ export default function Page() {
             <div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50"><Activity className="text-white" size={20}/></div>
             <span className="font-black text-xl tracking-tight text-white">BASE ANALYTICS</span>
         </div>
-        <button onClick={() => setWallet(null)} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
+        {/* FIXED: Using handleDisconnect here */}
+        <button onClick={handleDisconnect} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
       </div>
 
       <div className="bg-linear-to-r from-blue-950/40 to-slate-900/40 rounded-3xl p-1 shadow-2xl mb-8 border border-blue-900/30 relative overflow-hidden group">
