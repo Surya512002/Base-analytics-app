@@ -1,353 +1,548 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNeynarContext, NeynarAuthButton } from "@neynar/react";
-import Image from 'next/image';
-import { TrendingUp, Repeat, MessageCircle, PenTool, CheckCircle2, Wallet, RefreshCcw, Zap, Trophy, Share2, Sun, Moon, Users, UserPlus, LogOut, Power } from 'lucide-react';
-import { fetchUserAnalytics, fetchUserByAddress } from "./actions/farcaster";
-import { Contract, BrowserProvider, Eip1193Provider } from 'ethers';
+import React, { useState, useEffect } from 'react';
+import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck } from 'lucide-react';
+import { BrowserProvider, JsonRpcProvider, formatEther, Contract, Eip1193Provider } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 
-// --- 1. CONFIGURATION (Update these!) ---
-const CREATOR_USERNAME = "suryaprakash.farcaster.eth"; // Your Farcaster Username
-const APP_URL = "https://base-analytics-app.vercel.app/"; // Your Vercel URL
-// Replace with your real deployed addresses from Remix
+// --- CONFIGURATION ---
+const ALCHEMY_KEY = "ZHHTYOLANc6hp1RX7bQp1"; 
+const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
+const APP_URL = "https://base-analytics-app.vercel.app";
+
+// CONTRACTS
 const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
 const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
-
 const CHECKIN_ABI = ["function checkIn() external payable", "function getUserData(address _user) external view returns (uint256, uint256, uint256)", "function checkInFee() external view returns (uint256)"];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
-interface TimeframeStats {
-  likes: number;
-  recasts: number;
-  replies: number;
-  posts: number;
+const MONTHS_3_LETTERS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// --- TYPES ---
+interface WalletData {
+  address: string;
+  basename: string | null;
+  balance: string;
+  ethVolume: string;
+  txCount: number;
+  uniqueDays: number;
+  activeWeeks: number;
+  activeMonths: number;
+  currentStreak: number;
+  longestStreak: number;
+  firstTx: string;
+  lastTx: string;
+  daysSinceActive: number;
+  tokensSwapped: number; 
+  swapCount: number;     
+  contractInteractions: number;
+  score: number;
+  activityMap: boolean[]; 
+  historyDays: number;
+  weekLabels: string[]; 
 }
 
-interface AnalyticsData {
-  day: TimeframeStats;
-  week: TimeframeStats;
-  twoWeeks: TimeframeStats;
-  neynarScore: number;
-  followers: number;
-  following: number;
-  username?: string;
-  pfp?: string;
-  fid?: number;
+interface AlchemyTransfer {
+  category: string;
+  value: number | null;
+  asset: string | null;
+  metadata: {
+    blockTimestamp: string;
+  };
 }
 
-interface StatCardProps {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
+interface AlchemyResponse {
+  result?: {
+    transfers: AlchemyTransfer[];
+    pageKey?: string;
+  };
+  error?: {
+    message: string;
+  };
 }
 
-interface EthereumWindow extends Window {
+interface WindowWithEthereum extends Window {
   ethereum?: Eip1193Provider;
 }
 
-export default function AnalyticsDashboard() {
-  const { user, logoutUser } = useNeynarContext();
-  
-  const [engagement, setEngagement] = useState<AnalyticsData | null>(null);
-  const [timeframe, setTimeframe] = useState<'day' | 'week' | 'twoWeeks'>('week');
+export default function Page() {
+  const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("");
   const [isReady, setIsReady] = useState(false);
 
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  // Contract State
   const [points, setPoints] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [streak, setStreak] = useState(0); 
   const [txLoading, setTxLoading] = useState(false);
   const [gmLoading, setGmLoading] = useState(false);
 
-  // --- 1. FORCE READY (Prevents Splash Screen Freeze) ---
   useEffect(() => {
-    const load = async () => {
-        if (sdk && sdk.actions) {
-            try {
-                await sdk.actions.ready();
-            } catch (e) {
-                console.error("SDK Ready failed", e);
-            }
-        }
-        setIsReady(true);
-    };
-    load();
+    if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+      sdk.actions.ready();
+      setIsReady(true);
+    }
   }, []);
 
-  // --- 2. DATA FETCHING ---
-  useEffect(() => {
-    async function loadData() {
-        if (user?.fid) {
-            setLoading(true);
-            const data = await fetchUserAnalytics(user.fid);
-            if (data) setEngagement(data as unknown as AnalyticsData);
-            setLoading(false);
-        }
-    }
-    loadData();
-  }, [user?.fid]);
+  const getStrictUTCDate = (isoTimestamp: string) => {
+    const date = new Date(isoTimestamp); 
+    return date.toISOString().split('T')[0];
+  };
 
-  // --- 3. HELPER FUNCTIONS ---
-  const handleRefresh = async () => {
-    if (user?.fid) {
-      setLoading(true);
-      const data = await fetchUserAnalytics(user.fid);
-      if (data) setEngagement(data as unknown as AnalyticsData);
+  const getISOWeekToken = (date: Date) => {
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const year = d.getUTCFullYear();
+    const weekNo = Math.ceil((((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000) + 1) / 7);
+    return `${year}-W${weekNo}`;
+  };
+
+  const analyzeWallet = async (address: string) => {
+    setLoading(true);
+    setLoadingMsg("Scanning Base Network...");
+    
+    try {
+      const provider = new JsonRpcProvider(BASE_RPC);
+      
+      let basename = null;
+      try { basename = await provider.lookupAddress(address); } catch {}
+      const balWei = await provider.getBalance(address);
+
+      try {
+          const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, provider);
+          const data = await contract.getUserData(address);
+          setPoints(Number(data[0]));
+          setStreak(Number(data[1]));
+      } catch {}
+
+      let allTransfers: AlchemyTransfer[] = [];
+      let pageKey: string | undefined = undefined;
+      let loopCount = 0;
+
+      while (true) {
+          loopCount++;
+          setLoadingMsg(`Indexing Actions: ${allTransfers.length}...`);
+
+          const params: Record<string, unknown> = {
+            fromBlock: "0x0", 
+            toBlock: "latest", 
+            fromAddress: address,
+            category: ["external", "erc20", "erc721", "erc1155"], 
+            maxCount: "0x3e8",
+            withMetadata: true
+          };
+
+          if (pageKey) params.pageKey = pageKey;
+
+          const response = await fetch(BASE_RPC, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers",
+              params: [params]
+            })
+          });
+          
+          const data = (await response.json()) as AlchemyResponse;
+          if (data.error) throw new Error(data.error.message);
+
+          const newTransfers = data.result?.transfers || [];
+          allTransfers = [...allTransfers, ...newTransfers];
+          
+          pageKey = data.result?.pageKey;
+          if (!pageKey || loopCount > 200) break;
+      }
+
+      setLoadingMsg(`Calculating Score...`);
+      
+      const uniqueDays = new Set<string>();
+      const uniqueWeeks = new Set<string>();
+      const uniqueMonths = new Set<string>();
+      const uniqueTokens = new Set<string>();
+      
+      let ethVolume = 0.0;
+      let swapCount = 0;
+      let contractInteractions = 0;
+
+      const sortedTxs = allTransfers.sort((a, b) => 
+        new Date(a.metadata.blockTimestamp).getTime() - new Date(b.metadata.blockTimestamp).getTime()
+      );
+
+      for (const tx of sortedTxs) {
+        const d = new Date(tx.metadata.blockTimestamp);
+        const dateStr = getStrictUTCDate(tx.metadata.blockTimestamp);
+        const weekStr = getISOWeekToken(d);
+        const monthStr = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
+
+        uniqueDays.add(dateStr);
+        uniqueWeeks.add(weekStr);
+        uniqueMonths.add(monthStr);
+
+        // Volume Calculation (ETH + WETH)
+        if (tx.value) {
+            if (tx.asset === 'ETH' || tx.asset === 'WETH') {
+                ethVolume += tx.value;
+            }
+        }
+
+        if (tx.category === 'erc20' || tx.category === 'erc721' || tx.category === 'erc1155') {
+            swapCount++;
+            if (tx.asset) uniqueTokens.add(tx.asset);
+        }
+        if (tx.category === 'external') contractInteractions++;
+      }
+
+      const sortedUniqueDays = Array.from(uniqueDays).sort(); 
+      let currentStreak = 0;
+      let longestStreak = 0;
+      let tempStreak = 0;
+      let prevTimestamp = 0;
+
+      for (const dayStr of sortedUniqueDays) {
+          const currentTimestamp = Date.parse(dayStr);
+          if (prevTimestamp !== 0) {
+              const diff = (currentTimestamp - prevTimestamp) / (1000 * 3600 * 24);
+              if (Math.round(diff) === 1) {
+                  tempStreak++;
+              } else {
+                  longestStreak = Math.max(longestStreak, tempStreak);
+                  tempStreak = 1;
+              }
+          } else {
+              tempStreak = 1;
+          }
+          prevTimestamp = currentTimestamp;
+      }
+      longestStreak = Math.max(longestStreak, tempStreak);
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const yestDate = new Date();
+      yestDate.setUTCDate(now.getUTCDate() - 1);
+      const yestStr = yestDate.toISOString().split('T')[0];
+      
+      if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) {
+          currentStreak = tempStreak;
+      } else {
+          currentStreak = 0;
+      }
+
+      let historyDays = 364; 
+      let firstTxStr = "N/A";
+      let lastTxStr = "N/A";
+      let daysSinceActive = 0;
+
+      if (sortedTxs.length > 0) {
+        const firstTxDate = new Date(sortedTxs[0].metadata.blockTimestamp);
+        const lastTxDate = new Date(sortedTxs[sortedTxs.length - 1].metadata.blockTimestamp);
+        firstTxStr = firstTxDate.toLocaleDateString();
+        lastTxStr = lastTxDate.toLocaleDateString();
+        const nowTime = now.getTime();
+        const lastTime = lastTxDate.getTime();
+        daysSinceActive = Math.floor((nowTime - lastTime) / (1000 * 3600 * 24));
+        const diffTime = Math.abs(nowTime - firstTxDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+        historyDays = Math.max(364, diffDays + 14); 
+      }
+
+      const activityMap = Array(historyDays).fill(false);
+      const pointerDate = new Date(); 
+      for(let i=0; i<historyDays; i++) {
+          const dateStr = pointerDate.toISOString().split('T')[0];
+          if (uniqueDays.has(dateStr)) activityMap[(historyDays - 1) - i] = true; 
+          pointerDate.setUTCDate(pointerDate.getUTCDate() - 1);
+      }
+
+      const totalColumns = Math.ceil(historyDays / 7);
+      const weekLabels: string[] = [];
+      let lastMonthLabel = "";
+      const gridStartDate = new Date();
+      gridStartDate.setUTCDate(gridStartDate.getUTCDate() - historyDays + 1);
+
+      for (let col = 0; col < totalColumns; col++) {
+          const weekStartDate = new Date(gridStartDate);
+          weekStartDate.setUTCDate(weekStartDate.getUTCDate() + (col * 7));
+          const monthIndex = weekStartDate.getUTCMonth();
+          const monthName = MONTHS_3_LETTERS[monthIndex];
+          
+          if (monthName !== lastMonthLabel) {
+              weekLabels.push(monthName);
+              lastMonthLabel = monthName;
+          } else {
+              weekLabels.push(""); 
+          }
+      }
+
+      const score_tx = Math.min(25, allTransfers.length / 20); 
+      const score_days = Math.min(20, uniqueDays.size / 5);
+      const score_months = Math.min(15, uniqueMonths.size * 1.25);
+      const score_streak = Math.min(15, currentStreak * 1.1);
+      const score_vol = Math.min(10, ethVolume * 2);
+      const score_div = Math.min(10, uniqueTokens.size / 2);
+      const score_id = basename ? 5 : 0;
+      const finalScore = Math.floor(score_tx + score_days + score_months + score_streak + score_vol + score_div + score_id);
+
+      setWallet({
+        address, basename,
+        balance: parseFloat(formatEther(balWei)).toFixed(4),
+        ethVolume: ethVolume.toFixed(2),
+        txCount: allTransfers.length,
+        uniqueDays: uniqueDays.size,
+        activeWeeks: uniqueWeeks.size,
+        activeMonths: uniqueMonths.size,
+        currentStreak,
+        longestStreak,
+        firstTx: firstTxStr,
+        lastTx: lastTxStr,
+        daysSinceActive,
+        tokensSwapped: uniqueTokens.size,
+        swapCount,
+        contractInteractions,
+        score: Math.min(100, finalScore),
+        activityMap,
+        historyDays,
+        weekLabels
+      });
+
+    } catch (e: unknown) {
+      console.error("Analysis failed", e);
+      alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); 
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleShare = () => {
-    if (!engagement) return;
-    const currentStats = engagement[timeframe];
-    const timeframeLabel = timeframe === 'twoWeeks' ? '2 Weeks' : timeframe.charAt(0).toUpperCase() + timeframe.slice(1);
-    const text = `My Base Analytics (${timeframeLabel}):
-🔥 Neynar Score: ${(engagement.neynarScore * 100).toFixed(1)}%
-❤️ Likes: ${currentStats.likes}
-👥 Followers: ${engagement.followers}
-
-Check your stats on Base Analytics by @${CREATOR_USERNAME}`;
-    
-    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(APP_URL)}`;
-    window.open(url, '_blank');
-  };
-
-  // --- 4. WALLET LOGIC ---
-  const fetchContractData = useCallback(async (address: string) => {
+  const connect = async () => {
     if (typeof window === 'undefined') return;
-    const ethWindow = window as unknown as EthereumWindow;
-    if (ethWindow.ethereum) {
-      try {
-        const provider = new BrowserProvider(ethWindow.ethereum);
-        const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, provider);
-        const data = await contract.getUserData(address);
-        setPoints(Number(data[0]));
-        setStreak(Number(data[1]));
-      } catch (error) { console.error(error); }
-    }
-  }, []);
-
-  const connectWallet = async () => {
-    if (typeof window === 'undefined') return;
-    const ethWindow = window as unknown as EthereumWindow;
-    if (ethWindow.ethereum) {
-      try {
-        const provider = new BrowserProvider(ethWindow.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        setWalletAddress(address);
-        fetchContractData(address);
-        
-        if (!user && !engagement) {
-            setLoading(true);
-            const data = await fetchUserByAddress(address);
-            if (data) setEngagement(data as unknown as AnalyticsData);
-            setLoading(false);
-        }
-      } catch (error) { console.error(error); }
-    } else { alert("Please install MetaMask!"); }
+    const win = window as unknown as WindowWithEthereum;
+    if (!win.ethereum) return alert("No wallet found.");
+    try {
+      const provider = new BrowserProvider(win.ethereum);
+      const signer = await provider.getSigner();
+      analyzeWallet(await signer.getAddress());
+    } catch (e) { console.error(e); }
   };
 
-  const disconnectWallet = () => {
-      setWalletAddress(null);
-      setPoints(0);
-      setStreak(0);
-      if (!user) setEngagement(null);
-  };
-
-  // --- 5. CONTRACT ACTIONS ---
   const handleOnChainCheckIn = async () => {
-    if (!walletAddress) return connectWallet();
-    const ethWindow = window as unknown as EthereumWindow;
-    if (!ethWindow.ethereum) return;
+    if (!wallet) return connect();
+    if (typeof window === 'undefined') return;
+    const win = window as unknown as WindowWithEthereum;
+    if (!win.ethereum) return;
     try {
       setTxLoading(true);
-      const provider = new BrowserProvider(ethWindow.ethereum);
+      const provider = new BrowserProvider(win.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       const fee = await contract.checkInFee();
       const tx = await contract.checkIn({ value: fee });
+      setPoints(prev => prev + 10); 
+      setStreak(prev => prev + 1);
       await tx.wait(); 
       alert("Check-in Successful!");
-      fetchContractData(walletAddress); 
-      setTxLoading(false);
-    } catch (error) { console.error(error); setTxLoading(false); }
+      analyzeWallet(wallet.address);
+    } catch (error) { console.error(error); } finally { setTxLoading(false); }
   };
 
   const handleGmGn = async (type: 'gm' | 'gn') => {
-    if (!walletAddress) return connectWallet();
-    const ethWindow = window as unknown as EthereumWindow;
-    if (!ethWindow.ethereum) return;
+    if (!wallet) return connect();
+    if (typeof window === 'undefined') return;
+    const win = window as unknown as WindowWithEthereum;
+    if (!win.ethereum) return;
     try {
       setGmLoading(true);
-      const provider = new BrowserProvider(ethWindow.ethereum);
+      const provider = new BrowserProvider(win.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       const fee = await contract.fee();
       const tx = type === 'gm' ? await contract.gm({ value: fee }) : await contract.gn({ value: fee });
       await tx.wait();
       alert(`Said ${type.toUpperCase()}!`);
-      setGmLoading(false);
-    } catch (error) { console.error(error); setGmLoading(false); }
+    } catch (error) { console.error(error); } finally { setGmLoading(false); }
   };
 
-  // --- 6. RENDER HELPERS ---
-  const currentStats = engagement?.[timeframe] || { likes: 0, recasts: 0, replies: 0, posts: 0 };
-  const displayUser = user || (engagement?.username ? { username: engagement.username, pfp_url: engagement.pfp } : null);
+  const share = () => {
+    if (!wallet) return;
+    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || "Base User"}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
+    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(APP_URL)}`, '_blank');
+  };
 
-  // --- RENDER ---
-  if (!isReady) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading App...</div>;
+  if (!isReady) return <div className="min-h-screen bg-[#000510] flex items-center justify-center text-blue-500 font-mono">INITIALIZING BASE...</div>;
 
-  if (!displayUser && !engagement) return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-20 h-20 bg-linear-to-br from-violet-600 to-blue-600 rounded-3xl mb-8 flex items-center justify-center shadow-blue-200 shadow-2xl rotate-3">
-        <TrendingUp className="text-white" size={40} />
+  if (!wallet) return (
+    <div className="min-h-screen bg-[#000510] flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0033aa_0%,#000510_70%)] opacity-30"></div>
+      
+      <div className="w-24 h-24 bg-[#0052FF] rounded-full mb-8 flex items-center justify-center shadow-[0_0_80px_-10px_rgba(0,82,255,0.6)] z-10 animate-pulse">
+        <Activity className="text-white" size={48} />
       </div>
       
-      <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter">BASE ANALYTICS</h1>
-      <p className="text-slate-400 mb-8 font-medium">Track your on-chain streak & engagement</p>
+      <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter z-10 drop-shadow-2xl">BASE ANALYTICS</h1>
+      {/* UPDATED TAGLINE */}
+      <p className="text-blue-200/80 mb-10 font-medium text-lg z-10 tracking-widest uppercase">The better way to analyse your onchain activity</p>
       
-      <div className="space-y-4 w-full max-w-xs relative">
-          
-          <div className="relative group cursor-pointer">
-              <div className="absolute -inset-0.5 bg-linear-to-r from-pink-600 to-purple-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <div className="relative bg-black rounded-xl leading-none flex items-center divide-x divide-gray-600">
-                  <div className="w-full">
-                    <NeynarAuthButton 
-                        style={{ 
-                            width: '100%', 
-                            height: '56px', 
-                            borderRadius: '0.75rem',
-                            backgroundColor: 'black',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                        }}
-                    />
-                  </div>
-              </div>
-          </div>
-          
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold tracking-widest">OR</span></div>
-          </div>
+      <button onClick={connect} disabled={loading} className="w-full max-w-xs bg-white text-[#0052FF] py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-50 transition active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] z-10">
+        {loading ? <RefreshCcw className="animate-spin"/> : <Wallet size={22} />} 
+        {loading ? loadingMsg : "Connect Wallet"}
+      </button>
 
-          <button 
-            onClick={connectWallet}
-            className="w-full bg-white border-2 border-slate-100 text-slate-600 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-200 transition active:scale-95"
-          >
-            <Wallet size={18} className="text-slate-400" />
-            Connect Wallet Only
-          </button>
+      <div className="flex flex-col gap-3 mt-16 z-10 opacity-60">
+          <p className="text-[10px] uppercase font-bold text-blue-400 tracking-[0.3em]">POWERED BY</p>
+          <div className="flex gap-6 justify-center text-blue-300">
+              <div className="flex flex-col items-center gap-2"><Smartphone size={20} /><span className="text-[10px] font-bold">Farcaster</span></div>
+              <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
+              <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
+          </div>
       </div>
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-[#F5F8FF] text-slate-900 font-sans pb-12">
-      <nav className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center"><div className="w-3 h-3 bg-white rounded-full"></div></div>
-            <span className="font-black italic tracking-tighter text-blue-600 text-lg">BASE</span>
-          </div>
-          <div className="flex gap-2 items-center">
-            {!walletAddress ? (
-              <button onClick={connectWallet} className="bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition flex items-center gap-2"><Wallet size={14} /> Connect</button>
-            ) : (
-              <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 rounded-full p-1 pl-3">
-                <span className="text-blue-600 text-xs font-bold">{walletAddress.slice(0,6)}...</span>
-                <button onClick={disconnectWallet} className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-red-500 hover:bg-red-50"><Power size={12} /></button>
-              </div>
-            )}
-            <button onClick={handleRefresh} className={`p-2 rounded-full hover:bg-slate-100 ${loading ? 'animate-spin' : ''}`}><RefreshCcw size={20} className="text-slate-400" /></button>
-          </div>
+    <main className="min-h-screen bg-[#000510] p-4 lg:p-8 font-sans text-slate-200 pb-32">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50"><Activity className="text-white" size={20}/></div>
+            <span className="font-black text-xl tracking-tight text-white">BASE ANALYTICS</span>
         </div>
-      </nav>
+        <button onClick={() => setWallet(null)} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
+      </div>
 
-      <div className="max-w-4xl mx-auto p-4 lg:p-6 space-y-6">
-        <div className="bg-[#0F172A] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
-                <div>
-                    <div className="flex items-center gap-3 mb-4"><div className="p-2 bg-slate-800 rounded-lg"><Zap size={24} className="text-yellow-400" /></div><div><h3 className="font-bold text-xl leading-none">Daily Check-in</h3><p className="text-slate-400 text-xs mt-1">Mint your streak on Base</p></div></div>
-                    <div className="flex gap-2">{[...Array(7)].map((_, i) => (<div key={i} className={`w-8 h-10 rounded-lg border flex items-center justify-center ${i < streak % 7 ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-700 bg-slate-800/50'}`}>{i < streak % 7 && <CheckCircle2 size={14} />}</div>))}</div>
-                </div>
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                    <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-center min-w-30">
-                        <div className="flex items-center gap-2 mb-1"><Trophy size={14} className="text-yellow-400" /><span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Reward Pool</span></div>
-                        <p className="text-2xl font-black text-white leading-none">$100 <span className="text-blue-400 text-xs">USDC</span></p>
+      {/* 1. HERO / DAILY CHECK-IN */}
+      <div className="bg-linear-to-r from-blue-950/40 to-slate-900/40 rounded-3xl p-1 shadow-2xl mb-8 border border-blue-900/30 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#0052FF] rounded-full blur-[150px] opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none"></div>
+            <div className="bg-[#020817]/80 backdrop-blur-xl rounded-[20px] p-6 sm:p-8 relative z-10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+                    <div>
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 bg-[#0052FF]/20 rounded-xl border border-[#0052FF]/30"><Zap size={28} className="text-[#0052FF]" /></div>
+                            <div><h3 className="font-black text-2xl text-white leading-none">Daily Check-in</h3><p className="text-blue-300/60 text-sm mt-1">Mint your streak on Base</p></div>
+                        </div>
+                        <div className="flex gap-2">
+                            {[...Array(7)].map((_, i) => (
+                                <div key={i} className={`w-10 h-12 rounded-lg border flex items-center justify-center transition-all ${i < streak % 7 ? 'bg-[#0052FF] border-[#0052FF] text-white shadow-[0_0_15px_-3px_rgba(0,82,255,0.6)]' : 'border-blue-900/30 bg-blue-950/20 text-blue-900'}`}>
+                                    {i < streak % 7 && <CheckCircle2 size={16} />}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                     <div className="text-center md:text-left"><p className="text-2xl font-black text-white">{points} <span className="text-slate-500 text-xs">PTS</span></p></div>
-                    <button onClick={handleOnChainCheckIn} disabled={txLoading} className="px-6 py-3 rounded-xl font-bold text-sm bg-white text-blue-600 hover:bg-blue-50 shadow-lg">{txLoading ? 'Minting...' : 'Check-in'}</button>
+                    
+                    <div className="flex flex-row md:flex-col items-center gap-4 w-full md:w-auto">
+                         <div className="bg-blue-950/30 p-4 rounded-2xl border border-blue-900/30 flex flex-col justify-center min-w-36 text-center md:text-right">
+                            <div className="flex items-center justify-center md:justify-end gap-1.5 mb-1"><Trophy size={14} className="text-[#0052FF]" /><span className="text-[10px] font-bold uppercase text-blue-400 tracking-wider">Reward Pool</span></div>
+                            <p className="text-2xl font-black text-white leading-none tracking-tight">$100 <span className="text-blue-600 text-sm">USDC</span></p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 w-full md:w-auto">
+                            <button onClick={handleOnChainCheckIn} disabled={txLoading} className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-white text-[#0052FF] hover:bg-blue-50 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)] transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {txLoading ? 'Minting...' : 'Check-in Now'}
+                            </button>
+                            <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">{points} PTS Earned</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+      </div>
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center gap-6 justify-between relative">
-            <button onClick={logoutUser} className="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors p-2" title="Sign Out"><LogOut size={18} /></button>
-            <div className="flex items-center gap-6 w-full">
-              <Image src={displayUser?.pfp_url || ''} alt="Profile" width={80} height={80} className="rounded-2xl border-4 border-blue-50" unoptimized />
-              <div>
-                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Neynar Score</p>
-                  <h1 className="text-5xl font-black text-slate-900 tracking-tight">{(engagement?.neynarScore ? engagement.neynarScore * 100 : 0).toFixed(1)}%</h1>
-                  <div className="flex gap-4 mt-2 text-sm text-slate-500">
-                    <span className="flex items-center gap-1"><Users size={12}/> <b>{engagement?.followers?.toLocaleString() || 0}</b> Followers</span>
-                    <span className="flex items-center gap-1"><UserPlus size={12}/> <b>{engagement?.following?.toLocaleString() || 0}</b> Following</span>
-                  </div>
-              </div>
+      {/* 2. SCORE & HEATMAP */}
+      <div className="bg-blue-950/20 rounded-3xl p-1 shadow-lg border border-blue-900/30 mb-8 backdrop-blur-sm">
+         <div className="bg-[#020817] rounded-[20px] p-6 sm:p-8">
+            <div className="flex justify-between items-start mb-8 relative z-10">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">ONCHAIN SCORE</p>
+                        <button onClick={share} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share</button>
+                    </div>
+                    <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
+                </div>
+                {/* IDENTITY BADGE */}
+                <div className="text-right">
+                    {wallet.basename ? (
+                        <div className="bg-[#0052FF] px-4 py-2 rounded-xl text-white text-base font-black inline-flex items-center gap-2 mb-2 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)]">
+                            <BadgeCheck size={16} className="text-white" /> {wallet.basename}
+                        </div>
+                    ) : (
+                        <div className="bg-blue-950/50 px-4 py-2 rounded-xl text-blue-300 text-sm font-bold border border-blue-900/50 inline-block mb-2">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</div>
+                    )}
+                    {wallet.basename && <p className="text-xs text-blue-500/60 font-mono">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</p>}
+                </div>
+            </div>
+            
+            {/* HEATMAP */}
+            <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+                <div className="flex justify-between mb-3 min-w-max px-1">
+                {wallet.weekLabels.map((m, i) => (
+                    <div key={i} className="text-[9px] font-bold text-blue-700 uppercase text-left w-3">{m}</div>
+                ))}
+                </div>
+
+                <div className="grid grid-rows-7 grid-flow-col gap-1.5 h-36 relative z-10 min-w-max">
+                    {wallet.activityMap.map((active, i) => (
+                        <div key={i} title={active ? 'Active' : 'Inactive'} className={`w-3 h-3 rounded-xs transition-all duration-300 ${active ? 'bg-[#0052FF] shadow-[0_0_8px_-1px_rgba(0,82,255,0.8)]' : 'bg-blue-950/30'}`}></div>
+                    ))}
+                </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-               <div className="bg-slate-50 p-1 rounded-xl flex gap-1 self-center w-full">
-                  {(['day', 'week', 'twoWeeks'] as const).map((t) => (
-                      <button key={t} onClick={() => setTimeframe(t)} className={`flex-1 px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${timeframe === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{t === 'twoWeeks' ? '2W' : t}</button>
-                  ))}
-              </div>
-              <button onClick={handleShare} className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-200 transition-all active:scale-95"><Share2 size={18} /> Share Stats</button>
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-blue-900/30">
+                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wide">First Tx: {wallet.firstTx}</p>
+                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Lifetime History ({wallet.historyDays} Days)</p>
+                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wide">Today</p>
             </div>
-        </div>
+         </div>
+      </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Likes" value={currentStats.likes} icon={<TrendingUp size={20}/>} color="bg-blue-50 text-blue-600" />
-            <StatCard label="Reposts" value={currentStats.recasts} icon={<Repeat size={20}/>} color="bg-emerald-50 text-emerald-600" />
-            <StatCard label="Comments" value={currentStats.replies} icon={<MessageCircle size={20}/>} color="bg-violet-50 text-violet-600" />
-            <StatCard label="Casts" value={currentStats.posts} icon={<PenTool size={20}/>} color="bg-amber-50 text-amber-600" />
-        </div>
+      {/* 3. METRICS GRID */}
+      <h3 className="text-sm font-bold text-blue-500 mb-4 ml-2 flex items-center gap-2 uppercase tracking-widest"><BarChart3 size={16}/> Wallet Status</h3>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* USER IDENTITY CARD */}
+          <div className="bg-linear-to-br from-[#0052FF]/10 to-blue-950/20 p-5 rounded-2xl border border-[#0052FF]/30 flex flex-col justify-between col-span-2 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#0052FF] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+              <div className="flex justify-between items-start mb-2 relative z-10">
+                  <div className="p-2 bg-blue-950/50 rounded-lg text-white"><User size={20}/></div>
+              </div>
+              <div className="relative z-10">
+                  <p className="text-2xl font-black text-white tracking-tight truncate">{wallet.basename || "Explorer"}</p>
+                  <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mt-1">Base Identity</p>
+              </div>
+          </div>
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+          <StatCard label="Wallet Balance" value={`${wallet.balance} ETH`} icon={<CreditCard size={18}/>} />
+          <StatCard label="Total Active Days" value={wallet.uniqueDays.toString()} icon={<Sun size={18}/>} highlight />
+          
+          <StatCard label="Current Streak" value={`${wallet.currentStreak} Days`} icon={<Zap size={18} className={wallet.currentStreak > 0 ? "text-[#0052FF]" : "text-white"}/>} />
+          <StatCard label="Longest Streak" value={`${wallet.longestStreak} Days`} icon={<Trophy size={18}/>} />
+          <StatCard label="Active Weeks" value={wallet.activeWeeks.toString()} icon={<Calendar size={18}/>} />
+          <StatCard label="Total Txs" value={wallet.txCount.toLocaleString()} icon={<Layers size={18}/>} />
+          
+          <StatCard label="ETH Volume" value={`${wallet.ethVolume} Ξ`} icon={<ArrowRightLeft size={18}/>} />
+          <StatCard label="Tokens Moved" value={wallet.tokensSwapped.toString()} icon={<Coins size={18}/>} />
+          <StatCard label="Token Transfers" value={wallet.swapCount.toLocaleString()} icon={<RefreshCcw size={18}/>} />
+          <StatCard label="Contract Txs" value={wallet.contractInteractions.toLocaleString()} icon={<FileCode size={18}/>} />
+      </div>
+
+      {/* 4. GM / GN */}
+      <div className="bg-[#020817] rounded-3xl p-6 shadow-sm border border-blue-900/30">
            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-orange-100 rounded-lg"><Sun size={20} className="text-orange-500" /></div>
-              <h3 className="font-bold text-lg text-slate-900">Community Vibes</h3>
+              <div className="p-2 bg-blue-900/20 rounded-lg"><Sun size={20} className="text-[#0052FF]" /></div>
+              <h3 className="font-bold text-lg text-white">Community Vibes</h3>
            </div>
            <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => handleGmGn('gm')} disabled={gmLoading} className="py-4 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-orange-200 transition-all active:scale-95"><Sun size={24} /> GM</button>
-              <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-indigo-200 transition-all active:scale-95"><Moon size={24} /> GN</button>
+              <button onClick={() => handleGmGn('gm')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Sun size={24} /> GM</button>
+              <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
-        </div>
-
       </div>
     </main>
   );
 }
 
-function StatCard({ label, value, icon, color }: StatCardProps) {
-  return (
-    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${color}`}>{icon}</div>
-      <p className="text-xs font-bold uppercase text-slate-400 tracking-widest mb-1">{label}</p>
-      <p className="text-3xl font-black text-slate-900">{value?.toLocaleString() || 0}</p>
-    </div>
-  );
+function StatCard({ label, value, icon, full, highlight }: { label: string, value: string, icon: React.ReactNode, full?: boolean, highlight?: boolean }) {
+    return (
+        <div className={`bg-[#020817] p-5 rounded-2xl border border-blue-900/20 flex flex-col justify-between group hover:border-[#0052FF]/50 transition-all ${full ? 'col-span-1' : ''}`}>
+            <div className={`mb-3 ${highlight ? 'text-[#0052FF]' : 'text-white group-hover:text-blue-200'}`}>{icon}</div>
+            <div>
+                <p className="text-xl font-black text-white tracking-tight truncate" title={value}>{value}</p>
+                <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest truncate group-hover:text-white transition-colors">{label}</p>
+            </div>
+        </div>
+    )
 } 
