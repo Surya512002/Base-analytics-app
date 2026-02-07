@@ -11,11 +11,16 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ⚠️ REPLACE THESE WITH YOUR REAL CONTRACT ADDRESSES FROM REMIX
+// ✅ YOUR REAL ADDRESSES (Keep these!)
 const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-const CHECKIN_ABI = ["function checkIn() external payable", "function getUserData(address _user) external view returns (uint256, uint256, uint256)", "function checkInFee() external view returns (uint256)"];
+const CHECKIN_ABI = [
+  "function checkIn() external payable", 
+  "function checkin() external payable", 
+  "function getUserData(address _user) external view returns (uint256, uint256, uint256)", 
+  "function checkInFee() external view returns (uint256)"
+];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
 const MONTHS_3_LETTERS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -74,14 +79,10 @@ export default function Page() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-        try {
-            sdk.actions.ready();
-            setIsReady(true);
-        } catch (e) { console.error("SDK Init Error", e); }
+        try { sdk.actions.ready(); setIsReady(true); } catch (e) { console.error("SDK Init Error", e); }
     }
   }, []);
 
-  // --- ANALYTICS LOGIC ---
   const getStrictUTCDate = (isoTimestamp: string) => {
     const date = new Date(isoTimestamp); 
     return date.toISOString().split('T')[0];
@@ -100,7 +101,6 @@ export default function Page() {
     setLoading(true);
     setLoadingMsg("Scanning Base Network...");
     setShowConnectModal(false);
-    
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
       let basename = null;
@@ -126,14 +126,9 @@ export default function Page() {
             category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true
           };
           if (pageKey) params.pageKey = pageKey;
-
-          const response = await fetch(BASE_RPC, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] })
-          });
+          const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
           const data = (await response.json()) as AlchemyResponse;
           if (data.error) throw new Error(data.error.message);
-
           const newTransfers = data.result?.transfers || [];
           allTransfers = [...allTransfers, ...newTransfers];
           pageKey = data.result?.pageKey;
@@ -141,22 +136,15 @@ export default function Page() {
       }
 
       setLoadingMsg(`Calculating Score...`);
-      const uniqueDays = new Set<string>();
-      const uniqueWeeks = new Set<string>();
-      const uniqueMonths = new Set<string>();
-      const uniqueTokens = new Set<string>();
+      const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
       let ethVolume = 0.0, swapCount = 0, contractInteractions = 0;
-
       const sortedTxs = allTransfers.sort((a, b) => new Date(a.metadata.blockTimestamp).getTime() - new Date(b.metadata.blockTimestamp).getTime());
 
       for (const tx of sortedTxs) {
         const d = new Date(tx.metadata.blockTimestamp);
-        const dateStr = getStrictUTCDate(tx.metadata.blockTimestamp);
-        const weekStr = getISOWeekToken(d);
-        const monthStr = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
-
-        uniqueDays.add(dateStr); uniqueWeeks.add(weekStr); uniqueMonths.add(monthStr);
-
+        uniqueDays.add(getStrictUTCDate(tx.metadata.blockTimestamp));
+        uniqueWeeks.add(getISOWeekToken(d));
+        uniqueMonths.add(`${d.getUTCFullYear()}-${d.getUTCMonth()}`);
         if (tx.value && (tx.asset === 'ETH' || tx.asset === 'WETH')) ethVolume += tx.value;
         if (['erc20', 'erc721', 'erc1155'].includes(tx.category)) { swapCount++; if (tx.asset) uniqueTokens.add(tx.asset); }
         if (tx.category === 'external') contractInteractions++;
@@ -168,8 +156,7 @@ export default function Page() {
           const currentTimestamp = Date.parse(dayStr);
           if (prevTimestamp !== 0) {
               const diff = (currentTimestamp - prevTimestamp) / (1000 * 3600 * 24);
-              if (Math.round(diff) === 1) tempStreak++;
-              else { longestStreak = Math.max(longestStreak, tempStreak); tempStreak = 1; }
+              if (Math.round(diff) === 1) tempStreak++; else { longestStreak = Math.max(longestStreak, tempStreak); tempStreak = 1; }
           } else tempStreak = 1;
           prevTimestamp = currentTimestamp;
       }
@@ -184,8 +171,7 @@ export default function Page() {
       if (sortedTxs.length > 0) {
         const firstTxDate = new Date(sortedTxs[0].metadata.blockTimestamp);
         const lastTxDate = new Date(sortedTxs[sortedTxs.length - 1].metadata.blockTimestamp);
-        firstTxStr = firstTxDate.toLocaleDateString();
-        lastTxStr = lastTxDate.toLocaleDateString();
+        firstTxStr = firstTxDate.toLocaleDateString(); lastTxStr = lastTxDate.toLocaleDateString();
         daysSinceActive = Math.floor((now.getTime() - lastTxDate.getTime()) / (1000 * 3600 * 24));
         historyDays = Math.max(364, Math.ceil(Math.abs(now.getTime() - firstTxDate.getTime()) / (1000 * 3600 * 24)) + 14); 
       }
@@ -193,8 +179,7 @@ export default function Page() {
       const activityMap = Array(historyDays).fill(false);
       const pointerDate = new Date(); 
       for(let i=0; i<historyDays; i++) {
-          const dateStr = pointerDate.toISOString().split('T')[0];
-          if (uniqueDays.has(dateStr)) activityMap[(historyDays - 1) - i] = true; 
+          if (uniqueDays.has(pointerDate.toISOString().split('T')[0])) activityMap[(historyDays - 1) - i] = true; 
           pointerDate.setUTCDate(pointerDate.getUTCDate() - 1);
       }
 
@@ -203,13 +188,11 @@ export default function Page() {
       let lastMonthLabel = "";
       const gridStartDate = new Date();
       gridStartDate.setUTCDate(gridStartDate.getUTCDate() - historyDays + 1);
-
       for (let col = 0; col < totalColumns; col++) {
           const weekStartDate = new Date(gridStartDate);
           weekStartDate.setUTCDate(weekStartDate.getUTCDate() + (col * 7));
           const monthIndex = weekStartDate.getUTCMonth();
-          const monthName = MONTHS_3_LETTERS[monthIndex];
-          if (monthName !== lastMonthLabel) { weekLabels.push(monthName); lastMonthLabel = monthName; } else weekLabels.push(""); 
+          if (MONTHS_3_LETTERS[monthIndex] !== lastMonthLabel) { weekLabels.push(MONTHS_3_LETTERS[monthIndex]); lastMonthLabel = MONTHS_3_LETTERS[monthIndex]; } else weekLabels.push(""); 
       }
 
       const finalScore = Math.floor(Math.min(25, allTransfers.length/20) + Math.min(20, uniqueDays.size/5) + Math.min(15, uniqueMonths.size*1.25) + Math.min(15, currentStreak*1.1) + Math.min(10, ethVolume*2) + Math.min(10, uniqueTokens.size/2) + (basename ? 5 : 0));
@@ -221,31 +204,19 @@ export default function Page() {
         tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, score: Math.min(100, finalScore),
         activityMap, historyDays, weekLabels
       });
-
-    } catch (e: unknown) {
-      console.error("Analysis failed", e);
-      alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); 
-    } finally { setLoading(false); }
+    } catch (e: unknown) { console.error("Analysis failed", e); alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); } finally { setLoading(false); }
   };
 
-  // --- CONNECT HANDLER ---
   const handleConnect = async (type: ConnectionType) => {
     try {
       const { address } = await connectWallet(type);
       setConnectionType(type);
       analyzeWallet(address);
-    } catch (e) {
-      console.error(e);
-      alert((e as Error).message);
-    }
+    } catch (e) { console.error(e); alert((e as Error).message); }
   };
 
-  const handleDisconnect = () => {
-    setWallet(null); 
-    setConnectionType(null); 
-  };
+  const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
-  // --- CHECK-IN LOGIC ---
   const handleOnChainCheckIn = async () => {
     if (!wallet || !connectionType) return setShowConnectModal(true);
     
@@ -254,25 +225,22 @@ export default function Page() {
       const provider = await getWalletProvider(connectionType); 
       const signer = await provider.getSigner();
 
-      // 1. Force Network Switch (Fixed BigInt literal error)
       const network = await provider.getNetwork();
       if (network.chainId !== BigInt(8453)) {
-        try {
-            await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); 
-        } catch {
-            alert("Please switch your wallet network to Base Mainnet manually.");
-            setTxLoading(false);
-            return;
+        try { await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); } catch {
+            alert("Please switch your wallet network to Base Mainnet manually."); setTxLoading(false); return;
         }
       }
       
-      // 2. Check Contract Interaction
-
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       let fee = parseEther("0.000004");
       try { fee = await contract.checkInFee(); } catch { console.warn("Using default fee"); }
 
-      const tx = await contract.checkIn({ value: fee });
+      // ✅ REMOVED the placeholder address check (Since you have real addresses now)
+      const tx = await contract.checkIn({ 
+          value: fee,
+          gasLimit: 300000 
+      });
       
       setPoints(prev => prev + 1); 
       setStreak(prev => prev + 1);
@@ -283,13 +251,11 @@ export default function Page() {
 
     } catch (error: unknown) { 
         console.error("Check-in Error:", error);
-        // Fixed 'any' type error
         const err = error as { reason?: string; message?: string };
         alert("❌ Failed: " + (err.reason || err.message || "Unknown error"));
     } finally { setTxLoading(false); }
   };
 
-  // --- GM/GN LOGIC ---
   const handleGmGn = async (type: 'gm' | 'gn') => {
     if (!wallet || !connectionType) return setShowConnectModal(true);
     try {
@@ -297,23 +263,21 @@ export default function Page() {
       const provider = await getWalletProvider(connectionType); 
       const signer = await provider.getSigner();
 
-      // 1. Force Network Switch
       const network = await provider.getNetwork();
       if (network.chainId !== BigInt(8453)) {
-        try {
-            await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); 
-        } catch {
-            alert("Please switch your wallet network to Base Mainnet manually.");
-            setGmLoading(false);
-            return;
+        try { await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); } catch {
+            alert("Please switch your wallet network to Base Mainnet manually."); setGmLoading(false); return;
         }
       }
-      
+
+      // ✅ REMOVED the placeholder address check
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       let fee = parseEther("0.000004");
       try { fee = await contract.fee(); } catch {}
 
-      const tx = type === 'gm' ? await contract.gm({ value: fee }) : await contract.gn({ value: fee });
+      const tx = type === 'gm' 
+        ? await contract.gm({ value: fee, gasLimit: 300000 }) 
+        : await contract.gn({ value: fee, gasLimit: 300000 });
       await tx.wait();
       alert(`✅ Success: Said ${type.toUpperCase()} on chain!`);
       
@@ -327,19 +291,8 @@ export default function Page() {
   const shareNative = async () => {
     if (!wallet) return;
     const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || wallet.address.slice(0,6)}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nCheck your score 👇`;
-    
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: 'My Base Analytics',
-                text: shareText,
-                url: MINIAPP_URL, 
-            });
-        } catch (err) { console.log('Share canceled', err); }
-    } else {
-        alert("Link copied to clipboard!");
-        navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); 
-    }
+    if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: MINIAPP_URL }); } catch {} } 
+    else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); }
   };
 
   const shareWarpcast = () => {
@@ -353,20 +306,12 @@ export default function Page() {
   if (!wallet) return (
     <div className="min-h-screen bg-[#000510] flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0033aa_0%,#000510_70%)] opacity-30"></div>
-      
-      <div className="w-24 h-24 bg-[#0052FF] rounded-full mb-8 flex items-center justify-center shadow-[0_0_80px_-10px_rgba(0,82,255,0.6)] z-10 animate-pulse">
-        <Activity className="text-white" size={48} />
-      </div>
-      
+      <div className="w-24 h-24 bg-[#0052FF] rounded-full mb-8 flex items-center justify-center shadow-[0_0_80px_-10px_rgba(0,82,255,0.6)] z-10 animate-pulse"><Activity className="text-white" size={48} /></div>
       <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter z-10 drop-shadow-2xl">BASE ANALYTICS</h1>
       <p className="text-blue-200/80 mb-10 font-medium text-lg z-10 tracking-widest uppercase">The better way to analyse your onchain activity</p>
-      
       <button onClick={() => setShowConnectModal(true)} disabled={loading} className="w-full max-w-xs bg-white text-[#0052FF] py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-50 transition active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] z-10">
-        {loading ? <RefreshCcw className="animate-spin"/> : <Wallet size={22} />} 
-        {loading ? loadingMsg : "Connect Wallet"}
+        {loading ? <RefreshCcw className="animate-spin"/> : <Wallet size={22} />} {loading ? loadingMsg : "Connect Wallet"}
       </button>
-
-      {/* CONNECT MODAL */}
       {showConnectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-[#0F172A] border border-blue-900/50 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
@@ -386,7 +331,6 @@ export default function Page() {
               </div>
           </div>
       )}
-
       <div className="flex flex-col gap-3 mt-16 z-10 opacity-60">
           <p className="text-[10px] uppercase font-bold text-blue-400 tracking-[0.3em]">POWERED BY</p>
           <div className="flex gap-6 justify-center text-blue-300">
@@ -407,7 +351,6 @@ export default function Page() {
         </div>
         <button onClick={handleDisconnect} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
       </div>
-
       <div className="bg-linear-to-r from-blue-950/40 to-slate-900/40 rounded-3xl p-1 shadow-2xl mb-8 border border-blue-900/30 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#0052FF] rounded-full blur-[150px] opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none"></div>
             <div className="bg-[#020817]/80 backdrop-blur-xl rounded-[20px] p-6 sm:p-8 relative z-10">
@@ -419,19 +362,15 @@ export default function Page() {
                         </div>
                         <div className="flex gap-2">
                             {[...Array(7)].map((_, i) => (
-                                <div key={i} className={`w-10 h-12 rounded-lg border flex items-center justify-center transition-all ${i < streak % 7 ? 'bg-[#0052FF] border-[#0052FF] text-white shadow-[0_0_15px_-3px_rgba(0,82,255,0.6)]' : 'border-blue-900/30 bg-blue-950/20 text-blue-900'}`}>
-                                    {i < streak % 7 && <CheckCircle2 size={16} />}
-                                </div>
+                                <div key={i} className={`w-10 h-12 rounded-lg border flex items-center justify-center transition-all ${i < streak % 7 ? 'bg-[#0052FF] border-[#0052FF] text-white shadow-[0_0_15px_-3px_rgba(0,82,255,0.6)]' : 'border-blue-900/30 bg-blue-950/20 text-blue-900'}`}>{i < streak % 7 && <CheckCircle2 size={16} />}</div>
                             ))}
                         </div>
                     </div>
-                    
                     <div className="flex flex-row md:flex-col items-center gap-4 w-full md:w-auto">
                          <div className="bg-blue-950/30 p-4 rounded-2xl border border-blue-900/30 flex flex-col justify-center min-w-36 text-center md:text-right">
                             <div className="flex items-center justify-center md:justify-end gap-1.5 mb-1"><Trophy size={14} className="text-[#0052FF]" /><span className="text-[10px] font-bold uppercase text-blue-400 tracking-wider">Reward Pool</span></div>
                             <p className="text-2xl font-black text-white leading-none tracking-tight">$100 <span className="text-blue-600 text-sm">USDC</span></p>
                         </div>
-
                         <div className="flex flex-col gap-2 w-full md:w-auto">
                             <button onClick={handleOnChainCheckIn} disabled={txLoading} className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-white text-[#0052FF] hover:bg-blue-50 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)] transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {txLoading ? 'Minting...' : 'Check-in Now'}
@@ -442,7 +381,6 @@ export default function Page() {
                 </div>
             </div>
       </div>
-
       <div className="bg-[#020817] rounded-[20px] p-6 sm:p-8 shadow-lg border border-blue-900/30 mb-8">
             <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
@@ -455,33 +393,26 @@ export default function Page() {
                     </div>
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
-                
-                <div className="text-right">
-                    {/* Address removed as requested */}
-                </div>
+                <div className="text-right"></div>
             </div>
-            
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
                 <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
                 {wallet.weekLabels.map((m, i) => (
                     <div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>
                 ))}
                 </div>
-
                 <div className="grid grid-rows-7 grid-flow-col gap-1.5 h-36 relative z-10 min-w-max">
                     {wallet.activityMap.map((active, i) => (
                         <div key={i} title={active ? 'Active' : 'Inactive'} className={`w-3 h-3 rounded-xs transition-all duration-300 ${active ? 'bg-[#0052FF] shadow-[0_0_8px_-1px_rgba(0,82,255,0.8)]' : 'bg-blue-950/30'}`}></div>
                     ))}
                 </div>
             </div>
-
             <div className="flex justify-between items-center mt-4 pt-4 border-t border-blue-900/30">
                 <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wide">First Tx: {wallet.firstTx}</p>
                 <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Lifetime History ({wallet.historyDays} Days)</p>
                 <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wide">Today</p>
             </div>
       </div>
-
       <h3 className="text-sm font-bold text-blue-500 mb-4 ml-2 flex items-center gap-2 uppercase tracking-widest"><BarChart3 size={16}/> Wallet Status</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-linear-to-br from-[#0052FF]/10 to-blue-950/20 p-5 rounded-2xl border border-[#0052FF]/30 flex flex-col justify-between col-span-2 relative overflow-hidden group">
@@ -491,27 +422,21 @@ export default function Page() {
                   {wallet.basename && <div className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-bold rounded border border-green-500/30 flex items-center gap-1"><BadgeCheck size={10}/> VERIFIED</div>}
               </div>
               <div className="relative z-10">
-                  <p className="text-2xl font-black text-white tracking-tight truncate">
-                      {wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}
-                  </p>
+                  <p className="text-2xl font-black text-white tracking-tight truncate">{wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
                   <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mt-1">Base Identity</p>
               </div>
           </div>
-
           <StatCard label="Wallet Balance" value={`${wallet.balance} ETH`} icon={<CreditCard size={18}/>} />
           <StatCard label="Total Active Days" value={wallet.uniqueDays.toString()} icon={<Sun size={18}/>} highlight />
-          
           <StatCard label="Current Streak" value={`${wallet.currentStreak} Days`} icon={<Zap size={18} className={wallet.currentStreak > 0 ? "text-[#0052FF]" : "text-white"}/>} />
           <StatCard label="Longest Streak" value={`${wallet.longestStreak} Days`} icon={<Trophy size={18}/>} />
           <StatCard label="Active Weeks" value={wallet.activeWeeks.toString()} icon={<Calendar size={18}/>} />
           <StatCard label="Total Txs" value={wallet.txCount.toLocaleString()} icon={<Layers size={18}/>} />
-          
           <StatCard label="ETH Volume" value={`${wallet.ethVolume} Ξ`} icon={<ArrowRightLeft size={18}/>} />
           <StatCard label="Tokens Moved" value={wallet.tokensSwapped.toString()} icon={<Coins size={18}/>} />
           <StatCard label="Token Transfers" value={wallet.swapCount.toLocaleString()} icon={<RefreshCcw size={18}/>} />
           <StatCard label="Contract Txs" value={wallet.contractInteractions.toLocaleString()} icon={<FileCode size={18}/>} />
       </div>
-
       <div className="bg-[#020817] rounded-3xl p-6 shadow-sm border border-blue-900/30">
            <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-900/20 rounded-lg"><Sun size={20} className="text-[#0052FF]" /></div>
