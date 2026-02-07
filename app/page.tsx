@@ -82,9 +82,15 @@ export default function Page() {
   const [gmLoading, setGmLoading] = useState(false);
 
   useEffect(() => {
+    // 1. Initialize SDK immediately
     if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-      sdk.actions.ready();
-      setIsReady(true);
+      try {
+        sdk.actions.ready();
+        setIsReady(true);
+        console.log("Farcaster SDK Ready Called");
+      } catch (err) {
+        console.error("SDK Ready failed:", err);
+      }
     }
   }, []);
 
@@ -339,15 +345,28 @@ export default function Page() {
             }
         }
         else if (type === 'farcaster') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sdkProvider = (sdk as any).provider;
+            // --- ROBUST FARCASTER CONNECTION ---
             
-            if (sdkProvider) {
-                selectedProvider = sdkProvider;
-            } else if (win.ethereum) {
+            // 1. Try Standard Injection (Standard for Frame v2)
+            if (win.ethereum) {
                 selectedProvider = win.ethereum;
-            } else {
-                return alert("Farcaster Wallet not found. \n\nAre you sure you opened this as a Frame?\nTry reloading Warpcast.");
+            } 
+            // 2. Try SDK Injection (Fallback)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            else if ((sdk as any).provider) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                selectedProvider = (sdk as any).provider;
+            }
+            
+            if (!selectedProvider) {
+                // 3. Retry Logic (Wait 1 second in case it's loading)
+                 alert("Farcaster Wallet initializing... Tap OK to retry.");
+                 await new Promise(r => setTimeout(r, 1000));
+                 if (win.ethereum) selectedProvider = win.ethereum;
+            }
+
+            if (!selectedProvider) {
+                 return alert("Farcaster Wallet not found. \n\nEnsure you are in Warpcast or try refreshing the page.");
             }
         }
 
@@ -359,7 +378,7 @@ export default function Page() {
 
     } catch (e) { 
         console.error(e); 
-        alert("Connection failed. Check console for details.");
+        alert("Connection failed. Please refresh and try again.");
     }
   };
 
@@ -368,15 +387,17 @@ export default function Page() {
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
     
+    // Auto-detect provider for actions
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sdkProvider = (sdk as any).provider;
-    
-    if (!win.ethereum && !sdkProvider) return; 
+    const activeProvider = sdkProvider || win.ethereum;
+
+    if (!activeProvider) return alert("Wallet disconnected. Please reload."); 
 
     try {
       setTxLoading(true);
       
-      const provider = new BrowserProvider(sdkProvider || win.ethereum);
+      const provider = new BrowserProvider(activeProvider);
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
