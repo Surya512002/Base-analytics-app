@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2 } from 'lucide-react';
+import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2, Rocket } from 'lucide-react';
 import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet, getWalletProvider } from './connection';
@@ -11,16 +11,13 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ YOUR REAL ADDRESSES
-const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
+// ✅ REAL CONTRACT ADDRESSES
+const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-// ✅ MATCHING SOLIDITY ABI EXACTLY
-const CHECKIN_ABI = [
-  "function checkIn() external payable", 
-  "function getUserData(address _user) external view returns (uint256, uint256, uint256)", 
-  "function checkInFee() external view returns (uint256)", 
-  "function getCheckInFee() external view returns (uint256)"
+const BOOSTER_ABI = [
+  "function boost() external payable",
+  "function getUserData(address _user) external view returns (uint256, uint256, uint256)" 
 ];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
@@ -72,9 +69,8 @@ export default function Page() {
   const [isReady, setIsReady] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
 
-  // Contract State
-  const [points, setPoints] = useState(0);
-  const [streak, setStreak] = useState(0); 
+  // Booster State
+  const [userBoosts, setUserBoosts] = useState(0);
   const [txLoading, setTxLoading] = useState(false);
   const [gmLoading, setGmLoading] = useState(false);
 
@@ -109,11 +105,10 @@ export default function Page() {
       const balWei = await provider.getBalance(address);
 
       try {
-          const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, provider);
+          const contract = new Contract(BOOSTER_CONTRACT_ADDRESS, BOOSTER_ABI, provider);
           const data = await contract.getUserData(address);
-          setPoints(Number(data[0]));
-          setStreak(Number(data[1]));
-      } catch {}
+          setUserBoosts(Number(data[0]));
+      } catch { console.log("Booster contract data fetch failed"); }
 
       let allTransfers: AlchemyTransfer[] = [];
       let pageKey: string | undefined = undefined;
@@ -218,7 +213,8 @@ export default function Page() {
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
-  const handleOnChainCheckIn = async () => {
+  // --- BOOSTER LOGIC ---
+  const handleBoost = async () => {
     if (!wallet || !connectionType) return setShowConnectModal(true);
     
     try {
@@ -226,48 +222,29 @@ export default function Page() {
       const provider = await getWalletProvider(connectionType); 
       const signer = await provider.getSigner();
 
-      // 1. Force Network Switch
       const network = await provider.getNetwork();
       if (network.chainId !== BigInt(8453)) {
         try { await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); } catch {
-            alert("Please switch your wallet network to Base Mainnet manually."); setTxLoading(false); return;
+            alert("Switch to Base Mainnet!"); setTxLoading(false); return;
         }
       }
       
-      const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
-      let fee = parseEther("0.000004");
-      try { 
-          // Use 'getCheckInFee' (function) if available, otherwise 'checkInFee' (variable)
-          try { fee = await contract.getCheckInFee(); } catch { fee = await contract.checkInFee(); }
-      } catch { console.warn("Using default fee"); }
-
-      // 2. SEND TRANSACTION with explicit gas limit to prevent 'Estimate Gas' errors
-      const tx = await contract.checkIn({ 
-          value: fee,
-          gasLimit: 500000 
+      const contract = new Contract(BOOSTER_CONTRACT_ADDRESS, BOOSTER_ABI, signer);
+      
+      const tx = await contract.boost({ 
+          value: parseEther("0.000004"),
+          gasLimit: 300000 
       });
       
-      // 3. IMMEDIATE SUCCESS (Fixes "Provider does not support receipt" error)
-      alert("✅ Check-in transaction Sent!");
+      alert("🚀 Boost Sent! +1 XP");
+      setUserBoosts(prev => prev + 1);
       
-      // Optimistic Update
-      setPoints(prev => prev + 1); 
-      setStreak(prev => prev + 1);
-      
-      // Try to wait for confirmation, but ignore errors if provider doesn't support it
-      try { await tx.wait(); } catch { console.log("Confirmation polling skipped"); }
+      try { await tx.wait(); } catch { console.log("Skipping wait"); }
 
     } catch (error: unknown) { 
-        console.error("Check-in Error:", error);
+        console.error("Boost Error:", error);
         const err = error as { reason?: string; message?: string };
-        const msg = err.reason || err.message || "Unknown error";
-        
-        // Show user-friendly error
-        if (msg.includes("Wait 24h")) {
-            alert("⏳ Already checked in! Please wait 24 hours.");
-        } else {
-            alert("❌ Transaction Failed: " + msg);
-        }
+        alert("❌ Failed: " + (err.reason || err.message || "Unknown error"));
     } finally { setTxLoading(false); }
   };
 
@@ -290,11 +267,10 @@ export default function Page() {
       try { fee = await contract.fee(); } catch {}
 
       const tx = type === 'gm' 
-        ? await contract.gm({ value: fee, gasLimit: 500000 }) 
-        : await contract.gn({ value: fee, gasLimit: 500000 });
+        ? await contract.gm({ value: fee, gasLimit: 300000 }) 
+        : await contract.gn({ value: fee, gasLimit: 300000 });
       
       alert(`✅ Transaction Sent: Said ${type.toUpperCase()}!`);
-      
       try { await tx.wait(); } catch {} 
       
     } catch (error: unknown) { 
@@ -306,14 +282,14 @@ export default function Page() {
 
   const shareNative = async () => {
     if (!wallet) return;
-    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || wallet.address.slice(0,6)}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nCheck your score 👇`;
+    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 More Boosts = Bigger Rewards!\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: MINIAPP_URL }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); }
   };
 
   const shareWarpcast = () => {
     if (!wallet) return;
-    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || wallet.address.slice(0,6)}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
+    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 More Boosts = Bigger Rewards!\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
@@ -354,7 +330,7 @@ export default function Page() {
               <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
               <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
           </div>
-          <p className="text-[8px] text-blue-500/50 mt-4">v2.2 (Lint Free)</p>
+          <p className="text-[8px] text-blue-500/50 mt-4">v3.4 (Share Rewards)</p>
       </div>
     </div>
   );
@@ -368,36 +344,43 @@ export default function Page() {
         </div>
         <button onClick={handleDisconnect} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
       </div>
+
+      {/* NEW: XP BOOSTER & REWARD CARD */}
       <div className="bg-linear-to-r from-blue-950/40 to-slate-900/40 rounded-3xl p-1 shadow-2xl mb-8 border border-blue-900/30 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#0052FF] rounded-full blur-[150px] opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none"></div>
             <div className="bg-[#020817]/80 backdrop-blur-xl rounded-[20px] p-6 sm:p-8 relative z-10">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
                     <div>
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="p-3 bg-[#0052FF]/20 rounded-xl border border-[#0052FF]/30"><Zap size={28} className="text-[#0052FF]" /></div>
-                            <div><h3 className="font-black text-2xl text-white leading-none">Daily Check-in</h3><p className="text-blue-300/60 text-sm mt-1">Mint your streak on Base</p></div>
+                            <div className="p-3 bg-[#0052FF]/20 rounded-xl border border-[#0052FF]/30"><Rocket size={28} className="text-[#0052FF]" /></div>
+                            <div>
+                                <h3 className="font-black text-2xl text-white leading-none">XP Booster</h3>
+                                <p className="text-blue-300/60 text-sm mt-1">Boost more to increase your share!</p>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                            {[...Array(7)].map((_, i) => (
-                                <div key={i} className={`w-10 h-12 rounded-lg border flex items-center justify-center transition-all ${i < streak % 7 ? 'bg-[#0052FF] border-[#0052FF] text-white shadow-[0_0_15px_-3px_rgba(0,82,255,0.6)]' : 'border-blue-900/30 bg-blue-950/20 text-blue-900'}`}>{i < streak % 7 && <CheckCircle2 size={16} />}</div>
-                            ))}
+                        <div className="flex gap-4 items-center">
+                            <div className="bg-blue-950/30 px-4 py-2 rounded-lg border border-blue-900/30">
+                                <span className="text-blue-400 text-[10px] font-bold uppercase block">Your Boosts</span>
+                                <span className="text-2xl font-black text-white">{userBoosts}</span>
+                            </div>
+                            <div className="bg-blue-950/30 px-4 py-2 rounded-lg border border-blue-900/30 text-right">
+                                <span className="text-green-400 text-[10px] font-bold uppercase block">Est. Rewards</span>
+                                <span className="text-2xl font-black text-white">${(userBoosts * 0.1).toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex flex-row md:flex-col items-center gap-4 w-full md:w-auto">
-                         <div className="bg-blue-950/30 p-4 rounded-2xl border border-blue-900/30 flex flex-col justify-center min-w-36 text-center md:text-right">
-                            <div className="flex items-center justify-center md:justify-end gap-1.5 mb-1"><Trophy size={14} className="text-[#0052FF]" /><span className="text-[10px] font-bold uppercase text-blue-400 tracking-wider">Reward Pool</span></div>
-                            <p className="text-2xl font-black text-white leading-none tracking-tight">$100 <span className="text-blue-600 text-sm">USDC</span></p>
-                        </div>
-                        <div className="flex flex-col gap-2 w-full md:w-auto">
-                            <button onClick={handleOnChainCheckIn} disabled={txLoading} className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-white text-[#0052FF] hover:bg-blue-50 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)] transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                                {txLoading ? 'Minting...' : 'Check-in Now'}
-                            </button>
-                            <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">{points} PTS Earned</p>
-                        </div>
+                    
+                    <div className="flex flex-col gap-2 w-full md:w-auto">
+                        <button onClick={handleBoost} disabled={txLoading} className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-white text-[#0052FF] hover:bg-blue-50 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)] transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            {txLoading ? <RefreshCcw className="animate-spin" size={16}/> : <Zap size={16}/>}
+                            {txLoading ? 'Boosting...' : 'BOOST SCORE (+1)'}
+                        </button>
+                        <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">Instant • 0.000004 ETH</p>
                     </div>
                 </div>
             </div>
       </div>
+
       <div className="bg-[#020817] rounded-[20px] p-6 sm:p-8 shadow-lg border border-blue-900/30 mb-8">
             <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
@@ -464,7 +447,7 @@ export default function Page() {
               <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
       </div>
-      <div className="text-center pb-4 text-white/20 text-xs">v2.2 (Lint Free)</div>
+      <div className="text-center pb-4 text-white/20 text-xs">v3.4 (Share Rewards)</div>
     </main>
   );
 }
