@@ -9,8 +9,10 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
+    "imageUrl": "https://base-analytics-app.vercel.app/og-image.png",
+    "buttonTitle": "Check Score",
     "splashImageUrl": "https://base-analytics-app.vercel.app/icon.png",
-    "splashBackgroundColor": "#f5f8ff",
+    "splashBackgroundColor": "#000510",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook"
   }
 }

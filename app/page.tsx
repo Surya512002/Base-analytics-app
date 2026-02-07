@@ -11,8 +11,8 @@ const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const APP_URL = "https://base-analytics-app.vercel.app";
 
 // CONTRACTS
-const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
-const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
+const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
+const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 const CHECKIN_ABI = ["function checkIn() external payable", "function getUserData(address _user) external view returns (uint256, uint256, uint256)", "function checkInFee() external view returns (uint256)"];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
@@ -315,39 +315,64 @@ export default function Page() {
     }
   };
 
-  const connectWallet = async (type: 'default' | 'coinbase' | 'metaMask') => {
+  // --- CONNECT LOGIC (FIXED TYPES) ---
+  const connectWallet = async (type: 'farcaster' | 'coinbase' | 'metamask') => {
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
     
     let selectedProvider: Eip1193Provider | undefined;
 
-    if (type === 'coinbase' && win.coinbaseWalletExtension) {
-        selectedProvider = win.coinbaseWalletExtension;
-    } else if (win.ethereum) {
-        selectedProvider = win.ethereum;
-    }
-
-    if (!selectedProvider) return alert("Wallet not found. Please install a wallet.");
-
     try {
-      const provider = new BrowserProvider(selectedProvider);
-      const signer = await provider.getSigner();
-      analyzeWallet(await signer.getAddress());
-    } catch (e) { console.error(e); }
+        if (type === 'farcaster') {
+            // FIX: Farcaster Mobile App injects 'window.ethereum' automatically.
+            // We use that instead of 'sdk.provider' which does not exist.
+            if (win.ethereum) {
+                selectedProvider = win.ethereum;
+            } else {
+                return alert("Farcaster Wallet not found. Are you opening this inside Warpcast?");
+            }
+        } 
+        else if (type === 'coinbase') {
+            if (win.coinbaseWalletExtension) {
+                selectedProvider = win.coinbaseWalletExtension;
+            } else {
+                selectedProvider = win.ethereum; 
+            }
+        }
+        else if (type === 'metamask') {
+            if (win.ethereum) {
+                selectedProvider = win.ethereum;
+            } else {
+                return alert("MetaMask not found. Please install the extension.");
+            }
+        }
+
+        if (!selectedProvider) return alert("Wallet provider error.");
+
+        const provider = new BrowserProvider(selectedProvider);
+        const signer = await provider.getSigner();
+        analyzeWallet(await signer.getAddress());
+
+    } catch (e) { 
+        console.error(e); 
+        alert("Connection failed. Check console for details.");
+    }
   };
 
   const handleOnChainCheckIn = async () => {
     if (!wallet) return setShowConnectModal(true);
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
-    if (!win.ethereum) return;
+    // FIX: Using window.ethereum as primary fallback since sdk.provider is removed
+    if (!win.ethereum) return; 
+
     try {
       setTxLoading(true);
+      
       const provider = new BrowserProvider(win.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
-      // FIX: Clean try/catch block without unused vars
       let fee = parseEther("0.000004");
       try { 
           fee = await contract.checkInFee(); 
@@ -445,16 +470,19 @@ export default function Page() {
                   <button onClick={() => setShowConnectModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={20}/></button>
                   <h3 className="text-xl font-black text-white mb-6 text-center">Connect Wallet</h3>
                   <div className="flex flex-col gap-3">
-                      <button onClick={() => connectWallet('default')} className="flex items-center justify-between bg-[#0052FF] hover:bg-blue-600 text-white p-4 rounded-xl font-bold transition-all group">
-                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster / Injected</div>
+                      {/* FARCASTER BUTTON - Uses Window.Ethereum (Standard for Frame v2) */}
+                      <button onClick={() => connectWallet('farcaster')} className="flex items-center justify-between bg-[#472a91] hover:bg-[#5835b0] text-white p-4 rounded-xl font-bold transition-all group border border-purple-500/30">
+                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster (Warpcast)</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
-                      <button onClick={() => connectWallet('coinbase')} className="flex items-center justify-between bg-blue-900/20 hover:bg-blue-900/40 text-blue-200 border border-blue-900/50 p-4 rounded-xl font-bold transition-all group">
-                          <div className="flex items-center gap-3"><div className="bg-blue-500/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div>
+
+                      <button onClick={() => connectWallet('coinbase')} className="flex items-center justify-between bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-bold transition-all group">
+                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
-                      <button onClick={() => connectWallet('metaMask')} className="flex items-center justify-between bg-orange-900/20 hover:bg-orange-900/40 text-orange-200 border border-orange-900/50 p-4 rounded-xl font-bold transition-all group">
-                          <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Other</div>
+
+                      <button onClick={() => connectWallet('metamask')} className="flex items-center justify-between bg-orange-700/80 hover:bg-orange-600 text-white border border-orange-500/30 p-4 rounded-xl font-bold transition-all group">
+                          <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Injected</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
                   </div>
@@ -531,11 +559,18 @@ export default function Page() {
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
                 
-                {/* REMOVED WALLET ADDRESS DISPLAY */}
+                <div className="text-right">
+                    {wallet.basename ? (
+                        <div className="bg-[#0052FF] px-4 py-2 rounded-xl text-white text-base font-black inline-flex items-center gap-2 mb-2 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)]">
+                            <BadgeCheck size={16} className="text-white" /> {wallet.basename}
+                        </div>
+                    ) : (
+                        <div className="bg-blue-950/50 px-4 py-2 rounded-xl text-blue-300 text-sm font-bold border border-blue-900/50 inline-block mb-2">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</div>
+                    )}
+                </div>
             </div>
             
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
-                {/* FIXED: 12px columns + overflow-visible + whitespace-nowrap for full 3 letters */}
                 <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
                 {wallet.weekLabels.map((m, i) => (
                     <div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>
