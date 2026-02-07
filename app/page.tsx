@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight } from 'lucide-react';
-import { BrowserProvider, JsonRpcProvider, formatEther, parseEther, Contract, Eip1193Provider } from 'ethers';
+import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2 } from 'lucide-react';
+import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
+// IMPORT THE NEW CONNECTION FILE
+import { connectWallet, getWalletProvider } from './connection';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
-
-// DIRECT DEEP LINK FOR SHARING
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
 // CONTRACTS
@@ -63,11 +63,6 @@ interface AlchemyResponse {
   };
 }
 
-interface WindowWithEthereum extends Window {
-  ethereum?: Eip1193Provider;
-  coinbaseWalletExtension?: Eip1193Provider;
-}
-
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -82,15 +77,9 @@ export default function Page() {
   const [gmLoading, setGmLoading] = useState(false);
 
   useEffect(() => {
-    // 1. Initialize SDK immediately
     if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-      try {
-        sdk.actions.ready();
-        setIsReady(true);
-        console.log("Farcaster SDK Ready Called");
-      } catch (err) {
-        console.error("SDK Ready failed:", err);
-      }
+      sdk.actions.ready();
+      setIsReady(true);
     }
   }, []);
 
@@ -323,81 +312,36 @@ export default function Page() {
     }
   };
 
-  const connectWallet = async (type: 'farcaster' | 'coinbase' | 'metamask') => {
-    if (typeof window === 'undefined') return;
-    const win = window as unknown as WindowWithEthereum;
-    
-    let selectedProvider: Eip1193Provider | undefined;
-
+  // --- CONNECT LOGIC (Updated to use connection.ts) ---
+  const handleConnect = async (type: 'farcaster' | 'coinbase' | 'metamask') => {
     try {
-        if (type === 'coinbase') {
-            if (win.coinbaseWalletExtension) {
-                selectedProvider = win.coinbaseWalletExtension;
-            } else {
-                selectedProvider = win.ethereum; 
-            }
-        }
-        else if (type === 'metamask') {
-            if (win.ethereum) {
-                selectedProvider = win.ethereum;
-            } else {
-                return alert("MetaMask not found. Please install the extension.");
-            }
-        }
-        else if (type === 'farcaster') {
-            // --- ROBUST FARCASTER CONNECTION ---
-            
-            // 1. Try Standard Injection (Standard for Frame v2)
-            if (win.ethereum) {
-                selectedProvider = win.ethereum;
-            } 
-            // 2. Try SDK Injection (Fallback)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            else if ((sdk as any).provider) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                selectedProvider = (sdk as any).provider;
-            }
-            
-            if (!selectedProvider) {
-                // 3. Retry Logic (Wait 1 second in case it's loading)
-                 alert("Farcaster Wallet initializing... Tap OK to retry.");
-                 await new Promise(r => setTimeout(r, 1000));
-                 if (win.ethereum) selectedProvider = win.ethereum;
-            }
-
-            if (!selectedProvider) {
-                 return alert("Farcaster Wallet not found. \n\nEnsure you are in Warpcast or try refreshing the page.");
-            }
-        }
-
-        if (!selectedProvider) return alert("Wallet provider error. Please try opening in the Coinbase or Farcaster App directly.");
-
-        const provider = new BrowserProvider(selectedProvider);
-        const signer = await provider.getSigner();
-        analyzeWallet(await signer.getAddress());
-
-    } catch (e) { 
-        console.error(e); 
-        alert("Connection failed. Please refresh and try again.");
+      const { address } = await connectWallet(type);
+      analyzeWallet(address);
+    } catch (e) {
+      console.error(e);
+      alert((e as Error).message);
     }
   };
 
   const handleOnChainCheckIn = async () => {
     if (!wallet) return setShowConnectModal(true);
-    if (typeof window === 'undefined') return;
-    const win = window as unknown as WindowWithEthereum;
     
-    // Auto-detect provider for actions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sdkProvider = (sdk as any).provider;
-    const activeProvider = sdkProvider || win.ethereum;
-
-    if (!activeProvider) return alert("Wallet disconnected. Please reload."); 
-
     try {
-      setTxLoading(true);
+      // 1. Get the robust provider
+      // Note: We blindly try 'farcaster' first if inside sdk, else we check window.ethereum
+      // For simplicity here, we assume if they connected via X, they want to sign via X.
+      // But we need a robust way to get "Current Provider".
+      // Strategy: Try getting the Farcaster provider first, fall back to window.ethereum
       
-      const provider = new BrowserProvider(activeProvider);
+      let provider;
+      try {
+         provider = await getWalletProvider('farcaster'); 
+      } catch {
+         // Fallback to generic browser wallet
+         provider = await getWalletProvider('metamask');
+      }
+
+      setTxLoading(true);
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
@@ -432,12 +376,10 @@ export default function Page() {
 
   const handleGmGn = async (type: 'gm' | 'gn') => {
     if (!wallet) return setShowConnectModal(true);
-    if (typeof window === 'undefined') return;
-    const win = window as unknown as WindowWithEthereum;
-    if (!win.ethereum) return;
     try {
       setGmLoading(true);
-      const provider = new BrowserProvider(win.ethereum);
+      // Simplified: Just grab window.ethereum for these standard txs or same fallback logic
+      const provider = await getWalletProvider('metamask'); // Most GM/GN bots use standard wallet
       const signer = await provider.getSigner();
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       const fee = await contract.fee();
@@ -457,12 +399,12 @@ export default function Page() {
             await navigator.share({
                 title: 'My Base Analytics',
                 text: shareText,
-                url: MINIAPP_URL, // Use Deep Link
+                url: MINIAPP_URL, 
             });
         } catch (err) { console.log('Share canceled', err); }
     } else {
         alert("Link copied to clipboard!");
-        navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); // Use Deep Link
+        navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); 
     }
   };
 
@@ -500,19 +442,19 @@ export default function Page() {
                   <div className="flex flex-col gap-3">
                       
                       {/* 1. COINBASE BUTTON */}
-                      <button onClick={() => connectWallet('coinbase')} className="flex items-center justify-between bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-bold transition-all group">
+                      <button onClick={() => handleConnect('coinbase')} className="flex items-center justify-between bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-bold transition-all group">
                           <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
 
                       {/* 2. METAMASK BUTTON */}
-                      <button onClick={() => connectWallet('metamask')} className="flex items-center justify-between bg-orange-700/80 hover:bg-orange-600 text-white border border-orange-500/30 p-4 rounded-xl font-bold transition-all group">
+                      <button onClick={() => handleConnect('metamask')} className="flex items-center justify-between bg-orange-700/80 hover:bg-orange-600 text-white border border-orange-500/30 p-4 rounded-xl font-bold transition-all group">
                           <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Injected</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
 
                       {/* 3. FARCASTER BUTTON */}
-                      <button onClick={() => connectWallet('farcaster')} className="flex items-center justify-between bg-[#472a91] hover:bg-[#5835b0] text-white p-4 rounded-xl font-bold transition-all group border border-purple-500/30">
+                      <button onClick={() => handleConnect('farcaster')} className="flex items-center justify-between bg-[#472a91] hover:bg-[#5835b0] text-white p-4 rounded-xl font-bold transition-all group border border-purple-500/30">
                           <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster Wallet</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
@@ -590,7 +532,9 @@ export default function Page() {
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
                 
-                {/* ADDRESS REMOVED HERE AS REQUESTED */}
+                <div className="text-right">
+                    {/* Address removed as requested */}
+                </div>
             </div>
             
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
