@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send } from 'lucide-react';
-import { BrowserProvider, JsonRpcProvider, formatEther, Contract, Eip1193Provider } from 'ethers';
+import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight } from 'lucide-react';
+import { BrowserProvider, JsonRpcProvider, formatEther, parseEther, Contract, Eip1193Provider } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 
 // --- CONFIGURATION ---
@@ -11,12 +11,11 @@ const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const APP_URL = "https://base-analytics-app.vercel.app";
 
 // CONTRACTS
-const CHECKIN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
-const GM_GN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
+const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
+const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
 const CHECKIN_ABI = ["function checkIn() external payable", "function getUserData(address _user) external view returns (uint256, uint256, uint256)", "function checkInFee() external view returns (uint256)"];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
-// STRICT 3-LETTER MONTHS
 const MONTHS_3_LETTERS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // --- TYPES ---
@@ -64,6 +63,7 @@ interface AlchemyResponse {
 
 interface WindowWithEthereum extends Window {
   ethereum?: Eip1193Provider;
+  coinbaseWalletExtension?: Eip1193Provider;
 }
 
 export default function Page() {
@@ -71,6 +71,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [isReady, setIsReady] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
 
   // Contract State
   const [points, setPoints] = useState(0);
@@ -102,6 +103,7 @@ export default function Page() {
   const analyzeWallet = async (address: string) => {
     setLoading(true);
     setLoadingMsg("Scanning Base Network...");
+    setShowConnectModal(false);
     
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
@@ -313,19 +315,29 @@ export default function Page() {
     }
   };
 
-  const connect = async () => {
+  const connectWallet = async (type: 'default' | 'coinbase' | 'metaMask') => {
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
-    if (!win.ethereum) return alert("No wallet found. Open in MetaMask or Coinbase Wallet.");
+    
+    let selectedProvider: Eip1193Provider | undefined;
+
+    if (type === 'coinbase' && win.coinbaseWalletExtension) {
+        selectedProvider = win.coinbaseWalletExtension;
+    } else if (win.ethereum) {
+        selectedProvider = win.ethereum;
+    }
+
+    if (!selectedProvider) return alert("Wallet not found. Please install a wallet.");
+
     try {
-      const provider = new BrowserProvider(win.ethereum);
+      const provider = new BrowserProvider(selectedProvider);
       const signer = await provider.getSigner();
       analyzeWallet(await signer.getAddress());
     } catch (e) { console.error(e); }
   };
 
   const handleOnChainCheckIn = async () => {
-    if (!wallet) return connect();
+    if (!wallet) return setShowConnectModal(true);
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
     if (!win.ethereum) return;
@@ -335,8 +347,13 @@ export default function Page() {
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
-      let fee = BigInt(0);
-      try { fee = await contract.checkInFee(); } catch {}
+      // FIX: Clean try/catch block without unused vars
+      let fee = parseEther("0.000004");
+      try { 
+          fee = await contract.checkInFee(); 
+      } catch { 
+          console.warn("Fee fetch failed, using default 0.000004 ETH"); 
+      }
 
       const tx = await contract.checkIn({ value: fee });
       
@@ -349,12 +366,19 @@ export default function Page() {
     } catch (error: unknown) { 
         console.error("Check-in Error:", error);
         const err = error as Error; 
-        alert("Check-in Failed: " + (err.message.includes("user rejected") ? "User rejected transaction" : "Transaction failed"));
+        
+        if (typeof err.message === 'string' && err.message.includes("Wait 24h")) {
+            alert("⏳ DAILY LIMIT: You have already checked in today. Please come back tomorrow!");
+        } else if (typeof err.message === 'string' && err.message.includes("Fee required")) {
+            alert("💸 FEE ERROR: Your wallet didn't send the required $0.01 ETH fee.");
+        } else {
+            alert("Transaction Failed. Note: You can only check in ONCE per 24 hours.");
+        }
     } finally { setTxLoading(false); }
   };
 
   const handleGmGn = async (type: 'gm' | 'gn') => {
-    if (!wallet) return connect();
+    if (!wallet) return setShowConnectModal(true);
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
     if (!win.ethereum) return;
@@ -392,7 +416,7 @@ export default function Page() {
   const shareWarpcast = () => {
     if (!wallet) return;
     const identity = wallet.basename || `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
-    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by Madara Uchiha 🎩\nCheck your score 👇`;
+    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(APP_URL)}`, '_blank');
   };
 
@@ -409,10 +433,34 @@ export default function Page() {
       <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter z-10 drop-shadow-2xl">BASE ANALYTICS</h1>
       <p className="text-blue-200/80 mb-10 font-medium text-lg z-10 tracking-widest uppercase">The better way to analyse your onchain activity</p>
       
-      <button onClick={connect} disabled={loading} className="w-full max-w-xs bg-white text-[#0052FF] py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-50 transition active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] z-10">
+      <button onClick={() => setShowConnectModal(true)} disabled={loading} className="w-full max-w-xs bg-white text-[#0052FF] py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-50 transition active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] z-10">
         {loading ? <RefreshCcw className="animate-spin"/> : <Wallet size={22} />} 
         {loading ? loadingMsg : "Connect Wallet"}
       </button>
+
+      {/* CONNECT MODAL */}
+      {showConnectModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-[#0F172A] border border-blue-900/50 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
+                  <button onClick={() => setShowConnectModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={20}/></button>
+                  <h3 className="text-xl font-black text-white mb-6 text-center">Connect Wallet</h3>
+                  <div className="flex flex-col gap-3">
+                      <button onClick={() => connectWallet('default')} className="flex items-center justify-between bg-[#0052FF] hover:bg-blue-600 text-white p-4 rounded-xl font-bold transition-all group">
+                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster / Injected</div>
+                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                      </button>
+                      <button onClick={() => connectWallet('coinbase')} className="flex items-center justify-between bg-blue-900/20 hover:bg-blue-900/40 text-blue-200 border border-blue-900/50 p-4 rounded-xl font-bold transition-all group">
+                          <div className="flex items-center gap-3"><div className="bg-blue-500/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div>
+                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                      </button>
+                      <button onClick={() => connectWallet('metaMask')} className="flex items-center justify-between bg-orange-900/20 hover:bg-orange-900/40 text-orange-200 border border-orange-900/50 p-4 rounded-xl font-bold transition-all group">
+                          <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Other</div>
+                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       <div className="flex flex-col gap-3 mt-16 z-10 opacity-60">
           <p className="text-[10px] uppercase font-bold text-blue-400 tracking-[0.3em]">POWERED BY</p>
@@ -483,20 +531,11 @@ export default function Page() {
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
                 
-                <div className="text-right">
-                    {wallet.basename ? (
-                        <div className="bg-[#0052FF] px-4 py-2 rounded-xl text-white text-base font-black inline-flex items-center gap-2 mb-2 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)]">
-                            <BadgeCheck size={16} className="text-white" /> {wallet.basename}
-                        </div>
-                    ) : (
-                        <div className="bg-blue-950/50 px-4 py-2 rounded-xl text-blue-300 text-sm font-bold border border-blue-900/50 inline-block mb-2">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</div>
-                    )}
-                    {wallet.basename && <p className="text-xs text-blue-500/60 font-mono">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</p>}
-                </div>
+                {/* REMOVED WALLET ADDRESS DISPLAY */}
             </div>
             
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
-                {/* FIXED: 12px columns exactly matching heatmap dots, whitespace-nowrap prevents wrap */}
+                {/* FIXED: 12px columns + overflow-visible + whitespace-nowrap for full 3 letters */}
                 <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
                 {wallet.weekLabels.map((m, i) => (
                     <div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>
