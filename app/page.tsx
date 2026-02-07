@@ -339,10 +339,6 @@ export default function Page() {
             }
         }
         else if (type === 'farcaster') {
-            // FIX: Force check SDK provider first (Bypassing TS check with 'any')
-            // Then fallback to window.ethereum
-            // This fixes "Farcaster Wallet not found" inside Warpcast
-            
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const sdkProvider = (sdk as any).provider;
             
@@ -573,15 +569,7 @@ export default function Page() {
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
                 
-                <div className="text-right">
-                    {wallet.basename ? (
-                        <div className="bg-[#0052FF] px-4 py-2 rounded-xl text-white text-base font-black inline-flex items-center gap-2 mb-2 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)]">
-                            <BadgeCheck size={16} className="text-white" /> {wallet.basename}
-                        </div>
-                    ) : (
-                        <div className="bg-blue-950/50 px-4 py-2 rounded-xl text-blue-300 text-sm font-bold border border-blue-900/50 inline-block mb-2">{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</div>
-                    )}
-                </div>
+                {/* ADDRESS REMOVED HERE AS REQUESTED */}
             </div>
             
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
