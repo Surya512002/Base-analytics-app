@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+// FIXED: Added Share2 and Send back to imports
 import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight } from 'lucide-react';
 import { BrowserProvider, JsonRpcProvider, formatEther, parseEther, Contract, Eip1193Provider } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -315,7 +316,6 @@ export default function Page() {
     }
   };
 
-  // --- CONNECT LOGIC (FIXED TYPES) ---
   const connectWallet = async (type: 'farcaster' | 'coinbase' | 'metamask') => {
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
@@ -323,16 +323,7 @@ export default function Page() {
     let selectedProvider: Eip1193Provider | undefined;
 
     try {
-        if (type === 'farcaster') {
-            // FIX: Farcaster Mobile App injects 'window.ethereum' automatically.
-            // We use that instead of 'sdk.provider' which does not exist.
-            if (win.ethereum) {
-                selectedProvider = win.ethereum;
-            } else {
-                return alert("Farcaster Wallet not found. Are you opening this inside Warpcast?");
-            }
-        } 
-        else if (type === 'coinbase') {
+        if (type === 'coinbase') {
             if (win.coinbaseWalletExtension) {
                 selectedProvider = win.coinbaseWalletExtension;
             } else {
@@ -346,8 +337,15 @@ export default function Page() {
                 return alert("MetaMask not found. Please install the extension.");
             }
         }
+        else if (type === 'farcaster') {
+            if (win.ethereum) {
+                selectedProvider = win.ethereum;
+            } else {
+                return alert("Farcaster Wallet not found. \n\n⚠️ If you are on Chrome/Safari, this button won't work.\n\nPlease open this link INSIDE the Farcaster (Warpcast) App to connect automatically.");
+            }
+        }
 
-        if (!selectedProvider) return alert("Wallet provider error.");
+        if (!selectedProvider) return alert("Wallet provider error. Please try opening in the Coinbase or Farcaster App directly.");
 
         const provider = new BrowserProvider(selectedProvider);
         const signer = await provider.getSigner();
@@ -363,7 +361,6 @@ export default function Page() {
     if (!wallet) return setShowConnectModal(true);
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
-    // FIX: Using window.ethereum as primary fallback since sdk.provider is removed
     if (!win.ethereum) return; 
 
     try {
@@ -470,19 +467,22 @@ export default function Page() {
                   <button onClick={() => setShowConnectModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={20}/></button>
                   <h3 className="text-xl font-black text-white mb-6 text-center">Connect Wallet</h3>
                   <div className="flex flex-col gap-3">
-                      {/* FARCASTER BUTTON - Uses Window.Ethereum (Standard for Frame v2) */}
-                      <button onClick={() => connectWallet('farcaster')} className="flex items-center justify-between bg-[#472a91] hover:bg-[#5835b0] text-white p-4 rounded-xl font-bold transition-all group border border-purple-500/30">
-                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster (Warpcast)</div>
-                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
-                      </button>
-
+                      
+                      {/* 1. COINBASE BUTTON */}
                       <button onClick={() => connectWallet('coinbase')} className="flex items-center justify-between bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-bold transition-all group">
                           <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
 
+                      {/* 2. METAMASK BUTTON */}
                       <button onClick={() => connectWallet('metamask')} className="flex items-center justify-between bg-orange-700/80 hover:bg-orange-600 text-white border border-orange-500/30 p-4 rounded-xl font-bold transition-all group">
                           <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Injected</div>
+                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                      </button>
+
+                      {/* 3. FARCASTER BUTTON */}
+                      <button onClick={() => connectWallet('farcaster')} className="flex items-center justify-between bg-[#472a91] hover:bg-[#5835b0] text-white p-4 rounded-xl font-bold transition-all group border border-purple-500/30">
+                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster Wallet</div>
                           <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
                   </div>
