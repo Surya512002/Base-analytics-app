@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
-import { connectWallet } from './connection';
+import { connectWallet, getWalletProvider } from './connection';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
@@ -47,23 +47,21 @@ interface AlchemyTransfer {
   category: string;
   value: number | null;
   asset: string | null;
-  metadata: {
-    blockTimestamp: string;
-  };
+  metadata: { blockTimestamp: string; };
 }
 
 interface AlchemyResponse {
-  result?: {
-    transfers: AlchemyTransfer[];
-    pageKey?: string;
-  };
-  error?: {
-    message: string;
-  };
+  result?: { transfers: AlchemyTransfer[]; pageKey?: string; };
+  error?: { message: string; };
 }
+
+type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
+  // Track which wallet provider the user chose
+  const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
+  
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [isReady, setIsReady] = useState(false);
@@ -77,13 +75,14 @@ export default function Page() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-      try {
-        sdk.actions.ready();
-        setIsReady(true);
-      } catch (e) { console.error(e); }
+        try {
+            sdk.actions.ready();
+            setIsReady(true);
+        } catch (e) { console.error("SDK Init Error", e); }
     }
   }, []);
 
+  // --- ANALYTICS LOGIC ---
   const getStrictUTCDate = (isoTimestamp: string) => {
     const date = new Date(isoTimestamp); 
     return date.toISOString().split('T')[0];
@@ -105,7 +104,6 @@ export default function Page() {
     
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
-      
       let basename = null;
       try { basename = await provider.lookupAddress(address); } catch {}
       const balWei = await provider.getBalance(address);
@@ -124,51 +122,33 @@ export default function Page() {
       while (true) {
           loopCount++;
           setLoadingMsg(`Indexing Actions: ${allTransfers.length}...`);
-
           const params: Record<string, unknown> = {
-            fromBlock: "0x0", 
-            toBlock: "latest", 
-            fromAddress: address,
-            category: ["external", "erc20", "erc721", "erc1155"], 
-            maxCount: "0x3e8",
-            withMetadata: true
+            fromBlock: "0x0", toBlock: "latest", fromAddress: address,
+            category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true
           };
-
           if (pageKey) params.pageKey = pageKey;
 
           const response = await fetch(BASE_RPC, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers",
-              params: [params]
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] })
           });
-          
           const data = (await response.json()) as AlchemyResponse;
           if (data.error) throw new Error(data.error.message);
 
           const newTransfers = data.result?.transfers || [];
           allTransfers = [...allTransfers, ...newTransfers];
-          
           pageKey = data.result?.pageKey;
           if (!pageKey || loopCount > 200) break;
       }
 
       setLoadingMsg(`Calculating Score...`);
-      
       const uniqueDays = new Set<string>();
       const uniqueWeeks = new Set<string>();
       const uniqueMonths = new Set<string>();
       const uniqueTokens = new Set<string>();
-      
-      let ethVolume = 0.0;
-      let swapCount = 0;
-      let contractInteractions = 0;
+      let ethVolume = 0.0, swapCount = 0, contractInteractions = 0;
 
-      const sortedTxs = allTransfers.sort((a, b) => 
-        new Date(a.metadata.blockTimestamp).getTime() - new Date(b.metadata.blockTimestamp).getTime()
-      );
+      const sortedTxs = allTransfers.sort((a, b) => new Date(a.metadata.blockTimestamp).getTime() - new Date(b.metadata.blockTimestamp).getTime());
 
       for (const tx of sortedTxs) {
         const d = new Date(tx.metadata.blockTimestamp);
@@ -176,74 +156,41 @@ export default function Page() {
         const weekStr = getISOWeekToken(d);
         const monthStr = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
 
-        uniqueDays.add(dateStr);
-        uniqueWeeks.add(weekStr);
-        uniqueMonths.add(monthStr);
+        uniqueDays.add(dateStr); uniqueWeeks.add(weekStr); uniqueMonths.add(monthStr);
 
-        if (tx.value) {
-            if (tx.asset === 'ETH' || tx.asset === 'WETH') {
-                ethVolume += tx.value;
-            }
-        }
-
-        if (tx.category === 'erc20' || tx.category === 'erc721' || tx.category === 'erc1155') {
-            swapCount++;
-            if (tx.asset) uniqueTokens.add(tx.asset);
-        }
+        if (tx.value && (tx.asset === 'ETH' || tx.asset === 'WETH')) ethVolume += tx.value;
+        if (['erc20', 'erc721', 'erc1155'].includes(tx.category)) { swapCount++; if (tx.asset) uniqueTokens.add(tx.asset); }
         if (tx.category === 'external') contractInteractions++;
       }
 
+      // Streak Logic
       const sortedUniqueDays = Array.from(uniqueDays).sort(); 
-      let currentStreak = 0;
-      let longestStreak = 0;
-      let tempStreak = 0;
-      let prevTimestamp = 0;
-
+      let currentStreak = 0, longestStreak = 0, tempStreak = 0, prevTimestamp = 0;
       for (const dayStr of sortedUniqueDays) {
           const currentTimestamp = Date.parse(dayStr);
           if (prevTimestamp !== 0) {
               const diff = (currentTimestamp - prevTimestamp) / (1000 * 3600 * 24);
-              if (Math.round(diff) === 1) {
-                  tempStreak++;
-              } else {
-                  longestStreak = Math.max(longestStreak, tempStreak);
-                  tempStreak = 1;
-              }
-          } else {
-              tempStreak = 1;
-          }
+              if (Math.round(diff) === 1) tempStreak++;
+              else { longestStreak = Math.max(longestStreak, tempStreak); tempStreak = 1; }
+          } else tempStreak = 1;
           prevTimestamp = currentTimestamp;
       }
       longestStreak = Math.max(longestStreak, tempStreak);
-
       const now = new Date();
       const todayStr = now.toISOString().split('T')[0];
-      const yestDate = new Date();
-      yestDate.setUTCDate(now.getUTCDate() - 1);
+      const yestDate = new Date(); yestDate.setUTCDate(now.getUTCDate() - 1);
       const yestStr = yestDate.toISOString().split('T')[0];
-      
-      if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) {
-          currentStreak = tempStreak;
-      } else {
-          currentStreak = 0;
-      }
+      if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) currentStreak = tempStreak; else currentStreak = 0;
 
-      let historyDays = 364; 
-      let firstTxStr = "N/A";
-      let lastTxStr = "N/A";
-      let daysSinceActive = 0;
-
+      // History
+      let historyDays = 364; let firstTxStr = "N/A", lastTxStr = "N/A", daysSinceActive = 0;
       if (sortedTxs.length > 0) {
         const firstTxDate = new Date(sortedTxs[0].metadata.blockTimestamp);
         const lastTxDate = new Date(sortedTxs[sortedTxs.length - 1].metadata.blockTimestamp);
         firstTxStr = firstTxDate.toLocaleDateString();
         lastTxStr = lastTxDate.toLocaleDateString();
-        const nowTime = now.getTime();
-        const lastTime = lastTxDate.getTime();
-        daysSinceActive = Math.floor((nowTime - lastTime) / (1000 * 3600 * 24));
-        const diffTime = Math.abs(nowTime - firstTxDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
-        historyDays = Math.max(364, diffDays + 14); 
+        daysSinceActive = Math.floor((now.getTime() - lastTxDate.getTime()) / (1000 * 3600 * 24));
+        historyDays = Math.max(364, Math.ceil(Math.abs(now.getTime() - firstTxDate.getTime()) / (1000 * 3600 * 24)) + 14); 
       }
 
       const activityMap = Array(historyDays).fill(false);
@@ -265,59 +212,31 @@ export default function Page() {
           weekStartDate.setUTCDate(weekStartDate.getUTCDate() + (col * 7));
           const monthIndex = weekStartDate.getUTCMonth();
           const monthName = MONTHS_3_LETTERS[monthIndex];
-          
-          if (monthName !== lastMonthLabel) {
-              weekLabels.push(monthName);
-              lastMonthLabel = monthName;
-          } else {
-              weekLabels.push(""); 
-          }
+          if (monthName !== lastMonthLabel) { weekLabels.push(monthName); lastMonthLabel = monthName; } else weekLabels.push(""); 
       }
 
-      const score_tx = Math.min(25, allTransfers.length / 20); 
-      const score_days = Math.min(20, uniqueDays.size / 5);
-      const score_months = Math.min(15, uniqueMonths.size * 1.25);
-      const score_streak = Math.min(15, currentStreak * 1.1);
-      const score_vol = Math.min(10, ethVolume * 2);
-      const score_div = Math.min(10, uniqueTokens.size / 2);
-      const score_id = basename ? 5 : 0;
-      const finalScore = Math.floor(score_tx + score_days + score_months + score_streak + score_vol + score_div + score_id);
+      // Score
+      const finalScore = Math.floor(Math.min(25, allTransfers.length/20) + Math.min(20, uniqueDays.size/5) + Math.min(15, uniqueMonths.size*1.25) + Math.min(15, currentStreak*1.1) + Math.min(10, ethVolume*2) + Math.min(10, uniqueTokens.size/2) + (basename ? 5 : 0));
 
       setWallet({
-        address, basename,
-        balance: parseFloat(formatEther(balWei)).toFixed(4),
-        ethVolume: ethVolume.toFixed(2),
-        txCount: allTransfers.length,
-        uniqueDays: uniqueDays.size,
-        activeWeeks: uniqueWeeks.size,
-        activeMonths: uniqueMonths.size,
-        currentStreak,
-        longestStreak,
-        firstTx: firstTxStr,
-        lastTx: lastTxStr,
-        daysSinceActive,
-        tokensSwapped: uniqueTokens.size,
-        swapCount,
-        contractInteractions,
-        score: Math.min(100, finalScore),
-        activityMap,
-        historyDays,
-        weekLabels
+        address, basename, balance: parseFloat(formatEther(balWei)).toFixed(4), ethVolume: ethVolume.toFixed(2),
+        txCount: allTransfers.length, uniqueDays: uniqueDays.size, activeWeeks: uniqueWeeks.size, activeMonths: uniqueMonths.size,
+        currentStreak, longestStreak, firstTx: firstTxStr, lastTx: lastTxStr, daysSinceActive,
+        tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, score: Math.min(100, finalScore),
+        activityMap, historyDays, weekLabels
       });
 
     } catch (e: unknown) {
       console.error("Analysis failed", e);
       alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); 
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   // --- CONNECT HANDLER ---
-  const handleConnect = async (type: 'farcaster' | 'coinbase' | 'metamask') => {
+  const handleConnect = async (type: ConnectionType) => {
     try {
-      // Connects and FORCES account selection for MetaMask
       const { address } = await connectWallet(type);
+      setConnectionType(type); // ✅ Remember which wallet they used
       analyzeWallet(address);
     } catch (e) {
       console.error(e);
@@ -327,16 +246,19 @@ export default function Page() {
 
   // --- DISCONNECT HANDLER ---
   const handleDisconnect = () => {
-    setWallet(null); // Clear UI state immediately
+    setWallet(null); 
+    setConnectionType(null); // Reset connection type
   };
 
   const handleOnChainCheckIn = async () => {
-    if (!wallet) return setShowConnectModal(true);
+    if (!wallet || !connectionType) return setShowConnectModal(true);
     
     try {
       setTxLoading(true);
+      // ✅ Use the stored connection type to get the correct provider
+      const provider = await getWalletProvider(connectionType); 
+      const signer = await provider.getSigner();
       
-      const { signer } = await connectWallet('farcaster'); 
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       
       let fee = parseEther("0.000004");
@@ -356,23 +278,18 @@ export default function Page() {
       analyzeWallet(wallet.address);
     } catch (error: unknown) { 
         console.error("Check-in Error:", error);
-        const err = error as Error; 
-        
-        if (typeof err.message === 'string' && err.message.includes("Wait 24h")) {
-            alert("⏳ DAILY LIMIT: You have already checked in today. Please come back tomorrow!");
-        } else if (typeof err.message === 'string' && err.message.includes("Fee required")) {
-            alert("💸 FEE ERROR: Your wallet didn't send the required $0.01 ETH fee.");
-        } else {
-            alert("Transaction Failed. Note: You can only check in ONCE per 24 hours.");
-        }
+        alert("Transaction Failed. Check console for details.");
     } finally { setTxLoading(false); }
   };
 
   const handleGmGn = async (type: 'gm' | 'gn') => {
-    if (!wallet) return setShowConnectModal(true);
+    if (!wallet || !connectionType) return setShowConnectModal(true);
     try {
       setGmLoading(true);
-      const { signer } = await connectWallet('farcaster');
+      // ✅ Use the stored connection type
+      const provider = await getWalletProvider(connectionType); 
+      const signer = await provider.getSigner();
+      
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       const fee = await contract.fee();
       const tx = type === 'gm' ? await contract.gm({ value: fee }) : await contract.gn({ value: fee });
@@ -473,7 +390,6 @@ export default function Page() {
             <div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50"><Activity className="text-white" size={20}/></div>
             <span className="font-black text-xl tracking-tight text-white">BASE ANALYTICS</span>
         </div>
-        {/* FIXED: Using handleDisconnect here */}
         <button onClick={handleDisconnect} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
       </div>
 
