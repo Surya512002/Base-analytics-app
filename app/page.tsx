@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck } from 'lucide-react';
+import { Wallet, Activity, Zap, Share2, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, CheckCircle2, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send } from 'lucide-react';
 import { BrowserProvider, JsonRpcProvider, formatEther, Contract, Eip1193Provider } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 
@@ -11,11 +11,12 @@ const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const APP_URL = "https://base-analytics-app.vercel.app";
 
 // CONTRACTS
-const CHECKIN_CONTRACT_ADDRESS = "0x2d4c8a035868eF8FcF9A3c339957350524D38f82"; 
-const GM_GN_CONTRACT_ADDRESS = "0xCee17958A9d6fEea76330Cb40eDEC4332bd97133"; 
+const CHECKIN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
+const GM_GN_CONTRACT_ADDRESS = "0xYourRealAddressFromRemix"; 
 const CHECKIN_ABI = ["function checkIn() external payable", "function getUserData(address _user) external view returns (uint256, uint256, uint256)", "function checkInFee() external view returns (uint256)"];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
+// STRICT 3-LETTER MONTHS
 const MONTHS_3_LETTERS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // --- TYPES ---
@@ -179,7 +180,6 @@ export default function Page() {
         uniqueWeeks.add(weekStr);
         uniqueMonths.add(monthStr);
 
-        // Volume Calculation (ETH + WETH)
         if (tx.value) {
             if (tx.asset === 'ETH' || tx.asset === 'WETH') {
                 ethVolume += tx.value;
@@ -316,7 +316,7 @@ export default function Page() {
   const connect = async () => {
     if (typeof window === 'undefined') return;
     const win = window as unknown as WindowWithEthereum;
-    if (!win.ethereum) return alert("No wallet found.");
+    if (!win.ethereum) return alert("No wallet found. Open in MetaMask or Coinbase Wallet.");
     try {
       const provider = new BrowserProvider(win.ethereum);
       const signer = await provider.getSigner();
@@ -334,14 +334,23 @@ export default function Page() {
       const provider = new BrowserProvider(win.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
-      const fee = await contract.checkInFee();
+      
+      let fee = BigInt(0);
+      try { fee = await contract.checkInFee(); } catch {}
+
       const tx = await contract.checkIn({ value: fee });
-      setPoints(prev => prev + 10); 
+      
+      setPoints(prev => prev + 1); 
       setStreak(prev => prev + 1);
+      
       await tx.wait(); 
-      alert("Check-in Successful!");
+      alert("Check-in Verified on Chain! +1 Point");
       analyzeWallet(wallet.address);
-    } catch (error) { console.error(error); } finally { setTxLoading(false); }
+    } catch (error: unknown) { 
+        console.error("Check-in Error:", error);
+        const err = error as Error; 
+        alert("Check-in Failed: " + (err.message.includes("user rejected") ? "User rejected transaction" : "Transaction failed"));
+    } finally { setTxLoading(false); }
   };
 
   const handleGmGn = async (type: 'gm' | 'gn') => {
@@ -361,9 +370,29 @@ export default function Page() {
     } catch (error) { console.error(error); } finally { setGmLoading(false); }
   };
 
-  const share = () => {
+  const shareNative = async () => {
     if (!wallet) return;
-    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || "Base User"}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
+    const identity = wallet.basename || `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
+    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nCheck your score 👇`;
+    
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'My Base Analytics',
+                text: shareText,
+                url: APP_URL,
+            });
+        } catch (err) { console.log('Share canceled', err); }
+    } else {
+        alert("Link copied to clipboard!");
+        navigator.clipboard.writeText(`${shareText}\n${APP_URL}`);
+    }
+  };
+
+  const shareWarpcast = () => {
+    if (!wallet) return;
+    const identity = wallet.basename || `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
+    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by Madara Uchiha 🎩\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(APP_URL)}`, '_blank');
   };
 
@@ -378,7 +407,6 @@ export default function Page() {
       </div>
       
       <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter z-10 drop-shadow-2xl">BASE ANALYTICS</h1>
-      {/* UPDATED TAGLINE */}
       <p className="text-blue-200/80 mb-10 font-medium text-lg z-10 tracking-widest uppercase">The better way to analyse your onchain activity</p>
       
       <button onClick={connect} disabled={loading} className="w-full max-w-xs bg-white text-[#0052FF] py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-50 transition active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] z-10">
@@ -399,7 +427,6 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-[#000510] p-4 lg:p-8 font-sans text-slate-200 pb-32">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50"><Activity className="text-white" size={20}/></div>
@@ -408,7 +435,6 @@ export default function Page() {
         <button onClick={() => setWallet(null)} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
       </div>
 
-      {/* 1. HERO / DAILY CHECK-IN */}
       <div className="bg-linear-to-r from-blue-950/40 to-slate-900/40 rounded-3xl p-1 shadow-2xl mb-8 border border-blue-900/30 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#0052FF] rounded-full blur-[150px] opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none"></div>
             <div className="bg-[#020817]/80 backdrop-blur-xl rounded-[20px] p-6 sm:p-8 relative z-10">
@@ -444,18 +470,19 @@ export default function Page() {
             </div>
       </div>
 
-      {/* 2. SCORE & HEATMAP */}
-      <div className="bg-blue-950/20 rounded-3xl p-1 shadow-lg border border-blue-900/30 mb-8 backdrop-blur-sm">
-         <div className="bg-[#020817] rounded-[20px] p-6 sm:p-8">
+      <div className="bg-[#020817] rounded-[20px] p-6 sm:p-8 shadow-lg border border-blue-900/30 mb-8">
             <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">ONCHAIN SCORE</p>
-                        <button onClick={share} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share</button>
+                        <div className="flex gap-2">
+                            <button onClick={shareNative} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share</button>
+                            <button onClick={shareWarpcast} className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-purple-500/20 border border-purple-500/20 transition-all"><Send size={10}/> Warpcast</button>
+                        </div>
                     </div>
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
-                {/* IDENTITY BADGE */}
+                
                 <div className="text-right">
                     {wallet.basename ? (
                         <div className="bg-[#0052FF] px-4 py-2 rounded-xl text-white text-base font-black inline-flex items-center gap-2 mb-2 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)]">
@@ -468,11 +495,11 @@ export default function Page() {
                 </div>
             </div>
             
-            {/* HEATMAP */}
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
-                <div className="flex justify-between mb-3 min-w-max px-1">
+                {/* FIXED: 12px columns exactly matching heatmap dots, whitespace-nowrap prevents wrap */}
+                <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
                 {wallet.weekLabels.map((m, i) => (
-                    <div key={i} className="text-[9px] font-bold text-blue-700 uppercase text-left w-3">{m}</div>
+                    <div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>
                 ))}
                 </div>
 
@@ -488,10 +515,8 @@ export default function Page() {
                 <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Lifetime History ({wallet.historyDays} Days)</p>
                 <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wide">Today</p>
             </div>
-         </div>
       </div>
 
-      {/* 3. METRICS GRID */}
       <h3 className="text-sm font-bold text-blue-500 mb-4 ml-2 flex items-center gap-2 uppercase tracking-widest"><BarChart3 size={16}/> Wallet Status</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* USER IDENTITY CARD */}
@@ -499,9 +524,12 @@ export default function Page() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#0052FF] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
               <div className="flex justify-between items-start mb-2 relative z-10">
                   <div className="p-2 bg-blue-950/50 rounded-lg text-white"><User size={20}/></div>
+                  {wallet.basename && <div className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-bold rounded border border-green-500/30 flex items-center gap-1"><BadgeCheck size={10}/> VERIFIED</div>}
               </div>
               <div className="relative z-10">
-                  <p className="text-2xl font-black text-white tracking-tight truncate">{wallet.basename || "Explorer"}</p>
+                  <p className="text-2xl font-black text-white tracking-tight truncate">
+                      {wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}
+                  </p>
                   <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mt-1">Base Identity</p>
               </div>
           </div>
@@ -520,7 +548,6 @@ export default function Page() {
           <StatCard label="Contract Txs" value={wallet.contractInteractions.toLocaleString()} icon={<FileCode size={18}/>} />
       </div>
 
-      {/* 4. GM / GN */}
       <div className="bg-[#020817] rounded-3xl p-6 shadow-sm border border-blue-900/30">
            <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-900/20 rounded-lg"><Sun size={20} className="text-[#0052FF]" /></div>

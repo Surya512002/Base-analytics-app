@@ -1,40 +1,38 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#0F172A",
-};
-
 export const metadata: Metadata = {
-  title: "Base Analytics",
-  description: "Track your on-chain engagement and streak.",
-  other: {
-    // --- 1. NEW MINI-APP METADATA (Required for v2) ---
-    "fc:frame": JSON.stringify({
-      version: "next",
-      imageUrl: "https://base-analytics-app.vercel.app/opengraph-image.png", // Ensure you have an OG image or use a public URL
-      button: {
-        title: "Launch Analytics",
-        action: {
-          type: "launch_frame",
-          name: "Base Analytics",
-          url: "https://base-analytics-app.vercel.app",
-          splashImageUrl: "https://base-analytics-app.vercel.app/icon.png", // 200x200px icon
-          splashBackgroundColor: "#f5f8ff"
-        }
-      }
-    }),
-    
-    // --- 2. BASE VERIFICATION ---
-    "base:app_id": "6985c4998dcaa0daf5755f7e", 
+  title: "Base Analytics | Royal Onchain Stats",
+  description: "The better way to analyse your onchain activity. Check your Score, Streak, and Wallet History on Base.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",       // Logo in Browser Tab
+    apple: "/icon.png",      // Logo on iPhone Home Screen
+  },
+  openGraph: {
+    title: "Base Analytics",
+    description: "My Onchain Score & Activity Heatmap. Built for Base.",
+    url: "https://base-analytics-app.vercel.app",
+    siteName: "Base Analytics",
+    images: [
+      {
+        url: "/og-image.png", // Image shown on Farcaster & Twitter
+        width: 1200,
+        height: 630,
+        alt: "Base Analytics Preview",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Base Analytics",
+    description: "Check your Onchain Score on Base.",
+    images: ["/og-image.png"], // Same image for Twitter/X
   },
 };
 
@@ -45,11 +43,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-[#F5F8FF] min-h-screen`}>
-        <Providers>
-          {children}
-        </Providers>
+      <body className={`${inter.className} bg-[#000510] text-slate-200 antialiased`}>
+        {children}
       </body>
     </html>
   );
-}
+} 
