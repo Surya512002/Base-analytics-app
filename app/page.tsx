@@ -11,9 +11,10 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// CONTRACTS
+// ⚠️ REPLACE THESE WITH YOUR REAL CONTRACT ADDRESSES FROM REMIX
 const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
+
 const CHECKIN_ABI = ["function checkIn() external payable", "function getUserData(address _user) external view returns (uint256, uint256, uint256)", "function checkInFee() external view returns (uint256)"];
 const GM_GN_ABI = ["function gm() external payable", "function gn() external payable", "function fee() external view returns (uint256)"];
 
@@ -59,9 +60,7 @@ type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  // Track which wallet provider the user chose
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
-  
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [isReady, setIsReady] = useState(false);
@@ -163,7 +162,6 @@ export default function Page() {
         if (tx.category === 'external') contractInteractions++;
       }
 
-      // Streak Logic
       const sortedUniqueDays = Array.from(uniqueDays).sort(); 
       let currentStreak = 0, longestStreak = 0, tempStreak = 0, prevTimestamp = 0;
       for (const dayStr of sortedUniqueDays) {
@@ -182,7 +180,6 @@ export default function Page() {
       const yestStr = yestDate.toISOString().split('T')[0];
       if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) currentStreak = tempStreak; else currentStreak = 0;
 
-      // History
       let historyDays = 364; let firstTxStr = "N/A", lastTxStr = "N/A", daysSinceActive = 0;
       if (sortedTxs.length > 0) {
         const firstTxDate = new Date(sortedTxs[0].metadata.blockTimestamp);
@@ -215,7 +212,6 @@ export default function Page() {
           if (monthName !== lastMonthLabel) { weekLabels.push(monthName); lastMonthLabel = monthName; } else weekLabels.push(""); 
       }
 
-      // Score
       const finalScore = Math.floor(Math.min(25, allTransfers.length/20) + Math.min(20, uniqueDays.size/5) + Math.min(15, uniqueMonths.size*1.25) + Math.min(15, currentStreak*1.1) + Math.min(10, ethVolume*2) + Math.min(10, uniqueTokens.size/2) + (basename ? 5 : 0));
 
       setWallet({
@@ -236,7 +232,7 @@ export default function Page() {
   const handleConnect = async (type: ConnectionType) => {
     try {
       const { address } = await connectWallet(type);
-      setConnectionType(type); // ✅ Remember which wallet they used
+      setConnectionType(type);
       analyzeWallet(address);
     } catch (e) {
       console.error(e);
@@ -244,29 +240,40 @@ export default function Page() {
     }
   };
 
-  // --- DISCONNECT HANDLER ---
   const handleDisconnect = () => {
     setWallet(null); 
-    setConnectionType(null); // Reset connection type
+    setConnectionType(null); 
   };
 
+  // --- CHECK-IN LOGIC ---
   const handleOnChainCheckIn = async () => {
     if (!wallet || !connectionType) return setShowConnectModal(true);
     
     try {
       setTxLoading(true);
-      // ✅ Use the stored connection type to get the correct provider
       const provider = await getWalletProvider(connectionType); 
       const signer = await provider.getSigner();
-      
-      const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
-      
-      let fee = parseEther("0.000004");
-      try { 
-          fee = await contract.checkInFee(); 
-      } catch { 
-          console.warn("Fee fetch failed, using default 0.000004 ETH"); 
+
+      // 1. Force Network Switch (Fixed BigInt literal error)
+      const network = await provider.getNetwork();
+      if (network.chainId !== BigInt(8453)) {
+        try {
+            await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); 
+        } catch {
+            alert("Please switch your wallet network to Base Mainnet manually.");
+            setTxLoading(false);
+            return;
+        }
       }
+      
+      // 2. Check Contract
+      if (CHECKIN_CONTRACT_ADDRESS === "0x100a14B0c760b0d8e617e0D9230226566b6fACB0") {
+          throw new Error("Contract Address not set! Please deploy the contract first.");
+      }
+
+      const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
+      let fee = parseEther("0.000004");
+      try { fee = await contract.checkInFee(); } catch { console.warn("Using default fee"); }
 
       const tx = await contract.checkIn({ value: fee });
       
@@ -274,34 +281,59 @@ export default function Page() {
       setStreak(prev => prev + 1);
       
       await tx.wait(); 
-      alert("Check-in Verified on Chain! +1 Point");
+      alert("✅ Success: Check-in Verified on Chain!");
       analyzeWallet(wallet.address);
+
     } catch (error: unknown) { 
         console.error("Check-in Error:", error);
-        alert("Transaction Failed. Check console for details.");
+        // Fixed 'any' type error
+        const err = error as { reason?: string; message?: string };
+        alert("❌ Failed: " + (err.reason || err.message || "Unknown error"));
     } finally { setTxLoading(false); }
   };
 
+  // --- GM/GN LOGIC ---
   const handleGmGn = async (type: 'gm' | 'gn') => {
     if (!wallet || !connectionType) return setShowConnectModal(true);
     try {
       setGmLoading(true);
-      // ✅ Use the stored connection type
       const provider = await getWalletProvider(connectionType); 
       const signer = await provider.getSigner();
-      
+
+      // 1. Force Network Switch
+      const network = await provider.getNetwork();
+      if (network.chainId !== BigInt(8453)) {
+        try {
+            await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); 
+        } catch {
+            alert("Please switch your wallet network to Base Mainnet manually.");
+            setGmLoading(false);
+            return;
+        }
+      }
+
+      if (GM_GN_CONTRACT_ADDRESS === "0xc801bCe6739D30C409151a544F0baEd10EB719dE") {
+          throw new Error("GM Contract Address not set!");
+      }
+
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
-      const fee = await contract.fee();
+      let fee = parseEther("0.000004");
+      try { fee = await contract.fee(); } catch {}
+
       const tx = type === 'gm' ? await contract.gm({ value: fee }) : await contract.gn({ value: fee });
       await tx.wait();
-      alert(`Said ${type.toUpperCase()}!`);
-    } catch (error) { console.error(error); } finally { setGmLoading(false); }
+      alert(`✅ Success: Said ${type.toUpperCase()} on chain!`);
+      
+    } catch (error: unknown) { 
+        console.error("GM Error:", error);
+        const err = error as { reason?: string; message?: string };
+        alert("❌ Failed: " + (err.reason || err.message || "Unknown error"));
+    } finally { setGmLoading(false); }
   };
 
   const shareNative = async () => {
     if (!wallet) return;
-    const identity = wallet.basename || `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
-    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nCheck your score 👇`;
+    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || wallet.address.slice(0,6)}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nCheck your score 👇`;
     
     if (navigator.share) {
         try {
@@ -319,8 +351,7 @@ export default function Page() {
 
   const shareWarpcast = () => {
     if (!wallet) return;
-    const identity = wallet.basename || `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
-    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${identity}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
+    const shareText = `My Onchain Score: ${wallet.score}/100 🔵\n\n👤 ${wallet.basename || wallet.address.slice(0,6)}\n🔥 Streak: ${wallet.currentStreak} Days\n📅 Active: ${wallet.uniqueDays} Days\n\nBuilt by @suryaprakash.farcaster.eth 🎩\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
@@ -349,23 +380,14 @@ export default function Page() {
                   <button onClick={() => setShowConnectModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={20}/></button>
                   <h3 className="text-xl font-black text-white mb-6 text-center">Connect Wallet</h3>
                   <div className="flex flex-col gap-3">
-                      
-                      {/* 1. COINBASE BUTTON */}
                       <button onClick={() => handleConnect('coinbase')} className="flex items-center justify-between bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-xl font-bold transition-all group">
-                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div>
-                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Globe size={20}/></div> Coinbase Wallet</div><ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
-
-                      {/* 2. METAMASK BUTTON */}
                       <button onClick={() => handleConnect('metamask')} className="flex items-center justify-between bg-orange-700/80 hover:bg-orange-600 text-white border border-orange-500/30 p-4 rounded-xl font-bold transition-all group">
-                          <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Injected</div>
-                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                          <div className="flex items-center gap-3"><div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20}/></div> MetaMask / Injected</div><ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
-
-                      {/* 3. FARCASTER BUTTON */}
                       <button onClick={() => handleConnect('farcaster')} className="flex items-center justify-between bg-[#472a91] hover:bg-[#5835b0] text-white p-4 rounded-xl font-bold transition-all group border border-purple-500/30">
-                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster Wallet</div>
-                          <ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
+                          <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-lg"><Smartphone size={20}/></div> Farcaster Wallet</div><ChevronRight size={18} className="opacity-50 group-hover:opacity-100"/>
                       </button>
                   </div>
               </div>
@@ -469,7 +491,6 @@ export default function Page() {
 
       <h3 className="text-sm font-bold text-blue-500 mb-4 ml-2 flex items-center gap-2 uppercase tracking-widest"><BarChart3 size={16}/> Wallet Status</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* USER IDENTITY CARD */}
           <div className="bg-linear-to-br from-[#0052FF]/10 to-blue-950/20 p-5 rounded-2xl border border-[#0052FF]/30 flex flex-col justify-between col-span-2 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#0052FF] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
               <div className="flex justify-between items-start mb-2 relative z-10">
