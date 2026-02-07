@@ -6,7 +6,7 @@ import { BrowserProvider, JsonRpcProvider, formatEther, parseEther, Contract, Ei
 import { sdk } from "@farcaster/miniapp-sdk";
 
 // --- CONFIGURATION ---
-const ALCHEMY_KEY = "ZHHTYOLANc6hp1RX7bQp1"; 
+const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const APP_URL = "https://base-analytics-app.vercel.app";
 
