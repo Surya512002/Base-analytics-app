@@ -11,11 +11,11 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ YOUR REAL ADDRESSES (Ensure these are correct!)
+// ✅ YOUR REAL ADDRESSES (Double check these match your Remix deployment!)
 const CHECKIN_CONTRACT_ADDRESS = "0x100a14B0c760b0d8e617e0D9230226566b6fACB0"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-// ✅ FIXED ABI: Removed the lowercase "checkin" to prevent errors
+// ✅ CORRECT ABI (CamelCase to match Solidity)
 const CHECKIN_ABI = [
   "function checkIn() external payable", 
   "function getUserData(address _user) external view returns (uint256, uint256, uint256)", 
@@ -225,6 +225,7 @@ export default function Page() {
       const provider = await getWalletProvider(connectionType); 
       const signer = await provider.getSigner();
 
+      // 1. Verify Network
       const network = await provider.getNetwork();
       if (network.chainId !== BigInt(8453)) {
         try { await provider.send("wallet_switchEthereumChain", [{ chainId: "0x2105" }]); } catch {
@@ -232,15 +233,22 @@ export default function Page() {
         }
       }
       
+      // 2. Verify Contract Exists (Fixes "Call Exception")
+      const code = await provider.getCode(CHECKIN_CONTRACT_ADDRESS);
+      if (code === "0x") {
+          alert("🚨 CRITICAL: Contract not found at this address on Base! Did you deploy it to Base Mainnet?");
+          setTxLoading(false);
+          return;
+      }
+
       const contract = new Contract(CHECKIN_CONTRACT_ADDRESS, CHECKIN_ABI, signer);
       let fee = parseEther("0.000004");
       try { fee = await contract.checkInFee(); } catch { console.warn("Using default fee"); }
 
-      // ✅ EXPLICIT CALL: Forces Ethers to use the specific function signature
-      // This solves the confusion between "checkIn" and "checkin"
-      const tx = await contract.getFunction("checkIn")({ 
+      // 3. FORCE TRANSACTION (Bypasses EstimateGas failures)
+      const tx = await contract.checkIn({ 
           value: fee,
-          gasLimit: 300000 
+          gasLimit: 500000 // 🚀 FORCE HIGH GAS LIMIT
       });
       
       setPoints(prev => prev + 1); 
@@ -253,7 +261,7 @@ export default function Page() {
     } catch (error: unknown) { 
         console.error("Check-in Error:", error);
         const err = error as { reason?: string; message?: string };
-        alert("❌ Failed: " + (err.reason || err.message || "Unknown error"));
+        alert("❌ Failed: " + (err.reason || err.message || "Unknown error. Check console."));
     } finally { setTxLoading(false); }
   };
 
@@ -276,8 +284,8 @@ export default function Page() {
       try { fee = await contract.fee(); } catch {}
 
       const tx = type === 'gm' 
-        ? await contract.gm({ value: fee, gasLimit: 300000 }) 
-        : await contract.gn({ value: fee, gasLimit: 300000 });
+        ? await contract.gm({ value: fee, gasLimit: 500000 }) 
+        : await contract.gn({ value: fee, gasLimit: 500000 });
       await tx.wait();
       alert(`✅ Success: Said ${type.toUpperCase()} on chain!`);
       
@@ -338,6 +346,7 @@ export default function Page() {
               <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
               <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
           </div>
+          <p className="text-[8px] text-blue-500/50 mt-4">v2.0 (Gas Fix)</p>
       </div>
     </div>
   );
@@ -447,6 +456,7 @@ export default function Page() {
               <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
       </div>
+      <div className="text-center pb-4 text-white/20 text-xs">v2.0 (Gas Fix)</div>
     </main>
   );
 }
