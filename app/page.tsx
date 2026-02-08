@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-// ✅ FIXED: Added back Wallet, Calendar, Layers, ArrowRightLeft
-import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2, Rocket } from 'lucide-react';
+import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2, Rocket, Twitter } from 'lucide-react';
 import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet, getWalletProvider } from './connection';
@@ -12,7 +11,7 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ YOUR REAL CONTRACT ADDRESSES
+// ✅ REAL CONTRACT ADDRESSES
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
@@ -214,7 +213,6 @@ export default function Page() {
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
-  // --- BOOSTER LOGIC ---
   const handleBoost = async () => {
     if (!wallet || !connectionType) return setShowConnectModal(true);
     
@@ -231,15 +229,9 @@ export default function Page() {
       }
       
       const contract = new Contract(BOOSTER_CONTRACT_ADDRESS, BOOSTER_ABI, signer);
-      
-      const tx = await contract.boost({ 
-          value: parseEther("0.000004"),
-          gasLimit: 300000 
-      });
-      
+      const tx = await contract.boost({ value: parseEther("0.000004"), gasLimit: 300000 });
       alert("🚀 Boost Sent! +1 XP");
       setUserBoosts(prev => prev + 1);
-      
       try { await tx.wait(); } catch { console.log("Skipping wait"); }
 
     } catch (error: unknown) { 
@@ -267,10 +259,7 @@ export default function Page() {
       let fee = parseEther("0.000004");
       try { fee = await contract.fee(); } catch {}
 
-      const tx = type === 'gm' 
-        ? await contract.gm({ value: fee, gasLimit: 300000 }) 
-        : await contract.gn({ value: fee, gasLimit: 300000 });
-      
+      const tx = type === 'gm' ? await contract.gm({ value: fee, gasLimit: 300000 }) : await contract.gn({ value: fee, gasLimit: 300000 });
       alert(`✅ Transaction Sent: Said ${type.toUpperCase()}!`);
       try { await tx.wait(); } catch {} 
       
@@ -281,6 +270,7 @@ export default function Page() {
     } finally { setGmLoading(false); }
   };
 
+  // ✅ 1. Standard Share (Base App / Coinbase Wallet)
   const shareNative = async () => {
     if (!wallet) return;
     const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
@@ -288,10 +278,18 @@ export default function Page() {
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); }
   };
 
+  // ✅ 2. Warpcast Share (Targeted for Farcaster)
   const shareWarpcast = () => {
     if (!wallet) return;
     const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
+  };
+
+  // ✅ 3. X (Twitter) Share (Targeted for Base/Twitter Users)
+  const shareTwitter = () => {
+    if (!wallet) return;
+    const shareText = `I have ${userBoosts} Boosts on @base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇\n${MINIAPP_URL}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   if (!isReady) return <div className="min-h-screen bg-[#000510] flex items-center justify-center text-blue-500 font-mono">INITIALIZING BASE...</div>;
@@ -331,7 +329,7 @@ export default function Page() {
               <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
               <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
           </div>
-          <p className="text-[8px] text-blue-500/50 mt-4">v3.6 (Fixed Icons)</p>
+          <p className="text-[8px] text-blue-500/50 mt-4">v3.8 (Twitter Added)</p>
       </div>
     </div>
   );
@@ -346,7 +344,6 @@ export default function Page() {
         <button onClick={handleDisconnect} className="p-3 bg-blue-950/30 rounded-full shadow-lg border border-blue-900/30 text-blue-400 hover:text-white hover:bg-[#0052FF] transition-all"><Power size={18}/></button>
       </div>
 
-      {/* NEW: XP BOOSTER & REWARD CARD */}
       <div className="bg-linear-to-r from-blue-950/40 to-slate-900/40 rounded-3xl p-1 shadow-2xl mb-8 border border-blue-900/30 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#0052FF] rounded-full blur-[150px] opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none"></div>
             <div className="bg-[#020817]/80 backdrop-blur-xl rounded-[20px] p-6 sm:p-8 relative z-10">
@@ -370,7 +367,6 @@ export default function Page() {
                             </div>
                         </div>
                     </div>
-                    
                     <div className="flex flex-col gap-2 w-full md:w-auto">
                         <button onClick={handleBoost} disabled={txLoading} className="w-full px-8 py-4 rounded-xl font-bold text-sm bg-white text-[#0052FF] hover:bg-blue-50 shadow-[0_0_20px_-5px_rgba(255,255,255,0.2)] transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             {txLoading ? <RefreshCcw className="animate-spin" size={16}/> : <Zap size={16}/>}
@@ -388,8 +384,14 @@ export default function Page() {
                     <div className="flex items-center gap-3 mb-2">
                         <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">ONCHAIN SCORE</p>
                         <div className="flex gap-2">
-                            <button onClick={shareNative} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share Link</button>
-                            <button onClick={shareWarpcast} className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-purple-500/20 border border-purple-500/20 transition-all"><Send size={10}/> Share on Warpcast</button>
+                            {/* 1. WARPCAST (Warpcast App) */}
+                            <button onClick={shareWarpcast} className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-purple-500/20 border border-purple-500/20 transition-all"><Send size={10}/> Warpcast</button>
+                            
+                            {/* 2. TWITTER (Base Community) */}
+                            <button onClick={shareTwitter} className="bg-blue-400/10 text-blue-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-blue-400/20 border border-blue-400/20 transition-all"><Twitter size={10}/> Post on X</button>
+                            
+                            {/* 3. SYSTEM (WhatsApp/Base App) */}
+                            <button onClick={shareNative} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share</button>
                         </div>
                     </div>
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
@@ -448,7 +450,7 @@ export default function Page() {
               <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
       </div>
-      <div className="text-center pb-4 text-white/20 text-xs">v3.6 (Fixed Icons)</div>
+      <div className="text-center pb-4 text-white/20 text-xs">v3.8 (Twitter Added)</div>
     </main>
   );
 }

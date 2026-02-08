@@ -5,30 +5,25 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  // ✅ IMPORTANT: This fixes the blank image by setting the base URL
+  metadataBase: new URL("https://base-analytics-app.vercel.app"), 
+  
   title: "Base Analytics | XP Booster",
   description: "Check your onchain score and boost your XP on Base.",
-  // ✅ THIS FIXES THE BLANK IMAGE IN FEEDS
+  
   openGraph: {
     title: "Base Analytics & XP Booster",
     description: "Check your Onchain Score and farm XP on Base! 🚀",
-    url: "https://base-analytics-app.vercel.app", // Your actual Vercel URL
     siteName: "Base Analytics",
-    images: [
-      {
-        url: "https://base-analytics-app.vercel.app/opengraph-image.png", // Ensure this image exists in your /public or /app folder
-        width: 1200,
-        height: 630,
-        alt: "Base Analytics Preview",
-      },
-    ],
     locale: "en_US",
     type: "website",
+    // Next.js automatically finds app/opengraph-image.png, we don't need to hardcode it if metadataBase is set
   },
   twitter: {
     card: "summary_large_image",
     title: "Base Analytics & XP Booster",
-    description: "Check your Onchain Score and farm XP on Base! 🚀",
-    creator: "@suryaprakash.farcaster.eth", // Mentions you in Twitter card data
+    description: "Farm XP on Base! 🚀",
+    creator: "@suryaprakash.farcaster.eth", 
   },
 };
 
