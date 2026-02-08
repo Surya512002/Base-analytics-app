@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+// ✅ FIXED: Added back Wallet, Calendar, Layers, ArrowRightLeft
 import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2, Rocket } from 'lucide-react';
 import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -11,7 +12,7 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ REAL CONTRACT ADDRESSES
+// ✅ YOUR REAL CONTRACT ADDRESSES
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
@@ -282,14 +283,14 @@ export default function Page() {
 
   const shareNative = async () => {
     if (!wallet) return;
-    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 More Boosts = Bigger Rewards!\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: MINIAPP_URL }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); }
   };
 
   const shareWarpcast = () => {
     if (!wallet) return;
-    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 More Boosts = Bigger Rewards!\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
@@ -330,7 +331,7 @@ export default function Page() {
               <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
               <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
           </div>
-          <p className="text-[8px] text-blue-500/50 mt-4">v3.4 (Share Rewards)</p>
+          <p className="text-[8px] text-blue-500/50 mt-4">v3.6 (Fixed Icons)</p>
       </div>
     </div>
   );
@@ -387,8 +388,8 @@ export default function Page() {
                     <div className="flex items-center gap-3 mb-2">
                         <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">ONCHAIN SCORE</p>
                         <div className="flex gap-2">
-                            <button onClick={shareNative} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share</button>
-                            <button onClick={shareWarpcast} className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-purple-500/20 border border-purple-500/20 transition-all"><Send size={10}/> Warpcast</button>
+                            <button onClick={shareNative} className="bg-[#0052FF]/10 text-[#0052FF] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#0052FF]/20 border border-[#0052FF]/20 transition-all"><Share2 size={10}/> Share Link</button>
+                            <button onClick={shareWarpcast} className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 hover:bg-purple-500/20 border border-purple-500/20 transition-all"><Send size={10}/> Share on Warpcast</button>
                         </div>
                     </div>
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
@@ -447,7 +448,7 @@ export default function Page() {
               <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
       </div>
-      <div className="text-center pb-4 text-white/20 text-xs">v3.4 (Share Rewards)</div>
+      <div className="text-center pb-4 text-white/20 text-xs">v3.6 (Fixed Icons)</div>
     </main>
   );
 }
