@@ -17,13 +17,31 @@ export const metadata: Metadata = {
     siteName: "Base Analytics",
     locale: "en_US",
     type: "website",
-    // Next.js automatically finds app/opengraph-image.png, we don't need to hardcode it if metadataBase is set
+    // Next.js automatically finds app/opengraph-image.png
   },
   twitter: {
     card: "summary_large_image",
     title: "Base Analytics & XP Booster",
     description: "Farm XP on Base! 🚀",
     creator: "@suryaprakash.farcaster.eth", 
+  },
+  
+  // 👇 ADD THIS SECTION 👇
+  other: {
+    "fc:frame": JSON.stringify({
+      version: "next",
+      imageUrl: "https://base-analytics-app.vercel.app/opengraph-image.png", // Must be 3:2 aspect ratio
+      button: {
+        title: "Check Score",
+        action: {
+          type: "launch_frame",
+          name: "Base Analytics",
+          url: "https://base-analytics-app.vercel.app",
+          splashImageUrl: "https://base-analytics-app.vercel.app/icon.png", // Must be 200x200px
+          splashBackgroundColor: "#000510",
+        },
+      },
+    }),
   },
 };
 

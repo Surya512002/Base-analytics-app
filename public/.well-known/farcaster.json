@@ -14,5 +14,13 @@
     "splashImageUrl": "https://base-analytics-app.vercel.app/icon.png",
     "splashBackgroundColor": "#000510",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook"
-  }
-}
+  },
+  "primaryCategory": "finance", 
+  "tags": [
+    "analytics",
+    "onchain",
+    "utility",
+    "base",
+    "score"
+  ]
+} 
