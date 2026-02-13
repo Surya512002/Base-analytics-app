@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2, Rocket, Twitter } from 'lucide-react';
-import { JsonRpcProvider, formatEther, parseEther, Contract } from 'ethers';
+import { JsonRpcProvider, formatEther, parseEther, Contract, toUtf8Bytes } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet, getWalletProvider } from './connection';
 
@@ -11,8 +11,22 @@ const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ YOUR BUILDER CODE: bc_4uoh9iu2
-const BUILDER_CODE_HEX = "0x62635f34756f6839697532"; 
+// ✅ YOUR BUILDER CODE
+const BUILDER_CODE = "bc_4uoh9iu2"; 
+
+// ✅ HELPER: Generate Official ERC-8021 Suffix
+// Format: [CodeHex] + [LengthByte] + [00] + [80218021...Marker]
+function getBuilderSuffix() {
+  const codeBytes = toUtf8Bytes(BUILDER_CODE);
+  // Manual Hex conversion to avoid linter/spell-check errors
+  const codeHex = Array.from(codeBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  const lengthHex = codeBytes.length.toString(16).padStart(2, '0'); // e.g. "0b" for 11 chars
+  const schemaId = "00";
+  const ercMarker = "80218021802180218021802180218021"; // The "8021" signature
+  
+  return `${codeHex}${lengthHex}${schemaId}${ercMarker}`;
+}
 
 // ✅ REAL CONTRACT ADDRESSES
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
@@ -233,21 +247,22 @@ export default function Page() {
       
       const contract = new Contract(BOOSTER_CONTRACT_ADDRESS, BOOSTER_ABI, signer);
 
-      // ✅ 1. Populate Transaction (Safer Method)
+      // ✅ 1. Populate Transaction
       const populatedTx = await contract.boost.populateTransaction();
       
-      // ✅ 2. Append Builder Code
+      // ✅ 2. Append ERC-8021 Suffix (Generated via helper)
       const originalData = populatedTx.data;
-      const dataWithTracking = `${originalData}${BUILDER_CODE_HEX.replace('0x', '')}`;
+      const suffix = getBuilderSuffix();
+      const dataWithTracking = `${originalData}${suffix}`;
 
       console.log("📤 Sending Transaction Data:", dataWithTracking);
 
-      // ✅ 3. Send with explicit gasLimit to avoid simulation errors
+      // ✅ 3. Send with explicit gasLimit
       const tx = await signer.sendTransaction({
         to: BOOSTER_CONTRACT_ADDRESS,
         data: dataWithTracking,
         value: parseEther("0.000004"),
-        gasLimit: 500000, // Explicit limit forces the tx through
+        gasLimit: 500000, 
       });
 
       alert("🚀 Boost Sent! +1 XP");
@@ -287,9 +302,10 @@ export default function Page() {
           populatedTx = await contract.gn.populateTransaction();
       }
 
-      // ✅ 2. Append Builder Code
+      // ✅ 2. Append ERC-8021 Suffix (Generated via helper)
       const originalData = populatedTx.data;
-      const dataWithTracking = `${originalData}${BUILDER_CODE_HEX.replace('0x', '')}`;
+      const suffix = getBuilderSuffix();
+      const dataWithTracking = `${originalData}${suffix}`;
 
       console.log("📤 Sending GM/GN Data:", dataWithTracking);
 
@@ -298,7 +314,7 @@ export default function Page() {
           to: GM_GN_CONTRACT_ADDRESS,
           data: dataWithTracking,
           value: fee,
-          gasLimit: 500000 // Explicit limit
+          gasLimit: 500000 
       });
 
       alert(`✅ Transaction Sent: Said ${type.toUpperCase()}!`);
