@@ -42,7 +42,7 @@ export const metadata: Metadata = {
         },
       },
     }),
-    'base:app_id': '698ebb8fe0d5d2cf831b5a3c',
+    'base:app_id': '6985c4998dcaa0daf5755f7e',
   },
 };
 // UPDATED METADATA SECTION
