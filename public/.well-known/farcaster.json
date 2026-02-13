@@ -9,18 +9,23 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/og-image.png",
+    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image.png",
     "buttonTitle": "Check Score",
     "splashImageUrl": "https://base-analytics-app.vercel.app/icon.png",
     "splashBackgroundColor": "#000510",
-    "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook"
+    "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
+    "primaryCategory": "finance",
+    "tags": [
+      "analytics",
+      "onchain",
+      "utility",
+      "base",
+      "score"
+    ]
   },
-  "primaryCategory": "finance", 
-  "tags": [
-    "analytics",
-    "onchain",
-    "utility",
-    "base",
-    "score"
-  ]
-} 
+  "baseBuilder": {
+    "allowedAddresses": [
+      "0x62635f7431796930756d6b0b0080218021802180218021802180218021"
+    ]
+  }
+}
