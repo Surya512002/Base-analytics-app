@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  // ✅ IMPORTANT: This fixes the blank image by setting the base URL
+  // ✅ 1. Fixes image loading issues
   metadataBase: new URL("https://base-analytics-app.vercel.app"), 
   
   title: "Base Analytics | XP Booster",
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
     siteName: "Base Analytics",
     locale: "en_US",
     type: "website",
-    // Next.js automatically finds app/opengraph-image.png
   },
+  
   twitter: {
     card: "summary_large_image",
     title: "Base Analytics & XP Booster",
@@ -26,26 +26,28 @@ export const metadata: Metadata = {
     creator: "@suryaprakash.farcaster.eth", 
   },
   
-  // 👇 ADD THIS SECTION 👇
+  // ✅ 2. Frames v2 Configuration
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
-      imageUrl: "https://base-analytics-app.vercel.app/opengraph-image.png", // Must be 3:2 aspect ratio
+      imageUrl: "https://base-analytics-app.vercel.app/opengraph-image.png", 
       button: {
         title: "Check Score",
         action: {
           type: "launch_frame",
           name: "Base Analytics",
           url: "https://base-analytics-app.vercel.app",
-          splashImageUrl: "https://base-analytics-app.vercel.app/icon.png", // Must be 200x200px
+          splashImageUrl: "https://base-analytics-app.vercel.app/icon.png",
           splashBackgroundColor: "#000510",
         },
       },
     }),
+    // This ID is fine to keep if you have a specific use for it, 
+    // but it is NOT your Builder Code.
     'base:app_id': '698ebb8fe0d5d2cf831b5a3c',
   },
 };
-// UPDATED METADATA SECTION
+
 export default function RootLayout({
   children,
 }: Readonly<{

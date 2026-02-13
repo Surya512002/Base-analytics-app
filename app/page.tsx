@@ -7,13 +7,11 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet, getWalletProvider } from './connection';
 
 // --- CONFIGURATION ---
-// Now uses .env.local for security
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ UPDATED BUILDER CODE: bc_4uoh9iu2
-// Hex representation of "bc_4uoh9iu2"
+// ✅ YOUR BUILDER CODE: bc_4uoh9iu2 (Hex: 0x62635f34756f6839697532)
 const BUILDER_CODE_HEX = "0x62635f34756f6839697532"; 
 
 // ✅ REAL CONTRACT ADDRESSES
@@ -233,17 +231,16 @@ export default function Page() {
         }
       }
       
-      const contract = new Contract(BOOSTER_CONTRACT_ADDRESS, BOOSTER_ABI, signer);
-
-      // ✅ BUILDER CODE INJECTION
-      // 1. Create transaction data
-      const populatedTx = await contract.boost.populateTransaction();
+      // ✅ 1. MANUAL TRACKING: Hardcoded Selector for 'boost()'
+      // 0x9daa6591 is the selector for "boost()"
+      const FUNCTION_SELECTOR = "0x9daa6591"; 
       
-      // 2. Append Builder Code to data
-      const originalData = populatedTx.data;
-      const dataWithTracking = `${originalData}${BUILDER_CODE_HEX.replace('0x', '')}`;
+      // 2. Combine with your Builder Code (removing the 0x)
+      const dataWithTracking = `${FUNCTION_SELECTOR}${BUILDER_CODE_HEX.replace('0x', '')}`;
 
-      // 3. Send manual transaction
+      console.log("📤 Sending Transaction Data:", dataWithTracking);
+
+      // 3. Send Transaction
       const tx = await signer.sendTransaction({
         to: BOOSTER_CONTRACT_ADDRESS,
         data: dataWithTracking,
@@ -275,20 +272,20 @@ export default function Page() {
         }
       }
 
+      // 1. Get Fee (optional safely)
       const contract = new Contract(GM_GN_CONTRACT_ADDRESS, GM_GN_ABI, signer);
       let fee = parseEther("0.000004");
       try { fee = await contract.fee(); } catch {}
 
-      // ✅ BUILDER CODE INJECTION
-      let populatedTx;
-      if (type === 'gm') {
-          populatedTx = await contract.gm.populateTransaction();
-      } else {
-          populatedTx = await contract.gn.populateTransaction();
-      }
+      // ✅ 2. MANUAL TRACKING: Hardcoded Selectors
+      // gm() = 0x22976d54 | gn() = 0x73860c70
+      // Changed 'let' to 'const' to fix the linter error
+      const selector = type === 'gm' ? "0x22976d54" : "0x73860c70";
 
-      const originalData = populatedTx.data;
-      const dataWithTracking = `${originalData}${BUILDER_CODE_HEX.replace('0x', '')}`;
+      // 3. Combine with Builder Code
+      const dataWithTracking = `${selector}${BUILDER_CODE_HEX.replace('0x', '')}`;
+
+      console.log("📤 Sending GM/GN Data:", dataWithTracking);
 
       const tx = await signer.sendTransaction({
           to: GM_GN_CONTRACT_ADDRESS,
