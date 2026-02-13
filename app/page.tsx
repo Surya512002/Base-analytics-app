@@ -7,9 +7,14 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet, getWalletProvider } from './connection';
 
 // --- CONFIGURATION ---
+// Now uses .env.local for security
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
+
+// ✅ UPDATED BUILDER CODE: bc_4uoh9iu2
+// Hex representation of "bc_4uoh9iu2"
+const BUILDER_CODE_HEX = "0x62635f34756f6839697532"; 
 
 // ✅ REAL CONTRACT ADDRESSES
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
@@ -229,7 +234,22 @@ export default function Page() {
       }
       
       const contract = new Contract(BOOSTER_CONTRACT_ADDRESS, BOOSTER_ABI, signer);
-      const tx = await contract.boost({ value: parseEther("0.000004"), gasLimit: 300000 });
+
+      // ✅ BUILDER CODE INJECTION
+      // 1. Create transaction data
+      const populatedTx = await contract.boost.populateTransaction();
+      
+      // 2. Append Builder Code to data
+      const originalData = populatedTx.data;
+      const dataWithTracking = `${originalData}${BUILDER_CODE_HEX.replace('0x', '')}`;
+
+      // 3. Send manual transaction
+      const tx = await signer.sendTransaction({
+        to: BOOSTER_CONTRACT_ADDRESS,
+        data: dataWithTracking,
+        value: parseEther("0.000004"), 
+      });
+
       alert("🚀 Boost Sent! +1 XP");
       setUserBoosts(prev => prev + 1);
       try { await tx.wait(); } catch { console.log("Skipping wait"); }
@@ -259,7 +279,23 @@ export default function Page() {
       let fee = parseEther("0.000004");
       try { fee = await contract.fee(); } catch {}
 
-      const tx = type === 'gm' ? await contract.gm({ value: fee, gasLimit: 300000 }) : await contract.gn({ value: fee, gasLimit: 300000 });
+      // ✅ BUILDER CODE INJECTION
+      let populatedTx;
+      if (type === 'gm') {
+          populatedTx = await contract.gm.populateTransaction();
+      } else {
+          populatedTx = await contract.gn.populateTransaction();
+      }
+
+      const originalData = populatedTx.data;
+      const dataWithTracking = `${originalData}${BUILDER_CODE_HEX.replace('0x', '')}`;
+
+      const tx = await signer.sendTransaction({
+          to: GM_GN_CONTRACT_ADDRESS,
+          data: dataWithTracking,
+          value: fee
+      });
+
       alert(`✅ Transaction Sent: Said ${type.toUpperCase()}!`);
       try { await tx.wait(); } catch {} 
       
