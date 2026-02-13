@@ -39,10 +39,10 @@ export const metadata: Metadata = {
           url: "https://base-analytics-app.vercel.app",
           splashImageUrl: "https://base-analytics-app.vercel.app/icon.png", // Must be 200x200px
           splashBackgroundColor: "#000510",
-          "base:app_id": "698ebb8fe0d5d2cf831b5a3c",
         },
       },
     }),
+    'base:app_id': '698ebb8fe0d5d2cf831b5a3c',
   },
 };
 // UPDATED METADATA SECTION
