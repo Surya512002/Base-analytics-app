@@ -116,7 +116,6 @@ export default function Page() {
   // ✅ AUTO-SCROLL EFFECT: When wallet data loads, scroll heatmap to the end (Today)
   useEffect(() => {
     if (wallet && scrollRef.current) {
-      // Small timeout ensures the DOM is fully rendered before scrolling
       setTimeout(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
@@ -418,7 +417,7 @@ export default function Page() {
   if (!isReady) return <div className="min-h-screen bg-[#020410] flex items-center justify-center text-blue-500 font-mono">INITIALIZING BASE...</div>;
 
   if (!wallet) return (
-    <div className="min-h-screen bg-[#020410] flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#020410] flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden overflow-x-hidden w-full max-w-[100vw]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0033aa_0%,#000510_70%)] opacity-40"></div>
       <div className="w-24 h-24 bg-[#0052FF] rounded-full mb-8 flex items-center justify-center shadow-[0_0_80px_-10px_rgba(0,82,255,0.6)] z-10 animate-pulse"><Activity className="text-white" size={48} /></div>
       <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter z-10 drop-shadow-2xl">BASE ANALYTICS</h1>
@@ -452,13 +451,13 @@ export default function Page() {
               <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
               <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
           </div>
-          <p className="text-[8px] text-blue-500/50 mt-4">v5.2 (Mobile Fix + Base Dark Theme)</p>
+          <p className="text-[8px] text-blue-500/50 mt-4">v5.3 (Mobile Overflow Fixed)</p>
       </div>
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-[#020410] p-4 lg:p-8 font-sans text-slate-200 pb-32">
+    <main className="min-h-screen bg-[#020410] p-4 lg:p-8 font-sans text-slate-200 pb-32 overflow-x-hidden w-full max-w-[100vw]">
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50"><Activity className="text-white" size={20}/></div>
@@ -501,9 +500,10 @@ export default function Page() {
             </div>
       </div>
 
-      <div className="bg-[#0A1024]/90 rounded-[20px] p-6 sm:p-8 shadow-xl border border-blue-900/30 mb-8">
-            <div className="flex justify-between items-start mb-8 relative z-10">
-                <div>
+      <div className="bg-[#0A1024]/90 rounded-[20px] p-6 sm:p-8 shadow-xl border border-blue-900/30 mb-8 w-full">
+            {/* ✅ FIXED: Layout Header stack for mobile (flex-col) */}
+            <div className="flex flex-col md:flex-row justify-between items-start mb-8 relative z-10 w-full">
+                <div className="mb-4 md:mb-0 w-full md:w-auto">
                     <div className="flex items-center gap-3 mb-2">
                         <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">ONCHAIN SCORE</p>
                         <div className="flex gap-2">
@@ -514,14 +514,16 @@ export default function Page() {
                     </div>
                     <h1 className="text-7xl font-black text-white tracking-tighter drop-shadow-xl">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
-                <div className="text-right">
+                
+                {/* ✅ FIXED: Info Box (Full width on mobile to prevent cutoff) */}
+                <div className="w-full md:w-auto md:text-right">
                     {selectedDay ? (
-                        <div className="bg-blue-900/30 px-4 py-2 rounded-lg border border-blue-500/30 animate-in fade-in zoom-in">
+                        <div className="bg-blue-900/30 px-4 py-3 rounded-lg border border-blue-500/30 animate-in fade-in zoom-in w-full md:w-auto flex items-center justify-between md:block">
                             <p className="text-xs text-blue-300 font-bold uppercase">{new Date(selectedDay.date).toDateString()}</p>
-                            <p className="text-xl font-black text-white">{selectedDay.count} Txs</p>
+                            <p className="text-xl font-black text-white ml-auto md:ml-0">{selectedDay.count} Txs</p>
                         </div>
                     ) : (
-                         <div className="flex flex-col items-end opacity-50">
+                         <div className="flex flex-row md:flex-col items-center md:items-end opacity-50 gap-2 md:gap-0">
                              <MousePointerClick className="text-blue-500 mb-1" size={16}/>
                              <p className="text-[10px] text-blue-300 uppercase">Click a dot for details</p>
                          </div>
@@ -529,8 +531,8 @@ export default function Page() {
                 </div>
             </div>
             
-            {/* ✅ FIXED: Mobile Scroll Container (Ref + AutoScroll) */}
-            <div ref={scrollRef} className="w-full overflow-x-auto pb-4 custom-scrollbar touch-pan-x">
+            {/* ✅ FIXED: Scroll Container with Ref & Constraints */}
+            <div ref={scrollRef} className="w-full overflow-x-auto pb-4 custom-scrollbar touch-pan-x overscroll-x-contain">
                 <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
                 {wallet.weekLabels.map((m, i) => (
                     <div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>
@@ -593,7 +595,7 @@ export default function Page() {
               <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
       </div>
-      <div className="text-center pb-4 text-white/20 text-xs mt-8">v5.2 (Mobile Fix + Base Dark Theme)</div>
+      <div className="text-center pb-4 text-white/20 text-xs mt-8">v5.3 (Mobile Overflow Fixed)</div>
     </main>
   );
 }
