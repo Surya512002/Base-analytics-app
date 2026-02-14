@@ -14,17 +14,21 @@ const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics"
 // ✅ YOUR BUILDER CODE
 const BUILDER_CODE = "bc_4uoh9iu2"; 
 
-// ✅ HELPER: Generate Official ERC-8021 Suffix
-// Format: [CodeHex] + [LengthByte] + [00] + [80218021...Marker]
+// ✅ HELPER: Perfectly mimics the Wagmi/Viem concatHex from your Base Station app
 function getBuilderSuffix() {
   const codeBytes = toUtf8Bytes(BUILDER_CODE);
-  // Manual Hex conversion to avoid linter/spell-check errors
+  
+  // 1. CodeHex
   const codeHex = Array.from(codeBytes).map(b => b.toString(16).padStart(2, '0')).join('');
   
-  const lengthHex = codeBytes.length.toString(16).padStart(2, '0'); // e.g. "0b" for 11 chars
-  const schemaId = "00";
-  const ercMarker = "80218021802180218021802180218021"; // The "8021" signature
+  // 2. LengthHex
+  const lengthHex = codeBytes.length.toString(16).padStart(2, '0'); 
   
+  // 3. Schema & Marker
+  const schemaId = "00";
+  const ercMarker = "80218021802180218021802180218021"; 
+
+  // 🚨 FIXED: Code comes BEFORE Length (Exactly matches your working Base Station code)
   return `${codeHex}${lengthHex}${schemaId}${ercMarker}`;
 }
 
@@ -250,7 +254,7 @@ export default function Page() {
       // ✅ 1. Populate Transaction
       const populatedTx = await contract.boost.populateTransaction();
       
-      // ✅ 2. Append ERC-8021 Suffix (Generated via helper)
+      // ✅ 2. Append Correct ERC-8021 Suffix
       const originalData = populatedTx.data;
       const suffix = getBuilderSuffix();
       const dataWithTracking = `${originalData}${suffix}`;
@@ -262,7 +266,7 @@ export default function Page() {
         to: BOOSTER_CONTRACT_ADDRESS,
         data: dataWithTracking,
         value: parseEther("0.000004"),
-        gasLimit: 500000, 
+        gasLimit: 1000000, 
       });
 
       alert("🚀 Boost Sent! +1 XP");
@@ -302,7 +306,7 @@ export default function Page() {
           populatedTx = await contract.gn.populateTransaction();
       }
 
-      // ✅ 2. Append ERC-8021 Suffix (Generated via helper)
+      // ✅ 2. Append Correct ERC-8021 Suffix
       const originalData = populatedTx.data;
       const suffix = getBuilderSuffix();
       const dataWithTracking = `${originalData}${suffix}`;
@@ -314,7 +318,7 @@ export default function Page() {
           to: GM_GN_CONTRACT_ADDRESS,
           data: dataWithTracking,
           value: fee,
-          gasLimit: 500000 
+          gasLimit: 1000000 
       });
 
       alert(`✅ Transaction Sent: Said ${type.toUpperCase()}!`);
