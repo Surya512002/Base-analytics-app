@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, RefreshCcw, Sun, Moon, Coins, FileCode, BarChart3, Trophy, Smartphone, Globe, CreditCard, User, BadgeCheck, Send, X, ChevronRight, Share2, Rocket, Twitter, MousePointerClick } from 'lucide-react';
 import { JsonRpcProvider, formatEther, parseEther, Contract, toUtf8Bytes } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -99,6 +99,9 @@ export default function Page() {
   const [showConnectModal, setShowConnectModal] = useState(false);
   
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
+  
+  // ✅ Scroll Ref for Auto-Scrolling Heatmap
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [userBoosts, setUserBoosts] = useState(0);
   const [txLoading, setTxLoading] = useState(false);
@@ -109,6 +112,18 @@ export default function Page() {
         try { sdk.actions.ready(); setIsReady(true); } catch (e) { console.error("SDK Init Error", e); }
     }
   }, []);
+
+  // ✅ AUTO-SCROLL EFFECT: When wallet data loads, scroll heatmap to the end (Today)
+  useEffect(() => {
+    if (wallet && scrollRef.current) {
+      // Small timeout ensures the DOM is fully rendered before scrolling
+      setTimeout(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+        }
+      }, 100);
+    }
+  }, [wallet]);
 
   const getStrictUTCDate = (isoTimestamp: string) => {
     const date = new Date(isoTimestamp); 
@@ -437,7 +452,7 @@ export default function Page() {
               <div className="flex flex-col items-center gap-2"><Globe size={20} /><span className="text-[10px] font-bold">MetaMask</span></div>
               <div className="flex flex-col items-center gap-2"><div className="w-5 h-5 rounded-full bg-[#0052FF]"></div><span className="text-[10px] font-bold">Base</span></div>
           </div>
-          <p className="text-[8px] text-blue-500/50 mt-4">v5.1 (Base Dark Theme)</p>
+          <p className="text-[8px] text-blue-500/50 mt-4">v5.2 (Mobile Fix + Base Dark Theme)</p>
       </div>
     </div>
   );
@@ -480,7 +495,7 @@ export default function Page() {
                             {txLoading ? <RefreshCcw className="animate-spin" size={16}/> : <Zap size={16}/>}
                             {txLoading ? 'Boosting...' : 'BOOST SCORE (+1)'}
                         </button>
-                        <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">increase your transections</p>
+                        <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">Instant • 0.000004 ETH</p>
                     </div>
                 </div>
             </div>
@@ -514,7 +529,8 @@ export default function Page() {
                 </div>
             </div>
             
-            <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+            {/* ✅ FIXED: Mobile Scroll Container (Ref + AutoScroll) */}
+            <div ref={scrollRef} className="w-full overflow-x-auto pb-4 custom-scrollbar touch-pan-x">
                 <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
                 {wallet.weekLabels.map((m, i) => (
                     <div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>
@@ -577,7 +593,7 @@ export default function Page() {
               <button onClick={() => handleGmGn('gn')} disabled={gmLoading} className="py-4 bg-blue-950/30 hover:bg-[#0052FF] hover:text-white text-white rounded-xl font-black text-xl flex items-center justify-center gap-2 border border-blue-900/30 transition-all active:scale-95"><Moon size={24} /> GN</button>
            </div>
       </div>
-      <div className="text-center pb-4 text-white/20 text-xs mt-8">v5.1 (Base Dark Theme)</div>
+      <div className="text-center pb-4 text-white/20 text-xs mt-8">v5.2 (Mobile Fix + Base Dark Theme)</div>
     </main>
   );
 }
