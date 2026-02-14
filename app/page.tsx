@@ -494,7 +494,7 @@ export default function Page() {
                             {txLoading ? <RefreshCcw className="animate-spin" size={16}/> : <Zap size={16}/>}
                             {txLoading ? 'Boosting...' : 'BOOST SCORE (+1)'}
                         </button>
-                        <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">Increase Your Transections////</p></Transections></p>
+                        <p className="text-[10px] text-center text-blue-400 font-bold uppercase tracking-wide">Increase Your Transections</p>
                     </div>
                 </div>
             </div>
