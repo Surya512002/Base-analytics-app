@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-// ✅ Restored X and ChevronRight, removed unused icons
-import { Wallet, Activity, Power, RefreshCcw, Sun, CreditCard, X, ChevronRight } from 'lucide-react';
-import { JsonRpcProvider, formatEther } from 'ethers';
+import { 
+  Wallet, Activity, Layers, ArrowRightLeft, Power, 
+  RefreshCcw, Sun, CreditCard, Send, X, 
+  ChevronRight, Share2, Rocket, Twitter, MousePointerClick 
+} from 'lucide-react';
+import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet } from './connection';
 
-// ✅ OnchainKit Imports
+// ✅ OnchainKit & Viem Imports
 import { 
   Transaction, 
   TransactionButton, 
@@ -16,17 +19,29 @@ import {
   TransactionStatusLabel 
 } from '@coinbase/onchainkit/transaction'; 
 import { base } from 'viem/chains';
+import { encodeFunctionData } from 'viem';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const BASESCAN_KEY = "UDFW8PRDXWMNZUWGNIU6R5C4991KU5UB68";
+const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ REAL CONTRACT ADDRESSES
+// ✅ RESTORED: Your specific Builder Code
+const BUILDER_CODE = "bc_4uoh9iu2"; 
+
+function getBuilderSuffix() {
+  const codeBytes = toUtf8Bytes(BUILDER_CODE);
+  const codeHex = Array.from(codeBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const lengthHex = codeBytes.length.toString(16).padStart(2, '0'); 
+  const schemaId = "00";
+  const ercMarker = "80218021802180218021802180218021"; 
+  return `${codeHex}${lengthHex}${schemaId}${ercMarker}`;
+}
+
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-// ✅ OnchainKit ABIs
 const BOOSTER_ABI = [
   { name: 'boost', type: 'function', stateMutability: 'payable', inputs: [], outputs: [] }
 ] as const;
@@ -57,7 +72,6 @@ export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [, setConnectionType] = useState<ConnectionType | null>(null);
   const [loading, setLoading] = useState(false);
-  const [, setLoadingMsg] = useState("");
   const [isReady, setIsReady] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
@@ -76,7 +90,16 @@ export default function Page() {
     }
   }, [wallet]);
 
+  // --- ANALYTICS LOGIC ---
   const getStrictUTCDate = (isoTimestamp: string) => isoTimestamp.split('T')[0];
+  const getISOWeekToken = (date: Date) => {
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const year = d.getUTCFullYear();
+    const weekNo = Math.ceil((((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000) + 1) / 7);
+    return `${year}-W${weekNo}`;
+  };
 
   const fetchInternalTxs = async (address: string): Promise<BaseScanTx[]> => {
     try {
@@ -89,9 +112,7 @@ export default function Page() {
   };
 
   const analyzeWallet = async (address: string) => {
-    setLoading(true); 
-    setLoadingMsg("Scanning Base Network..."); 
-    setShowConnectModal(false);
+    setLoading(true); setShowConnectModal(false);
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
       let basename = null; try { basename = await provider.lookupAddress(address); } catch {}
@@ -99,35 +120,100 @@ export default function Page() {
 
       let allTransfers: AlchemyTransfer[] = [];
       let pageKey: string | undefined = undefined;
-      
+      let loopCount = 0;
+
       while (true) {
+          loopCount++;
           const params: Record<string, unknown> = { fromBlock: "0x0", toBlock: "latest", fromAddress: address, category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true };
           if (pageKey) params.pageKey = pageKey;
           const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
           const data = (await response.json()) as AlchemyResponse;
+          if (data.error) throw new Error(data.error.message);
           const newTransfers = data.result?.transfers || [];
           allTransfers = [...allTransfers, ...newTransfers];
           pageKey = data.result?.pageKey;
-          if (!pageKey) break;
+          if (!pageKey || loopCount > 200) break;
       }
 
       const internalTxs = await fetchInternalTxs(address);
-      const uniqueDays = new Set<string>(), txsPerDay = new Map<string, number>();
-      let ethVolume = 0.0;
-      let contractInteractions = 0;
+      
+      const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
+      let ethVolume = 0.0, swapCount = 0, contractInteractions = 0;
+      const txsPerDay = new Map<string, number>();
 
-      allTransfers.forEach(tx => {
+      const addTxToDay = (dateStr: string) => txsPerDay.set(dateStr, (txsPerDay.get(dateStr) || 0) + 1);
+
+      for (const tx of allTransfers) {
+        const d = new Date(tx.metadata.blockTimestamp);
         const dayStr = getStrictUTCDate(tx.metadata.blockTimestamp);
         uniqueDays.add(dayStr);
-        txsPerDay.set(dayStr, (txsPerDay.get(dayStr) || 0) + 1);
+        addTxToDay(dayStr);
+        uniqueWeeks.add(getISOWeekToken(d));
+        uniqueMonths.add(`${d.getUTCFullYear()}-${d.getUTCMonth()}`);
         if (tx.value && (tx.asset === 'ETH' || tx.asset === 'WETH')) ethVolume += tx.value;
+        if (['erc20', 'erc721', 'erc1155'].includes(tx.category)) { swapCount++; if (tx.asset) uniqueTokens.add(tx.asset); }
         if (tx.category === 'external') contractInteractions++;
-      });
+      }
+
+      for (const tx of internalTxs) {
+          if (tx.isError === "0") {
+             const ts = parseInt(tx.timeStamp) * 1000;
+             const d = new Date(ts);
+             const dayStr = getStrictUTCDate(d.toISOString());
+             uniqueDays.add(dayStr);
+             addTxToDay(dayStr);
+             uniqueWeeks.add(getISOWeekToken(d));
+             uniqueMonths.add(`${d.getUTCFullYear()}-${d.getUTCMonth()}`);
+             contractInteractions++;
+             const val = parseFloat(formatEther(tx.value));
+             if (val > 0) ethVolume += val;
+          }
+      }
 
       const totalTxCount = allTransfers.length + internalTxs.length;
+
+      const sortedUniqueDays = Array.from(uniqueDays).sort(); 
+      let currentStreak = 0, longestStreak = 0, tempStreak = 0, prevTimestamp = 0;
+      for (const dayStr of sortedUniqueDays) {
+          const currentTimestamp = Date.parse(dayStr);
+          if (prevTimestamp !== 0) {
+              const diff = (currentTimestamp - prevTimestamp) / (1000 * 3600 * 24);
+              if (Math.round(diff) === 1) tempStreak++; else { longestStreak = Math.max(longestStreak, tempStreak); tempStreak = 1; }
+          } else tempStreak = 1;
+          prevTimestamp = currentTimestamp;
+      }
+      longestStreak = Math.max(longestStreak, tempStreak);
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const yestDate = new Date(); yestDate.setUTCDate(now.getUTCDate() - 1);
+      const yestStr = yestDate.toISOString().split('T')[0];
+      if (uniqueDays.has(todayStr) || uniqueDays.has(yestStr)) currentStreak = tempStreak; else currentStreak = 0;
+
+      let firstTxTimestamp = now.getTime();
+      let lastTxTimestamp = 0;
+
+      if (allTransfers.length > 0) {
+          firstTxTimestamp = Math.min(firstTxTimestamp, new Date(allTransfers[0].metadata.blockTimestamp).getTime());
+          lastTxTimestamp = Math.max(lastTxTimestamp, new Date(allTransfers[allTransfers.length-1].metadata.blockTimestamp).getTime());
+      }
+      if (internalTxs.length > 0) {
+          const firstInt = parseInt(internalTxs[0].timeStamp) * 1000;
+          const lastInt = parseInt(internalTxs[internalTxs.length-1].timeStamp) * 1000;
+          firstTxTimestamp = Math.min(firstTxTimestamp, firstInt);
+          lastTxTimestamp = Math.max(lastTxTimestamp, lastInt);
+      }
+
+      let historyDays = 364; let firstTxStr = "N/A", lastTxStr = "N/A", daysSinceActive = 0;
+      if (totalTxCount > 0) {
+        firstTxStr = new Date(firstTxTimestamp).toLocaleDateString();
+        lastTxStr = new Date(lastTxTimestamp).toLocaleDateString();
+        daysSinceActive = Math.floor((now.getTime() - lastTxTimestamp) / (1000 * 3600 * 24));
+        historyDays = Math.max(364, Math.ceil(Math.abs(now.getTime() - firstTxTimestamp) / (1000 * 3600 * 24)) + 14); 
+      }
+
       const dailyStats: DayStats[] = [];
       const pointerDate = new Date(); 
-      for(let i=0; i<364; i++) {
+      for(let i=0; i<historyDays; i++) {
           const dateStr = pointerDate.toISOString().split('T')[0];
           const count = txsPerDay.get(dateStr) || 0;
           let intensity = 0;
@@ -136,14 +222,36 @@ export default function Page() {
           pointerDate.setUTCDate(pointerDate.getUTCDate() - 1);
       }
 
+      const totalColumns = Math.ceil(historyDays / 7);
+      const weekLabels: string[] = [];
+      let lastMonthLabel = "";
+      const gridStartDate = new Date();
+      gridStartDate.setUTCDate(gridStartDate.getUTCDate() - historyDays + 1);
+      for (let col = 0; col < totalColumns; col++) {
+          const weekStartDate = new Date(gridStartDate);
+          weekStartDate.setUTCDate(weekStartDate.getUTCDate() + (col * 7));
+          const monthIndex = weekStartDate.getUTCMonth();
+          if (MONTHS_3_LETTERS[monthIndex] !== lastMonthLabel) { weekLabels.push(MONTHS_3_LETTERS[monthIndex]); lastMonthLabel = MONTHS_3_LETTERS[monthIndex]; } else weekLabels.push(""); 
+      }
+
+      const finalScore = Math.floor(
+          Math.min(25, totalTxCount/20) + 
+          Math.min(20, uniqueDays.size/5) + 
+          Math.min(15, uniqueMonths.size*1.25) + 
+          Math.min(15, currentStreak*1.1) + 
+          Math.min(10, ethVolume*2) + 
+          Math.min(10, uniqueTokens.size/2) + 
+          (basename ? 5 : 0)
+      );
+
       setWallet({
         address, basename, balance: parseFloat(formatEther(balWei)).toFixed(4), ethVolume: ethVolume.toFixed(2),
-        txCount: totalTxCount, uniqueDays: uniqueDays.size, activeWeeks: 0, activeMonths: 0,
-        currentStreak: 0, longestStreak: 0, firstTx: "Scan Complete", lastTx: "Today", daysSinceActive: 0,
-        tokensSwapped: 0, swapCount: 0, contractInteractions, internalTxCount: internalTxs.length,
-        score: Math.min(100, totalTxCount), historyDays: 364, weekLabels: MONTHS_3_LETTERS, dailyStats
+        txCount: totalTxCount, uniqueDays: uniqueDays.size, activeWeeks: uniqueWeeks.size, activeMonths: uniqueMonths.size,
+        currentStreak, longestStreak, firstTx: firstTxStr, lastTx: lastTxStr, daysSinceActive,
+        tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, internalTxCount: internalTxs.length,
+        score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels
       });
-    } catch (e) { console.error("Analysis Error", e); } finally { setLoading(false); }
+    } catch (e: unknown) { console.error("Analysis failed", e); alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); } finally { setLoading(false); }
   };
 
   const handleConnect = async (type: ConnectionType) => {
@@ -156,19 +264,48 @@ export default function Page() {
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
-  // Sponsored Calls
-  const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, abi: BOOSTER_ABI, functionName: 'boost', args: [], value: BigInt(4000000000000) }];
-  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, abi: GM_GN_ABI, functionName: 'gm', args: [], value: BigInt(4000000000000) }];
-  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, abi: GM_GN_ABI, functionName: 'gn', args: [], value: BigInt(4000000000000) }];
+  // --- SHARING LOGIC ---
+  const shareNative = async () => {
+    if (!wallet) return;
+    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: MINIAPP_URL }); } catch {} } 
+    else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); }
+  };
+
+  const shareWarpcast = () => {
+    if (!wallet) return;
+    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
+  };
+
+  const shareTwitter = () => {
+    if (!wallet) return;
+    const shareText = `I have ${userBoosts} Boosts on @base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇\n${MINIAPP_URL}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  // --- ONCHAINKIT GASLESS DATA GENERATION ---
+  const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
+  const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
+  
+  const gmData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gm' });
+  const gmDataWithTracking = `${gmData}${getBuilderSuffix()}` as `0x${string}`;
+
+  const gnData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gn' });
+  const gnDataWithTracking = `${gnData}${getBuilderSuffix()}` as `0x${string}`;
+
+  const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
+  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(4000000000000) }];
+  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(4000000000000) }];
 
   if (!isReady) return <div className="min-h-screen bg-[#020410] flex items-center justify-center text-blue-500 font-mono text-xs animate-pulse">INITIALIZING BASE...</div>;
 
   if (!wallet) return (
-    <div className="min-h-screen bg-[#020410] flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#020410] flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden w-full max-w-[100vw]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0033aa_0%,#000510_70%)] opacity-40"></div>
       <div className="w-24 h-24 bg-[#0052FF] rounded-full mb-8 flex items-center justify-center shadow-[0_0_80px_-10px_rgba(0,82,255,0.6)] z-10 animate-pulse"><Activity className="text-white" size={48} /></div>
       <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter z-10 drop-shadow-2xl text-center">BASE ANALYTICS</h1>
-      <button onClick={() => setShowConnectModal(true)} disabled={loading} className="w-full max-w-xs bg-[#0052FF] text-white py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-600 transition active:scale-95 z-10">
+      <button onClick={() => setShowConnectModal(true)} disabled={loading} className="w-full max-w-xs bg-[#0052FF] text-white py-4 rounded-full font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-600 transition active:scale-95 z-10 mt-8">
         {loading ? <RefreshCcw className="animate-spin"/> : <Wallet size={22} />} {loading ? "Scanning..." : "Connect Wallet"}
       </button>
       {showConnectModal && (
@@ -201,7 +338,7 @@ export default function Page() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
               <div>
                   <div className="flex items-center gap-4 mb-4">
-                      <div className="p-3 bg-[#0052FF]/20 rounded-xl border border-[#0052FF]/30">🚀</div>
+                      <div className="p-3 bg-[#0052FF]/20 rounded-xl border border-[#0052FF]/30"><Rocket size={24} className="text-[#0052FF]"/></div>
                       <div>
                           <h3 className="font-black text-2xl text-white leading-none">XP Booster</h3>
                           <p className="text-green-400 text-xs font-bold mt-1 uppercase animate-pulse">Gasless Enabled</p>
@@ -223,14 +360,26 @@ export default function Page() {
       </div>
 
       <div className="bg-[#0A1024]/90 rounded-[20px] p-6 sm:p-8 shadow-xl border border-blue-900/30 mb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8">
-                <div>
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2">ONCHAIN SCORE</p>
+            <div className="flex flex-col md:flex-row justify-between items-start mb-8 w-full">
+                <div className="w-full md:w-auto">
+                    <div className="flex items-center gap-3 mb-2">
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">ONCHAIN SCORE</p>
+                        <div className="flex gap-2">
+                            <button onClick={shareWarpcast} className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-purple-500/20"><Send size={10}/> Warpcast</button>
+                            <button onClick={shareTwitter} className="bg-blue-400/10 text-blue-400 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-blue-400/20"><Twitter size={10}/> Post on X</button>
+                            <button onClick={shareNative} className="bg-blue-950/30 text-blue-300 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-blue-900/30"><Share2 size={10}/> Share</button>
+                        </div>
+                    </div>
                     <h1 className="text-7xl font-black text-white tracking-tighter">{wallet.score}<span className="text-3xl text-blue-900">/100</span></h1>
                 </div>
-                {selectedDay && <div className="bg-blue-900/30 px-4 py-3 rounded-lg border border-blue-500/30"><p className="text-xs text-blue-300 font-bold uppercase">{selectedDay.date}</p><p className="text-xl font-black text-white">{selectedDay.count} Txs</p></div>}
+                <div className="w-full md:w-auto md:text-right mt-4 md:mt-0">
+                  {selectedDay ? <div className="bg-blue-900/30 px-4 py-3 rounded-lg border border-blue-500/30"><p className="text-xs text-blue-300 font-bold uppercase">{selectedDay.date}</p><p className="text-xl font-black text-white">{selectedDay.count} Txs</p></div> : <div className="flex items-center opacity-50 gap-2"><MousePointerClick size={16} className="text-blue-500"/><p className="text-[10px] text-blue-300 uppercase">Click a dot for details</p></div>}
+                </div>
             </div>
             <div ref={scrollRef} className="w-full overflow-x-auto pb-4 custom-scrollbar">
+                <div className="grid grid-flow-col gap-1.5 mb-2 relative min-w-max auto-cols-[12px]">
+                  {wallet.weekLabels.map((m, i) => (<div key={i} className="text-[9px] font-bold text-white/90 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>))}
+                </div>
                 <div className="grid grid-rows-7 grid-flow-col gap-1.5 h-36 min-w-max">
                     {wallet.dailyStats.map((stat, i) => (
                         <div key={i} onClick={() => setSelectedDay(stat)} className={`w-3 h-3 rounded-xs cursor-pointer hover:scale-125 transition-all ${stat.count === 0 ? 'bg-blue-950/30' : 'bg-[#0052FF]'} opacity-${stat.intensity * 25 || 10}`}></div>
@@ -240,8 +389,10 @@ export default function Page() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Balance" value={`${wallet.balance} ETH`} icon={<CreditCard size={18}/>} />
+          <StatCard label="Wallet Balance" value={`${wallet.balance} ETH`} icon={<CreditCard size={18}/>} />
           <StatCard label="Active Days" value={wallet.uniqueDays.toString()} icon={<Sun size={18}/>} highlight />
+          <StatCard label="Total Txs" value={wallet.txCount.toLocaleString()} icon={<Layers size={18}/>} />
+          <StatCard label="ETH Volume" value={`${wallet.ethVolume} Ξ`} icon={<ArrowRightLeft size={18}/>} />
       </div>
 
       <div className="bg-[#0A1024] rounded-3xl p-6 border border-blue-900/30">
