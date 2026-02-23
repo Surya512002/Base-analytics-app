@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { base } from 'viem/chains';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -42,8 +44,6 @@ export const metadata: Metadata = {
         },
       },
     }),
-    // This ID is fine to keep if you have a specific use for it, 
-    // but it is NOT your Builder Code.
     'base:app_id': '698ebb8fe0d5d2cf831b5a3c',
   },
 };
@@ -53,9 +53,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL;
+
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <OnchainKitProvider 
+          chain={base} 
+          config={{ 
+            paymaster: paymasterUrl, 
+          }}
+        >
+          {children}
+        </OnchainKitProvider>
+      </body>
     </html>
   );
 } 
