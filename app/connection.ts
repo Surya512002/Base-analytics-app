@@ -1,9 +1,13 @@
 import { BrowserProvider, Eip1193Provider, JsonRpcSigner } from "ethers";
 import { sdk } from "@farcaster/miniapp-sdk";
 
-interface WindowWithEthereum extends Window {
-  ethereum?: Eip1193Provider;
-  coinbaseWalletExtension?: Eip1193Provider;
+// ✅ 1. Omit conflicting properties to satisfy the TS Compiler
+// ✅ 2. Disable specific ESLint rule to allow 'any' for these lines only
+interface WindowWithEthereum extends Omit<Window, 'ethereum' | 'coinbaseWalletExtension'> {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  ethereum?: any;
+  coinbaseWalletExtension?: any;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 export async function getWalletProvider(
@@ -16,7 +20,9 @@ export async function getWalletProvider(
 
   // 1. COINBASE WALLET
   if (type === "coinbase") {
-    selectedProvider = win.coinbaseWalletExtension || win.ethereum;
+    const cbProvider = win.coinbaseWalletExtension || win.ethereum;
+    selectedProvider = cbProvider as Eip1193Provider;
+    
     if (!selectedProvider) {
       throw new Error("Coinbase Wallet not found. Please install or open Coinbase Wallet.");
     }
@@ -27,12 +33,11 @@ export async function getWalletProvider(
     if (!win.ethereum) {
       throw new Error("MetaMask not found. Please install the extension.");
     }
-    selectedProvider = win.ethereum;
+    selectedProvider = win.ethereum as Eip1193Provider;
   }
 
-  // 3. FARCASTER MINI APP WALLET (✅ CORRECT WAY)
+  // 3. FARCASTER MINI APP WALLET
   else if (type === "farcaster") {
-    // ✅ Make sure the SDK is fully ready (important for production / mainnet)
     if (sdk?.actions?.ready) {
       await sdk.actions.ready();
     }
@@ -61,7 +66,6 @@ export async function connectWallet(
 ): Promise<{ signer: JsonRpcSigner; address: string }> {
   const provider = await getWalletProvider(type);
 
-  // FORCE METAMASK ACCOUNT PICKER
   if (type === "metamask") {
     try {
       await provider.send("wallet_requestPermissions", [{ eth_accounts: {} }]);
@@ -74,5 +78,4 @@ export async function connectWallet(
   const address = await signer.getAddress();
 
   return { signer, address };
-}
- 
+} 
