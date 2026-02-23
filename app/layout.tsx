@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+// ✅ Import OnchainKit styles to ensure buttons render correctly
+import '@coinbase/onchainkit/styles.css'; 
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { base } from 'viem/chains';
 
@@ -53,7 +55,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL;
+  // ✅ Provide a fallback string to prevent build errors on Vercel if the key is missing
+  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";
 
   return (
     <html lang="en">
