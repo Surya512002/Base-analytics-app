@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-// ✅ Import OnchainKit styles to ensure buttons render correctly
 import '@coinbase/onchainkit/styles.css'; 
-import { OnchainKitProvider } from '@coinbase/onchainkit';
-import { base } from 'viem/chains';
+
+// ✅ Import our new client-side provider wrapper
+import { Providers } from "./providers"; 
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  // ✅ 1. Fixes image loading issues
   metadataBase: new URL("https://base-analytics-app.vercel.app"), 
-  
   title: "Base Analytics | XP Booster",
   description: "Check your onchain score and boost your XP on Base.",
-  
   openGraph: {
     title: "Base Analytics & XP Booster",
     description: "Check your Onchain Score and farm XP on Base! 🚀",
@@ -22,15 +19,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
-  
   twitter: {
     card: "summary_large_image",
     title: "Base Analytics & XP Booster",
     description: "Farm XP on Base! 🚀",
     creator: "@suryaprakash.farcaster.eth", 
   },
-  
-  // ✅ 2. Frames v2 Configuration
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
@@ -55,21 +49,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // ✅ FIX: Use 'undefined' instead of an empty string ("") 
-  // This prevents OnchainKit from crashing during Vercel's static page build (like the /_not-found page).
-  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined;
-
   return (
     <html lang="en">
       <body className={inter.className}>
-        <OnchainKitProvider 
-          chain={base} 
-          config={{ 
-            paymaster: paymasterUrl, 
-          }}
-        >
+        {/* ✅ Wrap children in our custom Providers component */}
+        <Providers>
           {children}
-        </OnchainKitProvider>
+        </Providers>
       </body>
     </html>
   );
