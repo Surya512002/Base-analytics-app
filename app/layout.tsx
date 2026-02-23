@@ -55,8 +55,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // ✅ Provide a fallback string to prevent build errors on Vercel if the key is missing
-  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";
+  // ✅ FIX: Use 'undefined' instead of an empty string ("") 
+  // This prevents OnchainKit from crashing during Vercel's static page build (like the /_not-found page).
+  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined;
 
   return (
     <html lang="en">
