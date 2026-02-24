@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     creator: "@suryaprakash.farcaster.eth", 
   },
   other: {
+    // ✅ NEW: Talent Protocol Verification
+    "talentapp:project_verification": "37ce476751698fbb9f2da974b46068f696394868258b708d80061274f4176d90ce31c259e67591e2085dde5a275b70c5cc68739f7bf0c4f9f6605426030de439",
+    // Farcaster Frame Data
     "fc:frame": JSON.stringify({
       version: "next",
       imageUrl: "https://base-analytics-app.vercel.app/opengraph-image.png", 
