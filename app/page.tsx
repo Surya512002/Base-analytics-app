@@ -2,21 +2,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Wallet, Activity, Layers, ArrowRightLeft, Power, 
-  RefreshCcw, Sun, CreditCard, Send, X, 
-  ChevronRight, Share2, Rocket, Twitter, MousePointerClick 
+  Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, 
+  RefreshCcw, Sun, FileCode, BarChart3, Trophy, 
+  CreditCard, User, BadgeCheck, Send, X, AlertTriangle, TrendingUp,
+  ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles
 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import { sdk } from "@farcaster/miniapp-sdk";
 import { connectWallet } from './connection';
 
-// ✅ OnchainKit & Viem Imports
+// OnchainKit & Viem Imports
 import { 
   Transaction, 
-  TransactionButton, 
-  TransactionSponsor, 
-  TransactionStatus, 
-  TransactionStatusLabel 
+  TransactionButton
 } from '@coinbase/onchainkit/transaction'; 
 import { base } from 'viem/chains';
 import { encodeFunctionData } from 'viem';
@@ -24,10 +22,8 @@ import { encodeFunctionData } from 'viem';
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
-const BASESCAN_KEY = "UDFW8PRDXWMNZUWGNIU6R5C4991KU5UB68";
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 
-// ✅ RESTORED: Your specific Builder Code
 const BUILDER_CODE = "bc_4uoh9iu2"; 
 
 function getBuilderSuffix() {
@@ -60,12 +56,12 @@ interface WalletData {
   txCount: number; uniqueDays: number; activeWeeks: number; activeMonths: number;
   currentStreak: number; longestStreak: number; firstTx: string; lastTx: string;
   daysSinceActive: number; tokensSwapped: number; swapCount: number;     
-  contractInteractions: number; internalTxCount: number;      
-  score: number; historyDays: number; weekLabels: string[]; dailyStats: DayStats[]; 
+  contractInteractions: number; nftCount: number; walletRank: string; 
+  score: number; historyDays: number; weekLabels: string[]; dailyStats: DayStats[];
+  topTokens: string[]; recommendation: string; 
 }
 interface AlchemyTransfer { category: string; value: number | null; asset: string | null; metadata: { blockTimestamp: string; }; }
 interface AlchemyResponse { result?: { transfers: AlchemyTransfer[]; pageKey?: string; }; error?: { message: string; }; }
-interface BaseScanTx { timeStamp: string; value: string; isError: string; type: string; }
 type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 
 export default function Page() {
@@ -76,7 +72,17 @@ export default function Page() {
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
   const [userBoosts, setUserBoosts] = useState(0);
+  const hasBoosted = useRef(false);
+
+  const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
+  const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
+
+  const showToast = (message: string, hash: string) => {
+    setToast({ show: true, message, hash });
+    setTimeout(() => setToast(null), 5000);
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sdk?.actions?.ready) {
@@ -90,7 +96,6 @@ export default function Page() {
     }
   }, [wallet]);
 
-  // --- ANALYTICS LOGIC ---
   const getStrictUTCDate = (isoTimestamp: string) => isoTimestamp.split('T')[0];
   const getISOWeekToken = (date: Date) => {
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -99,16 +104,6 @@ export default function Page() {
     const year = d.getUTCFullYear();
     const weekNo = Math.ceil((((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000) + 1) / 7);
     return `${year}-W${weekNo}`;
-  };
-
-  const fetchInternalTxs = async (address: string): Promise<BaseScanTx[]> => {
-    try {
-        const url = `https://api.basescan.org/api?module=account&action=txlistinternal&address=${address}&startblock=0&endblock=99999999&sort=asc&apikey=${BASESCAN_KEY}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.status === "1" && Array.isArray(data.result)) return data.result;
-    } catch (e) { console.error("BaseScan fetch failed:", e); }
-    return [];
   };
 
   const analyzeWallet = async (address: string) => {
@@ -124,7 +119,14 @@ export default function Page() {
 
       while (true) {
           loopCount++;
-          const params: Record<string, unknown> = { fromBlock: "0x0", toBlock: "latest", fromAddress: address, category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true };
+          const params: Record<string, unknown> = { 
+            fromBlock: "0x0", 
+            toBlock: "latest", 
+            fromAddress: address, 
+            category: ["external", "erc20", "erc721", "erc1155"], 
+            maxCount: "0x3e8", 
+            withMetadata: true 
+          };
           if (pageKey) params.pageKey = pageKey;
           const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
           const data = (await response.json()) as AlchemyResponse;
@@ -134,11 +136,11 @@ export default function Page() {
           pageKey = data.result?.pageKey;
           if (!pageKey || loopCount > 200) break;
       }
-
-      const internalTxs = await fetchInternalTxs(address);
       
       const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
-      let ethVolume = 0.0, swapCount = 0, contractInteractions = 0;
+      const tokenFrequency = new Map<string, number>(); 
+      
+      let ethVolume = 0.0, swapCount = 0, contractInteractions = 0, nftCount = 0;
       const txsPerDay = new Map<string, number>();
 
       const addTxToDay = (dateStr: string) => txsPerDay.set(dateStr, (txsPerDay.get(dateStr) || 0) + 1);
@@ -150,27 +152,25 @@ export default function Page() {
         addTxToDay(dayStr);
         uniqueWeeks.add(getISOWeekToken(d));
         uniqueMonths.add(`${d.getUTCFullYear()}-${d.getUTCMonth()}`);
+        
         if (tx.value && (tx.asset === 'ETH' || tx.asset === 'WETH')) ethVolume += tx.value;
-        if (['erc20', 'erc721', 'erc1155'].includes(tx.category)) { swapCount++; if (tx.asset) uniqueTokens.add(tx.asset); }
+        if (['erc20', 'erc721', 'erc1155'].includes(tx.category)) { 
+            swapCount++; 
+            if (tx.asset) {
+                uniqueTokens.add(tx.asset);
+                tokenFrequency.set(tx.asset, (tokenFrequency.get(tx.asset) || 0) + 1);
+            }
+        }
         if (tx.category === 'external') contractInteractions++;
+        if (tx.category === 'erc721' || tx.category === 'erc1155') nftCount++; 
       }
 
-      for (const tx of internalTxs) {
-          if (tx.isError === "0") {
-             const ts = parseInt(tx.timeStamp) * 1000;
-             const d = new Date(ts);
-             const dayStr = getStrictUTCDate(d.toISOString());
-             uniqueDays.add(dayStr);
-             addTxToDay(dayStr);
-             uniqueWeeks.add(getISOWeekToken(d));
-             uniqueMonths.add(`${d.getUTCFullYear()}-${d.getUTCMonth()}`);
-             contractInteractions++;
-             const val = parseFloat(formatEther(tx.value));
-             if (val > 0) ethVolume += val;
-          }
-      }
+      const totalTxCount = allTransfers.length;
 
-      const totalTxCount = allTransfers.length + internalTxs.length;
+      const topTokens = Array.from(tokenFrequency.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(entry => entry[0]);
 
       const sortedUniqueDays = Array.from(uniqueDays).sort(); 
       let currentStreak = 0, longestStreak = 0, tempStreak = 0, prevTimestamp = 0;
@@ -196,12 +196,6 @@ export default function Page() {
           firstTxTimestamp = Math.min(firstTxTimestamp, new Date(allTransfers[0].metadata.blockTimestamp).getTime());
           lastTxTimestamp = Math.max(lastTxTimestamp, new Date(allTransfers[allTransfers.length-1].metadata.blockTimestamp).getTime());
       }
-      if (internalTxs.length > 0) {
-          const firstInt = parseInt(internalTxs[0].timeStamp) * 1000;
-          const lastInt = parseInt(internalTxs[internalTxs.length-1].timeStamp) * 1000;
-          firstTxTimestamp = Math.min(firstTxTimestamp, firstInt);
-          lastTxTimestamp = Math.max(lastTxTimestamp, lastInt);
-      }
 
       let historyDays = 364; let firstTxStr = "N/A", lastTxStr = "N/A", daysSinceActive = 0;
       if (totalTxCount > 0) {
@@ -210,6 +204,11 @@ export default function Page() {
         daysSinceActive = Math.floor((now.getTime() - lastTxTimestamp) / (1000 * 3600 * 24));
         historyDays = Math.max(364, Math.ceil(Math.abs(now.getTime() - firstTxTimestamp) / (1000 * 3600 * 24)) + 14); 
       }
+
+      let recommendation = "You're a Base power user! Keep up the great onchain activity.";
+      if (daysSinceActive > 7) recommendation = `⚠️ You've been inactive for ${daysSinceActive} days! Send a GM below to keep your streak alive.`;
+      else if (swapCount === 0) recommendation = "💡 You haven't swapped any tokens yet! Try exploring DEXs on Base.";
+      else if (totalTxCount < 10) recommendation = "👋 Welcome to Base! Try minting an NFT or boosting your score below.";
 
       const dailyStats: DayStats[] = [];
       const pointerDate = new Date(); 
@@ -244,12 +243,17 @@ export default function Page() {
           (basename ? 5 : 0)
       );
 
+      let walletRank = "Base Shrimp 🦐";
+      if (finalScore >= 30) walletRank = "Base Dolphin 🐬";
+      if (finalScore >= 60) walletRank = "Base Shark 🦈";
+      if (finalScore >= 85) walletRank = "Base Whale 🐳";
+
       setWallet({
         address, basename, balance: parseFloat(formatEther(balWei)).toFixed(4), ethVolume: ethVolume.toFixed(2),
         txCount: totalTxCount, uniqueDays: uniqueDays.size, activeWeeks: uniqueWeeks.size, activeMonths: uniqueMonths.size,
         currentStreak, longestStreak, firstTx: firstTxStr, lastTx: lastTxStr, daysSinceActive,
-        tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, internalTxCount: internalTxs.length,
-        score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels
+        tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, nftCount, walletRank,
+        score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels, topTokens, recommendation
       });
     } catch (e: unknown) { console.error("Analysis failed", e); alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); } finally { setLoading(false); }
   };
@@ -267,20 +271,20 @@ export default function Page() {
   // --- SHARING LOGIC ---
   const shareNative = async () => {
     if (!wallet) return;
-    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: MINIAPP_URL }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${MINIAPP_URL}`); }
   };
 
   const shareWarpcast = () => {
     if (!wallet) return;
-    const shareText = `I have ${userBoosts} Boosts on Base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareTwitter = () => {
     if (!wallet) return;
-    const shareText = `I have ${userBoosts} Boosts on @base! 🚀\n\n💰 Boost More = Earn More\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇\n${MINIAPP_URL}`;
+    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇\n${MINIAPP_URL}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
@@ -297,6 +301,10 @@ export default function Page() {
   const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
   const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(4000000000000) }];
   const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(4000000000000) }];
+
+  const paymasterCapability = process.env.NEXT_PUBLIC_PAYMASTER_URL 
+    ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } 
+    : undefined;
 
   if (!isReady) return <div className="min-h-screen bg-[#020410] flex items-center justify-center text-blue-500 font-mono text-xs animate-pulse">INITIALIZING BASE...</div>;
 
@@ -325,13 +333,33 @@ export default function Page() {
   );
 
   return (
-    <main className="min-h-screen bg-[#020410] p-4 lg:p-8 font-sans text-slate-200 pb-32 overflow-x-hidden">
+    <main className="min-h-screen bg-[#020410] p-4 lg:p-8 font-sans text-slate-200 pb-40 overflow-x-hidden relative">
+      
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0052FF] border border-blue-400/50 text-white px-6 py-4 rounded-2xl shadow-[0_0_40px_-10px_rgba(0,82,255,0.8)] flex items-center gap-6 animate-in slide-in-from-bottom-5">
+            <div>
+                <p className="font-bold text-lg flex items-center gap-2"><BadgeCheck size={20}/> {toast.message}</p>
+                {toast.hash && (
+                  <a href={`https://basescan.org/tx/${toast.hash}`} target="_blank" rel="noreferrer" className="text-blue-200 text-xs hover:text-white underline mt-1 block">
+                    View on BaseScan ↗
+                  </a>
+                )}
+            </div>
+            <button onClick={() => setToast(null)} className="bg-blue-950/30 p-2 rounded-full hover:bg-blue-900/50 transition"><X size={16}/></button>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-lg"><Activity className="text-white" size={20}/></div>
             <span className="font-black text-xl tracking-tight text-white uppercase">Base Analytics</span>
         </div>
         <button onClick={handleDisconnect} className="p-3 bg-blue-950/30 rounded-full border border-blue-900/30 text-blue-400"><Power size={18}/></button>
+      </div>
+
+      <div className={`rounded-2xl p-4 mb-8 flex items-center gap-3 border ${wallet.daysSinceActive > 7 ? 'bg-orange-950/40 border-orange-900/50 text-orange-200' : 'bg-blue-950/40 border-blue-900/50 text-blue-200'}`}>
+          {wallet.daysSinceActive > 7 ? <AlertTriangle size={20} className="text-orange-500 shrink-0" /> : <Activity size={20} className="text-blue-500 shrink-0" />}
+          <p className="text-sm font-medium">{wallet.recommendation}</p>
       </div>
 
       <div className="bg-[#0A1024]/80 backdrop-blur-xl rounded-[20px] p-6 sm:p-8 border border-blue-900/30 mb-8">
@@ -341,7 +369,6 @@ export default function Page() {
                       <div className="p-3 bg-[#0052FF]/20 rounded-xl border border-[#0052FF]/30"><Rocket size={24} className="text-[#0052FF]"/></div>
                       <div>
                           <h3 className="font-black text-2xl text-white leading-none">XP Booster</h3>
-                          <p className="text-green-400 text-xs font-bold mt-1 uppercase animate-pulse">Gasless Enabled</p>
                       </div>
                   </div>
                   <div className="bg-[#020410]/50 px-4 py-2 rounded-lg border border-blue-900/50 inline-block">
@@ -349,11 +376,25 @@ export default function Page() {
                       <span className="text-2xl font-black text-white">{userBoosts}</span>
                   </div>
               </div>
-              <div className="w-full md:w-64">
-                  <Transaction chainId={base.id} calls={boostCall} onStatus={(s) => { if(s.statusName === 'success') setUserBoosts(b => b + 1); }}>
-                    <TransactionButton className="w-full bg-[#0052FF] text-white font-bold py-4 rounded-xl" text="BOOST SCORE (+1)" />
-                    <TransactionSponsor />
-                    <TransactionStatus><TransactionStatusLabel /></TransactionStatus>
+              
+              <div className="w-full md:w-64 relative z-20">
+                  <Transaction 
+                    key={`boost-${txKeys.boost}`}
+                    chainId={base.id} 
+                    calls={boostCall} 
+                    capabilities={paymasterCapability}
+                    onStatus={(s) => { 
+                      if (s.statusName === 'transactionPending' || s.statusName === 'init') hasBoosted.current = false;
+                      if (s.statusName === 'success' && !hasBoosted.current) {
+                        hasBoosted.current = true;
+                        setUserBoosts(b => b + 1); 
+                        const txHash = s.statusData.transactionReceipts?.[0]?.transactionHash || '';
+                        showToast('Boost Successful! 🎉', txHash);
+                        setTxKeys(prev => ({ ...prev, boost: prev.boost + 1 })); 
+                      }
+                    }}
+                  >
+                    <TransactionButton className="w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-bold py-4 rounded-xl" text="BOOST SCORE (+1)" />
                   </Transaction>
               </div>
           </div>
@@ -388,18 +429,76 @@ export default function Page() {
             </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <h3 className="text-sm font-bold text-blue-500 mb-4 ml-2 flex items-center gap-2 uppercase tracking-widest"><BarChart3 size={16}/> Wallet Status</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+          
+          <div className="bg-[#0A1024] p-5 rounded-2xl border border-blue-900/30 flex flex-col justify-between col-span-2 relative overflow-hidden group hover:border-blue-500/50 transition-all">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#0052FF] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+              <div className="flex justify-between items-start mb-2 relative z-10">
+                  <div className="p-2 bg-blue-950/50 rounded-lg text-white"><User size={20}/></div>
+                  {wallet.basename && <div className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-bold rounded border border-green-500/30 flex items-center gap-1"><BadgeCheck size={10}/> VERIFIED</div>}
+              </div>
+              <div className="relative z-10">
+                  <p className="text-2xl font-black text-white tracking-tight truncate">{wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
+                  <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mt-1">{wallet.walletRank}</p>
+              </div>
+          </div>
+
+          <div className="bg-[#0A1024] p-5 rounded-2xl border border-blue-900/30 flex flex-col justify-between col-span-2 lg:col-span-2 relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-3 text-white"><TrendingUp size={18}/><p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Top Interacted Assets</p></div>
+              <div className="flex gap-2">
+                 {wallet.topTokens.length > 0 ? wallet.topTokens.map((token, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-blue-950/50 border border-blue-900/50 rounded-lg text-sm font-black text-white">{token}</span>
+                 )) : <span className="text-sm text-slate-500">No token data yet.</span>}
+              </div>
+          </div>
+
           <StatCard label="Wallet Balance" value={`${wallet.balance} ETH`} icon={<CreditCard size={18}/>} />
-          <StatCard label="Active Days" value={wallet.uniqueDays.toString()} icon={<Sun size={18}/>} highlight />
+          <StatCard label="Total Active Days" value={wallet.uniqueDays.toString()} icon={<Sun size={18}/>} highlight />
+          <StatCard label="Current Streak" value={`${wallet.currentStreak} Days`} icon={<Zap size={18} className={wallet.currentStreak > 0 ? "text-[#0052FF]" : "text-white"}/>} />
+          <StatCard label="Longest Streak" value={`${wallet.longestStreak} Days`} icon={<Trophy size={18}/>} />
+          <StatCard label="First Active Date" value={wallet.firstTx} icon={<Calendar size={18}/>} />
+          <StatCard label="Last Active Date" value={wallet.lastTx} icon={<Clock size={18}/>} />
+          <StatCard label="Days Inactive" value={wallet.daysSinceActive.toString()} icon={<Moon size={18}/>} />
           <StatCard label="Total Txs" value={wallet.txCount.toLocaleString()} icon={<Layers size={18}/>} />
           <StatCard label="ETH Volume" value={`${wallet.ethVolume} Ξ`} icon={<ArrowRightLeft size={18}/>} />
+          <StatCard label="NFTs Transferred" value={wallet.nftCount.toLocaleString()} icon={<Sparkles size={18}/>} />
+          <StatCard label="Token Transfers" value={wallet.swapCount.toLocaleString()} icon={<RefreshCcw size={18}/>} />
+          <StatCard label="Contract Txs" value={wallet.contractInteractions.toLocaleString()} icon={<FileCode size={18}/>} />
       </div>
 
       <div className="bg-[#0A1024] rounded-3xl p-6 border border-blue-900/30">
            <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">Community Vibes</h3>
-           <div className="grid grid-cols-2 gap-4">
-              <Transaction chainId={base.id} calls={gmCall}><TransactionButton className="py-4 bg-blue-950/30 text-white rounded-xl font-black text-xl w-full" text="GM" /><TransactionSponsor /></Transaction>
-              <Transaction chainId={base.id} calls={gnCall}><TransactionButton className="py-4 bg-blue-950/30 text-white rounded-xl font-black text-xl w-full" text="GN" /><TransactionSponsor /></Transaction>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-20 w-full">
+              <Transaction 
+                key={`gm-${txKeys.gm}`}
+                chainId={base.id} 
+                calls={gmCall} 
+                capabilities={paymasterCapability}
+                onStatus={(s) => {
+                  if (s.statusName === 'success') {
+                    showToast('GM Registered on Base! ☀️', s.statusData.transactionReceipts?.[0]?.transactionHash || '');
+                    setTxKeys(prev => ({ ...prev, gm: prev.gm + 1 }));
+                  }
+                }}
+              >
+                 <TransactionButton className="min-h-14 flex items-center justify-center bg-blue-950/30 text-white rounded-xl font-black text-xl w-full" text="GM" />
+              </Transaction>
+
+              <Transaction 
+                key={`gn-${txKeys.gn}`}
+                chainId={base.id} 
+                calls={gnCall} 
+                capabilities={paymasterCapability}
+                onStatus={(s) => {
+                  if (s.statusName === 'success') {
+                    showToast('GN Registered on Base! 🌙', s.statusData.transactionReceipts?.[0]?.transactionHash || '');
+                    setTxKeys(prev => ({ ...prev, gn: prev.gn + 1 }));
+                  }
+                }}
+              >
+                 <TransactionButton className="min-h-14 flex items-center justify-center bg-blue-950/30 text-white rounded-xl font-black text-xl w-full" text="GN" />
+              </Transaction>
            </div>
       </div>
     </main>
@@ -408,9 +507,9 @@ export default function Page() {
 
 function StatCard({ label, value, icon, highlight }: { label: string, value: string, icon: React.ReactNode, highlight?: boolean }) {
     return (
-        <div className="bg-[#0A1024] p-5 rounded-2xl border border-blue-900/20">
+        <div className="bg-[#0A1024] p-5 rounded-2xl border border-blue-900/20 group hover:border-[#0052FF]/50 transition-all">
             <div className={`mb-3 ${highlight ? 'text-[#0052FF]' : 'text-white'}`}>{icon}</div>
-            <p className="text-xl font-black text-white truncate">{value}</p>
+            <p className="text-xl font-black text-white truncate" title={value}>{value}</p>
             <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest">{label}</p>
         </div>
     );
