@@ -8,7 +8,7 @@ import {
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets
 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
-import sdk from "@farcaster/frame-sdk";
+import { sdk } from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
 
 // OnchainKit & Viem Imports
@@ -63,7 +63,7 @@ interface WalletData {
   badges: Badge[]; recentTxs: AlchemyTransfer[];
   daysOnBase: number;
 }
-interface AlchemyTransfer { hash: string; category: string; value: number | null; asset: string | null; from: string; to: string | null; metadata: { blockTimestamp: string; }; }
+interface AlchemyTransfer { hash: string; category: string; value: number | null; asset: string | null; to: string | null; metadata: { blockTimestamp: string; }; }
 interface AlchemyResponse { result?: { transfers: AlchemyTransfer[]; pageKey?: string; }; error?: { message: string; }; }
 type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 
@@ -83,7 +83,7 @@ export default function Page() {
   const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
-  // --- MOVED DECLARATIONS UP HERE TO FIX TYPESCRIPT ERROR ---
+  // --- TRANSACTION DATA DEFINED AT THE TOP ---
   const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
   const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
   
@@ -94,13 +94,12 @@ export default function Page() {
   const gnDataWithTracking = `${gnData}${getBuilderSuffix()}` as `0x${string}`;
 
   const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
-  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(4000000000000) }];
-  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(4000000000000) }];
+  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(0) }];
+  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(0) }];
 
   const paymasterCapability = process.env.NEXT_PUBLIC_PAYMASTER_URL 
     ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } 
     : undefined;
-  // --------------------------------------------------------
 
   const showToast = (message: string, hash: string) => {
     setToast({ show: true, message, hash });
@@ -130,7 +129,6 @@ export default function Page() {
   };
 
   const analyzeWallet = async (address: string) => {
-    setLoading(true); setShowConnectModal(false);
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
       let basename = null; try { basename = await provider.lookupAddress(address); } catch {}
@@ -278,10 +276,11 @@ export default function Page() {
           (basename ? 5 : 0)
       );
 
+      // --- EDIT YOUR WALLET RANK THRESHOLDS HERE ---
       let walletRank = "Base Shrimp 🦐";
       if (finalScore >= 30) walletRank = "Base Dolphin 🐬";
       if (finalScore >= 60) walletRank = "Base Shark 🦈";
-      if (finalScore >= 85) walletRank = "Base Whale 🐳";
+      if (finalScore >= 85) walletRank = "Base Whale 🐳"; 
 
       const badges: Badge[] = [];
       
@@ -308,6 +307,8 @@ export default function Page() {
       // --- IDENTITY & APP ENGAGEMENT ---
       if (basename) badges.push({ icon: '🏷️', name: 'Named', desc: 'Owns a verified Basename' });
       if (historicalBoosts >= 5) badges.push({ icon: '🔋', name: 'Booster', desc: 'Used the XP Booster 5+ times' });
+      
+      // --- EDIT YOUR BASE GOD SCORE THRESHOLD HERE ---
       if (finalScore >= 85) badges.push({ icon: '👑', name: 'Base God', desc: '85+ Overall Onchain Score' });
 
       setWallet({
@@ -317,51 +318,54 @@ export default function Page() {
         tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, nftCount, walletRank,
         score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels, topTokens, recommendation, badges, recentTxs, daysOnBase
       });
-    } catch (e: unknown) { console.error("Analysis failed", e); alert("❌ Error: " + (e instanceof Error ? e.message : String(e))); } finally { setLoading(false); }
+    } catch (e: unknown) { 
+      console.error("Analysis failed", e); 
+      const errMsg = e instanceof Error ? e.message : String(e);
+      showToast(`❌ Scan Failed: ${errMsg}`, '');
+      setWallet(null);
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleConnect = async (type: ConnectionType) => {
     try {
-      // 1. Instantly close modal and trigger loading state so the UI doesn't look "stuck"
       setShowConnectModal(false);
       setLoading(true);
 
       let userAddress = '';
 
       if (type === 'farcaster') {
-        // 2. Request address natively from Warpcast
+        showToast("⏳ Requesting Farcaster wallet...", ""); 
+        
         const accounts = await sdk.wallet.ethProvider.request({ 
             method: "eth_requestAccounts" 
         });
         
         if (!accounts || accounts.length === 0) {
-            throw new Error("No Farcaster account found. Are you inside Warpcast?");
+            throw new Error("No Farcaster account found.");
         }
-        // Farcaster successfully returned the connected wallet address!
-        userAddress = accounts[0]; 
+        userAddress = accounts[0] as string;
+        showToast(`✅ Wallet linked! Scanning history...`, ""); 
       } else {
-        // Fallback for standard web browsers
         const { address } = await connectWallet(type);
         userAddress = address;
       }
 
       setConnectionType(type);
-      
-      // 3. Pass the fetched address to your analyzer
       analyzeWallet(userAddress);
       
     } catch (e: unknown) { 
       setLoading(false);
       console.error("Connection Error:", e);
-      // CRITICAL FIX: Warpcast blocks alert() popups! We must use your custom Toast instead.
       const errorMsg = e instanceof Error ? e.message : "Connection failed";
-      showToast(`❌ ${errorMsg}`, ""); 
+      showToast(`❌ Connection: ${errorMsg}`, ""); 
     }
-  }; 
+  };
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
- // --- NATIVE FARCASTER TRANSACTION HANDLER ---
+  // --- NATIVE FARCASTER TRANSACTION HANDLER ---
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
     if (!wallet || !wallet.address) return;
 
@@ -369,7 +373,7 @@ export default function Page() {
       let toAddress: `0x${string}` = '0x';
       let txData: `0x${string}` = '0x';
       let successMsg = '';
-      const txValue = BigInt(type === 'boost' ? 4000000000000 : 0);
+      const txValue = type === 'boost' ? BigInt(4000000000000) : BigInt(0);
 
       if (type === 'boost') {
         toAddress = BOOSTER_CONTRACT_ADDRESS as `0x${string}`;
@@ -385,7 +389,6 @@ export default function Page() {
         successMsg = 'GN Registered on Base! 🌙';
       }
 
-      // Base transaction parameters
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const txParams: any = {
         from: wallet.address as `0x${string}`, 
@@ -394,7 +397,6 @@ export default function Page() {
         chainId: '0x2105' 
       };
 
-      // FIXED: Used BigInt(0) instead of 0n to bypass ES2020 target errors
       if (txValue > BigInt(0)) {
         txParams.value = `0x${txValue.toString(16)}`;
       }
@@ -414,17 +416,15 @@ export default function Page() {
       }
     } catch (err: unknown) {
       console.error("Native TX Error:", err);
-      
       let errorMessage = 'Simulation rejected. Did you already do this today?';
       if (err instanceof Error) {
           errorMessage = err.message;
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
           errorMessage = String((err as { message: string }).message);
       }
-        
       showToast(`❌ Tx Failed: ${errorMessage}`, '');
     }
-  }; 
+  };
 
   const shareNative = async () => {
     if (!wallet) return;
@@ -734,4 +734,4 @@ function StatCard({ label, value, icon }: { label: string, value: string, icon: 
             <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mt-1">{label}</p>
         </div>
     );
-} 
+}
