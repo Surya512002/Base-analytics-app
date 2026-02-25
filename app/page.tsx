@@ -63,14 +63,12 @@ interface WalletData {
   badges: Badge[]; recentTxs: AlchemyTransfer[];
   daysOnBase: number;
 }
-interface AlchemyTransfer { hash: string; category: string; value: number | null; asset: string | null; metadata: { blockTimestamp: string; }; }
+interface AlchemyTransfer { hash: string; category: string; value: number | null; asset: string | null; from: string; to: string | null; metadata: { blockTimestamp: string; }; }
 interface AlchemyResponse { result?: { transfers: AlchemyTransfer[]; pageKey?: string; }; error?: { message: string; }; }
 type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  
-  // FIXED: Properly tracking the connection type
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
   
   const [loading, setLoading] = useState(false);
@@ -81,10 +79,28 @@ export default function Page() {
   
   const [userBoosts, setUserBoosts] = useState(0);
   const [sponsoredTxs, setSponsoredTxs] = useState(0); 
-  const hasBoosted = useRef(false);
 
   const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
+
+  // --- MOVED DECLARATIONS UP HERE TO FIX TYPESCRIPT ERROR ---
+  const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
+  const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
+  
+  const gmData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gm' });
+  const gmDataWithTracking = `${gmData}${getBuilderSuffix()}` as `0x${string}`;
+
+  const gnData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gn' });
+  const gnDataWithTracking = `${gnData}${getBuilderSuffix()}` as `0x${string}`;
+
+  const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
+  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(4000000000000) }];
+  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(4000000000000) }];
+
+  const paymasterCapability = process.env.NEXT_PUBLIC_PAYMASTER_URL 
+    ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } 
+    : undefined;
+  // --------------------------------------------------------
 
   const showToast = (message: string, hash: string) => {
     setToast({ show: true, message, hash });
@@ -148,6 +164,7 @@ export default function Page() {
       const tokenFrequency = new Map<string, number>(); 
       
       let ethVolume = 0.0, swapCount = 0, contractInteractions = 0, nftCount = 0;
+      let historicalBoosts = 0; 
       const txsPerDay = new Map<string, number>();
 
       const addTxToDay = (dateStr: string) => txsPerDay.set(dateStr, (txsPerDay.get(dateStr) || 0) + 1);
@@ -170,7 +187,13 @@ export default function Page() {
         }
         if (tx.category === 'external') contractInteractions++;
         if (tx.category === 'erc721' || tx.category === 'erc1155') nftCount++; 
+        
+        if (tx.to && tx.to.toLowerCase() === BOOSTER_CONTRACT_ADDRESS.toLowerCase()) {
+            historicalBoosts++;
+        }
       }
+
+      setUserBoosts(historicalBoosts);
 
       const totalTxCount = allTransfers.length;
 
@@ -262,31 +285,30 @@ export default function Page() {
 
       const badges: Badge[] = [];
       
-      // --- ORIGINAL BADGES ---
-      if (firstTxTimestamp < new Date('2023-10-01').getTime()) badges.push({ icon: '🔵', name: 'Early Adopter', desc: 'Bridged in 2023' });
+      // --- TIME & ACTIVITY BADGES ---
+      if (firstTxTimestamp < new Date('2023-10-01').getTime()) badges.push({ icon: '🔵', name: 'Early Adopter', desc: 'Active since 2023' });
       if (uniqueDays.size >= 100) badges.push({ icon: '💎', name: 'Diamond Hands', desc: '100+ Active Days' });
-      if (ethVolume >= 5) badges.push({ icon: '🐋', name: 'Whale Alert', desc: '5+ ETH Volume' });
-      if (swapCount >= 50) badges.push({ icon: '🔄', name: 'DeFi Degen', desc: '50+ Swaps' });
-      if (nftCount >= 20) badges.push({ icon: '🖼️', name: 'Collector', desc: '20+ NFTs' });
-
-      // --- NEW EXTRA BADGES ---
-      // 1. Base Builder: Interacted with 50+ contracts
-      if (contractInteractions >= 50) badges.push({ icon: '🏗️', name: 'Base Builder', desc: '50+ Contract Txs' });
-      
-      // 2. 1K Club: Over 1,000 total transactions
-      if (totalTxCount >= 1000) badges.push({ icon: '🚀', name: '1K Club', desc: '1,000+ Total Txs' });
-      
-      // 3. Streak Master: Maintained a 7-day streak at some point
+      if (uniqueDays.size >= 365) badges.push({ icon: '📅', name: 'One Year Club', desc: '365+ Active Days' });
       if (longestStreak >= 7) badges.push({ icon: '🔥', name: 'Streak Master', desc: '7+ Day Streak' });
+      if (longestStreak >= 30) badges.push({ icon: '🌋', name: 'Unstoppable', desc: '30+ Day Streak' });
+      
+      // --- VOLUME & TRANSACTIONS ---
+      if (ethVolume >= 1) badges.push({ icon: '🐬', name: 'Dolphin', desc: '1+ ETH Volume' });
+      if (ethVolume >= 5) badges.push({ icon: '🐋', name: 'Whale Alert', desc: '5+ ETH Volume' });
+      if (totalTxCount >= 500) badges.push({ icon: '⚡', name: 'Power User', desc: '500+ Total Txs' });
+      if (totalTxCount >= 1000) badges.push({ icon: '🚀', name: '1K Club', desc: '1,000+ Total Txs' });
+      if (contractInteractions >= 50) badges.push({ icon: '🏗️', name: 'Base Builder', desc: '50+ Contract Txs' });
 
-      // 4. Token Explorer: Held/Swapped 10+ unique tokens
+      // --- DEFI & ASSETS ---
+      if (swapCount >= 50) badges.push({ icon: '🔄', name: 'DeFi Degen', desc: '50+ Swaps' });
       if (uniqueTokens.size >= 10) badges.push({ icon: '🌈', name: 'Token Explorer', desc: '10+ Unique Tokens' });
+      if (nftCount >= 20) badges.push({ icon: '🖼️', name: 'Collector', desc: '20+ NFTs' });
+      if (nftCount >= 100) badges.push({ icon: '🎨', name: 'NFT Maxi', desc: '100+ NFTs' });
 
-      // 5. Basename OG: User has a registered basename
-      if (basename) badges.push({ icon: '🏷️', name: 'Named', desc: 'Owns a Basename' });
-
-      // 6. Base God: Achieved a massive overall score
-      if (finalScore >= 85) badges.push({ icon: '👑', name: 'Base God', desc: '85+ Onchain Score' });
+      // --- IDENTITY & APP ENGAGEMENT ---
+      if (basename) badges.push({ icon: '🏷️', name: 'Named', desc: 'Owns a verified Basename' });
+      if (historicalBoosts >= 5) badges.push({ icon: '🔋', name: 'Booster', desc: 'Used the XP Booster 5+ times' });
+      if (finalScore >= 85) badges.push({ icon: '👑', name: 'Base God', desc: '85+ Overall Onchain Score' });
 
       setWallet({
         address, basename, balance: parseFloat(formatEther(balWei)).toFixed(4), ethVolume: ethVolume.toFixed(2),
@@ -308,13 +330,11 @@ export default function Page() {
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
- // --- NATIVE FARCASTER TRANSACTION HANDLER ---
+  // --- NATIVE FARCASTER TRANSACTION HANDLER ---
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
-    // 1. Guard clause: Make sure we have the wallet loaded before sending
     if (!wallet || !wallet.address) return;
 
     try {
-      // Explicitly type these as hex strings to satisfy viem/ox strict types
       let toAddress: `0x${string}` = '0x';
       let txData: `0x${string}` = '0x';
       let successMsg = '';
@@ -334,15 +354,13 @@ export default function Page() {
         successMsg = 'GN Registered on Base! 🌙';
       }
 
-      // Triggers Warpcast's native slide-up transaction confirmation via EIP-1193
       const hash = await sdk.wallet.ethProvider.request({
         method: "eth_sendTransaction",
         params: [{
-          from: wallet.address as `0x${string}`, // <--- CRITICAL FIX: Tells Warpcast who is sending
+          from: wallet.address as `0x${string}`, 
           to: toAddress,
           data: txData,
-          value: `0x${txValue.toString(16)}` as `0x${string}`,
-          chainId: '0x2105' // <--- CRITICAL FIX: Forces Warpcast to simulate on Base (8453 in Hex)
+          value: `0x${txValue.toString(16)}` as `0x${string}`
         }]
       });
       
@@ -354,10 +372,15 @@ export default function Page() {
             setTxKeys(prev => ({ ...prev, boost: prev.boost + 1 })); 
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Native TX Error:", err);
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'The contract rejected the simulation. Did you already do this today?';
+        
+      alert(`Transaction Failed: ${errorMessage}`);
     }
-  }; 
+  };
 
   const shareNative = async () => {
     if (!wallet) return;
@@ -378,24 +401,6 @@ export default function Page() {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
-  const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
-  const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
-  
-  const gmData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gm' });
-  const gmDataWithTracking = `${gmData}${getBuilderSuffix()}` as `0x${string}`;
-
-  const gnData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gn' });
-  const gnDataWithTracking = `${gnData}${getBuilderSuffix()}` as `0x${string}`;
-
-  const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
-  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(4000000000000) }];
-  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(4000000000000) }];
-
-  const paymasterCapability = process.env.NEXT_PUBLIC_PAYMASTER_URL 
-    ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } 
-    : undefined;
-
-  // Background significantly dimmed to slate-300
   if (!isReady) return <div className="min-h-screen bg-slate-300 flex items-center justify-center text-[#0052FF] font-mono text-xs animate-pulse">INITIALIZING BASE...</div>;
 
   if (!wallet) return (
@@ -491,7 +496,6 @@ export default function Page() {
               </div>
               
               <div className="w-full md:w-64 relative z-20">
-                  {/* HYBRID FIX: Render Native Button if Farcaster, else OnchainKit */}
                   {connectionType === 'farcaster' ? (
                       <button 
                           onClick={() => handleNativeTx('boost')}
@@ -506,11 +510,9 @@ export default function Page() {
                         calls={boostCall} 
                         capabilities={paymasterCapability}
                         onStatus={(s) => { 
-                          if (s.statusName === 'transactionPending' || s.statusName === 'init') hasBoosted.current = false;
-                          if (s.statusName === 'success' && !hasBoosted.current) {
-                            hasBoosted.current = true;
+                          if (s.statusName === 'success') {
                             setUserBoosts(b => b + 1); 
-                            setSponsoredTxs(s => s + 1); 
+                            setSponsoredTxs(st => st + 1); 
                             const txHash = s.statusData.transactionReceipts?.[0]?.transactionHash || '';
                             showToast('Boost Successful! 🎉', txHash);
                             setTxKeys(prev => ({ ...prev, boost: prev.boost + 1 })); 
@@ -622,7 +624,6 @@ export default function Page() {
            <h3 className="font-bold text-lg text-[#0052FF] mb-4 flex items-center gap-2 uppercase tracking-tight">Community Vibes</h3>
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-20 w-full">
               <div>
-                {/* HYBRID FIX: Render Native Button if Farcaster, else OnchainKit */}
                 {connectionType === 'farcaster' ? (
                     <button 
                         onClick={() => handleNativeTx('gm')}
@@ -650,7 +651,6 @@ export default function Page() {
               </div>
 
               <div>
-                {/* HYBRID FIX: Render Native Button if Farcaster, else OnchainKit */}
                 {connectionType === 'farcaster' ? (
                     <button 
                         onClick={() => handleNativeTx('gn')}
