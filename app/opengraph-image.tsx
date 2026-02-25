@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-export const alt = 'Base Analytics - Onchain Identity';
+export const alt = 'Base Analytics - Mint Your Onchain Identity';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -11,52 +11,89 @@ export default async function Image() {
     (
       <div
         style={{
-          background: 'linear-gradient(to bottom right, #0052FF, #001f70)',
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          background: 'linear-gradient(135deg, #0052FF 0%, #001f70 100%)',
           fontFamily: 'sans-serif',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Decorative Background Elements */}
-        <div style={{ position: 'absolute', top: -100, left: -100, width: 400, height: 400, background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: -150, right: -50, width: 600, height: 600, background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
+        {/* Futuristic Background Rings */}
+        <div style={{ position: 'absolute', top: -150, left: -150, width: 600, height: 600, border: '40px solid rgba(255, 255, 255, 0.05)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: -200, right: -100, width: 800, height: 800, border: '60px solid rgba(255, 255, 255, 0.05)', borderRadius: '50%' }} />
 
-        {/* Main Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 }}>
-          <div
+        {/* Main Floating Card */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: 'rgba(255, 255, 255, 0.1)',
+            padding: '60px 80px',
+            borderRadius: '40px',
+            border: '2px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+            zIndex: 10,
+          }}
+        >
+          <h1
             style={{
-              background: 'white',
-              padding: '20px 40px',
-              borderRadius: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '30px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              fontSize: '85px',
+              fontWeight: 900,
+              color: 'white',
+              margin: 0,
+              letterSpacing: '-0.05em',
+              textShadow: '0 10px 30px rgba(0,82,255,0.8)',
             }}
           >
-            <h1 style={{ fontSize: '80px', fontWeight: 900, color: '#0052FF', margin: 0, letterSpacing: '-0.05em' }}>
-              BASE ANALYTICS
-            </h1>
-          </div>
+            BASE ANALYTICS
+          </h1>
           
-          <h2 style={{ fontSize: '40px', fontWeight: 700, color: 'white', margin: '0 0 20px 0', textAlign: 'center' }}>
+          <p
+            style={{
+              fontSize: '36px',
+              color: '#93C5FD',
+              marginTop: '15px',
+              marginBottom: '50px',
+              fontWeight: 700,
+              textAlign: 'center',
+            }}
+          >
             Mint Your Onchain Identity 🏆
-          </h2>
-          <p style={{ fontSize: '28px', color: 'rgba(255,255,255,0.8)', margin: 0, textAlign: 'center', maxWidth: '800px' }}>
-            Discover your stats, unlock 40+ unique achievements, and farm XP entirely gasless.
           </p>
+
+          {/* Feature Pills */}
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '15px 30px', borderRadius: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#0052FF' }}>40+ Badges</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '15px 30px', borderRadius: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#0052FF' }}>Gasless Mints</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '15px 30px', borderRadius: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#0052FF' }}>XP Booster</span>
+            </div>
+          </div>
         </div>
 
-        {/* Footer Badge */}
-        <div style={{ position: 'absolute', bottom: 40, display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '10px 24px', borderRadius: '40px' }}>
-           <span style={{ fontSize: '24px', color: '#60A5FA', fontWeight: 'bold' }}>Built by @suryaprakash.farcaster.eth</span>
+        {/* Footer Credit */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(0,0,0,0.3)',
+            padding: '12px 30px',
+            borderRadius: '50px',
+          }}
+        >
+          <span style={{ fontSize: '24px', color: '#93C5FD', fontWeight: 700, letterSpacing: '1px' }}>Built by @TamilCrypt0 & @suryaprakash.farcaster.eth</span>
         </div>
       </div>
     ),
