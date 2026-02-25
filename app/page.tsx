@@ -83,7 +83,6 @@ export default function Page() {
   const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
-  // --- TRANSACTION DATA DEFINED AT THE TOP ---
   const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
   const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
   
@@ -129,6 +128,14 @@ export default function Page() {
   };
 
   const analyzeWallet = async (address: string) => {
+    // CRITICAL FIX: Ensure the address is an Ethereum EVM address before scanning.
+    // This prevents the app from crashing if a Solana address slips through.
+    if (!address || !address.startsWith('0x') || address.length !== 42) {
+        showToast(`❌ Invalid EVM Address: ${address.substring(0,6)}...`, '');
+        setLoading(false);
+        return;
+    }
+
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
       let basename = null; try { basename = await provider.lookupAddress(address); } catch {}
@@ -276,7 +283,6 @@ export default function Page() {
           (basename ? 5 : 0)
       );
 
-      // --- EDIT YOUR WALLET RANK THRESHOLDS HERE ---
       let walletRank = "Base Shrimp 🦐";
       if (finalScore >= 30) walletRank = "Base Dolphin 🐬";
       if (finalScore >= 60) walletRank = "Base Shark 🦈";
@@ -284,31 +290,25 @@ export default function Page() {
 
       const badges: Badge[] = [];
       
-      // --- TIME & ACTIVITY BADGES ---
       if (firstTxTimestamp < new Date('2023-10-01').getTime()) badges.push({ icon: '🔵', name: 'Early Adopter', desc: 'Active since 2023' });
       if (uniqueDays.size >= 100) badges.push({ icon: '💎', name: 'Diamond Hands', desc: '100+ Active Days' });
       if (uniqueDays.size >= 365) badges.push({ icon: '📅', name: 'One Year Club', desc: '365+ Active Days' });
       if (longestStreak >= 7) badges.push({ icon: '🔥', name: 'Streak Master', desc: '7+ Day Streak' });
       if (longestStreak >= 30) badges.push({ icon: '🌋', name: 'Unstoppable', desc: '30+ Day Streak' });
       
-      // --- VOLUME & TRANSACTIONS ---
       if (ethVolume >= 1) badges.push({ icon: '🐬', name: 'Dolphin', desc: '1+ ETH Volume' });
       if (ethVolume >= 5) badges.push({ icon: '🐋', name: 'Whale Alert', desc: '5+ ETH Volume' });
       if (totalTxCount >= 500) badges.push({ icon: '⚡', name: 'Power User', desc: '500+ Total Txs' });
       if (totalTxCount >= 1000) badges.push({ icon: '🚀', name: '1K Club', desc: '1,000+ Total Txs' });
       if (contractInteractions >= 50) badges.push({ icon: '🏗️', name: 'Base Builder', desc: '50+ Contract Txs' });
 
-      // --- DEFI & ASSETS ---
       if (swapCount >= 50) badges.push({ icon: '🔄', name: 'DeFi Degen', desc: '50+ Swaps' });
       if (uniqueTokens.size >= 10) badges.push({ icon: '🌈', name: 'Token Explorer', desc: '10+ Unique Tokens' });
       if (nftCount >= 20) badges.push({ icon: '🖼️', name: 'Collector', desc: '20+ NFTs' });
       if (nftCount >= 100) badges.push({ icon: '🎨', name: 'NFT Maxi', desc: '100+ NFTs' });
 
-      // --- IDENTITY & APP ENGAGEMENT ---
       if (basename) badges.push({ icon: '🏷️', name: 'Named', desc: 'Owns a verified Basename' });
       if (historicalBoosts >= 5) badges.push({ icon: '🔋', name: 'Booster', desc: 'Used the XP Booster 5+ times' });
-      
-      // --- EDIT YOUR BASE GOD SCORE THRESHOLD HERE ---
       if (finalScore >= 85) badges.push({ icon: '👑', name: 'Base God', desc: '85+ Overall Onchain Score' });
 
       setWallet({
@@ -328,7 +328,7 @@ export default function Page() {
     }
   };
 
-  const handleConnect = async (type: ConnectionType) => {
+const handleConnect = async (type: ConnectionType) => {
     try {
       setShowConnectModal(false);
       setLoading(true);
@@ -336,18 +336,29 @@ export default function Page() {
       let userAddress = '';
 
       if (type === 'farcaster') {
-        showToast("⏳ Requesting Farcaster wallet...", ""); 
+        showToast("⏳ Requesting Farcaster profile...", ""); 
         
-        const accounts = await sdk.wallet.ethProvider.request({ 
+        // Request the array of connected accounts directly from the provider
+        const accounts = (await sdk.wallet.ethProvider.request({ 
             method: "eth_requestAccounts" 
-        });
+        })) as string[];
         
         if (!accounts || accounts.length === 0) {
             throw new Error("No Farcaster account found.");
         }
-        userAddress = accounts[0] as string;
-        showToast(`✅ Wallet linked! Scanning history...`, ""); 
+
+        // Scan the array of wallets and ONLY pick an Ethereum/Base one
+        const evmAddress = accounts.find(addr => addr && addr.startsWith('0x'));
+        
+        // Absolute Validation (Catches the Solana bug!)
+        if (!evmAddress) {
+            throw new Error(`Solana wallet detected (${accounts[0].substring(0,6)}...). Please verify a Base/ETH wallet in your Warpcast profile!`);
+        }
+
+        userAddress = evmAddress;
+        showToast(`✅ Base Wallet linked! Scanning...`, ""); 
       } else {
+        // Fallback for standard browsers
         const { address } = await connectWallet(type);
         userAddress = address;
       }
@@ -734,4 +745,4 @@ function StatCard({ label, value, icon }: { label: string, value: string, icon: 
             <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mt-1">{label}</p>
         </div>
     );
-}
+} 
