@@ -338,19 +338,24 @@ export default function Page() {
       let toAddress: `0x${string}` = '0x';
       let txData: `0x${string}` = '0x';
       let successMsg = '';
-      const txValue = BigInt(4000000000000);
+      
+      // Default to 0 ETH for GM and GN!
+      let txValue = BigInt(0); 
 
       if (type === 'boost') {
         toAddress = BOOSTER_CONTRACT_ADDRESS as `0x${string}`;
         txData = boostDataWithTracking as `0x${string}`;
+        txValue = BigInt(4000000000000); // Only Boost gets the fee attached
         successMsg = 'Boost Successful! 🎉';
       } else if (type === 'gm') {
         toAddress = GM_GN_CONTRACT_ADDRESS as `0x${string}`;
         txData = gmDataWithTracking as `0x${string}`;
+        // txValue remains 0
         successMsg = 'GM Registered on Base! ☀️';
       } else {
         toAddress = GM_GN_CONTRACT_ADDRESS as `0x${string}`;
         txData = gnDataWithTracking as `0x${string}`;
+        // txValue remains 0
         successMsg = 'GN Registered on Base! 🌙';
       }
 
@@ -360,7 +365,8 @@ export default function Page() {
           from: wallet.address as `0x${string}`, 
           to: toAddress,
           data: txData,
-          value: `0x${txValue.toString(16)}` as `0x${string}`
+          value: `0x${txValue.toString(16)}` as `0x${string}`,
+          chainId: '0x2105' // CRITICAL: Forces Warpcast to simulate on Base Mainnet (8453)
         }]
       });
       
@@ -380,7 +386,7 @@ export default function Page() {
         
       alert(`Transaction Failed: ${errorMessage}`);
     }
-  };
+  }; 
 
   const shareNative = async () => {
     if (!wallet) return;
