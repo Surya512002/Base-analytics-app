@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Base Analytics & XP Booster",
     description: "Farm XP on Base! 🚀",
-    creator: "@suryaprakash.farcaster.eth", 
+    creator: "@TamilCrypt0", 
     // ✅ FIX 2: Added the Twitter images array
     images: [`${APP_URL}/opengraph-image`],
   },
