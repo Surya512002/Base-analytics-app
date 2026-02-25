@@ -72,6 +72,10 @@ export default function Page() {
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
   
   const [loading, setLoading] = useState(false);
+  
+  // CRITICAL FIX: The Strict Transaction Lock state
+  const [transactingType, setTransactingType] = useState<string | null>(null);
+  
   const [isReady, setIsReady] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
@@ -83,7 +87,6 @@ export default function Page() {
   const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
-  // --- TRANSACTION DATA DEFINED AT THE TOP ---
   const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
   const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
   
@@ -93,7 +96,6 @@ export default function Page() {
   const gnData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gn' });
   const gnDataWithTracking = `${gnData}${getBuilderSuffix()}` as `0x${string}`;
 
-  // FIXED: GM and GN now correctly send the 2000000000000 wei (0.000002 ETH) fee to stop the MetaMask error
   const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
   const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(2000000000000) }];
   const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(2000000000000) }];
@@ -375,13 +377,18 @@ export default function Page() {
   // --- NATIVE FARCASTER TRANSACTION HANDLER ---
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
     if (!wallet || !wallet.address) return;
+    
+    // CRITICAL FIX: The Lock! If we are already transacting, completely ignore new clicks to stop bridge freezing.
+    if (transactingType) return; 
+
+    // Turn the lock ON
+    setTransactingType(type);
 
     try {
       let toAddress: `0x${string}` = '0x';
       let txData: `0x${string}` = '0x';
       let successMsg = '';
       
-      // FIXED: Boost is 0.000004 ETH. GM/GN require 0.000002 ETH.
       const txValue = type === 'boost' ? BigInt(4000000000000) : BigInt(2000000000000);
 
       if (type === 'boost') {
@@ -431,7 +438,15 @@ export default function Page() {
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
           errorMessage = String((err as { message: string }).message);
       }
-      showToast(`❌ Tx Failed: ${errorMessage}`, '');
+      // Usually "User rejected request" implies they cancelled, which shouldn't be a scary red error
+      if (errorMessage.includes("rejected")) {
+          // Do nothing on user cancel so the UI stays clean
+      } else {
+          showToast(`❌ Tx Failed: ${errorMessage}`, '');
+      }
+    } finally {
+      // CRITICAL FIX: Always release the lock no matter what happens (success, fail, or cancel)
+      setTransactingType(null);
     }
   };
 
@@ -552,9 +567,10 @@ export default function Page() {
                   {connectionType === 'farcaster' ? (
                       <button 
                           onClick={() => handleNativeTx('boost')}
-                          className="w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-black py-4 rounded-xl hover:bg-[#0040C5] transition shadow-md shadow-[#0052FF]/30"
+                          disabled={transactingType !== null}
+                          className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-black py-4 rounded-xl transition shadow-md shadow-[#0052FF]/30 ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0040C5]'}`}
                       >
-                          BOOST SCORE (+1)
+                          {transactingType === 'boost' ? <RefreshCcw className="animate-spin" size={20} /> : 'BOOST SCORE (+1)'}
                       </button>
                   ) : (
                       <Transaction 
@@ -680,9 +696,10 @@ export default function Page() {
                 {connectionType === 'farcaster' ? (
                     <button 
                         onClick={() => handleNativeTx('gm')}
-                        className="w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl shadow-sm"
+                        disabled={transactingType !== null}
+                        className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}
                     >
-                        GM
+                        {transactingType === 'gm' ? <RefreshCcw className="animate-spin" size={20} /> : 'GM'}
                     </button>
                 ) : (
                     <Transaction 
@@ -707,9 +724,10 @@ export default function Page() {
                 {connectionType === 'farcaster' ? (
                     <button 
                         onClick={() => handleNativeTx('gn')}
-                        className="w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl shadow-sm"
+                        disabled={transactingType !== null}
+                        className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}
                     >
-                        GN
+                        {transactingType === 'gn' ? <RefreshCcw className="animate-spin" size={20} /> : 'GN'}
                     </button>
                 ) : (
                     <Transaction 
