@@ -310,6 +310,9 @@ export default function Page() {
 
  // --- NATIVE FARCASTER TRANSACTION HANDLER ---
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
+    // 1. Guard clause: Make sure we have the wallet loaded before sending
+    if (!wallet || !wallet.address) return;
+
     try {
       // Explicitly type these as hex strings to satisfy viem/ox strict types
       let toAddress: `0x${string}` = '0x';
@@ -335,10 +338,11 @@ export default function Page() {
       const hash = await sdk.wallet.ethProvider.request({
         method: "eth_sendTransaction",
         params: [{
+          from: wallet.address as `0x${string}`, // <--- CRITICAL FIX: Tells Warpcast who is sending
           to: toAddress,
           data: txData,
-          // Convert BigInt value to a hex string and cast it for the RPC call
-          value: `0x${txValue.toString(16)}` as `0x${string}`
+          value: `0x${txValue.toString(16)}` as `0x${string}`,
+          chainId: '0x2105' // <--- CRITICAL FIX: Forces Warpcast to simulate on Base (8453 in Hex)
         }]
       });
       
@@ -353,7 +357,7 @@ export default function Page() {
     } catch (err) {
       console.error("Native TX Error:", err);
     }
-  };
+  }; 
 
   const shareNative = async () => {
     if (!wallet) return;
