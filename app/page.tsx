@@ -10,6 +10,7 @@ import {
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import { sdk } from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
+import { getName } from '@coinbase/onchainkit/identity';
 
 // OnchainKit & Viem Imports
 import { 
@@ -140,7 +141,15 @@ export default function Page() {
 
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
-      let basename = null; try { basename = await provider.lookupAddress(address); } catch {}
+      
+      let basename = null; 
+      try { 
+          // FIXED: Use OnchainKit to fetch .base.eth names natively on Base!
+          basename = await getName({ address: address as `0x${string}`, chain: base }); 
+      } catch {
+          console.log("No Basename found");
+      }
+      
       const balWei = await provider.getBalance(address);
 
       let allTransfers: AlchemyTransfer[] = [];
