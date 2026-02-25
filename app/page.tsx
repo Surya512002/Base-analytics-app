@@ -322,11 +322,34 @@ export default function Page() {
 
   const handleConnect = async (type: ConnectionType) => {
     try {
-      const { address } = await connectWallet(type);
+      let userAddress = '';
+
+      if (type === 'farcaster') {
+        // Natively request the connected wallet directly from Warpcast
+        const accounts = await sdk.wallet.ethProvider.request({ 
+            method: "eth_requestAccounts" 
+        });
+        
+        if (!accounts || accounts.length === 0) {
+            throw new Error("No Farcaster account found. Are you inside Warpcast?");
+        }
+        userAddress = accounts[0];
+      } else {
+        // Fallback to your existing connection setup for normal web browsers
+        const { address } = await connectWallet(type);
+        userAddress = address;
+      }
+
       setConnectionType(type);
-      analyzeWallet(address);
-    } catch (e) { alert((e as Error).message); }
-  };
+      
+      // Pass the successfully fetched address to your analyzer
+      analyzeWallet(userAddress);
+      
+    } catch (e: unknown) { 
+      console.error("Connection Error:", e);
+      alert(e instanceof Error ? e.message : "Connection failed"); 
+    }
+  }; 
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
