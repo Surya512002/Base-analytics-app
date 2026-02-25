@@ -8,7 +8,7 @@ import {
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets
 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
-import { sdk } from "@farcaster/miniapp-sdk";
+import sdk from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
 
 // OnchainKit & Viem Imports
@@ -322,10 +322,14 @@ export default function Page() {
 
   const handleConnect = async (type: ConnectionType) => {
     try {
+      // 1. Instantly close modal and trigger loading state so the UI doesn't look "stuck"
+      setShowConnectModal(false);
+      setLoading(true);
+
       let userAddress = '';
 
       if (type === 'farcaster') {
-        // Natively request the connected wallet directly from Warpcast
+        // 2. Request address natively from Warpcast
         const accounts = await sdk.wallet.ethProvider.request({ 
             method: "eth_requestAccounts" 
         });
@@ -333,21 +337,25 @@ export default function Page() {
         if (!accounts || accounts.length === 0) {
             throw new Error("No Farcaster account found. Are you inside Warpcast?");
         }
-        userAddress = accounts[0];
+        // Farcaster successfully returned the connected wallet address!
+        userAddress = accounts[0]; 
       } else {
-        // Fallback to your existing connection setup for normal web browsers
+        // Fallback for standard web browsers
         const { address } = await connectWallet(type);
         userAddress = address;
       }
 
       setConnectionType(type);
       
-      // Pass the successfully fetched address to your analyzer
+      // 3. Pass the fetched address to your analyzer
       analyzeWallet(userAddress);
       
     } catch (e: unknown) { 
+      setLoading(false);
       console.error("Connection Error:", e);
-      alert(e instanceof Error ? e.message : "Connection failed"); 
+      // CRITICAL FIX: Warpcast blocks alert() popups! We must use your custom Toast instead.
+      const errorMsg = e instanceof Error ? e.message : "Connection failed";
+      showToast(`❌ ${errorMsg}`, ""); 
     }
   }; 
 
