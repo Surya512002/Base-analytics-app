@@ -83,6 +83,7 @@ export default function Page() {
   const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
+  // --- TRANSACTION DATA DEFINED AT THE TOP ---
   const boostData = encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' });
   const boostDataWithTracking = `${boostData}${getBuilderSuffix()}` as `0x${string}`;
   
@@ -92,9 +93,10 @@ export default function Page() {
   const gnData = encodeFunctionData({ abi: GM_GN_ABI, functionName: 'gn' });
   const gnDataWithTracking = `${gnData}${getBuilderSuffix()}` as `0x${string}`;
 
+  // FIXED: GM and GN now correctly send the 2000000000000 wei (0.000002 ETH) fee to stop the MetaMask error
   const boostCall = [{ to: BOOSTER_CONTRACT_ADDRESS as `0x${string}`, data: boostDataWithTracking, value: BigInt(4000000000000) }];
-  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(0) }];
-  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(0) }];
+  const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(2000000000000) }];
+  const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(2000000000000) }];
 
   const paymasterCapability = process.env.NEXT_PUBLIC_PAYMASTER_URL 
     ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } 
@@ -128,8 +130,6 @@ export default function Page() {
   };
 
   const analyzeWallet = async (address: string) => {
-    // CRITICAL FIX: Ensure the address is an Ethereum EVM address before scanning.
-    // This prevents the app from crashing if a Solana address slips through.
     if (!address || !address.startsWith('0x') || address.length !== 42) {
         showToast(`❌ Invalid EVM Address: ${address.substring(0,6)}...`, '');
         setLoading(false);
@@ -328,7 +328,7 @@ export default function Page() {
     }
   };
 
-const handleConnect = async (type: ConnectionType) => {
+  const handleConnect = async (type: ConnectionType) => {
     try {
       setShowConnectModal(false);
       setLoading(true);
@@ -338,7 +338,6 @@ const handleConnect = async (type: ConnectionType) => {
       if (type === 'farcaster') {
         showToast("⏳ Requesting Farcaster profile...", ""); 
         
-        // Request the array of connected accounts directly from the provider
         const accounts = (await sdk.wallet.ethProvider.request({ 
             method: "eth_requestAccounts" 
         })) as string[];
@@ -347,10 +346,8 @@ const handleConnect = async (type: ConnectionType) => {
             throw new Error("No Farcaster account found.");
         }
 
-        // Scan the array of wallets and ONLY pick an Ethereum/Base one
         const evmAddress = accounts.find(addr => addr && addr.startsWith('0x'));
         
-        // Absolute Validation (Catches the Solana bug!)
         if (!evmAddress) {
             throw new Error(`Solana wallet detected (${accounts[0].substring(0,6)}...). Please verify a Base/ETH wallet in your Warpcast profile!`);
         }
@@ -358,7 +355,6 @@ const handleConnect = async (type: ConnectionType) => {
         userAddress = evmAddress;
         showToast(`✅ Base Wallet linked! Scanning...`, ""); 
       } else {
-        // Fallback for standard browsers
         const { address } = await connectWallet(type);
         userAddress = address;
       }
@@ -384,7 +380,9 @@ const handleConnect = async (type: ConnectionType) => {
       let toAddress: `0x${string}` = '0x';
       let txData: `0x${string}` = '0x';
       let successMsg = '';
-      const txValue = type === 'boost' ? BigInt(4000000000000) : BigInt(0);
+      
+      // FIXED: Boost is 0.000004 ETH. GM/GN require 0.000002 ETH.
+      const txValue = type === 'boost' ? BigInt(4000000000000) : BigInt(2000000000000);
 
       if (type === 'boost') {
         toAddress = BOOSTER_CONTRACT_ADDRESS as `0x${string}`;
