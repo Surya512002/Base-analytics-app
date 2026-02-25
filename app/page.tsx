@@ -361,7 +361,7 @@ export default function Page() {
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
-  // --- NATIVE FARCASTER TRANSACTION HANDLER ---
+ // --- NATIVE FARCASTER TRANSACTION HANDLER ---
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
     if (!wallet || !wallet.address) return;
 
@@ -369,36 +369,39 @@ export default function Page() {
       let toAddress: `0x${string}` = '0x';
       let txData: `0x${string}` = '0x';
       let successMsg = '';
-      
-      // Default to 0 ETH for GM and GN!
-      let txValue = BigInt(0); 
+      const txValue = BigInt(type === 'boost' ? 4000000000000 : 0);
 
       if (type === 'boost') {
         toAddress = BOOSTER_CONTRACT_ADDRESS as `0x${string}`;
         txData = boostDataWithTracking as `0x${string}`;
-        txValue = BigInt(4000000000000); // Only Boost gets the fee attached
         successMsg = 'Boost Successful! 🎉';
       } else if (type === 'gm') {
         toAddress = GM_GN_CONTRACT_ADDRESS as `0x${string}`;
         txData = gmDataWithTracking as `0x${string}`;
-        // txValue remains 0
         successMsg = 'GM Registered on Base! ☀️';
       } else {
         toAddress = GM_GN_CONTRACT_ADDRESS as `0x${string}`;
         txData = gnDataWithTracking as `0x${string}`;
-        // txValue remains 0
         successMsg = 'GN Registered on Base! 🌙';
+      }
+
+      // Base transaction parameters
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const txParams: any = {
+        from: wallet.address as `0x${string}`, 
+        to: toAddress,
+        data: txData,
+        chainId: '0x2105' 
+      };
+
+      // FIXED: Used BigInt(0) instead of 0n to bypass ES2020 target errors
+      if (txValue > BigInt(0)) {
+        txParams.value = `0x${txValue.toString(16)}`;
       }
 
       const hash = await sdk.wallet.ethProvider.request({
         method: "eth_sendTransaction",
-        params: [{
-          from: wallet.address as `0x${string}`, 
-          to: toAddress,
-          data: txData,
-          value: `0x${txValue.toString(16)}` as `0x${string}`,
-          chainId: '0x2105' // CRITICAL: Forces Warpcast to simulate on Base Mainnet (8453)
-        }]
+        params: [txParams]
       });
       
       if (hash && typeof hash === 'string') {
@@ -411,11 +414,15 @@ export default function Page() {
       }
     } catch (err: unknown) {
       console.error("Native TX Error:", err);
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : 'The contract rejected the simulation. Did you already do this today?';
+      
+      let errorMessage = 'Simulation rejected. Did you already do this today?';
+      if (err instanceof Error) {
+          errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+          errorMessage = String((err as { message: string }).message);
+      }
         
-      alert(`Transaction Failed: ${errorMessage}`);
+      showToast(`❌ Tx Failed: ${errorMessage}`, '');
     }
   }; 
 
