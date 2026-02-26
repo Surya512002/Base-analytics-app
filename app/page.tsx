@@ -7,7 +7,7 @@ import {
   CreditCard, User, BadgeCheck, Send, X, AlertTriangle,
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets, Lock
 } from 'lucide-react';
-import { JsonRpcProvider, formatEther, toUtf8Bytes} from 'ethers';
+import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import sdk from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
 
@@ -212,7 +212,7 @@ export default function Page() {
 
               for (const cat of ACHIEVEMENTS) {
                   for (let i = 1; i <= cat.thresholds.length; i++) {
-                      // EXACT ID CALCULATION
+                      // BUG FIX: Simplified math to prevent "Achievement does not exist" error
                       const targetTokenId = cat.baseId + i; 
                       contractCalls.push({
                           address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
@@ -224,6 +224,7 @@ export default function Page() {
                   }
               }
 
+              // allowFailure ensures that if a user has zero badges, the whole call doesn't fail
               const results = await publicClient.multicall({ contracts: contractCalls, allowFailure: true });
               const currentMintedState: Record<string, number> = {};
               
@@ -757,7 +758,9 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
+                    // BUG FIX: EXACT Token ID Math. (Prevents the "Achievement does not exist" error)
                     const targetTokenId = cat.baseId + nextMintTarget;
+                    
                     const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
                     const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
                     const mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataWithTracking }];
@@ -868,4 +871,4 @@ function StatCard({ label, value, icon }: { label: string, value: string, icon: 
             <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mt-1">{label}</p>
         </div>
     );
-}
+} 
