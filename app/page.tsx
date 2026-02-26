@@ -209,9 +209,9 @@ export default function Page() {
 
               for (const cat of ACHIEVEMENTS) {
                   for (let i = 1; i <= cat.thresholds.length; i++) {
-                      // 🚨 THE FIX: Restored original smart contract ID logic 🚨
-                      // If the category has 1 tier, the contract expects ID 35, not 31!
-                      const targetTokenId = cat.thresholds.length === 1 ? cat.baseId + 5 : cat.baseId + i; 
+                      // 🚨 THE FIX: Perfectly aligned Token ID math 🚨
+                      // Always baseId + level (e.g. 10 + 1 = 11, 30 + 1 = 31)
+                      const targetTokenId = cat.baseId + i; 
                       
                       contractCalls.push({
                           address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
@@ -752,8 +752,8 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
-                    // 🚨 THE FIX: Restored original smart contract ID logic 🚨
-                    const targetTokenId = cat.thresholds.length === 1 ? cat.baseId + 5 : cat.baseId + nextMintTarget;
+                    // 🚨 THE FIX: EXACT Token ID Math. 🚨
+                    const targetTokenId = cat.baseId + nextMintTarget;
                     
                     const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
                     const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
