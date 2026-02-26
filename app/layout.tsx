@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 const APP_URL = "https://base-analytics-app.vercel.app";
 
-// The ?v=epic forces Twitter and Farcaster to fetch the new image instead of using cache!
-const OG_IMAGE_URL = `${APP_URL}/opengraph-image?v=epic`;
+// Changed from ?v=epic to ?v=fixed
+const OG_IMAGE_URL = `${APP_URL}/opengraph-image?v=fixed`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL), 

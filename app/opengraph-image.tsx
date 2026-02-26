@@ -16,16 +16,15 @@ export default async function Image() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#000510', 
-          backgroundImage: 'linear-gradient(135deg, #000510 0%, #001f70 50%, #0052FF 100%)',
+          background: 'linear-gradient(to bottom right, #000510, #001f70, #0052FF)',
           fontFamily: 'sans-serif',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Giant Background Floating Badges */}
-        <div style={{ display: 'flex', position: 'absolute', top: -50, right: -20, opacity: 0.15, fontSize: '250px' }}>👑</div>
-        <div style={{ display: 'flex', position: 'absolute', bottom: -50, left: -20, opacity: 0.15, fontSize: '250px' }}>💎</div>
+        {/* Futuristic Background Rings */}
+        <div style={{ position: 'absolute', top: -200, left: -200, width: 800, height: 800, border: '40px solid rgba(255, 255, 255, 0.03)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: -300, right: -100, width: 1000, height: 1000, border: '60px solid rgba(255, 255, 255, 0.03)', borderRadius: '50%' }} />
 
         {/* Main Glass Card */}
         <div
@@ -36,16 +35,16 @@ export default async function Image() {
             background: 'rgba(255, 255, 255, 0.05)',
             padding: '60px 80px',
             borderRadius: '30px',
-            border: '2px solid rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+            border: '2px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
             width: '85%',
             zIndex: 10,
           }}
         >
           {/* Top Brand Tag */}
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ width: '30px', height: '30px', borderRadius: '15px', background: '#93C5FD', marginRight: '15px' }} />
-            <span style={{ fontSize: '30px', fontWeight: 800, color: '#93C5FD', letterSpacing: '2px', textTransform: 'uppercase' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '12px', background: '#93C5FD', marginRight: '15px', boxShadow: '0 0 15px #93C5FD' }} />
+            <span style={{ fontSize: '28px', fontWeight: 800, color: '#93C5FD', letterSpacing: '3px', textTransform: 'uppercase' }}>
               Base Analytics
             </span>
           </div>
@@ -53,16 +52,16 @@ export default async function Image() {
           {/* Main Headline */}
           <h1
             style={{
-              fontSize: '80px',
+              fontSize: '85px',
               fontWeight: 900,
               color: 'white',
-              margin: '0 0 20px 0',
+              margin: '0 0 15px 0',
               lineHeight: 1.1,
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.04em',
             }}
           >
             Mint Your True<br />
-            <span style={{ color: '#93C5FD' }}>Onchain Identity</span>
+            <span style={{ color: '#60A5FA' }}>Onchain Identity</span>
           </h1>
           
           {/* Subheadline */}
@@ -80,20 +79,21 @@ export default async function Image() {
           {/* Feature Pills */}
           <div style={{ display: 'flex', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#0052FF', padding: '15px 30px', borderRadius: '20px' }}>
-              <span style={{ fontSize: '28px', marginRight: '12px' }}>🏅</span>
               <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>40+ Unique Badges</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '15px 30px', borderRadius: '20px', border: '2px solid rgba(255,255,255,0.2)' }}>
-              <span style={{ fontSize: '28px', marginRight: '12px' }}>⛽</span>
               <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>100% Gasless</span>
             </div>
           </div>
         </div>
 
         {/* Footer Credit */}
-        <div style={{ position: 'absolute', bottom: '30px', right: '50px' }}>
-          <span style={{ fontSize: '22px', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '1px' }}>
-            Built by X-@TamilCrypt0 || @suryaprakash.farcaster.eth
+        <div style={{ position: 'absolute', bottom: '40px', right: '60px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: '#0052FF', marginRight: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '16px', height: '16px', borderRadius: '8px', background: 'white' }} />
+          </div>
+          <span style={{ fontSize: '24px', color: 'rgba(255,255,255,0.5)', fontWeight: 600, letterSpacing: '1px' }}>
+            Built by @TamilCrypt0 & @suryaprakash.farcaster.eth
           </span>
         </div>
       </div>
