@@ -104,6 +104,11 @@ const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => 
     else return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
 }
 
+// Helper to precisely calculate the Token ID for the Smart Contract
+const getTargetTokenId = (baseId: number, numThresholds: number, level: number) => {
+    return numThresholds === 1 ? baseId + 5 : baseId + level;
+};
+
 // --- TYPES ---
 interface DayStats { date: string; count: number; intensity: number; }
 interface WalletData {
@@ -209,9 +214,8 @@ export default function Page() {
 
               for (const cat of ACHIEVEMENTS) {
                   for (let i = 1; i <= cat.thresholds.length; i++) {
-                      // 🚨 THE FIX: Perfectly aligned Token ID math 🚨
-                      // Always baseId + level (e.g. 10 + 1 = 11, 30 + 1 = 31)
-                      const targetTokenId = cat.baseId + i; 
+                      // Uses the secure math helper function
+                      const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i);
                       
                       contractCalls.push({
                           address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
@@ -428,12 +432,12 @@ export default function Page() {
         if (type === 'gm') { setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }
         if (type === 'gn') { setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }
       }
+      setTransactingType(null); // INSTANT UNLOCK
     } catch (err: unknown) {
+      setTransactingType(null); // INSTANT UNLOCK
       let errorMessage = 'User rejected or simulation failed.';
       if (err instanceof Error) errorMessage = err.message.split('\n')[0]; 
       if (!errorMessage.includes("rejected")) showToast(`❌ Tx Failed: ${errorMessage}`, '');
-    } finally { 
-      setTimeout(() => { setTransactingType(null); }, 1500);
     }
   };
 
@@ -455,16 +459,16 @@ export default function Page() {
             setMintedLevels(prev => ({ ...prev, [catId]: targetLevel }));
             setTxKeys(prev => ({ ...prev, [`mint-${catId}`]: (prev[`mint-${catId}`] || 0) + 1 }));
         }
+        setTransactingType(null); // INSTANT UNLOCK
     } catch (err: unknown) {
+        setTransactingType(null); // INSTANT UNLOCK
         let errorMessage = 'Mint rejected.';
         if (err instanceof Error) {
-            if (err.message.includes("Achievement does not exist")) errorMessage = "Achievement does not exist in contract.";
+            if (err.message.includes("Achievement does not exist")) errorMessage = "Achievement doesn't exist. Check Remix setup!";
             else if (err.message.includes("already minted")) errorMessage = "You already minted this level.";
             else errorMessage = err.message.split('\n')[0]; 
         }
         if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed: ${errorMessage}`, '');
-    } finally { 
-        setTimeout(() => { setTransactingType(null); }, 1500); 
     }
   };
 
@@ -752,8 +756,8 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
-                    // 🚨 THE FIX: EXACT Token ID Math. 🚨
-                    const targetTokenId = cat.baseId + nextMintTarget;
+                    // Uses the secure math helper function to perfectly align the ID
+                    const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, nextMintTarget);
                     
                     const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
                     const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
