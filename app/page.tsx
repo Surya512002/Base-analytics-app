@@ -464,41 +464,41 @@ export default function Page() {
 
   // --- SMART SHARE FUNCTIONS WITH STRICT PLATFORM ROUTING ---
   const shareAchievementTwitter = (catName: string, levelName: string) => {
-    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
+    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAchievementWarpcast = (catName: string, levelName: string) => {
-    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint yours 👇`;
+    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\\n\nMint yours 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareNativeScore = async () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵 ⚡\n\nCheck your score 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: APP_URL_WEB }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${APP_URL_WEB}`); }
   };
 
   const shareScoreWarpcast = () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareScoreTwitter = () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇\n${APP_URL_WEB}`;
+    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\nCheck your score 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAllBadgesTwitter = (badgeCount: number) => {
-    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
+    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAllBadgesWarpcast = (badgeCount: number) => {
-    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint your identity 👇`;
+    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\n\nMint your identity 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 

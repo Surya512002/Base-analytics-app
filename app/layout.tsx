@@ -33,9 +33,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics | Mint Your Identity",
-    description: "Check your onchain score and claim your badges entirely gasless.",
-    creator: "@TamilCrypt0", 
+    title: "Base Analytics | Mint Your on-chain Identity",
+    description: "Check your onchain score and claim your badges entirely gasless.", 
     images: [OG_IMAGE_URL],
   },
   other: {

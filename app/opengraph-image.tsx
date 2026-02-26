@@ -56,10 +56,6 @@ export default async function Image() {
               <span style={{ color: '#64748b', fontSize: '22px', fontWeight: 700, width: '140px', textTransform: 'uppercase', letterSpacing: '1px' }}>Built By X:</span>
               <span style={{ color: '#0052FF', fontSize: '26px', fontWeight: 900 }}>@TamilCrypt0</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ color: '#64748b', fontSize: '22px', fontWeight: 700, width: '140px', textTransform: 'uppercase', letterSpacing: '1px' }}>Built By FC:</span>
-              <span style={{ color: '#0052FF', fontSize: '26px', fontWeight: 900 }}>suryaprakash.farcaster.eth</span>
-            </div>
           </div>
         </div>
 
