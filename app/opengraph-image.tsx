@@ -47,7 +47,8 @@ export default async function Image() {
             </div>
 
             <span style={{ fontSize: '28px', color: 'rgba(255, 255, 255, 0.7)', marginTop: '25px', fontWeight: 500 }}>
-              Track your stats. Claim your badges.<br/>Flex your Base status gasless.
+              Track your stats. Claim your badges.
+              Flex your Base status gasless.
             </span>
           </div>
 
