@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-
 export const alt = 'Base Analytics - Mint Your Onchain Identity';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -17,86 +16,88 @@ export default async function Image() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0052FF 0%, #001f70 100%)',
+          background: '#000510', 
+          backgroundImage: 'linear-gradient(135deg, #000510 0%, #001f70 50%, #0052FF 100%)',
           fontFamily: 'sans-serif',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Futuristic Background Rings */}
-        <div style={{ position: 'absolute', top: -150, left: -150, width: 600, height: 600, border: '40px solid rgba(255, 255, 255, 0.05)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: -200, right: -100, width: 800, height: 800, border: '60px solid rgba(255, 255, 255, 0.05)', borderRadius: '50%' }} />
+        {/* Giant Background Floating Badges */}
+        <div style={{ display: 'flex', position: 'absolute', top: -50, right: -20, opacity: 0.15, fontSize: '250px' }}>👑</div>
+        <div style={{ display: 'flex', position: 'absolute', bottom: -50, left: -20, opacity: 0.15, fontSize: '250px' }}>💎</div>
 
-        {/* Main Floating Card */}
+        {/* Main Glass Card */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.1)',
+            justifyContent: 'center',
+            background: 'rgba(255, 255, 255, 0.05)',
             padding: '60px 80px',
-            borderRadius: '40px',
-            border: '2px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+            borderRadius: '30px',
+            border: '2px solid rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+            width: '85%',
             zIndex: 10,
           }}
         >
+          {/* Top Brand Tag */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '15px', background: '#93C5FD', marginRight: '15px' }} />
+            <span style={{ fontSize: '30px', fontWeight: 800, color: '#93C5FD', letterSpacing: '2px', textTransform: 'uppercase' }}>
+              Base Analytics
+            </span>
+          </div>
+          
+          {/* Main Headline */}
           <h1
             style={{
-              fontSize: '85px',
+              fontSize: '80px',
               fontWeight: 900,
               color: 'white',
-              margin: 0,
-              letterSpacing: '-0.05em',
-              textShadow: '0 10px 30px rgba(0,82,255,0.8)',
+              margin: '0 0 20px 0',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
             }}
           >
-            BASE ANALYTICS
+            Mint Your True<br />
+            <span style={{ color: '#93C5FD' }}>Onchain Identity</span>
           </h1>
           
+          {/* Subheadline */}
           <p
             style={{
-              fontSize: '36px',
-              color: '#93C5FD',
-              marginTop: '15px',
-              marginBottom: '50px',
-              fontWeight: 700,
-              textAlign: 'center',
+              fontSize: '32px',
+              color: 'rgba(255,255,255,0.7)',
+              margin: '0 0 50px 0',
+              fontWeight: 500,
             }}
           >
-            Mint Your Onchain Identity 🏆
+            Check your score. Claim your badges. Flex your status.
           </p>
 
           {/* Feature Pills */}
           <div style={{ display: 'flex', gap: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '15px 30px', borderRadius: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#0052FF' }}>40+ Badges</span>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#0052FF', padding: '15px 30px', borderRadius: '20px' }}>
+              <span style={{ fontSize: '28px', marginRight: '12px' }}>🏅</span>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>40+ Unique Badges</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '15px 30px', borderRadius: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#0052FF' }}>Gasless Mints</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '15px 30px', borderRadius: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#0052FF' }}>XP Booster</span>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '15px 30px', borderRadius: '20px', border: '2px solid rgba(255,255,255,0.2)' }}>
+              <span style={{ fontSize: '28px', marginRight: '12px' }}>⛽</span>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>100% Gasless</span>
             </div>
           </div>
         </div>
 
         {/* Footer Credit */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(0,0,0,0.3)',
-            padding: '12px 30px',
-            borderRadius: '50px',
-          }}
-        >
-          <span style={{ fontSize: '24px', color: '#93C5FD', fontWeight: 700, letterSpacing: '1px' }}>Built by @TamilCrypt0 & @suryaprakash.farcaster.eth</span>
+        <div style={{ position: 'absolute', bottom: '30px', right: '50px' }}>
+          <span style={{ fontSize: '22px', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '1px' }}>
+            Built by X-@TamilCrypt0 || @suryaprakash.farcaster.eth
+          </span>
         </div>
       </div>
     ),
     { ...size }
   );
-}
+} 

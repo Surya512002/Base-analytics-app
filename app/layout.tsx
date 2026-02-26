@@ -10,20 +10,22 @@ const inter = Inter({ subsets: ["latin"] });
 
 const APP_URL = "https://base-analytics-app.vercel.app";
 
+// The ?v=epic forces Twitter and Farcaster to fetch the new image instead of using cache!
+const OG_IMAGE_URL = `${APP_URL}/opengraph-image?v=epic`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL), 
-  title: "Base Analytics | XP Booster",
-  description: "Check your onchain score and boost your XP on Base.",
+  title: "Base Analytics | Mint Your Identity",
+  description: "Check your onchain score, unlock 40+ unique badges, and boost your XP on Base.",
   openGraph: {
-    title: "Base Analytics & XP Booster",
-    description: "Check your Onchain Score and farm XP on Base! 🚀",
+    title: "Base Analytics | Mint Your Identity",
+    description: "Check your onchain score, unlock 40+ unique badges, and boost your XP on Base.",
     siteName: "Base Analytics",
     locale: "en_US",
     type: "website",
-    // ✅ FIX 1: Added the standard OG images array for Discord/Telegram
     images: [
       {
-        url: `${APP_URL}/opengraph-image`, 
+        url: OG_IMAGE_URL, 
         width: 1200,
         height: 630,
       }
@@ -31,22 +33,18 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics & XP Booster",
-    description: "Farm XP on Base! 🚀",
+    title: "Base Analytics | Mint Your Identity",
+    description: "Check your onchain score and claim your badges entirely gasless.",
     creator: "@TamilCrypt0", 
-    // ✅ FIX 2: Added the Twitter images array
-    images: [`${APP_URL}/opengraph-image`],
+    images: [OG_IMAGE_URL],
   },
   other: {
-    // ✅ NEW: Talent Protocol Verification
     "talentapp:project_verification": "37ce476751698fbb9f2da974b46068f696394868258b708d80061274f4176d90ce31c259e67591e2085dde5a275b70c5cc68739f7bf0c4f9f6605426030de439",
-    // Farcaster Frame Data
     "fc:frame": JSON.stringify({
       version: "next",
-      // ✅ FIX 3: Removed the .png extension so Farcaster hits the dynamic route
-      imageUrl: `${APP_URL}/opengraph-image`, 
+      imageUrl: OG_IMAGE_URL, 
       button: {
-        title: "Check Score",
+        title: "Check Score & Mint Badges",
         action: {
           type: "launch_frame",
           name: "Base Analytics",
@@ -58,7 +56,7 @@ export const metadata: Metadata = {
     }),
     'base:app_id': '698ebb8fe0d5d2cf831b5a3c',
   },
-};
+}; 
 
 export default function RootLayout({
   children,
