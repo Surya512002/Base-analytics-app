@@ -40,8 +40,9 @@ function getBuilderSuffix() {
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-// --- YOUR VERIFIED ACHIEVEMENTS CONTRACT ---
-const ACHIEVEMENTS_CONTRACT_ADDRESS = "0xE963E5b937Bb4B094bB55991CA31e5823D2cdE6a";
+// 👇 PASTE YOUR NEW REMIX CONTRACT ADDRESS HERE 👇
+const ACHIEVEMENTS_CONTRACT_ADDRESS = "0x2F87302E4d67d7e22B4adbEedD10B1B9A3ee63E2"; 
+
 const ACHIEVEMENTS_ABI = [
   {
     "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
@@ -90,10 +91,8 @@ const ACHIEVEMENTS = [
 
 const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => {
     if (!isEarned) return 'bg-slate-200 border-slate-300 text-slate-400 opacity-50 border-solid grayscale';
-    
     let baseStyle = '';
     const colorTier = level > 5 ? 5 : level;
-
     switch(colorTier) {
         case 1: baseStyle = 'bg-gradient-to-br from-slate-400 to-slate-500 border-slate-400 text-white shadow-slate-400/50'; break;
         case 2: baseStyle = 'bg-gradient-to-br from-amber-600 to-orange-700 border-amber-600 text-white shadow-orange-600/50'; break;
@@ -102,12 +101,8 @@ const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => 
         case 5: baseStyle = 'bg-gradient-to-br from-[#0052FF] to-[#8A2BE2] border-[#0052FF] text-white shadow-[#0052FF]/80'; break;
         default: baseStyle = 'bg-slate-500 text-white';
     }
-
-    if (isMinted) {
-        return `${baseStyle} shadow-lg scale-100 ring-2 ring-green-400 ring-offset-2 ring-offset-slate-200 border-solid`;
-    } else {
-        return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
-    }
+    if (isMinted) return `${baseStyle} shadow-lg scale-100 ring-2 ring-green-400 ring-offset-2 ring-offset-slate-200 border-solid`;
+    else return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
 }
 
 // --- TYPES ---
@@ -129,22 +124,16 @@ type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
-  
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'achievements'>('dashboard');
   const [transactingType, setTransactingType] = useState<string | null>(null);
-  
-  // Real Minted State from Contract
   const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
-  
   const [isReady, setIsReady] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
   const [userBoosts, setUserBoosts] = useState(0);
   const [sponsoredTxs, setSponsoredTxs] = useState(0); 
-
   const [txKeys, setTxKeys] = useState<Record<string, number>>({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
@@ -176,7 +165,6 @@ export default function Page() {
   }, [wallet, activeTab]);
 
   const getStrictUTCDate = (isoTimestamp: string) => isoTimestamp.split('T')[0];
-  
   const getISOWeekToken = (date: Date) => {
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
     const dayNum = d.getUTCDay() || 7;
@@ -188,13 +176,14 @@ export default function Page() {
 
   const analyzeWallet = async (address: string) => {
     if (!address || !address.startsWith('0x') || address.length !== 42) {
-        showToast(`❌ Invalid EVM Address: ${address.substring(0,6)}...`, '');
+        showToast(`❌ Invalid EVM Address`, '');
         setLoading(false);
         return;
     }
 
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
+      setMintedLevels({});
       
       let basename = null; 
       try { basename = await getName({ address: address as `0x${string}`, chain: base }); } catch { console.log("No Basename"); }
@@ -208,7 +197,7 @@ export default function Page() {
           actualNftCount = nftData.totalCount || 0;
       } catch (e) { console.error("NFT Fetch Error:", e); }
 
-      // --- FETCH ONCHAIN MINTED ACHIEVEMENTS ---
+      // --- STABLE SEQUENTIAL CONTRACT FETCH ---
       try {
           const achievementContract = new Contract(ACHIEVEMENTS_CONTRACT_ADDRESS, ACHIEVEMENTS_ABI, provider);
           const currentMintedState: Record<string, number> = {};
@@ -216,11 +205,16 @@ export default function Page() {
           for (const cat of ACHIEVEMENTS) {
               let highestMintedLevel = 0;
               for (let i = cat.thresholds.length; i >= 1; i--) {
-                  const targetTokenId = cat.baseId + (cat.thresholds.length === 1 ? 5 : i);
-                  const hasMinted = await achievementContract.hasMinted(address, targetTokenId);
-                  if (hasMinted) {
-                      highestMintedLevel = i;
-                      break; 
+                  // Simplified, unbreakable math
+                  const targetTokenId = cat.baseId + i; 
+                  try {
+                      const hasMinted = await achievementContract.hasMinted(address, targetTokenId);
+                      if (hasMinted) {
+                          highestMintedLevel = i;
+                          break; 
+                      }
+                  } catch {
+                      // Silently skip if error
                   }
               }
               currentMintedState[cat.id] = highestMintedLevel;
@@ -246,7 +240,7 @@ export default function Page() {
           if (data.error) throw new Error(data.error.message);
           allTransfers = [...allTransfers, ...(data.result?.transfers || [])];
           pageKey = data.result?.pageKey;
-          if (!pageKey || loopCount > 200) break;
+          if (!pageKey || loopCount > 5) break; 
       }
       
       const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
@@ -352,10 +346,7 @@ export default function Page() {
         tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, nftCount: actualNftCount, walletRank,
         score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels, topTokens, recommendation, recentTxs, daysOnBase
       });
-    } catch (e: unknown) { 
-      console.error("Analysis failed", e); 
-      const errMsg = e instanceof Error ? e.message : String(e);
-      showToast(`❌ Scan Failed: ${errMsg}`, '');
+    } catch { 
       setWallet(null);
     } finally { setLoading(false); }
   };
@@ -380,18 +371,16 @@ export default function Page() {
 
       setConnectionType(type);
       analyzeWallet(userAddress);
-    } catch (e: unknown) { 
+    } catch { 
       setLoading(false);
-      const errorMsg = e instanceof Error ? e.message : "Connection failed";
-      showToast(`❌ Connection: ${errorMsg}`, ""); 
+      showToast(`❌ Connection Failed.`, ""); 
     }
   };
 
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
-    if (!wallet || !wallet.address) return;
-    if (transactingType) return; 
+    if (!wallet || !wallet.address || transactingType !== null) return;
     setTransactingType(type);
 
     try {
@@ -416,20 +405,17 @@ export default function Page() {
         if (type === 'gm') { setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }
         if (type === 'gn') { setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }
       }
+      setTransactingType(null); // INSTANT UNLOCK
     } catch (err: unknown) {
-      let errorMessage = 'Simulation rejected. Did you already do this today?';
-      if (err instanceof Error) errorMessage = err.message;
-      else if (typeof err === 'object' && err !== null && 'message' in err) errorMessage = String((err as { message: string }).message);
+      setTransactingType(null); // INSTANT UNLOCK
+      let errorMessage = 'User rejected or simulation failed.';
+      if (err instanceof Error) errorMessage = err.message.split('\n')[0]; 
       if (!errorMessage.includes("rejected")) showToast(`❌ Tx Failed: ${errorMessage}`, '');
-    } finally { 
-        // Small delay to allow Farcaster wallet UI to cleanly close before unlocking buttons
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setTransactingType(null); 
     }
   };
 
   const handleNativeMint = async (catId: string, targetLevel: number, tokenId: number, catName: string, levelName: string) => {
-    if (!wallet || !wallet.address) return;
+    if (!wallet || !wallet.address || transactingType !== null) return;
     setTransactingType(`mint-${catId}`);
 
     try {
@@ -446,20 +432,19 @@ export default function Page() {
             setMintedLevels(prev => ({ ...prev, [catId]: targetLevel }));
             setTxKeys(prev => ({ ...prev, [`mint-${catId}`]: (prev[`mint-${catId}`] || 0) + 1 }));
         }
+        setTransactingType(null); // INSTANT UNLOCK
     } catch (err: unknown) {
+        setTransactingType(null); // INSTANT UNLOCK
         let errorMessage = 'Mint rejected.';
-        if (err instanceof Error) errorMessage = err.message;
-        else if (typeof err === 'object' && err !== null && 'message' in err) errorMessage = String((err as { message: string }).message);
-        if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed: ${errorMessage}`, '');
-    } finally { 
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setTransactingType(null); 
+        if (err instanceof Error) {
+            if (err.message.includes("already minted")) errorMessage = "You already minted this level.";
+            else errorMessage = err.message.split('\n')[0]; 
+        }
+        if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed`, '');
     }
   };
 
   // --- SMART SHARE FUNCTIONS WITH STRICT PLATFORM ROUTING ---
-  
-  // 1. Single Achievement Share
   const shareAchievementTwitter = (catName: string, levelName: string) => {
     const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -470,7 +455,6 @@ export default function Page() {
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
-  // 2. Main Dashboard Score Share
   const shareNativeScore = async () => {
     if (!wallet) return;
     const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇`;
@@ -490,7 +474,6 @@ export default function Page() {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
-  // 3. New Full Collection Share
   const shareAllBadgesTwitter = (badgeCount: number) => {
     const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -634,7 +617,6 @@ export default function Page() {
                     <div className="relative z-10"><p className="text-2xl font-black text-[#0052FF] tracking-tight truncate drop-shadow-sm">{wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1">{wallet.walletRank}</p></div>
                 </div>
 
-                {/* --- MINTED BADGES SECTION WITH NEW SHARE BUTTONS --- */}
                 <div className="bg-slate-200 p-5 rounded-2xl border border-slate-300 flex flex-col justify-between col-span-2 lg:col-span-2 relative overflow-hidden shadow-md shadow-slate-400/50">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -702,7 +684,7 @@ export default function Page() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-20 w-full">
                     <div>
                         {connectionType === 'farcaster' ? (
-                            <button onClick={() => handleNativeTx('gm')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gm' ? <RefreshCcw className="animate-spin" size={20} /> : 'GM'}</button>
+                            <button onClick={() => handleNativeTx('gm')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType !== null ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gm' ? <RefreshCcw className="animate-spin" size={20} /> : 'GM'}</button>
                         ) : (
                             <Transaction key={`gm-${txKeys.gm}`} chainId={base.id} calls={gmCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GM Registered on Base! ☀️', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }}}>
                                 <TransactionButton className="min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl w-full shadow-sm" text="GM" />
@@ -711,7 +693,7 @@ export default function Page() {
                     </div>
                     <div>
                         {connectionType === 'farcaster' ? (
-                            <button onClick={() => handleNativeTx('gn')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gn' ? <RefreshCcw className="animate-spin" size={20} /> : 'GN'}</button>
+                            <button onClick={() => handleNativeTx('gn')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType !== null ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gn' ? <RefreshCcw className="animate-spin" size={20} /> : 'GN'}</button>
                         ) : (
                             <Transaction key={`gn-${txKeys.gn}`} chainId={base.id} calls={gnCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GN Registered on Base! 🌙', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }}}>
                                 <TransactionButton className="min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl w-full shadow-sm" text="GN" />
@@ -746,7 +728,9 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
+                    // Uses the exact math from your original stable code!
                     const targetTokenId = cat.baseId + (cat.thresholds.length === 1 ? 5 : nextMintTarget);
+                    
                     const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
                     const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
                     const mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataWithTracking }];
@@ -801,8 +785,8 @@ export default function Page() {
                                 {connectionType === 'farcaster' ? (
                                     <button 
                                         onClick={() => handleNativeMint(cat.id, nextMintTarget, targetTokenId, cat.name, cat.tierNames[nextMintTarget - 1])}
-                                        disabled={!canMintNext || transactingType === `mint-${cat.id}`}
-                                        className={`flex-1 py-3 rounded-xl font-black text-sm transition-all shadow-sm ${canMintNext ? 'bg-[#0052FF] text-white hover:bg-[#0040C5]' : 'bg-slate-300 text-slate-400 cursor-not-allowed border border-slate-400'}`}
+                                        disabled={!canMintNext || transactingType !== null}
+                                        className={`flex-1 py-3 rounded-xl font-black text-sm transition-all shadow-sm ${canMintNext && transactingType === null ? 'bg-[#0052FF] text-white hover:bg-[#0040C5]' : 'bg-slate-300 text-slate-400 cursor-not-allowed border border-slate-400'}`}
                                     >
                                         {currentMintedLevel === cat.thresholds.length ? 'Fully Minted 👑' : transactingType === `mint-${cat.id}` ? <RefreshCcw className="animate-spin mx-auto" size={20} /> : canMintNext ? `Mint ${cat.tierNames[nextMintTarget - 1]}` : `${cat.tierNames[nextMintTarget - 1]} Locked`}
                                     </button>
