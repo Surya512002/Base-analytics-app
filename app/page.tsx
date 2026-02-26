@@ -90,10 +90,8 @@ const ACHIEVEMENTS = [
 
 const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => {
     if (!isEarned) return 'bg-slate-200 border-slate-300 text-slate-400 opacity-50 border-solid grayscale';
-    
     let baseStyle = '';
     const colorTier = level > 5 ? 5 : level;
-
     switch(colorTier) {
         case 1: baseStyle = 'bg-gradient-to-br from-slate-400 to-slate-500 border-slate-400 text-white shadow-slate-400/50'; break;
         case 2: baseStyle = 'bg-gradient-to-br from-amber-600 to-orange-700 border-amber-600 text-white shadow-orange-600/50'; break;
@@ -102,12 +100,8 @@ const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => 
         case 5: baseStyle = 'bg-gradient-to-br from-[#0052FF] to-[#8A2BE2] border-[#0052FF] text-white shadow-[#0052FF]/80'; break;
         default: baseStyle = 'bg-slate-500 text-white';
     }
-
-    if (isMinted) {
-        return `${baseStyle} shadow-lg scale-100 ring-2 ring-green-400 ring-offset-2 ring-offset-slate-200 border-solid`;
-    } else {
-        return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
-    }
+    if (isMinted) return `${baseStyle} shadow-lg scale-100 ring-2 ring-green-400 ring-offset-2 ring-offset-slate-200 border-solid`;
+    else return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
 }
 
 // --- TYPES ---
@@ -129,22 +123,16 @@ type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
-  
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'achievements'>('dashboard');
   const [transactingType, setTransactingType] = useState<string | null>(null);
-  
-  // Real Minted State from Contract
   const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
-  
   const [isReady, setIsReady] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
   const [userBoosts, setUserBoosts] = useState(0);
   const [sponsoredTxs, setSponsoredTxs] = useState(0); 
-
   const [txKeys, setTxKeys] = useState<Record<string, number>>({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
@@ -176,7 +164,6 @@ export default function Page() {
   }, [wallet, activeTab]);
 
   const getStrictUTCDate = (isoTimestamp: string) => isoTimestamp.split('T')[0];
-  
   const getISOWeekToken = (date: Date) => {
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
     const dayNum = d.getUTCDay() || 7;
@@ -188,52 +175,59 @@ export default function Page() {
 
   const analyzeWallet = async (address: string) => {
     if (!address || !address.startsWith('0x') || address.length !== 42) {
-        showToast(`❌ Invalid EVM Address: ${address.substring(0,6)}...`, '');
+        showToast(`❌ Invalid EVM Address`, '');
         setLoading(false);
         return;
     }
 
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
+      setMintedLevels({}); // Reset on new wallet
       
-      let basename = null; 
-      try { basename = await getName({ address: address as `0x${string}`, chain: base }); } catch { console.log("No Basename"); }
-      const balWei = await provider.getBalance(address);
+      // SPEED OPTIMIZATION 1: Parallelize the 3 main initial calls
+      const [basenameRes, balWeiRes, nftDataRes] = await Promise.allSettled([
+          getName({ address: address as `0x${string}`, chain: base }),
+          provider.getBalance(address),
+          fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(res => res.json())
+      ]);
 
-      let actualNftCount = 0;
-      try {
-          const nftUrl = `https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`;
-          const nftRes = await fetch(nftUrl);
-          const nftData = await nftRes.json();
-          actualNftCount = nftData.totalCount || 0;
-      } catch (e) { console.error("NFT Fetch Error:", e); }
+      const basename = basenameRes.status === 'fulfilled' ? basenameRes.value : null;
+      const balWei = balWeiRes.status === 'fulfilled' ? balWeiRes.value : BigInt(0);
+      const actualNftCount = nftDataRes.status === 'fulfilled' && nftDataRes.value.totalCount ? nftDataRes.value.totalCount : 0;
 
-      // --- FETCH ONCHAIN MINTED ACHIEVEMENTS ---
+      // SPEED OPTIMIZATION 2: Parallelize ALL smart contract reads simultaneously
       try {
           const achievementContract = new Contract(ACHIEVEMENTS_CONTRACT_ADDRESS, ACHIEVEMENTS_ABI, provider);
-          const currentMintedState: Record<string, number> = {};
+          const contractChecks: Promise<{id: string, level: number, hasMinted: boolean}>[] = [];
           
           for (const cat of ACHIEVEMENTS) {
-              let highestMintedLevel = 0;
-              for (let i = cat.thresholds.length; i >= 1; i--) {
+              for (let i = 1; i <= cat.thresholds.length; i++) {
                   const targetTokenId = cat.baseId + (cat.thresholds.length === 1 ? 5 : i);
-                  const hasMinted = await achievementContract.hasMinted(address, targetTokenId);
-                  if (hasMinted) {
-                      highestMintedLevel = i;
-                      break; 
-                  }
+                  contractChecks.push(
+                      achievementContract.hasMinted(address, targetTokenId)
+                          .then(res => ({ id: cat.id, level: i, hasMinted: res as boolean }))
+                          .catch(() => ({ id: cat.id, level: i, hasMinted: false }))
+                  );
               }
-              currentMintedState[cat.id] = highestMintedLevel;
+          }
+          
+          const results = await Promise.all(contractChecks);
+          const currentMintedState: Record<string, number> = {};
+          for (const res of results) {
+              if (res.hasMinted) {
+                  currentMintedState[res.id] = Math.max(currentMintedState[res.id] || 0, res.level);
+              }
           }
           setMintedLevels(currentMintedState);
       } catch (err) {
-          console.error("Failed to fetch minted achievements from contract", err);
+          console.error("Contract fetch failed", err);
       }
 
       let allTransfers: AlchemyTransfer[] = [];
       let pageKey: string | undefined = undefined;
       let loopCount = 0;
 
+      // SPEED OPTIMIZATION 3: Cap history to max 5 pages (5000 txs) to prevent ultra-whale lag
       while (true) {
           loopCount++;
           const params: Record<string, unknown> = { 
@@ -246,7 +240,7 @@ export default function Page() {
           if (data.error) throw new Error(data.error.message);
           allTransfers = [...allTransfers, ...(data.result?.transfers || [])];
           pageKey = data.result?.pageKey;
-          if (!pageKey || loopCount > 200) break;
+          if (!pageKey || loopCount > 4) break; 
       }
       
       const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
@@ -390,8 +384,7 @@ export default function Page() {
   const handleDisconnect = () => { setWallet(null); setConnectionType(null); };
 
   const handleNativeTx = async (type: 'boost' | 'gm' | 'gn') => {
-    if (!wallet || !wallet.address) return;
-    if (transactingType) return; 
+    if (!wallet || !wallet.address || transactingType) return;
     setTransactingType(type);
 
     try {
@@ -422,14 +415,13 @@ export default function Page() {
       else if (typeof err === 'object' && err !== null && 'message' in err) errorMessage = String((err as { message: string }).message);
       if (!errorMessage.includes("rejected")) showToast(`❌ Tx Failed: ${errorMessage}`, '');
     } finally { 
-        // Small delay to allow Farcaster wallet UI to cleanly close before unlocking buttons
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setTransactingType(null); 
+      // BUG FIX: Strict 1.5s delay to let Farcaster wallet fully close before unlocking UI
+      setTimeout(() => { setTransactingType(null); }, 1500);
     }
   };
 
   const handleNativeMint = async (catId: string, targetLevel: number, tokenId: number, catName: string, levelName: string) => {
-    if (!wallet || !wallet.address) return;
+    if (!wallet || !wallet.address || transactingType) return;
     setTransactingType(`mint-${catId}`);
 
     try {
@@ -452,14 +444,12 @@ export default function Page() {
         else if (typeof err === 'object' && err !== null && 'message' in err) errorMessage = String((err as { message: string }).message);
         if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed: ${errorMessage}`, '');
     } finally { 
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setTransactingType(null); 
+        // BUG FIX: Strict 1.5s delay to let Farcaster wallet fully close before unlocking UI
+        setTimeout(() => { setTransactingType(null); }, 1500); 
     }
   };
 
   // --- SMART SHARE FUNCTIONS WITH STRICT PLATFORM ROUTING ---
-  
-  // 1. Single Achievement Share
   const shareAchievementTwitter = (catName: string, levelName: string) => {
     const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -470,7 +460,6 @@ export default function Page() {
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
-  // 2. Main Dashboard Score Share
   const shareNativeScore = async () => {
     if (!wallet) return;
     const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇`;
@@ -490,7 +479,6 @@ export default function Page() {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
-  // 3. New Full Collection Share
   const shareAllBadgesTwitter = (badgeCount: number) => {
     const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -634,7 +622,6 @@ export default function Page() {
                     <div className="relative z-10"><p className="text-2xl font-black text-[#0052FF] tracking-tight truncate drop-shadow-sm">{wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1">{wallet.walletRank}</p></div>
                 </div>
 
-                {/* --- MINTED BADGES SECTION WITH NEW SHARE BUTTONS --- */}
                 <div className="bg-slate-200 p-5 rounded-2xl border border-slate-300 flex flex-col justify-between col-span-2 lg:col-span-2 relative overflow-hidden shadow-md shadow-slate-400/50">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -801,8 +788,8 @@ export default function Page() {
                                 {connectionType === 'farcaster' ? (
                                     <button 
                                         onClick={() => handleNativeMint(cat.id, nextMintTarget, targetTokenId, cat.name, cat.tierNames[nextMintTarget - 1])}
-                                        disabled={!canMintNext || transactingType === `mint-${cat.id}`}
-                                        className={`flex-1 py-3 rounded-xl font-black text-sm transition-all shadow-sm ${canMintNext ? 'bg-[#0052FF] text-white hover:bg-[#0040C5]' : 'bg-slate-300 text-slate-400 cursor-not-allowed border border-slate-400'}`}
+                                        disabled={!canMintNext || transactingType !== null}
+                                        className={`flex-1 py-3 rounded-xl font-black text-sm transition-all shadow-sm ${canMintNext && !transactingType ? 'bg-[#0052FF] text-white hover:bg-[#0040C5]' : 'bg-slate-300 text-slate-400 cursor-not-allowed border border-slate-400'}`}
                                     >
                                         {currentMintedLevel === cat.thresholds.length ? 'Fully Minted 👑' : transactingType === `mint-${cat.id}` ? <RefreshCcw className="animate-spin mx-auto" size={20} /> : canMintNext ? `Mint ${cat.tierNames[nextMintTarget - 1]}` : `${cat.tierNames[nextMintTarget - 1]} Locked`}
                                     </button>
