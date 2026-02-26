@@ -190,7 +190,6 @@ export default function Page() {
       const provider = new JsonRpcProvider(BASE_RPC);
       setMintedLevels({}); 
       
-      // SPEED FIX 1: Run basic API checks in parallel
       const [basenameRes, balWeiRes, nftDataRes] = await Promise.allSettled([
           getName({ address: address as `0x${string}`, chain: base }),
           provider.getBalance(address),
@@ -201,10 +200,8 @@ export default function Page() {
       const balWei = balWeiRes.status === 'fulfilled' ? balWeiRes.value : BigInt(0);
       const actualNftCount = nftDataRes.status === 'fulfilled' && nftDataRes.value.totalCount ? nftDataRes.value.totalCount : 0;
 
-      // SPEED FIX 2: THE MULTICALL. Bundles 55 contract requests into 1 single request.
       const fetchMintedBadges = async () => {
           try {
-              // Explicit TS type defining the shape of a Viem Multicall argument
               type ContractCall = { address: `0x${string}`; abi: typeof ACHIEVEMENTS_ABI; functionName: 'hasMinted'; args: [`0x${string}`, bigint] };
               
               const contractCalls: ContractCall[] = [];
@@ -212,8 +209,10 @@ export default function Page() {
 
               for (const cat of ACHIEVEMENTS) {
                   for (let i = 1; i <= cat.thresholds.length; i++) {
-                      // BUG FIX: Simplified math to prevent "Achievement does not exist" error
-                      const targetTokenId = cat.baseId + i; 
+                      // 🚨 THE FIX: Restored original smart contract ID logic 🚨
+                      // If the category has 1 tier, the contract expects ID 35, not 31!
+                      const targetTokenId = cat.thresholds.length === 1 ? cat.baseId + 5 : cat.baseId + i; 
+                      
                       contractCalls.push({
                           address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
                           abi: ACHIEVEMENTS_ABI,
@@ -224,7 +223,6 @@ export default function Page() {
                   }
               }
 
-              // allowFailure ensures that if a user has zero badges, the whole call doesn't fail
               const results = await publicClient.multicall({ contracts: contractCalls, allowFailure: true });
               const currentMintedState: Record<string, number> = {};
               
@@ -240,7 +238,6 @@ export default function Page() {
           }
       };
 
-      // SPEED FIX 3: Strict limit on Transaction history fetching (Max 2000 txs)
       const fetchTransactions = async () => {
           let allTransfers: AlchemyTransfer[] = [];
           let pageKey: string | undefined = undefined;
@@ -263,7 +260,6 @@ export default function Page() {
           return allTransfers;
       };
 
-      // Execute both massive data fetches concurrently to save ~8 seconds of loading
       const [, allTransfers] = await Promise.all([
           fetchMintedBadges(),
           fetchTransactions()
@@ -373,7 +369,6 @@ export default function Page() {
         score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels, topTokens, recommendation, recentTxs, daysOnBase
       });
     } catch { 
-      // Error param safely removed to satisfy linter
       showToast(`❌ Scan Failed: Unable to read wallet.`, '');
       setWallet(null);
     } finally { setLoading(false); }
@@ -400,7 +395,6 @@ export default function Page() {
       setConnectionType(type);
       analyzeWallet(userAddress);
     } catch { 
-      // Error param safely removed to satisfy linter
       setLoading(false);
       showToast(`❌ Connection Failed.`, ""); 
     }
@@ -758,8 +752,8 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
-                    // BUG FIX: EXACT Token ID Math. (Prevents the "Achievement does not exist" error)
-                    const targetTokenId = cat.baseId + nextMintTarget;
+                    // 🚨 THE FIX: Restored original smart contract ID logic 🚨
+                    const targetTokenId = cat.thresholds.length === 1 ? cat.baseId + 5 : cat.baseId + nextMintTarget;
                     
                     const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
                     const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
