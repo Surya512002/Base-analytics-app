@@ -145,7 +145,7 @@ export default function Page() {
   const [userBoosts, setUserBoosts] = useState(0);
   const [sponsoredTxs, setSponsoredTxs] = useState(0); 
 
-  const [txKeys, setTxKeys] = useState({ boost: 0, gm: 0, gn: 0 });
+  const [txKeys, setTxKeys] = useState<Record<string, number>>({ boost: 0, gm: 0, gn: 0 });
   const [toast, setToast] = useState<{ show: boolean, message: string, hash: string } | null>(null);
 
   const boostDataWithTracking = `${encodeFunctionData({ abi: BOOSTER_ABI, functionName: 'boost' })}${getBuilderSuffix()}` as `0x${string}`;
@@ -412,14 +412,20 @@ export default function Page() {
       if (hash && typeof hash === 'string') {
         showToast(successMsg, hash);
         setSponsoredTxs(s => s + 1);
-        if (type === 'boost') { setUserBoosts(b => b + 1); setTxKeys(prev => ({ ...prev, boost: prev.boost + 1 })); }
+        if (type === 'boost') { setUserBoosts(b => b + 1); setTxKeys(prev => ({ ...prev, boost: (prev.boost || 0) + 1 })); }
+        if (type === 'gm') { setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }
+        if (type === 'gn') { setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }
       }
     } catch (err: unknown) {
       let errorMessage = 'Simulation rejected. Did you already do this today?';
       if (err instanceof Error) errorMessage = err.message;
       else if (typeof err === 'object' && err !== null && 'message' in err) errorMessage = String((err as { message: string }).message);
       if (!errorMessage.includes("rejected")) showToast(`❌ Tx Failed: ${errorMessage}`, '');
-    } finally { setTransactingType(null); }
+    } finally { 
+        // Small delay to allow Farcaster wallet UI to cleanly close before unlocking buttons
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setTransactingType(null); 
+    }
   };
 
   const handleNativeMint = async (catId: string, targetLevel: number, tokenId: number, catName: string, levelName: string) => {
@@ -438,16 +444,22 @@ export default function Page() {
         if (hash && typeof hash === 'string') {
             showToast(`✅ Successfully minted ${levelName}!`, hash);
             setMintedLevels(prev => ({ ...prev, [catId]: targetLevel }));
+            setTxKeys(prev => ({ ...prev, [`mint-${catId}`]: (prev[`mint-${catId}`] || 0) + 1 }));
         }
     } catch (err: unknown) {
         let errorMessage = 'Mint rejected.';
         if (err instanceof Error) errorMessage = err.message;
         else if (typeof err === 'object' && err !== null && 'message' in err) errorMessage = String((err as { message: string }).message);
         if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed: ${errorMessage}`, '');
-    } finally { setTransactingType(null); }
+    } finally { 
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setTransactingType(null); 
+    }
   };
 
-  // --- SMART SHARE FUNCTIONS ---
+  // --- SMART SHARE FUNCTIONS WITH STRICT PLATFORM ROUTING ---
+  
+  // 1. Single Achievement Share
   const shareAchievementTwitter = (catName: string, levelName: string) => {
     const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -458,23 +470,35 @@ export default function Page() {
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
-  const shareNative = async () => {
+  // 2. Main Dashboard Score Share
+  const shareNativeScore = async () => {
     if (!wallet) return;
     const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: APP_URL_WEB }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${APP_URL_WEB}`); }
   };
 
-  const shareWarpcast = () => {
+  const shareScoreWarpcast = () => {
     if (!wallet) return;
     const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
-  const shareTwitter = () => {
+  const shareScoreTwitter = () => {
     if (!wallet) return;
     const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  // 3. New Full Collection Share
+  const shareAllBadgesTwitter = (badgeCount: number) => {
+    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  const shareAllBadgesWarpcast = (badgeCount: number) => {
+    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint your identity 👇`;
+    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const getCategoryValue = (id: string) => {
@@ -568,7 +592,7 @@ export default function Page() {
                         {connectionType === 'farcaster' ? (
                             <button onClick={() => handleNativeTx('boost')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-black py-4 rounded-xl transition shadow-md shadow-[#0052FF]/30 ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0040C5]'}`}>{transactingType === 'boost' ? <RefreshCcw className="animate-spin" size={20} /> : 'BOOST SCORE (+1)'}</button>
                         ) : (
-                            <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { setUserBoosts(b => b + 1); setSponsoredTxs(st => st + 1); showToast('Boost Successful! 🎉', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setTxKeys(prev => ({ ...prev, boost: prev.boost + 1 })); }}}>
+                            <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { setUserBoosts(b => b + 1); setSponsoredTxs(st => st + 1); showToast('Boost Successful! 🎉', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setTxKeys(prev => ({ ...prev, boost: (prev.boost || 0) + 1 })); }}}>
                                 <TransactionButton className="w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-black py-4 rounded-xl hover:bg-[#0040C5] transition shadow-md shadow-[#0052FF]/30" text="BOOST SCORE (+1)" />
                             </Transaction>
                         )}
@@ -582,9 +606,9 @@ export default function Page() {
                             <div className="flex items-center gap-3 mb-2">
                                 <p className="text-xs font-bold text-[#0052FF] uppercase tracking-widest">ONCHAIN SCORE</p>
                                 <div className="flex gap-2">
-                                    <button onClick={shareWarpcast} className="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-slate-400 hover:bg-slate-400/50 transition"><Send size={10} className="text-[#0052FF]"/> Warpcast</button>
-                                    <button onClick={shareTwitter} className="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-slate-400 hover:bg-slate-400/50 transition"><Twitter size={10} className="text-[#0052FF]"/> Post on X</button>
-                                    <button onClick={shareNative} className="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-slate-400 hover:bg-slate-400/50 transition"><Share2 size={10} className="text-[#0052FF]"/> Share</button>
+                                    <button onClick={shareScoreWarpcast} className="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-slate-400 hover:bg-slate-400/50 transition"><Send size={10} className="text-[#0052FF]"/> Warpcast</button>
+                                    <button onClick={shareScoreTwitter} className="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-slate-400 hover:bg-slate-400/50 transition"><Twitter size={10} className="text-[#0052FF]"/> Post on X</button>
+                                    <button onClick={shareNativeScore} className="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border border-slate-400 hover:bg-slate-400/50 transition"><Share2 size={10} className="text-[#0052FF]"/> Share</button>
                                 </div>
                             </div>
                             <h1 className="text-7xl font-black text-[#0052FF] tracking-tighter drop-shadow-sm">{wallet.score}<span className="text-3xl text-[#0052FF]/60">/100</span></h1>
@@ -610,8 +634,24 @@ export default function Page() {
                     <div className="relative z-10"><p className="text-2xl font-black text-[#0052FF] tracking-tight truncate drop-shadow-sm">{wallet.basename ? wallet.basename : `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p><p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1">{wallet.walletRank}</p></div>
                 </div>
 
+                {/* --- MINTED BADGES SECTION WITH NEW SHARE BUTTONS --- */}
                 <div className="bg-slate-200 p-5 rounded-2xl border border-slate-300 flex flex-col justify-between col-span-2 lg:col-span-2 relative overflow-hidden shadow-md shadow-slate-400/50">
-                    <div className="flex items-center gap-2 mb-3"><Medal size={18} className="text-[#0052FF]"/><p className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">Minted Badges</p></div>
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <Medal size={18} className="text-[#0052FF]"/>
+                            <p className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">Minted Badges</p>
+                        </div>
+                        {ACHIEVEMENTS.filter(cat => mintedLevels[cat.id] > 0).length > 0 && (
+                            <div className="flex gap-1 relative z-20">
+                                <button onClick={() => shareAllBadgesWarpcast(ACHIEVEMENTS.filter(cat => mintedLevels[cat.id] > 0).length)} className="bg-slate-300 text-slate-700 p-1.5 rounded-lg hover:bg-slate-400/50 transition border border-slate-400 shadow-sm flex items-center gap-1 text-[10px] font-bold" title="Share collection on Warpcast">
+                                    <Send size={12} className="text-[#0052FF]"/> Post
+                                </button>
+                                <button onClick={() => shareAllBadgesTwitter(ACHIEVEMENTS.filter(cat => mintedLevels[cat.id] > 0).length)} className="bg-slate-300 text-slate-700 p-1.5 rounded-lg hover:bg-slate-400/50 transition border border-slate-400 shadow-sm flex items-center gap-1 text-[10px] font-bold" title="Share collection on X">
+                                    <Twitter size={12} className="text-[#0052FF]"/> Post
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {ACHIEVEMENTS.filter(cat => mintedLevels[cat.id] > 0).length > 0 ? (
                             ACHIEVEMENTS.filter(cat => mintedLevels[cat.id] > 0).map((cat) => {
@@ -664,7 +704,7 @@ export default function Page() {
                         {connectionType === 'farcaster' ? (
                             <button onClick={() => handleNativeTx('gm')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gm' ? <RefreshCcw className="animate-spin" size={20} /> : 'GM'}</button>
                         ) : (
-                            <Transaction key={`gm-${txKeys.gm}`} chainId={base.id} calls={gmCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GM Registered on Base! ☀️', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gm: prev.gm + 1 })); }}}>
+                            <Transaction key={`gm-${txKeys.gm}`} chainId={base.id} calls={gmCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GM Registered on Base! ☀️', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }}}>
                                 <TransactionButton className="min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl w-full shadow-sm" text="GM" />
                             </Transaction>
                         )}
@@ -673,7 +713,7 @@ export default function Page() {
                         {connectionType === 'farcaster' ? (
                             <button onClick={() => handleNativeTx('gn')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gn' ? <RefreshCcw className="animate-spin" size={20} /> : 'GN'}</button>
                         ) : (
-                            <Transaction key={`gn-${txKeys.gn}`} chainId={base.id} calls={gnCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GN Registered on Base! 🌙', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gn: prev.gn + 1 })); }}}>
+                            <Transaction key={`gn-${txKeys.gn}`} chainId={base.id} calls={gnCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GN Registered on Base! 🌙', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }}}>
                                 <TransactionButton className="min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl w-full shadow-sm" text="GN" />
                             </Transaction>
                         )}
@@ -768,7 +808,7 @@ export default function Page() {
                                     </button>
                                 ) : canMintNext && currentMintedLevel < cat.thresholds.length ? (
                                     <Transaction 
-                                        key={`mint-${cat.id}-${nextMintTarget}`}
+                                        key={`mint-${cat.id}-${nextMintTarget}-${txKeys[`mint-${cat.id}`] || 0}`}
                                         chainId={base.id} 
                                         calls={mintCall} 
                                         capabilities={paymasterCapability}
@@ -817,4 +857,4 @@ function StatCard({ label, value, icon }: { label: string, value: string, icon: 
             <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mt-1">{label}</p>
         </div>
     );
-}
+} 
