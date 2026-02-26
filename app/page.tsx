@@ -40,13 +40,20 @@ function getBuilderSuffix() {
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-// 👇 PASTE YOUR NEW REMIX CONTRACT ADDRESS HERE 👇
-const ACHIEVEMENTS_CONTRACT_ADDRESS = "0x2F87302E4d67d7e22B4adbEedD10B1B9A3ee63E2"; 
+// 👇 PASTE YOUR *NEW* REMIX CONTRACT ADDRESS HERE 👇
+const ACHIEVEMENTS_CONTRACT_ADDRESS = "0xadb8120B4B18b892cFAD171243074487122Dea03"; 
 
 const ACHIEVEMENTS_ABI = [
   {
     "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
     "name": "mintAchievement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256[]", "name": "tokenIds", "type": "uint256[]" }],
+    "name": "mintBatchAchievements",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -104,6 +111,10 @@ const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => 
     if (isMinted) return `${baseStyle} shadow-lg scale-100 ring-2 ring-green-400 ring-offset-2 ring-offset-slate-200 border-solid`;
     else return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
 }
+
+const getTargetTokenId = (baseId: number, numThresholds: number, level: number) => {
+    return numThresholds === 1 ? baseId + 5 : baseId + level;
+};
 
 // --- TYPES ---
 interface DayStats { date: string; count: number; intensity: number; }
@@ -197,7 +208,6 @@ export default function Page() {
           actualNftCount = nftData.totalCount || 0;
       } catch (e) { console.error("NFT Fetch Error:", e); }
 
-      // --- STABLE SEQUENTIAL CONTRACT FETCH ---
       try {
           const achievementContract = new Contract(ACHIEVEMENTS_CONTRACT_ADDRESS, ACHIEVEMENTS_ABI, provider);
           const currentMintedState: Record<string, number> = {};
@@ -205,8 +215,7 @@ export default function Page() {
           for (const cat of ACHIEVEMENTS) {
               let highestMintedLevel = 0;
               for (let i = cat.thresholds.length; i >= 1; i--) {
-                  // Simplified, unbreakable math
-                  const targetTokenId = cat.baseId + i; 
+                  const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i); 
                   try {
                       const hasMinted = await achievementContract.hasMinted(address, targetTokenId);
                       if (hasMinted) {
@@ -214,14 +223,14 @@ export default function Page() {
                           break; 
                       }
                   } catch {
-                      // Silently skip if error
+                      // Silently skip
                   }
               }
               currentMintedState[cat.id] = highestMintedLevel;
           }
           setMintedLevels(currentMintedState);
       } catch (err) {
-          console.error("Failed to fetch minted achievements from contract", err);
+          console.error("Failed to fetch minted achievements", err);
       }
 
       let allTransfers: AlchemyTransfer[] = [];
@@ -405,22 +414,29 @@ export default function Page() {
         if (type === 'gm') { setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }
         if (type === 'gn') { setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }
       }
-      setTransactingType(null); // INSTANT UNLOCK
+      setTransactingType(null); 
     } catch (err: unknown) {
-      setTransactingType(null); // INSTANT UNLOCK
+      setTransactingType(null); 
       let errorMessage = 'User rejected or simulation failed.';
       if (err instanceof Error) errorMessage = err.message.split('\n')[0]; 
       if (!errorMessage.includes("rejected")) showToast(`❌ Tx Failed: ${errorMessage}`, '');
     }
   };
 
-  const handleNativeMint = async (catId: string, targetLevel: number, tokenId: number, catName: string, levelName: string) => {
+  // --- THE NEW BATCH-READY MINT HANDLER ---
+  const handleNativeMint = async (catId: string, targetLevels: number[], tokenIds: number[], catName: string) => {
     if (!wallet || !wallet.address || transactingType !== null) return;
     setTransactingType(`mint-${catId}`);
 
     try {
-        const mintData = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenId)] });
-        const txData = `${mintData}${getBuilderSuffix()}` as `0x${string}`;
+        const isBatch = tokenIds.length > 1;
+        
+        // Dynamically choose between Single Mint and Batch Mint based on how many they qualify for
+        const mintDataRaw = isBatch
+            ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] })
+            : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
+        
+        const txData = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
         const txParams: { from: `0x${string}`; to: `0x${string}`; data: `0x${string}`; chainId: `0x${string}` } = { 
             from: wallet.address as `0x${string}`, to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: txData, chainId: '0x2105' 
         };
@@ -428,16 +444,18 @@ export default function Page() {
         const hash = await sdk.wallet.ethProvider.request({ method: "eth_sendTransaction", params: [txParams] });
         
         if (hash && typeof hash === 'string') {
-            showToast(`✅ Successfully minted ${levelName}!`, hash);
-            setMintedLevels(prev => ({ ...prev, [catId]: targetLevel }));
+            showToast(isBatch ? `✅ Successfully claimed ${tokenIds.length} ${catName} Badges!` : `✅ Successfully minted!`, hash);
+            // Instantly unlocks the UI and updates all levels at once
+            const highestLevelClaimed = Math.max(...targetLevels);
+            setMintedLevels(prev => ({ ...prev, [catId]: highestLevelClaimed }));
             setTxKeys(prev => ({ ...prev, [`mint-${catId}`]: (prev[`mint-${catId}`] || 0) + 1 }));
         }
-        setTransactingType(null); // INSTANT UNLOCK
+        setTransactingType(null); 
     } catch (err: unknown) {
-        setTransactingType(null); // INSTANT UNLOCK
+        setTransactingType(null); 
         let errorMessage = 'Mint rejected.';
         if (err instanceof Error) {
-            if (err.message.includes("already minted")) errorMessage = "You already minted this level.";
+            if (err.message.includes("already minted")) errorMessage = "You already minted this.";
             else errorMessage = err.message.split('\n')[0]; 
         }
         if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed`, '');
@@ -722,18 +740,42 @@ export default function Page() {
                     }
 
                     const currentMintedLevel = mintedLevels[cat.id] || 0;
-                    const nextMintTarget = currentMintedLevel + 1;
-                    const canMintNext = unlockedLevel >= nextMintTarget;
+                    const canMintNext = unlockedLevel > currentMintedLevel;
                     
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
-                    // Uses the exact math from your original stable code!
-                    const targetTokenId = cat.baseId + (cat.thresholds.length === 1 ? 5 : nextMintTarget);
+                    // --- BATCH CALCULATION LOGIC ---
+                    // Figure out exactly how many badges the user has unlocked but NOT minted yet
+                    const tokensToMint: number[] = [];
+                    const targetLevels: number[] = [];
+                    for (let i = currentMintedLevel + 1; i <= unlockedLevel; i++) {
+                        targetLevels.push(i);
+                        tokensToMint.push(getTargetTokenId(cat.baseId, cat.thresholds.length, i));
+                    }
+
+                    const isBatch = tokensToMint.length > 1;
                     
-                    const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
-                    const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
-                    const mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataWithTracking }];
+                    // Create the smart contract transaction data based on whether it is 1 badge or a batch of badges
+                    let mintCall: { to: `0x${string}`; data: `0x${string}` }[] = [];
+                    if (tokensToMint.length > 0) {
+                        const mintDataRaw = isBatch 
+                            ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokensToMint.map(id => BigInt(id))] })
+                            : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokensToMint[0])] });
+                        
+                        const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
+                        mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataWithTracking }];
+                    }
+
+                    // Dynamically generate the button text based on how many they are claiming!
+                    let buttonText = `${cat.tierNames[currentMintedLevel] || "..."} Locked`;
+                    if (currentMintedLevel === cat.thresholds.length) {
+                        buttonText = 'Fully Minted 👑';
+                    } else if (canMintNext) {
+                        buttonText = isBatch 
+                            ? `Claim ${tokensToMint.length} Unlocked Badges! 🚀` 
+                            : `Mint ${cat.tierNames[currentMintedLevel]}`;
+                    }
 
                     return (
                         <div key={cat.id} className="bg-slate-200 p-6 rounded-[20px] border border-slate-300 shadow-md shadow-slate-400/50 flex flex-col relative overflow-hidden group">
@@ -784,30 +826,31 @@ export default function Page() {
                             <div className="flex gap-2 mt-auto">
                                 {connectionType === 'farcaster' ? (
                                     <button 
-                                        onClick={() => handleNativeMint(cat.id, nextMintTarget, targetTokenId, cat.name, cat.tierNames[nextMintTarget - 1])}
+                                        onClick={() => handleNativeMint(cat.id, targetLevels, tokensToMint, cat.name)}
                                         disabled={!canMintNext || transactingType !== null}
                                         className={`flex-1 py-3 rounded-xl font-black text-sm transition-all shadow-sm ${canMintNext && transactingType === null ? 'bg-[#0052FF] text-white hover:bg-[#0040C5]' : 'bg-slate-300 text-slate-400 cursor-not-allowed border border-slate-400'}`}
                                     >
-                                        {currentMintedLevel === cat.thresholds.length ? 'Fully Minted 👑' : transactingType === `mint-${cat.id}` ? <RefreshCcw className="animate-spin mx-auto" size={20} /> : canMintNext ? `Mint ${cat.tierNames[nextMintTarget - 1]}` : `${cat.tierNames[nextMintTarget - 1]} Locked`}
+                                        {transactingType === `mint-${cat.id}` ? <RefreshCcw className="animate-spin mx-auto" size={20} /> : buttonText}
                                     </button>
                                 ) : canMintNext && currentMintedLevel < cat.thresholds.length ? (
                                     <Transaction 
-                                        key={`mint-${cat.id}-${nextMintTarget}-${txKeys[`mint-${cat.id}`] || 0}`}
+                                        key={`mint-${cat.id}-${tokensToMint.join('-')}-${txKeys[`mint-${cat.id}`] || 0}`}
                                         chainId={base.id} 
                                         calls={mintCall} 
                                         capabilities={paymasterCapability}
                                         onStatus={(s) => {
                                             if (s.statusName === 'success') {
-                                                showToast(`✅ Successfully minted ${cat.tierNames[nextMintTarget - 1]}!`, s.statusData.transactionReceipts?.[0]?.transactionHash || '');
-                                                setMintedLevels(prev => ({ ...prev, [cat.id]: nextMintTarget }));
+                                                showToast(isBatch ? `✅ Successfully claimed ${tokensToMint.length} ${cat.name} Badges!` : `✅ Successfully minted!`, s.statusData.transactionReceipts?.[0]?.transactionHash || '');
+                                                const highestLevelClaimed = Math.max(...targetLevels);
+                                                setMintedLevels(prev => ({ ...prev, [cat.id]: highestLevelClaimed }));
                                             }
                                         }}
                                     >
-                                        <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-sm transition-all shadow-sm bg-[#0052FF] text-white hover:bg-[#0040C5]" text={`Mint ${cat.tierNames[nextMintTarget - 1]}`} />
+                                        <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-sm transition-all shadow-sm bg-[#0052FF] text-white hover:bg-[#0040C5]" text={buttonText} />
                                     </Transaction>
                                 ) : (
                                     <button disabled className="flex-1 py-3 rounded-xl font-black text-sm transition-all shadow-sm bg-slate-300 text-slate-400 cursor-not-allowed border border-slate-400">
-                                        {currentMintedLevel === cat.thresholds.length ? 'Fully Minted 👑' : `${cat.tierNames[nextMintTarget - 1]} Locked`}
+                                        {buttonText}
                                     </button>
                                 )}
                                 
