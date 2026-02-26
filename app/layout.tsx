@@ -10,8 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 const APP_URL = "https://base-analytics-app.vercel.app";
 
-// Changed from ?v=epic to ?v=fixed
-const OG_IMAGE_URL = `${APP_URL}/opengraph-image?v=fixed`;
+const OG_IMAGE_URL = `${APP_URL}/opengraph-image?v=v3`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL), 
