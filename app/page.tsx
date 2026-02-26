@@ -7,7 +7,7 @@ import {
   CreditCard, User, BadgeCheck, Send, X, AlertTriangle,
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets, Lock
 } from 'lucide-react';
-import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
+import { JsonRpcProvider, formatEther, toUtf8Bytes, Contract } from 'ethers';
 import sdk from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
 
@@ -18,7 +18,7 @@ import {
 } from '@coinbase/onchainkit/transaction'; 
 import { getName } from '@coinbase/onchainkit/identity';
 import { base } from 'viem/chains';
-import { encodeFunctionData, createPublicClient, http } from 'viem';
+import { encodeFunctionData } from 'viem';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
@@ -104,11 +104,6 @@ const getLevelColors = (level: number, isMinted: boolean, isEarned: boolean) => 
     else return `${baseStyle} opacity-90 scale-95 shadow-md border-dashed animate-pulse`; 
 }
 
-// Helper to precisely calculate the Token ID for the Smart Contract
-const getTargetTokenId = (baseId: number, numThresholds: number, level: number) => {
-    return numThresholds === 1 ? baseId + 5 : baseId + level;
-};
-
 // --- TYPES ---
 interface DayStats { date: string; count: number; intensity: number; }
 interface WalletData {
@@ -124,12 +119,6 @@ interface WalletData {
 interface AlchemyTransfer { hash: string; category: string; value: number | null; asset: string | null; to: string | null; metadata: { blockTimestamp: string; }; }
 interface AlchemyResponse { result?: { transfers: AlchemyTransfer[]; pageKey?: string; }; error?: { message: string; }; }
 type ConnectionType = 'farcaster' | 'coinbase' | 'metamask';
-
-// Create a fast, reusable Viem public client for Multicalls
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(BASE_RPC)
-});
 
 export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -193,81 +182,64 @@ export default function Page() {
 
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
-      setMintedLevels({}); 
+      setMintedLevels({});
       
-      const [basenameRes, balWeiRes, nftDataRes] = await Promise.allSettled([
-          getName({ address: address as `0x${string}`, chain: base }),
-          provider.getBalance(address),
-          fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(res => res.json())
-      ]);
+      let basename = null; 
+      try { basename = await getName({ address: address as `0x${string}`, chain: base }); } catch { console.log("No Basename"); }
+      const balWei = await provider.getBalance(address);
 
-      const basename = basenameRes.status === 'fulfilled' ? basenameRes.value : null;
-      const balWei = balWeiRes.status === 'fulfilled' ? balWeiRes.value : BigInt(0);
-      const actualNftCount = nftDataRes.status === 'fulfilled' && nftDataRes.value.totalCount ? nftDataRes.value.totalCount : 0;
+      let actualNftCount = 0;
+      try {
+          const nftUrl = `https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`;
+          const nftRes = await fetch(nftUrl);
+          const nftData = await nftRes.json();
+          actualNftCount = nftData.totalCount || 0;
+      } catch (e) { console.error("NFT Fetch Error:", e); }
 
-      const fetchMintedBadges = async () => {
-          try {
-              type ContractCall = { address: `0x${string}`; abi: typeof ACHIEVEMENTS_ABI; functionName: 'hasMinted'; args: [`0x${string}`, bigint] };
-              
-              const contractCalls: ContractCall[] = [];
-              const callMappings: { id: string; level: number }[] = [];
-
-              for (const cat of ACHIEVEMENTS) {
-                  for (let i = 1; i <= cat.thresholds.length; i++) {
-                      // Uses the secure math helper function
-                      const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i);
-                      
-                      contractCalls.push({
-                          address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
-                          abi: ACHIEVEMENTS_ABI,
-                          functionName: 'hasMinted',
-                          args: [address as `0x${string}`, BigInt(targetTokenId)]
-                      });
-                      callMappings.push({ id: cat.id, level: i });
+      // --- RESTORED ORIGINAL SEQUENTIAL FETCH (Matches the old code exactly) ---
+      try {
+          const achievementContract = new Contract(ACHIEVEMENTS_CONTRACT_ADDRESS, ACHIEVEMENTS_ABI, provider);
+          const currentMintedState: Record<string, number> = {};
+          
+          for (const cat of ACHIEVEMENTS) {
+              let highestMintedLevel = 0;
+              for (let i = cat.thresholds.length; i >= 1; i--) {
+                  const targetTokenId = cat.baseId + (cat.thresholds.length === 1 ? 5 : i);
+                  try {
+                      const hasMinted = await achievementContract.hasMinted(address, targetTokenId);
+                      if (hasMinted) {
+                          highestMintedLevel = i;
+                          break; 
+                      }
+                  } catch {
+                      // Silently skip if achievement isn't added to contract yet
                   }
               }
-
-              const results = await publicClient.multicall({ contracts: contractCalls, allowFailure: true });
-              const currentMintedState: Record<string, number> = {};
-              
-              results.forEach((res: { status: "success" | "failure"; result?: unknown }, index: number) => {
-                  if (res.status === 'success' && res.result === true) {
-                      const mapping = callMappings[index];
-                      currentMintedState[mapping.id] = Math.max(currentMintedState[mapping.id] || 0, mapping.level);
-                  }
-              });
-              setMintedLevels(currentMintedState);
-          } catch (err) {
-              console.error("Multicall failed", err);
+              currentMintedState[cat.id] = highestMintedLevel;
           }
-      };
+          setMintedLevels(currentMintedState);
+      } catch (err) {
+          console.error("Failed to fetch minted achievements from contract", err);
+      }
 
-      const fetchTransactions = async () => {
-          let allTransfers: AlchemyTransfer[] = [];
-          let pageKey: string | undefined = undefined;
-          let loopCount = 0;
+      let allTransfers: AlchemyTransfer[] = [];
+      let pageKey: string | undefined = undefined;
+      let loopCount = 0;
 
-          while (true) {
-              loopCount++;
-              const params: Record<string, unknown> = { 
-                fromBlock: "0x0", toBlock: "latest", fromAddress: address, 
-                category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
-              };
-              if (pageKey) params.pageKey = pageKey;
-              const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
-              const data = (await response.json()) as AlchemyResponse;
-              if (data.error) throw new Error(data.error.message);
-              allTransfers = [...allTransfers, ...(data.result?.transfers || [])];
-              pageKey = data.result?.pageKey;
-              if (!pageKey || loopCount > 2) break; 
-          }
-          return allTransfers;
-      };
-
-      const [, allTransfers] = await Promise.all([
-          fetchMintedBadges(),
-          fetchTransactions()
-      ]);
+      while (true) {
+          loopCount++;
+          const params: Record<string, unknown> = { 
+            fromBlock: "0x0", toBlock: "latest", fromAddress: address, 
+            category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
+          };
+          if (pageKey) params.pageKey = pageKey;
+          const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
+          const data = (await response.json()) as AlchemyResponse;
+          if (data.error) throw new Error(data.error.message);
+          allTransfers = [...allTransfers, ...(data.result?.transfers || [])];
+          pageKey = data.result?.pageKey;
+          if (!pageKey || loopCount > 5) break; 
+      }
       
       const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
       const tokenFrequency = new Map<string, number>(); 
@@ -432,12 +404,12 @@ export default function Page() {
         if (type === 'gm') { setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }
         if (type === 'gn') { setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }
       }
-      setTransactingType(null); // INSTANT UNLOCK
     } catch (err: unknown) {
-      setTransactingType(null); // INSTANT UNLOCK
       let errorMessage = 'User rejected or simulation failed.';
       if (err instanceof Error) errorMessage = err.message.split('\n')[0]; 
       if (!errorMessage.includes("rejected")) showToast(`❌ Tx Failed: ${errorMessage}`, '');
+    } finally { 
+      setTimeout(() => { setTransactingType(null); }, 1500);
     }
   };
 
@@ -459,9 +431,7 @@ export default function Page() {
             setMintedLevels(prev => ({ ...prev, [catId]: targetLevel }));
             setTxKeys(prev => ({ ...prev, [`mint-${catId}`]: (prev[`mint-${catId}`] || 0) + 1 }));
         }
-        setTransactingType(null); // INSTANT UNLOCK
     } catch (err: unknown) {
-        setTransactingType(null); // INSTANT UNLOCK
         let errorMessage = 'Mint rejected.';
         if (err instanceof Error) {
             if (err.message.includes("Achievement does not exist")) errorMessage = "Achievement doesn't exist. Check Remix setup!";
@@ -469,6 +439,8 @@ export default function Page() {
             else errorMessage = err.message.split('\n')[0]; 
         }
         if (!errorMessage.includes("rejected")) showToast(`❌ Mint Failed: ${errorMessage}`, '');
+    } finally { 
+        setTimeout(() => { setTransactingType(null); }, 1500); 
     }
   };
 
@@ -756,8 +728,7 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
-                    // Uses the secure math helper function to perfectly align the ID
-                    const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, nextMintTarget);
+                    const targetTokenId = cat.baseId + (cat.thresholds.length === 1 ? 5 : nextMintTarget);
                     
                     const mintDataRaw = encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(targetTokenId)] });
                     const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
