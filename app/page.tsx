@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, 
+  Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power,BookOpen, 
   RefreshCcw, Sun, FileCode, BarChart3, Trophy, 
   CreditCard, User, BadgeCheck, Send, X, AlertTriangle,
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets, Lock
@@ -10,6 +10,8 @@ import {
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import sdk from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
+import BaseHub from '../components/BaseHub';
+
 
 // OnchainKit & Viem Imports
 import { 
@@ -20,8 +22,9 @@ import { getName } from '@coinbase/onchainkit/identity';
 import { encodeFunctionData, createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 
+
 // --- CONFIGURATION ---
-const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
+const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "mn8s-DCTchMi4q2DEKasm"; 
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
 const MINIAPP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
 const APP_URL_WEB = "https://base-analytics-app.vercel.app";
@@ -136,7 +139,7 @@ export default function Page() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'achievements'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'achievements' | 'Base hub'>('dashboard');
   const [transactingType, setTransactingType] = useState<string | null>(null);
   const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
   const [isReady, setIsReady] = useState(false);
@@ -478,41 +481,41 @@ export default function Page() {
 
   // --- SMART SHARE FUNCTIONS WITH STRICT PLATFORM ROUTING ---
   const shareAchievementTwitter = (catName: string, levelName: string) => {
-    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
+    const shareText = `I just unlocked the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nAre you a Base Shrimp or a Base God? Discover your true Onchain identity and farm XP 100% gasless 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAchievementWarpcast = (catName: string, levelName: string) => {
-    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint yours 👇`;
+    const shareText = `I just unlocked the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nAre you a Base Shrimp or a Base God? Discover your true Onchain identity and farm XP 100% gasless 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareNativeScore = async () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\nCurious about your rank? Scan your wallet and claim your milestone badges today 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: APP_URL_WEB }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${APP_URL_WEB}`); }
   };
 
   const shareScoreWarpcast = () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\nCurious about your rank? Scan your wallet and claim your milestone badges today 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareScoreTwitter = () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇\n${APP_URL_WEB}`;
+    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\nCurious about your rank? Scan your wallet and claim your milestone badges today 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAllBadgesTwitter = (badgeCount: number) => {
-    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
+    const shareText = `I just claimed ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nStop paying gas to flex. Discover your network score and batch-mint your entire identity gasless 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAllBadgesWarpcast = (badgeCount: number) => {
-    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint your identity 👇`;
+    const shareText = `I just claimed ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nStop paying gas to flex. Discover your network score and batch-mint your entire identity gasless 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
@@ -578,9 +581,11 @@ export default function Page() {
       </div>
 
       {/* TAB NAVIGATION */}
-      <div className="flex bg-slate-200 p-1.5 rounded-2xl mb-8 w-full max-w-sm mx-auto border border-slate-300 shadow-sm">
+      {/* TAB NAVIGATION */}
+      <div className="flex bg-slate-200 p-1.5 rounded-2xl mb-8 w-full max-w-md mx-auto border border-slate-300 shadow-sm">
         <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${activeTab === 'dashboard' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}><BarChart3 size={16}/> Dashboard</button>
         <button onClick={() => setActiveTab('achievements')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${activeTab === 'achievements' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}><Trophy size={16}/> Achievements</button>
+        <button onClick={() => setActiveTab('Base hub')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${activeTab === 'Base hub' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}><BookOpen size={16}/> Hub</button>
       </div>
 
       {/* ========================================= DASHBOARD TAB ========================================= */}
@@ -879,6 +884,10 @@ export default function Page() {
                 })}
             </div>
         </div>
+      )}
+    {/* ========================================= HUB TAB ========================================= */}
+      {activeTab === 'Base hub' && (
+          <BaseHub />
       )}
 
     </main>
