@@ -579,15 +579,18 @@ export default function Page() {
         <div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0052FF] rounded-full flex items-center justify-center shadow-md shadow-[#0052FF]/30"><Activity className="text-white" size={20}/></div><span className="font-black text-xl tracking-tight text-[#0052FF] uppercase drop-shadow-sm">Base Analytics</span></div>
         <button onClick={handleDisconnect} className="p-3 bg-slate-200 rounded-full border border-slate-400 text-[#0052FF] hover:bg-slate-300 transition shadow-sm"><Power size={18}/></button>
       </div>
-
-      {/* TAB NAVIGATION */}
       {/* TAB NAVIGATION */}
       <div className="flex bg-slate-200 p-1.5 rounded-2xl mb-8 w-full max-w-md mx-auto border border-slate-300 shadow-sm">
-        <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${activeTab === 'dashboard' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}><BarChart3 size={16}/> Dashboard</button>
-        <button onClick={() => setActiveTab('achievements')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${activeTab === 'achievements' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}><Trophy size={16}/> Achievements</button>
-        <button onClick={() => setActiveTab('Base hub')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${activeTab === 'Base hub' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}><BookOpen size={16}/> Hub</button>
+        <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 rounded-xl font-bold text-[10px] sm:text-sm transition-all flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 ${activeTab === 'dashboard' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}>
+            <BarChart3 size={18} className="sm:w-4 sm:h-4"/> <span>Dashboard</span>
+        </button>
+        <button onClick={() => setActiveTab('achievements')} className={`flex-1 py-2 rounded-xl font-bold text-[10px] sm:text-sm transition-all flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 ${activeTab === 'achievements' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}>
+            <Trophy size={18} className="sm:w-4 sm:h-4"/> <span>Achievements</span>
+        </button>
+        <button onClick={() => setActiveTab('Base hub')} className={`flex-1 py-2 rounded-xl font-bold text-[10px] sm:text-sm transition-all flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-2 ${activeTab === 'Base hub' ? 'bg-[#0052FF] text-white shadow-md' : 'text-slate-500 hover:text-[#0052FF]'}`}>
+            <BookOpen size={18} className="sm:w-4 sm:h-4"/> <span>Base Hub</span>
+        </button>
       </div>
-
       {/* ========================================= DASHBOARD TAB ========================================= */}
       {activeTab === 'dashboard' && (
         <div className="animate-in fade-in slide-in-from-bottom-2">
@@ -885,7 +888,7 @@ export default function Page() {
             </div>
         </div>
       )}
-    {/* ========================================= HUB TAB ========================================= */}
+    {/* ========================================= Base HUB TAB ========================================= */}
       {activeTab === 'Base hub' && (
           <BaseHub />
       )}
