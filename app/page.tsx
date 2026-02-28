@@ -17,8 +17,8 @@ import {
   TransactionButton
 } from '@coinbase/onchainkit/transaction'; 
 import { getName } from '@coinbase/onchainkit/identity';
-import { base } from 'viem/chains';
 import { encodeFunctionData, createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
@@ -40,7 +40,8 @@ function getBuilderSuffix() {
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-const ACHIEVEMENTS_CONTRACT_ADDRESS = "0x2F87302E4d67d7e22B4adbEedD10B1B9A3ee63E2"; 
+// --- YOUR NEW BATCH-READY SMART CONTRACT ---
+const ACHIEVEMENTS_CONTRACT_ADDRESS = "0xadb8120B4B18b892cFAD171243074487122Dea03"; 
 
 const ACHIEVEMENTS_ABI = [
   {
@@ -155,7 +156,6 @@ export default function Page() {
   const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(2000000000000) }];
   const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(2000000000000) }];
 
-  // 🚨 THE FIX: This correctly formats the ERC-8021 tag for Smart Wallets to track 🚨
   const transactionCapabilities = {
     ...(process.env.NEXT_PUBLIC_PAYMASTER_URL ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } : {}),
     dataSuffix: {
@@ -214,12 +214,13 @@ export default function Page() {
           actualNftCount = nftData.totalCount || 0;
       } catch (e) { console.error("NFT Fetch Error:", e); }
 
+      // --- VIEM MULTICALL: Loads all 55 badges instantly in 1 request ---
       try {
           const publicClient = createPublicClient({ chain: base, transport: http(BASE_RPC) });
-          const calls = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const calls: any[] = [];
           const callMap: { catId: string, level: number }[] = [];
           
-          // Bundle all 55 read requests into a single array
           for (const cat of ACHIEVEMENTS) {
               for (let i = cat.thresholds.length; i >= 1; i--) {
                   const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i); 
@@ -233,7 +234,6 @@ export default function Page() {
               }
           }
 
-          // Execute them all at exactly the same time (1 network request!)
           const results = await publicClient.multicall({ contracts: calls });
           const currentMintedState: Record<string, number> = {};
 
@@ -452,9 +452,8 @@ export default function Page() {
             ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] })
             : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
         
-        const txData = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
         const txParams: { from: `0x${string}`; to: `0x${string}`; data: `0x${string}`; chainId: `0x${string}` } = { 
-            from: wallet.address as `0x${string}`, to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: txData, chainId: '0x2105' 
+            from: wallet.address as `0x${string}`, to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataRaw, chainId: '0x2105' 
         };
 
         const hash = await sdk.wallet.ethProvider.request({ method: "eth_sendTransaction", params: [txParams] });
@@ -775,8 +774,7 @@ export default function Page() {
                             ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokensToMint.map(id => BigInt(id))] })
                             : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokensToMint[0])] });
                         
-                        const mintDataWithTracking = `${mintDataRaw}${getBuilderSuffix()}` as `0x${string}`;
-                        mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataWithTracking }];
+                        mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataRaw }];
                     }
 
                     let buttonText = `${cat.tierNames[currentMintedLevel] || "..."} Locked`;
