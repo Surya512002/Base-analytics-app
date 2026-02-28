@@ -203,75 +203,88 @@ export default function Page() {
 
     try {
       const provider = new JsonRpcProvider(BASE_RPC);
+      const publicClient = createPublicClient({ chain: base, transport: http(BASE_RPC) });
       setMintedLevels({});
       
-      let basename = null; 
-      try { basename = await getName({ address: address as `0x${string}`, chain: base }); } catch { console.log("No Basename"); }
-      const balWei = await provider.getBalance(address);
+      // 🚀 1. FIRE ALL NETWORK REQUESTS AT THE EXACT SAME TIME 🚀
+      
+      // Request A: Basename
+      const basenamePromise = getName({ address: address as `0x${string}`, chain: base }).catch(() => null);
+      
+      // Request B: ETH Balance
+      const balancePromise = provider.getBalance(address).catch(() => BigInt(0));
+      
+      // Request C: NFT Count
+      const nftPromise = fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`)
+        .then(res => res.json())
+        .catch(() => ({ totalCount: 0 }));
 
-      let actualNftCount = 0;
-      try {
-          const nftUrl = `https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`;
-          const nftRes = await fetch(nftUrl);
-          const nftData = await nftRes.json();
-          actualNftCount = nftData.totalCount || 0;
-      } catch (e) { console.error("NFT Fetch Error:", e); }
+      // Request D: Multicall for Achievements
+      const calls: {
+         address: `0x${string}`;
+         abi: typeof ACHIEVEMENTS_ABI;
+        functionName: 'hasMinted';
+         args: readonly [`0x${string}`, bigint];
+            }[] = [];
+      const callMap: { catId: string, level: number }[] = [];
+      for (const cat of ACHIEVEMENTS) {
+          for (let i = cat.thresholds.length; i >= 1; i--) {
+              const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i); 
+              calls.push({
+                  address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
+                  abi: ACHIEVEMENTS_ABI,
+                  functionName: 'hasMinted',
+                  args: [address as `0x${string}`, BigInt(targetTokenId)]
+              });
+              callMap.push({ catId: cat.id, level: i });
+          }
+      }
+      const multicallPromise = publicClient.multicall({ contracts: calls }).catch(() => []);
 
-      // --- VIEM MULTICALL: Loads all 55 badges instantly in 1 request ---
-      try {
-          const publicClient = createPublicClient({ chain: base, transport: http(BASE_RPC) });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const calls: any[] = [];
-          const callMap: { catId: string, level: number }[] = [];
-          
-          for (const cat of ACHIEVEMENTS) {
-              for (let i = cat.thresholds.length; i >= 1; i--) {
-                  const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i); 
-                  calls.push({
-                      address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
-                      abi: ACHIEVEMENTS_ABI,
-                      functionName: 'hasMinted',
-                      args: [address as `0x${string}`, BigInt(targetTokenId)]
-                  });
-                  callMap.push({ catId: cat.id, level: i });
+      // Request E: Transaction History
+      const transfersPromise = (async () => {
+          let transfers: AlchemyTransfer[] = [];
+          let pageKey: string | undefined = undefined;
+          let loopCount = 0;
+          while (true) {
+              loopCount++;
+              const params: Record<string, unknown> = { 
+                fromBlock: "0x0", toBlock: "latest", fromAddress: address, 
+                category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
+              };
+              if (pageKey) params.pageKey = pageKey;
+              const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
+              const data = (await response.json()) as AlchemyResponse;
+              if (data.error) break;
+              transfers = [...transfers, ...(data.result?.transfers || [])];
+              pageKey = data.result?.pageKey;
+              if (!pageKey || loopCount > 5) break; 
+          }
+          return transfers;
+      })();
+
+      // 🚀 2. WAIT ONCE FOR EVERYTHING TO FINISH 🚀
+      const [basename, balWei, nftData, multicallResults, allTransfers] = await Promise.all([
+          basenamePromise,
+          balancePromise,
+          nftPromise,
+          multicallPromise,
+          transfersPromise
+      ]);
+
+      // 3. Process the results instantly
+      const actualNftCount = nftData.totalCount || 0;
+      
+      const currentMintedState: Record<string, number> = {};
+      multicallResults.forEach((res: { status: string; result?: unknown }, index: number) => {
+          const { catId, level } = callMap[index];
+          if (res.status === 'success' && res.result === true) {
+              if (!currentMintedState[catId] || currentMintedState[catId] < level) {
+                  currentMintedState[catId] = level;
               }
           }
-
-          const results = await publicClient.multicall({ contracts: calls });
-          const currentMintedState: Record<string, number> = {};
-
-          results.forEach((res, index) => {
-              const { catId, level } = callMap[index];
-              if (res.status === 'success' && res.result === true) {
-                  if (!currentMintedState[catId] || currentMintedState[catId] < level) {
-                      currentMintedState[catId] = level;
-                  }
-              }
-          });
-
-          setMintedLevels(currentMintedState);
-      } catch (err) {
-          console.error("Multicall failed to fetch achievements", err);
-      }
-
-      let allTransfers: AlchemyTransfer[] = [];
-      let pageKey: string | undefined = undefined;
-      let loopCount = 0;
-
-      while (true) {
-          loopCount++;
-          const params: Record<string, unknown> = { 
-            fromBlock: "0x0", toBlock: "latest", fromAddress: address, 
-            category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
-          };
-          if (pageKey) params.pageKey = pageKey;
-          const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
-          const data = (await response.json()) as AlchemyResponse;
-          if (data.error) throw new Error(data.error.message);
-          allTransfers = [...allTransfers, ...(data.result?.transfers || [])];
-          pageKey = data.result?.pageKey;
-          if (!pageKey || loopCount > 5) break; 
-      }
+      });
+      setMintedLevels(currentMintedState);
       
       const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
       const tokenFrequency = new Map<string, number>(); 
