@@ -7,7 +7,7 @@ import {
   CreditCard, User, BadgeCheck, Send, X, AlertTriangle,
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets, Lock
 } from 'lucide-react';
-import { JsonRpcProvider, formatEther, toUtf8Bytes, Contract } from 'ethers';
+import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import sdk from "@farcaster/frame-sdk";
 import { connectWallet } from './connection';
 
@@ -18,7 +18,7 @@ import {
 } from '@coinbase/onchainkit/transaction'; 
 import { getName } from '@coinbase/onchainkit/identity';
 import { base } from 'viem/chains';
-import { encodeFunctionData } from 'viem';
+import { encodeFunctionData, createPublicClient, http } from 'viem';
 
 // --- CONFIGURATION ---
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "ZHHTYOLANc6hp1RX7bQp1"; 
@@ -215,28 +215,40 @@ export default function Page() {
       } catch (e) { console.error("NFT Fetch Error:", e); }
 
       try {
-          const achievementContract = new Contract(ACHIEVEMENTS_CONTRACT_ADDRESS, ACHIEVEMENTS_ABI, provider);
-          const currentMintedState: Record<string, number> = {};
+          const publicClient = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+          const calls = [];
+          const callMap: { catId: string, level: number }[] = [];
           
+          // Bundle all 55 read requests into a single array
           for (const cat of ACHIEVEMENTS) {
-              let highestMintedLevel = 0;
               for (let i = cat.thresholds.length; i >= 1; i--) {
                   const targetTokenId = getTargetTokenId(cat.baseId, cat.thresholds.length, i); 
-                  try {
-                      const hasMinted = await achievementContract.hasMinted(address, targetTokenId);
-                      if (hasMinted) {
-                          highestMintedLevel = i;
-                          break; 
-                      }
-                  } catch {
-                      // Silently skip
+                  calls.push({
+                      address: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`,
+                      abi: ACHIEVEMENTS_ABI,
+                      functionName: 'hasMinted',
+                      args: [address as `0x${string}`, BigInt(targetTokenId)]
+                  });
+                  callMap.push({ catId: cat.id, level: i });
+              }
+          }
+
+          // Execute them all at exactly the same time (1 network request!)
+          const results = await publicClient.multicall({ contracts: calls });
+          const currentMintedState: Record<string, number> = {};
+
+          results.forEach((res, index) => {
+              const { catId, level } = callMap[index];
+              if (res.status === 'success' && res.result === true) {
+                  if (!currentMintedState[catId] || currentMintedState[catId] < level) {
+                      currentMintedState[catId] = level;
                   }
               }
-              currentMintedState[cat.id] = highestMintedLevel;
-          }
+          });
+
           setMintedLevels(currentMintedState);
       } catch (err) {
-          console.error("Failed to fetch minted achievements", err);
+          console.error("Multicall failed to fetch achievements", err);
       }
 
       let allTransfers: AlchemyTransfer[] = [];
