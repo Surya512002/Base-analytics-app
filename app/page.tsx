@@ -40,8 +40,7 @@ function getBuilderSuffix() {
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
 
-// 👇 PASTE YOUR *NEW* REMIX CONTRACT ADDRESS HERE 👇
-const ACHIEVEMENTS_CONTRACT_ADDRESS = "0xadb8120B4B18b892cFAD171243074487122Dea03"; 
+const ACHIEVEMENTS_CONTRACT_ADDRESS = "0x2F87302E4d67d7e22B4adbEedD10B1B9A3ee63E2"; 
 
 const ACHIEVEMENTS_ABI = [
   {
@@ -156,7 +155,14 @@ export default function Page() {
   const gmCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gmDataWithTracking, value: BigInt(2000000000000) }];
   const gnCall = [{ to: GM_GN_CONTRACT_ADDRESS as `0x${string}`, data: gnDataWithTracking, value: BigInt(2000000000000) }];
 
-  const paymasterCapability = process.env.NEXT_PUBLIC_PAYMASTER_URL ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } : undefined;
+  // 🚨 THE FIX: This correctly formats the ERC-8021 tag for Smart Wallets to track 🚨
+  const transactionCapabilities = {
+    ...(process.env.NEXT_PUBLIC_PAYMASTER_URL ? { paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL } } : {}),
+    dataSuffix: {
+        value: `0x${getBuilderSuffix()}` as `0x${string}`,
+        optional: true
+    }
+  };
 
   const showToast = (message: string, hash: string) => {
     setToast({ show: true, message, hash });
@@ -423,7 +429,6 @@ export default function Page() {
     }
   };
 
-  // --- THE NEW BATCH-READY MINT HANDLER ---
   const handleNativeMint = async (catId: string, targetLevels: number[], tokenIds: number[], catName: string) => {
     if (!wallet || !wallet.address || transactingType !== null) return;
     setTransactingType(`mint-${catId}`);
@@ -431,7 +436,6 @@ export default function Page() {
     try {
         const isBatch = tokenIds.length > 1;
         
-        // Dynamically choose between Single Mint and Batch Mint based on how many they qualify for
         const mintDataRaw = isBatch
             ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] })
             : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
@@ -445,7 +449,6 @@ export default function Page() {
         
         if (hash && typeof hash === 'string') {
             showToast(isBatch ? `✅ Successfully claimed ${tokenIds.length} ${catName} Badges!` : `✅ Successfully minted!`, hash);
-            // Instantly unlocks the UI and updates all levels at once
             const highestLevelClaimed = Math.max(...targetLevels);
             setMintedLevels(prev => ({ ...prev, [catId]: highestLevelClaimed }));
             setTxKeys(prev => ({ ...prev, [`mint-${catId}`]: (prev[`mint-${catId}`] || 0) + 1 }));
@@ -464,41 +467,41 @@ export default function Page() {
 
   // --- SMART SHARE FUNCTIONS WITH STRICT PLATFORM ROUTING ---
   const shareAchievementTwitter = (catName: string, levelName: string) => {
-    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\\n\n Mint yours 👇\n${APP_URL_WEB}`;
+    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint yours 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAchievementWarpcast = (catName: string, levelName: string) => {
-    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\\n\n Mint yours 👇`;
+    const shareText = `I just minted the ${levelName} badge for ${catName} on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint yours 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareNativeScore = async () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵 \n\n Check your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇`;
     if (navigator.share) { try { await navigator.share({ title: 'My Base Analytics', text: shareText, url: APP_URL_WEB }); } catch {} } 
     else { alert("Link copied to clipboard!"); navigator.clipboard.writeText(`${shareText}\n${APP_URL_WEB}`); }
   };
 
   const shareScoreWarpcast = () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\n Check your score 👇`;
+    const shareText = `I'm a ${wallet.walletRank} on Base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nCheck your score 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
   const shareScoreTwitter = () => {
     if (!wallet) return;
-    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\n\n Check your score 👇\n${APP_URL_WEB}`;
+    const shareText = `I'm a ${wallet.walletRank} on @base! 🚀\n\nOnchain Score: ${wallet.score}/100 🔵\nBuilt by @TamilCrypt0 ⚡\n\nCheck your score 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAllBadgesTwitter = (badgeCount: number) => {
-    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\n\n Mint your identity 👇\n${APP_URL_WEB}`;
+    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @TamilCrypt0 ⚡\n\nMint your identity 👇\n${APP_URL_WEB}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const shareAllBadgesWarpcast = (badgeCount: number) => {
-    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\n\nMint your identity 👇`;
+    const shareText = `I just collected ${badgeCount} Onchain Badges on Base Analytics! 🏆🔵\n\nBuilt by @suryaprakash.farcaster.eth 🎩\n\nMint your identity 👇`;
     window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(MINIAPP_URL)}`, '_blank');
   };
 
@@ -593,7 +596,7 @@ export default function Page() {
                         {connectionType === 'farcaster' ? (
                             <button onClick={() => handleNativeTx('boost')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-black py-4 rounded-xl transition shadow-md shadow-[#0052FF]/30 ${transactingType ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0040C5]'}`}>{transactingType === 'boost' ? <RefreshCcw className="animate-spin" size={20} /> : 'BOOST SCORE (+1)'}</button>
                         ) : (
-                            <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { setUserBoosts(b => b + 1); setSponsoredTxs(st => st + 1); showToast('Boost Successful! 🎉', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setTxKeys(prev => ({ ...prev, boost: (prev.boost || 0) + 1 })); }}}>
+                            <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={transactionCapabilities} onStatus={(s) => { if (s.statusName === 'success') { setUserBoosts(b => b + 1); setSponsoredTxs(st => st + 1); showToast('Boost Successful! 🎉', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setTxKeys(prev => ({ ...prev, boost: (prev.boost || 0) + 1 })); }}}>
                                 <TransactionButton className="w-full min-h-14 flex items-center justify-center bg-[#0052FF] text-white font-black py-4 rounded-xl hover:bg-[#0040C5] transition shadow-md shadow-[#0052FF]/30" text="BOOST SCORE (+1)" />
                             </Transaction>
                         )}
@@ -704,7 +707,7 @@ export default function Page() {
                         {connectionType === 'farcaster' ? (
                             <button onClick={() => handleNativeTx('gm')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType !== null ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gm' ? <RefreshCcw className="animate-spin" size={20} /> : 'GM'}</button>
                         ) : (
-                            <Transaction key={`gm-${txKeys.gm}`} chainId={base.id} calls={gmCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GM Registered on Base! ☀️', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }}}>
+                            <Transaction key={`gm-${txKeys.gm}`} chainId={base.id} calls={gmCall} capabilities={transactionCapabilities} onStatus={(s) => { if (s.statusName === 'success') { showToast('GM Registered on Base! ☀️', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gm: (prev.gm || 0) + 1 })); }}}>
                                 <TransactionButton className="min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl w-full shadow-sm" text="GM" />
                             </Transaction>
                         )}
@@ -713,7 +716,7 @@ export default function Page() {
                         {connectionType === 'farcaster' ? (
                             <button onClick={() => handleNativeTx('gn')} disabled={transactingType !== null} className={`w-full min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] transition rounded-xl font-black text-xl shadow-sm ${transactingType !== null ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#0052FF] hover:text-white'}`}>{transactingType === 'gn' ? <RefreshCcw className="animate-spin" size={20} /> : 'GN'}</button>
                         ) : (
-                            <Transaction key={`gn-${txKeys.gn}`} chainId={base.id} calls={gnCall} capabilities={paymasterCapability} onStatus={(s) => { if (s.statusName === 'success') { showToast('GN Registered on Base! 🌙', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }}}>
+                            <Transaction key={`gn-${txKeys.gn}`} chainId={base.id} calls={gnCall} capabilities={transactionCapabilities} onStatus={(s) => { if (s.statusName === 'success') { showToast('GN Registered on Base! 🌙', s.statusData.transactionReceipts?.[0]?.transactionHash || ''); setSponsoredTxs(st => st + 1); setTxKeys(prev => ({ ...prev, gn: (prev.gn || 0) + 1 })); }}}>
                                 <TransactionButton className="min-h-14 flex items-center justify-center bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] hover:bg-[#0052FF] hover:text-white transition rounded-xl font-black text-xl w-full shadow-sm" text="GN" />
                             </Transaction>
                         )}
@@ -745,8 +748,6 @@ export default function Page() {
                     const nextTierThreshold = unlockedLevel < cat.thresholds.length ? cat.thresholds[unlockedLevel] : cat.thresholds[cat.thresholds.length - 1];
                     const progressPercentage = unlockedLevel === cat.thresholds.length ? 100 : Math.min(100, (value / nextTierThreshold) * 100);
 
-                    // --- BATCH CALCULATION LOGIC ---
-                    // Figure out exactly how many badges the user has unlocked but NOT minted yet
                     const tokensToMint: number[] = [];
                     const targetLevels: number[] = [];
                     for (let i = currentMintedLevel + 1; i <= unlockedLevel; i++) {
@@ -756,7 +757,6 @@ export default function Page() {
 
                     const isBatch = tokensToMint.length > 1;
                     
-                    // Create the smart contract transaction data based on whether it is 1 badge or a batch of badges
                     let mintCall: { to: `0x${string}`; data: `0x${string}` }[] = [];
                     if (tokensToMint.length > 0) {
                         const mintDataRaw = isBatch 
@@ -767,7 +767,6 @@ export default function Page() {
                         mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataWithTracking }];
                     }
 
-                    // Dynamically generate the button text based on how many they are claiming!
                     let buttonText = `${cat.tierNames[currentMintedLevel] || "..."} Locked`;
                     if (currentMintedLevel === cat.thresholds.length) {
                         buttonText = 'Fully Minted 👑';
@@ -837,7 +836,7 @@ export default function Page() {
                                         key={`mint-${cat.id}-${tokensToMint.join('-')}-${txKeys[`mint-${cat.id}`] || 0}`}
                                         chainId={base.id} 
                                         calls={mintCall} 
-                                        capabilities={paymasterCapability}
+                                        capabilities={transactionCapabilities}
                                         onStatus={(s) => {
                                             if (s.statusName === 'success') {
                                                 showToast(isBatch ? `✅ Successfully claimed ${tokensToMint.length} ${cat.name} Badges!` : `✅ Successfully minted!`, s.statusData.transactionReceipts?.[0]?.transactionHash || '');
