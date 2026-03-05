@@ -418,8 +418,8 @@ export default function BaseHub() {
   const quotientScore = fcResult ? Math.min(99.9, 40 + (Number(fcResult.reputation) * 5)).toFixed(1) : "0";
 
   // SHARE LINKS
-  const APP_WEBSITE_URL = "https://your-app-domain.vercel.app"; 
-  const FARCASTER_MINI_APP_URL = "https://your-app-domain.vercel.app/api/frame"; 
+  const APP_WEBSITE_URL = "https://base-analytics-app.vercel.app/"; 
+  const FARCASTER_MINI_APP_URL = "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics"; 
   const rawShareMessage = fcResult ? `I just scored a ${fcResult.reputation}/10 Neynar Score on Base Analytics! 🔵🚀 Check your onchain and Farcaster reputation here:` : '';
   const xShareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(rawShareMessage)}&url=${encodeURIComponent(APP_WEBSITE_URL)}`;
   const fcShareLink = `https://warpcast.com/~/compose?text=${encodeURIComponent(rawShareMessage)}&embeds[]=${encodeURIComponent(FARCASTER_MINI_APP_URL)}`;
