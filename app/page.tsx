@@ -250,7 +250,7 @@ export default function Page() {
               loopCount++;
               const params: Record<string, unknown> = { 
                 fromBlock: "0x0", toBlock: "latest", fromAddress: address, 
-                category: ["external", "internal","erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
+                category: ["external","erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
               };
               if (pageKey) params.pageKey = pageKey;
               const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
@@ -304,6 +304,29 @@ export default function Page() {
         }
         if (tx.category === 'external') contractInteractions++;
         if (tx.to && tx.to.toLowerCase() === BOOSTER_CONTRACT_ADDRESS.toLowerCase()) historicalBoosts++;
+      }
+
+      for (const tx of allTransfers) {
+        // ... your existing loop code ...
+        if (tx.category === 'external') contractInteractions++;
+        if (tx.to && tx.to.toLowerCase() === BOOSTER_CONTRACT_ADDRESS.toLowerCase()) historicalBoosts++;
+      }
+
+      // 🚀 NEW FIX: Fetch internal transactions for Smart Wallets via BaseScan
+      try {
+          const bsRes = await fetch(`https://api.basescan.org/api?module=account&action=txlistinternal&address=${address}&startblock=0&endblock=latest&sort=asc`);
+          const bsData = await bsRes.json();
+          
+          if (bsData.status === "1" && Array.isArray(bsData.result)) {
+              for (const tx of bsData.result) {
+                  // If the internal transaction went to your Booster contract, count it!
+                  if (tx.to && tx.to.toLowerCase() === BOOSTER_CONTRACT_ADDRESS.toLowerCase()) {
+                      historicalBoosts++;
+                  }
+              }
+          }
+      } catch (err) {
+          console.error("BaseScan Smart Wallet fix failed:", err);
       }
 
       setUserBoosts(historicalBoosts);
