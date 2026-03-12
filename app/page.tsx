@@ -250,7 +250,7 @@ export default function Page() {
               loopCount++;
               const params: Record<string, unknown> = { 
                 fromBlock: "0x0", toBlock: "latest", fromAddress: address, 
-                category: ["external", "erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
+                category: ["external", "internal","erc20", "erc721", "erc1155"], maxCount: "0x3e8", withMetadata: true 
               };
               if (pageKey) params.pageKey = pageKey;
               const response = await fetch(BASE_RPC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }) });
