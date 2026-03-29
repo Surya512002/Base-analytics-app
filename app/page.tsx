@@ -489,9 +489,12 @@ export default function Page() {
     try {
         const isBatch = tokenIds.length > 1;
         
-        const mintDataRaw = isBatch
+        const rawData = isBatch
             ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] })
             : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
+            
+        // 🚀 BUILDER SUFFIX ATTACHED HERE FOR NATIVE FARCASATER MINT 🚀
+        const mintDataRaw = `${rawData}${getBuilderSuffix()}` as `0x${string}`;
         
         const txParams: { from: `0x${string}`; to: `0x${string}`; data: `0x${string}`; chainId: `0x${string}` } = { 
             from: wallet.address as `0x${string}`, to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataRaw, chainId: '0x2105' 
@@ -827,9 +830,12 @@ export default function Page() {
                     
                     let mintCall: { to: `0x${string}`; data: `0x${string}` }[] = [];
                     if (tokensToMint.length > 0) {
-                        const mintDataRaw = isBatch 
+                        const rawData = isBatch 
                             ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokensToMint.map(id => BigInt(id))] })
                             : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokensToMint[0])] });
+                        
+                        // 🚀 BUILDER SUFFIX ATTACHED HERE FOR ONCHAINKIT MINT 🚀
+                        const mintDataRaw = `${rawData}${getBuilderSuffix()}` as `0x${string}`;
                         
                         mintCall = [{ to: ACHIEVEMENTS_CONTRACT_ADDRESS as `0x${string}`, data: mintDataRaw }];
                     }
@@ -954,4 +960,4 @@ function StatCard({ label, value, icon }: { label: string, value: string, icon: 
             <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mt-1">{label}</p>
         </div>
     );
-} 
+}
