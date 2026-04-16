@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power,BookOpen, 
+  Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, BookOpen, 
   RefreshCcw, Sun, FileCode, BarChart3, Trophy, 
   CreditCard, User, BadgeCheck, Send, X, AlertTriangle,
-  ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Moon, Sparkles, Medal, History, Droplets, Lock
+  ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Sparkles, Medal, History, Droplets, Lock
 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 import { connectWallet } from './connection';
 import BaseHub from '../components/BaseHub';
 
@@ -18,9 +18,8 @@ import {
   Transaction, 
   TransactionButton
 } from '@coinbase/onchainkit/transaction'; 
-import { getName } from '@coinbase/onchainkit/identity';
 import { encodeFunctionData, createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
+import { base, mainnet } from 'viem/chains';
 
 
 // --- CONFIGURATION ---
@@ -33,7 +32,7 @@ const BUILDER_CODE = "bc_4uoh9iu2";
 
 function getBuilderSuffix() {
   const codeBytes = toUtf8Bytes(BUILDER_CODE);
-  const codeHex = Array.from(codeBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const codeHex = Array.from(codeBytes).map((b: number) => b.toString(16).padStart(2, '0')).join('');
   const lengthHex = codeBytes.length.toString(16).padStart(2, '0'); 
   const schemaId = "00";
   const ercMarker = "80218021802180218021802180218021"; 
@@ -42,6 +41,17 @@ function getBuilderSuffix() {
 
 const BOOSTER_CONTRACT_ADDRESS = "0xd14E38239791738e8aCbd0Ad5278496af26fF510"; 
 const GM_GN_CONTRACT_ADDRESS = "0xc801bCe6739D30C409151a544F0baEd10EB719dE"; 
+
+// --- BASE DEFI ROUTERS (Lend/Borrow/Stake Heuristics) ---
+const DEFI_PROTOCOLS = [
+  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43", // Aerodrome Router
+  "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296", // Moonwell
+  "0x8ebaf22e6f05b4fbce41712019ba2289f631eff2", // Aave
+  "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap Permit2
+  "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237", // Degen Router
+  "0x280b3b748ccc42d5062ce59111fad08594f51d9f", // BaseSwap
+  "0x4200000000000000000000000000000000000006", // WETH Wrappers
+];
 
 // --- YOUR NEW BATCH-READY SMART CONTRACT ---
 const ACHIEVEMENTS_CONTRACT_ADDRESS = "0xadb8120B4B18b892cFAD171243074487122Dea03"; 
@@ -129,7 +139,7 @@ interface WalletData {
   contractInteractions: number; nftCount: number; walletRank: string; 
   score: number; historyDays: number; weekLabels: string[]; dailyStats: DayStats[];
   topTokens: string[]; recommendation: string; recentTxs: AlchemyTransfer[];
-  daysOnBase: number;
+  daysOnBase: number; defiInteractions: number;
 }
 interface AlchemyTransfer { hash: string; category: string; value: number | null; asset: string | null; to: string | null; metadata: { blockTimestamp: string; }; }
 interface AlchemyResponse { result?: { transfers: AlchemyTransfer[]; pageKey?: string; }; error?: { message: string; }; }
@@ -208,8 +218,17 @@ export default function Page() {
       
       // 🚀 1. FIRE ALL NETWORK REQUESTS AT THE EXACT SAME TIME 🚀
       
-      // Request A: Basename
-      const basenamePromise = getName({ address: address as `0x${string}`, chain: base }).catch(() => null);
+      // Request A: Basename (Upgraded to use Viem CCIP-Read + Alchemy Key)
+      const mainnetClient = createPublicClient({ 
+          chain: mainnet, 
+          transport: http(`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`) 
+      });
+      const basenamePromise = mainnetClient.getEnsName({ 
+          address: address as `0x${string}` 
+      }).catch((err) => {
+          console.error("Basename fetch error:", err); 
+          return null;
+      });
       
       // Request B: ETH Balance
       const balancePromise = provider.getBalance(address).catch(() => BigInt(0));
@@ -241,7 +260,7 @@ export default function Page() {
       }
       const multicallPromise = publicClient.multicall({ contracts: calls }).catch(() => []);
 
-      // Request E: Transaction History
+      // Request E: Transaction History (Removed 'internal' to prevent Alchemy crash on Base)
       const transfersPromise = (async () => {
           let transfers: AlchemyTransfer[] = [];
           let pageKey: string | undefined = undefined;
@@ -288,7 +307,7 @@ export default function Page() {
       
       const uniqueDays = new Set<string>(), uniqueWeeks = new Set<string>(), uniqueMonths = new Set<string>(), uniqueTokens = new Set<string>();
       const tokenFrequency = new Map<string, number>(); 
-      let ethVolume = 0.0, swapCount = 0, contractInteractions = 0, historicalBoosts = 0; 
+      let ethVolume = 0.0, swapCount = 0, contractInteractions = 0, historicalBoosts = 0, defiInteractions = 0; 
       const txsPerDay = new Map<string, number>();
       const addTxToDay = (dateStr: string) => txsPerDay.set(dateStr, (txsPerDay.get(dateStr) || 0) + 1);
 
@@ -298,11 +317,16 @@ export default function Page() {
         uniqueDays.add(dayStr); addTxToDay(dayStr);
         uniqueWeeks.add(getISOWeekToken(d)); uniqueMonths.add(`${d.getUTCFullYear()}-${d.getUTCMonth()}`);
         if (tx.value && (tx.asset === 'ETH' || tx.asset === 'WETH')) ethVolume += tx.value;
+        
+        if (tx.category === 'erc20') swapCount++;
+        
         if (['erc20', 'erc721', 'erc1155'].includes(tx.category)) { 
-            swapCount++; 
             if (tx.asset) { uniqueTokens.add(tx.asset); tokenFrequency.set(tx.asset, (tokenFrequency.get(tx.asset) || 0) + 1); }
         }
+        
         if (tx.category === 'external') contractInteractions++;
+        if (tx.to && DEFI_PROTOCOLS.includes(tx.to.toLowerCase())) defiInteractions++;
+        
         if (tx.to && tx.to.toLowerCase() === BOOSTER_CONTRACT_ADDRESS.toLowerCase()) historicalBoosts++;
       }
 
@@ -310,16 +334,13 @@ export default function Page() {
       let finalBoosts = historicalBoosts;
       
       if (typeof window !== 'undefined') {
-          // Check if the browser remembers a higher score for this specific wallet
           const cachedBoosts = localStorage.getItem(`base_boosts_${address.toLowerCase()}`);
           if (cachedBoosts) {
               const parsedCache = parseInt(cachedBoosts, 10);
-              // Smart Wallet txs hide from scanners, so we trust the local cache if it's higher
               if (parsedCache > finalBoosts) {
                   finalBoosts = parsedCache;
               }
           }
-          // Save the absolute highest truth back to the memory
           localStorage.setItem(`base_boosts_${address.toLowerCase()}`, finalBoosts.toString());
       }
 
@@ -391,7 +412,7 @@ export default function Page() {
 
       const finalScore = Math.floor(
           Math.min(25, totalTxCount/20) + Math.min(20, uniqueDays.size/5) + Math.min(15, uniqueMonths.size*1.25) + 
-          Math.min(15, currentStreak*1.1) + Math.min(10, ethVolume*2) + Math.min(10, uniqueTokens.size/2) + (basename ? 5 : 0)
+          Math.min(15, currentStreak*1.1) + Math.min(10, ethVolume*2) + Math.min(10, uniqueTokens.size/2) + Math.min(5, defiInteractions * 2) + (basename ? 5 : 0)
       );
 
       let walletRank = "Base Shrimp 🦐";
@@ -405,7 +426,7 @@ export default function Page() {
         txCount: totalTxCount, uniqueDays: uniqueDays.size, activeWeeks: uniqueWeeks.size, activeMonths: uniqueMonths.size,
         currentStreak, longestStreak, firstTx: firstTxStr, lastTx: lastTxStr, daysSinceActive,
         tokensSwapped: uniqueTokens.size, swapCount, contractInteractions, nftCount: actualNftCount, walletRank,
-        score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels, topTokens, recommendation, recentTxs, daysOnBase
+        score: Math.min(100, finalScore), dailyStats, historyDays, weekLabels, topTokens, recommendation, recentTxs, daysOnBase, defiInteractions
       });
     } catch { 
       setWallet(null);
@@ -493,7 +514,7 @@ export default function Page() {
             ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] })
             : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
             
-        // 🚀 BUILDER SUFFIX ATTACHED HERE FOR NATIVE FARCASATER MINT 🚀
+        // 🚀 BUILDER SUFFIX ATTACHED HERE FOR NATIVE FARCASTER MINT 🚀
         const mintDataRaw = `${rawData}${getBuilderSuffix()}` as `0x${string}`;
         
         const txParams: { from: `0x${string}`; to: `0x${string}`; data: `0x${string}`; chainId: `0x${string}` } = { 
@@ -747,15 +768,17 @@ export default function Page() {
 
                 <StatCard label="Wallet Balance" value={`${wallet.balance} ETH`} icon={<CreditCard size={18}/>} />
                 <StatCard label="Days on Base" value={wallet.daysOnBase.toLocaleString()} icon={<Clock size={18}/>} />
+                <StatCard label="Active Weeks" value={wallet.activeWeeks.toLocaleString()} icon={<Calendar size={18}/>} />
+                <StatCard label="Active Months" value={wallet.activeMonths.toLocaleString()} icon={<Calendar size={18}/>} />
                 <StatCard label="Current Streak" value={`${wallet.currentStreak} Days`} icon={<Zap size={18}/>} />
                 <StatCard label="Longest Streak" value={`${wallet.longestStreak} Days`} icon={<Trophy size={18}/>} />
                 <StatCard label="First Active Date" value={wallet.firstTx} icon={<Calendar size={18}/>} />
                 <StatCard label="Total Active Days" value={wallet.uniqueDays.toString()} icon={<Sun size={18}/>} />
-                <StatCard label="Days Inactive" value={wallet.daysSinceActive.toString()} icon={<Moon size={18}/>} />
                 <StatCard label="Total Txs" value={wallet.txCount.toLocaleString()} icon={<Layers size={18}/>} />
+                <StatCard label="Token Swaps" value={wallet.swapCount.toLocaleString()} icon={<RefreshCcw size={18}/>} />
+                <StatCard label="DeFi / Stake / Borrow" value={wallet.defiInteractions.toLocaleString()} icon={<Layers size={18}/>} />
                 <StatCard label="ETH Volume" value={`${wallet.ethVolume} Ξ`} icon={<ArrowRightLeft size={18}/>} />
                 <StatCard label="NFTs Transferred" value={wallet.nftCount.toLocaleString()} icon={<Sparkles size={18}/>} />
-                <StatCard label="Token Transfers" value={wallet.swapCount.toLocaleString()} icon={<RefreshCcw size={18}/>} />
                 <StatCard label="Contract Txs" value={wallet.contractInteractions.toLocaleString()} icon={<FileCode size={18}/>} />
             </div>
 
@@ -960,4 +983,4 @@ function StatCard({ label, value, icon }: { label: string, value: string, icon: 
             <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mt-1">{label}</p>
         </div>
     );
-}
+} 
