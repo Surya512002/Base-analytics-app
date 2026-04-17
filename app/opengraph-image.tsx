@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Base Analytics - Mint Your Onchain Identity';
+export const alt = 'Base Analytics — Season 1: Genesis. Mint Your Onchain Identity.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -13,107 +13,174 @@ export default async function Image() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'row', 
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: '#e2e8f0', // Clean, solid, Satori-safe Slate-200 background
+          backgroundColor: '#0a0f1e',
           fontFamily: 'sans-serif',
-          padding: '60px',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {/* ================= LEFT SIDE: COPY & BRAND ================= */}
-        <div style={{ display: 'flex', flexDirection: 'column', width: '55%', height: '100%', justifyContent: 'space-between' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* Top Brand Tag */}
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '12px 24px', borderRadius: '24px', width: '280px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', width: '28px', height: '28px', borderRadius: '14px', backgroundColor: '#0052FF', alignItems: 'center', justifyContent: 'center', marginRight: '12px' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '5px', backgroundColor: 'white' }} />
+        {/* Background grid pattern */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'linear-gradient(rgba(0,82,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,82,255,0.07) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+          display: 'flex',
+        }} />
+
+        {/* Blue glow top-left */}
+        <div style={{
+          position: 'absolute', top: '-120px', left: '-80px',
+          width: '500px', height: '500px', borderRadius: '250px',
+          background: 'radial-gradient(circle, rgba(0,82,255,0.35) 0%, transparent 70%)',
+          display: 'flex',
+        }} />
+        {/* Purple glow bottom-right */}
+        <div style={{
+          position: 'absolute', bottom: '-100px', right: '-60px',
+          width: '400px', height: '400px', borderRadius: '200px',
+          background: 'radial-gradient(circle, rgba(138,43,226,0.3) 0%, transparent 70%)',
+          display: 'flex',
+        }} />
+
+        {/* Main content */}
+        <div style={{ display: 'flex', width: '100%', height: '100%', padding: '56px 64px', alignItems: 'stretch', gap: '48px' }}>
+
+          {/* LEFT */}
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+
+            {/* Logo + brand */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '24px',
+                background: '#0052FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 24px rgba(0,82,255,0.6)',
+              }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '10px', background: 'white', display: 'flex' }} />
               </div>
-              <span style={{ color: '#0052FF', fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px' }}>
-                Base Analytics
+              <span style={{ color: '#ffffff', fontSize: '22px', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase' }}>
+                BASE ANALYTICS
               </span>
             </div>
 
-            {/* Main Title */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <span style={{ fontSize: '72px', fontWeight: 900, color: '#1e293b', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+            {/* Season badge */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              background: 'rgba(0,82,255,0.15)', border: '1px solid rgba(0,82,255,0.4)',
+              borderRadius: '12px', padding: '8px 16px', width: 'fit-content',
+            }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '4px', background: '#0052FF', display: 'flex' }} />
+              <span style={{ color: '#60a5fa', fontSize: '15px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>
+                Season 1: Genesis — Future Rewards Locked In
+              </span>
+            </div>
+
+            {/* Main headline */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '68px', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, letterSpacing: '-1px' }}>
                 Mint Your True
               </span>
-              <span style={{ fontSize: '72px', fontWeight: 900, color: '#0052FF', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+              <span style={{
+                fontSize: '68px', fontWeight: 900, lineHeight: 1.05, letterSpacing: '-1px',
+                background: 'linear-gradient(90deg, #0052FF, #8A2BE2)',
+                color: '#0052FF',
+              }}>
                 Onchain Identity
               </span>
             </div>
 
-            <span style={{ fontSize: '28px', color: '#475569', marginTop: '25px', fontWeight: 600 }}>
-              Track your stats. Claim your badges.Flex your Base status gasless.
+            {/* Subtext */}
+            <span style={{ fontSize: '24px', color: '#94a3b8', fontWeight: 600, lineHeight: 1.4 }}>
+              Track stats · Climb the leaderboard · Claim gasless badges · Earn Season XP
             </span>
-          </div>
 
-          {/* Social Accounts */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '2px solid #cbd5e1', paddingTop: '30px' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ color: '#64748b', fontSize: '22px', fontWeight: 700, width: '140px', textTransform: 'uppercase', letterSpacing: '1px' }}>Built By X:</span>
-              <span style={{ color: '#0052FF', fontSize: '26px', fontWeight: 900 }}>@TamilCrypt0</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ================= RIGHT SIDE: VISUAL DASHBOARD ================= */}
-        <div style={{ display: 'flex', flexDirection: 'column', width: '40%', height: '100%', justifyContent: 'center', gap: '30px' }}>
-          
-          {/* Card 1: Simulated Onchain Score Dial */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '30px', padding: '40px 30px', boxShadow: '0 10px 30px rgba(0,82,255,0.1)' }}>
-            <span style={{ color: '#0052FF', fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '20px' }}>Onchain Score</span>
-            
-            <div style={{ display: 'flex', position: 'relative', width: '180px', height: '180px', alignItems: 'center', justifyContent: 'center' }}>
-              {/* SVG Circular Progress Bar */}
-              <svg width="180" height="180" viewBox="0 0 180 180" style={{ position: 'absolute' }}>
-                <circle cx="90" cy="90" r="75" stroke="#f1f5f9" strokeWidth="16" fill="none" />
-                <circle cx="90" cy="90" r="75" stroke="#0052FF" strokeWidth="16" fill="none" strokeDasharray="471" strokeDashoffset="70" strokeLinecap="round" />
-              </svg>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '64px', fontWeight: 900, color: '#0052FF', lineHeight: 1 }}>88</span>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: '#64748b' }}>/ 100</span>
-              </div>
+            {/* Bottom row: stats */}
+            <div style={{ display: 'flex', gap: '16px' }}>
+              {[
+                { label: 'Onchain Badges', value: '11' },
+                { label: 'XP Quests', value: '6' },
+                { label: 'Season Days', value: '91' },
+              ].map((s, i) => (
+                <div key={i} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px', padding: '16px 24px',
+                }}>
+                  <span style={{ color: '#0052FF', fontSize: '32px', fontWeight: 900 }}>{s.value}</span>
+                  <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{s.label}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Card 2: Simulated Minted Badges */}
-          <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '30px', padding: '30px', boxShadow: '0 10px 30px rgba(0,82,255,0.1)' }}>
-            <span style={{ color: '#0052FF', fontSize: '16px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '15px' }}>Minted Badges</span>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              
-              {/* Legendary Badge (Blue) */}
-              <div style={{ display: 'flex', width: '80px', height: '80px', backgroundColor: '#0052FF', borderRadius: '20px', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8 12 2" />
-                </svg>
-              </div>
+          {/* RIGHT */}
+          <div style={{ display: 'flex', flexDirection: 'column', width: '340px', gap: '20px', justifyContent: 'center' }}>
 
-              {/* Gold Badge (Yellow/Amber) */}
-              <div style={{ display: 'flex', width: '80px', height: '80px', backgroundColor: '#facc15', border: '2px solid #ca8a04', borderRadius: '20px', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#854d0e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 3h12l4 6-10 12L2 9l4-6z" />
-                  <path d="M2 9h20" />
-                  <path d="M12 21V9" />
+            {/* Score card */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,82,255,0.3)',
+              borderRadius: '28px', padding: '32px 24px',
+              boxShadow: '0 0 40px rgba(0,82,255,0.15)',
+            }}>
+              <span style={{ color: '#0052FF', fontSize: '13px', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px' }}>Onchain Score</span>
+              <div style={{ display: 'flex', position: 'relative', width: '150px', height: '150px', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="150" height="150" viewBox="0 0 150 150" style={{ position: 'absolute' }}>
+                  <circle cx="75" cy="75" r="62" stroke="rgba(255,255,255,0.06)" strokeWidth="14" fill="none" />
+                  <circle cx="75" cy="75" r="62" stroke="#0052FF" strokeWidth="14" fill="none"
+                    strokeDasharray="390" strokeDashoffset="55" strokeLinecap="round"
+                    style={{ filter: 'drop-shadow(0 0 8px rgba(0,82,255,0.8))' }} />
                 </svg>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '54px', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>88</span>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#64748b' }}>/100</span>
+                </div>
               </div>
-
-              {/* Silver Badge (Slate) */}
-              <div style={{ display: 'flex', width: '80px', height: '80px', backgroundColor: '#e2e8f0', border: '2px solid #94a3b8', borderRadius: '20px', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </div>
-
+              <span style={{ color: '#60a5fa', fontSize: '16px', fontWeight: 800, marginTop: '12px' }}>Base God 👑</span>
             </div>
-          </div>
 
+            {/* Badges row */}
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '24px', padding: '20px',
+            }}>
+              <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '14px' }}>Minted Badges</span>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between' }}>
+                {[
+                  { bg: 'linear-gradient(135deg,#0052FF,#8A2BE2)', emoji: '👑' },
+                  { bg: 'linear-gradient(135deg,#f59e0b,#d97706)', emoji: '🐋' },
+                  { bg: 'linear-gradient(135deg,#6b7280,#4b5563)', emoji: '🏗️' },
+                  { bg: 'linear-gradient(135deg,#10b981,#059669)', emoji: '🦄' },
+                ].map((b, i) => (
+                  <div key={i} style={{
+                    width: '62px', height: '62px', borderRadius: '16px',
+                    background: b.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '26px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                  }}>
+                    {b.emoji}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Referral pill */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              background: 'rgba(138,43,226,0.12)', border: '1px solid rgba(138,43,226,0.3)',
+              borderRadius: '16px', padding: '14px 18px',
+            }}>
+              <span style={{ fontSize: '20px' }}>🎁</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ color: '#c084fc', fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Referral Bonus</span>
+                <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 600 }}>+50 XP when friends join</span>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     ),
     { ...size }
   );
-} 
+}
+ 
