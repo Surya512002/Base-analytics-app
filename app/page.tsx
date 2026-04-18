@@ -171,7 +171,7 @@ function getDaysLeft() {
   return Math.max(0,Math.ceil((SEASON_END.getTime()-now.getTime())/(1000*3600*24)));
 }
 
-// --- SHARE HELPERS with Season mention + referral ---
+// --- SHARE HELPERS ---
 function buildShareText(wallet:WalletData, referralCode:string, extra:string=''):string {
   return `${extra}\n\n🔵 ${SEASON_NAME} is LIVE — earn XP, mint badges & unlock future rewards!\n🎁 Join with my link: ${APP_URL_WEB}?ref=${referralCode}\n\n#BaseAnalytics #Base #OnchainSummer`;
 }
@@ -572,30 +572,30 @@ export default function Page() {
   );
 
   if(!wallet)return(
-    <div className="min-h-screen bg-[#0d1117] flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+    <div className="min-h-screen bg-[#0d1117] flex flex-col items-center justify-center p-4 sm:p-6 text-center relative overflow-hidden">
       {/* Grid bg */}
       <div className="absolute inset-0 opacity-20" style={{backgroundImage:'linear-gradient(rgba(0,82,255,0.15)1px,transparent 1px),linear-gradient(90deg,rgba(0,82,255,0.15)1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
       {/* Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"/>
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-600/15 rounded-full blur-3xl"/>
 
-      <div className="relative z-10 flex flex-col items-center">
-        <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-blue-600/50 rotate-3">
-          <Activity className="text-white" size={40}/>
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm mx-auto">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-blue-600/50 rotate-3">
+          <Activity className="text-white" size={32}/>
         </div>
-        <h1 className="text-5xl md:text-7xl font-black text-white mb-3 tracking-tighter">BASE<span className="text-blue-500">.</span>ANALYTICS</h1>
-        <p className="text-slate-400 font-medium max-w-sm mx-auto mb-3">Discover your true Onchain identity. Farm XP. Climb the leaderboard.</p>
+        <h1 className="text-[11vw] sm:text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter text-center leading-none">BASE<span className="text-blue-500">.</span>ANALYTICS</h1>
+        <p className="text-slate-400 font-medium max-w-xs mx-auto mb-4 text-sm sm:text-base">Discover your true Onchain identity. Farm XP. Climb the leaderboard.</p>
 
         {/* Season pill */}
-        <div className="inline-flex items-center gap-2 bg-blue-600/10 border border-blue-500/30 rounded-full px-4 py-2 mb-8">
+        <div className="inline-flex items-center gap-2 bg-blue-600/10 border border-blue-500/30 rounded-full px-4 py-2 mb-8 text-xs">
           <Star size={12} className="text-blue-400"/>
-          <span className="text-blue-300 text-xs font-black uppercase tracking-widest">{SEASON_NAME}</span>
-          <span className="text-slate-500 text-xs">·</span>
-          <span className="text-slate-400 text-xs font-bold">{getDaysLeft()}d left</span>
+          <span className="text-blue-300 font-black uppercase tracking-widest">{SEASON_NAME}</span>
+          <span className="text-slate-500">·</span>
+          <span className="text-slate-400 font-bold">{getDaysLeft()}d left</span>
         </div>
 
         {/* Season progress */}
-        <div className="w-full max-w-xs mb-8">
+        <div className="w-full mb-8">
           <div className="w-full bg-white/5 rounded-full h-1.5 mb-1">
             <div className="bg-blue-600 h-1.5 rounded-full transition-all shadow-sm shadow-blue-600/50" style={{width:`${getSeasonProgress().toFixed(0)}%`}}/>
           </div>
@@ -603,16 +603,16 @@ export default function Page() {
         </div>
 
         <button onClick={()=>setShowConnectModal(true)} disabled={loading}
-          className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition active:scale-95 shadow-xl shadow-blue-600/40">
+          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition active:scale-95 shadow-xl shadow-blue-600/40">
           {loading?<RefreshCcw className="animate-spin"/>:<Wallet size={22}/>}
           {loading?"Scanning...":"Connect Wallet"}
         </button>
 
-        <div className="mt-6 grid grid-cols-3 gap-3 w-full max-w-xs">
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3 w-full">
           {[{v:'11+',l:'Badges'},{v:'6',l:'Quests'},{v:getDaysLeft()+'d',l:'Season Left'}].map((s,i)=>(
-            <div key={i} className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-white font-black text-lg">{s.v}</p>
-              <p className="text-slate-500 text-[9px] uppercase font-bold tracking-wide">{s.l}</p>
+            <div key={i} className="bg-white/5 border border-white/5 rounded-xl p-2 sm:p-3 text-center">
+              <p className="text-white font-black text-base sm:text-lg">{s.v}</p>
+              <p className="text-slate-500 text-[8px] sm:text-[9px] uppercase font-bold tracking-wide">{s.l}</p>
             </div>
           ))}
         </div>
@@ -645,35 +645,35 @@ export default function Page() {
 
       {/* TOAST */}
       {toast&&(
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-center gap-4 animate-in slide-in-from-bottom-4 max-w-sm w-full mx-4">
-          <BadgeCheck size={20}/><div className="flex-1 min-w-0"><p className="font-bold text-sm">{toast.message}</p>{toast.hash&&<a href={`https://basescan.org/tx/${toast.hash}`} target="_blank" rel="noreferrer" className="text-blue-200 text-xs underline">View on BaseScan ↗</a>}</div>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-center gap-4 animate-in slide-in-from-bottom-4 max-w-[90%] w-full sm:max-w-sm mx-4">
+          <BadgeCheck size={20} className="shrink-0"/><div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{toast.message}</p>{toast.hash&&<a href={`https://basescan.org/tx/${toast.hash}`} target="_blank" rel="noreferrer" className="text-blue-200 text-xs underline">View on BaseScan ↗</a>}</div>
           <button onClick={()=>setToast(null)} className="shrink-0 bg-white/10 p-1.5 rounded-lg hover:bg-white/20"><X size={14}/></button>
         </div>
       )}
 
       {/* HEADER */}
-      <div className="sticky top-0 z-40 bg-[#0d1117]/90 backdrop-blur-xl border-b border-white/5 px-4 py-3">
-        <div className="flex justify-between items-center max-w-4xl mx-auto">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/40"><Activity size={16} className="text-white"/></div>
-            <span className="font-black text-base tracking-tight text-white">BASE<span className="text-blue-500">.</span>ANALYTICS</span>
+      <div className="sticky top-0 z-40 bg-[#0d1117]/90 backdrop-blur-xl border-b border-white/5 px-2 sm:px-4 py-2 sm:py-3">
+        <div className="flex justify-between items-center max-w-6xl 2xl:max-w-7xl mx-auto gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/40 shrink-0"><Activity size={14} className="text-white"/></div>
+            <span className="font-black text-[11px] sm:text-base tracking-tight text-white truncate">BASE<span className="text-blue-500">.</span>ANALYTICS</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="hidden sm:flex items-center gap-1.5 bg-white/5 border border-white/8 rounded-xl px-2.5 py-1.5">
               <Star size={11} className="text-blue-400"/><span className="text-[10px] font-black text-blue-300">{SEASON_NAME}</span>
               <span className="text-white/20">·</span><span className="text-[10px] text-slate-500">{getDaysLeft()}d</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-2.5 py-1.5">
-              <Zap size={11} className="text-yellow-400"/><span className="text-[10px] font-black text-yellow-300">{weeklyXP} XP</span>
+            <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg sm:rounded-xl px-2 sm:px-2.5 py-1 sm:py-1.5">
+              <Zap size={11} className="text-yellow-400"/><span className="text-[9px] sm:text-[10px] font-black text-yellow-300 whitespace-nowrap">{weeklyXP} XP</span>
             </div>
-            <button onClick={handleDisconnect} className="p-2 bg-white/5 border border-white/8 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition"><Power size={14}/></button>
+            <button onClick={handleDisconnect} className="p-1.5 sm:p-2 bg-white/5 border border-white/8 rounded-lg sm:rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition shrink-0"><Power size={14}/></button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 pt-4">
+      <div className="max-w-6xl 2xl:max-w-7xl mx-auto px-2 sm:px-4 pt-4">
         {/* TABS */}
-        <div className="flex bg-white/5 border border-white/8 p-1 rounded-2xl mb-6 overflow-x-auto gap-0.5">
+        <div className="flex justify-start md:justify-center bg-white/5 border border-white/8 p-1 rounded-2xl mb-6 overflow-x-auto gap-0.5 no-scrollbar flex-nowrap">
           {[
             {id:'dashboard',icon:<BarChart3 size={13}/>,label:'Dashboard'},
             {id:'achievements',icon:<Trophy size={13}/>,label:'Badges'},
@@ -682,7 +682,7 @@ export default function Page() {
             {id:'basehub',icon:<BookOpen size={13}/>,label:'Base Hub'},
           ].map(tab=>(
             <button key={tab.id} onClick={()=>setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 py-2 rounded-xl font-bold text-[10px] sm:text-xs transition-all flex flex-col sm:flex-row justify-center items-center gap-1 whitespace-nowrap px-1.5 ${activeTab===tab.id?'bg-blue-600 text-white shadow-lg shadow-blue-600/30':'text-slate-500 hover:text-slate-300'}`}>
+              className={`py-2 rounded-xl font-bold text-[10px] sm:text-xs transition-all flex flex-col sm:flex-row justify-center items-center gap-1 px-3 sm:px-4 shrink-0 ${activeTab===tab.id?'bg-blue-600 text-white shadow-lg shadow-blue-600/30':'text-slate-500 hover:text-slate-300'}`}>
               {tab.icon}<span>{tab.label}</span>
             </button>
           ))}
@@ -690,68 +690,73 @@ export default function Page() {
 
         {/* ===== DASHBOARD ===== */}
         {activeTab==='dashboard'&&(
-          <div className="animate-in fade-in slide-in-from-bottom-3 space-y-4">
+          <div className="animate-in fade-in slide-in-from-bottom-3">
 
-            {/* Check-in banner */}
-            <div className={`rounded-2xl p-4 flex items-center justify-between border ${hasCheckedInToday?'bg-green-500/10 border-green-500/20':'bg-blue-600/8 border-blue-500/20'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${hasCheckedInToday?'bg-green-500/20':'bg-blue-600/20'}`}><Flame size={18} className={hasCheckedInToday?'text-green-400':'text-blue-400'}/></div>
-                <div>
-                  <p className="font-black text-sm text-white">{hasCheckedInToday?`Streak Secured: ${onchainStreak} Days 🔥`:'Daily Onchain Check-In Available'}</p>
-                  <p className="text-[10px] text-slate-500">{hasCheckedInToday?'Your streak is recorded on Base.':'Sign a gas-free tx to log your streak onchain.'}</p>
+            {/* Check-in banner (Full Width) */}
+            <div className={`rounded-2xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between border ${hasCheckedInToday?'bg-green-500/10 border-green-500/20':'bg-blue-600/8 border-blue-500/20'}`}>
+              <div className="flex items-center gap-3 w-full sm:w-auto min-w-0 flex-1">
+                <div className={`p-2 rounded-xl shrink-0 ${hasCheckedInToday?'bg-green-500/20':'bg-blue-600/20'}`}><Flame size={18} className={hasCheckedInToday?'text-green-400':'text-blue-400'}/></div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black text-sm sm:text-base text-white truncate">{hasCheckedInToday?`Streak Secured: ${onchainStreak} Days 🔥`:'Daily Onchain Check-In'}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{hasCheckedInToday?'Your streak is recorded on Base.':'Sign a gas-free tx to log your streak.'}</p>
                 </div>
               </div>
-              <div className="text-center">
+              <div className="w-full sm:w-36 text-center shrink-0">
                 {connectionType==='farcaster'?(
                   <button onClick={()=>handleNativeTx('checkin')} disabled={hasCheckedInToday||transactingType!==null}
-                    className={`px-4 py-2 rounded-xl font-black text-xs transition ${hasCheckedInToday?'bg-green-500/20 text-green-400 cursor-default':'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+                    className={`w-full py-2.5 sm:py-2 rounded-xl font-black text-xs transition ${hasCheckedInToday?'bg-green-500/20 text-green-400 cursor-default':'bg-blue-600 hover:bg-blue-500 text-white'}`}>
                     {transactingType==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:hasCheckedInToday?'✓ Done':'Check In'}
                   </button>
                 ):hasCheckedInToday?(
-                  <button disabled className="px-4 py-2 rounded-xl font-black text-xs bg-green-500/20 text-green-400 cursor-default">✓ Done</button>
+                  <button disabled className="w-full py-2.5 sm:py-2 rounded-xl font-black text-xs bg-green-500/20 text-green-400 cursor-default">✓ Done</button>
                 ):(
                   <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={checkInCall} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){setHasCheckedInToday(true);setOnchainStreak(str=>str+1);setSponsoredTxs(st=>st+1);showToast('✅ Onchain check-in secured!',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(p=>({...p,checkin:(p.checkin||0)+1}));}}}>
-                    <TransactionButton className="px-4 py-2 rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white transition" text="Check In"/>
+                    <TransactionButton className="w-full py-2.5 sm:py-2 rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white transition" text="Check In"/>
                   </Transaction>
                 )}
                 <p className="text-[9px] text-blue-500 mt-1 flex items-center justify-center gap-1"><Droplets size={9}/>Gas Free</p>
               </div>
             </div>
 
-            {/* Recommendation */}
-            <div className="bg-white/4 border border-white/8 rounded-2xl p-4 flex items-center gap-3">
-              {wallet.daysSinceActive>7?<AlertTriangle size={18} className="text-yellow-400 shrink-0"/>:<Activity size={18} className="text-blue-400 shrink-0"/>}
-              <p className="text-sm text-slate-300">{wallet.recommendation}</p>
+            {/* Rec & Gas (Grid on Desktop) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-white/4 border border-white/8 rounded-2xl p-4 flex items-center gap-3">
+                    {wallet.daysSinceActive>7?<AlertTriangle size={18} className="text-yellow-400 shrink-0"/>:<Activity size={18} className="text-blue-400 shrink-0"/>}
+                    <p className="text-xs sm:text-sm text-slate-300">{wallet.recommendation}</p>
+                </div>
+                {sponsoredTxs>0&&(
+                    <div className="bg-green-500/8 border border-green-500/15 rounded-2xl p-4 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <Droplets size={18} className="text-green-400 shrink-0"/>
+                            <div className="min-w-0">
+                                <p className="text-sm font-bold text-white truncate">Gas Sponsored</p>
+                                <p className="text-xs text-slate-500 truncate">Saved ~${(sponsoredTxs*0.05).toFixed(2)} in fees</p>
+                            </div>
+                        </div>
+                        <div className="text-2xl font-black text-green-400 shrink-0">{sponsoredTxs}</div>
+                    </div>
+                )}
             </div>
 
-            {/* Gas saved */}
-            {sponsoredTxs>0&&(
-              <div className="bg-green-500/8 border border-green-500/15 rounded-2xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3"><Droplets size={18} className="text-green-400"/><div><p className="text-sm font-bold text-white">Gas Sponsored</p><p className="text-xs text-slate-500">Saved ~${(sponsoredTxs*0.05).toFixed(2)} in fees this session</p></div></div>
-                <div className="text-2xl font-black text-green-400">{sponsoredTxs}</div>
-              </div>
-            )}
-
-            {/* Score + Heatmap card */}
-            <div className="bg-[#161b27] border border-white/8 rounded-3xl p-6">
-              <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Onchain Score</span>
-                    <div className="flex gap-1.5">
+            {/* Score + Heatmap card (Full Width) */}
+            <div className="bg-[#161b27] border border-white/8 rounded-3xl p-5 sm:p-6 mb-4">
+              <div className="flex flex-col lg:flex-row justify-between items-start mb-6 gap-6">
+                <div className="w-full min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest shrink-0">Onchain Score</span>
+                    <div className="flex flex-wrap gap-1.5 shrink-0">
                       <button onClick={()=>shareScore('warpcast')} className="bg-white/5 hover:bg-white/10 border border-white/8 text-slate-400 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"><Send size={9} className="text-purple-400"/>Cast</button>
                       <button onClick={()=>shareScore('twitter')} className="bg-white/5 hover:bg-white/10 border border-white/8 text-slate-400 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"><Twitter size={9} className="text-sky-400"/>Post</button>
                       <button onClick={()=>shareScore('native')} className="bg-white/5 hover:bg-white/10 border border-white/8 text-slate-400 p-1 rounded-lg transition"><Share2 size={11}/></button>
                     </div>
                   </div>
-                  <div className="flex items-end gap-2">
-                    <h1 className="text-8xl font-black text-white tracking-tighter leading-none">{wallet.score}</h1>
-                    <span className="text-3xl text-white/25 mb-2">/100</span>
+                  <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
+                    <h1 className="text-6xl sm:text-8xl font-black text-white tracking-tighter leading-none">{wallet.score}</h1>
+                    <span className="text-2xl sm:text-3xl text-white/25 mb-1 shrink-0">/100</span>
                   </div>
-                  <p className="text-blue-400 font-black mt-2 text-lg">{wallet.walletRank}</p>
+                  <p className="text-blue-400 font-black mt-2 text-lg truncate">{wallet.walletRank}</p>
 
-                  {/* Score breakdown bars */}
-                  <div className="mt-4 flex flex-col gap-2 max-w-xs">
+                  <div className="mt-4 flex flex-col gap-2 w-full lg:max-w-sm">
                     {[
                       {label:'Activity',v:Math.min(100,Math.round((wallet.txCount/1000)*100)),c:'bg-blue-500'},
                       {label:'Consistency',v:Math.min(100,Math.round((wallet.uniqueDays/365)*100)),c:'bg-purple-500'},
@@ -759,20 +764,20 @@ export default function Page() {
                       {label:'DeFi',v:Math.min(100,Math.round((wallet.defiInteractions/50)*100)),c:'bg-emerald-500'},
                     ].map((b,i)=>(
                       <div key={i} className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-600 w-20 font-bold">{b.label}</span>
-                        <div className="flex-1 bg-white/5 rounded-full h-1.5">
+                        <span className="text-[10px] text-slate-600 w-16 sm:w-20 font-bold truncate shrink-0">{b.label}</span>
+                        <div className="flex-1 bg-white/5 rounded-full h-1.5 min-w-0">
                           <div className={`${b.c} h-1.5 rounded-full transition-all duration-1000`} style={{width:`${b.v}%`}}/>
                         </div>
-                        <span className="text-[10px] text-slate-600 w-6 text-right">{b.v}</span>
+                        <span className="text-[10px] text-slate-600 w-6 text-right shrink-0">{b.v}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div>
+                <div className="w-full lg:w-auto shrink-0">
                   {selectedDay?(
-                    <div className="bg-white/5 border border-white/8 px-4 py-3 rounded-xl">
+                    <div className="bg-white/5 border border-white/8 px-4 py-3 rounded-xl flex flex-row lg:flex-col items-center lg:items-start justify-between">
                       <p className="text-[10px] text-slate-500 font-bold uppercase">{selectedDay.date}</p>
-                      <p className="text-2xl font-black text-blue-400">{selectedDay.count} Txs</p>
+                      <p className="text-xl sm:text-2xl font-black text-blue-400">{selectedDay.count} Txs</p>
                     </div>
                   ):(
                     <div className="flex items-center gap-2 opacity-40"><MousePointerClick size={14} className="text-blue-400"/><p className="text-[10px] text-slate-500 uppercase font-bold">Click a dot</p></div>
@@ -780,8 +785,7 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Heatmap */}
-              <div ref={scrollRef} className="w-full overflow-x-auto pb-2">
+              <div ref={scrollRef} className="w-full overflow-x-auto pb-2 no-scrollbar">
                 <div className="grid grid-flow-col gap-1.5 mb-2 min-w-max auto-cols-[12px]">
                   {wallet.weekLabels.map((m,i)=><div key={i} className="text-[9px] font-bold text-slate-600 uppercase text-left w-3 whitespace-nowrap overflow-visible">{m}</div>)}
                 </div>
@@ -795,16 +799,16 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Wallet Stats */}
-            <div>
+            {/* Wallet Stats Grid */}
+            <div className="mb-4">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2"><BarChart3 size={13}/>Wallet Stats</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 col-span-2 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center shrink-0"><User size={22} className="text-blue-400"/></div>
+              <div className="grid grid-cols-2 min-[400px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+                <div className="bg-[#161b27] border border-white/8 rounded-2xl p-3 sm:p-4 col-span-2 min-[400px]:col-span-3 md:col-span-2 flex items-center gap-3 sm:gap-4 overflow-hidden">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center shrink-0"><User size={20} className="text-blue-400"/></div>
                   <div className="min-w-0">
-                    <p className="font-black text-white text-lg truncate">{wallet.basename||`${wallet.address.slice(0,8)}...${wallet.address.slice(-4)}`}</p>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">{wallet.walletRank}</p>
-                    {wallet.basename&&<span className="inline-flex items-center gap-1 text-[9px] font-black text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full mt-1"><BadgeCheck size={9}/>Verified</span>}
+                    <p className="font-black text-white text-base sm:text-lg truncate">{wallet.basename||`${wallet.address.slice(0,8)}...${wallet.address.slice(-4)}`}</p>
+                    <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold truncate">{wallet.walletRank}</p>
+                    {wallet.basename&&<span className="inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full mt-1 shrink-0"><BadgeCheck size={9}/>Verified</span>}
                   </div>
                 </div>
                 {[
@@ -817,140 +821,147 @@ export default function Page() {
                   {l:'Longest Streak',v:`${wallet.longestStreak}d`,i:<Trophy size={16}/>},
                   {l:'Total Txs',v:wallet.txCount.toLocaleString(),i:<Layers size={16}/>},
                   {l:'Token Swaps',v:wallet.swapCount.toLocaleString(),i:<ArrowRightLeft size={16}/>},
-                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),i:<Rocket size={16}/>},
+                  {l:'DeFi Interacts',v:wallet.defiInteractions.toLocaleString(),i:<Rocket size={16}/>},
                   {l:'ETH Volume',v:`${wallet.ethVolume} Ξ`,i:<ArrowRightLeft size={16}/>},
                   {l:'NFTs Held',v:wallet.nftCount.toLocaleString(),i:<Sparkles size={16}/>},
                   {l:'Contract Txs',v:wallet.contractInteractions.toLocaleString(),i:<FileCode size={16}/>},
                 ].map((s,i)=>(
-                  <div key={i} className="bg-[#161b27] border border-white/8 rounded-2xl p-4 hover:border-blue-500/30 transition-colors">
-                    <div className="text-slate-600 mb-2">{s.i}</div>
-                    <p className="font-black text-white text-lg truncate">{s.v}</p>
-                    <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wide">{s.l}</p>
+                  <div key={i} className="bg-[#161b27] border border-white/8 rounded-2xl p-3 sm:p-4 hover:border-blue-500/30 transition-colors flex flex-col justify-center min-w-0">
+                    <div className="text-slate-600 mb-1 sm:mb-2 shrink-0">{s.i}</div>
+                    <p className="font-black text-white text-base sm:text-lg truncate">{s.v}</p>
+                    <p className="text-[8px] sm:text-[9px] text-slate-600 uppercase font-bold tracking-wide truncate">{s.l}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Referral */}
-            <div className="bg-[#161b27] border border-purple-500/20 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2"><Gift size={18} className="text-purple-400"/><span className="font-black text-sm text-white">Referral Program</span></div>
-                <span className="text-[10px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-1 rounded-lg">+50 XP per referral</span>
-              </div>
-              <p className="text-xs text-slate-500 mb-3">Share your link — earn Season XP when friends connect. Future rewards unlocked for top referrers in Genesis Season.</p>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-xs font-mono text-slate-400 truncate">{APP_URL_WEB}?ref={refCode}</div>
-                <button onClick={handleReferralCopy} className={`px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 transition ${referralCopied?'bg-green-600 text-white':'bg-blue-600 hover:bg-blue-500 text-white'}`}>
-                  {referralCopied?<CheckCircle size={13}/>:<Copy size={13}/>}{referralCopied?'Copied!':'Copy'}
-                </button>
-              </div>
-            </div>
-
-            {/* Challenge */}
-            <div className="bg-[#161b27] border border-white/8 rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-orange-400"/><span className="font-black text-sm text-white">Wallet Challenge</span></div>
-              <p className="text-xs text-slate-500 mb-3">Compare scores head-to-head with any wallet.</p>
-              <div className="flex gap-2 mb-4">
-                <input value={challengeAddress} onChange={e=>setChallengeAddress(e.target.value)} placeholder="0x..." className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-600"/>
-                <button onClick={handleChallengeWallet} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black text-xs transition">Go</button>
-              </div>
-              {challengeData&&(
-                <div className="grid grid-cols-2 gap-3">
-                  <div className={`rounded-xl p-4 text-center border ${wallet.score>=challengeData.score?'bg-blue-600/10 border-blue-500/30':'bg-white/5 border-white/8'}`}>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">You</p>
-                    <p className="text-4xl font-black text-blue-400">{wallet.score}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">{wallet.walletRank}</p>
-                    {wallet.score>challengeData.score&&<p className="text-[10px] font-black text-green-400 mt-1">WINNER 🏆</p>}
-                  </div>
-                  <div className={`rounded-xl p-4 text-center border ${challengeData.score>wallet.score?'bg-red-500/8 border-red-500/20':'bg-white/5 border-white/8'}`}>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">{challengeData.address.slice(0,6)}...{challengeData.address.slice(-4)}</p>
-                    <p className="text-4xl font-black text-slate-400">{challengeData.score}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">{challengeData.rank}</p>
-                    {challengeData.score>wallet.score&&<p className="text-[10px] font-black text-red-400 mt-1">WINNER 🏆</p>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* XP Booster */}
-            <div className="bg-[#161b27] border border-blue-500/20 rounded-2xl p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-600/20 rounded-xl border border-blue-500/30"><Rocket size={22} className="text-blue-400"/></div>
-                  <div>
-                    <h3 className="font-black text-white">XP Booster</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      <div className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1"><span className="text-xl font-black text-blue-400">{userBoosts}</span><span className="text-[10px] text-slate-600 ml-1">boosts</span></div>
-                      <div className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1"><span className="text-sm font-black text-orange-400">{onchainStreak}d</span><span className="text-[10px] text-slate-600 ml-1">streak</span></div>
+            {/* ACTION CARDS (2x2 GRID ON DESKTOP) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                
+                {/* Referral */}
+                <div className="bg-[#161b27] border border-purple-500/20 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2 min-w-0"><Gift size={18} className="text-purple-400 shrink-0"/><span className="font-black text-sm text-white truncate">Referral Program</span></div>
+                            <span className="text-[10px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-1 rounded-lg shrink-0 w-max">+50 XP / Ref</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-4 line-clamp-2">Share your link — earn Season XP when friends connect. Future rewards unlocked for top referrers.</p>
                     </div>
-                  </div>
+                    <div className="flex flex-col sm:flex-row gap-2 mt-auto">
+                        <div className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-400 truncate overflow-hidden">{APP_URL_WEB}?ref={refCode}</div>
+                        <button onClick={handleReferralCopy} className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition shrink-0 ${referralCopied?'bg-green-600 text-white':'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+                            {referralCopied?<CheckCircle size={13}/>:<Copy size={13}/>}{referralCopied?'Copied!':'Copy'}
+                        </button>
+                    </div>
                 </div>
-                <div className="text-center">
-                  {connectionType==='farcaster'?(
-                    <button onClick={()=>handleNativeTx('boost')} disabled={transactingType!==null}
-                      className={`min-w-32 py-3 px-4 rounded-xl font-black text-sm transition ${transactingType?'bg-blue-600/40 text-white/40 cursor-not-allowed':'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30'}`}>
-                      {transactingType==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
-                    </button>
-                  ):(
-                    <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){setUserBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsoredTxs(st=>st+1);showToast('Boost Successful! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(p=>({...p,boost:(p.boost||0)+1}));}}}>
-                      <TransactionButton className="min-w-32 py-3 px-4 rounded-xl font-black text-sm bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition" text="BOOST (+1)"/>
-                    </Transaction>
-                  )}
-                  <p className="text-[9px] text-blue-500 mt-1 flex items-center justify-center gap-1"><Droplets size={9}/>Gas Sponsored</p>
+
+                {/* Challenge */}
+                <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-orange-400 shrink-0"/><span className="font-black text-sm text-white truncate">Wallet Challenge</span></div>
+                        <p className="text-xs text-slate-500 mb-3">Compare scores head-to-head with any wallet.</p>
+                    </div>
+                    <div className="mt-auto">
+                        <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                            <input value={challengeAddress} onChange={e=>setChallengeAddress(e.target.value)} placeholder="0x..." className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-300 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-600 min-w-0"/>
+                            <button onClick={handleChallengeWallet} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-black text-xs transition shrink-0">Go</button>
+                        </div>
+                        {challengeData&&(
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                                <div className={`rounded-xl p-3 text-center border overflow-hidden ${wallet.score>=challengeData.score?'bg-blue-600/10 border-blue-500/30':'bg-white/5 border-white/8'}`}>
+                                    <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold mb-1 truncate">You</p>
+                                    <p className="text-2xl sm:text-3xl font-black text-blue-400 truncate">{wallet.score}</p>
+                                    {wallet.score>challengeData.score&&<p className="text-[10px] font-black text-green-400 mt-1">WINNER</p>}
+                                </div>
+                                <div className={`rounded-xl p-3 text-center border overflow-hidden ${challengeData.score>wallet.score?'bg-red-500/8 border-red-500/20':'bg-white/5 border-white/8'}`}>
+                                    <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold mb-1 truncate">{challengeData.address.slice(0,6)}...{challengeData.address.slice(-4)}</p>
+                                    <p className="text-2xl sm:text-3xl font-black text-slate-400 truncate">{challengeData.score}</p>
+                                    {challengeData.score>wallet.score&&<p className="text-[10px] font-black text-red-400 mt-1">WINNER</p>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-              </div>
+
+                {/* XP Booster */}
+                <div className="bg-[#161b27] border border-blue-500/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 w-full min-w-0">
+                        <div className="p-3 bg-blue-600/20 rounded-xl border border-blue-500/30 shrink-0"><Rocket size={22} className="text-blue-400"/></div>
+                        <div className="text-center sm:text-left min-w-0">
+                            <h3 className="font-black text-white text-lg truncate">XP Booster</h3>
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1.5">
+                                <div className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1 flex items-center shrink-0"><span className="text-base font-black text-blue-400">{userBoosts}</span><span className="text-[10px] text-slate-600 ml-1">boosts</span></div>
+                                <div className="bg-white/5 border border-white/8 rounded-lg px-2.5 py-1 flex items-center shrink-0"><span className="text-base font-black text-orange-400">{onchainStreak}d</span><span className="text-[10px] text-slate-600 ml-1">streak</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="w-full sm:w-40 text-center shrink-0">
+                        {connectionType==='farcaster'?(
+                            <button onClick={()=>handleNativeTx('boost')} disabled={transactingType!==null}
+                                className={`w-full py-3 px-4 rounded-xl font-black text-sm transition ${transactingType?'bg-blue-600/40 text-white/40 cursor-not-allowed':'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30'}`}>
+                                {transactingType==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
+                            </button>
+                        ):(
+                            <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){setUserBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsoredTxs(st=>st+1);showToast('Boost Successful! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(p=>({...p,boost:(p.boost||0)+1}));}}}>
+                                <TransactionButton className="w-full py-3 px-4 rounded-xl font-black text-sm bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition" text="BOOST (+1)"/>
+                            </Transaction>
+                        )}
+                        <p className="text-[9px] text-blue-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={9}/>Gas Sponsored</p>
+                    </div>
+                </div>
+
+                {/* Community Vibes */}
+                <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                    <h3 className="font-black text-white mb-4 flex items-center gap-2 truncate"><Star size={16} className="text-yellow-400 shrink-0"/>Community Vibes</h3>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-auto">
+                        {(['gm','gn'] as const).map(type=>(
+                            <div key={type} className="text-center">
+                                {connectionType==='farcaster'?(
+                                    <button onClick={()=>handleNativeTx(type)} disabled={transactingType!==null}
+                                        className={`w-full py-3 rounded-xl font-black text-lg sm:text-xl transition border ${transactingType!==null?'opacity-40 cursor-not-allowed bg-white/3 border-white/5 text-white/30':'bg-white/5 hover:bg-blue-600/20 border-white/8 hover:border-blue-500/30 text-white'}`}>
+                                        {transactingType===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
+                                    </button>
+                                ):(
+                                    <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsoredTxs(st=>st+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(p=>({...p,[type]:(p[type]||0)+1}));}}}>
+                                        <TransactionButton className="w-full py-3 rounded-xl font-black text-lg sm:text-xl bg-white/5 hover:bg-blue-600/20 border border-white/8 hover:border-blue-500/30 text-white transition" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
+                                    </Transaction>
+                                )}
+                                <p className="text-[9px] text-blue-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={9}/>Gas Sponsored</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            {/* Recent activity */}
+            {/* Recent activity (Full Width Bottom) */}
             <div>
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2"><History size={13}/>Recent Activity</h3>
-              <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 space-y-2">
+              <div className="bg-[#161b27] border border-white/8 rounded-2xl p-3 sm:p-4 space-y-2">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>(
-                  <div key={i} className="flex justify-between items-center bg-white/3 hover:bg-white/5 border border-white/5 p-3 rounded-xl transition">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-600/15">{tx.category==='erc721'?<Sparkles size={14} className="text-blue-400"/>:<ArrowRightLeft size={14} className="text-blue-400"/>}</div>
-                      <div>
-                        <p className="text-xs font-black text-white uppercase">{tx.category==='external'?'Contract':tx.category}</p>
-                        <p className="text-[10px] text-slate-600">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/3 hover:bg-white/5 border border-white/5 p-3 rounded-xl transition gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded-lg bg-blue-600/15 shrink-0">{tx.category==='erc721'?<Sparkles size={14} className="text-blue-400"/>:<ArrowRightLeft size={14} className="text-blue-400"/>}</div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-white uppercase truncate">{tx.category==='external'?'Contract':tx.category}</p>
+                        <p className="text-[10px] text-slate-600 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
                       </div>
                     </div>
                     <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
-                      className="text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
-                      <ExternalLink size={10}/>{tx.value?`${tx.value.toFixed(3)} ${tx.asset}`:'View'}
+                      className="w-full sm:w-auto text-center justify-center text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 px-3 py-2 sm:py-1.5 rounded-lg flex items-center gap-1 transition shrink-0">
+                      <ExternalLink size={10} className="shrink-0"/>{tx.value?`${tx.value.toFixed(3)} ${tx.asset}`:'View'}
                     </a>
                   </div>
                 )):<p className="text-slate-600 text-sm text-center py-4">No recent transactions found.</p>}
               </div>
             </div>
 
-            {/* Community Vibes */}
-            <div className="bg-[#161b27] border border-white/8 rounded-2xl p-5">
-              <h3 className="font-black text-white mb-4 flex items-center gap-2"><Star size={16} className="text-yellow-400"/>Community Vibes</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {(['gm','gn'] as const).map(type=>(
-                  <div key={type} className="text-center">
-                    {connectionType==='farcaster'?(
-                      <button onClick={()=>handleNativeTx(type)} disabled={transactingType!==null}
-                        className={`w-full py-4 rounded-xl font-black text-2xl transition border ${transactingType!==null?'opacity-40 cursor-not-allowed bg-white/3 border-white/5 text-white/30':'bg-white/5 hover:bg-blue-600/20 border-white/8 hover:border-blue-500/30 text-white'}`}>
-                        {transactingType===type?<RefreshCcw className="animate-spin mx-auto" size={20}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
-                      </button>
-                    ):(
-                      <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsoredTxs(st=>st+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(p=>({...p,[type]:(p[type]||0)+1}));}}}>
-                        <TransactionButton className="w-full py-4 rounded-xl font-black text-2xl bg-white/5 hover:bg-blue-600/20 border border-white/8 hover:border-blue-500/30 text-white transition" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
-                      </Transaction>
-                    )}
-                    <p className="text-[9px] text-blue-500 mt-1 flex items-center justify-center gap-1"><Droplets size={9}/>Gas Sponsored</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
         {/* ===== ACHIEVEMENTS ===== */}
         {activeTab==='achievements'&&(
           <div className="animate-in fade-in slide-in-from-bottom-3">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 ml-1">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Trophy size={13}/>Mint Your Onchain Identity</h3>
               {Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length>0&&(
                 <div className="flex gap-2">
@@ -960,7 +971,7 @@ export default function Page() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {ACHIEVEMENTS.map(cat=>{
                 const value=getCategoryValue(cat.id);
                 let unlockedLevel=0;
@@ -986,28 +997,28 @@ export default function Page() {
                 else if(canMintNext)btnText=isBatch?`Claim ${tokensToMint.length} Badges 🚀`:`Mint ${cat.tierNames[currentMintedLevel]}`;
 
                 return(
-                  <div key={cat.id} className="bg-[#161b27] border border-white/8 rounded-3xl p-5 flex flex-col hover:border-blue-500/20 transition-colors">
+                  <div key={cat.id} className="bg-[#161b27] border border-white/8 rounded-3xl p-4 sm:p-5 flex flex-col hover:border-blue-500/20 transition-colors">
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl w-12 h-12 bg-white/5 border border-white/8 flex items-center justify-center rounded-2xl">{cat.icon}</div>
-                        <div>
-                          <h4 className="font-black text-white text-base">{cat.name}</h4>
-                          <p className="text-[10px] text-slate-600 uppercase font-bold">{unlockedLevel>0?cat.tierNames[unlockedLevel-1]:'Unranked'} · L{unlockedLevel}/{cat.thresholds.length}</p>
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                        <div className="text-xl sm:text-2xl w-10 h-10 sm:w-12 sm:h-12 bg-white/5 border border-white/8 flex items-center justify-center rounded-2xl shrink-0">{cat.icon}</div>
+                        <div className="min-w-0">
+                          <h4 className="font-black text-white text-sm sm:text-base truncate">{cat.name}</h4>
+                          <p className="text-[9px] sm:text-[10px] text-slate-600 uppercase font-bold truncate">{unlockedLevel>0?cat.tierNames[unlockedLevel-1]:'Unranked'} · L{unlockedLevel}/{cat.thresholds.length}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-blue-400">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p>
-                        <p className="text-[10px] text-slate-600 uppercase">{cat.unit}</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl sm:text-2xl font-black text-blue-400 truncate">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p>
+                        <p className="text-[9px] sm:text-[10px] text-slate-600 uppercase">{cat.unit}</p>
                       </div>
                     </div>
 
                     {/* Progress */}
-                    <div className="w-full bg-white/5 rounded-full h-1.5 mb-1">
+                    <div className="w-full bg-white/5 rounded-full h-1.5 mb-1.5">
                       <div className="bg-blue-600 h-1.5 rounded-full transition-all duration-1000 shadow-sm shadow-blue-600/50" style={{width:`${progress}%`}}/>
                     </div>
-                    <p className="text-right text-[10px] text-slate-600 font-bold mb-5">
-                      {unlockedLevel===cat.thresholds.length?'Max Level Reached 👑':`${typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()} / ${typeof nextThreshold==='number'&&nextThreshold<1?nextThreshold.toFixed(3):nextThreshold.toLocaleString()}`}
+                    <p className="text-right text-[9px] sm:text-[10px] text-slate-600 font-bold mb-5 truncate">
+                      {unlockedLevel===cat.thresholds.length?'Max Level 👑':`${typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()} / ${typeof nextThreshold==='number'&&nextThreshold<1?nextThreshold.toFixed(3):nextThreshold.toLocaleString()}`}
                     </p>
 
                     {/* Tier badges */}
@@ -1020,39 +1031,41 @@ export default function Page() {
                         const style=getLevelStyle(styleTier,isMinted,isEarned);
                         return(
                           <div key={tier} className="flex flex-col items-center gap-1.5 relative" style={{width:`${Math.floor(100/cat.thresholds.length)}%`}}>
-                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl border transition-all duration-500 ${style}`}>
+                            <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl border transition-all duration-500 ${style}`}>
                               {isEarned?cat.tierIcons[idx]:<Lock size={12} className="text-white/20"/>}
-                              {isMinted&&<div className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#161b27] z-10">✓</div>}
+                              {isMinted&&<div className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[8px] sm:text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#161b27] z-10">✓</div>}
                             </div>
-                            <span className={`text-[8px] font-black text-center uppercase leading-tight ${isMinted?'text-blue-400':isEarned?'text-slate-400':'text-slate-700'}`}>{cat.tierNames[idx]}</span>
+                            <span className={`text-[7px] sm:text-[8px] font-black text-center uppercase leading-tight px-1 truncate w-full ${isMinted?'text-blue-400':isEarned?'text-slate-400':'text-slate-700'}`}>{cat.tierNames[idx]}</span>
                           </div>
                         );
                       })}
                     </div>
 
                     {/* Mint button */}
-                    <div className="flex gap-2 mt-auto">
-                      {connectionType==='farcaster'?(
-                        <button onClick={()=>handleNativeMint(cat.id,targetLevels,tokensToMint,cat.name)}
-                          disabled={!canMintNext||transactingType!==null}
-                          className={`flex-1 py-3 rounded-xl font-black text-sm transition ${canMintNext&&!transactingType?'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20':'bg-white/5 text-slate-700 cursor-not-allowed border border-white/8'}`}>
-                          {transactingType===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={18}/>:btnText}
-                        </button>
-                      ):canMintNext?(
-                        <Transaction key={`mint-${cat.id}-${txKeys[`mint-${cat.id}`]||0}`} chainId={base.id} calls={mintCall2} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){showToast(isBatch?`✅ Claimed ${tokensToMint.length} ${cat.name} Badges!`:`✅ Badge minted!`,s.statusData.transactionReceipts?.[0]?.transactionHash||'');setMintedLevels(prev=>({...prev,[cat.id]:Math.max(...targetLevels)}));setSponsoredTxs(st=>st+1);}}}>
-                          <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-sm bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition" text={btnText}/>
-                        </Transaction>
-                      ):(
-                        <button disabled className="flex-1 py-3 rounded-xl font-black text-sm bg-white/5 text-slate-700 cursor-not-allowed border border-white/8">{btnText}</button>
-                      )}
-                      {currentMintedLevel>0&&(
-                        <div className="flex gap-1.5">
-                          <button onClick={()=>shareAchievement(cat.name,cat.tierNames[currentMintedLevel-1],'warpcast')} className="bg-white/5 border border-white/8 hover:bg-purple-600/20 hover:border-purple-500/30 text-slate-500 p-3 rounded-xl transition"><Send size={14}/></button>
-                          <button onClick={()=>shareAchievement(cat.name,cat.tierNames[currentMintedLevel-1],'twitter')} className="bg-white/5 border border-white/8 hover:bg-sky-600/20 hover:border-sky-500/30 text-slate-500 p-3 rounded-xl transition"><Twitter size={14}/></button>
-                        </div>
-                      )}
+                    <div className="flex flex-col mt-auto">
+                      <div className="flex gap-2">
+                        {connectionType==='farcaster'?(
+                          <button onClick={()=>handleNativeMint(cat.id,targetLevels,tokensToMint,cat.name)}
+                            disabled={!canMintNext||transactingType!==null}
+                            className={`flex-1 py-3 sm:py-3.5 rounded-xl font-black text-xs sm:text-sm transition ${canMintNext&&!transactingType?'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20':'bg-white/5 text-slate-700 cursor-not-allowed border border-white/8'}`}>
+                            {transactingType===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={16}/>:btnText}
+                          </button>
+                        ):canMintNext?(
+                          <Transaction key={`mint-${cat.id}-${txKeys[`mint-${cat.id}`]||0}`} chainId={base.id} calls={mintCall2} capabilities={txCaps} onStatus={(s)=>{if(s.statusName==='success'){showToast(isBatch?`✅ Claimed ${tokensToMint.length} ${cat.name} Badges!`:`✅ Badge minted!`,s.statusData.transactionReceipts?.[0]?.transactionHash||'');setMintedLevels(prev=>({...prev,[cat.id]:Math.max(...targetLevels)}));setSponsoredTxs(st=>st+1);}}}>
+                            <TransactionButton className="flex-1 py-3 sm:py-3.5 w-full rounded-xl font-black text-xs sm:text-sm bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition" text={btnText}/>
+                          </Transaction>
+                        ):(
+                          <button disabled className="flex-1 py-3 sm:py-3.5 rounded-xl font-black text-xs sm:text-sm bg-white/5 text-slate-700 cursor-not-allowed border border-white/8">{btnText}</button>
+                        )}
+                        {currentMintedLevel>0&&(
+                          <div className="flex gap-1.5 shrink-0">
+                            <button onClick={()=>shareAchievement(cat.name,cat.tierNames[currentMintedLevel-1],'warpcast')} className="bg-white/5 border border-white/8 hover:bg-purple-600/20 hover:border-purple-500/30 text-slate-500 px-3 py-2 sm:p-3 rounded-xl transition"><Send size={14}/></button>
+                            <button onClick={()=>shareAchievement(cat.name,cat.tierNames[currentMintedLevel-1],'twitter')} className="bg-white/5 border border-white/8 hover:bg-sky-600/20 hover:border-sky-500/30 text-slate-500 px-3 py-2 sm:p-3 rounded-xl transition"><Twitter size={14}/></button>
+                          </div>
+                        )}
+                      </div>
+                      {canMintNext&&<p className="text-[9px] text-blue-500 mt-2 text-center flex items-center justify-center gap-1"><Droplets size={9}/>Gas Sponsored</p>}
                     </div>
-                    {canMintNext&&<p className="text-[9px] text-blue-500 mt-2 text-center flex items-center justify-center gap-1"><Droplets size={9}/>Gas Sponsored</p>}
                   </div>
                 );
               })}
@@ -1064,76 +1077,83 @@ export default function Page() {
         {activeTab==='quests'&&(
           <div className="animate-in fade-in slide-in-from-bottom-3 space-y-4">
             {/* Season Pass */}
-            <div className="bg-linear-to-br from-blue-600 via-blue-700 to-purple-700 rounded-3xl p-6 relative overflow-hidden">
+            <div className="bg-linear-to-br from-blue-600 via-blue-700 to-purple-700 rounded-3xl p-5 sm:p-6 relative overflow-hidden">
               <div className="absolute inset-0 opacity-30" style={{backgroundImage:'linear-gradient(rgba(255,255,255,0.05)1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05)1px,transparent 1px)',backgroundSize:'30px 30px'}}/>
               <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1"><Star size={14} className="text-yellow-300"/><span className="text-xs font-black uppercase tracking-widest text-white/70">{SEASON_NAME}</span></div>
-                    <h3 className="text-2xl font-black text-white">Season Pass</h3>
-                    <p className="text-sm text-white/60">{getDaysLeft()} days remaining · Future rewards locked in</p>
+                <div className="flex items-center justify-between mb-4 gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1"><Star size={14} className="text-yellow-300 shrink-0"/><span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white/70 truncate">{SEASON_NAME}</span></div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white truncate">Season Pass</h3>
+                    <p className="text-[10px] sm:text-sm text-white/60 truncate">{getDaysLeft()} days remaining</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-5xl font-black text-white">{weeklyXP}</p>
-                    <p className="text-xs text-white/60 uppercase font-bold">Season XP</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-4xl sm:text-5xl font-black text-white">{weeklyXP}</p>
+                    <p className="text-[10px] sm:text-xs text-white/60 uppercase font-bold">Season XP</p>
                   </div>
                 </div>
                 <div className="w-full bg-white/15 rounded-full h-2 mb-1.5">
                   <div className="bg-white h-2 rounded-full transition-all shadow-sm" style={{width:`${getSeasonProgress().toFixed(0)}%`}}/>
                 </div>
-                <div className="flex justify-between text-[10px] font-bold text-white/40">
+                <div className="flex justify-between text-[9px] sm:text-[10px] font-bold text-white/40">
                   <span>Season started</span><span>{getSeasonProgress().toFixed(0)}% complete</span><span>Season ends</span>
                 </div>
               </div>
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {[{v:`${completedQuestsCount}/${WEEKLY_QUESTS.length}`,l:'Quests Done',c:'text-blue-400'},{v:onchainStreak,l:'Day Streak',c:'text-orange-400'},{v:getQuestXP(wallet,userBoosts,onchainStreak,txKeys),l:'Quest XP',c:'text-green-400'}].map((s,i)=>(
-                <div key={i} className="bg-[#161b27] border border-white/8 rounded-2xl p-4 text-center">
-                  <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
-                  <p className="text-[10px] text-slate-600 uppercase font-bold">{s.l}</p>
+                <div key={i} className="bg-[#161b27] border border-white/8 rounded-2xl p-3 sm:p-4 text-center">
+                  <p className={`text-xl sm:text-2xl font-black ${s.c}`}>{s.v}</p>
+                  <p className="text-[8px] sm:text-[10px] text-slate-600 uppercase font-bold tracking-wide mt-0.5 truncate">{s.l}</p>
                 </div>
               ))}
             </div>
 
-            {/* Quests */}
-            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2"><Target size={13}/>Weekly Quests</h3>
-            <div className="space-y-2">
-              {WEEKLY_QUESTS.map(quest=>{
-                const done=quest.check(wallet,userBoosts,onchainStreak,txKeys);
-                return(
-                  <div key={quest.id} className={`rounded-2xl p-4 border flex items-center justify-between transition-all ${done?'bg-green-500/8 border-green-500/20':'bg-[#161b27] border-white/8 hover:border-white/15'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl ${done?'bg-green-500/20':'bg-white/5 border border-white/8'}`}>{done?'✅':quest.icon}</div>
-                      <div>
-                        <p className={`font-black text-sm ${done?'text-green-300':'text-white'}`}>{quest.title}</p>
-                        <p className="text-[10px] text-slate-600">{quest.desc}</p>
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {/* Quests */}
+                    <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2"><Target size={13}/>Weekly Quests</h3>
+                    <div className="space-y-2">
+                    {WEEKLY_QUESTS.map(quest=>{
+                        const done=quest.check(wallet,userBoosts,onchainStreak,txKeys);
+                        return(
+                        <div key={quest.id} className={`rounded-2xl p-3 sm:p-4 border flex items-center justify-between transition-all ${done?'bg-green-500/8 border-green-500/20':'bg-[#161b27] border-white/8 hover:border-white/15'}`}>
+                            <div className="flex items-center gap-3 min-w-0 pr-2">
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${done?'bg-green-500/20':'bg-white/5 border border-white/8'}`}>{done?'✅':quest.icon}</div>
+                            <div className="min-w-0">
+                                <p className={`font-black text-xs sm:text-sm truncate ${done?'text-green-300':'text-white'}`}>{quest.title}</p>
+                                <p className="text-[9px] sm:text-[10px] text-slate-500 truncate">{quest.desc}</p>
+                            </div>
+                            </div>
+                            <div className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl font-black text-[10px] sm:text-xs border shrink-0 ${done?'bg-green-500/10 text-green-400 border-green-500/20':'bg-blue-600/10 text-blue-400 border-blue-500/20'}`}>+{quest.xp} XP</div>
+                        </div>
+                        );
+                    })}
                     </div>
-                    <div className={`px-3 py-2 rounded-xl font-black text-xs border ${done?'bg-green-500/10 text-green-400 border-green-500/20':'bg-blue-600/10 text-blue-400 border-blue-500/20'}`}>+{quest.xp} XP</div>
-                  </div>
-                );
-              })}
-            </div>
+                </div>
 
-            {/* Multipliers */}
-            <div className="bg-[#161b27] border border-white/8 rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-3"><Zap size={16} className="text-yellow-400"/><span className="font-black text-sm text-white">XP Multipliers & Season Rewards</span></div>
-              <div className="space-y-2">
-                {[
-                  {l:'3-day check-in streak',b:'2× XP on quests'},
-                  {l:'7-day check-in streak',b:'3× XP on quests'},
-                  {l:'Top 10 leaderboard (Season end)',b:'Exclusive Genesis badge + future reward'},
-                  {l:'Refer 3+ friends',b:'+150 bonus XP + referral badge'},
-                  {l:'Complete all 6 weekly quests',b:'Season XP bonus multiplier'},
-                ].map((m,i)=>(
-                  <div key={i} className="flex items-center justify-between bg-white/3 rounded-xl p-3 border border-white/5">
-                    <span className="text-xs text-slate-400">{m.l}</span>
-                    <span className="text-xs font-black text-blue-400">{m.b}</span>
-                  </div>
-                ))}
-              </div>
+                <div>
+                    {/* Multipliers */}
+                    <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2"><Zap size={13}/>Multipliers</h3>
+                    <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 sm:p-5 h-[calc(100%-28px)]">
+                    <p className="text-xs text-slate-400 mb-4">Complete actions to earn permanent and weekly multipliers on your Season XP.</p>
+                    <div className="space-y-2">
+                        {[
+                        {l:'3-day check-in streak',b:'2× XP on quests'},
+                        {l:'7-day check-in streak',b:'3× XP on quests'},
+                        {l:'Top 10 leaderboard (Season end)',b:'Exclusive Genesis badge + reward'},
+                        {l:'Refer 3+ friends',b:'+150 bonus XP + referral badge'},
+                        {l:'Complete all 6 weekly quests',b:'Season XP bonus multiplier'},
+                        ].map((m,i)=>(
+                        <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/3 rounded-xl p-3 border border-white/5 gap-1">
+                            <span className="text-[10px] sm:text-xs text-slate-400">{m.l}</span>
+                            <span className="text-[10px] sm:text-xs font-black text-blue-400">{m.b}</span>
+                        </div>
+                        ))}
+                    </div>
+                    </div>
+                </div>
             </div>
           </div>
         )}
@@ -1141,9 +1161,9 @@ export default function Page() {
         {/* ===== LEADERBOARD ===== */}
         {activeTab==='leaderboard'&&(
           <div className="animate-in fade-in slide-in-from-bottom-3 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2 ml-1">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Users size={13}/>Weekly Leaderboard</h3>
-              <span className="text-[10px] text-slate-600 bg-white/5 border border-white/8 px-2 py-1 rounded-lg">{getDaysLeft()}d left · {SEASON_NAME}</span>
+              <span className="text-[9px] sm:text-[10px] text-slate-500 bg-white/5 border border-white/8 px-2 py-1 rounded-lg">{getDaysLeft()}d left · {SEASON_NAME}</span>
             </div>
 
             {/* My rank */}
@@ -1151,22 +1171,28 @@ export default function Page() {
               const pos=leaderboard.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());
               return pos>=0?(
                 <div className="bg-blue-600 rounded-2xl p-4 shadow-xl shadow-blue-600/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center font-black text-white text-lg">#{pos+1}</div>
-                      <div><p className="font-black text-white">{wallet.basename||`${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p><p className="text-[10px] text-white/60 uppercase">{wallet.walletRank}</p></div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center font-black text-white text-lg shrink-0">#{pos+1}</div>
+                      <div className="min-w-0">
+                        <p className="font-black text-sm text-white truncate">{wallet.basename||`${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
+                        <p className="text-[9px] sm:text-[10px] text-white/60 uppercase font-bold truncate">{wallet.walletRank}</p>
+                      </div>
                     </div>
-                    <div className="text-right"><p className="text-3xl font-black text-white">{weeklyXP}</p><p className="text-[10px] text-white/60 uppercase">Weekly XP</p></div>
+                    <div className="text-right shrink-0">
+                      <p className="text-2xl sm:text-3xl font-black text-white">{weeklyXP}</p>
+                      <p className="text-[9px] sm:text-[10px] text-white/60 uppercase font-bold">Weekly XP</p>
+                    </div>
                   </div>
                 </div>
               ):null;
             })()}
 
             {leaderboard.length===0?(
-              <div className="bg-[#161b27] border-2 border-dashed border-white/8 rounded-2xl p-12 text-center">
+              <div className="bg-[#161b27] border-2 border-dashed border-white/8 rounded-2xl p-8 sm:p-12 text-center">
                 <Users size={28} className="text-slate-700 mx-auto mb-3"/>
-                <p className="font-black text-slate-500 mb-1">No entries yet</p>
-                <p className="text-sm text-slate-700">Connect and earn XP to appear here. Top 10 earn exclusive Season badges + future rewards.</p>
+                <p className="font-black text-slate-500 mb-1 text-sm sm:text-base">No entries yet</p>
+                <p className="text-xs sm:text-sm text-slate-700">Connect and earn XP to appear here. Top 10 earn exclusive Season badges + future rewards.</p>
               </div>
             ):(
               <div className="bg-[#161b27] border border-white/8 rounded-2xl overflow-hidden">
@@ -1174,17 +1200,17 @@ export default function Page() {
                   const isMe=wallet&&entry.address.toLowerCase()===wallet.address.toLowerCase();
                   const medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':null;
                   return(
-                    <div key={entry.address} className={`flex items-center gap-3 p-4 border-b border-white/5 last:border-0 transition ${isMe?'bg-blue-600/10 border-l-2 border-l-blue-500':'hover:bg-white/3'}`}>
-                      <div className="w-7 text-center font-black text-sm text-slate-600">{medal||`#${idx+1}`}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-black text-sm truncate ${isMe?'text-blue-400':'text-white'}`}>
-                          {entry.basename||`${entry.address.slice(0,6)}...${entry.address.slice(-4)}`}{isMe&&<span className="text-[10px] text-blue-500 ml-1">(you)</span>}
+                    <div key={entry.address} className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 border-b border-white/5 last:border-0 transition ${isMe?'bg-blue-600/10 border-l-2 border-l-blue-500':'hover:bg-white/3'}`}>
+                      <div className="w-6 sm:w-7 text-center font-black text-xs sm:text-sm text-slate-600 shrink-0">{medal||`#${idx+1}`}</div>
+                      <div className="flex-1 min-w-0 pr-2">
+                        <p className={`font-black text-xs sm:text-sm truncate ${isMe?'text-blue-400':'text-white'}`}>
+                          {entry.basename||`${entry.address.slice(0,6)}...${entry.address.slice(-4)}`}{isMe&&<span className="text-[9px] sm:text-[10px] text-blue-500 ml-1 shrink-0">(you)</span>}
                         </p>
-                        <p className="text-[10px] text-slate-600">{entry.rank}</p>
+                        <p className="text-[9px] sm:text-[10px] text-slate-600 font-bold truncate">{entry.rank}</p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="hidden sm:block text-center"><p className="text-xs font-black text-slate-400">{entry.badges}</p><p className="text-[9px] text-slate-700 uppercase">Badges</p></div>
-                        <div className="text-center"><p className="text-sm font-black text-blue-400">{entry.weeklyXP}</p><p className="text-[9px] text-slate-700 uppercase">XP</p></div>
+                      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                        <div className="hidden sm:block text-center"><p className="text-xs font-black text-slate-400">{entry.badges}</p><p className="text-[8px] text-slate-700 uppercase font-bold">Badges</p></div>
+                        <div className="text-center"><p className="text-xs sm:text-sm font-black text-blue-400">{entry.weeklyXP}</p><p className="text-[8px] text-slate-700 uppercase font-bold">XP</p></div>
                         <div className="hidden sm:flex">{idx===0?<ChevronUp size={14} className="text-green-400"/>:<ChevronDown size={14} className="text-slate-700"/>}</div>
                       </div>
                     </div>
@@ -1195,7 +1221,7 @@ export default function Page() {
 
             <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2"><Medal size={16} className="text-yellow-400"/><span className="font-black text-sm text-white">Season Rewards</span></div>
-              <p className="text-xs text-slate-600">Leaderboard resets every Monday. Top 10 wallets at season end earn an exclusive <span className="text-blue-400 font-bold">Genesis Badge NFT</span> plus early access to future rewards. Keep farming XP!</p>
+              <p className="text-[10px] sm:text-xs text-slate-600 leading-relaxed">Leaderboard resets every Monday. Top 10 wallets at season end earn an exclusive <span className="text-blue-400 font-bold">Genesis Badge NFT</span> plus early access to future rewards. Keep farming XP!</p>
             </div>
           </div>
         )}

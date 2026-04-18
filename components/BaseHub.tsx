@@ -275,7 +275,7 @@ export default function BaseHub(){
     const key=timeframe==='24h'?'change24h':timeframe==='7d'?'change7d':'change30d';
     if(tokenTab==='gainers')sorted.sort((a,b)=>b[key]-a[key]);
     else if(tokenTab==='losers')sorted.sort((a,b)=>a[key]-b[key]);
-    return sorted.slice(0,6);
+    return sorted.slice(0,12); // Increased to 12 so the fluid grid looks full on ultra-wide screens
   };
 
   const calculatedStats=useMemo(()=>{
@@ -321,10 +321,10 @@ export default function BaseHub(){
   const coins=getDisplayedCoins();
 
   return(
-    <div className="animate-in fade-in slide-in-from-bottom-3 pb-12 space-y-8">
+    <div className="animate-in fade-in slide-in-from-bottom-3 pb-12 space-y-8 w-full">
 
       {/* SECTION 1: TOKENS */}
-      <div>
+      <div className="w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
             <LineChart size={13}/> Base Network Tokens {isFetchingCoins&&<RefreshCcw size={11} className="animate-spin text-slate-700"/>}
@@ -346,7 +346,9 @@ export default function BaseHub(){
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        
+        {/* 🚀 FIXED: Fluid Grid Layout */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
           {coins.map((coin,idx)=>{
             const change=timeframe==='24h'?coin.change24h:timeframe==='7d'?coin.change7d:coin.change30d;
             const up=change>=0;
@@ -369,11 +371,11 @@ export default function BaseHub(){
       </div>
 
       {/* SECTION 2: FARCASTER */}
-      <div>
+      <div className="w-full">
         <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-4">
           <MessageCircle size={13}/> Farcaster Identity {isScanningFc&&<RefreshCcw size={11} className="animate-spin text-slate-700"/>}
         </h3>
-        <div className="bg-[#161b27] border border-white/8 rounded-3xl p-6 flex flex-col lg:flex-row gap-6">
+        <div className="bg-[#161b27] border border-white/8 rounded-3xl p-6 flex flex-col lg:flex-row gap-6 w-full">
           <div className="w-full lg:w-1/2">
             <h4 className="font-black text-white text-lg mb-1">Analyze Reputation</h4>
             <p className="text-sm text-slate-600 mb-4">{address?"Auto-scanned from your wallet. Search others below.":"Connect wallet to auto-fetch, or search manually."}</p>
@@ -390,30 +392,32 @@ export default function BaseHub(){
           </div>
           <div className="w-full lg:w-1/2">
             {fcResult?(
-              <div className="bg-white/5 border border-white/8 p-5 rounded-2xl animate-in zoom-in-95">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h5 className="font-black text-lg text-white">{fcResult.username}</h5>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-black bg-white/5 text-slate-500 px-2 py-1 rounded-lg uppercase">FID: {fcResult.fid}</span>
-                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400':fcResult.tier==='Active Caster'?'bg-blue-500/10 text-blue-400':'bg-white/5 text-slate-500'}`}>{fcResult.tier}</span>
+              <div className="bg-white/5 border border-white/8 p-5 rounded-2xl animate-in zoom-in-95 h-full flex flex-col justify-between">
+                <div>
+                    <div className="flex justify-between items-start mb-4">
+                    <div>
+                        <h5 className="font-black text-lg text-white">{fcResult.username}</h5>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-[10px] font-black bg-white/5 text-slate-500 px-2 py-1 rounded-lg uppercase">FID: {fcResult.fid}</span>
+                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400':fcResult.tier==='Active Caster'?'bg-blue-500/10 text-blue-400':'bg-white/5 text-slate-500'}`}>{fcResult.tier}</span>
+                        </div>
                     </div>
-                  </div>
-                  <div className="bg-purple-500/20 text-purple-400 p-2.5 rounded-xl border border-purple-500/20"><Award size={20}/></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
-                    <div className="flex items-center gap-1 mb-1"><Users size={11} className="text-slate-600"/><span className="text-[10px] text-slate-600 uppercase font-bold">Followers</span></div>
-                    <span className="font-black text-xl text-white">{fcResult.followers.toLocaleString()}</span>
-                  </div>
-                  <div className="bg-purple-500/10 border border-purple-500/20 p-3 rounded-xl">
-                    <div className="flex items-center gap-1 mb-1"><Cpu size={11} className="text-purple-400"/><span className="text-[10px] text-purple-400 uppercase font-bold">Neynar Score</span></div>
-                    <span className="font-black text-xl text-purple-300">{fcResult.reputation}<span className="text-sm text-slate-600"> /10</span></span>
-                  </div>
-                  <div className="bg-white/5 border border-white/5 p-3 rounded-xl col-span-2">
-                    <div className="flex items-center gap-1 mb-1"><Award size={11} className="text-slate-600"/><span className="text-[10px] text-slate-600 uppercase font-bold">Most Influential Follower</span></div>
-                    <span className="font-black text-base text-white truncate block">{fcResult.topFollower}</span>
-                  </div>
+                    <div className="bg-purple-500/20 text-purple-400 p-2.5 rounded-xl border border-purple-500/20"><Award size={20}/></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-white/5 border border-white/5 p-3 rounded-xl">
+                        <div className="flex items-center gap-1 mb-1"><Users size={11} className="text-slate-600"/><span className="text-[10px] text-slate-600 uppercase font-bold">Followers</span></div>
+                        <span className="font-black text-xl text-white">{fcResult.followers.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/20 p-3 rounded-xl">
+                        <div className="flex items-center gap-1 mb-1"><Cpu size={11} className="text-purple-400"/><span className="text-[10px] text-purple-400 uppercase font-bold">Neynar Score</span></div>
+                        <span className="font-black text-xl text-purple-300">{fcResult.reputation}<span className="text-sm text-slate-600"> /10</span></span>
+                    </div>
+                    <div className="bg-white/5 border border-white/5 p-3 rounded-xl col-span-2">
+                        <div className="flex items-center gap-1 mb-1"><Award size={11} className="text-slate-600"/><span className="text-[10px] text-slate-600 uppercase font-bold">Most Influential Follower</span></div>
+                        <span className="font-black text-base text-white truncate block">{fcResult.topFollower}</span>
+                    </div>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                   <a href={fcLink} target="_blank" rel="noopener noreferrer" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs font-black transition flex-1 justify-center"><Send size={13}/> Cast</a>
@@ -431,7 +435,7 @@ export default function BaseHub(){
       </div>
 
       {/* SECTION 3: ANALYTICS */}
-      <div>
+      <div className="w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
             <BarChart3 size={13}/> Farcaster Dashboard {(isFetchingHistory||isFetchingForYou||isFetchingGlobal)&&<RefreshCcw size={11} className="animate-spin text-slate-700"/>}
@@ -443,7 +447,7 @@ export default function BaseHub(){
         </div>
 
         {!fcResult?.fid?(
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div className="col-span-full bg-[#161b27] border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center justify-center text-center mb-2">
               <Lock size={28} className="text-slate-700 mb-3"/>
               <h4 className="font-black text-slate-500 mb-1">Dashboard Locked</h4>
@@ -467,14 +471,14 @@ export default function BaseHub(){
             }
           </div>
         ):feedTab==='analytics'?(
-          <div className="bg-[#161b27] border border-white/8 rounded-3xl p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <div className="bg-[#161b27] border border-white/8 rounded-3xl p-6 w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 w-full">
               <div><h4 className="font-black text-lg text-white">Engagement Overview</h4><p className="text-sm text-slate-600">Calculated from recent cast activity.</p></div>
               <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
                 {['24h','3d','7d','14d'].map(tf=><button key={tf} onClick={()=>setAnalyticsTimeframe(tf as typeof analyticsTimeframe)} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${analyticsTimeframe===tf?'bg-white/10 text-white':'text-slate-600 hover:text-slate-400'}`}>{tf}</button>)}
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 w-full">
               {[{icon:<MessageCircle size={18}/>,label:'Casts',val:calculatedStats.posts,c:'text-blue-400',bg:'bg-blue-500/10'},{icon:<Flame size={18}/>,label:'Likes',val:calculatedStats.likes,c:'text-red-400',bg:'bg-red-500/10'},{icon:<Repeat size={18}/>,label:'Recasts',val:calculatedStats.recasts,c:'text-green-400',bg:'bg-green-500/10'},{icon:<MessageSquare size={18}/>,label:'Replies',val:calculatedStats.comments,c:'text-purple-400',bg:'bg-purple-500/10'}].map((s,i)=>(
                 <div key={i} className="bg-white/5 border border-white/8 p-4 rounded-2xl flex flex-col items-center text-center">
                   <div className={`p-2 ${s.bg} ${s.c} rounded-xl mb-2`}>{s.icon}</div>
@@ -483,7 +487,7 @@ export default function BaseHub(){
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
               {/* Follower chart */}
               <div className="bg-[#0d1117] border border-white/5 p-5 rounded-2xl flex flex-col" style={{height:'260px'}}>
                 <div className="mb-3"><h5 className="font-black text-sm text-white">Follower growth</h5><p className="text-[11px] text-slate-700">7-day trend</p></div>
@@ -555,7 +559,7 @@ export default function BaseHub(){
             </div>
           </div>
         ):(
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
             {isFetchingForYou?<div className="col-span-full text-center text-slate-700 text-xs py-6">Loading recent casts...</div>:
               forYouFeed.length>0?forYouFeed.map((cast,i)=>(
                 <a key={i} href={`https://warpcast.com/${cast.author?.username}/${cast.hash.substring(0,10)}`} target="_blank" rel="noopener noreferrer"
@@ -576,20 +580,20 @@ export default function BaseHub(){
       </div>
 
       {/* SECTION 4: ECOSYSTEM */}
-      <div>
+      <div className="w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
             <Globe size={13}/> Explore the Ecosystem
             <span className="text-slate-700 font-bold normal-case">({filteredProjects.length} apps)</span>
           </h3>
-          <div className="relative">
-            <input value={ecoSearch} onChange={e=>setEcoSearch(e.target.value)} placeholder="Search apps..." className="bg-white/5 border border-white/8 rounded-xl px-3 py-2 pl-8 text-xs font-bold text-slate-400 outline-none focus:border-blue-500/40 w-44 placeholder-slate-700"/>
+          <div className="relative w-full sm:w-auto">
+            <input value={ecoSearch} onChange={e=>setEcoSearch(e.target.value)} placeholder="Search apps..." className="w-full sm:w-44 bg-white/5 border border-white/8 rounded-xl px-3 py-2 pl-8 text-xs font-bold text-slate-400 outline-none focus:border-blue-500/40 placeholder-slate-700"/>
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-700"/>
           </div>
         </div>
 
         {/* Category filter */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
           {CATEGORIES.map(cat=>(
             <button key={cat} onClick={()=>setEcoCategory(cat)}
               className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition ${ecoCategory===cat?'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20':'bg-white/5 text-slate-600 border-white/8 hover:border-white/20 hover:text-slate-400'}`}>{cat}
@@ -597,6 +601,7 @@ export default function BaseHub(){
           ))}
         </div>
 
+        {/* 🚀 FIXED: Fluid Grid Layout */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filteredProjects.map((p,i)=>(
             <a key={i} href={p.url} target="_blank" rel="noopener noreferrer"
