@@ -14,7 +14,10 @@ interface LeaderboardEntry {
   weeklyXP: number;
 }
 
-// Generates realistic mock data for the hackathon demo
+// Temporary memory for local testing when keys are missing
+let fallbackMemoryDB: LeaderboardEntry[] = [];
+
+// Generates realistic mock data to seed the database
 function generateMockLeaderboard(): LeaderboardEntry[] {
   const ranks = ["Base Shrimp 🦐", "Base Dolphin 🐬", "Base Shark 🦈", "Base Whale 🐋", "Base God 👑"];
   const mock: LeaderboardEntry[] = [];
@@ -50,12 +53,24 @@ function generateMockLeaderboard(): LeaderboardEntry[] {
 
 export async function GET() {
     try {
-        let leaderboard = await kv.get<LeaderboardEntry[]>('base_global_leaderboard');
+        const hasKV = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+        let leaderboard: LeaderboardEntry[] | null = [];
+
+        if (hasKV) {
+            leaderboard = await kv.get<LeaderboardEntry[]>('base_global_leaderboard');
+        } else {
+            console.log("⚠️ Missing KV Keys: Using local memory fallback");
+            leaderboard = fallbackMemoryDB.length > 0 ? fallbackMemoryDB : null;
+        }
         
         // 🔥 If DB is empty, generate the 99 mock users and save them!
         if (!leaderboard || leaderboard.length === 0) {
             leaderboard = generateMockLeaderboard();
-            await kv.set('base_global_leaderboard', leaderboard);
+            if (hasKV) {
+                await kv.set('base_global_leaderboard', leaderboard);
+            } else {
+                fallbackMemoryDB = leaderboard;
+            }
         }
         
         return NextResponse.json({ leaderboard });
@@ -67,8 +82,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        const hasKV = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
         const entry: LeaderboardEntry = await request.json();
-        let leaderboard: LeaderboardEntry[] = (await kv.get<LeaderboardEntry[]>('base_global_leaderboard')) || [];
+        
+        let leaderboard: LeaderboardEntry[] = [];
+        
+        if (hasKV) {
+            leaderboard = (await kv.get<LeaderboardEntry[]>('base_global_leaderboard')) || [];
+        } else {
+            leaderboard = fallbackMemoryDB;
+        }
 
         const idx = leaderboard.findIndex((e: LeaderboardEntry) => e.address.toLowerCase() === entry.address.toLowerCase());
         
@@ -82,7 +105,11 @@ export async function POST(request: Request) {
         leaderboard.sort((a, b) => b.weeklyXP - a.weeklyXP);
         leaderboard = leaderboard.slice(0, 100);
 
-        await kv.set('base_global_leaderboard', leaderboard);
+        if (hasKV) {
+            await kv.set('base_global_leaderboard', leaderboard);
+        } else {
+            fallbackMemoryDB = leaderboard;
+        }
 
         return NextResponse.json({ success: true, leaderboard });
     } catch (error) {
