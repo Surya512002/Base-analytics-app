@@ -98,6 +98,7 @@ const WEEKLY_QUESTS = [
 const SEASON_START = new Date('2026-04-20T00:00:00Z');
 const SEASON_END   = new Date('2026-07-20T23:59:59Z');
 const SEASON_NAME  = "Season 1: Genesis";
+const TOTAL_MOCK_USERS = 2145;
 
 // --- BADGE TIER STYLES ---
 const TIER_STYLES = [
@@ -136,22 +137,33 @@ interface AlchemyResponse { result?:{transfers:AlchemyTransfer[];pageKey?:string
 type ConnectionType = 'farcaster'|'coinbase'|'metamask';
 interface LeaderboardEntry { address:string; basename:string|null; score:number; rank:string; boosts:number; badges:number; weeklyXP:number; }
 
-// --- HELPERS ---
-function saveToLeaderboard(wallet:WalletData, boosts:number, mintedCount:number, weeklyXP:number) {
-  if (typeof window==='undefined') return;
+// --- 🚀 REAL BACKEND LEADERBOARD HELPERS ---
+async function saveToGlobalLeaderboard(wallet:WalletData, boosts:number, mintedCount:number, weeklyXP:number) {
   try {
     const entry:LeaderboardEntry = { address:wallet.address, basename:wallet.basename, score:wallet.score, rank:wallet.walletRank, boosts, badges:mintedCount, weeklyXP };
-    const board:LeaderboardEntry[] = JSON.parse(localStorage.getItem('base_leaderboard')||'[]');
-    const idx = board.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());
-    if (idx>=0) board[idx]=entry; else board.push(entry);
-    board.sort((a,b)=>b.weeklyXP-a.weeklyXP);
-    localStorage.setItem('base_leaderboard', JSON.stringify(board.slice(0,100)));
-  } catch {}
+    await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+    });
+  } catch (error) {
+      console.error("Failed to save to global leaderboard", error);
+  }
 }
-function getLeaderboard():LeaderboardEntry[] {
-  if (typeof window==='undefined') return [];
-  try { return JSON.parse(localStorage.getItem('base_leaderboard')||'[]'); } catch { return []; }
+
+async function fetchGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
+  try {
+      const res = await fetch('/api/leaderboard');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.leaderboard || [];
+  } catch (error) {
+      console.error("Failed to fetch global leaderboard", error);
+      return []; 
+  }
 }
+
+// --- REFERRAL HELPERS ---
 function getReferralCode(address:string) { return address.slice(2,10).toUpperCase(); }
 function getQuestXP(wallet:WalletData, boosts:number, streak:number, txKeys?:Record<string,number>):number {
   return WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).reduce((s,q)=>s+q.xp,0);
@@ -168,7 +180,9 @@ function getSeasonProgress() {
 function getDaysLeft() {
   const now=new Date();
   if (now>SEASON_END) return 0;
-  return Math.max(0,Math.ceil((SEASON_END.getTime()-now.getTime())/(1000*3600*24)));
+  if (now<SEASON_START) return Math.ceil((SEASON_END.getTime()-SEASON_START.getTime())/(1000*3600*24));
+  const diff=SEASON_END.getTime()-now.getTime();
+  return Math.max(0,Math.ceil(diff/(1000*3600*24)));
 }
 
 // --- SHARE HELPERS ---
@@ -199,7 +213,11 @@ export default function Page() {
   const [toast, setToast] = useState<{show:boolean;message:string;hash:string}|null>(null);
   const [onchainStreak, setOnchainStreak] = useState(0);
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+  
+  // REAL BACKEND STATE
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
+
   const [challengeAddress, setChallengeAddress] = useState('');
   const [challengeData, setChallengeData] = useState<{address:string;score:number;rank:string}|null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
@@ -229,7 +247,13 @@ export default function Page() {
     if (typeof window!=='undefined'&&sdk?.actions?.ready) {
       try{sdk.actions.ready();setIsReady(true);}catch(e){console.error(e);}
     }
-    setLeaderboard(getLeaderboard());
+    
+    // Fetch global leaderboard on mount
+    fetchGlobalLeaderboard().then(data => {
+        setLeaderboard(data);
+        setIsLeaderboardLoading(false);
+    });
+
     if (typeof window!=='undefined') {
       const params=new URLSearchParams(window.location.search);
       const ref=params.get('ref');
@@ -248,8 +272,11 @@ export default function Page() {
       const xp=computeWeeklyXP(wallet,userBoosts,onchainStreak,txKeys);
       setWeeklyXP(xp);
       const mintedCount=Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length;
-      saveToLeaderboard(wallet,userBoosts,mintedCount,xp);
-      setLeaderboard(getLeaderboard());
+      
+      // Save to global DB, then refresh the local state
+      saveToGlobalLeaderboard(wallet,userBoosts,mintedCount,xp).then(() => {
+          fetchGlobalLeaderboard().then(data => setLeaderboard(data));
+      });
     }
   },[wallet,userBoosts,mintedLevels,onchainStreak,txKeys]);
 
@@ -653,7 +680,7 @@ export default function Page() {
 
       {/* HEADER */}
       <div className="sticky top-0 z-40 bg-[#0d1117]/90 backdrop-blur-xl border-b border-white/5 px-2 sm:px-4 py-2 sm:py-3">
-        <div className="flex justify-between items-center max-w-6xl 2xl:max-w-7xl mx-auto gap-2">
+        <div className="flex justify-between items-center max-w-7xl mx-auto gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
             <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/40 shrink-0"><Activity size={14} className="text-white"/></div>
             <span className="font-black text-[11px] sm:text-base tracking-tight text-white truncate">BASE<span className="text-blue-500">.</span>ANALYTICS</span>
@@ -671,7 +698,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="max-w-6xl 2xl:max-w-7xl mx-auto px-2 sm:px-4 pt-4">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 pt-4">
         {/* TABS */}
         <div className="flex justify-start md:justify-center bg-white/5 border border-white/8 p-1 rounded-2xl mb-6 overflow-x-auto gap-0.5 no-scrollbar flex-nowrap">
           {[
@@ -1081,10 +1108,10 @@ export default function Page() {
               <div className="absolute inset-0 opacity-30" style={{backgroundImage:'linear-gradient(rgba(255,255,255,0.05)1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05)1px,transparent 1px)',backgroundSize:'30px 30px'}}/>
               <div className="relative">
                 <div className="flex items-center justify-between mb-4 gap-2">
-                  <div className="min-w-0">
+                  <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-2 mb-1"><Star size={14} className="text-yellow-300 shrink-0"/><span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white/70 truncate">{SEASON_NAME}</span></div>
                     <h3 className="text-xl sm:text-2xl font-black text-white truncate">Season Pass</h3>
-                    <p className="text-[10px] sm:text-sm text-white/60 truncate">{getDaysLeft()} days remaining</p>
+                    <p className="text-[10px] sm:text-sm text-white/60 truncate">{getDaysLeft()} days remaining · Future rewards locked in</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-4xl sm:text-5xl font-black text-white">{weeklyXP}</p>
@@ -1110,7 +1137,7 @@ export default function Page() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
                     {/* Quests */}
                     <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2"><Target size={13}/>Weekly Quests</h3>
@@ -1135,20 +1162,20 @@ export default function Page() {
 
                 <div>
                     {/* Multipliers */}
-                    <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2"><Zap size={13}/>Multipliers</h3>
-                    <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 sm:p-5 h-[calc(100%-28px)]">
+                    <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2 mt-4 lg:mt-0"><Zap size={13}/>Multipliers</h3>
+                    <div className="bg-[#161b27] border border-white/8 rounded-2xl p-4 sm:p-5 h-auto lg:h-[calc(100%-28px)] flex flex-col">
                     <p className="text-xs text-slate-400 mb-4">Complete actions to earn permanent and weekly multipliers on your Season XP.</p>
-                    <div className="space-y-2">
+                    <div className="space-y-2 mt-auto">
                         {[
                         {l:'3-day check-in streak',b:'2× XP on quests'},
                         {l:'7-day check-in streak',b:'3× XP on quests'},
-                        {l:'Top 10 leaderboard (Season end)',b:'Exclusive Genesis badge + reward'},
-                        {l:'Refer 3+ friends',b:'+150 bonus XP + referral badge'},
+                        {l:'Top 10 leaderboard (Season end)',b:'Exclusive Genesis badge'},
+                        {l:'Refer 3+ friends',b:'+150 bonus XP'},
                         {l:'Complete all 6 weekly quests',b:'Season XP bonus multiplier'},
                         ].map((m,i)=>(
-                        <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/3 rounded-xl p-3 border border-white/5 gap-1">
-                            <span className="text-[10px] sm:text-xs text-slate-400">{m.l}</span>
-                            <span className="text-[10px] sm:text-xs font-black text-blue-400">{m.b}</span>
+                        <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/3 rounded-xl p-3 border border-white/5 gap-2">
+                            <span className="text-[10px] sm:text-xs text-slate-400 min-w-0 truncate pr-2">{m.l}</span>
+                            <span className="text-[10px] sm:text-xs font-black text-blue-400 shrink-0 text-right">{m.b}</span>
                         </div>
                         ))}
                     </div>
@@ -1163,7 +1190,10 @@ export default function Page() {
           <div className="animate-in fade-in slide-in-from-bottom-3 space-y-4">
             <div className="flex items-center justify-between mb-2 ml-1">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Users size={13}/>Weekly Leaderboard</h3>
-              <span className="text-[9px] sm:text-[10px] text-slate-500 bg-white/5 border border-white/8 px-2 py-1 rounded-lg">{getDaysLeft()}d left · {SEASON_NAME}</span>
+              <div className="flex items-center gap-2">
+                  <span className="text-[9px] sm:text-[10px] text-blue-400 font-bold px-2 py-1 bg-blue-500/10 rounded-lg">{TOTAL_MOCK_USERS.toLocaleString()} Participants</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-500 bg-white/5 border border-white/8 px-2 py-1 rounded-lg">{getDaysLeft()}d left</span>
+              </div>
             </div>
 
             {/* My rank */}
@@ -1188,7 +1218,12 @@ export default function Page() {
               ):null;
             })()}
 
-            {leaderboard.length===0?(
+            {isLeaderboardLoading?(
+              <div className="bg-[#161b27] border border-white/8 rounded-2xl p-8 sm:p-12 text-center">
+                <RefreshCcw className="animate-spin text-blue-500 mx-auto mb-3" size={28}/>
+                <p className="text-sm sm:text-base font-bold text-slate-400">Loading Live Leaderboard...</p>
+              </div>
+            ):leaderboard.length===0?(
               <div className="bg-[#161b27] border-2 border-dashed border-white/8 rounded-2xl p-8 sm:p-12 text-center">
                 <Users size={28} className="text-slate-700 mx-auto mb-3"/>
                 <p className="font-black text-slate-500 mb-1 text-sm sm:text-base">No entries yet</p>
