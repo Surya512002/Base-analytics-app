@@ -98,7 +98,7 @@ const WEEKLY_QUESTS = [
 const SEASON_START = new Date('2026-04-20T00:00:00Z');
 const SEASON_END   = new Date('2026-07-20T23:59:59Z');
 const SEASON_NAME  = "Season 1: Genesis";
-const TOTAL_MOCK_USERS = 2145;
+
 
 // --- BADGE TIER STYLES ---
 const TIER_STYLES = [
@@ -1191,7 +1191,7 @@ export default function Page() {
             <div className="flex items-center justify-between mb-2 ml-1">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Users size={13}/>Weekly Leaderboard</h3>
               <div className="flex items-center gap-2">
-                  <span className="text-[9px] sm:text-[10px] text-blue-400 font-bold px-2 py-1 bg-blue-500/10 rounded-lg">{TOTAL_MOCK_USERS.toLocaleString()} Participants</span>
+                  <span className="text-[9px] sm:text-[10px] text-blue-400 font-bold px-2 py-1 bg-blue-500/10 rounded-lg">{leaderboard.length.toLocaleString()} Participants</span>
                   <span className="text-[9px] sm:text-[10px] text-slate-500 bg-white/5 border border-white/8 px-2 py-1 rounded-lg">{getDaysLeft()}d left</span>
               </div>
             </div>
