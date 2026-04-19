@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { Redis } from 'ioredis';
 
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 interface LeaderboardEntry {
   address: string;
@@ -11,51 +12,57 @@ interface LeaderboardEntry {
   boosts: number;
   badges: number;
   weeklyXP: number;
+  lastSeen?: number;
 }
 
-// 🔥 We changed the key to start a brand new, empty database!
-const DB_KEY = 'base_real_leaderboard_v1';
+function getRedis() {
+  const url = process.env.KV_REDIS_URL;
+  if (!url) throw new Error('KV_REDIS_URL not set');
+  return new Redis(url, { tls: url.startsWith('rediss://') ? {} : undefined, lazyConnect: true, maxRetriesPerRequest: 2, connectTimeout: 5000 });
+}
+
+const DB_KEY = 'base_leaderboard_v2';
 
 export async function GET() {
-    try {
-        const hasKV = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
-        if (!hasKV) return NextResponse.json({ leaderboard: [] });
-
-        // Just fetch the real data. If it's empty, return an empty array.
-        const leaderboard = (await kv.get<LeaderboardEntry[]>(DB_KEY)) || [];
-        
-        return NextResponse.json({ leaderboard });
-    } catch (error) {
-        console.error("KV GET Error:", error);
-        return NextResponse.json({ leaderboard: [] }, { status: 500 });
-    }
+  let redis: Redis | null = null;
+  try {
+    redis = getRedis();
+    await redis.connect();
+    const raw = await redis.get(DB_KEY);
+    const leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
+    return NextResponse.json({ leaderboard });
+  } catch (error) {
+    console.error('Redis GET Error:', error);
+    return NextResponse.json({ leaderboard: [] });
+  } finally {
+    if (redis) await redis.quit().catch(() => {});
+  }
 }
 
 export async function POST(request: Request) {
-    try {
-        const hasKV = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
-        if (!hasKV) return NextResponse.json({ success: false, error: "Missing KV Keys" });
-
-        const entry: LeaderboardEntry = await request.json();
-        let leaderboard: LeaderboardEntry[] = (await kv.get<LeaderboardEntry[]>(DB_KEY)) || [];
-
-        const idx = leaderboard.findIndex((e: LeaderboardEntry) => e.address.toLowerCase() === entry.address.toLowerCase());
-        
-        if (idx >= 0) {
-            leaderboard[idx] = entry; // Update existing real user
-        } else {
-            leaderboard.push(entry); // Add new real user
-        }
-
-        // Sort by Highest XP and keep Top 100
-        leaderboard.sort((a, b) => b.weeklyXP - a.weeklyXP);
-        leaderboard = leaderboard.slice(0, 100);
-
-        await kv.set(DB_KEY, leaderboard);
-
-        return NextResponse.json({ success: true, leaderboard });
-    } catch (error) {
-        console.error("KV POST Error:", error);
-        return NextResponse.json({ success: false }, { status: 500 });
-    }
-} 
+  let redis: Redis | null = null;
+  try {
+    redis = getRedis();
+    await redis.connect();
+    const entry: LeaderboardEntry = await request.json();
+    entry.lastSeen = Date.now();
+    
+    const raw = await redis.get(DB_KEY);
+    let leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
+    
+    const idx = leaderboard.findIndex(e => e.address.toLowerCase() === entry.address.toLowerCase());
+    if (idx >= 0) { leaderboard[idx] = entry; } else { leaderboard.push(entry); }
+    
+    leaderboard.sort((a, b) => b.weeklyXP - a.weeklyXP);
+    leaderboard = leaderboard.slice(0, 200);
+    
+    await redis.set(DB_KEY, JSON.stringify(leaderboard));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Redis POST Error:', error);
+    return NextResponse.json({ success: false });
+  } finally {
+    if (redis) await redis.quit().catch(() => {});
+  }
+}
+ 
