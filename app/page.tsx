@@ -14,7 +14,7 @@ import sdk from "@farcaster/miniapp-sdk";
 import { connectWallet } from './connection';
 import BaseHub from '../components/BaseHub';
 import { Transaction, TransactionButton } from '@coinbase/onchainkit/transaction';
-import { encodeFunctionData, createPublicClient, http } from 'viem';
+import { encodeFunctionData, createPublicClient, http, namehash } from 'viem';
 import { base, mainnet } from 'viem/chains';
 
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "mn8s-DCTchMi4q2DEKasm";
@@ -101,11 +101,11 @@ const TIER_GRADIENTS = [
 ];
 
 function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string {
-  if(!isEarned) return 'bg-white/5 border border-white/8 text-white/15 opacity-40';
+  if(!isEarned) return 'bg-white/5 border border-white/10 text-white/20 grayscale opacity-40';
   const t=Math.min(level,5)-1;
   const base=`bg-linear-to-br ${TIER_GRADIENTS[t]} border border-white/20 text-white`;
-  if(isMinted) return `${base} ring-2 ring-green-400 ring-offset-1 ring-offset-[#0d1117] shadow-lg shadow-green-400/20`;
-  return `${base} opacity-75 border-dashed`;
+  if(isMinted) return `${base} ring-2 ring-green-400 ring-offset-1 ring-offset-[#0d1117] shadow-lg shadow-green-400/20 scale-105`;
+  return `${base} opacity-75 border-dashed animate-pulse`;
 }
 
 function getTargetTokenId(baseId:number,num:number,level:number){return num===1?baseId+5:baseId+level;}
@@ -217,13 +217,19 @@ export default function Page(){
       setMintedLevels({});
 
       const mainnet2=createPublicClient({chain:mainnet,transport:http(`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`)});
-      const BASENAME_L2_RESOLVER_ADDRESS = "0xC6d566A56A1aFf6508b41f6c90ff131615583BCD";
-      const bnP = pub.getEnsName({
-          address: address as `0x${string}`,
-          universalResolverAddress: BASENAME_L2_RESOLVER_ADDRESS
-      })
-      .catch(()=>null)
-      .then(name => name || mainnet2.getEnsName({address:address as `0x${string}`}).catch(()=>null));
+      
+      // 🚀 Query Basename directly from Base L2 Resolver
+      const reverseNode = namehash(`${address.toLowerCase().slice(2)}.addr.reverse`);
+      const baseNameP = pub.readContract({
+        address: '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD',
+        abi: [{ name: 'name', type: 'function', stateMutability: 'view', inputs: [{ name: 'node', type: 'bytes32' }], outputs: [{ name: '', type: 'string' }] }] as const,
+        functionName: 'name',
+        args: [reverseNode]
+      }).catch(() => null);
+
+      // 🚀 Fallback to standard ENS on Mainnet
+      const ethNameP = mainnet2.getEnsName({address:address as `0x${string}`}).catch(()=>null);
+
       const balP=provider.getBalance(address).catch(()=>BigInt(0));
       const nftP=fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(r=>r.json()).catch(()=>({totalCount:0}));
       const strkP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'streaks',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
@@ -238,7 +244,8 @@ export default function Page(){
       // Also fetch incoming txs for received ETH
       const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,category:["external","erc20"],maxCount:"0x3e8",withMetadata:true}]})}).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
 
-      const[bn,balWei,nftData,mcRes,allTxs,rxData,dbStreak,dbLastCI]=await Promise.all([bnP,balP,nftP,mcP,txP,rxP,strkP,lastP]);
+      const[baseNameRes,ethNameRes,balWei,nftData,mcRes,allTxs,rxData,dbStreak,dbLastCI]=await Promise.all([baseNameP,ethNameP,balP,nftP,mcP,txP,rxP,strkP,lastP]);
+      const bn = (baseNameRes && typeof baseNameRes === 'string' && baseNameRes !== '') ? baseNameRes : ethNameRes;
 
       setStreak(Number(dbStreak));
       if(Number(dbLastCI)>0){const ld=new Date(Number(dbLastCI)*1000).toISOString().split('T')[0];setCheckedToday(ld===new Date().toISOString().split('T')[0]);}
@@ -1038,4 +1045,4 @@ export default function Page(){
       `}</style>
     </main>
   );
-} 
+}
