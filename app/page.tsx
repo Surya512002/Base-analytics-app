@@ -217,9 +217,13 @@ export default function Page(){
       setMintedLevels({});
 
       const mainnet2=createPublicClient({chain:mainnet,transport:http(`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`)});
-      const bnP = pub.getEnsName({address:address as `0x${string}`})
-        .catch(()=>null)
-        .then(name => name || mainnet2.getEnsName({address:address as `0x${string}`}).catch(()=>null));
+      const BASENAME_L2_RESOLVER_ADDRESS = "0xC6d566A56A1aFf6508b41f6c90ff131615583BCD";
+      const bnP = pub.getEnsName({
+          address: address as `0x${string}`,
+          universalResolverAddress: BASENAME_L2_RESOLVER_ADDRESS
+      })
+      .catch(()=>null)
+      .then(name => name || mainnet2.getEnsName({address:address as `0x${string}`}).catch(()=>null));
       const balP=provider.getBalance(address).catch(()=>BigInt(0));
       const nftP=fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(r=>r.json()).catch(()=>({totalCount:0}));
       const strkP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'streaks',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
