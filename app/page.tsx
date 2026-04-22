@@ -14,8 +14,8 @@ import sdk from "@farcaster/miniapp-sdk";
 import { connectWallet } from './connection';
 import BaseHub from '../components/BaseHub';
 import { Transaction, TransactionButton } from '@coinbase/onchainkit/transaction';
-import { encodeFunctionData, createPublicClient, http, namehash } from 'viem';
-import { base, mainnet } from 'viem/chains';
+import { encodeFunctionData, createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
 
 const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_KEY || "mn8s-DCTchMi4q2DEKasm";
 const BASE_RPC = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`;
@@ -65,14 +65,14 @@ const ACHIEVEMENTS = [
   {id:'score',  baseId:10, name:'Onchain Rank',   icon:'🏅',unit:'Score',  thresholds:[10,30,60,75,85], tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],         tierIcons:["🦐","🐬","🦈","🐋","👑"]},
   {id:'age',    baseId:20, name:'Pioneer',         icon:'📅',unit:'Days',   thresholds:[10,30,90,180,365],tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],                 tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
   {id:'name',   baseId:30, name:'Identity',        icon:'📛',unit:'Basename',thresholds:[1],              tierNames:["Verified"],                                                                tierIcons:["🆔"]},
-  {id:'days',   baseId:40, name:'Diamond Hands',   icon:'💎',unit:'Days',   thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                      tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
-  {id:'contract',baseId:50,name:'Base Builder',    icon:'🧱',unit:'Txs',    thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],         tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
+  {id:'days',   baseId:40, name:'Diamond Hands',   icon:'💎',unit:'Days',   thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                     tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
+  {id:'contract',baseId:50,name:'Base Builder',    icon:'🧱',unit:'Txs',    thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],        tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
   {id:'volume', baseId:60, name:'Whale Alert',     icon:'💰',unit:'ETH',    thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],               tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
-  {id:'txs',    baseId:70, name:'Power User',      icon:'📈',unit:'Txs',    thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                                tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
-  {id:'swaps',  baseId:80, name:'DeFi Degen',      icon:'🔄',unit:'Swaps',  thresholds:[3,10,25,50,100],  tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                  tierIcons:["🪙","📈","🏦","🚜","🦄"]},
+  {id:'txs',    baseId:70, name:'Power User',      icon:'📈',unit:'Txs',    thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                             tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
+  {id:'swaps',  baseId:80, name:'DeFi Degen',      icon:'🔄',unit:'Swaps',  thresholds:[3,10,25,50,100],  tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                 tierIcons:["🪙","📈","🏦","🚜","🦄"]},
   {id:'nfts',   baseId:90, name:'Collector',       icon:'👾',unit:'NFTs',   thresholds:[3,10,25,50,100],  tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                   tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
-  {id:'streak', baseId:100,name:'Streak Master',   icon:'🎯',unit:'Days',   thresholds:[3,7,14,30,100],   tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                             tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
-  {id:'boosts', baseId:110,name:'XP Booster',      icon:'🔋',unit:'Boosts', thresholds:[5,10,25,50,100],  tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                          tierIcons:["🔰","🤝","📣","🏆","🔋"]},
+  {id:'streak', baseId:100,name:'Streak Master',   icon:'🎯',unit:'Days',   thresholds:[3,7,14,30,100],   tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                           tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
+  {id:'boosts', baseId:110,name:'XP Booster',      icon:'🔋',unit:'Boosts', thresholds:[5,10,25,50,100],  tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                        tierIcons:["🔰","🤝","📣","🏆","🔋"]},
 ];
 
 const WEEKLY_QUESTS = [
@@ -101,11 +101,11 @@ const TIER_GRADIENTS = [
 ];
 
 function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string {
-  if(!isEarned) return 'bg-white/5 border border-white/10 text-white/20 grayscale opacity-40';
+  if(!isEarned) return 'bg-white/5 border border-white/8 text-white/15 opacity-40';
   const t=Math.min(level,5)-1;
   const base=`bg-linear-to-br ${TIER_GRADIENTS[t]} border border-white/20 text-white`;
-  if(isMinted) return `${base} ring-2 ring-green-400 ring-offset-1 ring-offset-[#0d1117] shadow-lg shadow-green-400/20 scale-105`;
-  return `${base} opacity-75 border-dashed animate-pulse`;
+  if(isMinted) return `${base} ring-2 ring-green-400 ring-offset-1 ring-offset-[#0d1117] shadow-lg shadow-green-400/20`;
+  return `${base} opacity-75 border-dashed`;
 }
 
 function getTargetTokenId(baseId:number,num:number,level:number){return num===1?baseId+5:baseId+level;}
@@ -216,20 +216,44 @@ export default function Page(){
       const pub=createPublicClient({chain:base,transport:http(BASE_RPC)});
       setMintedLevels({});
 
-      const mainnet2=createPublicClient({chain:mainnet,transport:http(`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`)});
-      
-      // 🚀 Query Basename directly from Base L2 Resolver
-      const reverseNode = namehash(`${address.toLowerCase().slice(2)}.addr.reverse`);
-      const baseNameP = pub.readContract({
-        address: '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD',
-        abi: [{ name: 'name', type: 'function', stateMutability: 'view', inputs: [{ name: 'node', type: 'bytes32' }], outputs: [{ name: '', type: 'string' }] }] as const,
-        functionName: 'name',
-        args: [reverseNode]
+      // ─── Base L2 Basename Resolution ───────────────────────────────────────────
+      // Basenames live on Base L2, NOT Ethereum mainnet. The standard getEnsName()
+      // call against mainnet will never find a Basename like "user.base.eth".
+      // Correct flow: reverseRegistrar.node(address) → resolver.name(node)
+      const BASE_REVERSE_REGISTRAR = '0x79EA96012eEa67A83431F1701B3dFf7e37F9E282' as `0x${string}`;
+      const BASE_L2_RESOLVER       = '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD' as `0x${string}`;
+
+      const REVERSE_REGISTRAR_ABI = [{
+        name:'node', type:'function', stateMutability:'view',
+        inputs:[{name:'addr',type:'address'}],
+        outputs:[{name:'',type:'bytes32'}]
+      }] as const;
+
+      const NAME_RESOLVER_ABI = [{
+        name:'name', type:'function', stateMutability:'view',
+        inputs:[{name:'node',type:'bytes32'}],
+        outputs:[{name:'',type:'string'}]
+      }] as const;
+
+      // Step 1: get the reverse node for this address on Base L2
+      const bnP = pub.readContract({
+        address: BASE_REVERSE_REGISTRAR,
+        abi: REVERSE_REGISTRAR_ABI,
+        functionName: 'node',
+        args: [address as `0x${string}`]
+      }).then(async (reverseNode) => {
+        if (!reverseNode) return null;
+        // Step 2: resolve the node to a name string
+        const name = await pub.readContract({
+          address: BASE_L2_RESOLVER,
+          abi: NAME_RESOLVER_ABI,
+          functionName: 'name',
+          args: [reverseNode]
+        }).catch(() => null);
+        // Only return valid Basenames (non-empty, ending in .base.eth)
+        if (name && typeof name === 'string' && name.trim() !== '') return name;
+        return null;
       }).catch(() => null);
-
-      // 🚀 Fallback to standard ENS on Mainnet
-      const ethNameP = mainnet2.getEnsName({address:address as `0x${string}`}).catch(()=>null);
-
       const balP=provider.getBalance(address).catch(()=>BigInt(0));
       const nftP=fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(r=>r.json()).catch(()=>({totalCount:0}));
       const strkP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'streaks',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
@@ -244,8 +268,7 @@ export default function Page(){
       // Also fetch incoming txs for received ETH
       const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,category:["external","erc20"],maxCount:"0x3e8",withMetadata:true}]})}).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
 
-      const[baseNameRes,ethNameRes,balWei,nftData,mcRes,allTxs,rxData,dbStreak,dbLastCI]=await Promise.all([baseNameP,ethNameP,balP,nftP,mcP,txP,rxP,strkP,lastP]);
-      const bn = (baseNameRes && typeof baseNameRes === 'string' && baseNameRes !== '') ? baseNameRes : ethNameRes;
+      const[bn,balWei,nftData,mcRes,allTxs,rxData,dbStreak,dbLastCI]=await Promise.all([bnP,balP,nftP,mcP,txP,rxP,strkP,lastP]);
 
       setStreak(Number(dbStreak));
       if(Number(dbLastCI)>0){const ld=new Date(Number(dbLastCI)*1000).toISOString().split('T')[0];setCheckedToday(ld===new Date().toISOString().split('T')[0]);}
@@ -344,12 +367,12 @@ export default function Page(){
   const doNativeTx=async(type:'boost'|'gm'|'gn'|'checkin')=>{
     if(!wallet||minting)return;setMinting(type);
     try{
-      let to:`0x${string}`='0x',data:`0x${string}`='0x',msg='';const val=type==='boost'?BigInt(4000000000000):BigInt(2000000000000);
-      if(type==='boost'){to=BOOSTER_CONTRACT as `0x${string}`;data=boostDWT;msg='Boosted! 🎉';}
-      else if(type==='gm'){to=GM_GN_CONTRACT as `0x${string}`;data=gmDWT;msg='GM on Base! ☀️';}
-      else if(type==='gn'){to=GM_GN_CONTRACT as `0x${string}`;data=gnDWT;msg='GN on Base! 🌙';}
-      else{to=CHECKIN_CONTRACT as `0x${string}`;data=ciDWT;msg='Check-in secured! 🔥';}
-      const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={from:wallet.address as `0x${string}`,to,data,chainId:'0x2105'};
+      let to:string='',data:string='',msg='';const val=type==='boost'?BigInt(4000000000000):BigInt(2000000000000);
+      if(type==='boost'){to=BOOSTER_CONTRACT;data=boostDWT;msg='Boosted! 🎉';}
+      else if(type==='gm'){to=GM_GN_CONTRACT;data=gmDWT;msg='GM on Base! ☀️';}
+      else if(type==='gn'){to=GM_GN_CONTRACT;data=gnDWT;msg='GN on Base! 🌙';}
+      else{to=CHECKIN_CONTRACT;data=ciDWT;msg='Check-in secured! 🔥';}
+      const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={from:wallet.address as `0x${string}`,to:to as `0x${string}`,data:data as `0x${string}`,chainId:'0x2105' as `0x${string}`};
       if(type!=='checkin'&&val>BigInt(0))p.value=`0x${val.toString(16)}` as `0x${string}`;
       const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[p]});
       if(hash&&typeof hash==='string'){
@@ -368,7 +391,7 @@ export default function Page(){
     try{
       const isBatch=tokenIds.length>1;
       const raw=isBatch?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[tokenIds.map(id=>BigInt(id))]}):encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(tokenIds[0])]});
-      const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[{from:wallet.address as `0x${string}`,to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data:`${raw}${getBuilderSuffix()}` as `0x${string}`,chainId:'0x2105'}]});
+      const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[{from:wallet.address as `0x${string}`,to:ACHIEVEMENTS_CONTRACT,data:`${raw}${getBuilderSuffix()}` as `0x${string}`,chainId:'0x2105'}]});
       if(hash&&typeof hash==='string'){showToast(isBatch?`✅ Claimed ${tokenIds.length} ${catName} Badges!`:`✅ Badge minted!`,hash as string);setMintedLevels(p=>({...p,[catId]:Math.max(...targetLevels)}));setTxKeys(p=>({...p,[`mint-${catId}`]:(p[`mint-${catId}`]||0)+1}));setSponsored(s=>s+1);}
     }catch(e:unknown){let m='Mint rejected.';if(e instanceof Error)m=e.message.split('\n')[0];if(!m.includes("rejected"))showToast(`❌ Mint Failed`,'');}
     finally{setMinting(null);}
@@ -379,9 +402,9 @@ export default function Page(){
   const ref=wallet?getReferralCode(wallet.address):'';
   const doneQuests=wallet?WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).length:0;
 
-  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nStreak: ${streak} days 🔥\nBadges: ${Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length} 🎖️`);if(pl==='w'){window.open(warpcast(text),'_blank');}else if(pl==='t'){window.open(twitter(text),'_blank');}else if(navigator.share){navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});}};
-  const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w'){window.open(warpcast(text),'_blank');}else{window.open(twitter(text),'_blank');}};
-  const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w'){window.open(warpcast(text),'_blank');}else{window.open(twitter(text),'_blank');}};
+  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nStreak: ${streak} days 🔥\nBadges: ${Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length} 🎖️`);if(pl==='w')window.open(warpcast(text),'_blank');else if(pl==='t')window.open(twitter(text),'_blank');else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
+  const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitter(text),'_blank');};
+  const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitter(text),'_blank');};
 
   if(!ready)return(
     <div className="min-h-screen bg-[#0a0d14] flex items-center justify-center">
@@ -418,7 +441,7 @@ export default function Page(){
             <span>Season progress</span><span>{getSeasonPct()}%</span>
           </div>
           <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-            <div className="h-full bg-linear-to-r from-blue-600 to-purple-600 rounded-full transition-all duration-1000" style={{width:`${getSeasonPct()}%`}}/>
+            <div className="h-full bg-linear-to-br from-blue-600 to-purple-600 rounded-full transition-all duration-1000" style={{width:`${getSeasonPct()}%`}}/>
           </div>
         </div>
 
@@ -467,7 +490,7 @@ export default function Page(){
       <div className="fixed inset-0 pointer-events-none" style={{backgroundImage:'linear-gradient(rgba(0,82,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,82,255,0.03) 1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
 
       {toast&&(
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-start gap-3" style={{animation:'slideUp 0.3s ease-out'}}>
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 bg-linear-to-br from-blue-600 to-blue-700 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-start gap-3" style={{animation:'slideUp 0.3s ease-out'}}>
           <BadgeCheck size={20} className="shrink-0 mt-0.5"/>
           <div className="flex-1 min-w-0"><p className="font-bold text-sm">{toast.msg}</p>{toast.hash&&<a href={`https://basescan.org/tx/${toast.hash}`} target="_blank" rel="noreferrer" className="text-blue-200 text-xs underline hover:text-white">View on BaseScan ↗</a>}</div>
           <button onClick={()=>setToast(null)} className="shrink-0 bg-white/10 hover:bg-white/20 p-1.5 rounded-xl transition-colors"><X size={13}/></button>
