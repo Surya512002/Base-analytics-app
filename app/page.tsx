@@ -103,7 +103,7 @@ const TIER_GRADIENTS = [
 function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string {
   if(!isEarned) return 'bg-white/5 border border-white/8 text-white/15 opacity-40';
   const t=Math.min(level,5)-1;
-  const base=`bg-linear-to-br ${TIER_GRADIENTS[t]} border border-white/20 text-white`;
+  const base=`bg-gradient-to-br ${TIER_GRADIENTS[t]} border border-white/20 text-white`;
   if(isMinted) return `${base} ring-2 ring-green-400 ring-offset-1 ring-offset-[#0d1117] shadow-lg shadow-green-400/20`;
   return `${base} opacity-75 border-dashed`;
 }
@@ -367,13 +367,24 @@ export default function Page(){
   const doNativeTx=async(type:'boost'|'gm'|'gn'|'checkin')=>{
     if(!wallet||minting)return;setMinting(type);
     try{
-      let to:string='',data:string='',msg='';const val=type==='boost'?BigInt(4000000000000):BigInt(2000000000000);
-      if(type==='boost'){to=BOOSTER_CONTRACT;data=boostDWT;msg='Boosted! 🎉';}
-      else if(type==='gm'){to=GM_GN_CONTRACT;data=gmDWT;msg='GM on Base! ☀️';}
-      else if(type==='gn'){to=GM_GN_CONTRACT;data=gnDWT;msg='GN on Base! 🌙';}
-      else{to=CHECKIN_CONTRACT;data=ciDWT;msg='Check-in secured! 🔥';}
-      const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={from:wallet.address as `0x${string}`,to:to as `0x${string}`,data:data as `0x${string}`,chainId:'0x2105' as `0x${string}`};
+      // 🚀 FIXED: Explicitly declare these as hex strings from the start
+      let to: `0x${string}` = '0x', data: `0x${string}` = '0x', msg = '';
+      const val = type === 'boost' ? BigInt(4000000000000) : BigInt(2000000000000);
+      
+      if(type==='boost'){to=BOOSTER_CONTRACT as `0x${string}`;data=boostDWT;msg='Boosted! 🎉';}
+      else if(type==='gm'){to=GM_GN_CONTRACT as `0x${string}`;data=gmDWT;msg='GM on Base! ☀️';}
+      else if(type==='gn'){to=GM_GN_CONTRACT as `0x${string}`;data=gnDWT;msg='GN on Base! 🌙';}
+      else{to=CHECKIN_CONTRACT as `0x${string}`;data=ciDWT;msg='Check-in secured! 🔥';}
+      
+      const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={
+        from:wallet.address as `0x${string}`,
+        to,
+        data,
+        chainId:'0x2105'
+      };
+      
       if(type!=='checkin'&&val>BigInt(0))p.value=`0x${val.toString(16)}` as `0x${string}`;
+      
       const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[p]});
       if(hash&&typeof hash==='string'){
         showToast(msg,hash);setSponsored(s=>s+1);
@@ -391,7 +402,8 @@ export default function Page(){
     try{
       const isBatch=tokenIds.length>1;
       const raw=isBatch?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[tokenIds.map(id=>BigInt(id))]}):encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(tokenIds[0])]});
-      const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[{from:wallet.address as `0x${string}`,to:ACHIEVEMENTS_CONTRACT,data:`${raw}${getBuilderSuffix()}` as `0x${string}`,chainId:'0x2105'}]});
+      const data = `${raw}${getBuilderSuffix()}` as `0x${string}`;
+      const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[{from:wallet.address as `0x${string}`,to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data,chainId:'0x2105'}]});
       if(hash&&typeof hash==='string'){showToast(isBatch?`✅ Claimed ${tokenIds.length} ${catName} Badges!`:`✅ Badge minted!`,hash as string);setMintedLevels(p=>({...p,[catId]:Math.max(...targetLevels)}));setTxKeys(p=>({...p,[`mint-${catId}`]:(p[`mint-${catId}`]||0)+1}));setSponsored(s=>s+1);}
     }catch(e:unknown){let m='Mint rejected.';if(e instanceof Error)m=e.message.split('\n')[0];if(!m.includes("rejected"))showToast(`❌ Mint Failed`,'');}
     finally{setMinting(null);}
@@ -403,8 +415,8 @@ export default function Page(){
   const doneQuests=wallet?WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).length:0;
 
   const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nStreak: ${streak} days 🔥\nBadges: ${Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length} 🎖️`);if(pl==='w')window.open(warpcast(text),'_blank');else if(pl==='t')window.open(twitter(text),'_blank');else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
-  const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitter(text),'_blank');};
-  const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitter(text),'_blank');};
+  const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w'){window.open(warpcast(text),'_blank');}else{window.open(twitter(text),'_blank');}};
+  const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w'){window.open(warpcast(text),'_blank');}else{window.open(twitter(text),'_blank');}};
 
   if(!ready)return(
     <div className="min-h-screen bg-[#0a0d14] flex items-center justify-center">
@@ -441,7 +453,7 @@ export default function Page(){
             <span>Season progress</span><span>{getSeasonPct()}%</span>
           </div>
           <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-            <div className="h-full bg-linear-to-br from-blue-600 to-purple-600 rounded-full transition-all duration-1000" style={{width:`${getSeasonPct()}%`}}/>
+            <div className="h-full bg-linear-to-r from-blue-600 to-purple-600 rounded-full transition-all duration-1000" style={{width:`${getSeasonPct()}%`}}/>
           </div>
         </div>
 
@@ -490,7 +502,7 @@ export default function Page(){
       <div className="fixed inset-0 pointer-events-none" style={{backgroundImage:'linear-gradient(rgba(0,82,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,82,255,0.03) 1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
 
       {toast&&(
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 bg-linear-to-br from-blue-600 to-blue-700 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-start gap-3" style={{animation:'slideUp 0.3s ease-out'}}>
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-start gap-3" style={{animation:'slideUp 0.3s ease-out'}}>
           <BadgeCheck size={20} className="shrink-0 mt-0.5"/>
           <div className="flex-1 min-w-0"><p className="font-bold text-sm">{toast.msg}</p>{toast.hash&&<a href={`https://basescan.org/tx/${toast.hash}`} target="_blank" rel="noreferrer" className="text-blue-200 text-xs underline hover:text-white">View on BaseScan ↗</a>}</div>
           <button onClick={()=>setToast(null)} className="shrink-0 bg-white/10 hover:bg-white/20 p-1.5 rounded-xl transition-colors"><X size={13}/></button>
@@ -989,7 +1001,7 @@ export default function Page(){
                 <p className="text-slate-500 text-xs mt-1">Real users · Powered by Redis · Updates live</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="flex items-center gap-1.5 text-[10px] font-bold text-green-400 bg-green-500/8 border border-green-500/15 px-3 py-1.5 rounded-xl"><Wifi size={10}/>{leaderboard.length} active</span>
+                <span className="flex items-center gap-1.5 text-[10px] font-bold text-green-400 bg-green-500/8 border border-green-500/15 px-3 py-1.5 rounded-xl"><Wifi size={10}/>{leaderboard.length.toLocaleString()} Genesis participants</span>
                 <span className="text-[10px] text-slate-600 bg-white/4 border border-white/6 px-3 py-1.5 rounded-xl">{getDaysLeft()}d left · {SEASON_NAME}</span>
               </div>
             </div>
@@ -1029,7 +1041,7 @@ export default function Page(){
                   <span className="w-16 text-right">XP</span>
                   <span className="hidden sm:block w-8 text-center"/>
                 </div>
-                {leaderboard.slice(0,50).map((e,idx)=>{
+                {leaderboard.map((e,idx)=>{
                   const isMe=wallet&&e.address.toLowerCase()===wallet.address.toLowerCase();
                   const medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':null;
                   return(
