@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     entry.lastSeen = Date.now();
 
     const raw = await redis.get(DB_KEY);
-    let leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
+    const leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
 
     const idx = leaderboard.findIndex(
       (e) => e.address.toLowerCase() === entry.address.toLowerCase()
