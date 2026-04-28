@@ -81,7 +81,6 @@ export default async function Image() {
               </span>
               <span style={{
                 fontSize: '68px', fontWeight: 900, lineHeight: 1.05, letterSpacing: '-1px',
-                background: 'linear-gradient(90deg, #0052FF, #8A2BE2)',
                 color: '#0052FF',
               }}>
                 Onchain Identity

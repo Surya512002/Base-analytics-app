@@ -1,75 +1,68 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import '@coinbase/onchainkit/styles.css'; 
+import type { Metadata } from 'next';
+import './globals.css';
 
-// ✅ Import our new client-side provider wrapper
-import { Providers } from "./providers"; 
-
-const inter = Inter({ subsets: ["latin"] });
-
-const APP_URL = "https://base-analytics-app.vercel.app";
-
-// Change the parameter from v5 to v6!
-const OG_IMAGE_URL = `${APP_URL}/opengraph-image?v=v6`;
+const APP_URL = 'https://base-analytics-app.vercel.app';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(APP_URL), 
-  title: "Base Analytics | Mint Your Identity",
-  description: "Check your onchain score, unlock 40+ unique badges, and boost your XP on Base.",
+  title: 'Base Analytics — Season 1: Genesis',
+  description: 'Track your onchain score, mint gasless badges, farm XP and climb the leaderboard on Base.',
+  metadataBase: new URL(APP_URL),
   openGraph: {
-    title: "Base Analytics | Mint Your Identity",
-    description: "Check your onchain score, unlock 40+ unique badges, and boost your XP on Base.",
-    siteName: "Base Analytics",
-    locale: "en_US",
-    type: "website",
+    title: 'Base Analytics — Season 1: Genesis',
+    description: 'Track your onchain score, mint gasless badges, farm XP and climb the leaderboard on Base.',
+    url: APP_URL,
+    siteName: 'Base Analytics',
     images: [
       {
-        url: OG_IMAGE_URL, 
+        url: `${APP_URL}/opengraph-image`,
         width: 1200,
         height: 630,
-      }
+        alt: 'Base Analytics — Season 1: Genesis',
+      },
     ],
+    type: 'website',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Base Analytics | Mint Your on-chain Identity",
-    description: "Check your onchain score and claim your badges entirely gasless.", 
-    images: [OG_IMAGE_URL],
+    card: 'summary_large_image',
+    title: 'Base Analytics — Season 1: Genesis',
+    description: 'Track your onchain score, mint gasless badges, farm XP and climb the leaderboard on Base.',
+    images: [`${APP_URL}/opengraph-image`],
   },
   other: {
-    "talentapp:project_verification": "37ce476751698fbb9f2da974b46068f696394868258b708d80061274f4176d90ce31c259e67591e2085dde5a275b70c5cc68739f7bf0c4f9f6605426030de439",
-    "fc:frame": JSON.stringify({
-      version: "next",
-      imageUrl: OG_IMAGE_URL, 
+    // ── Farcaster Mini App frame metadata ──────────────────────────────────────
+    // These tags make the app appear correctly when shared on Warpcast/Farcaster
+    'fc:frame': JSON.stringify({
+      version: 'next',
+      imageUrl: `${APP_URL}/opengraph-image`,
       button: {
-        title: "Check Score & Mint Badges",
+        title: 'Check Score & Mint Badges',
         action: {
-          type: "launch_frame",
-          name: "Base Analytics",
+          type: 'launch_frame',
+          name: 'Base Analytics',
           url: APP_URL,
-          splashImageUrl: `${APP_URL}/icon.png`,
-          splashBackgroundColor: "#000510",
+          splashImageUrl: `${APP_URL}/splash.png`,
+          splashBackgroundColor: '#0a0d14',
         },
       },
     }),
-    'base:app_id': '698ebb8fe0d5d2cf831b5a3c',
   },
-}; 
+};
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {/* ✅ Wrap children in our custom Providers component */}
-        <Providers>
-          {children}
-        </Providers>
-      </body>
+      <head>
+        {/* Explicit OG image tags as fallback for Farcaster frame crawlers */}
+        <meta property="og:image" content={`${APP_URL}/opengraph-image`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/png" />
+        {/* Twitter card fallback */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={`${APP_URL}/opengraph-image`} />
+      </head>
+      <body className="bg-[#0a0d14] text-white antialiased">{children}</body>
     </html>
   );
-} 
+}
+ 
