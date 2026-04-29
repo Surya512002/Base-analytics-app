@@ -178,8 +178,6 @@ export default function Page(){
   const gnDWT=`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
   const ciDWT=`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
 
-
-
   const showToast=(msg:string,hash:string)=>{setToast({msg,hash});setTimeout(()=>setToast(null),6000);};
 
   useEffect(()=>{
@@ -192,14 +190,48 @@ export default function Page(){
     if(wallet&&tab==='dashboard'&&scrollRef.current)setTimeout(()=>{if(scrollRef.current)scrollRef.current.scrollLeft=scrollRef.current.scrollWidth;},100);
   },[wallet,tab]);
 
-  useEffect(()=>{
-    if(!wallet)return;
-    const xp=computeWeeklyXP(wallet,boosts,streak,txKeys);
-    setWeeklyXP(xp);
-    const mintedCount=Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length;
-    const entry:LeaderboardEntry={address:wallet.address,basename:wallet.basename,score:wallet.score,rank:wallet.walletRank,boosts,badges:mintedCount,weeklyXP:xp,totalXP:xp,weekNumber:getISOWeekNumber()};
-    saveLeaderboard(entry).then(()=>fetchLeaderboard().then(d=>setLeaderboard(d)));
-  },[wallet,boosts,mintedLevels,streak,txKeys]);
+  // 🟢 Fixed Leaderboard Logic: Properly calculates history XP vs current week XP
+  useEffect(() => {
+    if (!wallet) return;
+  
+    // 1. Calculate ONLY this week's XP
+    const currentWeekXP = computeWeeklyXP(wallet, boosts, streak, txKeys);
+    setWeeklyXP(currentWeekXP);
+    
+    const mintedCount = Object.keys(mintedLevels).filter(k => mintedLevels[k] > 0).length;
+    const currentWeekNum = getISOWeekNumber();
+  
+    // 2. Find the user's existing data from the database
+    const existingUser = leaderboard.find(e => e.address.toLowerCase() === wallet.address.toLowerCase());
+    
+    let newTotalXP = currentWeekXP;
+  
+    if (existingUser) {
+      if (existingUser.weekNumber === currentWeekNum) {
+        // Same week: Add historical XP (everything BEFORE this week) to new currentWeekXP
+        const historicalXP = existingUser.totalXP - existingUser.weeklyXP;
+        newTotalXP = historicalXP + currentWeekXP;
+      } else {
+        // New week started: Add new week's XP to their old total.
+        newTotalXP = existingUser.totalXP + currentWeekXP;
+      }
+    }
+  
+    // 3. Save the correctly calculated totals
+    const entry: LeaderboardEntry = {
+      address: wallet.address,
+      basename: wallet.basename,
+      score: wallet.score,
+      rank: wallet.walletRank,
+      boosts,
+      badges: mintedCount,
+      weeklyXP: currentWeekXP,
+      totalXP: newTotalXP,
+      weekNumber: currentWeekNum
+    };
+  
+    saveLeaderboard(entry).then(() => fetchLeaderboard().then(d => setLeaderboard(d)));
+  }, [wallet, boosts, mintedLevels, streak, txKeys, leaderboard]);
 
   const getStrictUTCDate=(ts:string)=>ts.split('T')[0];
   const getISOWeek=(d:Date)=>{const dd=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));const dn=dd.getUTCDay()||7;dd.setUTCDate(dd.getUTCDate()+4-dn);const y=dd.getUTCFullYear();const wn=Math.ceil((((dd.getTime()-new Date(Date.UTC(y,0,1)).getTime())/86400000)+1)/7);return`${y}-W${wn}`;};
@@ -243,6 +275,7 @@ export default function Page(){
         if (name && typeof name === 'string' && name.trim() !== '') return name;
         return null;
       }).catch(() => null);
+      
       const balP=provider.getBalance(address).catch(()=>BigInt(0));
       const nftP=fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(r=>r.json()).catch(()=>({totalCount:0}));
       const strkP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'streaks',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
@@ -351,6 +384,7 @@ export default function Page(){
 
   const handleDisconnect=()=>{setWallet(null);setConnType(null);};
 
+  // 🟢 Fixed unknown TypeScript typing applied to window provider below
   const doNativeTx = async (type: 'boost' | 'gm' | 'gn' | 'checkin') => {
     if (!wallet || minting) return;
     setMinting(type);
@@ -366,8 +400,9 @@ export default function Page(){
       if (type !== 'checkin' && val > BigInt(0)) p.value = `0x${val.toString(16)}` as `0x${string}`;
       
       const activeProvider = connType === 'farcaster' 
-  ? sdk.wallet.ethProvider 
-  : (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+        ? sdk.wallet.ethProvider 
+        : (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+
       if (!activeProvider) throw new Error("Wallet provider not found. Please reconnect.");
       
       const hash = await activeProvider.request({ method: "eth_sendTransaction", params: [p] });
@@ -394,8 +429,9 @@ export default function Page(){
       const raw = isBatch ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] }) : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
       
       const activeProvider = connType === 'farcaster' 
-  ? sdk.wallet.ethProvider 
-  : (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+        ? sdk.wallet.ethProvider 
+        : (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+
       if (!activeProvider) throw new Error("Wallet provider not found. Please reconnect.");
       
       const hash = await activeProvider.request({ method: "eth_sendTransaction", params: [{ from: wallet.address as `0x${string}`, to: ACHIEVEMENTS_CONTRACT as `0x${string}`, data: `${raw}${getBuilderSuffix()}` as `0x${string}`, chainId: '0x2105' as `0x${string}` }] });
