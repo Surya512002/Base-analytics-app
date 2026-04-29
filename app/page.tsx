@@ -13,7 +13,6 @@ import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import sdk from "@farcaster/miniapp-sdk";
 import { connectWallet } from './connection';
 import BaseHub from '../components/BaseHub';
-import { Transaction, TransactionButton } from '@coinbase/onchainkit/transaction';
 import { encodeFunctionData, createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 
@@ -62,30 +61,30 @@ const DEFI_PROTOCOLS = [
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 const ACHIEVEMENTS = [
-  {id:'score',  baseId:10, name:'Onchain Rank',   icon:'🏅',unit:'Score',  thresholds:[10,30,60,75,85], tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],         tierIcons:["🦐","🐬","🦈","🐋","👑"]},
-  {id:'age',    baseId:20, name:'Pioneer',         icon:'📅',unit:'Days',   thresholds:[10,30,90,180,365],tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],                 tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
-  {id:'name',   baseId:30, name:'Identity',        icon:'📛',unit:'Basename',thresholds:[1],              tierNames:["Verified"],                                                                tierIcons:["🆔"]},
-  {id:'days',   baseId:40, name:'Diamond Hands',   icon:'💎',unit:'Days',   thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                     tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
+  {id:'score',  baseId:10, name:'Onchain Rank',    icon:'🏅',unit:'Score',  thresholds:[10,30,60,75,85], tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],        tierIcons:["🦐","🐬","🦈","🐋","👑"]},
+  {id:'age',    baseId:20, name:'Pioneer',         icon:'📅',unit:'Days',   thresholds:[10,30,90,180,365],tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],                tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
+  {id:'name',   baseId:30, name:'Identity',        icon:'📛',unit:'Basename',thresholds:[1],              tierNames:["Verified"],                                                               tierIcons:["🆔"]},
+  {id:'days',   baseId:40, name:'Diamond Hands',   icon:'💎',unit:'Days',   thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                    tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
   {id:'contract',baseId:50,name:'Base Builder',    icon:'🧱',unit:'Txs',    thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],        tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
   {id:'volume', baseId:60, name:'Whale Alert',     icon:'💰',unit:'ETH',    thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],               tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
   {id:'txs',    baseId:70, name:'Power User',      icon:'📈',unit:'Txs',    thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                             tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
-  {id:'swaps',  baseId:80, name:'DeFi Degen',      icon:'🔄',unit:'Swaps',  thresholds:[3,10,25,50,100],  tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                 tierIcons:["🪙","📈","🏦","🚜","🦄"]},
-  {id:'nfts',   baseId:90, name:'Collector',       icon:'👾',unit:'NFTs',   thresholds:[3,10,25,50,100],  tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                   tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
+  {id:'swaps',  baseId:80, name:'DeFi Degen',      icon:'🔄',unit:'Swaps',  thresholds:[3,10,25,50,100],  tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                tierIcons:["🪙","📈","🏦","🚜","🦄"]},
+  {id:'nfts',   baseId:90, name:'Collector',       icon:'👾',unit:'NFTs',   thresholds:[3,10,25,50,100],  tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                  tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
   {id:'streak', baseId:100,name:'Streak Master',   icon:'🎯',unit:'Days',   thresholds:[3,7,14,30,100],   tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                           tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
   {id:'boosts', baseId:110,name:'XP Booster',      icon:'🔋',unit:'Boosts', thresholds:[5,10,25,50,100],  tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                        tierIcons:["🔰","🤝","📣","🏆","🔋"]},
 ];
 
 const WEEKLY_QUESTS = [
   {id:'q_boost',  icon:'🚀',title:'Boost your score',       desc:'Use the XP Booster at least once',       xp:25, check:(w:WalletData,b:number)=>b>=1},
-  {id:'q_gm',     icon:'☀️',title:'Say GM on Base',         desc:'Send a GM transaction onchain',           xp:15, check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
-  {id:'q_checkin',icon:'🔥',title:'Onchain check-in',       desc:'Complete a daily onchain check-in',       xp:20, check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
-  {id:'q_streak', icon:'⚡',title:'3-day streak',           desc:'Maintain a 3+ day onchain streak',        xp:30, check:(_w:WalletData,_b:number,s:number)=>s>=3},
-  {id:'q_defi',   icon:'🦄',title:'DeFi interaction',       desc:'Interact with a DeFi protocol',           xp:40, check:(w:WalletData)=>w.defiInteractions>=1},
-  {id:'q_swap',   icon:'🔄',title:'Token swap',             desc:'Swap at least one token on Base',         xp:20, check:(w:WalletData)=>w.swapCount>=1},
-  {id:'q_nft',    icon:'🎨',title:'Collect an NFT',         desc:'Hold 1+ NFTs on Base network',            xp:35, check:(w:WalletData)=>w.nftCount>=1},
-  {id:'q_basename',icon:'🆔',title:'Claim Basename',        desc:'Register a .base.eth username',           xp:50, check:(w:WalletData)=>!!w.basename},
-  {id:'q_vol',    icon:'💎',title:'Volume milestone',       desc:'Reach 0.001+ ETH transaction volume',     xp:30, check:(w:WalletData)=>parseFloat(w.ethVolume)>=0.001},
-  {id:'q_txs',    icon:'📊',title:'Active trader',          desc:'Complete 10+ transactions on Base',       xp:25, check:(w:WalletData)=>w.txCount>=10},
+  {id:'q_gm',     icon:'☀️',title:'Say GM on Base',         desc:'Send a GM transaction onchain',          xp:15, check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
+  {id:'q_checkin',icon:'🔥',title:'Onchain check-in',       desc:'Complete a daily onchain check-in',      xp:20, check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
+  {id:'q_streak', icon:'⚡',title:'3-day streak',           desc:'Maintain a 3+ day onchain streak',       xp:30, check:(_w:WalletData,_b:number,s:number)=>s>=3},
+  {id:'q_defi',   icon:'🦄',title:'DeFi interaction',       desc:'Interact with a DeFi protocol',          xp:40, check:(w:WalletData)=>w.defiInteractions>=1},
+  {id:'q_swap',   icon:'🔄',title:'Token swap',             desc:'Swap at least one token on Base',        xp:20, check:(w:WalletData)=>w.swapCount>=1},
+  {id:'q_nft',    icon:'🎨',title:'Collect an NFT',         desc:'Hold 1+ NFTs on Base network',           xp:35, check:(w:WalletData)=>w.nftCount>=1},
+  {id:'q_basename',icon:'🆔',title:'Claim Basename',        desc:'Register a .base.eth username',          xp:50, check:(w:WalletData)=>!!w.basename},
+  {id:'q_vol',    icon:'💎',title:'Volume milestone',       desc:'Reach 0.001+ ETH transaction volume',    xp:30, check:(w:WalletData)=>parseFloat(w.ethVolume)>=0.001},
+  {id:'q_txs',    icon:'📊',title:'Active trader',          desc:'Complete 10+ transactions on Base',      xp:25, check:(w:WalletData)=>w.txCount>=10},
 ];
 
 const SEASON_START = new Date('2026-04-20T00:00:00Z');
@@ -103,7 +102,7 @@ const TIER_GRADIENTS = [
 function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string {
   if(!isEarned) return 'bg-white/5 border border-white/8 text-white/15 opacity-40';
   const t=Math.min(level,5)-1;
-  const base=`bg-gradient-to-br ${TIER_GRADIENTS[t]} border border-white/20 text-white`;
+  const base=`bg-linear-to-br ${TIER_GRADIENTS[t]} border border-white/20 text-white`;
   if(isMinted) return `${base} ring-2 ring-green-400 ring-offset-1 ring-offset-[#0d1117] shadow-lg shadow-green-400/20`;
   return `${base} opacity-75 border-dashed`;
 }
@@ -126,7 +125,7 @@ interface WalletData{
 interface AlchemyTransfer{hash:string;category:string;value:number|null;asset:string|null;to:string|null;from:string|null;metadata:{blockTimestamp:string;};}
 interface AlchemyResponse{result?:{transfers:AlchemyTransfer[];pageKey?:string;};error?:{message:string;};}
 type ConnectionType='farcaster'|'coinbase'|'metamask';
-interface LeaderboardEntry{address:string;basename:string|null;score:number;rank:string;boosts:number;badges:number;weeklyXP:number;lastSeen?:number;}
+interface LeaderboardEntry{address:string;basename:string|null;score:number;rank:string;boosts:number;badges:number;weeklyXP:number;totalXP:number;weekNumber:number;lastSeen?:number;}
 
 async function saveLeaderboard(entry:LeaderboardEntry){
   try{await fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});}
@@ -138,6 +137,7 @@ async function fetchLeaderboard():Promise<LeaderboardEntry[]>{
 }
 
 function getReferralCode(a:string){return a.slice(2,10).toUpperCase();}
+function getISOWeekNumber():number{const d=new Date();const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const y=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil(((d.getTime()-y.getTime())/86400000+1)/7);}
 function getQuestXP(w:WalletData,b:number,s:number,k?:Record<string,number>):number{return WEEKLY_QUESTS.filter(q=>q.check(w,b,s,k)).reduce((acc,q)=>acc+q.xp,0);}
 function computeWeeklyXP(w:WalletData,b:number,s:number,k?:Record<string,number>):number{return getQuestXP(w,b,s,k)+Math.min(b,10)*10+Math.min(s,7)*5;}
 function getSeasonPct(){const now=new Date();if(now<SEASON_START)return 0;if(now>SEASON_END)return 100;return Math.round(((now.getTime()-SEASON_START.getTime())/(SEASON_END.getTime()-SEASON_START.getTime()))*100);}
@@ -178,12 +178,7 @@ export default function Page(){
   const gnDWT=`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
   const ciDWT=`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
 
-  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT,value:BigInt(4000000000000)}];
-  const gmCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT,value:BigInt(2000000000000)}];
-  const gnCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT,value:BigInt(2000000000000)}];
-  const ciCall=[{to:CHECKIN_CONTRACT as `0x${string}`,data:ciDWT}];
 
-  const txCaps={...(process.env.NEXT_PUBLIC_PAYMASTER_URL?{paymasterService:{url:process.env.NEXT_PUBLIC_PAYMASTER_URL}}:{}),dataSuffix:{value:`0x${getBuilderSuffix()}` as `0x${string}`,optional:true}};
 
   const showToast=(msg:string,hash:string)=>{setToast({msg,hash});setTimeout(()=>setToast(null),6000);};
 
@@ -202,7 +197,7 @@ export default function Page(){
     const xp=computeWeeklyXP(wallet,boosts,streak,txKeys);
     setWeeklyXP(xp);
     const mintedCount=Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length;
-    const entry:LeaderboardEntry={address:wallet.address,basename:wallet.basename,score:wallet.score,rank:wallet.walletRank,boosts,badges:mintedCount,weeklyXP:xp};
+    const entry:LeaderboardEntry={address:wallet.address,basename:wallet.basename,score:wallet.score,rank:wallet.walletRank,boosts,badges:mintedCount,weeklyXP:xp,totalXP:xp,weekNumber:getISOWeekNumber()};
     saveLeaderboard(entry).then(()=>fetchLeaderboard().then(d=>setLeaderboard(d)));
   },[wallet,boosts,mintedLevels,streak,txKeys]);
 
@@ -217,9 +212,6 @@ export default function Page(){
       setMintedLevels({});
 
       // ─── Base L2 Basename Resolution ───────────────────────────────────────────
-      // Basenames live on Base L2, NOT Ethereum mainnet. The standard getEnsName()
-      // call against mainnet will never find a Basename like "user.base.eth".
-      // Correct flow: reverseRegistrar.node(address) → resolver.name(node)
       const BASE_REVERSE_REGISTRAR = '0x79EA96012eEa67A83431F1701B3dFf7e37F9E282' as `0x${string}`;
       const BASE_L2_RESOLVER       = '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD' as `0x${string}`;
 
@@ -235,7 +227,6 @@ export default function Page(){
         outputs:[{name:'',type:'string'}]
       }] as const;
 
-      // Step 1: get the reverse node for this address on Base L2
       const bnP = pub.readContract({
         address: BASE_REVERSE_REGISTRAR,
         abi: REVERSE_REGISTRAR_ABI,
@@ -243,14 +234,12 @@ export default function Page(){
         args: [address as `0x${string}`]
       }).then(async (reverseNode) => {
         if (!reverseNode) return null;
-        // Step 2: resolve the node to a name string
         const name = await pub.readContract({
           address: BASE_L2_RESOLVER,
           abi: NAME_RESOLVER_ABI,
           functionName: 'name',
           args: [reverseNode]
         }).catch(() => null);
-        // Only return valid Basenames (non-empty, ending in .base.eth)
         if (name && typeof name === 'string' && name.trim() !== '') return name;
         return null;
       }).catch(() => null);
@@ -265,7 +254,6 @@ export default function Page(){
 
       const txP=(async()=>{let txs:AlchemyTransfer[]=[],pk:string|undefined,n=0;while(true){n++;const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:address,category:["external","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};if(pk)params.pageKey=pk;const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});const d=await r.json() as AlchemyResponse;if(d.error)break;txs=[...txs,...(d.result?.transfers||[])];pk=d.result?.pageKey;if(!pk||n>5)break;}return txs;})();
 
-      // Also fetch incoming txs for received ETH
       const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,category:["external","erc20"],maxCount:"0x3e8",withMetadata:true}]})}).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
 
       const[bn,balWei,nftData,mcRes,allTxs,rxData,dbStreak,dbLastCI]=await Promise.all([bnP,balP,nftP,mcP,txP,rxP,strkP,lastP]);
@@ -297,7 +285,6 @@ export default function Page(){
         if(tx.to&&tx.to.toLowerCase()===GM_GN_CONTRACT.toLowerCase())hasGm=true;
       }
 
-      // Received ETH
       let ethReceived=0;
       const rxTxs=(rxData as AlchemyResponse).result?.transfers||[];
       for(const tx of rxTxs){if(tx.value&&(tx.asset==='ETH'||tx.asset==='WETH'))ethReceived+=tx.value;}
@@ -364,49 +351,61 @@ export default function Page(){
 
   const handleDisconnect=()=>{setWallet(null);setConnType(null);};
 
-  const doNativeTx=async(type:'boost'|'gm'|'gn'|'checkin')=>{
-    if(!wallet||minting)return;setMinting(type);
-    try{
-      // 🚀 FIXED: Explicitly declare these as hex strings from the start
-      let to: `0x${string}` = '0x', data: `0x${string}` = '0x', msg = '';
+  const doNativeTx = async (type: 'boost' | 'gm' | 'gn' | 'checkin') => {
+    if (!wallet || minting) return;
+    setMinting(type);
+    try {
+      let to: `0x${string}` = '0x0' as `0x${string}`, data: `0x${string}` = '0x' as `0x${string}`, msg = '';
       const val = type === 'boost' ? BigInt(4000000000000) : BigInt(2000000000000);
+      if (type === 'boost') { to = BOOSTER_CONTRACT as `0x${string}`; data = boostDWT; msg = 'Boosted! 🎉'; }
+      else if (type === 'gm') { to = GM_GN_CONTRACT as `0x${string}`; data = gmDWT; msg = 'GM on Base! ☀️'; }
+      else if (type === 'gn') { to = GM_GN_CONTRACT as `0x${string}`; data = gnDWT; msg = 'GN on Base! 🌙'; }
+      else { to = CHECKIN_CONTRACT as `0x${string}`; data = ciDWT; msg = 'Check-in secured! 🔥'; }
       
-      if(type==='boost'){to=BOOSTER_CONTRACT as `0x${string}`;data=boostDWT;msg='Boosted! 🎉';}
-      else if(type==='gm'){to=GM_GN_CONTRACT as `0x${string}`;data=gmDWT;msg='GM on Base! ☀️';}
-      else if(type==='gn'){to=GM_GN_CONTRACT as `0x${string}`;data=gnDWT;msg='GN on Base! 🌙';}
-      else{to=CHECKIN_CONTRACT as `0x${string}`;data=ciDWT;msg='Check-in secured! 🔥';}
+      const p: { from: `0x${string}`; to: `0x${string}`; data: `0x${string}`; chainId: `0x${string}`; value?: `0x${string}` } = { from: wallet.address as `0x${string}`, to, data, chainId: '0x2105' as `0x${string}` };
+      if (type !== 'checkin' && val > BigInt(0)) p.value = `0x${val.toString(16)}` as `0x${string}`;
       
-      const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={
-        from:wallet.address as `0x${string}`,
-        to,
-        data,
-        chainId:'0x2105'
-      };
+      const activeProvider = connType === 'farcaster' 
+  ? sdk.wallet.ethProvider 
+  : (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+      if (!activeProvider) throw new Error("Wallet provider not found. Please reconnect.");
       
-      if(type!=='checkin'&&val>BigInt(0))p.value=`0x${val.toString(16)}` as `0x${string}`;
+      const hash = await activeProvider.request({ method: "eth_sendTransaction", params: [p] });
       
-      const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[p]});
-      if(hash&&typeof hash==='string'){
-        showToast(msg,hash);setSponsored(s=>s+1);
-        if(type==='boost'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}
-        if(type==='gm'){if(typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,gm:(k.gm||0)+1}));}
-        if(type==='gn')setTxKeys(k=>({...k,gn:(k.gn||0)+1}));
-        if(type==='checkin'){setCheckedToday(true);setStreak(s=>s+1);setTxKeys(k=>({...k,checkin:(k.checkin||0)+1}));}
+      if (hash && typeof hash === 'string') {
+        showToast(msg, hash); setSponsored(s => s + 1);
+        if (type === 'boost') { setBoosts(b => { const n = b + 1; if (typeof window !== 'undefined') localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`, n.toString()); return n; }); setTxKeys(k => ({ ...k, boost: (k.boost || 0) + 1 })); }
+        if (type === 'gm') { if (typeof window !== 'undefined') localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`, 'true'); setTxKeys(k => ({ ...k, gm: (k.gm || 0) + 1 })); }
+        if (type === 'gn') setTxKeys(k => ({ ...k, gn: (k.gn || 0) + 1 }));
+        if (type === 'checkin') { setCheckedToday(true); setStreak(s => s + 1); setTxKeys(k => ({ ...k, checkin: (k.checkin || 0) + 1 })); }
       }
-    }catch(e:unknown){let m='Rejected.';if(e instanceof Error)m=e.message.split('\n')[0];if(!m.includes("rejected"))showToast(`❌ ${m}`,'');}
-    finally{setMinting(null);}
+    } catch (e: unknown) {
+      let m = 'Rejected.'; if (e instanceof Error) m = e.message.split('\n')[0]; if (!m.includes("rejected")) showToast(`❌ ${m}`, '');
+    } finally {
+      setMinting(null);
+    }
   };
 
-  const doNativeMint=async(catId:string,targetLevels:number[],tokenIds:number[],catName:string)=>{
-    if(!wallet||minting)return;setMinting(`mint-${catId}`);
-    try{
-      const isBatch=tokenIds.length>1;
-      const raw=isBatch?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[tokenIds.map(id=>BigInt(id))]}):encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(tokenIds[0])]});
-      const data = `${raw}${getBuilderSuffix()}` as `0x${string}`;
-      const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[{from:wallet.address as `0x${string}`,to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data,chainId:'0x2105'}]});
-      if(hash&&typeof hash==='string'){showToast(isBatch?`✅ Claimed ${tokenIds.length} ${catName} Badges!`:`✅ Badge minted!`,hash as string);setMintedLevels(p=>({...p,[catId]:Math.max(...targetLevels)}));setTxKeys(p=>({...p,[`mint-${catId}`]:(p[`mint-${catId}`]||0)+1}));setSponsored(s=>s+1);}
-    }catch(e:unknown){let m='Mint rejected.';if(e instanceof Error)m=e.message.split('\n')[0];if(!m.includes("rejected"))showToast(`❌ Mint Failed`,'');}
-    finally{setMinting(null);}
+  const doNativeMint = async (catId: string, targetLevels: number[], tokenIds: number[], catName: string) => {
+    if (!wallet || minting) return;
+    setMinting(`mint-${catId}`);
+    try {
+      const isBatch = tokenIds.length > 1;
+      const raw = isBatch ? encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintBatchAchievements', args: [tokenIds.map(id => BigInt(id))] }) : encodeFunctionData({ abi: ACHIEVEMENTS_ABI, functionName: 'mintAchievement', args: [BigInt(tokenIds[0])] });
+      
+      const activeProvider = connType === 'farcaster' 
+  ? sdk.wallet.ethProvider 
+  : (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+      if (!activeProvider) throw new Error("Wallet provider not found. Please reconnect.");
+      
+      const hash = await activeProvider.request({ method: "eth_sendTransaction", params: [{ from: wallet.address as `0x${string}`, to: ACHIEVEMENTS_CONTRACT as `0x${string}`, data: `${raw}${getBuilderSuffix()}` as `0x${string}`, chainId: '0x2105' as `0x${string}` }] });
+      
+      if (hash && typeof hash === 'string') { showToast(isBatch ? `✅ Claimed ${tokenIds.length} ${catName} Badges!` : `✅ Badge minted!`, hash as string); setMintedLevels(p => ({ ...p, [catId]: Math.max(...targetLevels) })); setTxKeys(p => ({ ...p, [`mint-${catId}`]: (p[`mint-${catId}`] || 0) + 1 })); setSponsored(s => s + 1); }
+    } catch (e: unknown) {
+      let m = 'Mint rejected.'; if (e instanceof Error) m = e.message.split('\n')[0]; if (!m.includes("rejected")) showToast(`❌ Mint Failed`, '');
+    } finally {
+      setMinting(null);
+    }
   };
 
   const getCatValue=(id:string)=>{if(!wallet)return 0;const m:Record<string,number>={score:wallet.score,age:wallet.daysOnBase,name:wallet.basename?1:0,days:wallet.uniqueDays,contract:wallet.contractInteractions,volume:parseFloat(wallet.ethVolume),txs:wallet.txCount,swaps:wallet.swapCount,nfts:wallet.nftCount,streak:wallet.longestStreak,boosts};return m[id]??0;};
@@ -414,12 +413,40 @@ export default function Page(){
   const ref=wallet?getReferralCode(wallet.address):'';
   const doneQuests=wallet?WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).length:0;
 
-  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nStreak: ${streak} days 🔥\nBadges: ${Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length} 🎖️`);if(pl==='w')window.open(warpcast(text),'_blank');else if(pl==='t')window.open(twitter(text),'_blank');else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
-  const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w'){window.open(warpcast(text),'_blank');}else{window.open(twitter(text),'_blank');}};
-  const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w'){window.open(warpcast(text),'_blank');}else{window.open(twitter(text),'_blank');}};
+  const shareScore = (pl: 'w' | 't' | 'n') => {
+    if (!wallet) return;
+    const text = buildShare(wallet, ref, `🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nStreak: ${streak} days 🔥\nBadges: ${Object.keys(mintedLevels).filter(k => mintedLevels[k] > 0).length} 🎖️`);
+    if (pl === 'w') {
+      window.open(warpcast(text), '_blank');
+    } else if (pl === 't') {
+      window.open(twitter(text), '_blank');
+    } else if (navigator.share) {
+      navigator.share({ title: 'Base Analytics', text, url: APP_URL_WEB }).catch(() => {});
+    }
+  };
+
+  const shareAch = (name: string, level: string, pl: 'w' | 't') => {
+    if (!wallet) return;
+    const text = buildShare(wallet, ref, `🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);
+    if (pl === 'w') {
+      window.open(warpcast(text), '_blank');
+    } else {
+      window.open(twitter(text), '_blank');
+    }
+  };
+
+  const shareAll = (count: number, pl: 'w' | 't') => {
+    if (!wallet) return;
+    const text = buildShare(wallet, ref, `🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);
+    if (pl === 'w') {
+      window.open(warpcast(text), '_blank');
+    } else {
+      window.open(twitter(text), '_blank');
+    }
+  };
 
   if(!ready)return(
-    <div className="min-h-screen bg-[#0a0d14] flex items-center justify-center">
+    <div className="min-h-screen bg-[#060a14] flex items-center justify-center">
       <div className="text-center space-y-4">
         <div className="w-16 h-16 mx-auto relative">
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-600/50 animate-pulse"><Activity size={32} className="text-white"/></div>
@@ -431,7 +458,7 @@ export default function Page(){
   );
 
   if(!wallet)return(
-    <div className="min-h-screen bg-[#0a0d14] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#060a14] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 opacity-25" style={{backgroundImage:'radial-gradient(circle at 20% 50%, rgba(0,82,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(138,43,226,0.1) 0%, transparent 50%)'}}/>
       <div className="absolute inset-0" style={{backgroundImage:'linear-gradient(rgba(0,82,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,82,255,0.04) 1px, transparent 1px)',backgroundSize:'60px 60px'}}/>
 
@@ -475,7 +502,7 @@ export default function Page(){
 
       {showModal&&(
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#13182a] border border-white/10 rounded-3xl w-full max-w-sm p-6 relative shadow-2xl">
+          <div className="bg-[#0d1424] border border-white/10 rounded-3xl w-full max-w-sm p-6 relative shadow-2xl">
             <button onClick={()=>setShowModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white w-8 h-8 flex items-center justify-center rounded-xl bg-white/5"><X size={16}/></button>
             <div className="flex items-center gap-3 mb-6"><div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center"><Activity size={18} className="text-white"/></div><div><h3 className="font-black text-white">Connect Wallet</h3><p className="text-slate-500 text-xs">Choose your wallet type</p></div></div>
             <div className="space-y-2">
@@ -498,7 +525,7 @@ export default function Page(){
   const mintedCount=Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length;
 
   return(
-    <main className="min-h-screen bg-[#0a0d14] text-white font-sans">
+    <main className="min-h-screen bg-[#060a14] text-white font-sans">
       <div className="fixed inset-0 pointer-events-none" style={{backgroundImage:'linear-gradient(rgba(0,82,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,82,255,0.03) 1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
 
       {toast&&(
@@ -510,7 +537,7 @@ export default function Page(){
       )}
 
       {/* STICKY HEADER */}
-      <header className="sticky top-0 z-40 bg-[#0a0d14]/95 backdrop-blur-xl border-b border-white/5">
+      <header className="sticky top-0 z-40 bg-[#060a14]/95 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/40 shrink-0"><Activity size={15} className="text-white"/></div>
@@ -572,9 +599,10 @@ export default function Page(){
                 ):checkedToday?(
                   <button disabled className="py-2.5 px-5 rounded-xl font-black text-xs bg-green-500/15 text-green-400">✓ Secured</button>
                 ):(
-                  <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps} onStatus={s=>{if(s.statusName==='success'){setCheckedToday(true);setStreak(v=>v+1);setSponsored(v=>v+1);showToast('✅ Onchain check-in secured!',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,checkin:(k.checkin||0)+1}));}}}>
-                    <TransactionButton className="py-2.5 px-5 rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white transition-all w-full" text="Check In"/>
-                  </Transaction>
+                  <button onClick={()=>doNativeTx('checkin')} disabled={!!minting}
+                    className="py-2.5 px-5 rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white transition-all w-full active:scale-95">
+                    {minting==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:'Check In'}
+                  </button>
                 )}
                 <p className="text-[9px] text-blue-500/60 flex items-center justify-center gap-1"><Droplets size={8}/>Gas free</p>
               </div>
@@ -587,7 +615,7 @@ export default function Page(){
             </div>
 
             {/* Score + heatmap */}
-            <div className="bg-[#13182a] border border-white/6 rounded-3xl p-5 sm:p-6">
+            <div className="bg-[#0d1424] border border-white/6 rounded-3xl p-5 sm:p-6">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-6">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -655,7 +683,7 @@ export default function Page(){
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2"><BarChart3 size={12}/>Wallet Intelligence</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
                 {/* Identity card (spans 2 cols) */}
-                <div className="bg-[#13182a] border border-white/6 rounded-2xl p-4 col-span-2 flex items-center gap-3 overflow-hidden">
+                <div className="bg-[#0d1424] border border-white/6 rounded-2xl p-4 col-span-2 flex items-center gap-3 overflow-hidden">
                   <div className="w-12 h-12 bg-blue-600/15 border border-blue-500/20 rounded-2xl flex items-center justify-center shrink-0"><User size={22} className="text-blue-400"/></div>
                   <div className="min-w-0">
                     <p className="font-black text-white text-base sm:text-lg truncate">{wallet.basename||`${wallet.address.slice(0,8)}...${wallet.address.slice(-4)}`}</p>
@@ -665,7 +693,7 @@ export default function Page(){
                 </div>
 
                 {[
-                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,     i:<CreditCard size={15} className="text-blue-400"/>},
+                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,      i:<CreditCard size={15} className="text-blue-400"/>},
                   {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(), i:<Calendar size={15} className="text-purple-400"/>},
                   {l:'Active Days',      v:wallet.uniqueDays.toString(), i:<Sun size={15} className="text-yellow-400"/>},
                   {l:'Active Weeks',     v:wallet.activeWeeks.toString(), i:<Calendar size={15} className="text-cyan-400"/>},
@@ -692,7 +720,7 @@ export default function Page(){
                   {l:'XP Boosts',        v:boosts.toString(), i:<Rocket size={15} className="text-blue-400"/>},
                   {l:'Weekly XP',        v:weeklyXP.toString(), i:<Zap size={15} className="text-yellow-400"/>},
                 ].map((s,i)=>(
-                  <div key={i} className="bg-[#13182a] border border-white/6 rounded-2xl p-3 sm:p-4 hover:border-blue-500/20 transition-all group">
+                  <div key={i} className="bg-[#0d1424] border border-white/6 rounded-2xl p-3 sm:p-4 hover:border-blue-500/20 transition-all group">
                     <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
                     <p className="font-black text-white text-sm sm:text-base truncate leading-tight">{s.v}</p>
                     <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wide mt-0.5 truncate">{s.l}</p>
@@ -704,7 +732,7 @@ export default function Page(){
             {/* Action cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
               {/* Referral */}
-              <div className="bg-[#13182a] border border-purple-500/15 rounded-2xl p-5">
+              <div className="bg-[#0d1424] border border-purple-500/15 rounded-2xl p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2"><Gift size={18} className="text-purple-400"/><span className="font-black text-white">Referral Program</span></div>
                   <span className="text-[10px] font-bold text-purple-300 bg-purple-500/8 border border-purple-500/15 px-2 py-1 rounded-lg">+50 XP per ref</span>
@@ -719,7 +747,7 @@ export default function Page(){
               </div>
 
               {/* Challenge */}
-              <div className="bg-[#13182a] border border-orange-500/15 rounded-2xl p-5">
+              <div className="bg-[#0d1424] border border-orange-500/15 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-orange-400"/><span className="font-black text-white">Wallet Challenge</span></div>
                 <p className="text-xs text-slate-400 mb-4">Enter any wallet address to compare scores head-to-head.</p>
                 <div className="flex gap-2 mb-3">
@@ -743,7 +771,7 @@ export default function Page(){
               </div>
 
               {/* XP Booster */}
-              <div className="bg-[#13182a] border border-blue-500/15 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between">
+              <div className="bg-[#0d1424] border border-blue-500/15 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between">
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <div className="w-12 h-12 bg-blue-600/15 rounded-2xl border border-blue-500/20 flex items-center justify-center shrink-0"><Rocket size={22} className="text-blue-400"/></div>
                   <div>
@@ -755,36 +783,24 @@ export default function Page(){
                   </div>
                 </div>
                 <div className="w-full sm:w-auto sm:min-w-35 text-center">
-                  {connType==='farcaster'?(
-                    <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
-                      className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-blue-600/40 text-white/40 cursor-not-allowed':'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30'}`}>
-                      {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
-                    </button>
-                  ):(
-                    <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps} onStatus={s=>{if(s.statusName==='success'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsored(v=>v+1);showToast('Boosted! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}}}>
-                      <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 transition-all" text="BOOST (+1)"/>
-                    </Transaction>
-                  )}
+                  <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
+                    className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-blue-600/40 text-white/40 cursor-not-allowed':'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30'}`}>
+                    {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
+                  </button>
                   <p className="text-[9px] text-blue-500/50 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
                 </div>
               </div>
 
               {/* GM / GN */}
-              <div className="bg-[#13182a] border border-white/6 rounded-2xl p-5">
+              <div className="bg-[#0d1424] border border-white/6 rounded-2xl p-5">
                 <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-yellow-400"/>Community Vibes</p>
                 <div className="grid grid-cols-2 gap-3">
                   {(['gm','gn'] as const).map(type=>(
                     <div key={type} className="text-center">
-                      {connType==='farcaster'?(
-                        <button onClick={()=>doNativeTx(type)} disabled={!!minting}
-                          className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/3 border-white/5 text-white/30':'bg-white/4 hover:bg-blue-600/15 border-white/6 hover:border-blue-500/25 text-white'}`}>
-                          {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
-                        </button>
-                      ):(
-                        <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps} onStatus={s=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsored(v=>v+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,[type]:(k[type]||0)+1}));}}}>
-                          <TransactionButton className="w-full py-4 rounded-xl font-black text-xl bg-white/4 hover:bg-blue-600/15 border border-white/6 hover:border-blue-500/25 text-white transition-all" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
-                        </Transaction>
-                      )}
+                      <button onClick={()=>doNativeTx(type)} disabled={!!minting}
+                        className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/3 border-white/5 text-white/30':'bg-white/4 hover:bg-blue-600/15 border-white/6 hover:border-blue-500/25 text-white'}`}>
+                        {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
+                      </button>
                       <p className="text-[9px] text-blue-500/50 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Free</p>
                     </div>
                   ))}
@@ -795,7 +811,7 @@ export default function Page(){
             {/* Recent txs */}
             <div>
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
-              <div className="bg-[#13182a] border border-white/6 rounded-2xl overflow-hidden">
+              <div className="bg-[#0d1424] border border-white/6 rounded-2xl overflow-hidden">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>(
                   <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-white/3 transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-white/4':''}`}>
                     <div className="flex items-center gap-3 min-w-0">
@@ -843,15 +859,12 @@ export default function Page(){
                 for(let i=minted+1;i<=unlocked;i++){toLevels.push(i);toMint.push(getTargetTokenId(cat.baseId,cat.thresholds.length,i));}
                 const isBatch=toMint.length>1;
 
-                let mintCall2:{to:`0x${string}`;data:`0x${string}`}[]=[];
-                if(toMint.length>0){const raw=isBatch?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[toMint.map(id=>BigInt(id))]}):encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(toMint[0])]});mintCall2=[{to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data:`${raw}${getBuilderSuffix()}` as `0x${string}`}];}
-
                 let btnText=`${cat.tierNames[minted]||'...'} Locked`;
                 if(minted===cat.thresholds.length)btnText='Fully Minted 👑';
                 else if(canMint)btnText=isBatch?`Claim ${toMint.length} Badges 🚀`:`Mint ${cat.tierNames[minted]}`;
 
                 return(
-                  <div key={cat.id} className="bg-[#13182a] border border-white/6 rounded-3xl p-5 flex flex-col hover:border-blue-500/15 transition-all">
+                  <div key={cat.id} className="bg-[#0d1424] border border-white/6 rounded-3xl p-5 flex flex-col hover:border-blue-500/15 transition-all">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 bg-white/4 border border-white/6 rounded-2xl flex items-center justify-center text-2xl">{cat.icon}</div>
@@ -899,9 +912,10 @@ export default function Page(){
                             {minting===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={16}/>:btnText}
                           </button>
                         ):canMint?(
-                          <Transaction key={`mint-${cat.id}-${txKeys[`mint-${cat.id}`]||0}`} chainId={base.id} calls={mintCall2} capabilities={txCaps} onStatus={s=>{if(s.statusName==='success'){showToast(isBatch?`✅ Claimed ${toMint.length} ${cat.name} Badges!`:`✅ Badge minted!`,s.statusData.transactionReceipts?.[0]?.transactionHash||'');setMintedLevels(p=>({...p,[cat.id]:Math.max(...toLevels)}));setSponsored(v=>v+1);}}}>
-                            <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition-all" text={btnText}/>
-                          </Transaction>
+                          <button onClick={()=>doNativeMint(cat.id,toLevels,toMint,cat.name)} disabled={!!minting}
+                            className="flex-1 py-3 rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition-all active:scale-95">
+                            {minting===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={16}/>:btnText}
+                          </button>
                         ):(
                           <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-white/4 text-slate-700 cursor-not-allowed border border-white/6">{btnText}</button>
                         )}
@@ -956,7 +970,7 @@ export default function Page(){
               {WEEKLY_QUESTS.map(q=>{
                 const done=q.check(wallet,boosts,streak,txKeys);
                 return(
-                  <div key={q.id} className={`rounded-2xl p-4 border flex items-center gap-4 justify-between transition-all ${done?'bg-green-500/5 border-green-500/15':'bg-[#13182a] border-white/6 hover:border-white/10'}`}>
+                  <div key={q.id} className={`rounded-2xl p-4 border flex items-center gap-4 justify-between transition-all ${done?'bg-green-500/5 border-green-500/15':'bg-[#0d1424] border-white/6 hover:border-white/10'}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 transition-all ${done?'bg-green-500/15':'bg-white/4 border border-white/6'}`}>{done?'✅':q.icon}</div>
                       <div className="min-w-0">
@@ -971,7 +985,7 @@ export default function Page(){
             </div>
 
             {/* Multiplier table */}
-            <div className="bg-[#13182a] border border-white/6 rounded-2xl p-5">
+            <div className="bg-[#0d1424] border border-white/6 rounded-2xl p-5">
               <p className="font-black text-white mb-4 flex items-center gap-2"><Zap size={15} className="text-yellow-400"/>XP Multipliers & Season Rewards</p>
               <div className="space-y-2">
                 {[
@@ -1016,34 +1030,36 @@ export default function Page(){
                     <div><p className="font-black text-white truncate">{wallet.basename||`${wallet.address.slice(0,8)}...`}</p><p className="text-[10px] text-white/60 uppercase font-bold">{wallet.walletRank}</p></div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-3xl font-black text-white">{weeklyXP}</p>
-                    <p className="text-[10px] text-white/60 uppercase font-bold">Weekly XP</p>
+                    <p className="text-3xl font-black text-white leading-none">{(leaderboard[pos]?.totalXP??weeklyXP).toLocaleString()}</p>
+                    <p className="text-[10px] text-white/60 uppercase font-bold">Total Season XP</p>
+                    <p className="text-[10px] text-blue-200/70 mt-0.5">+{weeklyXP} XP this week</p>
                   </div>
                 </div>
               </div>
             ):null;})()}
 
             {lbLoading?(
-              <div className="bg-[#13182a] border border-white/6 rounded-2xl p-12 text-center">
+              <div className="bg-[#0d1424] border border-white/6 rounded-2xl p-12 text-center">
                 <RefreshCcw className="animate-spin text-blue-500 mx-auto mb-3" size={24}/>
                 <p className="text-slate-400 font-bold">Loading live leaderboard from Redis...</p>
               </div>
             ):leaderboard.length===0?(
-              <div className="bg-[#13182a] border-2 border-dashed border-white/6 rounded-2xl p-12 text-center">
+              <div className="bg-[#0d1424] border-2 border-dashed border-white/6 rounded-2xl p-12 text-center">
                 <Users size={24} className="text-slate-700 mx-auto mb-3"/><p className="font-black text-slate-500 mb-1">No entries yet</p>
                 <p className="text-xs text-slate-700">Be the first! Connect your wallet and earn XP to appear here.</p>
               </div>
             ):(
-              <div className="bg-[#13182a] border border-white/6 rounded-2xl overflow-hidden">
+              <div className="bg-[#0d1424] border border-white/6 rounded-2xl overflow-hidden">
                 <div className="grid grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[auto_1fr_auto_auto_auto] gap-0 text-[9px] font-black text-slate-700 uppercase tracking-widest px-4 py-2.5 border-b border-white/4 bg-white/2">
                   <span className="w-8">#</span><span>Wallet</span>
                   <span className="hidden sm:block w-16 text-right">Badges</span>
-                  <span className="w-16 text-right">XP</span>
+                  <span className="w-20 text-right">Season XP</span>
                   <span className="hidden sm:block w-8 text-center"/>
                 </div>
                 {leaderboard.map((e,idx)=>{
                   const isMe=wallet&&e.address.toLowerCase()===wallet.address.toLowerCase();
                   const medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':null;
+                  const displayTotal=e.totalXP??e.weeklyXP;
                   return(
                     <div key={e.address} className={`grid grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[auto_1fr_auto_auto_auto] items-center gap-0 px-4 py-3 sm:py-3.5 border-b border-white/3 last:border-0 transition-colors ${isMe?'bg-blue-600/8 border-l-2 border-l-blue-500':'hover:bg-white/2'}`}>
                       <div className="w-8 text-sm">{medal||<span className="text-xs text-slate-700 font-black">#{idx+1}</span>}</div>
@@ -1055,7 +1071,10 @@ export default function Page(){
                         <p className="text-[9px] text-slate-600 font-bold truncate">{e.rank}</p>
                       </div>
                       <div className="hidden sm:block w-16 text-right"><p className="text-xs font-black text-slate-400">{e.badges}</p><p className="text-[8px] text-slate-700 font-bold">badges</p></div>
-                      <div className="w-16 text-right"><p className="text-sm font-black text-blue-400">{e.weeklyXP}</p><p className="text-[8px] text-slate-700 font-bold uppercase">XP</p></div>
+                      <div className="w-20 text-right">
+                        <p className="text-sm font-black text-blue-400">{displayTotal.toLocaleString()}</p>
+                        <p className="text-[8px] text-slate-700 font-bold uppercase">+{e.weeklyXP} this wk</p>
+                      </div>
                       <div className="hidden sm:flex w-8 justify-center">{idx===0?<ChevronUp size={13} className="text-green-400"/>:<ChevronDown size={13} className="text-slate-700"/>}</div>
                     </div>
                   );
@@ -1063,9 +1082,9 @@ export default function Page(){
               </div>
             )}
 
-            <div className="bg-[#13182a] border border-white/6 rounded-2xl p-4">
+            <div className="bg-[#0d1424] border border-white/6 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2"><Medal size={15} className="text-yellow-400"/><span className="font-black text-white text-sm">Season Rewards</span></div>
-              <p className="text-xs text-slate-400 leading-relaxed">Top 10 wallets at season end earn an exclusive <span className="text-blue-400 font-bold">Genesis Badge NFT</span> and early access to future platform rewards. Leaderboard resets weekly — keep farming!</p>
+              <p className="text-xs text-slate-400 leading-relaxed">Top 10 wallets at season end earn an exclusive <span className="text-blue-400 font-bold">Genesis Badge NFT</span> and early access to future platform rewards. XP accumulates every week — past weeks carry over to your total season score!</p>
             </div>
           </div>
         )}
@@ -1080,4 +1099,4 @@ export default function Page(){
       `}</style>
     </main>
   );
-}
+} 
