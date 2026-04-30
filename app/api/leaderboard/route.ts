@@ -2,139 +2,128 @@ import { NextResponse } from 'next/server';
 import { Redis } from 'ioredis';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const runtime  = 'nodejs';
 
 interface LeaderboardEntry {
-  address: string;
-  basename: string | null;
-  score: number;
-  rank: string;
-  boosts: number;
-  badges: number;
-  // weeklyXP  = XP earned THIS week only (resets each Monday)
-  weeklyXP: number;
-  // totalXP   = cumulative XP across all weeks (never resets until season ends)
-  totalXP: number;
-  // weekNumber = ISO week number when weeklyXP was last updated
-  weekNumber: number;
-  lastSeen?: number;
+  address:    string;
+  basename:   string | null;
+  score:      number;
+  rank:       string;
+  boosts:     number;
+  badges:     number;
+  weeklyXP:   number;   // XP earned THIS week (resets Mon)
+  totalXP:    number;   // cumulative all-time season XP (NEVER sent by client — always computed here)
+  weekNumber: number;   // ISO week when weeklyXP was last set
+  lastSeen?:  number;
 }
 
-const DB_KEY = 'base_leaderboard_v3'; // v3 to avoid conflicts with old data
+// ONE key for all-time data — never changes across versions
+const DB_KEY = 'base_season1_leaderboard';
 
-function createRedisClient(): Redis {
+function createRedis(): Redis {
   const url = process.env.KV_REDIS_URL;
-  if (!url) throw new Error('KV_REDIS_URL environment variable is not set');
-  const isTLS = url.startsWith('rediss://');
+  if (!url) throw new Error('KV_REDIS_URL not set');
   const client = new Redis(url, {
-    tls: isTLS ? { rejectUnauthorized: false } : undefined,
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-    connectTimeout: 8000,
-    commandTimeout: 5000,
-    enableReadyCheck: false,
+    tls: url.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+    lazyConnect: true, maxRetriesPerRequest: 1,
+    connectTimeout: 8000, commandTimeout: 5000, enableReadyCheck: false,
   });
-  client.on('error', (err) => {
-    console.error('[Redis] Connection error:', err.message);
-  });
+  client.on('error', (e) => console.error('[Redis]', e.message));
   return client;
 }
 
-// Returns ISO week number (Monday-based) for a given date
-function getISOWeekNumber(date: Date): number {
+function isoWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7; // Mon=1 … Sun=7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + 1) / 7);
 }
 
 export async function GET() {
   let redis: Redis | null = null;
   try {
-    redis = createRedisClient();
-    await redis.connect();
+    redis = createRedis(); await redis.connect();
     const raw = await redis.get(DB_KEY);
     const leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
     return NextResponse.json({ leaderboard });
-  } catch (error) {
-    console.error('[Leaderboard GET] Error:', error);
+  } catch (err) {
+    console.error('[LB GET]', err);
     return NextResponse.json({ leaderboard: [] });
   } finally {
-    if (redis) {
-      try { await redis.quit(); } catch { redis.disconnect(); }
-    }
+    if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   let redis: Redis | null = null;
   try {
-    redis = createRedisClient();
-    await redis.connect();
+    redis = createRedis(); await redis.connect();
 
-    const incoming: LeaderboardEntry = await request.json();
+    // Client sends: address, basename, score, rank, boosts, badges, weeklyXP, weekNumber
+    // Client NEVER controls totalXP — backend always computes it
+    const client: Omit<LeaderboardEntry, 'totalXP'> = await req.json();
 
-    if (!incoming.address || !incoming.address.startsWith('0x')) {
+    if (!client.address?.startsWith('0x')) {
       return NextResponse.json({ success: false, error: 'Invalid address' }, { status: 400 });
     }
 
-    const currentWeek = getISOWeekNumber(new Date());
-    incoming.lastSeen = Date.now();
+    const thisWeek = isoWeek(new Date());
+    const now = Date.now();
 
     const raw = await redis.get(DB_KEY);
-    const leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
+    const lb: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
 
-    const idx = leaderboard.findIndex(
-      (e) => e.address.toLowerCase() === incoming.address.toLowerCase()
-    );
+    const idx = lb.findIndex(e => e.address.toLowerCase() === client.address.toLowerCase());
 
-    if (idx >= 0) {
-      const existing = leaderboard[idx];
-
-      if (existing.weekNumber !== currentWeek) {
-        // ── NEW WEEK: carry last week's XP into totalXP, reset weeklyXP ──────
-        // totalXP = all previous weeks accumulated + last week's XP
-        const accumulatedTotal = (existing.totalXP ?? existing.weeklyXP ?? 0);
-        leaderboard[idx] = {
-          ...incoming,
-          totalXP: accumulatedTotal + incoming.weeklyXP, // add this week on top
-          weeklyXP: incoming.weeklyXP,                   // fresh weekly counter
-          weekNumber: currentWeek,
-        };
-      } else {
-        // ── SAME WEEK: just update weeklyXP, keep totalXP growing ────────────
-        const previousTotal = existing.totalXP ?? existing.weeklyXP ?? 0;
-        const previousWeekly = existing.weeklyXP ?? 0;
-        // totalXP = all old weeks + current week's XP
-        const oldWeeksTotal = previousTotal - previousWeekly;
-        leaderboard[idx] = {
-          ...incoming,
-          totalXP: oldWeeksTotal + incoming.weeklyXP,
-          weeklyXP: incoming.weeklyXP,
-          weekNumber: currentWeek,
-        };
-      }
-    } else {
-      // ── NEW USER ────────────────────────────────────────────────────────────
-      leaderboard.push({
-        ...incoming,
-        totalXP: incoming.weeklyXP,
-        weekNumber: currentWeek,
+    if (idx === -1) {
+      // ── Brand new user: totalXP = weeklyXP from first week ─────────────────
+      lb.push({
+        ...client,
+        totalXP: client.weeklyXP,
+        weekNumber: thisWeek,
+        lastSeen: now,
       });
+    } else {
+      const existing = lb[idx];
+      const prevTotal   = existing.totalXP   ?? existing.weeklyXP ?? 0;
+      const prevWeekly  = existing.weeklyXP  ?? 0;
+      const prevWeekNum = existing.weekNumber ?? 0;
+
+      let newTotal: number;
+
+      if (prevWeekNum !== thisWeek) {
+        // ── Week rolled over: old weeklyXP is now "locked" into history ────────
+        // totalXP = everything before this week + new week's XP
+        // We keep prevTotal (which already includes all previous weeks' XP locked)
+        // and just add the new weeklyXP on top.
+        // BUT if the user is visiting for the first time this week, prevTotal
+        // already contains last week's contribution, so:
+        newTotal = prevTotal + client.weeklyXP;
+      } else {
+        // ── Same week: totalXP = (total minus last recorded weekly) + new weekly
+        // This handles the user earning more XP within the same week
+        const lockedHistory = prevTotal - prevWeekly; // XP from all weeks BEFORE this one
+        newTotal = lockedHistory + client.weeklyXP;
+      }
+
+      lb[idx] = {
+        ...client,
+        totalXP:    newTotal,
+        weekNumber: thisWeek,
+        lastSeen:   now,
+      };
     }
 
-    // Sort by totalXP descending (season leaderboard ranks by cumulative score)
-    leaderboard.sort((a, b) => (b.totalXP ?? b.weeklyXP) - (a.totalXP ?? a.weeklyXP));
+    // Sort by totalXP descending
+    lb.sort((a, b) => (b.totalXP ?? 0) - (a.totalXP ?? 0));
 
-    await redis.set(DB_KEY, JSON.stringify(leaderboard));
+    await redis.set(DB_KEY, JSON.stringify(lb));
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[Leaderboard POST] Error:', error);
+  } catch (err) {
+    console.error('[LB POST]', err);
     return NextResponse.json({ success: false }, { status: 500 });
   } finally {
-    if (redis) {
-      try { await redis.quit(); } catch { redis.disconnect(); }
-    }
+    if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
   }
 }
