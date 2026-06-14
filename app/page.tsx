@@ -31,8 +31,8 @@ function getBuilderSuffix(){
 }
 
 // ── Contracts (unchanged) ─────────────────────────────────────────────────────
-const BOOSTER_CONTRACT      = "0xd14E38239791738e8aCbd0Ad5278496af26fF510";
-const GM_GN_CONTRACT        = "0xFF9Efc0ac8667674BC737C482d8885224a694f13";
+const BOOSTER_CONTRACT      = "0x0d1BE33F8B6a33BeEe7b3bb834DF6f8c168B2e46";
+const GM_GN_CONTRACT        = "0xdb4f873B33F448aeA8Bb2b3B7e3ab9561329608A";
 const ACHIEVEMENTS_CONTRACT = "0xadb8120B4B18b892cFAD171243074487122Dea03";
 const CHECKIN_CONTRACT      = "0xABc7099C631E18640ea60b25116407aa17354FBb";
 
@@ -48,10 +48,10 @@ const ACHIEVEMENTS_ABI = [
   {inputs:[{internalType:"address",name:"",type:"address"},{internalType:"uint256",name:"",type:"uint256"}],name:"hasMinted",outputs:[{internalType:"bool",name:"",type:"bool"}],stateMutability:"view",type:"function"}
 ] as const;
 
-const BOOSTER_ABI = [{name:'boost',type:'function',stateMutability:'payable',inputs:[],outputs:[]}] as const;
+const BOOSTER_ABI = [{name:'boost',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]}] as const; // FREE
 const GM_GN_ABI   = [
-  {name:'gm',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]},
-  {name:'gn',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]}
+  {name:'gm',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]}, // FREE
+  {name:'gn',type:'function',stateMutability:'payable',inputs:[],outputs:[]}
 ] as const;
 
 const DEFI_PROTOCOLS = [
@@ -235,9 +235,9 @@ export default function Page(){
   const gnDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
   const ciDWT   =`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
 
-  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT,value:BigInt(4000000000000)}];
-  const gmCall = [{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}];
-  const gnCall = [{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}];
+  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT}]; // FREE - no value
+  const gmCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}]; // FREE
+  const gnCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}]; // FREE
   const ciCall   =[{to:CHECKIN_CONTRACT as `0x${string}`,data:ciDWT}];
   const txCaps   = getCapabilities();
 
@@ -269,7 +269,7 @@ export default function Page(){
     setChallengeLoading(true);
     try{
       let txs:AlchemyTransfer[]=[],pk:string|undefined;
-      for(let n=0;n<3;n++){
+      for(let n=0;n<10;n++){ // FIXED: 10 pages for challenge lookup
         const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:addr,category:["external","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
         if(pk)params.pageKey=pk;
         const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
@@ -332,7 +332,7 @@ export default function Page(){
           if(d.error)break;
           txs=[...txs,...(d.result?.transfers||[])];
           pk=d.result?.pageKey;
-          if(!pk||n>5)break;
+          if(!pk||n>20)break; // FIXED: 20 pages x 1000 = 20000 txs max
         }
         return txs;
       })();
@@ -522,12 +522,12 @@ export default function Page(){
     if(!wallet||minting)return;setMinting(type);
     try{
       let to:`0x${string}`=BOOSTER_CONTRACT as `0x${string}`;let data:`0x${string}`=boostDWT;let msg='Boosted! 🎉';
-      const val=type==='boost'?BigInt(4000000000000):BigInt(0);
+      // All transactions are free - no ETH value needed
       if(type==='gm'){to=GM_GN_CONTRACT as `0x${string}`;data=gmDWT;msg='GM on Base! ☀️';}
       else if(type==='gn'){to=GM_GN_CONTRACT as `0x${string}`;data=gnDWT;msg='GN on Base! 🌙';}
       else if(type==='checkin'){to=CHECKIN_CONTRACT as `0x${string}`;data=ciDWT;msg='Check-in secured! 🔥';}
       const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={from:wallet.address as `0x${string}`,to,data,chainId:'0x2105' as `0x${string}`};
-      if(type!=='checkin')p.value=`0x${val.toString(16)}` as `0x${string}`;
+      // No value needed - all transactions are free
       const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[p]});
       if(hash&&typeof hash==='string'){
         showToast(msg,hash);setSponsored(s=>s+1);
@@ -592,8 +592,8 @@ export default function Page(){
   // ── LANDING ──────────────────────────────────────────────────────────────
   if(!wallet)return(
     <div className="min-h-screen bg-[#0a0f1e] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/12 rounded-full blur-3xl pointer-events-none"/>
-      <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-blue-500/8 rounded-full blur-3xl pointer-events-none"/>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-150 h-75 bg-blue-600/12 rounded-full blur-3xl pointer-events-none"/>
+      <div className="absolute bottom-0 right-0 w-100 h-75 bg-blue-500/8 rounded-full blur-3xl pointer-events-none"/>
       <div className="absolute inset-0 pointer-events-none opacity-30" style={{backgroundImage:'linear-gradient(rgba(59,130,246,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.05) 1px,transparent 1px)',backgroundSize:'48px 48px'}}/>
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
@@ -621,7 +621,7 @@ export default function Page(){
             <p className="text-5xl font-black text-white">{getSeasonPct()}<span className="text-2xl text-blue-400/40">%</span></p>
           </div>
           <div className="w-full bg-blue-950/60 rounded-full h-1.5 overflow-hidden border border-blue-800/40">
-            <div className="h-full bg-linear-to-br from-blue-500 to-blue-400 rounded-full" style={{width:`${getSeasonPct()}%`,transition:'width 2s ease-out'}}/>
+            <div className="h-full bg-linear-to-r from-blue-500 to-blue-400 rounded-full" style={{width:`${getSeasonPct()}%`,transition:'width 2s ease-out'}}/>
           </div>
           <div className="mt-4 space-y-2">
             {[
@@ -685,7 +685,7 @@ export default function Page(){
       <div className="fixed inset-0 pointer-events-none opacity-20" style={{backgroundImage:'linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
 
       {toast&&(
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 bg-linear-to-br from-blue-600 to-blue-700 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-start gap-3" style={{animation:'slideUp 0.3s ease-out'}}>
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-blue-600/40 flex items-start gap-3" style={{animation:'slideUp 0.3s ease-out'}}>
           <BadgeCheck size={20} className="shrink-0 mt-0.5"/>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm">{toast.msg}</p>
@@ -742,7 +742,7 @@ export default function Page(){
 
             {/* Wallet Health Card */}
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
-              <div className="h-0.5 bg-linear-to-br from-blue-600 via-blue-400 to-blue-600"/>
+              <div className="h-0.5 bg-linear-to-r from-blue-600 via-blue-400 to-blue-600"/>
               <div className="p-5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
                   <div className="flex items-center gap-4">
@@ -783,7 +783,7 @@ export default function Page(){
 
             {/* Daily check-in */}
             <div className={`bg-[#0d1628] border rounded-3xl overflow-hidden ${checkedToday?'border-blue-400/40':'border-blue-500/20'}`}>
-              <div className={`h-0.5 ${checkedToday?'bg-linear-to-br from-blue-400 to-blue-300':'bg-linear-to-br from-blue-600 to-blue-500'}`}/>
+              <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-blue-400 to-blue-300':'bg-linear-to-r from-blue-600 to-blue-500'}`}/>
               <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${checkedToday?'bg-blue-400/15 border-blue-400/30':'bg-blue-600/15 border-blue-500/25'}`}>
@@ -821,7 +821,7 @@ export default function Page(){
 
             {/* Score + Heatmap */}
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
-              <div className="h-0.5 bg-linear-to-br from-blue-600 via-blue-400 to-blue-600"/>
+              <div className="h-0.5 bg-linear-to-r from-blue-600 via-blue-400 to-blue-600"/>
               <div className="p-5 sm:p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-6">
                   <div className="min-w-0">
@@ -849,7 +849,7 @@ export default function Page(){
                           <div key={i} className="flex items-center gap-2">
                             <span className="text-[10px] text-blue-400/40 w-20 font-bold shrink-0">{labels[k]||k}</span>
                             <div className="flex-1 bg-blue-950/60 rounded-full h-1.5 overflow-hidden border border-blue-800/20">
-                              <div className="h-full bg-linear-to-br from-blue-600 to-blue-400 rounded-full" style={{width:`${pct}%`,transition:'width 1.5s ease-out',filter:'drop-shadow(0 0 3px rgba(59,130,246,0.4))'}}/>
+                              <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full" style={{width:`${pct}%`,transition:'width 1.5s ease-out',filter:'drop-shadow(0 0 3px rgba(59,130,246,0.4))'}}/>
                             </div>
                             <span className="text-[10px] text-blue-400/50 w-5 text-right shrink-0">{v.toFixed(0)}</span>
                           </div>
@@ -1010,7 +1010,7 @@ export default function Page(){
                     </div>
                   </div>
                 </div>
-                <div className="w-full sm:w-auto sm:min-w-[140px] text-center">
+                <div className="w-full sm:w-auto sm:min-w-35 text-center">
                   {connType==='farcaster'?(
                     <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
                       className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-blue-800/40 text-blue-400/40 cursor-not-allowed':'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30'}`}>
@@ -1111,7 +1111,7 @@ export default function Page(){
                       <div className="text-right"><p className="text-2xl font-black text-blue-400">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p><p className="text-[10px] text-blue-400/40 uppercase">{cat.unit}</p></div>
                     </div>
                     <div className="w-full bg-blue-950/60 rounded-full h-1.5 mb-1 overflow-hidden border border-blue-800/20">
-                      <div className="h-full bg-linear-to-br from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width:`${prog}%`,filter:'drop-shadow(0 0 3px rgba(59,130,246,0.5))'}}/>
+                      <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width:`${prog}%`,filter:'drop-shadow(0 0 3px rgba(59,130,246,0.5))'}}/>
                     </div>
                     <p className="text-right text-[10px] text-blue-400/40 font-bold mb-5">
                       {unlocked===cat.thresholds.length?'Max Level 👑':`${typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()} / ${typeof nextThr==='number'&&nextThr<1?nextThr.toFixed(3):nextThr.toLocaleString()}`}
@@ -1226,7 +1226,7 @@ export default function Page(){
         {tab==='leaderboard'&&(
           <div className="space-y-4">
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
-              <div className="h-0.5 bg-linear-to-br from-blue-600 via-blue-400 to-blue-600"/>
+              <div className="h-0.5 bg-linear-to-r from-blue-600 via-blue-400 to-blue-600"/>
               <div className="p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -1243,7 +1243,7 @@ export default function Page(){
             </div>
             {(()=>{const pos=leaderboard.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());return pos>=0?(
               <div className="bg-[#0d1628] border border-blue-500/25 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
-                <div className="h-0.5 bg-linear-to-br from-blue-600 to-blue-400"/>
+                <div className="h-0.5 bg-linear-to-r from-blue-600 to-blue-400"/>
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
