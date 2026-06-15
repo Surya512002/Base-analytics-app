@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Wallet, Activity, Zap, Layers, Calendar, ArrowRightLeft, Power, BookOpen,
+  Wallet, Zap, Layers, Calendar, ArrowRightLeft, Power, BookOpen,
   RefreshCcw, Sun, FileCode, BarChart3, Trophy,
-  CreditCard, User, BadgeCheck, Send, X, AlertTriangle,
+  CreditCard, User, BadgeCheck, Send, X,
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Sparkles, History, Droplets, Lock,
-  Flame, Gift, Users, Target, Star, CheckCircle, Copy, ExternalLink, ChevronUp, ChevronDown, Swords, Medal,
+  Flame, Gift, Users, Target, Star, CheckCircle, Copy, ExternalLink, ChevronUp, ChevronDown, Swords,
   TrendingUp, Wifi, Database, Palette, Coins, DollarSign, ShieldCheck, Hexagon
 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
@@ -64,10 +64,8 @@ const DEFI_PROTOCOLS = [
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ── FIXED date helpers ────────────────────────────────────────────────────────
-// getDayKey: simple ISO slice — always correct
 const getDayKey = (iso: string): string => iso.slice(0, 10);
 
-// getWeekKey: ISO week, no date mutation
 const getWeekKey = (iso: string): string => {
   const d = new Date(iso);
   const thursday = new Date(Date.UTC(
@@ -79,7 +77,6 @@ const getWeekKey = (iso: string): string => {
   return `${thursday.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
 };
 
-// getMonthKey: padded 01-12, NOT 0-indexed
 const getMonthKey = (iso: string): string => {
   const d = new Date(iso);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
@@ -87,34 +84,34 @@ const getMonthKey = (iso: string): string => {
 
 // ── Achievements & quests (unchanged) ────────────────────────────────────────
 const ACHIEVEMENTS = [
-  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',    thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],      tierIcons:["🦐","🐬","🦈","🐋","👑"]},
-  {id:'age',    baseId:20,name:'Pioneer',        icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],             tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
-  {id:'name',   baseId:30,name:'Identity',       icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                             tierIcons:["🆔"]},
-  {id:'days',   baseId:40,name:'Diamond Hands',  icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                   tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
-  {id:'contract',baseId:50,name:'Base Builder',  icon:'🧱',unit:'Txs',     thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],       tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
-  {id:'volume', baseId:60,name:'Whale Alert',    icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],            tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
-  {id:'txs',    baseId:70,name:'Power User',     icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                          tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
+  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',    thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],     tierIcons:["🦐","🐬","🦈","🐋","👑"]},
+  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],             tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
+  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                            tierIcons:["🆔"]},
+  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                    tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
+  {id:'contract',baseId:50,name:'Base Builder',  icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],       tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
+  {id:'volume', baseId:60,name:'Whale Alert',    icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],             tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
+  {id:'txs',    baseId:70,name:'Power User',     icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                           tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
   {id:'swaps',  baseId:80,name:'DeFi Degen',     icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],              tierIcons:["🪙","📈","🏦","🚜","🦄"]},
   {id:'nfts',   baseId:90,name:'Collector',      icon:'👾',unit:'NFTs',     thresholds:[3,10,25,50,100],   tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
-  {id:'streak', baseId:100,name:'Streak Master', icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],    tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                        tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
+  {id:'streak', baseId:100,name:'Streak Master', icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],   tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                        tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
   {id:'boosts', baseId:110,name:'XP Booster',    icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                     tierIcons:["🔰","🤝","📣","🏆","🔋"]},
 ];
 
 const WEEKLY_QUESTS = [
-  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',       xp:25,check:(w:WalletData,b:number)=>b>=1},
-  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',          xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
-  {id:'q_checkin', icon:'🔥',title:'Onchain check-in',  desc:'Complete a daily onchain check-in',      xp:20,check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
-  {id:'q_streak',  icon:'⚡',title:'3-day streak',      desc:'Maintain a 3+ day onchain streak',       xp:30,check:(_w:WalletData,_b:number,s:number)=>s>=3},
-  {id:'q_defi',    icon:'🦄',title:'DeFi interaction',  desc:'Interact with a DeFi protocol',          xp:40,check:(w:WalletData)=>w.defiInteractions>=1},
-  {id:'q_swap',    icon:'🔄',title:'Token swap',        desc:'Swap at least one token on Base',        xp:20,check:(w:WalletData)=>w.swapCount>=1},
-  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',           xp:35,check:(w:WalletData)=>w.nftCount>=1},
-  {id:'q_basename',icon:'🆔',title:'Claim Basename',    desc:'Register a .base.eth username',          xp:50,check:(w:WalletData)=>!!w.basename},
+  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',        xp:25,check:(w:WalletData,b:number)=>b>=1},
+  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',           xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
+  {id:'q_checkin', icon:'🔥',title:'Onchain check-in',  desc:'Complete a daily onchain check-in',       xp:20,check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
+  {id:'q_streak',  icon:'⚡',title:'3-day streak',      desc:'Maintain a 3+ day onchain streak',        xp:30,check:(_w:WalletData,_b:number,s:number)=>s>=3},
+  {id:'q_defi',    icon:'🦄',title:'DeFi interaction',  desc:'Interact with a DeFi protocol',           xp:40,check:(w:WalletData)=>w.defiInteractions>=1},
+  {id:'q_swap',    icon:'🔄',title:'Token swap',        desc:'Swap at least one token on Base',         xp:20,check:(w:WalletData)=>w.swapCount>=1},
+  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',            xp:35,check:(w:WalletData)=>w.nftCount>=1},
+  {id:'q_basename',icon:'🆔',title:'Claim Basename',    desc:'Register a .base.eth username',           xp:50,check:(w:WalletData)=>!!w.basename},
   {id:'q_vol',     icon:'💎',title:'Volume milestone',  desc:'Reach 0.001+ ETH transaction volume',   xp:30,check:(w:WalletData)=>parseFloat(w.ethVolume)>=0.001},
-  {id:'q_txs',     icon:'📊',title:'Active trader',     desc:'Complete 10+ transactions on Base',      xp:25,check:(w:WalletData)=>w.txCount>=10},
+  {id:'q_txs',     icon:'📊',title:'Active trader',     desc:'Complete 10+ transactions on Base',       xp:25,check:(w:WalletData)=>w.txCount>=10},
 ];
 
 const SEASON_START = new Date('2026-04-20T00:00:00Z');
-const SEASON_END   = new Date('2026-07-20T23:59:59Z');
+const SEASON_END   = new Date('2026-10-20T23:59:59Z');
 const SEASON_NAME  = "Season 1: Genesis";
 
 const TIER_GRADIENTS = [
@@ -147,7 +144,7 @@ interface WalletData{
   topTokens:string[]; recommendation:string; recentTxs:AlchemyTransfer[];
   daysOnBase:number; defiInteractions:number; hasGm:boolean;
   uniqueContracts:number; avgTxPerDay:number; mostActiveMonth:string;
-  ethReceived:number; totalGasSpent:number; erc20Txs:number; erc721Txs:number;
+  ethReceived:number; totalGasSpent:number; erc20Txs:number; erc721Txs:number; gmCount:number; checkInCount:number;
   walletHealthScore:number; walletHealthLabel:string;
   scoreComponents:Record<string,number>;
   portfolioValueUSD:number;
@@ -157,7 +154,13 @@ interface AlchemyResponse{result?:{transfers:AlchemyTransfer[];pageKey?:string;}
 type ConnectionType='farcaster'|'coinbase'|'metamask';
 interface LeaderboardEntry{address:string;basename:string|null;score:number;rank:string;boosts:number;badges:number;weeklyXP:number;totalXP:number;weekNumber:number;lastSeen?:number;}
 type LeaderboardPost=Omit<LeaderboardEntry,'totalXP'|'lastSeen'>;
-
+interface BlockscoutTx {
+  hash: string;
+  timeStamp: string;
+  value: string;
+  to: string;
+  from: string;
+}
 // ── Leaderboard API ───────────────────────────────────────────────────────────
 async function saveLeaderboard(entry:LeaderboardPost){
   try{await fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});}
@@ -229,15 +232,15 @@ export default function Page(){
   const[refCopied,setRefCopied]=useState(false);
   const[weeklyXP,setWeeklyXP]=useState(0);
 
-  // ── Calldata (unchanged builder suffix) ──────────────────────────────────
+  // ── Calldata ─────────────────────────────────────────────────────────────
   const boostDWT=`${encodeFunctionData({abi:BOOSTER_ABI,functionName:'boost'})}${getBuilderSuffix()}` as `0x${string}`;
   const gmDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gm'})}${getBuilderSuffix()}` as `0x${string}`;
   const gnDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
   const ciDWT   =`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
 
-  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT}]; // FREE - no value
-  const gmCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}]; // FREE
-  const gnCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}]; // FREE
+  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT}]; 
+  const gmCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}]; 
+  const gnCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}]; 
   const ciCall   =[{to:CHECKIN_CONTRACT as `0x${string}`,data:ciDWT}];
   const txCaps   = getCapabilities();
 
@@ -262,39 +265,62 @@ export default function Page(){
     saveLeaderboard(entry).then(()=>fetchLeaderboard().then(d=>setLeaderboard(d)));
   },[wallet,boosts,mintedLevels,streak,txKeys]);
 
-  // ── REAL challenge lookup — uses same fixed helpers ───────────────────────
+  // ── Blockscout merged challenge lookup ──────────────────────────────────────
   const handleChallenge=useCallback(async()=>{
     const addr=challenge.trim().toLowerCase();
     if(!addr||!addr.startsWith('0x')||addr.length!==42){showToast('❌ Invalid address','');return;}
     setChallengeLoading(true);
     try{
-      let txs:AlchemyTransfer[]=[],pk:string|undefined;
-      for(let n=0;n<10;n++){ // FIXED: 10 pages for challenge lookup
-        const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:addr,category:["external","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
+      let alchemyTxs:AlchemyTransfer[]=[],pk:string|undefined;
+      for(let n=0;n<10;n++){ 
+        const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:addr,category:["external","internal","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
         if(pk)params.pageKey=pk;
         const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
         const d=await r.json() as AlchemyResponse;
         if(d.error)break;
-        txs=[...txs,...(d.result?.transfers||[])];
+        alchemyTxs=[...alchemyTxs,...(d.result?.transfers||[])];
         pk=d.result?.pageKey;
         if(!pk)break;
       }
-      // Use same fixed helpers for accurate counts
-      const days=new Set(txs.map(tx=>getDayKey(tx.metadata.blockTimestamp)));
-      const months=new Set(txs.map(tx=>getMonthKey(tx.metadata.blockTimestamp)));
+      
+      // Blockscout fetch to catch 0-value calls
+      // Blockscout fetch to catch 0-value calls
+      const bscRes = await fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`).catch(()=>null);
+      const bscData = bscRes ? await bscRes.json().catch(()=>({})) : {};
+      
+      // ✅ FIX: Removed 'any[]' and added explicit type
+      let rawTxs: { hash: string; metadata: { blockTimestamp: string } }[] = [];
+      
+      if (bscData.result && Array.isArray(bscData.result)) {
+         // ✅ FIX: Changed '(tx: any)' to '(tx: BlockscoutTx)'
+         rawTxs = bscData.result.map((tx: BlockscoutTx) => ({
+            hash: tx.hash,
+            metadata: { blockTimestamp: new Date(Number(tx.timeStamp) * 1000).toISOString() }
+         }));
+      }
+
+      // Merge avoiding duplicates
+      // ✅ FIX: Changed 'any' to explicit type
+      const txMap = new Map<string, { hash: string; metadata: { blockTimestamp: string } }>();
+      rawTxs.forEach(t => txMap.set(t.hash, t));
+      alchemyTxs.forEach(t => txMap.set(t.hash, t));
+      const mergedTxs = Array.from(txMap.values());
+
+      const days=new Set(mergedTxs.map(tx=>getDayKey(tx.metadata.blockTimestamp)));
+      const months=new Set(mergedTxs.map(tx=>getMonthKey(tx.metadata.blockTimestamp)));
       const s=Math.min(100,Math.floor(
-        Math.min(25,txs.length/20)+Math.min(20,days.size/4)+
+        Math.min(25,mergedTxs.length/20)+Math.min(20,days.size/4)+
         Math.min(15,months.size*1.25)+Math.min(20,days.size/3)+Math.min(10,months.size)
       ));
       let rank='Base Shrimp 🦐';
       if(s>=30)rank='Base Dolphin 🐬';if(s>=50)rank='Base Shark 🦈';
       if(s>=70)rank='Base Whale 🐋';if(s>=85)rank='Base God 👑';
-      setChallengeResult({address:addr,score:s,rank,days:days.size,txs:txs.length});
+      setChallengeResult({address:addr,score:s,rank,days:days.size,txs:mergedTxs.length});
     }catch{showToast('❌ Lookup failed','');}
     finally{setChallengeLoading(false);}
   },[challenge]);
 
-  // ── Main wallet analysis ──────────────────────────────────────────────────
+  // ── Blockscout merged wallet analysis ──────────────────────────────────────
   const analyzeWallet=useCallback(async(address:string)=>{
     if(!address||!address.startsWith('0x')||address.length!==42){showToast('❌ Invalid EVM Address','');setLoading(false);return;}
     try{
@@ -320,33 +346,63 @@ export default function Page(){
       for(const cat of ACHIEVEMENTS){for(let i=cat.thresholds.length;i>=1;i--){const tid=getTargetTokenId(cat.baseId,cat.thresholds.length,i);calls.push({address:ACHIEVEMENTS_CONTRACT as `0x${string}`,abi:ACHIEVEMENTS_ABI,functionName:'hasMinted',args:[address as `0x${string}`,BigInt(tid)]});callMap.push({catId:cat.id,level:i});}}
       const mcP=pub.multicall({contracts:calls}).catch(()=>[]);
 
-      // Paginated outbound tx fetch
+      // Alchemy asset transfers
       const txP=(async()=>{
         let txs:AlchemyTransfer[]=[],pk:string|undefined,n=0;
         while(true){
           n++;
-          const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:address,category:["external","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
+          const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:address,category:["external","internal","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
           if(pk)params.pageKey=pk;
           const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
           const d=await r.json() as AlchemyResponse;
           if(d.error)break;
           txs=[...txs,...(d.result?.transfers||[])];
           pk=d.result?.pageKey;
-          if(!pk||n>20)break; // FIXED: 20 pages x 1000 = 20000 txs max
+          if(!pk||n>20)break; 
         }
         return txs;
       })();
 
+      // Blockscout raw transaction history (catches 0-value contract calls, fixes CORS)
+      // Blockscout raw transaction history (catches 0-value contract calls, fixes CORS)
+      const rawTxsP = fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.result || !Array.isArray(data.result)) return [];
+          // ✅ FIX: Changed '(tx: any)' to '(tx: BlockscoutTx)'
+          return data.result.map((tx: BlockscoutTx) => ({
+            hash: tx.hash,
+            category: 'external',
+            value: tx.value ? parseFloat(formatEther(tx.value)) : 0,
+            asset: 'ETH',
+            to: tx.to,
+            from: tx.from,
+            metadata: { blockTimestamp: new Date(Number(tx.timeStamp) * 1000).toISOString() }
+          }));
+        })
+        .catch(() => []);
+
       const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",
-          params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,category:["external","erc20"],maxCount:"0x3e8",withMetadata:true}]})
+          params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,category:["external","internal","erc20"],maxCount:"0x3e8",withMetadata:true}]})
       }).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
 
       const ethPriceP=fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd')
         .then(r=>r.json()).catch(()=>({ethereum:{usd:3200}}));
 
-      const[bn,balWei,nftData,mcRes,allTxs,rxData,dbStreak,dbLastCI,ethPriceData]=
-        await Promise.all([bnP,balP,nftP,mcP,txP,rxP,strkP,lastP,ethPriceP]);
+      const[bn,balWei,nftData,mcRes,alchemyTxs,rxData,dbStreak,dbLastCI,ethPriceData,rawTxs]=
+        await Promise.all([bnP,balP,nftP,mcP,txP,rxP,strkP,lastP,ethPriceP,rawTxsP]);
+
+      // Merge Alchemy transfers and Blockscout raw transactions, deduplicating by hash
+      const txMap = new Map<string, AlchemyTransfer>();
+      
+      // Add raw transactions first (captures 0-value contract calls)
+      rawTxs.forEach((tx: AlchemyTransfer) => txMap.set(tx.hash, tx));
+      
+      // Overwrite with Alchemy transactions (these have better ERC-20/ERC-721 token metadata)
+      alchemyTxs.forEach((tx: AlchemyTransfer) => txMap.set(tx.hash, tx));
+      
+      const allTxs = Array.from(txMap.values());
 
       setStreak(Number(dbStreak));
       if(Number(dbLastCI)>0){const ld=new Date(Number(dbLastCI)*1000).toISOString().slice(0,10);setCheckedToday(ld===new Date().toISOString().slice(0,10));}
@@ -355,18 +411,17 @@ export default function Page(){
       mcRes.forEach((r:{status:string;result?:unknown},i:number)=>{const{catId,level}=callMap[i];if(r.status==='success'&&r.result===true){if(!ms[catId]||ms[catId]<level)ms[catId]=level;}});
       setMintedLevels(ms);
 
-      // ── FIXED: use corrected date helpers ──────────────────────────────
       const uDays=new Set<string>(),uWeeks=new Set<string>(),uMonths=new Set<string>();
       const uTokens=new Set<string>(),uContracts=new Set<string>();
       const tokFreq=new Map<string,number>(),monthActivity=new Map<string,number>(),tpd=new Map<string,number>();
-      let ethVol=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false,erc20Txs=0,erc721Txs=0;
+      let ethVol=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false,erc20Txs=0,erc721Txs=0,gmCount=0,checkInCount=0;
 
       for(const tx of allTxs){
         const ts=tx.metadata.blockTimestamp;
         if(!ts)continue;
-        const dk=getDayKey(ts);    // ✅ FIXED
-        const wk=getWeekKey(ts);   // ✅ FIXED — no mutation
-        const mk=getMonthKey(ts);  // ✅ FIXED — padded 01-12
+        const dk=getDayKey(ts);    
+        const wk=getWeekKey(ts);   
+        const mk=getMonthKey(ts);  
         uDays.add(dk);uWeeks.add(wk);uMonths.add(mk);
         tpd.set(dk,(tpd.get(dk)||0)+1);
         monthActivity.set(mk,(monthActivity.get(mk)||0)+1);
@@ -374,10 +429,11 @@ export default function Page(){
         if(tx.category==='erc20'){swapCount++;erc20Txs++;}
         if(tx.category==='erc721')erc721Txs++;
         if(['erc20','erc721','erc1155'].includes(tx.category)&&tx.asset){uTokens.add(tx.asset);tokFreq.set(tx.asset,(tokFreq.get(tx.asset)||0)+1);}
-        if(tx.category==='external'){cxInteract++;if(tx.to)uContracts.add(tx.to.toLowerCase());}
+        if(tx.category==='external'){cxInteract++;if(tx.to)uContracts.add(tx.to?.toLowerCase());}
         if(tx.to&&DEFI_PROTOCOLS.includes(tx.to.toLowerCase()))defi++;
         if(tx.to&&tx.to.toLowerCase()===BOOSTER_CONTRACT.toLowerCase())hBoosts++;
-        if(tx.to&&tx.to.toLowerCase()===GM_GN_CONTRACT.toLowerCase())hasGm=true;
+        if(tx.to&&tx.to.toLowerCase()===GM_GN_CONTRACT.toLowerCase()){hasGm=true;gmCount++;}
+        if(tx.to&&tx.to.toLowerCase()===CHECKIN_CONTRACT.toLowerCase())checkInCount++;
       }
 
       // ETH received
@@ -396,7 +452,6 @@ export default function Page(){
       }
       setBoosts(fBoosts);
 
-      // ── FIXED streak calculation ────────────────────────────────────────
       const sortedDays=Array.from(uDays).sort();
       let longest=sortedDays.length>0?1:0,runLen=sortedDays.length>0?1:0;
       for(let i=1;i<sortedDays.length;i++){
@@ -424,14 +479,14 @@ export default function Page(){
         daysOnBase=Math.floor((now.getTime()-firstTs)/86400000);
       }
 
-      // Most active month — FIXED (mk is padded 01-12, parseInt(m)-1 gives 0-11)
+      // Most active month
       const mak=Array.from(monthActivity.entries()).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
       let mostActiveMonth='N/A';
       if(mak){const[y,m]=mak.split('-');mostActiveMonth=`${MONTH_NAMES[parseInt(m)-1]} ${y}`;}
 
       const avgTxPerDay=uDays.size>0?Math.round((allTxs.length/uDays.size)*10)/10:0;
 
-      // Improved score formula — transparent, each bucket clear
+      // Improved score formula
       const scoreComponents:{[k:string]:number}={
         txActivity:  Math.min(25,allTxs.length/20),
         consistency: Math.min(20,uDays.size/4),
@@ -446,7 +501,7 @@ export default function Page(){
       if(score>=30)walletRank='Base Dolphin 🐬';if(score>=50)walletRank='Base Shark 🦈';
       if(score>=70)walletRank='Base Whale 🐋';if(score>=85)walletRank='Base God 👑';
 
-      // Portfolio value (ETH × live price)
+      // Portfolio value
       const ethUSD=ethPriceData?.ethereum?.usd||3200;
       const ethBalNum=parseFloat(formatEther(balWei));
       const portfolioValueUSD=parseFloat((ethBalNum*ethUSD).toFixed(2));
@@ -477,24 +532,24 @@ export default function Page(){
       for(let col=0;col<tCols;col++){const ws=new Date(gStart);ws.setUTCDate(ws.getUTCDate()+(col*7));const mi=ws.getUTCMonth();if(MONTH_NAMES[mi]!==lastML){wLabels.push(MONTH_NAMES[mi]);lastML=MONTH_NAMES[mi];}else wLabels.push('');}
 
       const topTokens=Array.from(tokFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
-      const recentTxs=[...allTxs].sort((a,b)=>new Date(b.metadata.blockTimestamp).getTime()-new Date(a.metadata.blockTimestamp).getTime()).slice(0,8);
+      const recentTxs=[...allTxs].sort((a,b)=>new Date(b.metadata.blockTimestamp).getTime()-new Date(a.metadata.blockTimestamp).getTime()).slice(0,20);
 
       setWallet({
         address,basename:bn,balance:ethBalNum.toFixed(4),ethVolume:ethVol.toFixed(4),
         txCount:allTxs.length,
-        uniqueDays:uDays.size,      // ✅ FIXED — was showing 355, now correct ~553
-        activeWeeks:uWeeks.size,    // ✅ FIXED — no mutation bug
-        activeMonths:uMonths.size,  // ✅ FIXED — no 0-index collision
-        currentStreak:curStreak,    // ✅ FIXED
-        longestStreak:longest,      // ✅ FIXED
+        uniqueDays:uDays.size,      
+        activeWeeks:uWeeks.size,    
+        activeMonths:uMonths.size,  
+        currentStreak:curStreak,    
+        longestStreak:longest,      
         firstTx,lastTx,daysSinceActive,
         tokensSwapped:uTokens.size,swapCount,contractInteractions:cxInteract,
         nftCount:nftData.totalCount||0,walletRank,score:Math.min(100,score),
         historyDays:histDays,weekLabels:wLabels,dailyStats:dStats,
         topTokens,recommendation,recentTxs,daysOnBase,defiInteractions:defi,hasGm,
         uniqueContracts:uContracts.size,avgTxPerDay,
-        mostActiveMonth,            // ✅ FIXED
-        ethReceived:parseFloat(ethReceived.toFixed(4)),totalGasSpent:0,erc20Txs,erc721Txs,
+        mostActiveMonth,            
+        ethReceived:parseFloat(ethReceived.toFixed(4)),totalGasSpent:0,erc20Txs,erc721Txs,gmCount,checkInCount,
         walletHealthScore:health.score,walletHealthLabel:health.label,
         scoreComponents,portfolioValueUSD,
       });
@@ -522,12 +577,10 @@ export default function Page(){
     if(!wallet||minting)return;setMinting(type);
     try{
       let to:`0x${string}`=BOOSTER_CONTRACT as `0x${string}`;let data:`0x${string}`=boostDWT;let msg='Boosted! 🎉';
-      // All transactions are free - no ETH value needed
       if(type==='gm'){to=GM_GN_CONTRACT as `0x${string}`;data=gmDWT;msg='GM on Base! ☀️';}
       else if(type==='gn'){to=GM_GN_CONTRACT as `0x${string}`;data=gnDWT;msg='GN on Base! 🌙';}
       else if(type==='checkin'){to=CHECKIN_CONTRACT as `0x${string}`;data=ciDWT;msg='Check-in secured! 🔥';}
       const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={from:wallet.address as `0x${string}`,to,data,chainId:'0x2105' as `0x${string}`};
-      // No value needed - all transactions are free
       const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[p]});
       if(hash&&typeof hash==='string'){
         showToast(msg,hash);setSponsored(s=>s+1);
@@ -913,13 +966,13 @@ export default function Page(){
                   <p className="text-[9px] text-blue-400/50 uppercase font-bold tracking-wide mt-0.5">Portfolio Value</p>
                 </div>
                 {[
-                  {l:'ETH Balance',       v:`${wallet.balance} Ξ`,                   i:<CreditCard size={15} className="text-blue-400"/>},
+                  {l:'ETH Balance',       v:`${wallet.balance} Ξ`,                    i:<CreditCard size={15} className="text-blue-400"/>},
                   {l:'Days on Base',       v:wallet.daysOnBase.toLocaleString(),       i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Active Days ✅',     v:wallet.uniqueDays.toString(),             i:<Sun size={15} className="text-blue-400"/>},
                   {l:'Active Weeks ✅',    v:wallet.activeWeeks.toString(),            i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Active Months ✅',   v:wallet.activeMonths.toString(),           i:<Calendar size={15} className="text-blue-400"/>},
-                  {l:'Current Streak ✅',  v:`${wallet.currentStreak}d`,              i:<Flame size={15} className="text-blue-300"/>},
-                  {l:'Longest Streak ✅',  v:`${wallet.longestStreak}d`,              i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Current Streak ✅',  v:`${wallet.currentStreak}d`,               i:<Flame size={15} className="text-blue-300"/>},
+                  {l:'Longest Streak ✅',  v:`${wallet.longestStreak}d`,               i:<Trophy size={15} className="text-blue-400"/>},
                   {l:'Total Txs',          v:wallet.txCount.toLocaleString(),          i:<Layers size={15} className="text-blue-300"/>},
                   {l:'Token Swaps',        v:wallet.swapCount.toLocaleString(),        i:<ArrowRightLeft size={15} className="text-blue-400"/>},
                   {l:'Unique Tokens',      v:wallet.tokensSwapped.toString(),          i:<Coins size={15} className="text-blue-300"/>},
@@ -940,6 +993,8 @@ export default function Page(){
                   {l:'XP Boosts',          v:boosts.toString(),                        i:<Rocket size={15} className="text-blue-400"/>},
                   {l:'Weekly XP',          v:weeklyXP.toString(),                      i:<Zap size={15} className="text-blue-300"/>},
                   {l:'Wallet Health',      v:`${wallet.walletHealthScore}/100`,        i:<ShieldCheck size={15} className="text-blue-400"/>},
+                  {l:'GM / GN Count',     v:wallet.gmCount.toLocaleString(),          i:<Star size={15} className="text-yellow-400"/>},
+                  {l:'Check-In Count',    v:wallet.checkInCount.toLocaleString(),     i:<Flame size={15} className="text-orange-400"/>},
                 ].map((s,i)=>(
                   <div key={i} className="bg-[#0d1628] border border-blue-500/15 rounded-2xl p-3 sm:p-4 hover:border-blue-500/35 hover:bg-blue-950/40 transition-all group shadow-sm shadow-blue-900/10">
                     <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
@@ -1052,27 +1107,57 @@ export default function Page(){
 
             {/* Recent Activity */}
             <div>
-              <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
+              <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity · All Onchain Events</p>
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl overflow-hidden shadow-lg shadow-blue-900/20">
-                {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>(
+                {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
+                  // Identify transaction type by contract address
+                  const toAddr=(tx.to||'').toLowerCase();
+                  const isGM    = toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isBoost = toAddr===BOOSTER_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isCI    = toAddr===CHECKIN_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isBadge = toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
+                  // Label
+                  let label='Contract Call';
+                  let icon=<ArrowRightLeft size={13} className="text-blue-400"/>;
+                  let badge:string|null=null;
+                  if(isGM)   {label='GM / GN';      icon=<Star size={13} className="text-yellow-400"/>;  badge='☀️ Vibes';}
+                  else if(isBoost){label='XP Boost'; icon=<Rocket size={13} className="text-blue-300"/>; badge='🚀 Boost';}
+                  else if(isCI)   {label='Check-In'; icon=<Flame size={13} className="text-orange-400"/>; badge='🔥 Streak';}
+                  else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>; badge='🏅 Badge';}
+                  else if(tx.category==='erc721'){label='NFT Transfer'; icon=<Sparkles size={13} className="text-blue-300"/>;}
+                  else if(tx.category==='erc20') {label='Token Transfer';icon=<Coins size={13} className="text-blue-400"/>;}
+                  else if(tx.category==='internal'){label='Internal Tx'; icon=<Zap size={13} className="text-blue-300"/>;}
+                  return(
                   <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-blue-950/30 transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-blue-800/20':''}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 bg-blue-600/10 border border-blue-500/15 rounded-xl flex items-center justify-center shrink-0">
-                        {tx.category==='erc721'?<Sparkles size={13} className="text-blue-300"/>:tx.category==='erc20'?<Coins size={13} className="text-blue-400"/>:<ArrowRightLeft size={13} className="text-blue-400"/>}
+                      <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${
+                        isGM?'bg-yellow-500/10 border-yellow-500/20':
+                        isBoost?'bg-blue-600/20 border-blue-500/25':
+                        isCI?'bg-orange-500/10 border-orange-500/20':
+                        isBadge?'bg-yellow-500/10 border-yellow-500/20':
+                        'bg-blue-600/10 border-blue-500/15'
+                      }`}>
+                        {icon}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-black text-white uppercase truncate">{tx.category==='external'?'Contract Call':tx.category==='erc20'?'Token Transfer':tx.category==='erc721'?'NFT Transfer':'Transfer'}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-black text-white uppercase truncate">{label}</p>
+                          {badge&&<span className="text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
+                        </div>
                         <p className="text-[10px] text-blue-400/40 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
+                        {tx.to&&<p className="text-[9px] text-blue-400/20 font-mono truncate">{tx.to.slice(0,10)}…</p>}
                       </div>
                     </div>
                     <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
                       className="shrink-0 text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-600/8 hover:bg-blue-600/15 border border-blue-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
-                      <ExternalLink size={9}/>{tx.value?`${parseFloat(tx.value.toFixed(4))} ${tx.asset}`:'View'}
+                      <ExternalLink size={9}/>{tx.value&&tx.value>0?`${parseFloat(tx.value.toFixed(4))} ${tx.asset||'ETH'}`:'View ↗'}
                     </a>
                   </div>
-                )):<p className="text-blue-400/30 text-sm text-center py-8">No recent transactions found.</p>}
+                  );
+                }):<p className="text-blue-400/30 text-sm text-center py-8">No recent transactions found.</p>}
               </div>
             </div>
+
           </div>
         )}
 
