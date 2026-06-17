@@ -7,7 +7,8 @@ import {
   CreditCard, User, BadgeCheck, Send, X,
   ChevronRight, Share2, Rocket, Twitter, MousePointerClick, Clock, Sparkles, History, Droplets, Lock,
   Flame, Gift, Users, Target, Star, CheckCircle, Copy, ExternalLink, ChevronUp, ChevronDown, Swords,
-  TrendingUp, Wifi, Database, Palette, Coins, DollarSign, ShieldCheck, Hexagon
+  TrendingUp, Wifi, Database, Palette, Coins, DollarSign, ShieldCheck, Hexagon, Activity,
+  Repeat2, BrainCircuit, Landmark, Globe, GitBranch, Gauge
 } from 'lucide-react';
 import { JsonRpcProvider, formatEther, toUtf8Bytes } from 'ethers';
 import sdk from "@farcaster/miniapp-sdk";
@@ -30,11 +31,59 @@ function getBuilderSuffix(){
   return `${hex}${cb.length.toString(16).padStart(2,'0')}0080218021802180218021802180218021`;
 }
 
-// ── Contracts (unchanged) ─────────────────────────────────────────────────────
+// ── Contracts ─────────────────────────────────────────────────────────────────
 const BOOSTER_CONTRACT      = "0x0d1BE33F8B6a33BeEe7b3bb834DF6f8c168B2e46";
 const GM_GN_CONTRACT        = "0xdb4f873B33F448aeA8Bb2b3B7e3ab9561329608A";
 const ACHIEVEMENTS_CONTRACT = "0xadb8120B4B18b892cFAD171243074487122Dea03";
 const CHECKIN_CONTRACT      = "0xABc7099C631E18640ea60b25116407aa17354FBb";
+
+// ERC-4337 EntryPoints — sponsored/paymaster txs come from these
+const ENTRYPOINT_V06 = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
+const ENTRYPOINT_V07 = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
+
+// DEX Routers on Base
+const DEX_ROUTERS = new Set([
+  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43", // Aerodrome Router
+  "0x2626664c2603336e57b271c5c0b26f421741e481", // Uniswap V3 SwapRouter02
+  "0x198ef79f1f515f02dfe9e3115ed9fb06d9e3b801", // Uniswap Universal Router
+  "0x6cb442acf35158d5eda88fe602221b67a400be3e", // Uniswap V2 on Base
+  "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24", // Uniswap V2 Router2
+  "0x8cfe327cec66d1c090dd72bd0ff11d690c33a2eb", // PancakeSwap
+  "0x1b81d678ffb9c0263b24a97847620c99d213eb14", // 1inch Router v5
+  "0x111111125421ca6dc452d289314280a0f8842a65", // 1inch Router v6
+  "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237", // Balancer Vault
+  "0x280b3b748ccc42d5062ce59111fad08594f51d9f", // BaseSwap Router
+]);
+
+// DeFi Protocol addresses
+const DEFI_PROTOCOLS = new Set([
+  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43","0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
+  "0x8ebaf22e6f05b4fbce41712019ba2289f631eff2","0x000000000022d473030f116ddee9f6b43ac78ba3",
+  "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237","0x280b3b748ccc42d5062ce59111fad08594f51d9f",
+  "0x4200000000000000000000000000000000000006",
+  "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c", // Moonwell mUSDC
+  "0x70778cfcfc475c7512610ccea48519738eb7f0a1", // Moonwell mETH
+  "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb", // Morpho Blue
+  "0xa0533b80a28e3e3e17e4cff3adfD3B6C4f12Fb83", // Morpho Bundler
+  "0x49048044d57e1c92a77f2344bc973582d944959",  // Base Bridge
+]);
+
+const BASE_BRIDGE = "0x49048044d57e1c92a77f2344bc973582d944959";
+
+// Known protocol names for display
+const PROTOCOL_NAMES: Record<string,string> = {
+  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43":"Aerodrome",
+  "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296":"Aerodrome CL",
+  "0x8ebaf22e6f05b4fbce41712019ba2289f631eff2":"Curve",
+  "0x000000000022d473030f116ddee9f6b43ac78ba3":"Uniswap Permit2",
+  "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237":"Balancer",
+  "0x280b3b748ccc42d5062ce59111fad08594f51d9f":"BaseSwap",
+  "0x4200000000000000000000000000000000000006":"WETH",
+  "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c":"Moonwell",
+  "0x70778cfcfc475c7512610ccea48519738eb7f0a1":"Moonwell ETH",
+  "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb":"Morpho Blue",
+  "0x49048044d57e1c92a77f2344bc973582d944959":"Base Bridge",
+};
 
 const CHECKIN_ABI = [
   {inputs:[],name:"checkIn",outputs:[],stateMutability:"nonpayable",type:"function"},
@@ -48,66 +97,54 @@ const ACHIEVEMENTS_ABI = [
   {inputs:[{internalType:"address",name:"",type:"address"},{internalType:"uint256",name:"",type:"uint256"}],name:"hasMinted",outputs:[{internalType:"bool",name:"",type:"bool"}],stateMutability:"view",type:"function"}
 ] as const;
 
-const BOOSTER_ABI = [{name:'boost',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]}] as const; // FREE
+const BOOSTER_ABI = [{name:'boost',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]}] as const;
 const GM_GN_ABI   = [
-  {name:'gm',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]}, // FREE
+  {name:'gm',type:'function',stateMutability:'nonpayable',inputs:[],outputs:[]},
   {name:'gn',type:'function',stateMutability:'payable',inputs:[],outputs:[]}
 ] as const;
 
-const DEFI_PROTOCOLS = [
-  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43","0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
-  "0x8ebaf22e6f05b4fbce41712019ba2289f631eff2","0x000000000022d473030f116ddee9f6b43ac78ba3",
-  "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237","0x280b3b748ccc42d5062ce59111fad08594f51d9f",
-  "0x4200000000000000000000000000000000000006",
-];
-
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// ── FIXED date helpers ────────────────────────────────────────────────────────
-const getDayKey = (iso: string): string => iso.slice(0, 10);
-
-const getWeekKey = (iso: string): string => {
-  const d = new Date(iso);
-  const thursday = new Date(Date.UTC(
-    d.getUTCFullYear(), d.getUTCMonth(),
-    d.getUTCDate() + 4 - (d.getUTCDay() || 7)
-  ));
-  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
-  const wk = Math.ceil(((thursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${thursday.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
+// ── Date helpers ───────────────────────────────────────────────────────────────
+const getDayKey   = (iso:string):string => iso.slice(0,10);
+const getWeekKey  = (iso:string):string => {
+  const d=new Date(iso);
+  const thu=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+4-(d.getUTCDay()||7)));
+  const yr=new Date(Date.UTC(thu.getUTCFullYear(),0,1));
+  const wk=Math.ceil(((thu.getTime()-yr.getTime())/86400000+1)/7);
+  return `${thu.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
 };
-
-const getMonthKey = (iso: string): string => {
-  const d = new Date(iso);
+const getMonthKey = (iso:string):string => {
+  const d=new Date(iso);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
 };
 
-// ── Achievements & quests (unchanged) ────────────────────────────────────────
+// ── Achievements definition ────────────────────────────────────────────────────
 const ACHIEVEMENTS = [
-  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',    thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],     tierIcons:["🦐","🐬","🦈","🐋","👑"]},
-  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],             tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
-  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                            tierIcons:["🆔"]},
-  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                    tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
-  {id:'contract',baseId:50,name:'Base Builder',  icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],       tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
-  {id:'volume', baseId:60,name:'Whale Alert',    icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],             tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
-  {id:'txs',    baseId:70,name:'Power User',     icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                           tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
-  {id:'swaps',  baseId:80,name:'DeFi Degen',     icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],              tierIcons:["🪙","📈","🏦","🚜","🦄"]},
-  {id:'nfts',   baseId:90,name:'Collector',      icon:'👾',unit:'NFTs',     thresholds:[3,10,25,50,100],   tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
-  {id:'streak', baseId:100,name:'Streak Master', icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],   tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                        tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
-  {id:'boosts', baseId:110,name:'XP Booster',    icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                     tierIcons:["🔰","🤝","📣","🏆","🔋"]},
+  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',    thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],       tierIcons:["🦐","🐬","🦈","🐋","👑"]},
+  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],               tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
+  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                              tierIcons:["🆔"]},
+  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                      tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
+  {id:'contract',baseId:50,name:'Base Builder', icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],         tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
+  {id:'volume', baseId:60,name:'Whale Alert',   icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],               tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
+  {id:'txs',    baseId:70,name:'Power User',    icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                             tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
+  {id:'swaps',  baseId:80,name:'DeFi Degen',    icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                tierIcons:["🪙","📈","🏦","🚜","🦄"]},
+  {id:'nfts',   baseId:90,name:'Collector',     icon:'👾',unit:'NFTs',     thresholds:[3,10,25,50,100],   tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                  tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
+  {id:'streak', baseId:100,name:'Streak Master',icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],    tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                          tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
+  {id:'boosts', baseId:110,name:'XP Booster',   icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                       tierIcons:["🔰","🤝","📣","🏆","🔋"]},
 ];
 
 const WEEKLY_QUESTS = [
-  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',        xp:25,check:(w:WalletData,b:number)=>b>=1},
-  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',           xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
-  {id:'q_checkin', icon:'🔥',title:'Onchain check-in',  desc:'Complete a daily onchain check-in',       xp:20,check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
-  {id:'q_streak',  icon:'⚡',title:'3-day streak',      desc:'Maintain a 3+ day onchain streak',        xp:30,check:(_w:WalletData,_b:number,s:number)=>s>=3},
-  {id:'q_defi',    icon:'🦄',title:'DeFi interaction',  desc:'Interact with a DeFi protocol',           xp:40,check:(w:WalletData)=>w.defiInteractions>=1},
-  {id:'q_swap',    icon:'🔄',title:'Token swap',        desc:'Swap at least one token on Base',         xp:20,check:(w:WalletData)=>w.swapCount>=1},
-  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',            xp:35,check:(w:WalletData)=>w.nftCount>=1},
-  {id:'q_basename',icon:'🆔',title:'Claim Basename',    desc:'Register a .base.eth username',           xp:50,check:(w:WalletData)=>!!w.basename},
+  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',      xp:25,check:(w:WalletData,b:number)=>b>=1},
+  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',         xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
+  {id:'q_checkin', icon:'🔥',title:'Onchain check-in',  desc:'Complete a daily onchain check-in',     xp:20,check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
+  {id:'q_streak',  icon:'⚡',title:'3-day streak',      desc:'Maintain a 3+ day onchain streak',      xp:30,check:(_w:WalletData,_b:number,s:number)=>s>=3},
+  {id:'q_defi',    icon:'🦄',title:'DeFi interaction',  desc:'Interact with a DeFi protocol',         xp:40,check:(w:WalletData)=>w.defiInteractions>=1},
+  {id:'q_swap',    icon:'🔄',title:'Token swap',        desc:'Swap at least one token on Base',       xp:20,check:(w:WalletData)=>w.swapCount>=1},
+  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',          xp:35,check:(w:WalletData)=>w.nftCount>=1},
+  {id:'q_basename',icon:'🆔',title:'Claim Basename',    desc:'Register a .base.eth username',         xp:50,check:(w:WalletData)=>!!w.basename},
   {id:'q_vol',     icon:'💎',title:'Volume milestone',  desc:'Reach 0.001+ ETH transaction volume',   xp:30,check:(w:WalletData)=>parseFloat(w.ethVolume)>=0.001},
-  {id:'q_txs',     icon:'📊',title:'Active trader',     desc:'Complete 10+ transactions on Base',       xp:25,check:(w:WalletData)=>w.txCount>=10},
+  {id:'q_txs',     icon:'📊',title:'Active trader',     desc:'Complete 10+ transactions on Base',     xp:25,check:(w:WalletData)=>w.txCount>=10},
 ];
 
 const SEASON_START = new Date('2026-04-20T00:00:00Z');
@@ -115,11 +152,8 @@ const SEASON_END   = new Date('2026-10-20T23:59:59Z');
 const SEASON_NAME  = "Season 1: Genesis";
 
 const TIER_GRADIENTS = [
-  'from-slate-500 to-slate-600',
-  'from-amber-500 to-orange-600',
-  'from-slate-300 to-slate-500',
-  'from-yellow-400 to-yellow-600',
-  'from-blue-600 to-indigo-600',
+  'from-slate-500 to-slate-600','from-amber-500 to-orange-600','from-slate-300 to-slate-500',
+  'from-yellow-400 to-yellow-600','from-blue-600 to-indigo-600',
 ];
 
 function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string{
@@ -132,7 +166,7 @@ function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string{
 
 function getTargetTokenId(baseId:number,num:number,level:number){return num===1?baseId+5:baseId+level;}
 
-// ── TypeScript interfaces ─────────────────────────────────────────────────────
+// ── TypeScript interfaces ──────────────────────────────────────────────────────
 interface DayStats{date:string;count:number;intensity:number;}
 interface WalletData{
   address:string; basename:string|null; balance:string; ethVolume:string;
@@ -144,24 +178,38 @@ interface WalletData{
   topTokens:string[]; recommendation:string; recentTxs:AlchemyTransfer[];
   daysOnBase:number; defiInteractions:number; hasGm:boolean;
   uniqueContracts:number; avgTxPerDay:number; mostActiveMonth:string;
-  ethReceived:number; totalGasSpent:number; erc20Txs:number; erc721Txs:number; gmCount:number; checkInCount:number;
+  ethReceived:number; totalGasSpent:number; erc20Txs:number; erc721Txs:number;
+  gmCount:number; checkInCount:number;
   walletHealthScore:number; walletHealthLabel:string;
   scoreComponents:Record<string,number>;
   portfolioValueUSD:number;
+  // NEW stats
+  dexVolumeETH:number;
+  dexTradeCount:number;
+  paymasterTxCount:number;
+  bridgeTxCount:number;
+  netETHFlow:number;
+  avgTxValueETH:number;
+  uniqueProtocols:number;
+  longestInactiveDays:number;
+  weeklyTxAvg:number;
+  onchainAgePercentile:number;
+  mostUsedProtocol:string;
+  activityScore:number;
+  peakDayTxCount:number;
+  peakDayDate:string;
 }
-interface AlchemyTransfer{hash:string;category:string;value:number|null;asset:string|null;to:string|null;from:string|null;metadata:{blockTimestamp:string;};}
+interface AlchemyTransfer{
+  hash:string;category:string;value:number|null;asset:string|null;
+  to:string|null;from:string|null;metadata:{blockTimestamp:string;};
+}
 interface AlchemyResponse{result?:{transfers:AlchemyTransfer[];pageKey?:string;};error?:{message:string;};}
 type ConnectionType='farcaster'|'coinbase'|'metamask';
 interface LeaderboardEntry{address:string;basename:string|null;score:number;rank:string;boosts:number;badges:number;weeklyXP:number;totalXP:number;weekNumber:number;lastSeen?:number;}
 type LeaderboardPost=Omit<LeaderboardEntry,'totalXP'|'lastSeen'>;
-interface BlockscoutTx {
-  hash: string;
-  timeStamp: string;
-  value: string;
-  to: string;
-  from: string;
-}
-// ── Leaderboard API ───────────────────────────────────────────────────────────
+interface BlockscoutTx{hash:string;timeStamp:string;value:string;to:string;from:string;}
+
+// ── Leaderboard API ────────────────────────────────────────────────────────────
 async function saveLeaderboard(entry:LeaderboardPost){
   try{await fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});}
   catch(e){console.error('Leaderboard save failed',e);}
@@ -171,7 +219,7 @@ async function fetchLeaderboard():Promise<LeaderboardEntry[]>{
   catch{return[];}
 }
 
-// ── Utility functions ─────────────────────────────────────────────────────────
+// ── Utilities ──────────────────────────────────────────────────────────────────
 function getReferralCode(a:string){return a.slice(2,10).toUpperCase();}
 function getISOWeekNumber():number{const d=new Date();const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const y=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil(((d.getTime()-y.getTime())/86400000+1)/7);}
 function getQuestXP(w:WalletData,b:number,s:number,k?:Record<string,number>):number{return WEEKLY_QUESTS.filter(q=>q.check(w,b,s,k)).reduce((acc,q)=>acc+q.xp,0);}
@@ -183,7 +231,7 @@ function warpcast(text:string):string{return`https://warpcast.com/~/compose?text
 function twitterShare(text:string):string{return`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;}
 function getCapabilities(){if(!PAYMASTER_URL)return{};return{paymasterService:{url:PAYMASTER_URL}};}
 
-// ── Wallet Health Score ───────────────────────────────────────────────────────
+// ── Wallet Health ──────────────────────────────────────────────────────────────
 function calcWalletHealth(w:{uniqueDays:number;activeMonths:number;currentStreak:number;defiInteractions:number;uniqueContracts:number;txCount:number;nftCount:number;basename:string|null;daysSinceActive:number}):{score:number;label:string}{
   let h=0;
   if(w.uniqueDays>=100)h+=20;else if(w.uniqueDays>=30)h+=10;else if(w.uniqueDays>=7)h+=5;
@@ -202,6 +250,54 @@ function calcWalletHealth(w:{uniqueDays:number;activeMonths:number;currentStreak
   else if(score>=40)label='📈 Growing';
   else if(score>=20)label='🌱 Early';
   return{score,label};
+}
+
+// ── Parallel Alchemy fetcher — includes excludeZeroValue:false for paymaster txs ─
+async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
+  const fetchPage=async(pageKey?:string):Promise<{transfers:AlchemyTransfer[];pageKey?:string}>=>{
+    const params:Record<string,unknown>={
+      fromBlock:"0x0",toBlock:"latest",fromAddress:address,
+      category:["external","internal","erc20","erc721","erc1155"],
+      maxCount:"0x3e8",withMetadata:true,
+      excludeZeroValue:false,  // KEY: captures gasless/paymaster txs
+    };
+    if(pageKey)params.pageKey=pageKey;
+    const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
+    const d=await r.json() as AlchemyResponse;
+    return{transfers:d.result?.transfers||[],pageKey:d.result?.pageKey};
+  };
+
+  const first=await fetchPage();
+  const all=[...first.transfers];
+  if(!first.pageKey)return all;
+
+  // Fetch remaining pages, 2 at a time, max 8 pages total
+  let nextKey:string|undefined=first.pageKey;
+  let page=2;
+  while(nextKey&&page<=8){
+    const res=await fetchPage(nextKey);
+    all.push(...res.transfers);
+    nextKey=res.pageKey;
+    page++;
+  }
+  return all;
+}
+
+// ── Fetch EntryPoint internal txs (ERC-4337 sponsored user operations) ─────────
+async function fetchPaymasterTxs(address:string):Promise<AlchemyTransfer[]>{
+  const fetchEP=async(ep:string):Promise<AlchemyTransfer[]>=>{
+    try{
+      const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:"2.0",id:3,method:"alchemy_getAssetTransfers",
+          params:[{fromBlock:"0x0",toBlock:"latest",fromAddress:ep,toAddress:address,
+            category:["internal"],maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false}]})});
+      const d=await r.json() as AlchemyResponse;
+      return d.result?.transfers||[];
+    }catch{return[];}
+  };
+  const[v06,v07]=await Promise.all([fetchEP(ENTRYPOINT_V06),fetchEP(ENTRYPOINT_V07)]);
+  return[...v06,...v07];
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -231,18 +327,18 @@ export default function Page(){
   const[challengeLoading,setChallengeLoading]=useState(false);
   const[refCopied,setRefCopied]=useState(false);
   const[weeklyXP,setWeeklyXP]=useState(0);
+  const[scanProgress,setScanProgress]=useState('');
 
-  // ── Calldata ─────────────────────────────────────────────────────────────
+  // Calldata
   const boostDWT=`${encodeFunctionData({abi:BOOSTER_ABI,functionName:'boost'})}${getBuilderSuffix()}` as `0x${string}`;
   const gmDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gm'})}${getBuilderSuffix()}` as `0x${string}`;
   const gnDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
   const ciDWT   =`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
-
-  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT}]; 
-  const gmCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}]; 
-  const gnCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}]; 
+  const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT}];
+  const gmCall   =[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}];
+  const gnCall   =[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}];
   const ciCall   =[{to:CHECKIN_CONTRACT as `0x${string}`,data:ciDWT}];
-  const txCaps   = getCapabilities();
+  const txCaps   =getCapabilities();
 
   const showToast=(msg:string,hash:string)=>{setToast({msg,hash});setTimeout(()=>setToast(null),6000);};
 
@@ -265,64 +361,39 @@ export default function Page(){
     saveLeaderboard(entry).then(()=>fetchLeaderboard().then(d=>setLeaderboard(d)));
   },[wallet,boosts,mintedLevels,streak,txKeys]);
 
-  // ── Blockscout merged challenge lookup ──────────────────────────────────────
+  // ── Challenge ──────────────────────────────────────────────────────────────
   const handleChallenge=useCallback(async()=>{
     const addr=challenge.trim().toLowerCase();
     if(!addr||!addr.startsWith('0x')||addr.length!==42){showToast('❌ Invalid address','');return;}
     setChallengeLoading(true);
     try{
-      let alchemyTxs:AlchemyTransfer[]=[],pk:string|undefined;
-      for(let n=0;n<10;n++){ 
-        const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:addr,category:["external","internal","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
-        if(pk)params.pageKey=pk;
-        const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
-        const d=await r.json() as AlchemyResponse;
-        if(d.error)break;
-        alchemyTxs=[...alchemyTxs,...(d.result?.transfers||[])];
-        pk=d.result?.pageKey;
-        if(!pk)break;
+      const[alchemyTxs,bscData]=await Promise.all([
+        fetchAlchemyTxsFast(addr),
+        fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`).then(r=>r.json()).catch(()=>({}))
+      ]);
+      let rawTxs:{hash:string;metadata:{blockTimestamp:string}}[]=[];
+      if(bscData.result&&Array.isArray(bscData.result)){
+        rawTxs=bscData.result.map((tx:BlockscoutTx)=>({hash:tx.hash,metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}}));
       }
-      
-      // Blockscout fetch to catch 0-value calls
-      // Blockscout fetch to catch 0-value calls
-      const bscRes = await fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`).catch(()=>null);
-      const bscData = bscRes ? await bscRes.json().catch(()=>({})) : {};
-      
-      // ✅ FIX: Removed 'any[]' and added explicit type
-      let rawTxs: { hash: string; metadata: { blockTimestamp: string } }[] = [];
-      
-      if (bscData.result && Array.isArray(bscData.result)) {
-         // ✅ FIX: Changed '(tx: any)' to '(tx: BlockscoutTx)'
-         rawTxs = bscData.result.map((tx: BlockscoutTx) => ({
-            hash: tx.hash,
-            metadata: { blockTimestamp: new Date(Number(tx.timeStamp) * 1000).toISOString() }
-         }));
-      }
-
-      // Merge avoiding duplicates
-      // ✅ FIX: Changed 'any' to explicit type
-      const txMap = new Map<string, { hash: string; metadata: { blockTimestamp: string } }>();
-      rawTxs.forEach(t => txMap.set(t.hash, t));
-      alchemyTxs.forEach(t => txMap.set(t.hash, t));
-      const mergedTxs = Array.from(txMap.values());
-
-      const days=new Set(mergedTxs.map(tx=>getDayKey(tx.metadata.blockTimestamp)));
-      const months=new Set(mergedTxs.map(tx=>getMonthKey(tx.metadata.blockTimestamp)));
-      const s=Math.min(100,Math.floor(
-        Math.min(25,mergedTxs.length/20)+Math.min(20,days.size/4)+
-        Math.min(15,months.size*1.25)+Math.min(20,days.size/3)+Math.min(10,months.size)
-      ));
+      const txMap=new Map<string,{hash:string;metadata:{blockTimestamp:string}}>();
+      rawTxs.forEach(t=>txMap.set(t.hash,t));
+      alchemyTxs.forEach(t=>txMap.set(t.hash,t));
+      const merged=Array.from(txMap.values());
+      const days=new Set(merged.map(tx=>getDayKey(tx.metadata.blockTimestamp)));
+      const months=new Set(merged.map(tx=>getMonthKey(tx.metadata.blockTimestamp)));
+      const s=Math.min(100,Math.floor(Math.min(25,merged.length/20)+Math.min(20,days.size/4)+Math.min(15,months.size*1.25)+Math.min(20,days.size/3)+Math.min(10,months.size)));
       let rank='Base Shrimp 🦐';
       if(s>=30)rank='Base Dolphin 🐬';if(s>=50)rank='Base Shark 🦈';
       if(s>=70)rank='Base Whale 🐋';if(s>=85)rank='Base God 👑';
-      setChallengeResult({address:addr,score:s,rank,days:days.size,txs:mergedTxs.length});
+      setChallengeResult({address:addr,score:s,rank,days:days.size,txs:merged.length});
     }catch{showToast('❌ Lookup failed','');}
     finally{setChallengeLoading(false);}
   },[challenge]);
 
-  // ── Blockscout merged wallet analysis ──────────────────────────────────────
+  // ── Main wallet analysis — all sources parallel ────────────────────────────
   const analyzeWallet=useCallback(async(address:string)=>{
     if(!address||!address.startsWith('0x')||address.length!==42){showToast('❌ Invalid EVM Address','');setLoading(false);return;}
+    setScanProgress('Firing all data sources in parallel...');
     try{
       const provider=new JsonRpcProvider(BASE_RPC);
       const pub=createPublicClient({chain:base,transport:http(BASE_RPC)});
@@ -333,95 +404,79 @@ export default function Page(){
       const REVERSE_REGISTRAR_ABI=[{name:'node',type:'function',stateMutability:'view',inputs:[{name:'addr',type:'address'}],outputs:[{name:'',type:'bytes32'}]}] as const;
       const NAME_RESOLVER_ABI=[{name:'name',type:'function',stateMutability:'view',inputs:[{name:'node',type:'bytes32'}],outputs:[{name:'',type:'string'}]}] as const;
 
+      // Fire ALL requests simultaneously
       const bnP=pub.readContract({address:BASE_REVERSE_REGISTRAR,abi:REVERSE_REGISTRAR_ABI,functionName:'node',args:[address as `0x${string}`]})
-        .then(async(rn)=>{if(!rn)return null;const n=await pub.readContract({address:BASE_L2_RESOLVER,abi:NAME_RESOLVER_ABI,functionName:'name',args:[rn]}).catch(()=>null);return(n&&typeof n==='string'&&n.trim()!=='')?n:null;}).catch(()=>null);
-
-      const balP =provider.getBalance(address).catch(()=>BigInt(0));
-      const nftP =fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(r=>r.json()).catch(()=>({totalCount:0}));
+        .then(async rn=>{if(!rn)return null;const n=await pub.readContract({address:BASE_L2_RESOLVER,abi:NAME_RESOLVER_ABI,functionName:'name',args:[rn]}).catch(()=>null);return(n&&typeof n==='string'&&n.trim()!=='')?n:null;}).catch(()=>null);
+      const balP=provider.getBalance(address).catch(()=>BigInt(0));
+      const nftP=fetch(`https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`).then(r=>r.json()).catch(()=>({totalCount:0}));
       const strkP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'streaks',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
       const lastP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'lastCheckIn',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
+      const ethPriceP=fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd').then(r=>r.json()).catch(()=>({ethereum:{usd:3200}}));
 
+      // All tx sources fire at the same time
+      const alchemyTxsP=fetchAlchemyTxsFast(address);
+      const paymasterTxsP=fetchPaymasterTxs(address);
+      const blockscoutP=fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`)
+        .then(r=>r.json())
+        .then(data=>{
+          if(!data.result||!Array.isArray(data.result))return[];
+          return data.result.map((tx:BlockscoutTx)=>({
+            hash:tx.hash,category:'external',
+            value:tx.value?parseFloat(formatEther(tx.value)):0,
+            asset:'ETH',to:tx.to,from:tx.from,
+            metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}
+          }));
+        }).catch(()=>[]);
+      const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",
+          params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,
+            category:["external","internal","erc20"],maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false}]})
+      }).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
+
+      // Achievements multicall
       const calls:{address:`0x${string}`;abi:typeof ACHIEVEMENTS_ABI;functionName:'hasMinted';args:readonly[`0x${string}`,bigint]}[]=[];
       const callMap:{catId:string;level:number}[]=[];
       for(const cat of ACHIEVEMENTS){for(let i=cat.thresholds.length;i>=1;i--){const tid=getTargetTokenId(cat.baseId,cat.thresholds.length,i);calls.push({address:ACHIEVEMENTS_CONTRACT as `0x${string}`,abi:ACHIEVEMENTS_ABI,functionName:'hasMinted',args:[address as `0x${string}`,BigInt(tid)]});callMap.push({catId:cat.id,level:i});}}
       const mcP=pub.multicall({contracts:calls}).catch(()=>[]);
 
-      // Alchemy asset transfers
-      const txP=(async()=>{
-        let txs:AlchemyTransfer[]=[],pk:string|undefined,n=0;
-        while(true){
-          n++;
-          const params:Record<string,unknown>={fromBlock:"0x0",toBlock:"latest",fromAddress:address,category:["external","internal","erc20","erc721","erc1155"],maxCount:"0x3e8",withMetadata:true};
-          if(pk)params.pageKey=pk;
-          const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
-          const d=await r.json() as AlchemyResponse;
-          if(d.error)break;
-          txs=[...txs,...(d.result?.transfers||[])];
-          pk=d.result?.pageKey;
-          if(!pk||n>20)break; 
-        }
-        return txs;
-      })();
+      setScanProgress('Awaiting all sources...');
 
-      // Blockscout raw transaction history (catches 0-value contract calls, fixes CORS)
-      // Blockscout raw transaction history (catches 0-value contract calls, fixes CORS)
-      const rawTxsP = fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`)
-        .then(r => r.json())
-        .then(data => {
-          if (!data.result || !Array.isArray(data.result)) return [];
-          // ✅ FIX: Changed '(tx: any)' to '(tx: BlockscoutTx)'
-          return data.result.map((tx: BlockscoutTx) => ({
-            hash: tx.hash,
-            category: 'external',
-            value: tx.value ? parseFloat(formatEther(tx.value)) : 0,
-            asset: 'ETH',
-            to: tx.to,
-            from: tx.from,
-            metadata: { blockTimestamp: new Date(Number(tx.timeStamp) * 1000).toISOString() }
-          }));
-        })
-        .catch(() => []);
+      // Single await for everything
+      const[bn,balWei,nftData,mcRes,alchemyTxs,blockscoutTxs,rxData,dbStreak,dbLastCI,ethPriceData,paymasterTxs]=
+        await Promise.all([bnP,balP,nftP,mcP,alchemyTxsP,blockscoutP,rxP,strkP,lastP,ethPriceP,paymasterTxsP]);
 
-      const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",
-          params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,category:["external","internal","erc20"],maxCount:"0x3e8",withMetadata:true}]})
-      }).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
+      setScanProgress('Computing stats...');
 
-      const ethPriceP=fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd')
-        .then(r=>r.json()).catch(()=>({ethereum:{usd:3200}}));
-
-      const[bn,balWei,nftData,mcRes,alchemyTxs,rxData,dbStreak,dbLastCI,ethPriceData,rawTxs]=
-        await Promise.all([bnP,balP,nftP,mcP,txP,rxP,strkP,lastP,ethPriceP,rawTxsP]);
-
-      // Merge Alchemy transfers and Blockscout raw transactions, deduplicating by hash
-      const txMap = new Map<string, AlchemyTransfer>();
-      
-      // Add raw transactions first (captures 0-value contract calls)
-      rawTxs.forEach((tx: AlchemyTransfer) => txMap.set(tx.hash, tx));
-      
-      // Overwrite with Alchemy transactions (these have better ERC-20/ERC-721 token metadata)
-      alchemyTxs.forEach((tx: AlchemyTransfer) => txMap.set(tx.hash, tx));
-      
-      const allTxs = Array.from(txMap.values());
+      // Merge all sources, dedup by hash — Alchemy wins on conflicts (better metadata)
+      const txMap=new Map<string,AlchemyTransfer>();
+      (blockscoutTxs as AlchemyTransfer[]).forEach((tx:AlchemyTransfer)=>txMap.set(tx.hash,tx));
+      paymasterTxs.forEach((tx:AlchemyTransfer)=>txMap.set(tx.hash,tx));
+      alchemyTxs.forEach((tx:AlchemyTransfer)=>txMap.set(tx.hash,tx));
+      const allTxs=Array.from(txMap.values());
 
       setStreak(Number(dbStreak));
       if(Number(dbLastCI)>0){const ld=new Date(Number(dbLastCI)*1000).toISOString().slice(0,10);setCheckedToday(ld===new Date().toISOString().slice(0,10));}
 
       const ms:Record<string,number>={};
-      mcRes.forEach((r:{status:string;result?:unknown},i:number)=>{const{catId,level}=callMap[i];if(r.status==='success'&&r.result===true){if(!ms[catId]||ms[catId]<level)ms[catId]=level;}});
+      (mcRes as {status:string;result?:unknown}[]).forEach((r,i)=>{
+        const{catId,level}=callMap[i];
+        if(r.status==='success'&&r.result===true){if(!ms[catId]||ms[catId]<level)ms[catId]=level;}
+      });
       setMintedLevels(ms);
 
+      // ── Aggregate stats ──────────────────────────────────────────────────
       const uDays=new Set<string>(),uWeeks=new Set<string>(),uMonths=new Set<string>();
-      const uTokens=new Set<string>(),uContracts=new Set<string>();
+      const uTokens=new Set<string>(),uContracts=new Set<string>(),uProtocols=new Set<string>();
       const tokFreq=new Map<string,number>(),monthActivity=new Map<string,number>(),tpd=new Map<string,number>();
-      let ethVol=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false,erc20Txs=0,erc721Txs=0,gmCount=0,checkInCount=0;
+      const protocolFreq=new Map<string,number>();
+      let ethVol=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false;
+      let erc20Txs=0,erc721Txs=0,gmCount=0,checkInCount=0;
+      let dexVolumeETH=0,dexTradeCount=0,bridgeTxCount=0,paymasterTxCount=paymasterTxs.length;
 
       for(const tx of allTxs){
         const ts=tx.metadata.blockTimestamp;
         if(!ts)continue;
-        const dk=getDayKey(ts);    
-        const wk=getWeekKey(ts);   
-        const mk=getMonthKey(ts);  
+        const dk=getDayKey(ts),wk=getWeekKey(ts),mk=getMonthKey(ts);
         uDays.add(dk);uWeeks.add(wk);uMonths.add(mk);
         tpd.set(dk,(tpd.get(dk)||0)+1);
         monthActivity.set(mk,(monthActivity.get(mk)||0)+1);
@@ -429,11 +484,15 @@ export default function Page(){
         if(tx.category==='erc20'){swapCount++;erc20Txs++;}
         if(tx.category==='erc721')erc721Txs++;
         if(['erc20','erc721','erc1155'].includes(tx.category)&&tx.asset){uTokens.add(tx.asset);tokFreq.set(tx.asset,(tokFreq.get(tx.asset)||0)+1);}
-        if(tx.category==='external'){cxInteract++;if(tx.to)uContracts.add(tx.to?.toLowerCase());}
-        if(tx.to&&DEFI_PROTOCOLS.includes(tx.to.toLowerCase()))defi++;
-        if(tx.to&&tx.to.toLowerCase()===BOOSTER_CONTRACT.toLowerCase())hBoosts++;
-        if(tx.to&&tx.to.toLowerCase()===GM_GN_CONTRACT.toLowerCase()){hasGm=true;gmCount++;}
-        if(tx.to&&tx.to.toLowerCase()===CHECKIN_CONTRACT.toLowerCase())checkInCount++;
+        const toAddr=(tx.to||'').toLowerCase();
+        if(tx.category==='external'){cxInteract++;if(tx.to)uContracts.add(toAddr);}
+        if(DEFI_PROTOCOLS.has(toAddr)){defi++;uProtocols.add(toAddr);protocolFreq.set(toAddr,(protocolFreq.get(toAddr)||0)+1);}
+        if(DEX_ROUTERS.has(toAddr)){dexTradeCount++;if(tx.value&&tx.value>0&&(tx.asset==='ETH'||tx.asset==='WETH'))dexVolumeETH+=tx.value;}
+        if(toAddr===BASE_BRIDGE)bridgeTxCount++;
+        if(toAddr===BOOSTER_CONTRACT.toLowerCase())hBoosts++;
+        if(toAddr===GM_GN_CONTRACT.toLowerCase()){hasGm=true;gmCount++;}
+        if(toAddr===CHECKIN_CONTRACT.toLowerCase())checkInCount++;
+        if(toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase())paymasterTxCount++;
       }
 
       // ETH received
@@ -441,7 +500,7 @@ export default function Page(){
       const rxTxs=(rxData as AlchemyResponse).result?.transfers||[];
       for(const tx of rxTxs){if(tx.value&&(tx.asset==='ETH'||tx.asset==='WETH'))ethReceived+=tx.value;}
 
-      // Boosts from localStorage
+      // Boosts from on-chain + localStorage
       let fBoosts=hBoosts;
       if(typeof window!=='undefined'){
         const c=localStorage.getItem(`base_boosts_${address.toLowerCase()}`);
@@ -452,14 +511,16 @@ export default function Page(){
       }
       setBoosts(fBoosts);
 
+      // Streak calculation
       const sortedDays=Array.from(uDays).sort();
       let longest=sortedDays.length>0?1:0,runLen=sortedDays.length>0?1:0;
+      let longestInactiveDays=0;
       for(let i=1;i<sortedDays.length;i++){
         const diff=Math.round((new Date(sortedDays[i]).getTime()-new Date(sortedDays[i-1]).getTime())/86400000);
         if(diff===1){runLen++;longest=Math.max(longest,runLen);}else{runLen=1;}
+        if(diff>longestInactiveDays)longestInactiveDays=diff;
       }
 
-      // Current streak — walk backwards from today
       const todayKey=new Date().toISOString().slice(0,10);
       const yesterKey=new Date(Date.now()-86400000).toISOString().slice(0,10);
       let curStreak=0;
@@ -485,36 +546,52 @@ export default function Page(){
       if(mak){const[y,m]=mak.split('-');mostActiveMonth=`${MONTH_NAMES[parseInt(m)-1]} ${y}`;}
 
       const avgTxPerDay=uDays.size>0?Math.round((allTxs.length/uDays.size)*10)/10:0;
+      const weeklyTxAvg=uWeeks.size>0?Math.round((allTxs.length/uWeeks.size)*10)/10:0;
 
-      // Improved score formula
+      // Most used protocol
+      let mostUsedProtocol='None';
+      if(protocolFreq.size>0){
+        const top=Array.from(protocolFreq.entries()).sort((a,b)=>b[1]-a[1])[0];
+        mostUsedProtocol=PROTOCOL_NAMES[top[0]]||`${top[0].slice(0,8)}...`;
+      }
+
+      // Peak day
+      let peakDayTxCount=0,peakDayDate='N/A';
+      tpd.forEach((count,date)=>{if(count>peakDayTxCount){peakDayTxCount=count;peakDayDate=date;}});
+
+      // Age percentile (median Base wallet ~280 active days as of mid-2026)
+      const onchainAgePercentile=Math.min(99,Math.round((daysOnBase/280)*50));
+
+      // Activity score (recency weighted — last 30 days count 3×)
+      const last30Key=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+      const recentDays=Array.from(uDays).filter(d=>d>=last30Key).length;
+      const activityScore=Math.min(100,Math.round(recentDays*3+Math.min(10,uMonths.size)));
+
+      // Score formula
       const scoreComponents:{[k:string]:number}={
-        txActivity:  Math.min(25,allTxs.length/20),
-        consistency: Math.min(20,uDays.size/4),
-        longevity:   Math.min(15,uMonths.size*1.25),
-        streak:      Math.min(15,curStreak*2),
-        volume:      Math.min(10,ethVol*10),
-        diversity:   Math.min(10,uTokens.size),
-        defiUsage:   Math.min(5,defi),
+        txActivity: Math.min(25,allTxs.length/20),
+        consistency:Math.min(20,uDays.size/4),
+        longevity:  Math.min(15,uMonths.size*1.25),
+        streak:     Math.min(15,curStreak*2),
+        volume:     Math.min(10,ethVol*10),
+        diversity:  Math.min(10,uTokens.size),
+        defiUsage:  Math.min(5,defi),
       };
       const score=Math.min(100,Math.floor(Object.values(scoreComponents).reduce((a,b)=>a+b,0)));
       let walletRank='Base Shrimp 🦐';
       if(score>=30)walletRank='Base Dolphin 🐬';if(score>=50)walletRank='Base Shark 🦈';
       if(score>=70)walletRank='Base Whale 🐋';if(score>=85)walletRank='Base God 👑';
 
-      // Portfolio value
       const ethUSD=ethPriceData?.ethereum?.usd||3200;
       const ethBalNum=parseFloat(formatEther(balWei));
       const portfolioValueUSD=parseFloat((ethBalNum*ethUSD).toFixed(2));
-
-      // Wallet health
       const health=calcWalletHealth({uniqueDays:uDays.size,activeMonths:uMonths.size,currentStreak:curStreak,defiInteractions:defi,uniqueContracts:uContracts.size,txCount:allTxs.length,nftCount:nftData.totalCount||0,basename:bn,daysSinceActive});
 
-      // Recommendation
       let recommendation="You're a Base power user! Keep it up.";
       if(daysSinceActive>30)recommendation=`⚠️ Inactive ${daysSinceActive} days! Wallet going dormant.`;
       else if(daysSinceActive>7)recommendation=`⚠️ Inactive for ${daysSinceActive} days! Send a GM to revive your streak.`;
       else if(!bn)recommendation='🆔 Get a Basename to boost your identity and score on Base!';
-      else if(swapCount===0)recommendation='💡 No swaps yet! Try Aerodrome or Uniswap on Base.';
+      else if(dexTradeCount===0)recommendation='💡 No DEX trades yet! Try Aerodrome or Uniswap on Base.';
       else if(defi===0)recommendation='🏦 No DeFi activity! Try Moonwell or Morpho.';
       else if(allTxs.length<10)recommendation='👋 Welcome to Base! Try minting an NFT or boosting your score.';
 
@@ -536,25 +613,24 @@ export default function Page(){
 
       setWallet({
         address,basename:bn,balance:ethBalNum.toFixed(4),ethVolume:ethVol.toFixed(4),
-        txCount:allTxs.length,
-        uniqueDays:uDays.size,      
-        activeWeeks:uWeeks.size,    
-        activeMonths:uMonths.size,  
-        currentStreak:curStreak,    
-        longestStreak:longest,      
-        firstTx,lastTx,daysSinceActive,
+        txCount:allTxs.length,uniqueDays:uDays.size,activeWeeks:uWeeks.size,activeMonths:uMonths.size,
+        currentStreak:curStreak,longestStreak:longest,firstTx,lastTx,daysSinceActive,
         tokensSwapped:uTokens.size,swapCount,contractInteractions:cxInteract,
         nftCount:nftData.totalCount||0,walletRank,score:Math.min(100,score),
         historyDays:histDays,weekLabels:wLabels,dailyStats:dStats,
         topTokens,recommendation,recentTxs,daysOnBase,defiInteractions:defi,hasGm,
-        uniqueContracts:uContracts.size,avgTxPerDay,
-        mostActiveMonth,            
+        uniqueContracts:uContracts.size,avgTxPerDay,mostActiveMonth,
         ethReceived:parseFloat(ethReceived.toFixed(4)),totalGasSpent:0,erc20Txs,erc721Txs,gmCount,checkInCount,
-        walletHealthScore:health.score,walletHealthLabel:health.label,
-        scoreComponents,portfolioValueUSD,
+        walletHealthScore:health.score,walletHealthLabel:health.label,scoreComponents,portfolioValueUSD,
+        dexVolumeETH:parseFloat(dexVolumeETH.toFixed(4)),
+        dexTradeCount,paymasterTxCount,bridgeTxCount,
+        netETHFlow:parseFloat((ethReceived-ethVol).toFixed(4)),
+        avgTxValueETH:allTxs.length>0?parseFloat((ethVol/allTxs.length).toFixed(6)):0,
+        uniqueProtocols:uProtocols.size,longestInactiveDays,weeklyTxAvg,
+        onchainAgePercentile,mostUsedProtocol,activityScore,peakDayTxCount,peakDayDate,
       });
     }catch(e){console.error(e);setWallet(null);}
-    finally{setLoading(false);}
+    finally{setLoading(false);setScanProgress('');}
   },[]);
 
   const handleConnect=async(type:ConnectionType)=>{
@@ -580,7 +656,7 @@ export default function Page(){
       if(type==='gm'){to=GM_GN_CONTRACT as `0x${string}`;data=gmDWT;msg='GM on Base! ☀️';}
       else if(type==='gn'){to=GM_GN_CONTRACT as `0x${string}`;data=gnDWT;msg='GN on Base! 🌙';}
       else if(type==='checkin'){to=CHECKIN_CONTRACT as `0x${string}`;data=ciDWT;msg='Check-in secured! 🔥';}
-      const p:{from:`0x${string}`;to:`0x${string}`;data:`0x${string}`;chainId:`0x${string}`;value?:`0x${string}`}={from:wallet.address as `0x${string}`,to,data,chainId:'0x2105' as `0x${string}`};
+      const p={from:wallet.address as `0x${string}`,to,data,chainId:'0x2105' as `0x${string}`};
       const hash=await sdk.wallet.ethProvider.request({method:"eth_sendTransaction",params:[p]});
       if(hash&&typeof hash==='string'){
         showToast(msg,hash);setSponsored(s=>s+1);
@@ -614,24 +690,16 @@ export default function Page(){
   const doneQuests=wallet?WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).length:0;
   const ref=wallet?getReferralCode(wallet.address):'';
 
-  const shareScore=(pl:'w'|'t'|'n')=>{
-    if(!wallet)return;
-    const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`);
-    if(pl==='w')window.open(warpcast(text),'_blank');
-    else if(pl==='t')window.open(twitterShare(text),'_blank');
-    else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});
-  };
+  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`);if(pl==='w')window.open(warpcast(text),'_blank');else if(pl==='t')window.open(twitterShare(text),'_blank');else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
   const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitterShare(text),'_blank');};
   const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitterShare(text),'_blank');};
 
-  // ── LOADING ──────────────────────────────────────────────────────────────
+  // ── LOADING SCREEN ─────────────────────────────────────────────────────────
   if(!ready)return(
     <div className="min-h-screen bg-[#0a0f1e] flex items-center justify-center">
       <div className="text-center space-y-5">
         <div className="relative w-20 h-20 mx-auto">
-          <div className="w-20 h-20 rounded-3xl bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-2xl shadow-blue-600/60">
-            <Hexagon size={36} className="text-white"/>
-          </div>
+          <div className="w-20 h-20 rounded-3xl bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-2xl shadow-blue-600/60"><Hexagon size={36} className="text-white"/></div>
           <div className="absolute inset-0 rounded-3xl border-2 border-blue-400/30 animate-ping"/>
         </div>
         <div>
@@ -642,21 +710,17 @@ export default function Page(){
     </div>
   );
 
-  // ── LANDING ──────────────────────────────────────────────────────────────
+  // ── LANDING ────────────────────────────────────────────────────────────────
   if(!wallet)return(
     <div className="min-h-screen bg-[#0a0f1e] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-150 h-75 bg-blue-600/12 rounded-full blur-3xl pointer-events-none"/>
-      <div className="absolute bottom-0 right-0 w-100 h-75 bg-blue-500/8 rounded-full blur-3xl pointer-events-none"/>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/12 rounded-full blur-3xl pointer-events-none"/>
+      <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-blue-500/8 rounded-full blur-3xl pointer-events-none"/>
       <div className="absolute inset-0 pointer-events-none opacity-30" style={{backgroundImage:'linear-gradient(rgba(59,130,246,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.05) 1px,transparent 1px)',backgroundSize:'48px 48px'}}/>
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="relative w-20 h-20 mx-auto mb-5">
-            <div className="w-20 h-20 bg-linear-to-br from-blue-500 to-blue-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-600/50">
-              <Hexagon size={36} className="text-white"/>
-            </div>
-            <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-blue-400 rounded-full border-2 border-[#0a0f1e] flex items-center justify-center">
-              <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"/>
-            </div>
+            <div className="w-20 h-20 bg-linear-to-br from-blue-500 to-blue-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-600/50"><Hexagon size={36} className="text-white"/></div>
+            <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-blue-400 rounded-full border-2 border-[#0a0f1e] flex items-center justify-center"><div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"/></div>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">BASE<span className="text-blue-400">.</span>ANALYTICS</h1>
           <p className="text-blue-300/60 text-sm">Your onchain identity on Base · Farm XP · Climb the leaderboard</p>
@@ -690,12 +754,15 @@ export default function Page(){
           </div>
         </div>
         <button onClick={()=>setShowModal(true)} disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-2xl shadow-blue-600/40 mb-3 disabled:opacity-60">
-          {loading?<RefreshCcw className="animate-spin" size={20}/>:<Wallet size={20}/>}
-          {loading?"Scanning wallet...":"Connect & Check Score"}
+          className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white py-4 rounded-2xl font-black text-base flex flex-col items-center justify-center gap-1 transition-all shadow-2xl shadow-blue-600/40 mb-3 disabled:opacity-60">
+          {loading?(
+            <><div className="flex items-center gap-2"><RefreshCcw className="animate-spin" size={18}/><span>Scanning wallet...</span></div>
+            {scanProgress&&<span className="text-[10px] text-blue-200/60 font-normal">{scanProgress}</span>}</>
+          ):<><div className="flex items-center gap-2"><Wallet size={20}/><span>Connect & Check Score</span></div></>}
         </button>
         <p className="text-center text-[10px] text-blue-400/40 flex items-center justify-center gap-1.5"><Droplets size={9}/>Gas fees sponsored by Coinbase Paymaster</p>
       </div>
+
       {showModal&&(
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-[#0d1628] border border-blue-500/25 rounded-3xl w-full max-w-sm p-6 relative shadow-2xl shadow-blue-900/40">
@@ -720,19 +787,14 @@ export default function Page(){
                 </button>
               ))}
             </div>
-            {PAYMASTER_URL&&(
-              <div className="mt-4 flex items-center justify-center gap-1.5 bg-blue-500/8 border border-blue-500/20 rounded-xl p-2.5">
-                <Droplets size={11} className="text-blue-400"/>
-                <p className="text-[10px] text-blue-400 font-bold">Coinbase Paymaster active — gas fees sponsored</p>
-              </div>
-            )}
+            {PAYMASTER_URL&&(<div className="mt-4 flex items-center justify-center gap-1.5 bg-blue-500/8 border border-blue-500/20 rounded-xl p-2.5"><Droplets size={11} className="text-blue-400"/><p className="text-[10px] text-blue-400 font-bold">Coinbase Paymaster active — gas fees sponsored</p></div>)}
           </div>
         </div>
       )}
     </div>
   );
 
-  // ── MAIN APP ──────────────────────────────────────────────────────────────
+  // ── MAIN APP ───────────────────────────────────────────────────────────────
   return(
     <main className="min-h-screen bg-[#0a0f1e] text-white font-sans">
       <div className="fixed inset-0 pointer-events-none opacity-20" style={{backgroundImage:'linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
@@ -793,7 +855,7 @@ export default function Page(){
         {tab==='dashboard'&&(
           <div className="space-y-4">
 
-            {/* Wallet Health Card */}
+            {/* Wallet Health */}
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
               <div className="h-0.5 bg-linear-to-r from-blue-600 via-blue-400 to-blue-600"/>
               <div className="p-5">
@@ -803,10 +865,8 @@ export default function Page(){
                       <svg width="64" height="64" viewBox="0 0 64 64">
                         <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(59,130,246,0.1)" strokeWidth="6"/>
                         <circle cx="32" cy="32" r="26" fill="none" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round"
-                          strokeDasharray={`${2*Math.PI*26}`}
-                          strokeDashoffset={`${2*Math.PI*26*(1-wallet.walletHealthScore/100)}`}
-                          transform="rotate(-90 32 32)"
-                          style={{filter:'drop-shadow(0 0 4px rgba(59,130,246,0.6))',transition:'stroke-dashoffset 1s ease'}}/>
+                          strokeDasharray={`${2*Math.PI*26}`} strokeDashoffset={`${2*Math.PI*26*(1-wallet.walletHealthScore/100)}`}
+                          transform="rotate(-90 32 32)" style={{filter:'drop-shadow(0 0 4px rgba(59,130,246,0.6))',transition:'stroke-dashoffset 1s ease'}}/>
                         <text x="32" y="36" textAnchor="middle" fill="#60a5fa" fontSize="12" fontWeight="800" fontFamily="monospace">{wallet.walletHealthScore}</text>
                       </svg>
                     </div>
@@ -819,17 +879,92 @@ export default function Page(){
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                    {[
-                      {l:'Active Days',v:wallet.uniqueDays,c:'text-blue-400'},
-                      {l:'Months',v:wallet.activeMonths,c:'text-blue-300'},
-                      {l:'Streak',v:`${wallet.currentStreak}d`,c:'text-blue-400'},
-                    ].map((s,i)=>(
+                    {[{l:'Active Days',v:wallet.uniqueDays,c:'text-blue-400'},{l:'Months',v:wallet.activeMonths,c:'text-blue-300'},{l:'Streak',v:`${wallet.currentStreak}d`,c:'text-blue-400'}].map((s,i)=>(
                       <div key={i} className="bg-blue-950/40 border border-blue-800/30 rounded-xl p-2.5 text-center">
                         <p className={`font-black text-lg ${s.c}`}>{s.v}</p>
                         <p className="text-[9px] text-blue-400/40 uppercase font-bold mt-0.5">{s.l}</p>
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* NEW: DEX / Paymaster / Bridge Spotlight */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {[
+                {label:'DEX Volume',value:`${wallet.dexVolumeETH} Ξ`,sub:`${wallet.dexTradeCount} trades`,icon:<Repeat2 size={16} className="text-blue-400"/>,active:wallet.dexTradeCount>0},
+                {label:'Paymaster Txs',value:wallet.paymasterTxCount.toString(),sub:'Gasless / sponsored',icon:<Droplets size={16} className="text-blue-300"/>,active:wallet.paymasterTxCount>0},
+                {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="text-blue-400"/>,active:wallet.bridgeTxCount>0},
+                {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
+              ].map((s,i)=>(
+                <div key={i} className={`bg-[#0d1628] border rounded-2xl p-4 shadow-sm ${s.active?'border-blue-500/25':'border-blue-500/10'}`}>
+                  <div className="mb-2">{s.icon}</div>
+                  <p className={`font-black text-lg leading-tight ${s.active?'text-white':'text-blue-400/30'}`}>{s.value}</p>
+                  <p className="text-[9px] text-blue-400/40 uppercase font-bold tracking-wide mt-0.5">{s.label}</p>
+                  <p className="text-[9px] text-blue-400/25 mt-0.5">{s.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Activity Score + Behavioral Profile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity size={15} className="text-blue-400"/>
+                    <span className="font-black text-white text-sm">Activity Score</span>
+                    <span className="text-[9px] text-blue-400/40 font-bold">30-day weighted</span>
+                  </div>
+                  <span className={`text-xs font-black px-2 py-1 rounded-lg border ${wallet.activityScore>=70?'text-green-300 bg-green-500/10 border-green-500/20':wallet.activityScore>=40?'text-blue-300 bg-blue-500/10 border-blue-500/20':'text-orange-300 bg-orange-500/10 border-orange-500/20'}`}>
+                    {wallet.activityScore>=70?'🔥 Hot':wallet.activityScore>=40?'📈 Active':'💤 Cooling'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span className="text-5xl font-black text-blue-400">{wallet.activityScore}</span>
+                  <span className="text-xl text-blue-400/30 font-black">/100</span>
+                </div>
+                <div className="w-full bg-blue-950/60 rounded-full h-2 overflow-hidden border border-blue-800/20 mb-4">
+                  <div className="h-full rounded-full transition-all duration-1000"
+                    style={{width:`${wallet.activityScore}%`,background:wallet.activityScore>=70?'linear-gradient(to right,#22c55e,#16a34a)':wallet.activityScore>=40?'linear-gradient(to right,#3b82f6,#2563eb)':'linear-gradient(to right,#f97316,#dc2626)'}}/>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-blue-950/40 border border-blue-800/20 rounded-xl p-2.5">
+                    <p className="text-sm font-black text-white">{wallet.weeklyTxAvg}</p>
+                    <p className="text-[9px] text-blue-400/40 uppercase font-bold">Avg Tx/Week</p>
+                  </div>
+                  <div className="bg-blue-950/40 border border-blue-800/20 rounded-xl p-2.5">
+                    <p className="text-sm font-black text-white">{wallet.longestInactiveDays}d</p>
+                    <p className="text-[9px] text-blue-400/40 uppercase font-bold">Longest Gap</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <BrainCircuit size={15} className="text-blue-400"/>
+                  <span className="font-black text-white text-sm">Onchain Profile</span>
+                </div>
+                <div className="space-y-2.5">
+                  {[
+                    {label:'Age Percentile',value:`Top ${100-wallet.onchainAgePercentile}%`,sub:`vs Base median`,bar:wallet.onchainAgePercentile,icon:<Calendar size={12} className="text-blue-400"/>},
+                    {label:'DeFi Depth',value:`${wallet.uniqueProtocols} protocols`,sub:wallet.mostUsedProtocol!=='None'?`Fav: ${wallet.mostUsedProtocol}`:'No DeFi yet',bar:Math.min(100,wallet.uniqueProtocols*10),icon:<Landmark size={12} className="text-blue-300"/>},
+                    {label:'Consistency',value:`${wallet.avgTxPerDay}/day`,sub:`Peak: ${wallet.peakDayTxCount} txs`,bar:Math.min(100,wallet.avgTxPerDay*20),icon:<Gauge size={12} className="text-blue-400"/>},
+                  ].map((r,i)=>(
+                    <div key={i} className="flex items-center gap-3 bg-blue-950/30 rounded-xl p-2.5 border border-blue-800/15">
+                      <div className="shrink-0">{r.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-blue-400/50 font-bold uppercase">{r.label}</span>
+                          <span className="text-[10px] font-black text-white">{r.value}</span>
+                        </div>
+                        <div className="w-full bg-blue-950/60 rounded-full h-1 overflow-hidden">
+                          <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full" style={{width:`${r.bar}%`,transition:'width 1.2s ease'}}/>
+                        </div>
+                        <p className="text-[9px] text-blue-400/30 mt-0.5">{r.sub}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -847,7 +982,7 @@ export default function Page(){
                     <p className={`text-xs mt-0.5 ${checkedToday?'text-blue-300/60':'text-blue-400/40'}`}>{checkedToday?'Recorded immutably on Base.':'Sign once · earn XP · unlock multipliers'}</p>
                     <div className="flex items-center gap-1.5 mt-2">
                       {Array.from({length:Math.min(streak,7)}).map((_,i)=>(
-                        <div key={i} className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] ${i<streak?'bg-blue-500/20 border border-blue-500/30':'bg-white/5 border border-white/8'}`}>{i<streak?'🔥':'·'}</div>
+                        <div key={i} className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] bg-blue-500/20 border border-blue-500/30">🔥</div>
                       ))}
                       {streak>7&&<span className="text-[10px] text-blue-400/40 font-bold">+{streak-7}</span>}
                     </div>
@@ -902,7 +1037,7 @@ export default function Page(){
                           <div key={i} className="flex items-center gap-2">
                             <span className="text-[10px] text-blue-400/40 w-20 font-bold shrink-0">{labels[k]||k}</span>
                             <div className="flex-1 bg-blue-950/60 rounded-full h-1.5 overflow-hidden border border-blue-800/20">
-                              <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full" style={{width:`${pct}%`,transition:'width 1.5s ease-out',filter:'drop-shadow(0 0 3px rgba(59,130,246,0.4))'}}/>
+                              <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full" style={{width:`${pct}%`,transition:'width 1.5s ease-out'}}/>
                             </div>
                             <span className="text-[10px] text-blue-400/50 w-5 text-right shrink-0">{v.toFixed(0)}</span>
                           </div>
@@ -925,7 +1060,6 @@ export default function Page(){
                     )}
                   </div>
                 </div>
-                {/* Heatmap — active days in BLUE */}
                 <div ref={scrollRef} className="overflow-x-auto pb-2 no-scrollbar">
                   <div className="grid grid-flow-col gap-1 mb-1 min-w-max auto-cols-[11px]">
                     {wallet.weekLabels.map((m,i)=><div key={i} className="text-[8px] font-bold text-blue-400/40 uppercase overflow-visible whitespace-nowrap">{m}</div>)}
@@ -939,9 +1073,7 @@ export default function Page(){
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-[9px] text-blue-400/30 font-bold">Less</span>
-                    {[0.2,0.4,0.6,0.8,1.0].map((o,i)=>(
-                      <div key={i} className="w-3 h-3 rounded-sm border border-blue-500/20" style={{background:`rgba(59,130,246,${o})`}}/>
-                    ))}
+                    {[0.2,0.4,0.6,0.8,1.0].map((o,i)=><div key={i} className="w-3 h-3 rounded-sm border border-blue-500/20" style={{background:`rgba(59,130,246,${o})`}}/>)}
                     <span className="text-[9px] text-blue-400/30 font-bold">More</span>
                   </div>
                 </div>
@@ -965,37 +1097,60 @@ export default function Page(){
                   <p className="font-black text-white text-lg sm:text-xl">${wallet.portfolioValueUSD.toLocaleString('en-US',{maximumFractionDigits:0})}</p>
                   <p className="text-[9px] text-blue-400/50 uppercase font-bold tracking-wide mt-0.5">Portfolio Value</p>
                 </div>
-                {[
-                  {l:'ETH Balance',       v:`${wallet.balance} Ξ`,                    i:<CreditCard size={15} className="text-blue-400"/>},
-                  {l:'Days on Base',       v:wallet.daysOnBase.toLocaleString(),       i:<Calendar size={15} className="text-blue-300"/>},
-                  {l:'Active Days ✅',     v:wallet.uniqueDays.toString(),             i:<Sun size={15} className="text-blue-400"/>},
-                  {l:'Active Weeks ✅',    v:wallet.activeWeeks.toString(),            i:<Calendar size={15} className="text-blue-300"/>},
-                  {l:'Active Months ✅',   v:wallet.activeMonths.toString(),           i:<Calendar size={15} className="text-blue-400"/>},
-                  {l:'Current Streak ✅',  v:`${wallet.currentStreak}d`,               i:<Flame size={15} className="text-blue-300"/>},
-                  {l:'Longest Streak ✅',  v:`${wallet.longestStreak}d`,               i:<Trophy size={15} className="text-blue-400"/>},
-                  {l:'Total Txs',          v:wallet.txCount.toLocaleString(),          i:<Layers size={15} className="text-blue-300"/>},
-                  {l:'Token Swaps',        v:wallet.swapCount.toLocaleString(),        i:<ArrowRightLeft size={15} className="text-blue-400"/>},
-                  {l:'Unique Tokens',      v:wallet.tokensSwapped.toString(),          i:<Coins size={15} className="text-blue-300"/>},
-                  {l:'DeFi Interactions',  v:wallet.defiInteractions.toLocaleString(), i:<TrendingUp size={15} className="text-blue-400"/>},
-                  {l:'ETH Volume Sent',    v:`${wallet.ethVolume} Ξ`,                 i:<ArrowRightLeft size={15} className="text-blue-300"/>},
-                  {l:'ETH Received',       v:`${wallet.ethReceived} Ξ`,               i:<Gift size={15} className="text-blue-400"/>},
-                  {l:'NFTs Held',          v:wallet.nftCount.toLocaleString(),         i:<Sparkles size={15} className="text-blue-300"/>},
-                  {l:'Contract Txs',       v:wallet.contractInteractions.toLocaleString(),i:<FileCode size={15} className="text-blue-400"/>},
-                  {l:'Unique Contracts',   v:wallet.uniqueContracts.toLocaleString(),  i:<Database size={15} className="text-blue-300"/>},
-                  {l:'Avg Tx / Day',       v:wallet.avgTxPerDay.toString(),            i:<BarChart3 size={15} className="text-blue-400"/>},
-                  {l:'ERC-20 Txs',         v:wallet.erc20Txs.toLocaleString(),         i:<Coins size={15} className="text-blue-300"/>},
-                  {l:'NFT Txs',            v:wallet.erc721Txs.toLocaleString(),        i:<Palette size={15} className="text-blue-400"/>},
-                  {l:'Most Active Month',  v:wallet.mostActiveMonth,                   i:<Clock size={15} className="text-blue-300"/>},
-                  {l:'First Transaction',  v:wallet.firstTx,                           i:<Star size={15} className="text-blue-400"/>},
-                  {l:'Last Transaction',   v:wallet.lastTx,                            i:<Clock size={15} className="text-blue-300"/>},
-                  {l:'Onchain Streak',     v:`${streak}d`,                             i:<Zap size={15} className="text-blue-400"/>},
-                  {l:'Minted Badges',      v:mintedCount.toString(),                   i:<Trophy size={15} className="text-blue-300"/>},
-                  {l:'XP Boosts',          v:boosts.toString(),                        i:<Rocket size={15} className="text-blue-400"/>},
-                  {l:'Weekly XP',          v:weeklyXP.toString(),                      i:<Zap size={15} className="text-blue-300"/>},
-                  {l:'Wallet Health',      v:`${wallet.walletHealthScore}/100`,        i:<ShieldCheck size={15} className="text-blue-400"/>},
-                  {l:'GM / GN Count',     v:wallet.gmCount.toLocaleString(),          i:<Star size={15} className="text-yellow-400"/>},
-                  {l:'Check-In Count',    v:wallet.checkInCount.toLocaleString(),     i:<Flame size={15} className="text-orange-400"/>},
-                ].map((s,i)=>(
+
+                {([
+                  // Core
+                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                        i:<CreditCard size={15} className="text-blue-400"/>},
+                  {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(),            i:<Calendar size={15} className="text-blue-300"/>},
+                  {l:'Age Percentile',   v:`Top ${100-wallet.onchainAgePercentile}%`,     i:<GitBranch size={15} className="text-blue-400"/>},
+                  // Activity
+                  {l:'Active Days ✅',   v:wallet.uniqueDays.toString(),                  i:<Sun size={15} className="text-blue-400"/>},
+                  {l:'Active Weeks ✅',  v:wallet.activeWeeks.toString(),                 i:<Calendar size={15} className="text-blue-300"/>},
+                  {l:'Active Months ✅', v:wallet.activeMonths.toString(),                i:<Calendar size={15} className="text-blue-400"/>},
+                  {l:'Current Streak ✅',v:`${wallet.currentStreak}d`,                    i:<Flame size={15} className="text-blue-300"/>},
+                  {l:'Longest Streak ✅',v:`${wallet.longestStreak}d`,                    i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Longest Gap',      v:`${wallet.longestInactiveDays}d`,              i:<Clock size={15} className="text-blue-300"/>},
+                  {l:'Peak Day Txs',     v:wallet.peakDayTxCount.toString(),              i:<Gauge size={15} className="text-blue-400"/>},
+                  {l:'Peak Active Day',  v:wallet.peakDayDate,                            i:<Star size={15} className="text-blue-300"/>},
+                  // Tx
+                  {l:'Total Txs',        v:wallet.txCount.toLocaleString(),               i:<Layers size={15} className="text-blue-300"/>},
+                  {l:'Avg Tx / Day',     v:wallet.avgTxPerDay.toString(),                 i:<BarChart3 size={15} className="text-blue-400"/>},
+                  {l:'Avg Tx / Week',    v:wallet.weeklyTxAvg.toString(),                 i:<Activity size={15} className="text-blue-300"/>},
+                  {l:'Avg Tx Value',     v:`${wallet.avgTxValueETH} Ξ`,                   i:<Coins size={15} className="text-blue-400"/>},
+                  {l:'Contract Txs',     v:wallet.contractInteractions.toLocaleString(),  i:<FileCode size={15} className="text-blue-300"/>},
+                  {l:'Unique Contracts', v:wallet.uniqueContracts.toLocaleString(),       i:<Database size={15} className="text-blue-400"/>},
+                  {l:'ERC-20 Txs',       v:wallet.erc20Txs.toLocaleString(),              i:<Coins size={15} className="text-blue-300"/>},
+                  {l:'NFT Txs',          v:wallet.erc721Txs.toLocaleString(),             i:<Palette size={15} className="text-blue-400"/>},
+                  // Volume
+                  {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                       i:<ArrowRightLeft size={15} className="text-blue-300"/>},
+                  {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                     i:<Gift size={15} className="text-blue-400"/>},
+                  {l:'Net ETH Flow',     v:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,i:<TrendingUp size={15} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>},
+                  // DEX / DeFi
+                  {l:'DEX Volume',       v:`${wallet.dexVolumeETH} Ξ`,                    i:<Repeat2 size={15} className="text-blue-400"/>},
+                  {l:'DEX Trades',       v:wallet.dexTradeCount.toString(),               i:<Repeat2 size={15} className="text-blue-300"/>},
+                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),             i:<ArrowRightLeft size={15} className="text-blue-400"/>},
+                  {l:'Unique Tokens',    v:wallet.tokensSwapped.toString(),               i:<Coins size={15} className="text-blue-300"/>},
+                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),      i:<TrendingUp size={15} className="text-blue-400"/>},
+                  {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),             i:<Landmark size={15} className="text-blue-300"/>},
+                  {l:'Fav Protocol',     v:wallet.mostUsedProtocol,                       i:<Star size={15} className="text-blue-400"/>},
+                  {l:'Bridge Txs',       v:wallet.bridgeTxCount.toString(),               i:<Globe size={15} className="text-blue-300"/>},
+                  // NFT
+                  {l:'NFTs Held',        v:wallet.nftCount.toLocaleString(),              i:<Sparkles size={15} className="text-blue-400"/>},
+                  // Time
+                  {l:'Most Active Month',v:wallet.mostActiveMonth,                        i:<Clock size={15} className="text-blue-300"/>},
+                  {l:'First Transaction',v:wallet.firstTx,                                i:<Star size={15} className="text-blue-400"/>},
+                  {l:'Last Transaction', v:wallet.lastTx,                                 i:<Clock size={15} className="text-blue-300"/>},
+                  // App
+                  {l:'Onchain Streak',   v:`${streak}d`,                                  i:<Zap size={15} className="text-blue-400"/>},
+                  {l:'Check-In Count',   v:wallet.checkInCount.toLocaleString(),          i:<Flame size={15} className="text-orange-400"/>},
+                  {l:'GM / GN Count',    v:wallet.gmCount.toLocaleString(),               i:<Star size={15} className="text-yellow-400"/>},
+                  {l:'Paymaster Txs',    v:wallet.paymasterTxCount.toString(),            i:<Droplets size={15} className="text-blue-400"/>},
+                  {l:'XP Boosts',        v:boosts.toString(),                             i:<Rocket size={15} className="text-blue-300"/>},
+                  {l:'Minted Badges',    v:mintedCount.toString(),                        i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Weekly XP',        v:weeklyXP.toString(),                           i:<Zap size={15} className="text-blue-300"/>},
+                  {l:'Activity Score',   v:`${wallet.activityScore}/100`,                 i:<Activity size={15} className="text-blue-400"/>},
+                  {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,             i:<ShieldCheck size={15} className="text-blue-300"/>},
+                ] as {l:string;v:string|number;i:React.ReactNode}[]).map((s,i)=>(
                   <div key={i} className="bg-[#0d1628] border border-blue-500/15 rounded-2xl p-3 sm:p-4 hover:border-blue-500/35 hover:bg-blue-950/40 transition-all group shadow-sm shadow-blue-900/10">
                     <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
                     <p className="font-black text-white text-sm sm:text-base truncate leading-tight">{s.v}</p>
@@ -1023,7 +1178,7 @@ export default function Page(){
                 </div>
               </div>
 
-              {/* REAL Challenge */}
+              {/* Wallet Challenge */}
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5 shadow-lg shadow-blue-900/20">
                 <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-blue-400"/><span className="font-black text-white">Wallet Challenge</span></div>
                 <p className="text-xs text-blue-300/50 mb-4">Enter any wallet to compare real onchain scores.</p>
@@ -1065,7 +1220,7 @@ export default function Page(){
                     </div>
                   </div>
                 </div>
-                <div className="w-full sm:w-auto sm:min-w-35 text-center">
+                <div className="w-full sm:w-auto text-center">
                   {connType==='farcaster'?(
                     <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
                       className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-blue-800/40 text-blue-400/40 cursor-not-allowed':'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30'}`}>
@@ -1107,57 +1262,51 @@ export default function Page(){
 
             {/* Recent Activity */}
             <div>
-              <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity · All Onchain Events</p>
+              <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl overflow-hidden shadow-lg shadow-blue-900/20">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
-                  // Identify transaction type by contract address
                   const toAddr=(tx.to||'').toLowerCase();
-                  const isGM    = toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isBoost = toAddr===BOOSTER_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isCI    = toAddr===CHECKIN_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isBadge = toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
-                  // Label
-                  let label='Contract Call';
+                  const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isBoost=toAddr===BOOSTER_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isCI=toAddr===CHECKIN_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isDEX=DEX_ROUTERS.has(toAddr);
+                  const isBridge=toAddr===BASE_BRIDGE;
+                  const isPaymaster=toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
+                  let label='Contract Call',badge:string|null=null;
                   let icon=<ArrowRightLeft size={13} className="text-blue-400"/>;
-                  let badge:string|null=null;
-                  if(isGM)   {label='GM / GN';      icon=<Star size={13} className="text-yellow-400"/>;  badge='☀️ Vibes';}
-                  else if(isBoost){label='XP Boost'; icon=<Rocket size={13} className="text-blue-300"/>; badge='🚀 Boost';}
-                  else if(isCI)   {label='Check-In'; icon=<Flame size={13} className="text-orange-400"/>; badge='🔥 Streak';}
-                  else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>; badge='🏅 Badge';}
-                  else if(tx.category==='erc721'){label='NFT Transfer'; icon=<Sparkles size={13} className="text-blue-300"/>;}
-                  else if(tx.category==='erc20') {label='Token Transfer';icon=<Coins size={13} className="text-blue-400"/>;}
-                  else if(tx.category==='internal'){label='Internal Tx'; icon=<Zap size={13} className="text-blue-300"/>;}
+                  if(isGM){label='GM / GN';icon=<Star size={13} className="text-yellow-400"/>;badge='☀️ Vibes';}
+                  else if(isBoost){label='XP Boost';icon=<Rocket size={13} className="text-blue-300"/>;badge='🚀 Boost';}
+                  else if(isCI){label='Check-In';icon=<Flame size={13} className="text-orange-400"/>;badge='🔥 Streak';}
+                  else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>;badge='🏅 Badge';}
+                  else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="text-blue-400"/>;badge='🔄 Swap';}
+                  else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="text-blue-300"/>;badge='🌉 Bridge';}
+                  else if(isPaymaster){label='Gasless Tx';icon=<Droplets size={13} className="text-blue-400"/>;badge='⛽ Sponsored';}
+                  else if(tx.category==='erc721'){label='NFT Transfer';icon=<Sparkles size={13} className="text-blue-300"/>;}
+                  else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="text-blue-400"/>;}
+                  else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="text-blue-300"/>;}
                   return(
-                  <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-blue-950/30 transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-blue-800/20':''}`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${
-                        isGM?'bg-yellow-500/10 border-yellow-500/20':
-                        isBoost?'bg-blue-600/20 border-blue-500/25':
-                        isCI?'bg-orange-500/10 border-orange-500/20':
-                        isBadge?'bg-yellow-500/10 border-yellow-500/20':
-                        'bg-blue-600/10 border-blue-500/15'
-                      }`}>
-                        {icon}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white uppercase truncate">{label}</p>
-                          {badge&&<span className="text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
+                    <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-blue-950/30 transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-blue-800/20':''}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${isGM?'bg-yellow-500/10 border-yellow-500/20':isBoost?'bg-blue-600/20 border-blue-500/25':isCI?'bg-orange-500/10 border-orange-500/20':isBadge?'bg-yellow-500/10 border-yellow-500/20':isDEX?'bg-blue-500/10 border-blue-500/20':isBridge?'bg-purple-500/10 border-purple-500/20':'bg-blue-600/10 border-blue-500/15'}`}>{icon}</div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-black text-white uppercase truncate">{label}</p>
+                            {badge&&<span className="text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
+                          </div>
+                          <p className="text-[10px] text-blue-400/40 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
+                          {tx.to&&<p className="text-[9px] text-blue-400/20 font-mono truncate">{tx.to.slice(0,10)}…</p>}
                         </div>
-                        <p className="text-[10px] text-blue-400/40 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
-                        {tx.to&&<p className="text-[9px] text-blue-400/20 font-mono truncate">{tx.to.slice(0,10)}…</p>}
                       </div>
+                      <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
+                        className="shrink-0 text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-600/8 hover:bg-blue-600/15 border border-blue-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
+                        <ExternalLink size={9}/>{tx.value&&tx.value>0?`${parseFloat(tx.value.toFixed(4))} ${tx.asset||'ETH'}`:'View ↗'}
+                      </a>
                     </div>
-                    <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
-                      className="shrink-0 text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-600/8 hover:bg-blue-600/15 border border-blue-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
-                      <ExternalLink size={9}/>{tx.value&&tx.value>0?`${parseFloat(tx.value.toFixed(4))} ${tx.asset||'ETH'}`:'View ↗'}
-                    </a>
-                  </div>
                   );
                 }):<p className="text-blue-400/30 text-sm text-center py-8">No recent transactions found.</p>}
               </div>
             </div>
-
           </div>
         )}
 
@@ -1174,15 +1323,22 @@ export default function Page(){
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
               {ACHIEVEMENTS.map(cat=>{
                 const value=getCatValue(cat.id);
-                let unlocked=0;for(let i=0;i<cat.thresholds.length;i++){if(value>=cat.thresholds[i])unlocked=i+1;}
-                const mintedTier=mintedLevels[cat.id]||0;const canMint=unlocked>mintedTier;
+                let unlocked=0;
+                for(let i=0;i<cat.thresholds.length;i++){if(value>=cat.thresholds[i])unlocked=i+1;}
+                const mintedTier=mintedLevels[cat.id]||0;
+                const canMint=unlocked>mintedTier;
                 const nextThr=unlocked<cat.thresholds.length?cat.thresholds[unlocked]:cat.thresholds[cat.thresholds.length-1];
                 const prog=unlocked===cat.thresholds.length?100:Math.min(100,(value/nextThr)*100);
                 const toMint:number[]=[],toLevels:number[]=[];
                 for(let i=mintedTier+1;i<=unlocked;i++){toLevels.push(i);toMint.push(getTargetTokenId(cat.baseId,cat.thresholds.length,i));}
                 const isBatch=toMint.length>1;
                 let mintCall2:{to:`0x${string}`;data:`0x${string}`}[]=[];
-                if(toMint.length>0){const raw=isBatch?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[toMint.map(id=>BigInt(id))]}):encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(toMint[0])]});mintCall2=[{to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data:`${raw}${getBuilderSuffix()}` as `0x${string}`}];}
+                if(toMint.length>0){
+                  const raw=isBatch
+                    ?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[toMint.map(id=>BigInt(id))]})
+                    :encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(toMint[0])]});
+                  mintCall2=[{to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data:`${raw}${getBuilderSuffix()}` as `0x${string}`}];
+                }
                 let btnText=`${cat.tierNames[mintedTier]||'...'} Locked`;
                 if(mintedTier===cat.thresholds.length)btnText='Fully Minted 👑';
                 else if(canMint)btnText=isBatch?`Claim ${toMint.length} Badges 🚀`:`Mint ${cat.tierNames[mintedTier]}`;
@@ -1191,9 +1347,15 @@ export default function Page(){
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 bg-blue-950/60 border border-blue-800/30 rounded-2xl flex items-center justify-center text-2xl">{cat.icon}</div>
-                        <div><p className="font-black text-white text-sm">{cat.name}</p><p className="text-[10px] text-blue-400/40 uppercase font-bold mt-0.5">{unlocked>0?cat.tierNames[unlocked-1]:'Unranked'} · L{unlocked}/{cat.thresholds.length}</p></div>
+                        <div>
+                          <p className="font-black text-white text-sm">{cat.name}</p>
+                          <p className="text-[10px] text-blue-400/40 uppercase font-bold mt-0.5">{unlocked>0?cat.tierNames[unlocked-1]:'Unranked'} · L{unlocked}/{cat.thresholds.length}</p>
+                        </div>
                       </div>
-                      <div className="text-right"><p className="text-2xl font-black text-blue-400">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p><p className="text-[10px] text-blue-400/40 uppercase">{cat.unit}</p></div>
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-blue-400">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p>
+                        <p className="text-[10px] text-blue-400/40 uppercase">{cat.unit}</p>
+                      </div>
                     </div>
                     <div className="w-full bg-blue-950/60 rounded-full h-1.5 mb-1 overflow-hidden border border-blue-800/20">
                       <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width:`${prog}%`,filter:'drop-shadow(0 0 3px rgba(59,130,246,0.5))'}}/>
@@ -1203,7 +1365,9 @@ export default function Page(){
                     </p>
                     <div className={`flex ${cat.thresholds.length===1?'justify-center':'justify-between'} items-end mb-5`}>
                       {cat.thresholds.map((_,idx)=>{
-                        const tier=idx+1;const isEarned=unlocked>=tier;const isMinted2=mintedTier>=tier;
+                        const tier=idx+1;
+                        const isEarned=unlocked>=tier;
+                        const isMinted2=mintedTier>=tier;
                         const style=getLevelStyle(cat.thresholds.length===1?5:tier,isMinted2,isEarned);
                         return(
                           <div key={tier} className="flex flex-col items-center gap-1.5 relative" style={{width:`${Math.floor(100/cat.thresholds.length)}%`}}>
@@ -1231,10 +1395,12 @@ export default function Page(){
                         ):(
                           <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-blue-950/40 text-blue-800 cursor-not-allowed border border-blue-900/30">{btnText}</button>
                         )}
-                        {mintedTier>0&&<div className="flex gap-1.5 shrink-0">
-                          <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="bg-[#0d1628] border border-blue-500/15 hover:bg-blue-600/15 text-blue-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>
-                          <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'t')} className="bg-[#0d1628] border border-blue-500/15 hover:bg-blue-600/15 text-blue-400/50 p-3 rounded-xl transition-all"><Twitter size={13}/></button>
-                        </div>}
+                        {mintedTier>0&&(
+                          <div className="flex gap-1.5 shrink-0">
+                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="bg-[#0d1628] border border-blue-500/15 hover:bg-blue-600/15 text-blue-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>
+                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'t')} className="bg-[#0d1628] border border-blue-500/15 hover:bg-blue-600/15 text-blue-400/50 p-3 rounded-xl transition-all"><Twitter size={13}/></button>
+                          </div>
+                        )}
                       </div>
                       {canMint&&<p className="text-[9px] text-blue-400/30 mt-2 text-center flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored via Coinbase Paymaster</p>}
                     </div>
@@ -1292,9 +1458,12 @@ export default function Page(){
               <p className="font-black text-white mb-4 flex items-center gap-2"><Zap size={15} className="text-blue-400"/>XP Multipliers & Season Rewards</p>
               <div className="space-y-2">
                 {[
-                  {l:'3-day check-in streak',b:'2× XP on all quests'},{l:'7-day check-in streak',b:'3× XP on all quests'},
-                  {l:'Top 10 at season end',b:'Exclusive Genesis Badge NFT'},{l:'Refer 3+ friends',b:'+150 bonus XP + referral badge'},
-                  {l:'All 10 weekly quests',b:'Season multiplier bonus'},{l:'Mint all 11 badges',b:'Hall of Fame status'},
+                  {l:'3-day check-in streak',b:'2× XP on all quests'},
+                  {l:'7-day check-in streak',b:'3× XP on all quests'},
+                  {l:'Top 10 at season end',b:'Exclusive Genesis Badge NFT'},
+                  {l:'Refer 3+ friends',b:'+150 bonus XP + referral badge'},
+                  {l:'All 10 weekly quests',b:'Season multiplier bonus'},
+                  {l:'Mint all 11 badges',b:'Hall of Fame status'},
                   {l:'Weekly XP resets Mon',b:'Past weeks carry to Total Season XP'},
                 ].map((m,i)=>(
                   <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-950/30 rounded-xl p-3 border border-blue-800/20 gap-2">
@@ -1326,35 +1495,45 @@ export default function Page(){
                 </div>
               </div>
             </div>
-            {(()=>{const pos=leaderboard.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());return pos>=0?(
-              <div className="bg-[#0d1628] border border-blue-500/25 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
-                <div className="h-0.5 bg-linear-to-r from-blue-600 to-blue-400"/>
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center font-black text-blue-400 text-lg shrink-0">#{pos+1}</div>
-                      <div>
-                        <p className="font-black text-white text-base">{wallet.basename||`${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
-                        <span className="text-[10px] font-black text-blue-300 bg-blue-500/10 border border-blue-500/15 px-2 py-0.5 rounded-lg">{wallet.walletRank}</span>
+
+            {/* Your position card */}
+            {(()=>{
+              const pos=leaderboard.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());
+              return pos>=0?(
+                <div className="bg-[#0d1628] border border-blue-500/25 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
+                  <div className="h-0.5 bg-linear-to-r from-blue-600 to-blue-400"/>
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center font-black text-blue-400 text-lg shrink-0">#{pos+1}</div>
+                        <div>
+                          <p className="font-black text-white text-base">{wallet.basename||`${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
+                          <span className="text-[10px] font-black text-blue-300 bg-blue-500/10 border border-blue-500/15 px-2 py-0.5 rounded-lg">{wallet.walletRank}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-blue-400/50 uppercase tracking-widest mb-1">TOTAL SEASON XP</p>
+                        <p className="text-4xl font-black text-white">{(leaderboard[pos]?.totalXP??weeklyXP).toLocaleString()}</p>
+                        <p className="text-[11px] text-blue-400 font-bold mt-1">+{weeklyXP} XP this week</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-blue-400/50 uppercase tracking-widest mb-1">TOTAL SEASON XP</p>
-                      <p className="text-4xl font-black text-white">{(leaderboard[pos]?.totalXP??weeklyXP).toLocaleString()}</p>
-                      <p className="text-[11px] text-blue-400 font-bold mt-1">+{weeklyXP} XP this week</p>
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      {[
+                        {l:'Score',v:wallet.score+'/100',c:'text-blue-400'},
+                        {l:'Badges',v:String(mintedCount),c:'text-blue-300'},
+                        {l:'Streak',v:streak+'d',c:'text-blue-400'},
+                      ].map((s,i)=>(
+                        <div key={i} className="bg-blue-950/40 border border-blue-800/20 rounded-xl p-2.5 text-center">
+                          <p className={`font-black text-base ${s.c}`}>{s.v}</p>
+                          <p className="text-[9px] text-blue-400/40 uppercase font-bold mt-0.5">{s.l}</p>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    {[{l:'Score',v:wallet.score+'/100',c:'text-blue-400'},{l:'Badges',v:String(mintedCount),c:'text-blue-300'},{l:'Streak',v:streak+'d',c:'text-blue-400'}].map((s,i)=>(
-                      <div key={i} className="bg-blue-950/40 border border-blue-800/20 rounded-xl p-2.5 text-center">
-                        <p className={`font-black text-base ${s.c}`}>{s.v}</p>
-                        <p className="text-[9px] text-blue-400/40 uppercase font-bold mt-0.5">{s.l}</p>
-                      </div>
-                    ))}
                   </div>
                 </div>
-              </div>
-            ):null;})()}
+              ):null;
+            })()}
+
             {lbLoading?(
               <div className="bg-[#0d1628] border border-blue-500/15 rounded-3xl p-12 text-center">
                 <RefreshCcw className="animate-spin text-blue-500 mx-auto mb-3" size={24}/>
@@ -1370,7 +1549,8 @@ export default function Page(){
               <div className="bg-[#0d1628] border border-blue-500/15 rounded-3xl overflow-hidden shadow-lg shadow-blue-900/20">
                 <div className="px-4 py-3 border-b border-blue-800/20 bg-blue-950/20">
                   <div className="grid grid-cols-[auto_1fr_auto_auto_auto] text-[9px] font-black text-blue-400/40 uppercase tracking-widest">
-                    <span className="w-10">Rank</span><span>Wallet</span>
+                    <span className="w-10">Rank</span>
+                    <span>Wallet</span>
                     <span className="hidden sm:block w-16 text-right">Badges</span>
                     <span className="w-24 text-right">Season XP</span>
                     <span className="hidden sm:block w-8"/>
@@ -1381,7 +1561,11 @@ export default function Page(){
                   const medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':null;
                   return(
                     <div key={e.address} className={`grid grid-cols-[auto_1fr_auto_auto_auto] items-center px-4 py-3.5 border-b border-blue-800/10 last:border-0 transition-all ${isMe?'bg-blue-600/8 border-l-2 border-l-blue-500':'hover:bg-blue-950/20'}`}>
-                      <div className="w-10">{medal?<span className="text-lg">{medal}</span>:<span className={`text-xs font-black ${idx<10?'text-blue-300/60':'text-blue-700'}`}>#{idx+1}</span>}</div>
+                      <div className="w-10">
+                        {medal
+                          ?<span className="text-lg">{medal}</span>
+                          :<span className={`text-xs font-black ${idx<10?'text-blue-300/60':'text-blue-700'}`}>#{idx+1}</span>}
+                      </div>
                       <div className="min-w-0 pr-3">
                         <p className={`font-black text-sm truncate ${isMe?'text-blue-400':'text-white'}`}>
                           {e.basename||`${e.address.slice(0,8)}...${e.address.slice(-4)}`}
@@ -1389,12 +1573,17 @@ export default function Page(){
                         </p>
                         <p className="text-[9px] text-blue-400/40 font-bold mt-0.5">{e.rank}</p>
                       </div>
-                      <div className="hidden sm:block w-16 text-right"><p className="text-xs font-black text-blue-300/60">{e.badges}</p><p className="text-[8px] text-blue-700 font-bold">badges</p></div>
+                      <div className="hidden sm:block w-16 text-right">
+                        <p className="text-xs font-black text-blue-300/60">{e.badges}</p>
+                        <p className="text-[8px] text-blue-700 font-bold">badges</p>
+                      </div>
                       <div className="w-24 text-right">
-                        <p className={`text-base font-black ${isMe?'text-blue-400':'text-white'}`}>{((e.totalXP??e.weeklyXP??0)).toLocaleString()}</p>
+                        <p className={`text-base font-black ${isMe?'text-blue-400':'text-white'}`}>{(e.totalXP??e.weeklyXP??0).toLocaleString()}</p>
                         <p className="text-[9px] text-blue-400/50 font-bold">+{e.weeklyXP} wk</p>
                       </div>
-                      <div className="hidden sm:flex w-8 justify-center">{idx===0?<ChevronUp size={12} className="text-blue-400"/>:<ChevronDown size={12} className="text-blue-800"/>}</div>
+                      <div className="hidden sm:flex w-8 justify-center">
+                        {idx===0?<ChevronUp size={12} className="text-blue-400"/>:<ChevronDown size={12} className="text-blue-800"/>}
+                      </div>
                     </div>
                   );
                 })}
