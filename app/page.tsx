@@ -41,7 +41,7 @@ const CHECKIN_CONTRACT      = "0xABc7099C631E18640ea60b25116407aa17354FBb";
 const ENTRYPOINT_V06 = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
 const ENTRYPOINT_V07 = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
 
-// DEX Routers on Base
+// Expanded DEX Routers on Base (Aggregators, Bots, major DEXs)
 const DEX_ROUTERS = new Set([
   "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43", // Aerodrome Router
   "0x2626664c2603336e57b271c5c0b26f421741e481", // Uniswap V3 SwapRouter02
@@ -53,6 +53,17 @@ const DEX_ROUTERS = new Set([
   "0x111111125421ca6dc452d289314280a0f8842a65", // 1inch Router v6
   "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237", // Balancer Vault
   "0x280b3b748ccc42d5062ce59111fad08594f51d9f", // BaseSwap Router
+  "0xdef1c0ded9bec7f1a1670819833240f027b25eff", // 0x Exchange Proxy
+  "0x1111111254eeb25477b68fb85ed929f73a960582", // 1inch Aggregation Router V5
+  "0xca423977156bb05b13a2ba3b76bc5419e2fe9680", // Odos Router V2
+  "0x19ceed7105607cd444f5ad10dd51356436095a1", // Odos Router Alternate
+  "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap Permit2
+  "0x831a29cc88e895c11bc38a9fdd8ed28eb6bc6499", // SushiSwap
+  "0x8a9e403d16aa27ed741da83eb14bc69edbebd2bc", // SushiSwap V3
+  "0x6131b5fae19ea4f9d964eac0408e4408b66337b5", // Kyber
+  "0xdef171fe48cf0115b1d80b88dc8eab59176fee57", // Paraswap
+  "0xdbb8396c0bce904b6b66ddb4eb042bf9d298eaab", // Banana Gun
+  "0x80a64c6d7f12c47b4c66c5b1e20a1a0f8303f27f", // Maestro
 ]);
 
 // DeFi Protocol addresses
@@ -65,10 +76,10 @@ const DEFI_PROTOCOLS = new Set([
   "0x70778cfcfc475c7512610ccea48519738eb7f0a1", // Moonwell mETH
   "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb", // Morpho Blue
   "0xa0533b80a28e3e3e17e4cff3adfD3B6C4f12Fb83", // Morpho Bundler
-  "0x49048044d57e1c92a77f2344bc973582d944959",  // Base Bridge
+  "0x4200000000000000000000000000000000000010", // Base Bridge
 ]);
 
-const BASE_BRIDGE = "0x49048044d57e1c92a77f2344bc973582d944959";
+const BASE_BRIDGE = "0x4200000000000000000000000000000000000010";
 
 // Known protocol names for display
 const PROTOCOL_NAMES: Record<string,string> = {
@@ -82,7 +93,7 @@ const PROTOCOL_NAMES: Record<string,string> = {
   "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c":"Moonwell",
   "0x70778cfcfc475c7512610ccea48519738eb7f0a1":"Moonwell ETH",
   "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb":"Morpho Blue",
-  "0x49048044d57e1c92a77f2344bc973582d944959":"Base Bridge",
+  "0x4200000000000000000000000000000000000010":"Base Bridge",
 };
 
 const CHECKIN_ABI = [
@@ -121,27 +132,27 @@ const getMonthKey = (iso:string):string => {
 
 // ── Achievements definition ────────────────────────────────────────────────────
 const ACHIEVEMENTS = [
-  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',    thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],       tierIcons:["🦐","🐬","🦈","🐋","👑"]},
-  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],               tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
-  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                              tierIcons:["🆔"]},
-  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                      tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
-  {id:'contract',baseId:50,name:'Base Builder', icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],         tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
-  {id:'volume', baseId:60,name:'Whale Alert',   icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],               tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
-  {id:'txs',    baseId:70,name:'Power User',    icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                             tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
-  {id:'swaps',  baseId:80,name:'DeFi Degen',    icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                tierIcons:["🪙","📈","🏦","🚜","🦄"]},
+  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',   thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],   tierIcons:["🦐","🐬","🦈","🐋","👑"]},
+  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],                tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
+  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                                tierIcons:["🆔"]},
+  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                       tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
+  {id:'contract',baseId:50,name:'Base Builder', icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],          tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
+  {id:'volume', baseId:60,name:'Whale Alert',   icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],                tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
+  {id:'txs',    baseId:70,name:'Power User',    icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                               tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
+  {id:'swaps',  baseId:80,name:'DeFi Degen',    icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                 tierIcons:["🪙","📈","🏦","🚜","🦄"]},
   {id:'nfts',   baseId:90,name:'Collector',     icon:'👾',unit:'NFTs',     thresholds:[3,10,25,50,100],   tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                  tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
-  {id:'streak', baseId:100,name:'Streak Master',icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],    tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                          tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
-  {id:'boosts', baseId:110,name:'XP Booster',   icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                       tierIcons:["🔰","🤝","📣","🏆","🔋"]},
+  {id:'streak', baseId:100,name:'Streak Master',icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],    tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                           tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
+  {id:'boosts', baseId:110,name:'XP Booster',   icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                         tierIcons:["🔰","🤝","📣","🏆","🔋"]},
 ];
 
 const WEEKLY_QUESTS = [
-  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',      xp:25,check:(w:WalletData,b:number)=>b>=1},
-  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',         xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
+  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',    xp:25,check:(w:WalletData,b:number)=>b>=1},
+  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',        xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
   {id:'q_checkin', icon:'🔥',title:'Onchain check-in',  desc:'Complete a daily onchain check-in',     xp:20,check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
   {id:'q_streak',  icon:'⚡',title:'3-day streak',      desc:'Maintain a 3+ day onchain streak',      xp:30,check:(_w:WalletData,_b:number,s:number)=>s>=3},
   {id:'q_defi',    icon:'🦄',title:'DeFi interaction',  desc:'Interact with a DeFi protocol',         xp:40,check:(w:WalletData)=>w.defiInteractions>=1},
   {id:'q_swap',    icon:'🔄',title:'Token swap',        desc:'Swap at least one token on Base',       xp:20,check:(w:WalletData)=>w.swapCount>=1},
-  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',          xp:35,check:(w:WalletData)=>w.nftCount>=1},
+  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',           xp:35,check:(w:WalletData)=>w.nftCount>=1},
   {id:'q_basename',icon:'🆔',title:'Claim Basename',    desc:'Register a .base.eth username',         xp:50,check:(w:WalletData)=>!!w.basename},
   {id:'q_vol',     icon:'💎',title:'Volume milestone',  desc:'Reach 0.001+ ETH transaction volume',   xp:30,check:(w:WalletData)=>parseFloat(w.ethVolume)>=0.001},
   {id:'q_txs',     icon:'📊',title:'Active trader',     desc:'Complete 10+ transactions on Base',     xp:25,check:(w:WalletData)=>w.txCount>=10},
@@ -183,7 +194,6 @@ interface WalletData{
   walletHealthScore:number; walletHealthLabel:string;
   scoreComponents:Record<string,number>;
   portfolioValueUSD:number;
-  // NEW stats
   dexVolumeETH:number;
   dexTradeCount:number;
   paymasterTxCount:number;
@@ -255,24 +265,27 @@ function calcWalletHealth(w:{uniqueDays:number;activeMonths:number;currentStreak
 // ── Parallel Alchemy fetcher — includes excludeZeroValue:false for paymaster txs ─
 async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
   const fetchPage=async(pageKey?:string):Promise<{transfers:AlchemyTransfer[];pageKey?:string}>=>{
-    const params:Record<string,unknown>={
-      fromBlock:"0x0",toBlock:"latest",fromAddress:address,
-      category:["external","internal","erc20","erc721","erc1155"],
-      maxCount:"0x3e8",withMetadata:true,
-      excludeZeroValue:false,  // KEY: captures gasless/paymaster txs
-    };
-    if(pageKey)params.pageKey=pageKey;
-    const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
-    const d=await r.json() as AlchemyResponse;
-    return{transfers:d.result?.transfers||[],pageKey:d.result?.pageKey};
+    try {
+      const params:Record<string,unknown>={
+        fromBlock:"0x0",toBlock:"latest",fromAddress:address,
+        category:["external","internal","erc20","erc721","erc1155"],
+        maxCount:"0x3e8",withMetadata:true,
+        excludeZeroValue:false, 
+      };
+      if(pageKey)params.pageKey=pageKey;
+      const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
+      const d=await r.json() as AlchemyResponse;
+      return{transfers:d.result?.transfers||[],pageKey:d.result?.pageKey};
+    } catch {
+      return {transfers: []};
+    }
   };
 
   const first=await fetchPage();
   const all=[...first.transfers];
   if(!first.pageKey)return all;
 
-  // Fetch remaining pages, 2 at a time, max 8 pages total
   let nextKey:string|undefined=first.pageKey;
   let page=2;
   while(nextKey&&page<=8){
@@ -282,22 +295,6 @@ async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
     page++;
   }
   return all;
-}
-
-// ── Fetch EntryPoint internal txs (ERC-4337 sponsored user operations) ─────────
-async function fetchPaymasterTxs(address:string):Promise<AlchemyTransfer[]>{
-  const fetchEP=async(ep:string):Promise<AlchemyTransfer[]>=>{
-    try{
-      const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({jsonrpc:"2.0",id:3,method:"alchemy_getAssetTransfers",
-          params:[{fromBlock:"0x0",toBlock:"latest",fromAddress:ep,toAddress:address,
-            category:["internal"],maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false}]})});
-      const d=await r.json() as AlchemyResponse;
-      return d.result?.transfers||[];
-    }catch{return[];}
-  };
-  const[v06,v07]=await Promise.all([fetchEP(ENTRYPOINT_V06),fetchEP(ENTRYPOINT_V07)]);
-  return[...v06,...v07];
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -343,7 +340,10 @@ export default function Page(){
   const showToast=(msg:string,hash:string)=>{setToast({msg,hash});setTimeout(()=>setToast(null),6000);};
 
   useEffect(()=>{
-    if(typeof window!=='undefined'&&sdk?.actions?.ready){try{sdk.actions.ready();setReady(true);}catch(e){console.error(e);}}
+    if(typeof window!=='undefined'){
+      if(sdk?.actions?.ready){try{sdk.actions.ready();}catch(e){console.error(e);}}
+      setReady(true);
+    }
     fetchLeaderboard().then(d=>{setLeaderboard(d);setLbLoading(false);});
     if(typeof window!=='undefined'){const p=new URLSearchParams(window.location.search);const r=p.get('ref');if(r)localStorage.setItem('base_referrer',r);}
   },[]);
@@ -368,7 +368,7 @@ export default function Page(){
     setChallengeLoading(true);
     try{
       const[alchemyTxs,bscData]=await Promise.all([
-        fetchAlchemyTxsFast(addr),
+        fetchAlchemyTxsFast(addr).catch(()=>[]),
         fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`).then(r=>r.json()).catch(()=>({}))
       ]);
       let rawTxs:{hash:string;metadata:{blockTimestamp:string}}[]=[];
@@ -390,7 +390,7 @@ export default function Page(){
     finally{setChallengeLoading(false);}
   },[challenge]);
 
-  // ── Main wallet analysis — all sources parallel ────────────────────────────
+  // ── Main wallet analysis ───────────────────────────────────────────────────
   const analyzeWallet=useCallback(async(address:string)=>{
     if(!address||!address.startsWith('0x')||address.length!==42){showToast('❌ Invalid EVM Address','');setLoading(false);return;}
     setScanProgress('Firing all data sources in parallel...');
@@ -414,8 +414,7 @@ export default function Page(){
       const ethPriceP=fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd').then(r=>r.json()).catch(()=>({ethereum:{usd:3200}}));
 
       // All tx sources fire at the same time
-      const alchemyTxsP=fetchAlchemyTxsFast(address);
-      const paymasterTxsP=fetchPaymasterTxs(address);
+      const alchemyTxsP=fetchAlchemyTxsFast(address).catch(()=>[]);
       const blockscoutP=fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`)
         .then(r=>r.json())
         .then(data=>{
@@ -441,18 +440,32 @@ export default function Page(){
 
       setScanProgress('Awaiting all sources...');
 
-      // Single await for everything
-      const[bn,balWei,nftData,mcRes,alchemyTxs,blockscoutTxs,rxData,dbStreak,dbLastCI,ethPriceData,paymasterTxs]=
-        await Promise.all([bnP,balP,nftP,mcP,alchemyTxsP,blockscoutP,rxP,strkP,lastP,ethPriceP,paymasterTxsP]);
+      const[bn,balWei,nftData,mcRes,alchemyTxs,blockscoutTxs,rxData,dbStreak,dbLastCI,ethPriceData]=
+        await Promise.all([bnP,balP,nftP,mcP,alchemyTxsP,blockscoutP,rxP,strkP,lastP,ethPriceP]);
 
       setScanProgress('Computing stats...');
 
-      // Merge all sources, dedup by hash — Alchemy wins on conflicts (better metadata)
-      const txMap=new Map<string,AlchemyTransfer>();
-      (blockscoutTxs as AlchemyTransfer[]).forEach((tx:AlchemyTransfer)=>txMap.set(tx.hash,tx));
-      paymasterTxs.forEach((tx:AlchemyTransfer)=>txMap.set(tx.hash,tx));
-      alchemyTxs.forEach((tx:AlchemyTransfer)=>txMap.set(tx.hash,tx));
-      const allTxs=Array.from(txMap.values());
+      const txTransferMap = new Map<string, AlchemyTransfer>();
+      
+      (blockscoutTxs as AlchemyTransfer[]).forEach(tx => {
+        const key = `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${tx.value || 0}`;
+        txTransferMap.set(key, tx);
+      });
+      
+      (alchemyTxs as AlchemyTransfer[]).forEach(tx => {
+        const key = `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${tx.value || 0}`;
+        txTransferMap.set(key, tx);
+      });
+
+      const rxTxs = (rxData as AlchemyResponse).result?.transfers || [];
+      rxTxs.forEach(tx => {
+        const key = `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${tx.value || 0}`;
+        txTransferMap.set(key, tx);
+      });
+
+      const allTxs = Array.from(txTransferMap.values());
+      const uniqueTxHashes = new Set(allTxs.map(t => t.hash));
+      const actualTxCount = uniqueTxHashes.size;
 
       setStreak(Number(dbStreak));
       if(Number(dbLastCI)>0){const ld=new Date(Number(dbLastCI)*1000).toISOString().slice(0,10);setCheckedToday(ld===new Date().toISOString().slice(0,10));}
@@ -469,36 +482,137 @@ export default function Page(){
       const uTokens=new Set<string>(),uContracts=new Set<string>(),uProtocols=new Set<string>();
       const tokFreq=new Map<string,number>(),monthActivity=new Map<string,number>(),tpd=new Map<string,number>();
       const protocolFreq=new Map<string,number>();
-      let ethVol=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false;
-      let erc20Txs=0,erc721Txs=0,gmCount=0,checkInCount=0;
-      let dexVolumeETH=0,dexTradeCount=0,bridgeTxCount=0,paymasterTxCount=paymasterTxs.length;
 
-      for(const tx of allTxs){
-        const ts=tx.metadata.blockTimestamp;
-        if(!ts)continue;
-        const dk=getDayKey(ts),wk=getWeekKey(ts),mk=getMonthKey(ts);
-        uDays.add(dk);uWeeks.add(wk);uMonths.add(mk);
-        tpd.set(dk,(tpd.get(dk)||0)+1);
-        monthActivity.set(mk,(monthActivity.get(mk)||0)+1);
-        if(tx.value&&tx.value>0&&(tx.asset==='ETH'||tx.asset==='WETH'))ethVol+=tx.value;
-        if(tx.category==='erc20'){swapCount++;erc20Txs++;}
-        if(tx.category==='erc721')erc721Txs++;
-        if(['erc20','erc721','erc1155'].includes(tx.category)&&tx.asset){uTokens.add(tx.asset);tokFreq.set(tx.asset,(tokFreq.get(tx.asset)||0)+1);}
-        const toAddr=(tx.to||'').toLowerCase();
-        if(tx.category==='external'){cxInteract++;if(tx.to)uContracts.add(toAddr);}
-        if(DEFI_PROTOCOLS.has(toAddr)){defi++;uProtocols.add(toAddr);protocolFreq.set(toAddr,(protocolFreq.get(toAddr)||0)+1);}
-        if(DEX_ROUTERS.has(toAddr)){dexTradeCount++;if(tx.value&&tx.value>0&&(tx.asset==='ETH'||tx.asset==='WETH'))dexVolumeETH+=tx.value;}
-        if(toAddr===BASE_BRIDGE)bridgeTxCount++;
-        if(toAddr===BOOSTER_CONTRACT.toLowerCase())hBoosts++;
-        if(toAddr===GM_GN_CONTRACT.toLowerCase()){hasGm=true;gmCount++;}
-        if(toAddr===CHECKIN_CONTRACT.toLowerCase())checkInCount++;
-        if(toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase())paymasterTxCount++;
+      // Establish unique time periods mapped strictly to unique hashes
+      const txDateMap = new Map<string, string>();
+      const txMonthMap = new Map<string, string>();
+      const txWeekMap = new Map<string, string>();
+      
+      for(const tx of allTxs) {
+          if(!tx.metadata.blockTimestamp) continue;
+          txDateMap.set(tx.hash, getDayKey(tx.metadata.blockTimestamp));
+          txWeekMap.set(tx.hash, getWeekKey(tx.metadata.blockTimestamp));
+          txMonthMap.set(tx.hash, getMonthKey(tx.metadata.blockTimestamp));
+      }
+      
+      txDateMap.forEach((dk) => {
+          tpd.set(dk, (tpd.get(dk)||0)+1);
+          uDays.add(dk);
+      });
+      txWeekMap.forEach((wk) => uWeeks.add(wk));
+      txMonthMap.forEach((mk) => {
+          monthActivity.set(mk, (monthActivity.get(mk)||0)+1);
+          uMonths.add(mk);
+      });
+
+      // ── GROUP TRANSACTIONS BY HASH FOR VOLUME PERFECTION ───────────────
+      const txGroups = new Map<string, AlchemyTransfer[]>();
+      for (const tx of allTxs) {
+        if (!txGroups.has(tx.hash)) txGroups.set(tx.hash, []);
+        txGroups.get(tx.hash)!.push(tx);
       }
 
-      // ETH received
-      let ethReceived=0;
-      const rxTxs=(rxData as AlchemyResponse).result?.transfers||[];
-      for(const tx of rxTxs){if(tx.value&&(tx.asset==='ETH'||tx.asset==='WETH'))ethReceived+=tx.value;}
+      let ethVol=0, ethReceived=0, cxInteract=0, hBoosts=0, defi=0, hasGm=false;
+      let erc20Txs=0, erc721Txs=0, gmCount=0, checkInCount=0;
+      let dexVolumeETH=0, dexTradeCount=0, bridgeTxCount=0, paymasterTxCount=0;
+
+      for (const transfers of txGroups.values()) {
+          let isDex = false;
+          let isBridge = false;
+          let maxKnownLegValueETH = 0;
+          let txHasExternalOut = false;
+
+          for (const t of transfers) {
+              const toAddr = (t.to || '').toLowerCase();
+              const fromAddr = (t.from || '').toLowerCase();
+              const isOutgoing = fromAddr === address.toLowerCase();
+              const isIncoming = toAddr === address.toLowerCase();
+
+              // Route identifiers
+              if (DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr)) isDex = true;
+              if (toAddr === BASE_BRIDGE.toLowerCase() || fromAddr === BASE_BRIDGE.toLowerCase()) isBridge = true;
+
+              // Basic Categorical counts
+              if (t.category === 'erc20') erc20Txs++;
+              if (t.category === 'erc721') erc721Txs++;
+
+              if (['erc20', 'erc721', 'erc1155'].includes(t.category) && t.asset) {
+                  uTokens.add(t.asset);
+                  tokFreq.set(t.asset, (tokFreq.get(t.asset) || 0) + 1);
+              }
+
+              // Contract & App logic
+              if (t.category === 'external' && isOutgoing) {
+                  txHasExternalOut = true;
+                  if (toAddr) uContracts.add(toAddr);
+
+                  if (DEFI_PROTOCOLS.has(toAddr)) { defi++; uProtocols.add(toAddr); protocolFreq.set(toAddr, (protocolFreq.get(toAddr) || 0) + 1); }
+                  if (toAddr === BOOSTER_CONTRACT.toLowerCase()) hBoosts++;
+                  if (toAddr === GM_GN_CONTRACT.toLowerCase()) { hasGm = true; gmCount++; }
+                  if (toAddr === CHECKIN_CONTRACT.toLowerCase()) checkInCount++;
+
+                  const isAppContract = toAddr === BOOSTER_CONTRACT.toLowerCase() ||
+                                        toAddr === GM_GN_CONTRACT.toLowerCase() ||
+                                        toAddr === CHECKIN_CONTRACT.toLowerCase() ||
+                                        toAddr === ACHIEVEMENTS_CONTRACT.toLowerCase();
+                  if (isAppContract && (!t.value || t.value === 0)) {
+                      paymasterTxCount++;
+                  }
+              }
+
+              // Value & Volume routing
+              if (t.value && t.value > 0) {
+                  const isETHOrWETH = t.asset === 'ETH' || t.asset === 'WETH';
+                  const isStable = ['USDC', 'USDT', 'DAI', 'USDBC'].includes(t.asset || '');
+
+                  if (isETHOrWETH) {
+                      if (isOutgoing) ethVol += t.value;
+                      if (isIncoming) ethReceived += t.value;
+                  }
+
+                  // Determine the ETH equivalent of THIS SPECIFIC LEG to represent DEX Volume
+                  let legEthValue = 0;
+                  if (isETHOrWETH) legEthValue = t.value;
+                  else if (isStable && ethPriceData?.ethereum?.usd) legEthValue = t.value / ethPriceData.ethereum.usd;
+
+                  // We take the MAX known token value moving anywhere in this transaction 
+                  // to avoid double counting and to capture volume on purely multi-hop altcoin trades.
+                  if (legEthValue > maxKnownLegValueETH) {
+                      maxKnownLegValueETH = legEthValue;
+                  }
+              }
+          }
+
+          // BEHAVIORAL SWAP FALLBACK: Catches trades via unlisted bots (Maestro/Banana Gun) or custom smart contracts
+          if (!isDex) {
+              const sentTokens = new Set<string>();
+              const receivedTokens = new Set<string>();
+              for(const t of transfers) {
+                  if(t.value && t.value > 0 && ['erc20', 'external', 'internal'].includes(t.category)) {
+                      if (t.from?.toLowerCase() === address.toLowerCase()) sentTokens.add(t.asset || 'ETH');
+                      if (t.to?.toLowerCase() === address.toLowerCase()) receivedTokens.add(t.asset || 'ETH');
+                  }
+              }
+              // If user sent at least one token and received a completely different token in the same Tx = Swap!
+              for(const s of sentTokens) {
+                  for(const r of receivedTokens) {
+                      if(s !== r) { isDex = true; break; }
+                  }
+                  if(isDex) break;
+              }
+          }
+
+          if (txHasExternalOut) cxInteract++;
+          
+          if (isDex) {
+              dexTradeCount++;
+              dexVolumeETH += maxKnownLegValueETH;
+          }
+
+          if (isBridge) bridgeTxCount++;
+      }
+
+      const swapCount = dexTradeCount; // Exact number of true swap transactions
 
       // Boosts from on-chain + localStorage
       let fBoosts=hBoosts;
@@ -532,7 +646,7 @@ export default function Page(){
       // Timeline
       const now=new Date();
       let firstTs=now.getTime(),lastTs=0,firstTx='N/A',lastTx='N/A',daysSinceActive=0,daysOnBase=0;
-      if(allTxs.length>0){
+      if(actualTxCount>0){
         const stamps=allTxs.map(tx=>new Date(tx.metadata.blockTimestamp).getTime()).filter(t=>!isNaN(t));
         firstTs=Math.min(...stamps);lastTs=Math.max(...stamps);
         firstTx=new Date(firstTs).toLocaleDateString();lastTx=new Date(lastTs).toLocaleDateString();
@@ -545,8 +659,8 @@ export default function Page(){
       let mostActiveMonth='N/A';
       if(mak){const[y,m]=mak.split('-');mostActiveMonth=`${MONTH_NAMES[parseInt(m)-1]} ${y}`;}
 
-      const avgTxPerDay=uDays.size>0?Math.round((allTxs.length/uDays.size)*10)/10:0;
-      const weeklyTxAvg=uWeeks.size>0?Math.round((allTxs.length/uWeeks.size)*10)/10:0;
+      const avgTxPerDay=uDays.size>0?Math.round((actualTxCount/uDays.size)*10)/10:0;
+      const weeklyTxAvg=uWeeks.size>0?Math.round((actualTxCount/uWeeks.size)*10)/10:0;
 
       // Most used protocol
       let mostUsedProtocol='None';
@@ -569,7 +683,7 @@ export default function Page(){
 
       // Score formula
       const scoreComponents:{[k:string]:number}={
-        txActivity: Math.min(25,allTxs.length/20),
+        txActivity: Math.min(25,actualTxCount/20),
         consistency:Math.min(20,uDays.size/4),
         longevity:  Math.min(15,uMonths.size*1.25),
         streak:     Math.min(15,curStreak*2),
@@ -585,7 +699,7 @@ export default function Page(){
       const ethUSD=ethPriceData?.ethereum?.usd||3200;
       const ethBalNum=parseFloat(formatEther(balWei));
       const portfolioValueUSD=parseFloat((ethBalNum*ethUSD).toFixed(2));
-      const health=calcWalletHealth({uniqueDays:uDays.size,activeMonths:uMonths.size,currentStreak:curStreak,defiInteractions:defi,uniqueContracts:uContracts.size,txCount:allTxs.length,nftCount:nftData.totalCount||0,basename:bn,daysSinceActive});
+      const health=calcWalletHealth({uniqueDays:uDays.size,activeMonths:uMonths.size,currentStreak:curStreak,defiInteractions:defi,uniqueContracts:uContracts.size,txCount:actualTxCount,nftCount:nftData.totalCount||0,basename:bn,daysSinceActive});
 
       let recommendation="You're a Base power user! Keep it up.";
       if(daysSinceActive>30)recommendation=`⚠️ Inactive ${daysSinceActive} days! Wallet going dormant.`;
@@ -593,10 +707,10 @@ export default function Page(){
       else if(!bn)recommendation='🆔 Get a Basename to boost your identity and score on Base!';
       else if(dexTradeCount===0)recommendation='💡 No DEX trades yet! Try Aerodrome or Uniswap on Base.';
       else if(defi===0)recommendation='🏦 No DeFi activity! Try Moonwell or Morpho.';
-      else if(allTxs.length<10)recommendation='👋 Welcome to Base! Try minting an NFT or boosting your score.';
+      else if(actualTxCount<10)recommendation='👋 Welcome to Base! Try minting an NFT or boosting your score.';
 
       // Heatmap
-      const histDays=allTxs.length>0?Math.max(364,Math.ceil((now.getTime()-firstTs)/86400000)+14):364;
+      const histDays=actualTxCount>0?Math.max(364,Math.ceil((now.getTime()-firstTs)/86400000)+14):364;
       const dStats:DayStats[]=[];
       const hPtr=new Date(now);
       for(let i=0;i<histDays;i++){
@@ -609,11 +723,17 @@ export default function Page(){
       for(let col=0;col<tCols;col++){const ws=new Date(gStart);ws.setUTCDate(ws.getUTCDate()+(col*7));const mi=ws.getUTCMonth();if(MONTH_NAMES[mi]!==lastML){wLabels.push(MONTH_NAMES[mi]);lastML=MONTH_NAMES[mi];}else wLabels.push('');}
 
       const topTokens=Array.from(tokFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
-      const recentTxs=[...allTxs].sort((a,b)=>new Date(b.metadata.blockTimestamp).getTime()-new Date(a.metadata.blockTimestamp).getTime()).slice(0,20);
+      
+      const seenHash=new Set();
+      const recentTxs=[...allTxs].sort((a,b)=>new Date(b.metadata.blockTimestamp).getTime()-new Date(a.metadata.blockTimestamp).getTime()).filter(tx=>{
+         if(seenHash.has(tx.hash)) return false;
+         seenHash.add(tx.hash);
+         return true;
+      }).slice(0,20);
 
       setWallet({
         address,basename:bn,balance:ethBalNum.toFixed(4),ethVolume:ethVol.toFixed(4),
-        txCount:allTxs.length,uniqueDays:uDays.size,activeWeeks:uWeeks.size,activeMonths:uMonths.size,
+        txCount:actualTxCount,uniqueDays:uDays.size,activeWeeks:uWeeks.size,activeMonths:uMonths.size,
         currentStreak:curStreak,longestStreak:longest,firstTx,lastTx,daysSinceActive,
         tokensSwapped:uTokens.size,swapCount,contractInteractions:cxInteract,
         nftCount:nftData.totalCount||0,walletRank,score:Math.min(100,score),
@@ -625,7 +745,7 @@ export default function Page(){
         dexVolumeETH:parseFloat(dexVolumeETH.toFixed(4)),
         dexTradeCount,paymasterTxCount,bridgeTxCount,
         netETHFlow:parseFloat((ethReceived-ethVol).toFixed(4)),
-        avgTxValueETH:allTxs.length>0?parseFloat((ethVol/allTxs.length).toFixed(6)):0,
+        avgTxValueETH:actualTxCount>0?parseFloat((ethVol/actualTxCount).toFixed(6)):0,
         uniqueProtocols:uProtocols.size,longestInactiveDays,weeklyTxAvg,
         onchainAgePercentile,mostUsedProtocol,activityScore,peakDayTxCount,peakDayDate,
       });
@@ -713,8 +833,8 @@ export default function Page(){
   // ── LANDING ────────────────────────────────────────────────────────────────
   if(!wallet)return(
     <div className="min-h-screen bg-[#0a0f1e] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/12 rounded-full blur-3xl pointer-events-none"/>
-      <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-blue-500/8 rounded-full blur-3xl pointer-events-none"/>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-150 h-75 bg-blue-600/12 rounded-full blur-3xl pointer-events-none"/>
+      <div className="absolute bottom-0 right-0 w-100 h-75 bg-blue-500/8 rounded-full blur-3xl pointer-events-none"/>
       <div className="absolute inset-0 pointer-events-none opacity-30" style={{backgroundImage:'linear-gradient(rgba(59,130,246,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.05) 1px,transparent 1px)',backgroundSize:'48px 48px'}}/>
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
@@ -890,7 +1010,7 @@ export default function Page(){
               </div>
             </div>
 
-            {/* NEW: DEX / Paymaster / Bridge Spotlight */}
+            {/* DEX / Paymaster / Bridge Spotlight */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {[
                 {label:'DEX Volume',value:`${wallet.dexVolumeETH} Ξ`,sub:`${wallet.dexTradeCount} trades`,icon:<Repeat2 size={16} className="text-blue-400"/>,active:wallet.dexTradeCount>0},
@@ -1100,56 +1220,56 @@ export default function Page(){
 
                 {([
                   // Core
-                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                        i:<CreditCard size={15} className="text-blue-400"/>},
+                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                                 i:<CreditCard size={15} className="text-blue-400"/>},
                   {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(),            i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Age Percentile',   v:`Top ${100-wallet.onchainAgePercentile}%`,     i:<GitBranch size={15} className="text-blue-400"/>},
                   // Activity
                   {l:'Active Days ✅',   v:wallet.uniqueDays.toString(),                  i:<Sun size={15} className="text-blue-400"/>},
                   {l:'Active Weeks ✅',  v:wallet.activeWeeks.toString(),                 i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Active Months ✅', v:wallet.activeMonths.toString(),                i:<Calendar size={15} className="text-blue-400"/>},
-                  {l:'Current Streak ✅',v:`${wallet.currentStreak}d`,                    i:<Flame size={15} className="text-blue-300"/>},
-                  {l:'Longest Streak ✅',v:`${wallet.longestStreak}d`,                    i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Current Streak ✅',v:`${wallet.currentStreak}d`,                     i:<Flame size={15} className="text-blue-300"/>},
+                  {l:'Longest Streak ✅',v:`${wallet.longestStreak}d`,                     i:<Trophy size={15} className="text-blue-400"/>},
                   {l:'Longest Gap',      v:`${wallet.longestInactiveDays}d`,              i:<Clock size={15} className="text-blue-300"/>},
                   {l:'Peak Day Txs',     v:wallet.peakDayTxCount.toString(),              i:<Gauge size={15} className="text-blue-400"/>},
-                  {l:'Peak Active Day',  v:wallet.peakDayDate,                            i:<Star size={15} className="text-blue-300"/>},
+                  {l:'Peak Active Day',  v:wallet.peakDayDate,                             i:<Star size={15} className="text-blue-300"/>},
                   // Tx
                   {l:'Total Txs',        v:wallet.txCount.toLocaleString(),               i:<Layers size={15} className="text-blue-300"/>},
-                  {l:'Avg Tx / Day',     v:wallet.avgTxPerDay.toString(),                 i:<BarChart3 size={15} className="text-blue-400"/>},
-                  {l:'Avg Tx / Week',    v:wallet.weeklyTxAvg.toString(),                 i:<Activity size={15} className="text-blue-300"/>},
-                  {l:'Avg Tx Value',     v:`${wallet.avgTxValueETH} Ξ`,                   i:<Coins size={15} className="text-blue-400"/>},
+                  {l:'Avg Tx / Day',     v:wallet.avgTxPerDay.toString(),                  i:<BarChart3 size={15} className="text-blue-400"/>},
+                  {l:'Avg Tx / Week',    v:wallet.weeklyTxAvg.toString(),                  i:<Activity size={15} className="text-blue-300"/>},
+                  {l:'Avg Tx Value',     v:`${wallet.avgTxValueETH} Ξ`,                    i:<Coins size={15} className="text-blue-400"/>},
                   {l:'Contract Txs',     v:wallet.contractInteractions.toLocaleString(),  i:<FileCode size={15} className="text-blue-300"/>},
                   {l:'Unique Contracts', v:wallet.uniqueContracts.toLocaleString(),       i:<Database size={15} className="text-blue-400"/>},
                   {l:'ERC-20 Txs',       v:wallet.erc20Txs.toLocaleString(),              i:<Coins size={15} className="text-blue-300"/>},
                   {l:'NFT Txs',          v:wallet.erc721Txs.toLocaleString(),             i:<Palette size={15} className="text-blue-400"/>},
                   // Volume
-                  {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                       i:<ArrowRightLeft size={15} className="text-blue-300"/>},
-                  {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                     i:<Gift size={15} className="text-blue-400"/>},
+                  {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                        i:<ArrowRightLeft size={15} className="text-blue-300"/>},
+                  {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                      i:<Gift size={15} className="text-blue-400"/>},
                   {l:'Net ETH Flow',     v:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,i:<TrendingUp size={15} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>},
                   // DEX / DeFi
-                  {l:'DEX Volume',       v:`${wallet.dexVolumeETH} Ξ`,                    i:<Repeat2 size={15} className="text-blue-400"/>},
+                  {l:'DEX Volume',       v:`${wallet.dexVolumeETH} Ξ`,                     i:<Repeat2 size={15} className="text-blue-400"/>},
                   {l:'DEX Trades',       v:wallet.dexTradeCount.toString(),               i:<Repeat2 size={15} className="text-blue-300"/>},
-                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),             i:<ArrowRightLeft size={15} className="text-blue-400"/>},
+                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),              i:<ArrowRightLeft size={15} className="text-blue-400"/>},
                   {l:'Unique Tokens',    v:wallet.tokensSwapped.toString(),               i:<Coins size={15} className="text-blue-300"/>},
-                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),      i:<TrendingUp size={15} className="text-blue-400"/>},
-                  {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),             i:<Landmark size={15} className="text-blue-300"/>},
-                  {l:'Fav Protocol',     v:wallet.mostUsedProtocol,                       i:<Star size={15} className="text-blue-400"/>},
+                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),       i:<TrendingUp size={15} className="text-blue-400"/>},
+                  {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),              i:<Landmark size={15} className="text-blue-300"/>},
+                  {l:'Fav Protocol',     v:wallet.mostUsedProtocol,                        i:<Star size={15} className="text-blue-400"/>},
                   {l:'Bridge Txs',       v:wallet.bridgeTxCount.toString(),               i:<Globe size={15} className="text-blue-300"/>},
                   // NFT
-                  {l:'NFTs Held',        v:wallet.nftCount.toLocaleString(),              i:<Sparkles size={15} className="text-blue-400"/>},
+                  {l:'NFTs Held',        v:wallet.nftCount.toLocaleString(),               i:<Sparkles size={15} className="text-blue-400"/>},
                   // Time
-                  {l:'Most Active Month',v:wallet.mostActiveMonth,                        i:<Clock size={15} className="text-blue-300"/>},
-                  {l:'First Transaction',v:wallet.firstTx,                                i:<Star size={15} className="text-blue-400"/>},
-                  {l:'Last Transaction', v:wallet.lastTx,                                 i:<Clock size={15} className="text-blue-300"/>},
+                  {l:'Most Active Month',v:wallet.mostActiveMonth,                         i:<Clock size={15} className="text-blue-300"/>},
+                  {l:'First Transaction',v:wallet.firstTx,                                 i:<Star size={15} className="text-blue-400"/>},
+                  {l:'Last Transaction', v:wallet.lastTx,                                  i:<Clock size={15} className="text-blue-300"/>},
                   // App
-                  {l:'Onchain Streak',   v:`${streak}d`,                                  i:<Zap size={15} className="text-blue-400"/>},
+                  {l:'Onchain Streak',   v:`${streak}d`,                                   i:<Zap size={15} className="text-blue-400"/>},
                   {l:'Check-In Count',   v:wallet.checkInCount.toLocaleString(),          i:<Flame size={15} className="text-orange-400"/>},
                   {l:'GM / GN Count',    v:wallet.gmCount.toLocaleString(),               i:<Star size={15} className="text-yellow-400"/>},
-                  {l:'Paymaster Txs',    v:wallet.paymasterTxCount.toString(),            i:<Droplets size={15} className="text-blue-400"/>},
-                  {l:'XP Boosts',        v:boosts.toString(),                             i:<Rocket size={15} className="text-blue-300"/>},
-                  {l:'Minted Badges',    v:mintedCount.toString(),                        i:<Trophy size={15} className="text-blue-400"/>},
-                  {l:'Weekly XP',        v:weeklyXP.toString(),                           i:<Zap size={15} className="text-blue-300"/>},
-                  {l:'Activity Score',   v:`${wallet.activityScore}/100`,                 i:<Activity size={15} className="text-blue-400"/>},
-                  {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,             i:<ShieldCheck size={15} className="text-blue-300"/>},
+                  {l:'Paymaster Txs',    v:wallet.paymasterTxCount.toString(),             i:<Droplets size={15} className="text-blue-400"/>},
+                  {l:'XP Boosts',        v:boosts.toString(),                              i:<Rocket size={15} className="text-blue-300"/>},
+                  {l:'Minted Badges',    v:mintedCount.toString(),                         i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Weekly XP',        v:weeklyXP.toString(),                            i:<Zap size={15} className="text-blue-300"/>},
+                  {l:'Activity Score',   v:`${wallet.activityScore}/100`,                  i:<Activity size={15} className="text-blue-400"/>},
+                  {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,              i:<ShieldCheck size={15} className="text-blue-300"/>},
                 ] as {l:string;v:string|number;i:React.ReactNode}[]).map((s,i)=>(
                   <div key={i} className="bg-[#0d1628] border border-blue-500/15 rounded-2xl p-3 sm:p-4 hover:border-blue-500/35 hover:bg-blue-950/40 transition-all group shadow-sm shadow-blue-900/10">
                     <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
@@ -1497,7 +1617,7 @@ export default function Page(){
             </div>
 
             {/* Your position card */}
-            {(()=>{
+            {(()=> {
               const pos=leaderboard.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());
               return pos>=0?(
                 <div className="bg-[#0d1628] border border-blue-500/25 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
@@ -1602,4 +1722,4 @@ export default function Page(){
       `}</style>
     </main>
   );
-} 
+}
