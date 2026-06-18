@@ -262,7 +262,7 @@ function calcWalletHealth(w:{uniqueDays:number;activeMonths:number;currentStreak
   return{score,label};
 }
 
-// ── Parallel Alchemy fetcher — includes excludeZeroValue:false for paymaster txs ─
+// Optimized fast page fetcher with safe pagination thresholds
 async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
   const fetchPage=async(pageKey?:string):Promise<{transfers:AlchemyTransfer[];pageKey?:string}>=>{
     try {
@@ -288,7 +288,8 @@ async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
 
   let nextKey:string|undefined=first.pageKey;
   let page=2;
-  while(nextKey&&page<=8){
+  // Performance threshold caps pages to fix runtime freezes on active accounts
+  while(nextKey&&page<=4){
     const res=await fetchPage(nextKey);
     all.push(...res.transfers);
     nextKey=res.pageKey;
@@ -413,7 +414,6 @@ export default function Page(){
       const lastP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'lastCheckIn',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
       const ethPriceP=fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd').then(r=>r.json()).catch(()=>({ethereum:{usd:3200}}));
 
-      // All tx sources fire at the same time
       const alchemyTxsP=fetchAlchemyTxsFast(address).catch(()=>[]);
       const blockscoutP=fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`)
         .then(r=>r.json())
@@ -426,13 +426,14 @@ export default function Page(){
             metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}
           }));
         }).catch(()=>[]);
+      
+      // Also grab incoming transfers
       const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",
           params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,
             category:["external","internal","erc20"],maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false}]})
       }).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
 
-      // Achievements multicall
       const calls:{address:`0x${string}`;abi:typeof ACHIEVEMENTS_ABI;functionName:'hasMinted';args:readonly[`0x${string}`,bigint]}[]=[];
       const callMap:{catId:string;level:number}[]=[];
       for(const cat of ACHIEVEMENTS){for(let i=cat.thresholds.length;i>=1;i--){const tid=getTargetTokenId(cat.baseId,cat.thresholds.length,i);calls.push({address:ACHIEVEMENTS_CONTRACT as `0x${string}`,abi:ACHIEVEMENTS_ABI,functionName:'hasMinted',args:[address as `0x${string}`,BigInt(tid)]});callMap.push({catId:cat.id,level:i});}}
@@ -477,13 +478,11 @@ export default function Page(){
       });
       setMintedLevels(ms);
 
-      // ── Aggregate stats ──────────────────────────────────────────────────
       const uDays=new Set<string>(),uWeeks=new Set<string>(),uMonths=new Set<string>();
       const uTokens=new Set<string>(),uContracts=new Set<string>(),uProtocols=new Set<string>();
       const tokFreq=new Map<string,number>(),monthActivity=new Map<string,number>(),tpd=new Map<string,number>();
       const protocolFreq=new Map<string,number>();
 
-      // Establish unique time periods mapped strictly to unique hashes
       const txDateMap = new Map<string, string>();
       const txMonthMap = new Map<string, string>();
       const txWeekMap = new Map<string, string>();
@@ -505,7 +504,7 @@ export default function Page(){
           uMonths.add(mk);
       });
 
-      // ── GROUP TRANSACTIONS BY HASH FOR VOLUME PERFECTION ───────────────
+      // Grouping processing steps safely to isolate metrics accurately
       const txGroups = new Map<string, AlchemyTransfer[]>();
       for (const tx of allTxs) {
         if (!txGroups.has(tx.hash)) txGroups.set(tx.hash, []);
@@ -519,8 +518,9 @@ export default function Page(){
       for (const transfers of txGroups.values()) {
           let isDex = false;
           let isBridge = false;
+          let isPaymasterTx = false;
           let maxKnownLegValueETH = 0;
-          let txHasExternalOut = false;
+          let txHasContractOut = false;
 
           for (const t of transfers) {
               const toAddr = (t.to || '').toLowerCase();
@@ -528,11 +528,17 @@ export default function Page(){
               const isOutgoing = fromAddr === address.toLowerCase();
               const isIncoming = toAddr === address.toLowerCase();
 
-              // Route identifiers
+              // Explicit Router Checks
               if (DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr)) isDex = true;
               if (toAddr === BASE_BRIDGE.toLowerCase() || fromAddr === BASE_BRIDGE.toLowerCase()) isBridge = true;
+              
+              // Paymaster detection rules - ONLY TRUE if it's an internal call from an EntryPoint
+              const ep06 = ENTRYPOINT_V06.toLowerCase();
+              const ep07 = ENTRYPOINT_V07.toLowerCase();
+              if (t.category === 'internal' && (fromAddr === ep06 || fromAddr === ep07)) {
+                  isPaymasterTx = true;
+              }
 
-              // Basic Categorical counts
               if (t.category === 'erc20') erc20Txs++;
               if (t.category === 'erc721') erc721Txs++;
 
@@ -541,26 +547,16 @@ export default function Page(){
                   tokFreq.set(t.asset, (tokFreq.get(t.asset) || 0) + 1);
               }
 
-              // Contract & App logic
-              if (t.category === 'external' && isOutgoing) {
-                  txHasExternalOut = true;
+              if (['external', 'internal'].includes(t.category) && isOutgoing) {
+                  txHasContractOut = true;
                   if (toAddr) uContracts.add(toAddr);
 
                   if (DEFI_PROTOCOLS.has(toAddr)) { defi++; uProtocols.add(toAddr); protocolFreq.set(toAddr, (protocolFreq.get(toAddr) || 0) + 1); }
                   if (toAddr === BOOSTER_CONTRACT.toLowerCase()) hBoosts++;
                   if (toAddr === GM_GN_CONTRACT.toLowerCase()) { hasGm = true; gmCount++; }
                   if (toAddr === CHECKIN_CONTRACT.toLowerCase()) checkInCount++;
-
-                  const isAppContract = toAddr === BOOSTER_CONTRACT.toLowerCase() ||
-                                        toAddr === GM_GN_CONTRACT.toLowerCase() ||
-                                        toAddr === CHECKIN_CONTRACT.toLowerCase() ||
-                                        toAddr === ACHIEVEMENTS_CONTRACT.toLowerCase();
-                  if (isAppContract && (!t.value || t.value === 0)) {
-                      paymasterTxCount++;
-                  }
               }
 
-              // Value & Volume routing
               if (t.value && t.value > 0) {
                   const isETHOrWETH = t.asset === 'ETH' || t.asset === 'WETH';
                   const isStable = ['USDC', 'USDT', 'DAI', 'USDBC'].includes(t.asset || '');
@@ -570,20 +566,17 @@ export default function Page(){
                       if (isIncoming) ethReceived += t.value;
                   }
 
-                  // Determine the ETH equivalent of THIS SPECIFIC LEG to represent DEX Volume
                   let legEthValue = 0;
                   if (isETHOrWETH) legEthValue = t.value;
                   else if (isStable && ethPriceData?.ethereum?.usd) legEthValue = t.value / ethPriceData.ethereum.usd;
 
-                  // We take the MAX known token value moving anywhere in this transaction 
-                  // to avoid double counting and to capture volume on purely multi-hop altcoin trades.
                   if (legEthValue > maxKnownLegValueETH) {
                       maxKnownLegValueETH = legEthValue;
                   }
               }
           }
 
-          // BEHAVIORAL SWAP FALLBACK: Catches trades via unlisted bots (Maestro/Banana Gun) or custom smart contracts
+          // Fallback tracking for custom DEX aggregator routes
           if (!isDex) {
               const sentTokens = new Set<string>();
               const receivedTokens = new Set<string>();
@@ -593,7 +586,6 @@ export default function Page(){
                       if (t.to?.toLowerCase() === address.toLowerCase()) receivedTokens.add(t.asset || 'ETH');
                   }
               }
-              // If user sent at least one token and received a completely different token in the same Tx = Swap!
               for(const s of sentTokens) {
                   for(const r of receivedTokens) {
                       if(s !== r) { isDex = true; break; }
@@ -602,7 +594,7 @@ export default function Page(){
               }
           }
 
-          if (txHasExternalOut) cxInteract++;
+          if (txHasContractOut) cxInteract++;
           
           if (isDex) {
               dexTradeCount++;
@@ -610,11 +602,11 @@ export default function Page(){
           }
 
           if (isBridge) bridgeTxCount++;
+          if (isPaymasterTx) paymasterTxCount++;
       }
 
-      const swapCount = dexTradeCount; // Exact number of true swap transactions
+      const swapCount = dexTradeCount;
 
-      // Boosts from on-chain + localStorage
       let fBoosts=hBoosts;
       if(typeof window!=='undefined'){
         const c=localStorage.getItem(`base_boosts_${address.toLowerCase()}`);
@@ -625,7 +617,6 @@ export default function Page(){
       }
       setBoosts(fBoosts);
 
-      // Streak calculation
       const sortedDays=Array.from(uDays).sort();
       let longest=sortedDays.length>0?1:0,runLen=sortedDays.length>0?1:0;
       let longestInactiveDays=0;
@@ -643,7 +634,6 @@ export default function Page(){
         while(uDays.has(ptr.toISOString().slice(0,10))){curStreak++;ptr=new Date(ptr.getTime()-86400000);}
       }
 
-      // Timeline
       const now=new Date();
       let firstTs=now.getTime(),lastTs=0,firstTx='N/A',lastTx='N/A',daysSinceActive=0,daysOnBase=0;
       if(actualTxCount>0){
@@ -654,7 +644,6 @@ export default function Page(){
         daysOnBase=Math.floor((now.getTime()-firstTs)/86400000);
       }
 
-      // Most active month
       const mak=Array.from(monthActivity.entries()).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
       let mostActiveMonth='N/A';
       if(mak){const[y,m]=mak.split('-');mostActiveMonth=`${MONTH_NAMES[parseInt(m)-1]} ${y}`;}
@@ -662,26 +651,21 @@ export default function Page(){
       const avgTxPerDay=uDays.size>0?Math.round((actualTxCount/uDays.size)*10)/10:0;
       const weeklyTxAvg=uWeeks.size>0?Math.round((actualTxCount/uWeeks.size)*10)/10:0;
 
-      // Most used protocol
       let mostUsedProtocol='None';
       if(protocolFreq.size>0){
         const top=Array.from(protocolFreq.entries()).sort((a,b)=>b[1]-a[1])[0];
         mostUsedProtocol=PROTOCOL_NAMES[top[0]]||`${top[0].slice(0,8)}...`;
       }
 
-      // Peak day
       let peakDayTxCount=0,peakDayDate='N/A';
       tpd.forEach((count,date)=>{if(count>peakDayTxCount){peakDayTxCount=count;peakDayDate=date;}});
 
-      // Age percentile (median Base wallet ~280 active days as of mid-2026)
       const onchainAgePercentile=Math.min(99,Math.round((daysOnBase/280)*50));
 
-      // Activity score (recency weighted — last 30 days count 3×)
       const last30Key=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
       const recentDays=Array.from(uDays).filter(d=>d>=last30Key).length;
       const activityScore=Math.min(100,Math.round(recentDays*3+Math.min(10,uMonths.size)));
 
-      // Score formula
       const scoreComponents:{[k:string]:number}={
         txActivity: Math.min(25,actualTxCount/20),
         consistency:Math.min(20,uDays.size/4),
@@ -709,7 +693,6 @@ export default function Page(){
       else if(defi===0)recommendation='🏦 No DeFi activity! Try Moonwell or Morpho.';
       else if(actualTxCount<10)recommendation='👋 Welcome to Base! Try minting an NFT or boosting your score.';
 
-      // Heatmap
       const histDays=actualTxCount>0?Math.max(364,Math.ceil((now.getTime()-firstTs)/86400000)+14):364;
       const dStats:DayStats[]=[];
       const hPtr=new Date(now);
@@ -810,7 +793,7 @@ export default function Page(){
   const doneQuests=wallet?WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).length:0;
   const ref=wallet?getReferralCode(wallet.address):'';
 
-  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`);if(pl==='w')window.open(warpcast(text),'_blank');else if(pl==='t')window.open(twitterShare(text),'_blank');else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
+  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`);if(pl==='w'?window.open(warpcast(text),'_blank'):pl==='t'?window.open(twitterShare(text),'_blank'):navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
   const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitterShare(text),'_blank');};
   const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitterShare(text),'_blank');};
 
@@ -1386,13 +1369,15 @@ export default function Page(){
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl overflow-hidden shadow-lg shadow-blue-900/20">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
                   const toAddr=(tx.to||'').toLowerCase();
-                  const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isBoost=toAddr===BOOSTER_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isCI=toAddr===CHECKIN_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isDEX=DEX_ROUTERS.has(toAddr);
-                  const isBridge=toAddr===BASE_BRIDGE;
-                  const isPaymaster=toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
+                  const fromAddr=(tx.from||'').toLowerCase();
+                  const isContractCall = ['external', 'internal'].includes(tx.category);
+                  const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&isContractCall;
+                  const isBoost=toAddr===BOOSTER_CONTRACT.toLowerCase()&&isContractCall;
+                  const isCI=toAddr===CHECKIN_CONTRACT.toLowerCase()&&isContractCall;
+                  const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&isContractCall;
+                  const isDEX=DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr);
+                  const isBridge=toAddr===BASE_BRIDGE || fromAddr===BASE_BRIDGE;
+                  const isPaymaster=fromAddr===ENTRYPOINT_V06.toLowerCase()||fromAddr===ENTRYPOINT_V07.toLowerCase()||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
                   let label='Contract Call',badge:string|null=null;
                   let icon=<ArrowRightLeft size={13} className="text-blue-400"/>;
                   if(isGM){label='GM / GN';icon=<Star size={13} className="text-yellow-400"/>;badge='☀️ Vibes';}
@@ -1722,4 +1707,4 @@ export default function Page(){
       `}</style>
     </main>
   );
-}
+} 
