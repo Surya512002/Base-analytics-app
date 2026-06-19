@@ -31,57 +31,48 @@ function getBuilderSuffix(){
   return `${hex}${cb.length.toString(16).padStart(2,'0')}0080218021802180218021802180218021`;
 }
 
-// ── Contracts ─────────────────────────────────────────────────────────────────
 const BOOSTER_CONTRACT      = "0x0d1BE33F8B6a33BeEe7b3bb834DF6f8c168B2e46";
 const GM_GN_CONTRACT        = "0xdb4f873B33F448aeA8Bb2b3B7e3ab9561329608A";
 const ACHIEVEMENTS_CONTRACT = "0xadb8120B4B18b892cFAD171243074487122Dea03";
 const CHECKIN_CONTRACT      = "0xABc7099C631E18640ea60b25116407aa17354FBb";
+const ENTRYPOINT_V06        = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
+const ENTRYPOINT_V07        = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
+const BASE_BRIDGE           = "0x4200000000000000000000000000000000000010";
 
-// ERC-4337 EntryPoints — sponsored/paymaster txs come from these
-const ENTRYPOINT_V06 = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
-const ENTRYPOINT_V07 = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
-
-// Expanded DEX Routers on Base (Aggregators, Bots, major DEXs)
+// ── DEX Routers — all lowercase, comprehensive Base coverage ─────────────────
 const DEX_ROUTERS = new Set([
-  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43", // Aerodrome Router
+  "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43", // Aerodrome Router v1
+  "0x3a23f943181408eac424116af7b7790c94cb97a5", // Aerodrome Router v2
   "0x2626664c2603336e57b271c5c0b26f421741e481", // Uniswap V3 SwapRouter02
   "0x198ef79f1f515f02dfe9e3115ed9fb06d9e3b801", // Uniswap Universal Router
+  "0xe592427a0aece92de3edee1f18e0157c05861564", // Uniswap V3 SwapRouter01
   "0x6cb442acf35158d5eda88fe602221b67a400be3e", // Uniswap V2 on Base
   "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24", // Uniswap V2 Router2
   "0x8cfe327cec66d1c090dd72bd0ff11d690c33a2eb", // PancakeSwap
   "0x1b81d678ffb9c0263b24a97847620c99d213eb14", // 1inch Router v5
   "0x111111125421ca6dc452d289314280a0f8842a65", // 1inch Router v6
+  "0x1111111254eeb25477b68fb85ed929f73a960582", // 1inch Aggregation V5
   "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237", // Balancer Vault
   "0x280b3b748ccc42d5062ce59111fad08594f51d9f", // BaseSwap Router
   "0xdef1c0ded9bec7f1a1670819833240f027b25eff", // 0x Exchange Proxy
-  "0x1111111254eeb25477b68fb85ed929f73a960582", // 1inch Aggregation Router V5
   "0xca423977156bb05b13a2ba3b76bc5419e2fe9680", // Odos Router V2
-  "0x19ceed7105607cd444f5ad10dd51356436095a1", // Odos Router Alternate
+  "0x19ceed7105607cd444f5ad10dd51356436095a1",  // Odos Router Alt
+  "0x6352a56caadc4f1e25cd6c75970fa768a3304e64", // OpenOcean Exchange
   "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap Permit2
-  "0x831a29cc88e895c11bc38a9fdd8ed28eb6bc6499", // SushiSwap
-  "0x8a9e403d16aa27ed741da83eb14bc69edbebd2bc", // SushiSwap V3
-  "0x6131b5fae19ea4f9d964eac0408e4408b66337b5", // Kyber
-  "0xdef171fe48cf0115b1d80b88dc8eab59176fee57", // Paraswap
-  "0xdbb8396c0bce904b6b66ddb4eb042bf9d298eaab", // Banana Gun
-  "0x80a64c6d7f12c47b4c66c5b1e20a1a0f8303f27f", // Maestro
 ]);
 
-// DeFi Protocol addresses
 const DEFI_PROTOCOLS = new Set([
   "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43","0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
   "0x8ebaf22e6f05b4fbce41712019ba2289f631eff2","0x000000000022d473030f116ddee9f6b43ac78ba3",
   "0x3b6067d4caa8a14c63fdbe6318f27a0bbc9f9237","0x280b3b748ccc42d5062ce59111fad08594f51d9f",
   "0x4200000000000000000000000000000000000006",
-  "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c", // Moonwell mUSDC
-  "0x70778cfcfc475c7512610ccea48519738eb7f0a1", // Moonwell mETH
-  "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb", // Morpho Blue
-  "0xa0533b80a28e3e3e17e4cff3adfD3B6C4f12Fb83", // Morpho Bundler
-  "0x4200000000000000000000000000000000000010", // Base Bridge
+  "0xfbb21d0380bee3312b33c4353c8936a0f13ef26c",
+  "0x70778cfcfc475c7512610ccea48519738eb7f0a1",
+  "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+  "0xa0533b80a28e3e3e17e4cff3adfd3b6c4f12fb83",
+  "0x4200000000000000000000000000000000000010",
 ]);
 
-const BASE_BRIDGE = "0x4200000000000000000000000000000000000010";
-
-// Known protocol names for display
 const PROTOCOL_NAMES: Record<string,string> = {
   "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43":"Aerodrome",
   "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296":"Aerodrome CL",
@@ -116,7 +107,6 @@ const GM_GN_ABI   = [
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// ── Date helpers ───────────────────────────────────────────────────────────────
 const getDayKey   = (iso:string):string => iso.slice(0,10);
 const getWeekKey  = (iso:string):string => {
   const d=new Date(iso);
@@ -130,29 +120,28 @@ const getMonthKey = (iso:string):string => {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
 };
 
-// ── Achievements definition ────────────────────────────────────────────────────
 const ACHIEVEMENTS = [
-  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',   thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],   tierIcons:["🦐","🐬","🦈","🐋","👑"]},
-  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],                tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
-  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                                tierIcons:["🆔"]},
-  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                       tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
-  {id:'contract',baseId:50,name:'Base Builder', icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],          tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
-  {id:'volume', baseId:60,name:'Whale Alert',   icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],                tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
-  {id:'txs',    baseId:70,name:'Power User',    icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                               tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
-  {id:'swaps',  baseId:80,name:'DeFi Degen',    icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],                 tierIcons:["🪙","📈","🏦","🚜","🦄"]},
-  {id:'nfts',   baseId:90,name:'Collector',     icon:'👾',unit:'NFTs',     thresholds:[3,10,25,50,100],   tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],                  tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
-  {id:'streak', baseId:100,name:'Streak Master',icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],    tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                           tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
-  {id:'boosts', baseId:110,name:'XP Booster',   icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                         tierIcons:["🔰","🤝","📣","🏆","🔋"]},
+  {id:'score',  baseId:10,name:'Onchain Rank',  icon:'🏅',unit:'Score',    thresholds:[10,30,60,75,85],   tierNames:["Base Shrimp","Base Dolphin","Base Shark","Base Whale","Base God"],    tierIcons:["🦐","🐬","🦈","🐋","👑"]},
+  {id:'age',    baseId:20,name:'Pioneer',       icon:'📅',unit:'Days',     thresholds:[10,30,90,180,365], tierNames:["Newcomer","Explorer","Settler","Veteran","Early Adopter"],            tierIcons:["🥚","🧭","⛺","🎖️","🛸"]},
+  {id:'name',   baseId:30,name:'Identity',      icon:'📛',unit:'Basename', thresholds:[1],                tierNames:["Verified"],                                                           tierIcons:["🆔"]},
+  {id:'days',   baseId:40,name:'Diamond Hands', icon:'💎',unit:'Days',     thresholds:[10,50,100,200,365],tierNames:["Tourist","Resident","Citizen","Patriot","Immortal"],                  tierIcons:["🎒","🏠","🏛️","🛡️","🗿"]},
+  {id:'contract',baseId:50,name:'Base Builder', icon:'🧱',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Tinkerer","Apprentice","Engineer","Architect","Master Builder"],       tierIcons:["🔧","🔨","📐","🏗️","🌆"]},
+  {id:'volume', baseId:60,name:'Whale Alert',   icon:'💰',unit:'ETH',      thresholds:[0.001,0.01,0.1,1.0,5.0],tierNames:["Guppy","Puffer","Angelfish","Sailboat","Leviathan"],             tierIcons:["🐟","🐡","🐠","⛵","🚢"]},
+  {id:'txs',    baseId:70,name:'Power User',    icon:'📈',unit:'Txs',      thresholds:[10,50,100,500,1000],tierNames:["Spark","Bolt","Surge","Lightning","Storm"],                          tierIcons:["✨","🌩️","🌊","⚡","🌪️"]},
+  {id:'swaps',  baseId:80,name:'DeFi Degen',    icon:'🔄',unit:'Swaps',    thresholds:[3,10,25,50,100],   tierNames:["Swapper","Trader","Provider","Yield Farmer","DeFi God"],              tierIcons:["🪙","📈","🏦","🚜","🦄"]},
+  {id:'nfts',   baseId:90,name:'Collector',     icon:'👾',unit:'NFTs',     thresholds:[3,10,25,50,100],   tierNames:["Scout","Gatherer","Curator","Connoisseur","NFT Whale"],               tierIcons:["👁️","🧺","🖼️","🍷","🎨"]},
+  {id:'streak', baseId:100,name:'Streak Master',icon:'🎯',unit:'Days',     thresholds:[3,7,14,30,100],    tierNames:["Match","Flame","Blaze","Inferno","Supernova"],                        tierIcons:["🕯️","🪔","🔥","🌋","🌌"]},
+  {id:'boosts', baseId:110,name:'XP Booster',   icon:'🔋',unit:'Boosts',   thresholds:[5,10,25,50,100],   tierNames:["Novice","Supporter","Fanatic","Champion","Apex"],                     tierIcons:["🔰","🤝","📣","🏆","🔋"]},
 ];
 
 const WEEKLY_QUESTS = [
-  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',    xp:25,check:(w:WalletData,b:number)=>b>=1},
-  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',        xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
+  {id:'q_boost',   icon:'🚀',title:'Boost your score',  desc:'Use the XP Booster at least once',      xp:25,check:(w:WalletData,b:number)=>b>=1},
+  {id:'q_gm',      icon:'☀️',title:'Say GM on Base',    desc:'Send a GM transaction onchain',         xp:15,check:(w:WalletData,_b:number,_s:number,k?:Record<string,number>)=>w.hasGm||!!(k?.gm&&k.gm>0)},
   {id:'q_checkin', icon:'🔥',title:'Onchain check-in',  desc:'Complete a daily onchain check-in',     xp:20,check:(_w:WalletData,_b:number,s:number,k?:Record<string,number>)=>s>=1||!!(k?.checkin&&k.checkin>0)},
   {id:'q_streak',  icon:'⚡',title:'3-day streak',      desc:'Maintain a 3+ day onchain streak',      xp:30,check:(_w:WalletData,_b:number,s:number)=>s>=3},
   {id:'q_defi',    icon:'🦄',title:'DeFi interaction',  desc:'Interact with a DeFi protocol',         xp:40,check:(w:WalletData)=>w.defiInteractions>=1},
   {id:'q_swap',    icon:'🔄',title:'Token swap',        desc:'Swap at least one token on Base',       xp:20,check:(w:WalletData)=>w.swapCount>=1},
-  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',           xp:35,check:(w:WalletData)=>w.nftCount>=1},
+  {id:'q_nft',     icon:'🎨',title:'Collect an NFT',    desc:'Hold 1+ NFTs on Base network',          xp:35,check:(w:WalletData)=>w.nftCount>=1},
   {id:'q_basename',icon:'🆔',title:'Claim Basename',    desc:'Register a .base.eth username',         xp:50,check:(w:WalletData)=>!!w.basename},
   {id:'q_vol',     icon:'💎',title:'Volume milestone',  desc:'Reach 0.001+ ETH transaction volume',   xp:30,check:(w:WalletData)=>parseFloat(w.ethVolume)>=0.001},
   {id:'q_txs',     icon:'📊',title:'Active trader',     desc:'Complete 10+ transactions on Base',     xp:25,check:(w:WalletData)=>w.txCount>=10},
@@ -161,11 +150,7 @@ const WEEKLY_QUESTS = [
 const SEASON_START = new Date('2026-04-20T00:00:00Z');
 const SEASON_END   = new Date('2026-10-20T23:59:59Z');
 const SEASON_NAME  = "Season 1: Genesis";
-
-const TIER_GRADIENTS = [
-  'from-slate-500 to-slate-600','from-amber-500 to-orange-600','from-slate-300 to-slate-500',
-  'from-yellow-400 to-yellow-600','from-blue-600 to-indigo-600',
-];
+const TIER_GRADIENTS = ['from-slate-500 to-slate-600','from-amber-500 to-orange-600','from-slate-300 to-slate-500','from-yellow-400 to-yellow-600','from-blue-600 to-indigo-600'];
 
 function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string{
   if(!isEarned)return'bg-white/5 border border-white/8 text-white/15 opacity-40';
@@ -174,62 +159,39 @@ function getLevelStyle(level:number,isMinted:boolean,isEarned:boolean):string{
   if(isMinted)return`${b} ring-2 ring-blue-400 ring-offset-1 ring-offset-[#0a0f1e] shadow-lg shadow-blue-400/20`;
   return`${b} opacity-75 border-dashed`;
 }
-
 function getTargetTokenId(baseId:number,num:number,level:number){return num===1?baseId+5:baseId+level;}
 
-// ── TypeScript interfaces ──────────────────────────────────────────────────────
 interface DayStats{date:string;count:number;intensity:number;}
 interface WalletData{
-  address:string; basename:string|null; balance:string; ethVolume:string;
-  txCount:number; uniqueDays:number; activeWeeks:number; activeMonths:number;
-  currentStreak:number; longestStreak:number; firstTx:string; lastTx:string;
-  daysSinceActive:number; tokensSwapped:number; swapCount:number;
-  contractInteractions:number; nftCount:number; walletRank:string;
-  score:number; historyDays:number; weekLabels:string[]; dailyStats:DayStats[];
-  topTokens:string[]; recommendation:string; recentTxs:AlchemyTransfer[];
-  daysOnBase:number; defiInteractions:number; hasGm:boolean;
-  uniqueContracts:number; avgTxPerDay:number; mostActiveMonth:string;
-  ethReceived:number; totalGasSpent:number; erc20Txs:number; erc721Txs:number;
-  gmCount:number; checkInCount:number;
-  walletHealthScore:number; walletHealthLabel:string;
-  scoreComponents:Record<string,number>;
-  portfolioValueUSD:number;
-  dexVolumeETH:number;
-  dexTradeCount:number;
-  paymasterTxCount:number;
-  bridgeTxCount:number;
-  netETHFlow:number;
-  avgTxValueETH:number;
-  uniqueProtocols:number;
-  longestInactiveDays:number;
-  weeklyTxAvg:number;
-  onchainAgePercentile:number;
-  mostUsedProtocol:string;
-  activityScore:number;
-  peakDayTxCount:number;
-  peakDayDate:string;
+  address:string;basename:string|null;balance:string;ethVolume:string;
+  txCount:number;uniqueDays:number;activeWeeks:number;activeMonths:number;
+  currentStreak:number;longestStreak:number;firstTx:string;lastTx:string;
+  daysSinceActive:number;tokensSwapped:number;swapCount:number;
+  contractInteractions:number;nftCount:number;walletRank:string;
+  score:number;historyDays:number;weekLabels:string[];dailyStats:DayStats[];
+  topTokens:string[];recommendation:string;recentTxs:AlchemyTransfer[];
+  daysOnBase:number;defiInteractions:number;hasGm:boolean;
+  uniqueContracts:number;avgTxPerDay:number;mostActiveMonth:string;
+  ethReceived:number;totalGasSpent:number;erc20Txs:number;erc721Txs:number;
+  gmCount:number;checkInCount:number;
+  walletHealthScore:number;walletHealthLabel:string;
+  scoreComponents:Record<string,number>;portfolioValueUSD:number;
+  dexVolumeETH:number;dexVolumeUSD:number;dexTradeCount:number;paymasterTxCount:number;
+  bridgeTxCount:number;netETHFlow:number;avgTxValueETH:number;
+  uniqueProtocols:number;longestInactiveDays:number;weeklyTxAvg:number;
+  onchainAgePercentile:number;mostUsedProtocol:string;activityScore:number;
+  peakDayTxCount:number;peakDayDate:string;
 }
-interface AlchemyTransfer{
-  hash:string;category:string;value:number|null;asset:string|null;
-  to:string|null;from:string|null;metadata:{blockTimestamp:string;};
-}
+interface AlchemyTransfer{hash:string;category:string;value:number|null;asset:string|null;to:string|null;from:string|null;metadata:{blockTimestamp:string;};}
 interface AlchemyResponse{result?:{transfers:AlchemyTransfer[];pageKey?:string;};error?:{message:string;};}
 type ConnectionType='farcaster'|'coinbase'|'metamask';
 interface LeaderboardEntry{address:string;basename:string|null;score:number;rank:string;boosts:number;badges:number;weeklyXP:number;totalXP:number;weekNumber:number;lastSeen?:number;}
 type LeaderboardPost=Omit<LeaderboardEntry,'totalXP'|'lastSeen'>;
 interface BlockscoutTx{hash:string;timeStamp:string;value:string;to:string;from:string;}
 
-// ── Leaderboard API ────────────────────────────────────────────────────────────
-async function saveLeaderboard(entry:LeaderboardPost){
-  try{await fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});}
-  catch(e){console.error('Leaderboard save failed',e);}
-}
-async function fetchLeaderboard():Promise<LeaderboardEntry[]>{
-  try{const r=await fetch('/api/leaderboard');if(!r.ok)return[];const d=await r.json();return d.leaderboard||[];}
-  catch{return[];}
-}
+async function saveLeaderboard(entry:LeaderboardPost){try{await fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});}catch(e){console.error(e);}}
+async function fetchLeaderboard():Promise<LeaderboardEntry[]>{try{const r=await fetch('/api/leaderboard');if(!r.ok)return[];const d=await r.json();return d.leaderboard||[];}catch{return[];}}
 
-// ── Utilities ──────────────────────────────────────────────────────────────────
 function getReferralCode(a:string){return a.slice(2,10).toUpperCase();}
 function getISOWeekNumber():number{const d=new Date();const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const y=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil(((d.getTime()-y.getTime())/86400000+1)/7);}
 function getQuestXP(w:WalletData,b:number,s:number,k?:Record<string,number>):number{return WEEKLY_QUESTS.filter(q=>q.check(w,b,s,k)).reduce((acc,q)=>acc+q.xp,0);}
@@ -241,7 +203,6 @@ function warpcast(text:string):string{return`https://warpcast.com/~/compose?text
 function twitterShare(text:string):string{return`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;}
 function getCapabilities(){if(!PAYMASTER_URL)return{};return{paymasterService:{url:PAYMASTER_URL}};}
 
-// ── Wallet Health ──────────────────────────────────────────────────────────────
 function calcWalletHealth(w:{uniqueDays:number;activeMonths:number;currentStreak:number;defiInteractions:number;uniqueContracts:number;txCount:number;nftCount:number;basename:string|null;daysSinceActive:number}):{score:number;label:string}{
   let h=0;
   if(w.uniqueDays>=100)h+=20;else if(w.uniqueDays>=30)h+=10;else if(w.uniqueDays>=7)h+=5;
@@ -250,57 +211,37 @@ function calcWalletHealth(w:{uniqueDays:number;activeMonths:number;currentStreak
   if(w.defiInteractions>=20)h+=15;else if(w.defiInteractions>=5)h+=8;else if(w.defiInteractions>=1)h+=4;
   if(w.uniqueContracts>=50)h+=15;else if(w.uniqueContracts>=10)h+=8;else if(w.uniqueContracts>=3)h+=4;
   if(w.txCount>=500)h+=10;else if(w.txCount>=100)h+=6;else if(w.txCount>=20)h+=3;
-  if(w.nftCount>=10)h+=5;
-  if(w.basename)h+=5;
+  if(w.nftCount>=10)h+=5;if(w.basename)h+=5;
   if(w.daysSinceActive<=1)h+=10;else if(w.daysSinceActive<=7)h+=5;else if(w.daysSinceActive>30)h-=10;
   const score=Math.min(100,Math.max(0,h));
   let label='💀 Dormant';
-  if(score>=80)label='🔥 Excellent';
-  else if(score>=60)label='💪 Strong';
-  else if(score>=40)label='📈 Growing';
-  else if(score>=20)label='🌱 Early';
+  if(score>=80)label='🔥 Excellent';else if(score>=60)label='💪 Strong';else if(score>=40)label='📈 Growing';else if(score>=20)label='🌱 Early';
   return{score,label};
 }
 
-// Optimized fast page fetcher with safe pagination thresholds
 async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
   const fetchPage=async(pageKey?:string):Promise<{transfers:AlchemyTransfer[];pageKey?:string}>=>{
-    try {
+    try{
       const params:Record<string,unknown>={
         fromBlock:"0x0",toBlock:"latest",fromAddress:address,
         category:["external","internal","erc20","erc721","erc1155"],
-        maxCount:"0x3e8",withMetadata:true,
-        excludeZeroValue:false, 
+        maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false,
       };
       if(pageKey)params.pageKey=pageKey;
       const r=await fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({jsonrpc:"2.0",id:1,method:"alchemy_getAssetTransfers",params:[params]})});
       const d=await r.json() as AlchemyResponse;
       return{transfers:d.result?.transfers||[],pageKey:d.result?.pageKey};
-    } catch {
-      return {transfers: []};
-    }
+    }catch{return{transfers:[]};}
   };
-
   const first=await fetchPage();
   const all=[...first.transfers];
   if(!first.pageKey)return all;
-
-  let nextKey:string|undefined=first.pageKey;
-  let page=2;
-  // Performance threshold caps pages to fix runtime freezes on active accounts
-  while(nextKey&&page<=4){
-    const res=await fetchPage(nextKey);
-    all.push(...res.transfers);
-    nextKey=res.pageKey;
-    page++;
-  }
+  let nextKey:string|undefined=first.pageKey,page=2;
+  while(nextKey&&page<=8){const res=await fetchPage(nextKey);all.push(...res.transfers);nextKey=res.pageKey;page++;}
   return all;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═════════════════════════════════════════════════════════════════════════════
 export default function Page(){
   const[wallet,setWallet]=useState<WalletData|null>(null);
   const[connType,setConnType]=useState<ConnectionType|null>(null);
@@ -327,42 +268,34 @@ export default function Page(){
   const[weeklyXP,setWeeklyXP]=useState(0);
   const[scanProgress,setScanProgress]=useState('');
 
-  // Calldata
   const boostDWT=`${encodeFunctionData({abi:BOOSTER_ABI,functionName:'boost'})}${getBuilderSuffix()}` as `0x${string}`;
-  const gmDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gm'})}${getBuilderSuffix()}` as `0x${string}`;
-  const gnDWT   =`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
-  const ciDWT   =`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
+  const gmDWT=`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gm'})}${getBuilderSuffix()}` as `0x${string}`;
+  const gnDWT=`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gn'})}${getBuilderSuffix()}` as `0x${string}`;
+  const ciDWT=`${encodeFunctionData({abi:CHECKIN_ABI,functionName:'checkIn'})}${getBuilderSuffix()}` as `0x${string}`;
   const boostCall=[{to:BOOSTER_CONTRACT as `0x${string}`,data:boostDWT}];
-  const gmCall   =[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}];
-  const gnCall   =[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}];
-  const ciCall   =[{to:CHECKIN_CONTRACT as `0x${string}`,data:ciDWT}];
-  const txCaps   =getCapabilities();
+  const gmCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gmDWT}];
+  const gnCall=[{to:GM_GN_CONTRACT as `0x${string}`,data:gnDWT}];
+  const ciCall=[{to:CHECKIN_CONTRACT as `0x${string}`,data:ciDWT}];
+  const txCaps=getCapabilities();
 
   const showToast=(msg:string,hash:string)=>{setToast({msg,hash});setTimeout(()=>setToast(null),6000);};
 
   useEffect(()=>{
-    if(typeof window!=='undefined'){
-      if(sdk?.actions?.ready){try{sdk.actions.ready();}catch(e){console.error(e);}}
-      setReady(true);
-    }
+    if(typeof window!=='undefined'){if(sdk?.actions?.ready){try{sdk.actions.ready();}catch(e){console.error(e);}}setReady(true);}
     fetchLeaderboard().then(d=>{setLeaderboard(d);setLbLoading(false);});
     if(typeof window!=='undefined'){const p=new URLSearchParams(window.location.search);const r=p.get('ref');if(r)localStorage.setItem('base_referrer',r);}
   },[]);
 
-  useEffect(()=>{
-    if(wallet&&tab==='dashboard'&&scrollRef.current)setTimeout(()=>{if(scrollRef.current)scrollRef.current.scrollLeft=scrollRef.current.scrollWidth;},100);
-  },[wallet,tab]);
+  useEffect(()=>{if(wallet&&tab==='dashboard'&&scrollRef.current)setTimeout(()=>{if(scrollRef.current)scrollRef.current.scrollLeft=scrollRef.current.scrollWidth;},100);},[wallet,tab]);
 
   useEffect(()=>{
     if(!wallet)return;
-    const xp=computeWeeklyXP(wallet,boosts,streak,txKeys);
-    setWeeklyXP(xp);
+    const xp=computeWeeklyXP(wallet,boosts,streak,txKeys);setWeeklyXP(xp);
     const mintedCount=Object.keys(mintedLevels).filter(k=>mintedLevels[k]>0).length;
     const entry:LeaderboardPost={address:wallet.address,basename:wallet.basename,score:wallet.score,rank:wallet.walletRank,boosts,badges:mintedCount,weeklyXP:xp,weekNumber:getISOWeekNumber()};
     saveLeaderboard(entry).then(()=>fetchLeaderboard().then(d=>setLeaderboard(d)));
   },[wallet,boosts,mintedLevels,streak,txKeys]);
 
-  // ── Challenge ──────────────────────────────────────────────────────────────
   const handleChallenge=useCallback(async()=>{
     const addr=challenge.trim().toLowerCase();
     if(!addr||!addr.startsWith('0x')||addr.length!==42){showToast('❌ Invalid address','');return;}
@@ -373,9 +306,7 @@ export default function Page(){
         fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`).then(r=>r.json()).catch(()=>({}))
       ]);
       let rawTxs:{hash:string;metadata:{blockTimestamp:string}}[]=[];
-      if(bscData.result&&Array.isArray(bscData.result)){
-        rawTxs=bscData.result.map((tx:BlockscoutTx)=>({hash:tx.hash,metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}}));
-      }
+      if(bscData.result&&Array.isArray(bscData.result)){rawTxs=bscData.result.map((tx:BlockscoutTx)=>({hash:tx.hash,metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}}));}
       const txMap=new Map<string,{hash:string;metadata:{blockTimestamp:string}}>();
       rawTxs.forEach(t=>txMap.set(t.hash,t));
       alchemyTxs.forEach(t=>txMap.set(t.hash,t));
@@ -384,14 +315,12 @@ export default function Page(){
       const months=new Set(merged.map(tx=>getMonthKey(tx.metadata.blockTimestamp)));
       const s=Math.min(100,Math.floor(Math.min(25,merged.length/20)+Math.min(20,days.size/4)+Math.min(15,months.size*1.25)+Math.min(20,days.size/3)+Math.min(10,months.size)));
       let rank='Base Shrimp 🦐';
-      if(s>=30)rank='Base Dolphin 🐬';if(s>=50)rank='Base Shark 🦈';
-      if(s>=70)rank='Base Whale 🐋';if(s>=85)rank='Base God 👑';
+      if(s>=30)rank='Base Dolphin 🐬';if(s>=50)rank='Base Shark 🦈';if(s>=70)rank='Base Whale 🐋';if(s>=85)rank='Base God 👑';
       setChallengeResult({address:addr,score:s,rank,days:days.size,txs:merged.length});
     }catch{showToast('❌ Lookup failed','');}
     finally{setChallengeLoading(false);}
   },[challenge]);
 
-  // ── Main wallet analysis ───────────────────────────────────────────────────
   const analyzeWallet=useCallback(async(address:string)=>{
     if(!address||!address.startsWith('0x')||address.length!==42){showToast('❌ Invalid EVM Address','');setLoading(false);return;}
     setScanProgress('Firing all data sources in parallel...');
@@ -405,7 +334,8 @@ export default function Page(){
       const REVERSE_REGISTRAR_ABI=[{name:'node',type:'function',stateMutability:'view',inputs:[{name:'addr',type:'address'}],outputs:[{name:'',type:'bytes32'}]}] as const;
       const NAME_RESOLVER_ABI=[{name:'name',type:'function',stateMutability:'view',inputs:[{name:'node',type:'bytes32'}],outputs:[{name:'',type:'string'}]}] as const;
 
-      // Fire ALL requests simultaneously
+      const addrLow=address.toLowerCase();
+
       const bnP=pub.readContract({address:BASE_REVERSE_REGISTRAR,abi:REVERSE_REGISTRAR_ABI,functionName:'node',args:[address as `0x${string}`]})
         .then(async rn=>{if(!rn)return null;const n=await pub.readContract({address:BASE_L2_RESOLVER,abi:NAME_RESOLVER_ABI,functionName:'name',args:[rn]}).catch(()=>null);return(n&&typeof n==='string'&&n.trim()!=='')?n:null;}).catch(()=>null);
       const balP=provider.getBalance(address).catch(()=>BigInt(0));
@@ -414,25 +344,23 @@ export default function Page(){
       const lastP=pub.readContract({address:CHECKIN_CONTRACT as `0x${string}`,abi:CHECKIN_ABI,functionName:'lastCheckIn',args:[address as `0x${string}`]}).catch(()=>BigInt(0));
       const ethPriceP=fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd').then(r=>r.json()).catch(()=>({ethereum:{usd:3200}}));
 
-      const alchemyTxsP=fetchAlchemyTxsFast(address).catch(()=>[]);
+      const alchemyOutP=fetchAlchemyTxsFast(address).catch(()=>[]);
+      const alchemyInP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",
+          params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,
+            category:["external","internal","erc20","erc721","erc1155"],
+            maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false}]})
+      }).then(r=>r.json()).then(d=>(d as AlchemyResponse).result?.transfers||[]).catch(()=>[]);
       const blockscoutP=fetch(`https://base.blockscout.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`)
-        .then(r=>r.json())
-        .then(data=>{
+        .then(r=>r.json()).then(data=>{
           if(!data.result||!Array.isArray(data.result))return[];
-          return data.result.map((tx:BlockscoutTx)=>({
+          return data.result.map((tx:BlockscoutTx):AlchemyTransfer=>({
             hash:tx.hash,category:'external',
             value:tx.value?parseFloat(formatEther(tx.value)):0,
             asset:'ETH',to:tx.to,from:tx.from,
             metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}
           }));
         }).catch(()=>[]);
-      
-      // Also grab incoming transfers
-      const rxP=fetch(BASE_RPC,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({jsonrpc:"2.0",id:2,method:"alchemy_getAssetTransfers",
-          params:[{fromBlock:"0x0",toBlock:"latest",toAddress:address,
-            category:["external","internal","erc20"],maxCount:"0x3e8",withMetadata:true,excludeZeroValue:false}]})
-      }).then(r=>r.json()).catch(()=>({result:{transfers:[]}}));
 
       const calls:{address:`0x${string}`;abi:typeof ACHIEVEMENTS_ABI;functionName:'hasMinted';args:readonly[`0x${string}`,bigint]}[]=[];
       const callMap:{catId:string;level:number}[]=[];
@@ -441,188 +369,195 @@ export default function Page(){
 
       setScanProgress('Awaiting all sources...');
 
-      const[bn,balWei,nftData,mcRes,alchemyTxs,blockscoutTxs,rxData,dbStreak,dbLastCI,ethPriceData]=
-        await Promise.all([bnP,balP,nftP,mcP,alchemyTxsP,blockscoutP,rxP,strkP,lastP,ethPriceP]);
+      const[bn,balWei,nftData,mcRes,alchemyOut,alchemyIn,blockscoutTxs,dbStreak,dbLastCI,ethPriceData]=
+        await Promise.all([bnP,balP,nftP,mcP,alchemyOutP,alchemyInP,blockscoutP,strkP,lastP,ethPriceP]);
 
       setScanProgress('Computing stats...');
 
-      const txTransferMap = new Map<string, AlchemyTransfer>();
-      
-      (blockscoutTxs as AlchemyTransfer[]).forEach(tx => {
-        const key = `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${tx.value || 0}`;
-        txTransferMap.set(key, tx);
-      });
-      
-      (alchemyTxs as AlchemyTransfer[]).forEach(tx => {
-        const key = `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${tx.value || 0}`;
-        txTransferMap.set(key, tx);
-      });
+      // ── Precise Deduplication to fix overlaps ──────────────────────────────
+      const txTransferMap=new Map<string,AlchemyTransfer>();
+      const getDedupKey = (tx: AlchemyTransfer) => {
+        const valKey = tx.value ? tx.value.toFixed(6) : '0';
+        return `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${(tx.from||'').toLowerCase()}-${(tx.to||'').toLowerCase()}-${valKey}`;
+      };
 
-      const rxTxs = (rxData as AlchemyResponse).result?.transfers || [];
-      rxTxs.forEach(tx => {
-        const key = `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${tx.value || 0}`;
-        txTransferMap.set(key, tx);
-      });
+      (blockscoutTxs as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
+      (alchemyIn as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
+      (alchemyOut as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
+      const allTxs=Array.from(txTransferMap.values());
 
-      const allTxs = Array.from(txTransferMap.values());
-      const uniqueTxHashes = new Set(allTxs.map(t => t.hash));
-      const actualTxCount = uniqueTxHashes.size;
+      // Original Activity Counters restored
+      const uniqueHashes=new Set(allTxs.map(t=>t.hash));
+      const actualTxCount=uniqueHashes.size;
 
       setStreak(Number(dbStreak));
       if(Number(dbLastCI)>0){const ld=new Date(Number(dbLastCI)*1000).toISOString().slice(0,10);setCheckedToday(ld===new Date().toISOString().slice(0,10));}
 
       const ms:Record<string,number>={};
-      (mcRes as {status:string;result?:unknown}[]).forEach((r,i)=>{
-        const{catId,level}=callMap[i];
-        if(r.status==='success'&&r.result===true){if(!ms[catId]||ms[catId]<level)ms[catId]=level;}
-      });
+      if (Array.isArray(mcRes)) {
+        (mcRes as {status:string;result?:unknown}[]).forEach((r,i)=>{
+          const{catId,level}=callMap[i];
+          if(r.status==='success'&&r.result===true){if(!ms[catId]||ms[catId]<level)ms[catId]=level;}
+        });
+      }
       setMintedLevels(ms);
 
-      const uDays=new Set<string>(),uWeeks=new Set<string>(),uMonths=new Set<string>();
-      const uTokens=new Set<string>(),uContracts=new Set<string>(),uProtocols=new Set<string>();
-      const tokFreq=new Map<string,number>(),monthActivity=new Map<string,number>(),tpd=new Map<string,number>();
-      const protocolFreq=new Map<string,number>();
+      // Original Paymaster Restored
+      const paymasterTxHashes=new Set<string>();
+      const ep06=ENTRYPOINT_V06.toLowerCase();
+      const ep07=ENTRYPOINT_V07.toLowerCase();
 
-      const txDateMap = new Map<string, string>();
-      const txMonthMap = new Map<string, string>();
-      const txWeekMap = new Map<string, string>();
+      for(const tx of allTxs){
+        const toAddr=(tx.to||'').toLowerCase();
+        const fromAddr=(tx.from||'').toLowerCase();
+        if(tx.category==='internal'&&toAddr===addrLow) paymasterTxHashes.add(tx.hash);
+        if(fromAddr===ep06||fromAddr===ep07) paymasterTxHashes.add(tx.hash);
+      }
+      const paymasterTxCount=paymasterTxHashes.size;
+
+      // Original Active Days restored
+      const hashDateMap=new Map<string,string>();
+      for(const tx of allTxs){
+        if(!tx.metadata?.blockTimestamp) continue;
+        if(!hashDateMap.has(tx.hash)) hashDateMap.set(tx.hash,getDayKey(tx.metadata.blockTimestamp));
+      }
+
+      const uDays=new Set<string>(),uWeeks=new Set<string>(),uMonths=new Set<string>();
+      const tpd=new Map<string,number>(),monthActivity=new Map<string,number>();
+
+      for(const tx of allTxs){
+        if(!tx.metadata?.blockTimestamp) continue;
+        const dk=getDayKey(tx.metadata.blockTimestamp);
+        if(!uDays.has(dk)){uDays.add(dk);tpd.set(dk,0);}
+        uWeeks.add(getWeekKey(tx.metadata.blockTimestamp));
+        const mk=getMonthKey(tx.metadata.blockTimestamp);
+        uMonths.add(mk);
+      }
+
+      tpd.clear();
+      const hashSeenOnDay=new Set<string>();
+      for(const tx of allTxs){
+        if(!tx.metadata?.blockTimestamp) continue;
+        const dk=getDayKey(tx.metadata.blockTimestamp);
+        const seen=`${tx.hash}-${dk}`;
+        if(!hashSeenOnDay.has(seen)){
+          hashSeenOnDay.add(seen);
+          tpd.set(dk,(tpd.get(dk)||0)+1);
+        }
+        const mk=getMonthKey(tx.metadata.blockTimestamp);
+        monthActivity.set(mk,(monthActivity.get(mk)||0)+1);
+      }
+
+      // ── Robust USD DEX Volume Calculation ────────────────
+      const STABLECOINS = new Set([
+        'USDC', 'USDBC', 'DAI', 'USDT',
+        '0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913', 
+        '0XD9AAEC86B65D86F6A7B5B1B0C42FFA531710B6CA'
+      ]);
+      const ethUSD = ethPriceData?.ethereum?.usd || 3200;
+      
+      const txFlows = new Map<string, { outUSD: number, inUSD: number, isUserInit: boolean, hasDexRouter: boolean }>();
       
       for(const tx of allTxs) {
-          if(!tx.metadata.blockTimestamp) continue;
-          txDateMap.set(tx.hash, getDayKey(tx.metadata.blockTimestamp));
-          txWeekMap.set(tx.hash, getWeekKey(tx.metadata.blockTimestamp));
-          txMonthMap.set(tx.hash, getMonthKey(tx.metadata.blockTimestamp));
+         if(!txFlows.has(tx.hash)) txFlows.set(tx.hash, { outUSD: 0, inUSD: 0, isUserInit: false, hasDexRouter: false });
+         const flow = txFlows.get(tx.hash)!;
+         
+         const fromAddr = (tx.from||'').toLowerCase();
+         const toAddr = (tx.to||'').toLowerCase();
+         
+         if(fromAddr === addrLow || paymasterTxHashes.has(tx.hash)) flow.isUserInit = true;
+         if(DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr)) flow.hasDexRouter = true;
+         
+         let valUSD = 0;
+         const assetUpper = (tx.asset || '').toUpperCase();
+         // Treat missing assets on native txs as ETH
+         if(assetUpper === 'ETH' || assetUpper === 'WETH' || (!tx.asset && (tx.category === 'external' || tx.category === 'internal'))) {
+             valUSD = (tx.value || 0) * ethUSD;
+         } else if (STABLECOINS.has(assetUpper)) {
+             valUSD = (tx.value || 0);
+         }
+         
+         if(fromAddr === addrLow) flow.outUSD += valUSD;
+         if(toAddr === addrLow) flow.inUSD += valUSD;
       }
+
+      let dexVolumeUSD = 0;
+      let dexTradeCount = 0;
+
+      for(const flow of txFlows.values()) {
+         if (flow.isUserInit && (flow.hasDexRouter || (flow.outUSD > 0 && flow.inUSD > 0))) {
+             dexTradeCount++;
+             dexVolumeUSD += Math.max(flow.inUSD, flow.outUSD);
+         }
+      }
+      const dexVolumeETH = dexVolumeUSD / ethUSD;
+
+
+      const uTokens=new Set<string>(),uContracts=new Set<string>(),uProtocols=new Set<string>();
+      const tokFreq=new Map<string,number>(),protocolFreq=new Map<string,number>();
       
-      txDateMap.forEach((dk) => {
-          tpd.set(dk, (tpd.get(dk)||0)+1);
-          uDays.add(dk);
-      });
-      txWeekMap.forEach((wk) => uWeeks.add(wk));
-      txMonthMap.forEach((mk) => {
-          monthActivity.set(mk, (monthActivity.get(mk)||0)+1);
-          uMonths.add(mk);
-      });
+      let ethVol=0,ethReceived=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false;
+      let erc20Txs=0,erc721Txs=0,gmCount=0,checkInCount=0;
 
-      // Grouping processing steps safely to isolate metrics accurately
-      const txGroups = new Map<string, AlchemyTransfer[]>();
-      for (const tx of allTxs) {
-        if (!txGroups.has(tx.hash)) txGroups.set(tx.hash, []);
-        txGroups.get(tx.hash)!.push(tx);
+      const bridgeTxHashes = new Set<string>();
+      const cxHashes = new Set<string>();
+      const swapHashes = new Set<string>();
+
+      for(const tx of allTxs){
+        if(!tx.metadata?.blockTimestamp) continue;
+        const fromAddr=(tx.from||'').toLowerCase();
+        const toAddr=(tx.to||'').toLowerCase();
+        const isOutgoing=fromAddr===addrLow;
+        const isIncoming=toAddr===addrLow;
+
+        if(toAddr === BASE_BRIDGE.toLowerCase()) bridgeTxHashes.add(tx.hash);
+
+        // Native ETH checking
+        if(tx.value&&tx.value>0&&(tx.asset==='ETH'||tx.asset==='WETH'||(!tx.asset&&(tx.category==='external'||tx.category==='internal')))){
+          if(isOutgoing) ethVol+=tx.value;
+          if(isIncoming) ethReceived+=tx.value;
+        }
+
+        if(tx.category==='erc20'){
+           erc20Txs++;
+           if(isOutgoing) swapHashes.add(tx.hash);
+        }
+        if(tx.category==='erc721') erc721Txs++;
+        if(['erc20','erc721','erc1155'].includes(tx.category)&&tx.asset){
+          uTokens.add(tx.asset);tokFreq.set(tx.asset,(tokFreq.get(tx.asset)||0)+1);
+        }
+
+        const isDirectCall=tx.category==='external'&&isOutgoing;
+        const isSponsoredCall=paymasterTxHashes.has(tx.hash)&&isIncoming;
+        if((isDirectCall||isSponsoredCall)){
+          cxHashes.add(tx.hash);
+          if(tx.to) uContracts.add(toAddr);
+          if(DEFI_PROTOCOLS.has(toAddr)){defi++;uProtocols.add(toAddr);protocolFreq.set(toAddr,(protocolFreq.get(toAddr)||0)+1);}
+          if(toAddr===BOOSTER_CONTRACT.toLowerCase()) hBoosts++;
+          if(toAddr===GM_GN_CONTRACT.toLowerCase()){hasGm=true;gmCount++;}
+          if(toAddr===CHECKIN_CONTRACT.toLowerCase()) checkInCount++;
+        }
       }
 
-      let ethVol=0, ethReceived=0, cxInteract=0, hBoosts=0, defi=0, hasGm=false;
-      let erc20Txs=0, erc721Txs=0, gmCount=0, checkInCount=0;
-      let dexVolumeETH=0, dexTradeCount=0, bridgeTxCount=0, paymasterTxCount=0;
-
-      for (const transfers of txGroups.values()) {
-          let isDex = false;
-          let isBridge = false;
-          let isPaymasterTx = false;
-          let maxKnownLegValueETH = 0;
-          let txHasContractOut = false;
-
-          for (const t of transfers) {
-              const toAddr = (t.to || '').toLowerCase();
-              const fromAddr = (t.from || '').toLowerCase();
-              const isOutgoing = fromAddr === address.toLowerCase();
-              const isIncoming = toAddr === address.toLowerCase();
-
-              // Explicit Router Checks
-              if (DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr)) isDex = true;
-              if (toAddr === BASE_BRIDGE.toLowerCase() || fromAddr === BASE_BRIDGE.toLowerCase()) isBridge = true;
-              
-              // Paymaster detection rules - ONLY TRUE if it's an internal call from an EntryPoint
-              const ep06 = ENTRYPOINT_V06.toLowerCase();
-              const ep07 = ENTRYPOINT_V07.toLowerCase();
-              if (t.category === 'internal' && (fromAddr === ep06 || fromAddr === ep07)) {
-                  isPaymasterTx = true;
-              }
-
-              if (t.category === 'erc20') erc20Txs++;
-              if (t.category === 'erc721') erc721Txs++;
-
-              if (['erc20', 'erc721', 'erc1155'].includes(t.category) && t.asset) {
-                  uTokens.add(t.asset);
-                  tokFreq.set(t.asset, (tokFreq.get(t.asset) || 0) + 1);
-              }
-
-              if (['external', 'internal'].includes(t.category) && isOutgoing) {
-                  txHasContractOut = true;
-                  if (toAddr) uContracts.add(toAddr);
-
-                  if (DEFI_PROTOCOLS.has(toAddr)) { defi++; uProtocols.add(toAddr); protocolFreq.set(toAddr, (protocolFreq.get(toAddr) || 0) + 1); }
-                  if (toAddr === BOOSTER_CONTRACT.toLowerCase()) hBoosts++;
-                  if (toAddr === GM_GN_CONTRACT.toLowerCase()) { hasGm = true; gmCount++; }
-                  if (toAddr === CHECKIN_CONTRACT.toLowerCase()) checkInCount++;
-              }
-
-              if (t.value && t.value > 0) {
-                  const isETHOrWETH = t.asset === 'ETH' || t.asset === 'WETH';
-                  const isStable = ['USDC', 'USDT', 'DAI', 'USDBC'].includes(t.asset || '');
-
-                  if (isETHOrWETH) {
-                      if (isOutgoing) ethVol += t.value;
-                      if (isIncoming) ethReceived += t.value;
-                  }
-
-                  let legEthValue = 0;
-                  if (isETHOrWETH) legEthValue = t.value;
-                  else if (isStable && ethPriceData?.ethereum?.usd) legEthValue = t.value / ethPriceData.ethereum.usd;
-
-                  if (legEthValue > maxKnownLegValueETH) {
-                      maxKnownLegValueETH = legEthValue;
-                  }
-              }
-          }
-
-          // Fallback tracking for custom DEX aggregator routes
-          if (!isDex) {
-              const sentTokens = new Set<string>();
-              const receivedTokens = new Set<string>();
-              for(const t of transfers) {
-                  if(t.value && t.value > 0 && ['erc20', 'external', 'internal'].includes(t.category)) {
-                      if (t.from?.toLowerCase() === address.toLowerCase()) sentTokens.add(t.asset || 'ETH');
-                      if (t.to?.toLowerCase() === address.toLowerCase()) receivedTokens.add(t.asset || 'ETH');
-                  }
-              }
-              for(const s of sentTokens) {
-                  for(const r of receivedTokens) {
-                      if(s !== r) { isDex = true; break; }
-                  }
-                  if(isDex) break;
-              }
-          }
-
-          if (txHasContractOut) cxInteract++;
-          
-          if (isDex) {
-              dexTradeCount++;
-              dexVolumeETH += maxKnownLegValueETH;
-          }
-
-          if (isBridge) bridgeTxCount++;
-          if (isPaymasterTx) paymasterTxCount++;
-      }
-
-      const swapCount = dexTradeCount;
+      cxInteract = cxHashes.size;
+      swapCount = swapHashes.size;
+      const bridgeTxCount = bridgeTxHashes.size;
 
       let fBoosts=hBoosts;
       if(typeof window!=='undefined'){
-        const c=localStorage.getItem(`base_boosts_${address.toLowerCase()}`);
+        const c=localStorage.getItem(`base_boosts_${addrLow}`);
         if(c){const p=parseInt(c,10);if(p>fBoosts)fBoosts=p;}
-        localStorage.setItem(`base_boosts_${address.toLowerCase()}`,fBoosts.toString());
-        if(localStorage.getItem(`base_gm_${address.toLowerCase()}`)==='true')hasGm=true;
-        else if(hasGm)localStorage.setItem(`base_gm_${address.toLowerCase()}`,'true');
+        localStorage.setItem(`base_boosts_${addrLow}`,fBoosts.toString());
+        if(localStorage.getItem(`base_gm_${addrLow}`)==='true')hasGm=true;
+        else if(hasGm)localStorage.setItem(`base_gm_${addrLow}`,'true');
       }
       setBoosts(fBoosts);
 
       const sortedDays=Array.from(uDays).sort();
-      let longest=sortedDays.length>0?1:0,runLen=sortedDays.length>0?1:0;
-      let longestInactiveDays=0;
+      let longest=sortedDays.length>0?1:0,runLen=sortedDays.length>0?1:0,longestInactiveDays=0;
       for(let i=1;i<sortedDays.length;i++){
         const diff=Math.round((new Date(sortedDays[i]).getTime()-new Date(sortedDays[i-1]).getTime())/86400000);
-        if(diff===1){runLen++;longest=Math.max(longest,runLen);}else{runLen=1;}
+        if(diff===1){runLen++;longest=Math.max(longest,runLen);}else runLen=1;
         if(diff>longestInactiveDays)longestInactiveDays=diff;
       }
 
@@ -634,6 +569,7 @@ export default function Page(){
         while(uDays.has(ptr.toISOString().slice(0,10))){curStreak++;ptr=new Date(ptr.getTime()-86400000);}
       }
 
+      // Restored original ts logic
       const now=new Date();
       let firstTs=now.getTime(),lastTs=0,firstTx='N/A',lastTx='N/A',daysSinceActive=0,daysOnBase=0;
       if(actualTxCount>0){
@@ -661,26 +597,24 @@ export default function Page(){
       tpd.forEach((count,date)=>{if(count>peakDayTxCount){peakDayTxCount=count;peakDayDate=date;}});
 
       const onchainAgePercentile=Math.min(99,Math.round((daysOnBase/280)*50));
-
       const last30Key=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
       const recentDays=Array.from(uDays).filter(d=>d>=last30Key).length;
       const activityScore=Math.min(100,Math.round(recentDays*3+Math.min(10,uMonths.size)));
 
       const scoreComponents:{[k:string]:number}={
-        txActivity: Math.min(25,actualTxCount/20),
+        txActivity:Math.min(25,actualTxCount/20),
         consistency:Math.min(20,uDays.size/4),
-        longevity:  Math.min(15,uMonths.size*1.25),
-        streak:     Math.min(15,curStreak*2),
-        volume:     Math.min(10,ethVol*10),
-        diversity:  Math.min(10,uTokens.size),
-        defiUsage:  Math.min(5,defi),
+        longevity:Math.min(15,uMonths.size*1.25),
+        streak:Math.min(15,curStreak*2),
+        volume:Math.min(10,ethVol*10),
+        diversity:Math.min(10,uTokens.size),
+        defiUsage:Math.min(5,defi),
       };
       const score=Math.min(100,Math.floor(Object.values(scoreComponents).reduce((a,b)=>a+b,0)));
       let walletRank='Base Shrimp 🦐';
       if(score>=30)walletRank='Base Dolphin 🐬';if(score>=50)walletRank='Base Shark 🦈';
       if(score>=70)walletRank='Base Whale 🐋';if(score>=85)walletRank='Base God 👑';
 
-      const ethUSD=ethPriceData?.ethereum?.usd||3200;
       const ethBalNum=parseFloat(formatEther(balWei));
       const portfolioValueUSD=parseFloat((ethBalNum*ethUSD).toFixed(2));
       const health=calcWalletHealth({uniqueDays:uDays.size,activeMonths:uMonths.size,currentStreak:curStreak,defiInteractions:defi,uniqueContracts:uContracts.size,txCount:actualTxCount,nftCount:nftData.totalCount||0,basename:bn,daysSinceActive});
@@ -706,13 +640,11 @@ export default function Page(){
       for(let col=0;col<tCols;col++){const ws=new Date(gStart);ws.setUTCDate(ws.getUTCDate()+(col*7));const mi=ws.getUTCMonth();if(MONTH_NAMES[mi]!==lastML){wLabels.push(MONTH_NAMES[mi]);lastML=MONTH_NAMES[mi];}else wLabels.push('');}
 
       const topTokens=Array.from(tokFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
-      
-      const seenHash=new Set();
-      const recentTxs=[...allTxs].sort((a,b)=>new Date(b.metadata.blockTimestamp).getTime()-new Date(a.metadata.blockTimestamp).getTime()).filter(tx=>{
-         if(seenHash.has(tx.hash)) return false;
-         seenHash.add(tx.hash);
-         return true;
-      }).slice(0,20);
+      const seenHash=new Set<string>();
+      const recentTxs=[...allTxs]
+        .sort((a,b)=>new Date(b.metadata.blockTimestamp).getTime()-new Date(a.metadata.blockTimestamp).getTime())
+        .filter(tx=>{if(seenHash.has(tx.hash))return false;seenHash.add(tx.hash);return true;})
+        .slice(0,20);
 
       setWallet({
         address,basename:bn,balance:ethBalNum.toFixed(4),ethVolume:ethVol.toFixed(4),
@@ -726,6 +658,7 @@ export default function Page(){
         ethReceived:parseFloat(ethReceived.toFixed(4)),totalGasSpent:0,erc20Txs,erc721Txs,gmCount,checkInCount,
         walletHealthScore:health.score,walletHealthLabel:health.label,scoreComponents,portfolioValueUSD,
         dexVolumeETH:parseFloat(dexVolumeETH.toFixed(4)),
+        dexVolumeUSD:parseFloat(dexVolumeUSD.toFixed(2)),
         dexTradeCount,paymasterTxCount,bridgeTxCount,
         netETHFlow:parseFloat((ethReceived-ethVol).toFixed(4)),
         avgTxValueETH:actualTxCount>0?parseFloat((ethVol/actualTxCount).toFixed(6)):0,
@@ -793,7 +726,7 @@ export default function Page(){
   const doneQuests=wallet?WEEKLY_QUESTS.filter(q=>q.check(wallet,boosts,streak,txKeys)).length:0;
   const ref=wallet?getReferralCode(wallet.address):'';
 
-  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`);if(pl==='w'?window.open(warpcast(text),'_blank'):pl==='t'?window.open(twitterShare(text),'_blank'):navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
+  const shareScore=(pl:'w'|'t'|'n')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`);if(pl==='w')window.open(warpcast(text),'_blank');else if(pl==='t')window.open(twitterShare(text),'_blank');else if(navigator.share)navigator.share({title:'Base Analytics',text,url:APP_URL_WEB}).catch(()=>{});};
   const shareAch=(name:string,level:string,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitterShare(text),'_blank');};
   const shareAll=(count:number,pl:'w'|'t')=>{if(!wallet)return;const text=buildShare(wallet,ref,`🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`);if(pl==='w')window.open(warpcast(text),'_blank');else window.open(twitterShare(text),'_blank');};
 
@@ -938,7 +871,6 @@ export default function Page(){
       </header>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
-        {/* Tabs */}
         <div className="flex bg-[#0d1628] border border-blue-500/20 p-1 rounded-2xl mb-5 overflow-x-auto gap-0.5 no-scrollbar">
           {[
             {id:'dashboard',icon:<BarChart3 size={13}/>,label:'Dashboard'},
@@ -954,11 +886,8 @@ export default function Page(){
           ))}
         </div>
 
-        {/* ═══ DASHBOARD ═══ */}
         {tab==='dashboard'&&(
           <div className="space-y-4">
-
-            {/* Wallet Health */}
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
               <div className="h-0.5 bg-linear-to-r from-blue-600 via-blue-400 to-blue-600"/>
               <div className="p-5">
@@ -993,11 +922,10 @@ export default function Page(){
               </div>
             </div>
 
-            {/* DEX / Paymaster / Bridge Spotlight */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {[
-                {label:'DEX Volume',value:`${wallet.dexVolumeETH} Ξ`,sub:`${wallet.dexTradeCount} trades`,icon:<Repeat2 size={16} className="text-blue-400"/>,active:wallet.dexTradeCount>0},
-                {label:'Paymaster Txs',value:wallet.paymasterTxCount.toString(),sub:'Gasless / sponsored',icon:<Droplets size={16} className="text-blue-300"/>,active:wallet.paymasterTxCount>0},
+                {label:'Age Percentile',value:`Top ${100-wallet.onchainAgePercentile}%`,sub:`vs Base median`,icon:<GitBranch size={16} className="text-blue-400"/>,active:true},
+                {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="text-blue-300"/>,active:true},
                 {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="text-blue-400"/>,active:wallet.bridgeTxCount>0},
                 {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
               ].map((s,i)=>(
@@ -1010,7 +938,6 @@ export default function Page(){
               ))}
             </div>
 
-            {/* Activity Score + Behavioral Profile */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -1072,7 +999,6 @@ export default function Page(){
               </div>
             </div>
 
-            {/* Daily check-in */}
             <div className={`bg-[#0d1628] border rounded-3xl overflow-hidden ${checkedToday?'border-blue-400/40':'border-blue-500/20'}`}>
               <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-blue-400 to-blue-300':'bg-linear-to-r from-blue-600 to-blue-500'}`}/>
               <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
@@ -1110,7 +1036,6 @@ export default function Page(){
               </div>
             </div>
 
-            {/* Score + Heatmap */}
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
               <div className="h-0.5 bg-linear-to-r from-blue-600 via-blue-400 to-blue-600"/>
               <div className="p-5 sm:p-6">
@@ -1183,7 +1108,6 @@ export default function Page(){
               </div>
             </div>
 
-            {/* Wallet Intelligence Grid */}
             <div>
               <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest mb-3 flex items-center gap-2"><BarChart3 size={12}/>Wallet Intelligence</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
@@ -1202,57 +1126,46 @@ export default function Page(){
                 </div>
 
                 {([
-                  // Core
-                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                                 i:<CreditCard size={15} className="text-blue-400"/>},
+                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                        i:<CreditCard size={15} className="text-blue-400"/>},
                   {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(),            i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Age Percentile',   v:`Top ${100-wallet.onchainAgePercentile}%`,     i:<GitBranch size={15} className="text-blue-400"/>},
-                  // Activity
                   {l:'Active Days ✅',   v:wallet.uniqueDays.toString(),                  i:<Sun size={15} className="text-blue-400"/>},
                   {l:'Active Weeks ✅',  v:wallet.activeWeeks.toString(),                 i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Active Months ✅', v:wallet.activeMonths.toString(),                i:<Calendar size={15} className="text-blue-400"/>},
-                  {l:'Current Streak ✅',v:`${wallet.currentStreak}d`,                     i:<Flame size={15} className="text-blue-300"/>},
-                  {l:'Longest Streak ✅',v:`${wallet.longestStreak}d`,                     i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Current Streak ✅',v:`${wallet.currentStreak}d`,                    i:<Flame size={15} className="text-blue-300"/>},
+                  {l:'Longest Streak ✅',v:`${wallet.longestStreak}d`,                    i:<Trophy size={15} className="text-blue-400"/>},
                   {l:'Longest Gap',      v:`${wallet.longestInactiveDays}d`,              i:<Clock size={15} className="text-blue-300"/>},
                   {l:'Peak Day Txs',     v:wallet.peakDayTxCount.toString(),              i:<Gauge size={15} className="text-blue-400"/>},
-                  {l:'Peak Active Day',  v:wallet.peakDayDate,                             i:<Star size={15} className="text-blue-300"/>},
-                  // Tx
+                  {l:'Peak Active Day',  v:wallet.peakDayDate,                            i:<Star size={15} className="text-blue-300"/>},
                   {l:'Total Txs',        v:wallet.txCount.toLocaleString(),               i:<Layers size={15} className="text-blue-300"/>},
-                  {l:'Avg Tx / Day',     v:wallet.avgTxPerDay.toString(),                  i:<BarChart3 size={15} className="text-blue-400"/>},
-                  {l:'Avg Tx / Week',    v:wallet.weeklyTxAvg.toString(),                  i:<Activity size={15} className="text-blue-300"/>},
-                  {l:'Avg Tx Value',     v:`${wallet.avgTxValueETH} Ξ`,                    i:<Coins size={15} className="text-blue-400"/>},
+                  {l:'Avg Tx / Day',     v:wallet.avgTxPerDay.toString(),                 i:<BarChart3 size={15} className="text-blue-400"/>},
+                  {l:'Avg Tx / Week',    v:wallet.weeklyTxAvg.toString(),                 i:<Activity size={15} className="text-blue-300"/>},
+                  {l:'Avg Tx Value',     v:`${wallet.avgTxValueETH} Ξ`,                   i:<Coins size={15} className="text-blue-400"/>},
                   {l:'Contract Txs',     v:wallet.contractInteractions.toLocaleString(),  i:<FileCode size={15} className="text-blue-300"/>},
                   {l:'Unique Contracts', v:wallet.uniqueContracts.toLocaleString(),       i:<Database size={15} className="text-blue-400"/>},
                   {l:'ERC-20 Txs',       v:wallet.erc20Txs.toLocaleString(),              i:<Coins size={15} className="text-blue-300"/>},
                   {l:'NFT Txs',          v:wallet.erc721Txs.toLocaleString(),             i:<Palette size={15} className="text-blue-400"/>},
-                  // Volume
-                  {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                        i:<ArrowRightLeft size={15} className="text-blue-300"/>},
-                  {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                      i:<Gift size={15} className="text-blue-400"/>},
+                  {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                       i:<ArrowRightLeft size={15} className="text-blue-300"/>},
+                  {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                     i:<Gift size={15} className="text-blue-400"/>},
                   {l:'Net ETH Flow',     v:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,i:<TrendingUp size={15} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>},
-                  // DEX / DeFi
-                  {l:'DEX Volume',       v:`${wallet.dexVolumeETH} Ξ`,                     i:<Repeat2 size={15} className="text-blue-400"/>},
-                  {l:'DEX Trades',       v:wallet.dexTradeCount.toString(),               i:<Repeat2 size={15} className="text-blue-300"/>},
-                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),              i:<ArrowRightLeft size={15} className="text-blue-400"/>},
+                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),             i:<ArrowRightLeft size={15} className="text-blue-400"/>},
                   {l:'Unique Tokens',    v:wallet.tokensSwapped.toString(),               i:<Coins size={15} className="text-blue-300"/>},
-                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),       i:<TrendingUp size={15} className="text-blue-400"/>},
-                  {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),              i:<Landmark size={15} className="text-blue-300"/>},
-                  {l:'Fav Protocol',     v:wallet.mostUsedProtocol,                        i:<Star size={15} className="text-blue-400"/>},
+                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),      i:<TrendingUp size={15} className="text-blue-400"/>},
+                  {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),             i:<Landmark size={15} className="text-blue-300"/>},
+                  {l:'Fav Protocol',     v:wallet.mostUsedProtocol,                       i:<Star size={15} className="text-blue-400"/>},
                   {l:'Bridge Txs',       v:wallet.bridgeTxCount.toString(),               i:<Globe size={15} className="text-blue-300"/>},
-                  // NFT
-                  {l:'NFTs Held',        v:wallet.nftCount.toLocaleString(),               i:<Sparkles size={15} className="text-blue-400"/>},
-                  // Time
-                  {l:'Most Active Month',v:wallet.mostActiveMonth,                         i:<Clock size={15} className="text-blue-300"/>},
-                  {l:'First Transaction',v:wallet.firstTx,                                 i:<Star size={15} className="text-blue-400"/>},
-                  {l:'Last Transaction', v:wallet.lastTx,                                  i:<Clock size={15} className="text-blue-300"/>},
-                  // App
-                  {l:'Onchain Streak',   v:`${streak}d`,                                   i:<Zap size={15} className="text-blue-400"/>},
+                  {l:'NFTs Held',        v:wallet.nftCount.toLocaleString(),              i:<Sparkles size={15} className="text-blue-400"/>},
+                  {l:'Most Active Month',v:wallet.mostActiveMonth,                        i:<Clock size={15} className="text-blue-300"/>},
+                  {l:'First Transaction',v:wallet.firstTx,                                i:<Star size={15} className="text-blue-400"/>},
+                  {l:'Last Transaction', v:wallet.lastTx,                                 i:<Clock size={15} className="text-blue-300"/>},
+                  {l:'Onchain Streak',   v:`${streak}d`,                                  i:<Zap size={15} className="text-blue-400"/>},
                   {l:'Check-In Count',   v:wallet.checkInCount.toLocaleString(),          i:<Flame size={15} className="text-orange-400"/>},
                   {l:'GM / GN Count',    v:wallet.gmCount.toLocaleString(),               i:<Star size={15} className="text-yellow-400"/>},
-                  {l:'Paymaster Txs',    v:wallet.paymasterTxCount.toString(),             i:<Droplets size={15} className="text-blue-400"/>},
-                  {l:'XP Boosts',        v:boosts.toString(),                              i:<Rocket size={15} className="text-blue-300"/>},
-                  {l:'Minted Badges',    v:mintedCount.toString(),                         i:<Trophy size={15} className="text-blue-400"/>},
-                  {l:'Weekly XP',        v:weeklyXP.toString(),                            i:<Zap size={15} className="text-blue-300"/>},
-                  {l:'Activity Score',   v:`${wallet.activityScore}/100`,                  i:<Activity size={15} className="text-blue-400"/>},
-                  {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,              i:<ShieldCheck size={15} className="text-blue-300"/>},
+                  {l:'XP Boosts',        v:boosts.toString(),                             i:<Rocket size={15} className="text-blue-300"/>},
+                  {l:'Minted Badges',    v:mintedCount.toString(),                        i:<Trophy size={15} className="text-blue-400"/>},
+                  {l:'Weekly XP',        v:weeklyXP.toString(),                           i:<Zap size={15} className="text-blue-300"/>},
+                  {l:'Activity Score',   v:`${wallet.activityScore}/100`,                 i:<Activity size={15} className="text-blue-400"/>},
+                  {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,             i:<ShieldCheck size={15} className="text-blue-300"/>},
                 ] as {l:string;v:string|number;i:React.ReactNode}[]).map((s,i)=>(
                   <div key={i} className="bg-[#0d1628] border border-blue-500/15 rounded-2xl p-3 sm:p-4 hover:border-blue-500/35 hover:bg-blue-950/40 transition-all group shadow-sm shadow-blue-900/10">
                     <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
@@ -1263,9 +1176,7 @@ export default function Page(){
               </div>
             </div>
 
-            {/* Action Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-              {/* Referral */}
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5 shadow-lg shadow-blue-900/20">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2"><Gift size={18} className="text-blue-400"/><span className="font-black text-white">Referral Program</span></div>
@@ -1281,7 +1192,6 @@ export default function Page(){
                 </div>
               </div>
 
-              {/* Wallet Challenge */}
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5 shadow-lg shadow-blue-900/20">
                 <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-blue-400"/><span className="font-black text-white">Wallet Challenge</span></div>
                 <p className="text-xs text-blue-300/50 mb-4">Enter any wallet to compare real onchain scores.</p>
@@ -1311,7 +1221,6 @@ export default function Page(){
                 )}
               </div>
 
-              {/* XP Booster */}
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-lg shadow-blue-900/20">
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <div className="w-12 h-12 bg-blue-600/15 rounded-2xl border border-blue-500/20 flex items-center justify-center shrink-0"><Rocket size={22} className="text-blue-400"/></div>
@@ -1339,7 +1248,6 @@ export default function Page(){
                 </div>
               </div>
 
-              {/* GM/GN */}
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl p-5 shadow-lg shadow-blue-900/20">
                 <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-blue-400"/>Community Vibes</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -1363,21 +1271,18 @@ export default function Page(){
               </div>
             </div>
 
-            {/* Recent Activity */}
             <div>
               <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
               <div className="bg-[#0d1628] border border-blue-500/20 rounded-2xl overflow-hidden shadow-lg shadow-blue-900/20">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
                   const toAddr=(tx.to||'').toLowerCase();
-                  const fromAddr=(tx.from||'').toLowerCase();
-                  const isContractCall = ['external', 'internal'].includes(tx.category);
-                  const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&isContractCall;
-                  const isBoost=toAddr===BOOSTER_CONTRACT.toLowerCase()&&isContractCall;
-                  const isCI=toAddr===CHECKIN_CONTRACT.toLowerCase()&&isContractCall;
-                  const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&isContractCall;
-                  const isDEX=DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr);
-                  const isBridge=toAddr===BASE_BRIDGE || fromAddr===BASE_BRIDGE;
-                  const isPaymaster=fromAddr===ENTRYPOINT_V06.toLowerCase()||fromAddr===ENTRYPOINT_V07.toLowerCase()||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
+                  const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isBoost=toAddr===BOOSTER_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isCI=toAddr===CHECKIN_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const isDEX=DEX_ROUTERS.has(toAddr);
+                  const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
+                  const isPaymaster=toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase()||(tx.category==='internal'&&toAddr===wallet.address.toLowerCase());
                   let label='Contract Call',badge:string|null=null;
                   let icon=<ArrowRightLeft size={13} className="text-blue-400"/>;
                   if(isGM){label='GM / GN';icon=<Star size={13} className="text-yellow-400"/>;badge='☀️ Vibes';}
@@ -1415,7 +1320,6 @@ export default function Page(){
           </div>
         )}
 
-        {/* ═══ ACHIEVEMENTS ═══ */}
         {tab==='achievements'&&(
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -1516,7 +1420,6 @@ export default function Page(){
           </div>
         )}
 
-        {/* ═══ QUESTS ═══ */}
         {tab==='quests'&&(
           <div className="space-y-4">
             <div className="relative overflow-hidden bg-linear-to-br from-blue-700 via-blue-600 to-blue-800 rounded-3xl p-5 sm:p-7 border border-blue-500/30 shadow-2xl shadow-blue-900/40">
@@ -1581,7 +1484,6 @@ export default function Page(){
           </div>
         )}
 
-        {/* ═══ LEADERBOARD ═══ */}
         {tab==='leaderboard'&&(
           <div className="space-y-4">
             <div className="bg-[#0d1628] border border-blue-500/20 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
@@ -1601,8 +1503,7 @@ export default function Page(){
               </div>
             </div>
 
-            {/* Your position card */}
-            {(()=> {
+            {(()=>{
               const pos=leaderboard.findIndex(e=>e.address.toLowerCase()===wallet.address.toLowerCase());
               return pos>=0?(
                 <div className="bg-[#0d1628] border border-blue-500/25 rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20">
