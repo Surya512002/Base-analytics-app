@@ -188,6 +188,7 @@ type ConnectionType='farcaster'|'coinbase'|'metamask';
 interface LeaderboardEntry{address:string;basename:string|null;score:number;rank:string;boosts:number;badges:number;weeklyXP:number;totalXP:number;weekNumber:number;lastSeen?:number;}
 type LeaderboardPost=Omit<LeaderboardEntry,'totalXP'|'lastSeen'>;
 interface BlockscoutTx{hash:string;timeStamp:string;value:string;to:string;from:string;}
+interface BlockscoutInternalTx{hash:string;from:string;to:string;value:string;timeStamp:string;type:string;}
 
 async function saveLeaderboard(entry:LeaderboardPost){try{await fetch('/api/leaderboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});}catch(e){console.error(e);}}
 async function fetchLeaderboard():Promise<LeaderboardEntry[]>{try{const r=await fetch('/api/leaderboard');if(!r.ok)return[];const d=await r.json();return d.leaderboard||[];}catch{return[];}}
@@ -240,6 +241,24 @@ async function fetchAlchemyTxsFast(address:string):Promise<AlchemyTransfer[]>{
   let nextKey:string|undefined=first.pageKey,page=2;
   while(nextKey&&page<=8){const res=await fetchPage(nextKey);all.push(...res.transfers);nextKey=res.pageKey;page++;}
   return all;
+}
+
+// Fetch blockscout internal calls to catch zero-value Paymaster UserOps missing from Alchemy
+async function fetchBlockscoutInternalTxs(address:string):Promise<AlchemyTransfer[]>{
+  try{
+    const r=await fetch(`https://base.blockscout.com/api?module=account&action=txlistinternal&address=${address}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`);
+    const d=await r.json();
+    if(!d.result||!Array.isArray(d.result))return[];
+    return (d.result as BlockscoutInternalTx[]).map(tx=>({
+      hash:tx.hash,
+      category:'internal',
+      value:tx.value?parseFloat(formatEther(tx.value)):0,
+      asset:'ETH',
+      to:tx.to,
+      from:tx.from,
+      metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()},
+    }));
+  }catch{return[];}
 }
 
 export default function Page(){
@@ -361,6 +380,8 @@ export default function Page(){
             metadata:{blockTimestamp:new Date(Number(tx.timeStamp)*1000).toISOString()}
           }));
         }).catch(()=>[]);
+      
+      const internalP=fetchBlockscoutInternalTxs(address).catch(()=>[]);
 
       const calls:{address:`0x${string}`;abi:typeof ACHIEVEMENTS_ABI;functionName:'hasMinted';args:readonly[`0x${string}`,bigint]}[]=[];
       const callMap:{catId:string;level:number}[]=[];
@@ -369,24 +390,24 @@ export default function Page(){
 
       setScanProgress('Awaiting all sources...');
 
-      const[bn,balWei,nftData,mcRes,alchemyOut,alchemyIn,blockscoutTxs,dbStreak,dbLastCI,ethPriceData]=
-        await Promise.all([bnP,balP,nftP,mcP,alchemyOutP,alchemyInP,blockscoutP,strkP,lastP,ethPriceP]);
+      const[bn,balWei,nftData,mcRes,alchemyOut,alchemyIn,blockscoutTxs,internalTxs,dbStreak,dbLastCI,ethPriceData]=
+        await Promise.all([bnP,balP,nftP,mcP,alchemyOutP,alchemyInP,blockscoutP,internalP,strkP,lastP,ethPriceP]);
 
       setScanProgress('Computing stats...');
 
-      // ── Precise Deduplication to fix overlaps ──────────────────────────────
+      // ── Merge all transfers — THIS RESTORES YOUR EXACT PREVIOUS LOGIC ──
       const txTransferMap=new Map<string,AlchemyTransfer>();
       const getDedupKey = (tx: AlchemyTransfer) => {
         const valKey = tx.value ? tx.value.toFixed(6) : '0';
         return `${tx.hash}-${tx.category}-${tx.asset||'ETH'}-${(tx.from||'').toLowerCase()}-${(tx.to||'').toLowerCase()}-${valKey}`;
       };
 
+      (internalTxs as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
       (blockscoutTxs as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
       (alchemyIn as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
       (alchemyOut as AlchemyTransfer[]).forEach(tx=>txTransferMap.set(getDedupKey(tx),tx));
       const allTxs=Array.from(txTransferMap.values());
 
-      // Original Activity Counters restored
       const uniqueHashes=new Set(allTxs.map(t=>t.hash));
       const actualTxCount=uniqueHashes.size;
 
@@ -402,7 +423,10 @@ export default function Page(){
       }
       setMintedLevels(ms);
 
-      // Original Paymaster Restored
+      // ── Restore original Pre-classification ──
+      const dexTxHashes=new Set<string>();
+      const bridgeTxHashes=new Set<string>();
+      const outgoingHashes=new Set<string>();
       const paymasterTxHashes=new Set<string>();
       const ep06=ENTRYPOINT_V06.toLowerCase();
       const ep07=ENTRYPOINT_V07.toLowerCase();
@@ -410,13 +434,60 @@ export default function Page(){
       for(const tx of allTxs){
         const toAddr=(tx.to||'').toLowerCase();
         const fromAddr=(tx.from||'').toLowerCase();
+        
+        if(fromAddr===addrLow) outgoingHashes.add(tx.hash);
+        if(DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr)) dexTxHashes.add(tx.hash);
+        if(toAddr===BASE_BRIDGE.toLowerCase()) bridgeTxHashes.add(tx.hash);
         if(tx.category==='internal'&&toAddr===addrLow) paymasterTxHashes.add(tx.hash);
         if(fromAddr===ep06||fromAddr===ep07) paymasterTxHashes.add(tx.hash);
       }
+
+      const dexTradeCount=[...dexTxHashes].filter(h=>outgoingHashes.has(h) || paymasterTxHashes.has(h)).length;
+      const bridgeTxCount=[...bridgeTxHashes].filter(h=>outgoingHashes.has(h)).length;
       const paymasterTxCount=paymasterTxHashes.size;
 
-      // Original Active Days restored
-      const hashDateMap=new Map<string,string>();
+      // ── DEX Volume: Restored Logic + USD conversion ──
+      const STABLECOINS = new Set(['USDC', 'USDBC', 'DAI', 'USDT', '0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913', '0XD9AAEC86B65D86F6A7B5B1B0C42FFA531710B6CA']);
+      const ethUSD = ethPriceData?.ethereum?.usd || 3200;
+      let dexVolumeUSD = 0;
+      const txFlows = new Map<string, { outUSD: number, inUSD: number }>();
+
+      for(const tx of allTxs){
+        if(!dexTxHashes.has(tx.hash)) continue;
+        // Check if the user OR the paymaster initiated the tx
+        if(!outgoingHashes.has(tx.hash) && !paymasterTxHashes.has(tx.hash)) continue; 
+        if(!tx.value||tx.value<=0) continue;
+
+        const fromAddr=(tx.from||'').toLowerCase();
+        const toAddr=(tx.to||'').toLowerCase();
+
+        let valUSD = 0;
+        const assetUpper = (tx.asset || '').toUpperCase();
+        
+        if(assetUpper === 'ETH' || assetUpper === 'WETH' || (!tx.asset && (tx.category === 'external' || tx.category === 'internal'))) {
+            valUSD = tx.value * ethUSD;
+        } else if (STABLECOINS.has(assetUpper)) {
+            valUSD = tx.value;
+        } else {
+            continue; // Skip unknown tokens for USD calculation
+        }
+
+        if(!txFlows.has(tx.hash)) txFlows.set(tx.hash, { outUSD: 0, inUSD: 0 });
+        const flow = txFlows.get(tx.hash)!;
+
+        if(fromAddr === addrLow) flow.outUSD += valUSD;
+        if(toAddr === addrLow) flow.inUSD += valUSD;
+      }
+
+      for(const flow of txFlows.values()){
+        dexVolumeUSD += Math.max(flow.inUSD, flow.outUSD);
+      }
+      
+      const dexVolumeETH = dexVolumeUSD / ethUSD;
+
+
+      // ── Restore Original Active Days ──
+      const hashDateMap=new Map<string,string>(); 
       for(const tx of allTxs){
         if(!tx.metadata?.blockTimestamp) continue;
         if(!hashDateMap.has(tx.hash)) hashDateMap.set(tx.hash,getDayKey(tx.metadata.blockTimestamp));
@@ -428,7 +499,18 @@ export default function Page(){
       for(const tx of allTxs){
         if(!tx.metadata?.blockTimestamp) continue;
         const dk=getDayKey(tx.metadata.blockTimestamp);
-        if(!uDays.has(dk)){uDays.add(dk);tpd.set(dk,0);}
+        if(!uDays.has(dk)){
+          uDays.add(dk);
+          tpd.set(dk,0);
+        }
+        if(hashDateMap.get(tx.hash)===dk){
+          const prevVal=tpd.get(dk)||0;
+          const countKey=`${tx.hash}-${dk}`;
+          if(!tpd.has(countKey)){
+            tpd.set(countKey,1);
+            tpd.set(dk,prevVal+1);
+          }
+        }
         uWeeks.add(getWeekKey(tx.metadata.blockTimestamp));
         const mk=getMonthKey(tx.metadata.blockTimestamp);
         uMonths.add(mk);
@@ -448,60 +530,13 @@ export default function Page(){
         monthActivity.set(mk,(monthActivity.get(mk)||0)+1);
       }
 
-      // ── Robust USD DEX Volume Calculation ────────────────
-      const STABLECOINS = new Set([
-        'USDC', 'USDBC', 'DAI', 'USDT',
-        '0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913', 
-        '0XD9AAEC86B65D86F6A7B5B1B0C42FFA531710B6CA'
-      ]);
-      const ethUSD = ethPriceData?.ethereum?.usd || 3200;
-      
-      const txFlows = new Map<string, { outUSD: number, inUSD: number, isUserInit: boolean, hasDexRouter: boolean }>();
-      
-      for(const tx of allTxs) {
-         if(!txFlows.has(tx.hash)) txFlows.set(tx.hash, { outUSD: 0, inUSD: 0, isUserInit: false, hasDexRouter: false });
-         const flow = txFlows.get(tx.hash)!;
-         
-         const fromAddr = (tx.from||'').toLowerCase();
-         const toAddr = (tx.to||'').toLowerCase();
-         
-         if(fromAddr === addrLow || paymasterTxHashes.has(tx.hash)) flow.isUserInit = true;
-         if(DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr)) flow.hasDexRouter = true;
-         
-         let valUSD = 0;
-         const assetUpper = (tx.asset || '').toUpperCase();
-         // Treat missing assets on native txs as ETH
-         if(assetUpper === 'ETH' || assetUpper === 'WETH' || (!tx.asset && (tx.category === 'external' || tx.category === 'internal'))) {
-             valUSD = (tx.value || 0) * ethUSD;
-         } else if (STABLECOINS.has(assetUpper)) {
-             valUSD = (tx.value || 0);
-         }
-         
-         if(fromAddr === addrLow) flow.outUSD += valUSD;
-         if(toAddr === addrLow) flow.inUSD += valUSD;
-      }
-
-      let dexVolumeUSD = 0;
-      let dexTradeCount = 0;
-
-      for(const flow of txFlows.values()) {
-         if (flow.isUserInit && (flow.hasDexRouter || (flow.outUSD > 0 && flow.inUSD > 0))) {
-             dexTradeCount++;
-             dexVolumeUSD += Math.max(flow.inUSD, flow.outUSD);
-         }
-      }
-      const dexVolumeETH = dexVolumeUSD / ethUSD;
-
-
       const uTokens=new Set<string>(),uContracts=new Set<string>(),uProtocols=new Set<string>();
       const tokFreq=new Map<string,number>(),protocolFreq=new Map<string,number>();
       
       let ethVol=0,ethReceived=0,swapCount=0,cxInteract=0,hBoosts=0,defi=0,hasGm=false;
       let erc20Txs=0,erc721Txs=0,gmCount=0,checkInCount=0;
 
-      const bridgeTxHashes = new Set<string>();
-      const cxHashes = new Set<string>();
-      const swapHashes = new Set<string>();
+      const processedHashes=new Set<string>();
 
       for(const tx of allTxs){
         if(!tx.metadata?.blockTimestamp) continue;
@@ -509,28 +544,27 @@ export default function Page(){
         const toAddr=(tx.to||'').toLowerCase();
         const isOutgoing=fromAddr===addrLow;
         const isIncoming=toAddr===addrLow;
+        const isNewHash=!processedHashes.has(tx.hash);
+        processedHashes.add(tx.hash);
 
-        if(toAddr === BASE_BRIDGE.toLowerCase()) bridgeTxHashes.add(tx.hash);
-
-        // Native ETH checking
-        if(tx.value&&tx.value>0&&(tx.asset==='ETH'||tx.asset==='WETH'||(!tx.asset&&(tx.category==='external'||tx.category==='internal')))){
-          if(isOutgoing) ethVol+=tx.value;
-          if(isIncoming) ethReceived+=tx.value;
+        // ETH volume — only count once per hash
+        if(tx.value&&tx.value>0&&(tx.asset==='ETH'||tx.asset==='WETH')){
+          if(isOutgoing&&isNewHash) ethVol+=tx.value;
+          if(isIncoming&&isNewHash) ethReceived+=tx.value;
         }
 
-        if(tx.category==='erc20'){
-           erc20Txs++;
-           if(isOutgoing) swapHashes.add(tx.hash);
-        }
+        if(tx.category==='erc20'){erc20Txs++;if(isNewHash&&isOutgoing)swapCount++;}
         if(tx.category==='erc721') erc721Txs++;
+        
+        // This restores your Diversity score
         if(['erc20','erc721','erc1155'].includes(tx.category)&&tx.asset){
           uTokens.add(tx.asset);tokFreq.set(tx.asset,(tokFreq.get(tx.asset)||0)+1);
         }
 
         const isDirectCall=tx.category==='external'&&isOutgoing;
         const isSponsoredCall=paymasterTxHashes.has(tx.hash)&&isIncoming;
-        if((isDirectCall||isSponsoredCall)){
-          cxHashes.add(tx.hash);
+        if((isDirectCall||isSponsoredCall)&&isNewHash){
+          cxInteract++;
           if(tx.to) uContracts.add(toAddr);
           if(DEFI_PROTOCOLS.has(toAddr)){defi++;uProtocols.add(toAddr);protocolFreq.set(toAddr,(protocolFreq.get(toAddr)||0)+1);}
           if(toAddr===BOOSTER_CONTRACT.toLowerCase()) hBoosts++;
@@ -538,10 +572,6 @@ export default function Page(){
           if(toAddr===CHECKIN_CONTRACT.toLowerCase()) checkInCount++;
         }
       }
-
-      cxInteract = cxHashes.size;
-      swapCount = swapHashes.size;
-      const bridgeTxCount = bridgeTxHashes.size;
 
       let fBoosts=hBoosts;
       if(typeof window!=='undefined'){
@@ -569,7 +599,6 @@ export default function Page(){
         while(uDays.has(ptr.toISOString().slice(0,10))){curStreak++;ptr=new Date(ptr.getTime()-86400000);}
       }
 
-      // Restored original ts logic
       const now=new Date();
       let firstTs=now.getTime(),lastTs=0,firstTx='N/A',lastTx='N/A',daysSinceActive=0,daysOnBase=0;
       if(actualTxCount>0){
@@ -977,7 +1006,6 @@ export default function Page(){
                 </div>
                 <div className="space-y-2.5">
                   {[
-                    {label:'Age Percentile',value:`Top ${100-wallet.onchainAgePercentile}%`,sub:`vs Base median`,bar:wallet.onchainAgePercentile,icon:<Calendar size={12} className="text-blue-400"/>},
                     {label:'DeFi Depth',value:`${wallet.uniqueProtocols} protocols`,sub:wallet.mostUsedProtocol!=='None'?`Fav: ${wallet.mostUsedProtocol}`:'No DeFi yet',bar:Math.min(100,wallet.uniqueProtocols*10),icon:<Landmark size={12} className="text-blue-300"/>},
                     {label:'Consistency',value:`${wallet.avgTxPerDay}/day`,sub:`Peak: ${wallet.peakDayTxCount} txs`,bar:Math.min(100,wallet.avgTxPerDay*20),icon:<Gauge size={12} className="text-blue-400"/>},
                   ].map((r,i)=>(
@@ -1128,7 +1156,6 @@ export default function Page(){
                 {([
                   {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                        i:<CreditCard size={15} className="text-blue-400"/>},
                   {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(),            i:<Calendar size={15} className="text-blue-300"/>},
-                  {l:'Age Percentile',   v:`Top ${100-wallet.onchainAgePercentile}%`,     i:<GitBranch size={15} className="text-blue-400"/>},
                   {l:'Active Days ✅',   v:wallet.uniqueDays.toString(),                  i:<Sun size={15} className="text-blue-400"/>},
                   {l:'Active Weeks ✅',  v:wallet.activeWeeks.toString(),                 i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Active Months ✅', v:wallet.activeMonths.toString(),                i:<Calendar size={15} className="text-blue-400"/>},
@@ -1608,4 +1635,4 @@ export default function Page(){
       `}</style>
     </main>
   );
-} 
+}
