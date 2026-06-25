@@ -1,17 +1,199 @@
 @import "tailwindcss";
 
+/* ── OG-matched brand palette ── */
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 245, 248, 255; /* Light Base Blue */
-  --background-end-rgb: 255, 255, 255;
+  --bg-deep: #00040d;
+  --bg-aurora: #001a4d;
+  --bg-panel: rgba(255, 255, 255, 0.04);
+  --bg-glass: rgba(255, 255, 255, 0.05);
+  --cyan: #00e5ff;
+  --blue: #0052ff;
+  --rose: #ff3366;
+  --rose-soft: #ff8fab;
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --border-glass: rgba(0, 229, 255, 0.18);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --glow-cyan: rgba(0, 229, 255, 0.35);
+  --glow-rose: rgba(255, 51, 102, 0.35);
+}
+
+@theme inline {
+  --color-brand-deep: #00040d;
+  --color-brand-cyan: #00e5ff;
+  --color-brand-blue: #0052ff;
+  --color-brand-rose: #ff3366;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: var(--text-primary);
+  background: var(--bg-deep);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Aurora background — matches OG image */
+.bg-aurora {
   background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-} 
+    125deg,
+    #001a4d 0%,
+    #00040d 35%,
+    #0a0018 70%,
+    #00040d 100%
+  );
+}
+
+.bg-grid-future {
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+}
+
+.glass-panel-accent {
+  background: rgba(0, 82, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #00e5ff 0%, #0052ff 55%, #ff3366 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #00e5ff 45%, #0052ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(90deg, #00e5ff, #0052ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-ring {
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.2),
+    0 0 24px var(--glow-cyan),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Primary CTA — OG pink-to-blue */
+.btn-primary {
+  background: linear-gradient(135deg, #ff3366, #0052ff);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 8px 32px var(--glow-rose);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff4d7a, #1a6bff);
+  box-shadow: 0 10px 36px rgba(255, 51, 102, 0.45);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: var(--border-glass);
+  color: #fff;
+}
+
+/* Live badge — OG season pill */
+.badge-live {
+  background: rgba(255, 51, 102, 0.15);
+  border: 1px solid rgba(255, 51, 102, 0.4);
+  color: var(--rose-soft);
+}
+
+/* Accent bar top of cards */
+.accent-bar {
+  height: 2px;
+  background: linear-gradient(90deg, #0052ff, #00e5ff, #ff3366);
+}
+
+/* Panel used across dashboard tabs */
+.theme-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+}
+
+.theme-panel-hover:hover {
+  border-color: rgba(0, 229, 255, 0.25);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.score-ring-glow {
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.65));
+}
+
+/* Tab active state override helper */
+.tab-active {
+  background: linear-gradient(135deg, #ff3366, #0052ff) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 20px var(--glow-rose);
+}

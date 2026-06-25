@@ -45,12 +45,12 @@ if (!wallet) return null;
 
   return (
           <div className="space-y-4">
-            <div className="relative overflow-hidden bg-linear-to-br from-blue-700 via-blue-600 to-blue-800 rounded-3xl p-5 sm:p-7 border border-blue-500/30 shadow-2xl shadow-blue-900/40">
+            <div className="relative overflow-hidden bg-linear-to-br from-rose-600 via-cyan-500 to-[#00040d] rounded-3xl p-5 sm:p-7 border border-cyan-500/30 shadow-2xl shadow-black/40">
               <div className="absolute inset-0 opacity-10" style={{backgroundImage:'linear-gradient(rgba(255,255,255,0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)',backgroundSize:'32px 32px'}}/>
               <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"/>
               <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5"><Star size={14} className="text-blue-200"/><span className="text-xs font-black uppercase tracking-widest text-white/60">{SEASON_NAME}</span></div>
+                  <div className="flex items-center gap-2 mb-1.5"><Star size={14} className="text-cyan-200"/><span className="text-xs font-black uppercase tracking-widest text-white/60">{SEASON_NAME}</span></div>
                   <h3 className="text-2xl sm:text-3xl font-black text-white">Season Pass</h3>
                   <p className="text-sm text-white/60 mt-0.5">{getDaysLeft()} days remaining · XP carries over weekly</p>
                   <div className="mt-4 w-full sm:max-w-xs">
@@ -72,21 +72,21 @@ if (!wallet) return null;
               {WEEKLY_QUESTS.map(q=>{
                 const done=q.check(wallet,boosts,streak,txKeys);
                 return(
-                  <div key={q.id} className={`rounded-2xl p-4 border flex items-center gap-4 justify-between transition-all ${done?'bg-blue-600/8 border-blue-500/25':'bg-[#0d1628] border-blue-500/15 hover:border-blue-500/25'}`}>
+                  <div key={q.id} className={`rounded-2xl p-4 border flex items-center gap-4 justify-between transition-all ${done?'bg-cyan-500/8 border-cyan-500/20':'bg-white/[0.04] border-cyan-500/15 hover:border-cyan-500/20'}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${done?'bg-blue-500/15 border border-blue-500/25':'bg-blue-950/40 border border-blue-800/20'}`}>{done?'✅':q.icon}</div>
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${done?'bg-cyan-500/12 border border-cyan-500/20':'bg-white/[0.04] border border-white/8'}`}>{done?'✅':q.icon}</div>
                       <div className="min-w-0">
-                        <p className={`font-black text-sm truncate ${done?'text-blue-300':'text-white'}`}>{q.title}</p>
-                        <p className="text-[10px] text-blue-400/40 truncate mt-0.5">{q.desc}</p>
+                        <p className={`font-black text-sm truncate ${done?'text-cyan-300':'text-white'}`}>{q.title}</p>
+                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{q.desc}</p>
                       </div>
                     </div>
-                    <div className={`shrink-0 px-3 py-2 rounded-xl font-black text-xs border whitespace-nowrap ${done?'bg-blue-500/10 text-blue-300 border-blue-500/20':'bg-blue-950/40 text-blue-400 border-blue-800/20'}`}>+{q.xp} XP</div>
+                    <div className={`shrink-0 px-3 py-2 rounded-xl font-black text-xs border whitespace-nowrap ${done?'bg-cyan-500/10 text-cyan-300 border-cyan-500/18':'bg-white/[0.04] text-cyan-400 border-white/8'}`}>+{q.xp} XP</div>
                   </div>
                 );
               })}
             </div>
-            <div className="bg-[#0d1628] border border-blue-500/15 rounded-2xl p-5">
-              <p className="font-black text-white mb-4 flex items-center gap-2"><Zap size={15} className="text-blue-400"/>XP Multipliers & Season Rewards</p>
+            <div className="bg-white/[0.04] border border-cyan-500/15 rounded-2xl p-5">
+              <p className="font-black text-white mb-4 flex items-center gap-2"><Zap size={15} className="text-cyan-400"/>XP Multipliers & Season Rewards</p>
               <div className="space-y-2">
                 {[
                   {l:'3-day check-in streak',b:'2× XP on all quests'},
@@ -97,9 +97,9 @@ if (!wallet) return null;
                   {l:'Mint all 11 badges',b:'Hall of Fame status'},
                   {l:'Weekly XP resets Mon',b:'Past weeks carry to Total Season XP'},
                 ].map((m,i)=>(
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-950/30 rounded-xl p-3 border border-blue-800/20 gap-2">
-                    <span className="text-xs text-blue-100/70">{m.l}</span>
-                    <span className="text-xs font-black text-blue-400 sm:text-right shrink-0">{m.b}</span>
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/[0.03] rounded-xl p-3 border border-white/8 gap-2">
+                    <span className="text-xs text-slate-200/70">{m.l}</span>
+                    <span className="text-xs font-black text-cyan-400 sm:text-right shrink-0">{m.b}</span>
                   </div>
                 ))}
               </div>

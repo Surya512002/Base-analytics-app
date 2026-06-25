@@ -27,15 +27,15 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
   ];
 
   return (
-    <div className="flex bg-[#0d1628] border border-blue-500/20 p-1 rounded-2xl mb-5 overflow-x-auto gap-0.5 no-scrollbar">
+    <div className="flex glass-panel p-1 rounded-2xl mb-5 overflow-x-auto gap-0.5 no-scrollbar">
       {tabs.map((t) => (
         <button
           key={t.id}
           onClick={() => onTabChange(t.id)}
           className={`flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-xl font-bold text-[11px] sm:text-xs whitespace-nowrap flex-1 transition-all ${
             tab === t.id
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-              : "text-blue-400/50 hover:text-blue-300 hover:bg-blue-950/60"
+              ? "tab-active shadow-lg"
+              : "text-slate-500 hover:text-cyan-300 hover:bg-white/5"
           }`}
         >
           {t.icon}

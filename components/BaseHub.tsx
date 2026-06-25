@@ -21,21 +21,21 @@ interface FarcasterCast { hash:string; text:string; author:{username:string;pfp_
 interface RawCast { hash:string; text:string; timestamp?:string; author?:{username?:string;pfp_url?:string;pfp?:{url?:string}}; reactions?:{likes_count?:number;recasts_count?:number}; replies?:{count?:number}; }
 
 const ECOSYSTEM_PROJECTS = [
-  { name:"Aerodrome",     category:"DeFi / DEX",         description:"The central trading and liquidity hub on Base. The most liquid DEX.",      url:"https://aerodrome.finance/",             icon:<Coins size={18}/>,     color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
+  { name:"Aerodrome",     category:"DeFi / DEX",         description:"The central trading and liquidity hub on Base. The most liquid DEX.",      url:"https://aerodrome.finance/",             icon:<Coins size={18}/>,     color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
   { name:"Uniswap",       category:"DeFi / DEX",         description:"World's largest DEX. Swap any token with deep liquidity on Base.",          url:"https://app.uniswap.org/",               icon:<Globe size={18}/>,     color:"text-pink-400",   bg:"bg-pink-500/10",    border:"hover:border-pink-500/30" },
   { name:"Alien Base",    category:"DeFi / DEX",         description:"Base-native DEX with high-yield farming and staking rewards.",              url:"https://alienbase.xyz/",                 icon:<Coins size={18}/>,     color:"text-green-400",  bg:"bg-green-500/10",   border:"hover:border-green-500/30" },
   { name:"BaseSwap",      category:"DeFi / DEX",         description:"Community-driven DEX built natively for the Base ecosystem.",               url:"https://baseswap.fi/",                   icon:<ArrowR size={18}/>,    color:"text-orange-400", bg:"bg-orange-500/10",  border:"hover:border-orange-500/30" },
   { name:"Dackieswap",    category:"DeFi / DEX",         description:"Cute duck-themed DEX with competitive fees and farming on Base.",           url:"https://www.dackieswap.xyz/",            icon:<Coins size={18}/>,     color:"text-yellow-400", bg:"bg-yellow-500/10",  border:"hover:border-yellow-500/30" },
   { name:"SynthSwap",     category:"DeFi / DEX",         description:"Decentralized exchange with liquidity incentives on Base.",                 url:"https://synthswap.io/",                  icon:<Coins size={18}/>,     color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/30" },
   { name:"Aave",          category:"DeFi / Lending",     description:"Gold-standard DeFi lending. Supply crypto to earn or borrow against.",      url:"https://app.aave.com/",                  icon:<TrendingUp size={18}/>,color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/30" },
-  { name:"Morpho",        category:"DeFi / Lending",     description:"Highly efficient peer-to-peer lending scaling rapidly on Base.",            url:"https://app.morpho.org/",                icon:<Layers size={18}/>,    color:"text-blue-400",   bg:"bg-blue-600/10",    border:"hover:border-blue-500/30" },
+  { name:"Morpho",        category:"DeFi / Lending",     description:"Highly efficient peer-to-peer lending scaling rapidly on Base.",            url:"https://app.morpho.org/",                icon:<Layers size={18}/>,    color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
   { name:"Moonwell",      category:"DeFi / Lending",     description:"Premier open lending and borrowing protocol built natively on Base.",        url:"https://moonwell.fi/",                   icon:<TrendingUp size={18}/>,color:"text-indigo-400", bg:"bg-indigo-500/10",  border:"hover:border-indigo-500/30" },
-  { name:"Seamless",      category:"DeFi / Lending",     description:"First decentralized native lending and borrowing protocol on Base.",         url:"https://seamlessprotocol.com/",          icon:<TrendingUp size={18}/>,color:"text-blue-300",   bg:"bg-blue-400/10",    border:"hover:border-blue-400/30" },
+  { name:"Seamless",      category:"DeFi / Lending",     description:"First decentralized native lending and borrowing protocol on Base.",         url:"https://seamlessprotocol.com/",          icon:<TrendingUp size={18}/>,color:"text-cyan-300",   bg:"bg-cyan-400/10",    border:"hover:border-cyan-400/30" },
   { name:"Compound",      category:"DeFi / Lending",     description:"Algorithmic, autonomous interest rate protocol deployed on Base.",           url:"https://app.compound.finance/",          icon:<TrendingUp size={18}/>,color:"text-green-400",  bg:"bg-green-500/10",   border:"hover:border-green-500/30" },
   { name:"Silo Finance",  category:"DeFi / Lending",     description:"Isolated lending markets for safer borrowing with any token.",               url:"https://app.silo.finance/",              icon:<Layers size={18}/>,    color:"text-amber-400",  bg:"bg-amber-500/10",   border:"hover:border-amber-500/30" },
   { name:"Synthetix",     category:"DeFi / Derivatives", description:"Trade perpetual futures and synthetic assets with deep liquidity.",          url:"https://synthetix.io/",                  icon:<LineChart size={18}/>, color:"text-indigo-400", bg:"bg-indigo-400/10",  border:"hover:border-indigo-400/30" },
   { name:"Kwenta",        category:"DeFi / Derivatives", description:"Advanced perpetual futures trading powered by Synthetix on Base.",           url:"https://kwenta.eth.limo/",               icon:<LineChart size={18}/>, color:"text-yellow-400", bg:"bg-yellow-500/10",  border:"hover:border-yellow-500/30" },
-  { name:"GMX",           category:"DeFi / Derivatives", description:"Decentralized spot and perpetual exchange with low swap fees on Base.",       url:"https://gmx.io/",                        icon:<LineChart size={18}/>, color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
+  { name:"GMX",           category:"DeFi / Derivatives", description:"Decentralized spot and perpetual exchange with low swap fees on Base.",       url:"https://gmx.io/",                        icon:<LineChart size={18}/>, color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
   { name:"Contango",      category:"DeFi / Derivatives", description:"Trade leveraged fixed-rate positions using lending protocols.",               url:"https://contango.xyz/",                  icon:<LineChart size={18}/>, color:"text-purple-400", bg:"bg-purple-500/10",  border:"hover:border-purple-500/30" },
   { name:"Warpcast",      category:"Social",             description:"Premier Farcaster client. Decentralized social network on Base.",            url:"https://warpcast.com/",                  icon:<MessageCircle size={18}/>,color:"text-purple-400",bg:"bg-purple-500/10", border:"hover:border-purple-500/30" },
   { name:"Farcaster",     category:"Social",             description:"Decentralized social protocol. Build your onchain identity and network.",    url:"https://www.farcaster.xyz/",             icon:<MessageCircle size={18}/>,color:"text-purple-300",bg:"bg-purple-400/10", border:"hover:border-purple-400/30" },
@@ -45,9 +45,9 @@ const ECOSYSTEM_PROJECTS = [
   { name:"Blackbird",     category:"Social / Loyalty",   description:"Earn crypto rewards for visiting your favorite restaurants onchain.",         url:"https://blackbird.xyz/",                 icon:<Award size={18}/>,     color:"text-slate-300",  bg:"bg-white/5",        border:"hover:border-white/20" },
   { name:"Zora",          category:"NFTs / Creators",    description:"Mint, collect, and create beautiful onchain media and NFT collections.",     url:"https://zora.co/",                       icon:<Palette size={18}/>,   color:"text-rose-400",   bg:"bg-rose-500/10",    border:"hover:border-rose-500/30" },
   { name:"Sound.xyz",     category:"Music / NFTs",       description:"Discover new music. Collect songs directly from artists onchain.",           url:"https://www.sound.xyz/",                 icon:<Palette size={18}/>,   color:"text-purple-400", bg:"bg-purple-500/10",  border:"hover:border-purple-500/30" },
-  { name:"BasePaint",     category:"NFTs / Art",         description:"Collaborative pixel art canvas where artists share mint revenue.",           url:"https://basepaint.xyz/",                 icon:<Palette size={18}/>,   color:"text-blue-400",   bg:"bg-blue-400/10",    border:"hover:border-blue-400/30" },
+  { name:"BasePaint",     category:"NFTs / Art",         description:"Collaborative pixel art canvas where artists share mint revenue.",           url:"https://basepaint.xyz/",                 icon:<Palette size={18}/>,   color:"text-cyan-400",   bg:"bg-cyan-400/10",    border:"hover:border-cyan-400/30" },
   { name:"Magic Eden",    category:"NFT Marketplace",    description:"Discover, trade, and collect top trending NFTs on the Base network.",        url:"https://magiceden.io/base",              icon:<Globe size={18}/>,     color:"text-fuchsia-400",bg:"bg-fuchsia-500/10", border:"hover:border-fuchsia-500/30" },
-  { name:"OpenSea",       category:"NFT Marketplace",    description:"The world's largest NFT marketplace, fully integrated with Base.",           url:"https://opensea.io/",                    icon:<Globe size={18}/>,     color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
+  { name:"OpenSea",       category:"NFT Marketplace",    description:"The world's largest NFT marketplace, fully integrated with Base.",           url:"https://opensea.io/",                    icon:<Globe size={18}/>,     color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
   { name:"Foundation",    category:"NFTs / Art",         description:"Premier destination to discover and collect exclusive digital art.",          url:"https://foundation.app/",                icon:<Palette size={18}/>,   color:"text-slate-300",  bg:"bg-white/5",        border:"hover:border-white/20" },
   { name:"Manifold",      category:"NFTs / Creators",    description:"Professional NFT creation tools. Launch your own smart contract.",           url:"https://manifold.xyz/",                  icon:<Palette size={18}/>,   color:"text-orange-400", bg:"bg-orange-500/10",  border:"hover:border-orange-500/30" },
   { name:"Highlight",     category:"NFTs / Creators",    description:"Create, mint, and distribute NFTs at scale with powerful tools.",            url:"https://highlight.xyz/",                 icon:<Palette size={18}/>,   color:"text-yellow-400", bg:"bg-yellow-500/10",  border:"hover:border-yellow-500/30" },
@@ -59,29 +59,29 @@ const ECOSYSTEM_PROJECTS = [
   { name:"Moxy",          category:"Gaming / E-Sports",  description:"Compete in skill-based games and tournaments to win real crypto.",           url:"https://moxy.io/",                       icon:<Gamepad2 size={18}/>,  color:"text-red-400",    bg:"bg-red-500/10",     border:"hover:border-red-500/30" },
   { name:"Onchain Heroes",category:"Gaming / RPG",       description:"Browser-based onchain RPG with tokenized heroes and quests.",                url:"https://www.onchainhero.io/",            icon:<Gamepad2 size={18}/>,  color:"text-amber-400",  bg:"bg-amber-500/10",   border:"hover:border-amber-500/30" },
   { name:"Isekai Meta",   category:"Gaming / RPG",       description:"Onchain anime RPG with character NFTs and battle mechanics on Base.",        url:"https://isekaimeta.com/",                icon:<Gamepad2 size={18}/>,  color:"text-purple-400", bg:"bg-purple-500/10",  border:"hover:border-purple-500/30" },
-  { name:"Basenames",     category:"Identity",           description:"Claim your unique .base.eth username and build your onchain reputation.",    url:"https://www.base.org/names",             icon:<Fingerprint size={18}/>,color:"text-blue-400",  bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
-  { name:"ENS",           category:"Identity",           description:"Ethereum Name Service. Your .eth identity works everywhere on Base.",        url:"https://app.ens.domains/",               icon:<Fingerprint size={18}/>,color:"text-blue-300",  bg:"bg-blue-400/10",    border:"hover:border-blue-400/30" },
-  { name:"Coinbase ID",   category:"Identity",           description:"Verified onchain identity backed by Coinbase. One click verification.",      url:"https://www.coinbase.com/onchain-verify",icon:<Fingerprint size={18}/>,color:"text-blue-500",  bg:"bg-blue-600/10",    border:"hover:border-blue-600/30" },
+  { name:"Basenames",     category:"Identity",           description:"Claim your unique .base.eth username and build your onchain reputation.",    url:"https://www.base.org/names",             icon:<Fingerprint size={18}/>,color:"text-cyan-400",  bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
+  { name:"ENS",           category:"Identity",           description:"Ethereum Name Service. Your .eth identity works everywhere on Base.",        url:"https://app.ens.domains/",               icon:<Fingerprint size={18}/>,color:"text-cyan-300",  bg:"bg-cyan-400/10",    border:"hover:border-cyan-400/30" },
+  { name:"Coinbase ID",   category:"Identity",           description:"Verified onchain identity backed by Coinbase. One click verification.",      url:"https://www.coinbase.com/onchain-verify",icon:<Fingerprint size={18}/>,color:"text-rose-400",  bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/30" },
   { name:"Neynar",        category:"Dev Tools",          description:"The ultimate Farcaster developer hub. Build social AI agents instantly.",    url:"https://neynar.com/",                    icon:<Cpu size={18}/>,       color:"text-yellow-400", bg:"bg-yellow-500/10",  border:"hover:border-yellow-500/30" },
   { name:"Thirdweb",      category:"Dev Tools",          description:"Complete Web3 dev framework. Deploy contracts and build dApps in minutes.",  url:"https://thirdweb.com/",                  icon:<Code size={18}/>,      color:"text-fuchsia-400",bg:"bg-fuchsia-600/10", border:"hover:border-fuchsia-500/30" },
   { name:"Privy",         category:"Dev Tools",          description:"Drop-in Web3 auth. Let users sign in with email, social, or wallets.",       url:"https://www.privy.io/",                  icon:<Fingerprint size={18}/>,color:"text-sky-400",   bg:"bg-sky-500/10",     border:"hover:border-sky-500/30" },
-  { name:"Coinbase CDP",  category:"Dev Tools",          description:"Coinbase Developer Platform. Build secure scalable onchain applications.",   url:"https://portal.cdp.coinbase.com/",       icon:<Cpu size={18}/>,       color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
-  { name:"Alchemy",       category:"Dev Tools",          description:"Web3 development platform. Reliable Base RPC, NFT APIs, and indexing.",      url:"https://www.alchemy.com/",               icon:<Cpu size={18}/>,       color:"text-blue-300",   bg:"bg-blue-400/10",    border:"hover:border-blue-400/30" },
+  { name:"Coinbase CDP",  category:"Dev Tools",          description:"Coinbase Developer Platform. Build secure scalable onchain applications.",   url:"https://portal.cdp.coinbase.com/",       icon:<Cpu size={18}/>,       color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
+  { name:"Alchemy",       category:"Dev Tools",          description:"Web3 development platform. Reliable Base RPC, NFT APIs, and indexing.",      url:"https://www.alchemy.com/",               icon:<Cpu size={18}/>,       color:"text-cyan-300",   bg:"bg-cyan-400/10",    border:"hover:border-cyan-400/30" },
   { name:"QuickNode",     category:"Dev Tools",          description:"Fast Base RPC provider with analytics, alerts, and add-ons.",                url:"https://www.quicknode.com/",             icon:<Cpu size={18}/>,       color:"text-orange-400", bg:"bg-orange-500/10",  border:"hover:border-orange-500/30" },
   { name:"Hardhat",       category:"Dev Tools",          description:"Ethereum dev environment with Base network support. Test and deploy easily.", url:"https://hardhat.org/",                   icon:<Code size={18}/>,      color:"text-yellow-500", bg:"bg-yellow-500/10",  border:"hover:border-yellow-500/30" },
   { name:"Foundry",       category:"Dev Tools",          description:"Blazing fast Solidity testing framework. The go-to for Base devs.",          url:"https://getfoundry.sh/",                 icon:<Code size={18}/>,      color:"text-red-400",    bg:"bg-red-500/10",     border:"hover:border-red-500/30" },
   { name:"Guild",         category:"Community Tools",    description:"Automate membership and create token-gated roles for any community.",        url:"https://guild.xyz/base",                 icon:<Users size={18}/>,     color:"text-slate-400",  bg:"bg-white/5",        border:"hover:border-white/20" },
   { name:"Superfluid",    category:"Dev Tools",          description:"Real-time finance protocol. Stream tokens by the second on Base.",           url:"https://www.superfluid.finance/",        icon:<Layers size={18}/>,    color:"text-green-400",  bg:"bg-green-500/10",   border:"hover:border-green-500/30" },
-  { name:"Base Bridge",   category:"Bridge",             description:"Official Coinbase bridge. Move ETH and tokens between Ethereum and Base.",   url:"https://bridge.base.org/",               icon:<ArrowR size={18}/>,    color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
+  { name:"Base Bridge",   category:"Bridge",             description:"Official Coinbase bridge. Move ETH and tokens between Ethereum and Base.",   url:"https://bridge.base.org/",               icon:<ArrowR size={18}/>,    color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
   { name:"Across",        category:"Bridge",             description:"Fastest token bridge powered by UMA's optimistic oracle on Base.",           url:"https://across.to/",                     icon:<ArrowR size={18}/>,    color:"text-green-400",  bg:"bg-green-500/10",   border:"hover:border-green-500/30" },
-  { name:"Stargate",      category:"Bridge",             description:"Fully composable native asset bridge with unified liquidity pools.",         url:"https://stargate.finance/",              icon:<ArrowR size={18}/>,    color:"text-blue-300",   bg:"bg-blue-400/10",    border:"hover:border-blue-400/30" },
+  { name:"Stargate",      category:"Bridge",             description:"Fully composable native asset bridge with unified liquidity pools.",         url:"https://stargate.finance/",              icon:<ArrowR size={18}/>,    color:"text-cyan-300",   bg:"bg-cyan-400/10",    border:"hover:border-cyan-400/30" },
   { name:"Socket",        category:"Bridge",             description:"Cross-chain interoperability protocol. Move assets anywhere.",               url:"https://www.socket.tech/",               icon:<ArrowR size={18}/>,    color:"text-purple-400", bg:"bg-purple-500/10",  border:"hover:border-purple-500/30" },
   { name:"Relay",         category:"Bridge",             description:"Instant cross-chain bridge with gasless execution on Base.",                 url:"https://relay.link/",                    icon:<ArrowR size={18}/>,    color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/30" },
-  { name:"Circle USDC",   category:"Stablecoins",        description:"Native USDC on Base. The most trusted stablecoin, natively issued.",         url:"https://www.circle.com/usdc",            icon:<Coins size={18}/>,     color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
-  { name:"Coinbase Pay",  category:"Payments",           description:"Onramp fiat to crypto instantly. Buy Base ETH with card or bank.",           url:"https://pay.coinbase.com/",              icon:<Coins size={18}/>,     color:"text-blue-500",   bg:"bg-blue-600/10",    border:"hover:border-blue-600/30" },
+  { name:"Circle USDC",   category:"Stablecoins",        description:"Native USDC on Base. The most trusted stablecoin, natively issued.",         url:"https://www.circle.com/usdc",            icon:<Coins size={18}/>,     color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
+  { name:"Coinbase Pay",  category:"Payments",           description:"Onramp fiat to crypto instantly. Buy Base ETH with card or bank.",           url:"https://pay.coinbase.com/",              icon:<Coins size={18}/>,     color:"text-rose-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/30" },
   { name:"Dune Analytics",category:"Data",               description:"Query, visualize, and share Base blockchain data with SQL.",                 url:"https://dune.com/",                      icon:<BarChart3 size={18}/>, color:"text-orange-400", bg:"bg-orange-500/10",  border:"hover:border-orange-500/30" },
   { name:"Dexscreener",   category:"Data",               description:"Live price charts, trending tokens, and DEX analytics on Base.",             url:"https://dexscreener.com/base",           icon:<LineChart size={18}/>, color:"text-green-400",  bg:"bg-green-500/10",   border:"hover:border-green-500/30" },
-  { name:"Basescan",      category:"Data",               description:"Official Base block explorer. Track transactions, addresses, and contracts.", url:"https://basescan.org/",                  icon:<Globe size={18}/>,     color:"text-blue-400",   bg:"bg-blue-500/10",    border:"hover:border-blue-500/30" },
+  { name:"Basescan",      category:"Data",               description:"Official Base block explorer. Track transactions, addresses, and contracts.", url:"https://basescan.org/",                  icon:<Globe size={18}/>,     color:"text-cyan-400",   bg:"bg-cyan-500/10",    border:"hover:border-cyan-500/28" },
   { name:"DefiLlama",     category:"Data",               description:"Trustless, accurate DeFi TVL data and analytics for Base protocols.",        url:"https://defillama.com/chain/Base",       icon:<BarChart3 size={18}/>, color:"text-teal-400",   bg:"bg-teal-500/10",    border:"hover:border-teal-500/30" },
 ];
 
@@ -328,14 +328,15 @@ export default function BaseHub(){
   const neynarScore=fcResult?Number(fcResult.reputation):0;
 
   // Neynar score tier color
-  const scoreColor=neynarScore>=8?'text-yellow-400':neynarScore>=6?'text-blue-400':neynarScore>=4?'text-purple-400':'text-slate-400';
-  const scoreBg=neynarScore>=8?'bg-yellow-500/10 border-yellow-500/25':neynarScore>=6?'bg-blue-500/10 border-blue-500/25':neynarScore>=4?'bg-purple-500/10 border-purple-500/25':'bg-white/5 border-white/8';
+  const scoreColor=neynarScore>=8?'text-yellow-400':neynarScore>=6?'text-cyan-400':neynarScore>=4?'text-purple-400':'text-slate-400';
+  const scoreBg=neynarScore>=8?'bg-yellow-500/10 border-yellow-500/25':neynarScore>=6?'bg-cyan-500/10 border-cyan-500/20':neynarScore>=4?'bg-purple-500/10 border-purple-500/25':'bg-white/5 border-white/8';
 
-  const APP_WEBSITE_URL='https://base-analytics-app.vercel.app/';
+  const APP_WEBSITE_URL='https://base-analytics-app.vercel.app';
   const FARCASTER_MINI_APP_URL='https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics';
   const shareMsg=fcResult?`I scored ${fcResult.reputation}/10 Neynar Score on Base Analytics! 🔵🚀`:'';
-  const xLink=`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}&url=${encodeURIComponent(APP_WEBSITE_URL)}`;
-  const fcLink=`https://warpcast.com/~/compose?text=${encodeURIComponent(shareMsg)}&embeds[]=${encodeURIComponent(FARCASTER_MINI_APP_URL)}`;
+  const sharePageUrl=fcResult?`${APP_WEBSITE_URL}/share?score=${Math.round(Number(fcResult.reputation)*10)}&rank=Neynar+${fcResult.reputation}%2F10&title=Neynar+Score+${fcResult.reputation}%2F10&v=score`:'';
+  const xLink=`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}&url=${encodeURIComponent(sharePageUrl||APP_WEBSITE_URL)}`;
+  const fcLink=`https://warpcast.com/~/compose?text=${encodeURIComponent(shareMsg)}&embeds[]=${encodeURIComponent(sharePageUrl||FARCASTER_MINI_APP_URL)}`;
 
   const coins=getDisplayedCoins();
 
@@ -352,7 +353,7 @@ export default function BaseHub(){
             <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
               {[['trending','Trending'],['gainers','Gainers'],['losers','Losers']].map(([id,label])=>(
                 <button key={id} onClick={()=>setTokenTab(id as typeof tokenTab)}
-                  className={`px-3 py-1.5 text-[10px] flex items-center gap-1 font-black uppercase rounded-lg transition ${tokenTab===id?id==='gainers'?'bg-green-600 text-white':id==='losers'?'bg-red-600 text-white':'bg-blue-600 text-white':'text-slate-600 hover:text-slate-400'}`}>
+                  className={`px-3 py-1.5 text-[10px] flex items-center gap-1 font-black uppercase rounded-lg transition ${tokenTab===id?id==='gainers'?'bg-green-600 text-white':id==='losers'?'bg-red-600 text-white':'btn-primary text-white':'text-slate-600 hover:text-slate-400'}`}>
                   {id==='trending'?<Flame size={10}/>:id==='gainers'?<TrendingUp size={10}/>:<TrendingDown size={10}/>}{label}
                 </button>
               ))}
@@ -370,7 +371,7 @@ export default function BaseHub(){
             const change=timeframe==='24h'?coin.change24h:timeframe==='7d'?coin.change7d:coin.change30d;
             const up=change>=0;
             return(
-              <div key={idx} className="bg-[#13182a] border border-white/6 rounded-2xl p-4 flex flex-col items-center text-center relative group hover:border-blue-500/30 transition-colors">
+              <div key={idx} className="bg-[#13182a] border border-white/6 rounded-2xl p-4 flex flex-col items-center text-center relative group hover:border-cyan-500/28 transition-colors">
                 <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-1 truncate w-full">{coin.name}</span>
                 <h4 className="font-black text-base text-white tracking-tight leading-none mb-2">{coin.symbol}</h4>
                 <p className="text-sm font-black text-slate-300 mb-2">${coin.price<0.01?coin.price.toFixed(4):coin.price.toFixed(2)}</p>
@@ -378,7 +379,7 @@ export default function BaseHub(){
                   {up?<ArrowUp size={9}/>:<ArrowDown size={9}/>}{Math.abs(change).toFixed(1)}%
                 </div>
                 <a href={`https://dexscreener.com/search?q=${coin.symbol}`} target="_blank" rel="noopener noreferrer"
-                  className="absolute inset-x-2 bottom-2 bg-blue-600 text-white text-[10px] font-black py-1.5 rounded-xl flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  className="absolute inset-x-2 bottom-2 btn-primary text-white text-[10px] font-black py-1.5 rounded-xl flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <ShoppingCart size={10}/> Trade
                 </a>
               </div>
@@ -423,7 +424,7 @@ export default function BaseHub(){
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black bg-white/5 text-slate-400 border border-white/8 px-2 py-1 rounded-lg">FID #{fcResult.fid}</span>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400 border-yellow-500/20':fcResult.tier==='Active Caster'?'bg-blue-500/10 text-blue-400 border-blue-500/20':fcResult.tier==='Regular'?'bg-purple-500/10 text-purple-400 border-purple-500/20':'bg-white/5 text-slate-500 border-white/8'}`}>{fcResult.tier}</span>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400 border-yellow-500/20':fcResult.tier==='Active Caster'?'bg-cyan-500/10 text-cyan-400 border-cyan-500/18':fcResult.tier==='Regular'?'bg-purple-500/10 text-purple-400 border-purple-500/20':'bg-white/5 text-slate-500 border-white/8'}`}>{fcResult.tier}</span>
                     <span className="text-[10px] font-black bg-white/5 text-slate-400 border border-white/8 px-2 py-1 rounded-lg flex items-center gap-1"><Calendar size={9}/>Joined {fcResult.joinedDate}</span>
                   </div>
                   {fcResult.bio&&<p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{fcResult.bio}</p>}
@@ -437,7 +438,7 @@ export default function BaseHub(){
               {/* Top 3 stat pills like Farcoin header */}
               <div className="grid grid-cols-3 gap-3 mb-5">
                 {[
-                  {label:'FOLLOWERS',value:fcResult.followers.toLocaleString(),icon:<Users size={13}/>,color:'text-blue-400'},
+                  {label:'FOLLOWERS',value:fcResult.followers.toLocaleString(),icon:<Users size={13}/>,color:'text-cyan-400'},
                   {label:'FOLLOWING',value:fcResult.following.toLocaleString(),icon:<Users size={13}/>,color:'text-purple-400'},
                   {label:'FID AGE',value:fcResult.fidAgeLabel,icon:<Clock size={13}/>,color:'text-green-400'},
                 ].map((s,i)=>(
@@ -457,11 +458,11 @@ export default function BaseHub(){
               {/* ── Metric rows (like Farcoin's FID age / Followers rows) ── */}
               <div className="space-y-2">
                 {[
-                  {icon:<Clock size={15} className="text-blue-400"/>,label:`FID Age: ${fcResult.fidAgeMonths} months`,value:`+${Math.round(fcResult.fidAgeMonths*200)} XP`,color:'text-green-400'},
+                  {icon:<Clock size={15} className="text-cyan-400"/>,label:`FID Age: ${fcResult.fidAgeMonths} months`,value:`+${Math.round(fcResult.fidAgeMonths*200)} XP`,color:'text-green-400'},
                   {icon:<Users size={15} className="text-purple-400"/>,label:`Followers: ${fcResult.followers.toLocaleString()}`,value:fcResult.followers>5000?`+${Math.round(fcResult.followers/50)} XP`:'Grow your audience',color:fcResult.followers>5000?'text-green-400':'text-slate-500'},
-                  {icon:<Hash size={15} className="text-orange-400"/>,label:`FID Number: #${fcResult.fid.toLocaleString()}`,value:fcResult.fid<10000?'OG Early Adopter 🛸':fcResult.fid<100000?'Early Member':'Standard',color:fcResult.fid<10000?'text-yellow-400':fcResult.fid<100000?'text-blue-400':'text-slate-500'},
+                  {icon:<Hash size={15} className="text-orange-400"/>,label:`FID Number: #${fcResult.fid.toLocaleString()}`,value:fcResult.fid<10000?'OG Early Adopter 🛸':fcResult.fid<100000?'Early Member':'Standard',color:fcResult.fid<10000?'text-yellow-400':fcResult.fid<100000?'text-cyan-400':'text-slate-500'},
                   {icon:<ShieldCheck size={15} className="text-green-400"/>,label:`Verifications: ${fcResult.verifications}`,value:fcResult.verifications>0?'Verified ✓':'Not verified',color:fcResult.verifications>0?'text-green-400':'text-slate-500'},
-                  {icon:<Star size={15} className="text-yellow-400"/>,label:'Most Influential Follower',value:fcResult.topFollower,color:'text-blue-300'},
+                  {icon:<Star size={15} className="text-yellow-400"/>,label:'Most Influential Follower',value:fcResult.topFollower,color:'text-cyan-300'},
                 ].map((row,i)=>(
                   <div key={i} className="flex items-center justify-between bg-white/3 hover:bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -490,7 +491,7 @@ export default function BaseHub(){
                     ))}
                   </div>
                   <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
-                    <button onClick={()=>setFeedTab('stats')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='stats'?'bg-blue-600 text-white':'text-slate-600 hover:text-slate-400'}`}>Stats</button>
+                    <button onClick={()=>setFeedTab('stats')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='stats'?'btn-primary text-white':'text-slate-600 hover:text-slate-400'}`}>Stats</button>
                     <button onClick={()=>setFeedTab('casts')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='casts'?'bg-purple-600 text-white':'text-slate-600 hover:text-slate-400'}`}>Casts</button>
                   </div>
                 </div>
@@ -501,7 +502,7 @@ export default function BaseHub(){
                   {/* 4 top stat cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                      {icon:<MessageCircle size={18}/>,label:'Total Casts',val:castAnalytics.totalCasts,c:'text-blue-400',bg:'bg-blue-500/10'},
+                      {icon:<MessageCircle size={18}/>,label:'Total Casts',val:castAnalytics.totalCasts,c:'text-cyan-400',bg:'bg-cyan-500/10'},
                       {icon:<Heart size={18}/>,label:'Total Likes',val:castAnalytics.totalLikes,c:'text-red-400',bg:'bg-red-500/10'},
                       {icon:<Repeat size={18}/>,label:'Recasts',val:castAnalytics.totalRecasts,c:'text-green-400',bg:'bg-green-500/10'},
                       {icon:<MessageSquare size={18}/>,label:'Replies',val:castAnalytics.totalReplies,c:'text-purple-400',bg:'bg-purple-500/10'},
@@ -518,7 +519,7 @@ export default function BaseHub(){
                   <div className="space-y-2">
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Detailed Breakdown</p>
                     {[
-                      {icon:<Calendar size={15} className="text-blue-400"/>,label:'Active Cast Days',value:`${castAnalytics.castDays} days`,sub:`out of ${analyticsTimeframe==='24h'?1:analyticsTimeframe==='3d'?3:analyticsTimeframe==='7d'?7:analyticsTimeframe==='14d'?14:30} days`,positive:castAnalytics.castDays>0},
+                      {icon:<Calendar size={15} className="text-cyan-400"/>,label:'Active Cast Days',value:`${castAnalytics.castDays} days`,sub:`out of ${analyticsTimeframe==='24h'?1:analyticsTimeframe==='3d'?3:analyticsTimeframe==='7d'?7:analyticsTimeframe==='14d'?14:30} days`,positive:castAnalytics.castDays>0},
                       {icon:<Flame size={15} className="text-orange-400"/>,label:'Longest Streak',value:`${castAnalytics.longestStreak} days`,sub:'consecutive days casting',positive:castAnalytics.longestStreak>3},
                       {icon:<Zap size={15} className="text-yellow-400"/>,label:'Current Streak',value:`${castAnalytics.currentStreak} days`,sub:castAnalytics.currentStreak>0?'keep it going!':'streak broken',positive:castAnalytics.currentStreak>0},
                       {icon:<BarChart3 size={15} className="text-cyan-400"/>,label:'Avg Casts / Day',value:`${castAnalytics.avgPerDay}`,sub:'over selected period',positive:castAnalytics.avgPerDay>1},
@@ -546,7 +547,7 @@ export default function BaseHub(){
                       {[
                         {label:'Neynar Score',val:fcResult.reputation,max:10,color:'#8A2BE2',icon:<Cpu size={12} className="text-purple-400"/>,desc:'Farcaster network trust score'},
                         {label:'Ethos Credential',val:ethosScore,max:1000,color:'#10b981',icon:<ShieldCheck size={12} className="text-emerald-400"/>,desc:'Onchain reputation credential'},
-                        {label:'Social Quotient',val:quotientScore,max:100,color:'#3b82f6',icon:<Zap size={12} className="text-blue-400"/>,desc:'Overall social influence index'},
+                        {label:'Social Quotient',val:quotientScore,max:100,color:'#00E5FF',icon:<Zap size={12} className="text-cyan-400"/>,desc:'Overall social influence index'},
                       ].map((s,i)=>(
                         <div key={i}>
                           <div className="flex justify-between items-center mb-1.5">
@@ -569,7 +570,7 @@ export default function BaseHub(){
                 </div>
               ):feedTab==='stats'?(
                 <div className="text-center py-8">
-                  <RefreshCcw className="animate-spin text-blue-500 mx-auto mb-3" size={24}/>
+                  <RefreshCcw className="animate-spin text-rose-400 mx-auto mb-3" size={24}/>
                   <p className="text-slate-500 text-sm">Loading cast analytics...</p>
                 </div>
               ):(
@@ -591,7 +592,7 @@ export default function BaseHub(){
                             <p className="text-xs text-slate-300 leading-relaxed">{cast.text}</p>
                             <div className="flex items-center gap-3 mt-2">
                               <span className="flex items-center gap-1 text-[10px] text-red-400 font-bold"><Heart size={9}/>{cast.likes}</span>
-                              <span className="text-[10px] text-slate-600 group-hover:text-blue-400 transition">View on Warpcast ↗</span>
+                              <span className="text-[10px] text-slate-600 group-hover:text-cyan-400 transition">View on Warpcast ↗</span>
                             </div>
                           </div>
                         </a>
@@ -645,14 +646,14 @@ export default function BaseHub(){
             <Globe size={13}/> Explore the Ecosystem <span className="text-slate-700 font-bold normal-case">({filteredProjects.length} apps)</span>
           </h3>
           <div className="relative w-full sm:w-auto">
-            <input value={ecoSearch} onChange={e=>setEcoSearch(e.target.value)} placeholder="Search apps..." className="w-full sm:w-48 bg-white/4 border border-white/6 rounded-xl px-3 py-2 pl-8 text-xs font-bold text-slate-400 outline-none focus:border-blue-500/40 placeholder-slate-700"/>
+            <input value={ecoSearch} onChange={e=>setEcoSearch(e.target.value)} placeholder="Search apps..." className="w-full sm:w-48 bg-white/4 border border-white/6 rounded-xl px-3 py-2 pl-8 text-xs font-bold text-slate-400 outline-none focus:border-cyan-500/40 placeholder-slate-700"/>
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-700"/>
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
           {CATEGORIES.map(cat=>(
             <button key={cat} onClick={()=>setEcoCategory(cat)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition ${ecoCategory===cat?'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20':'bg-white/4 text-slate-600 border-white/6 hover:border-white/15 hover:text-slate-400'}`}>{cat}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition ${ecoCategory===cat?'btn-primary text-white border-blue-600 shadow-lg shadow-cyan-500/18':'bg-white/4 text-slate-600 border-white/6 hover:border-white/15 hover:text-slate-400'}`}>{cat}
             </button>
           ))}
         </div>

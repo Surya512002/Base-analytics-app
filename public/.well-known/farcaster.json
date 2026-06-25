@@ -9,10 +9,10 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image.png",
-    "buttonTitle": "Check Score",
+    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image",
+    "buttonTitle": "Check Score & Mint Badges",
     "splashImageUrl": "https://base-analytics-app.vercel.app/icon.png",
-    "splashBackgroundColor": "#000510",
+    "splashBackgroundColor": "#00040d",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
     "primaryCategory": "finance",
     "tags": [

@@ -1,17 +1,47 @@
 "use client";
 
-import BaseHub from "@/components/BaseHub";
+import dynamic from "next/dynamic";
+import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectScreen from "@/components/wallet/ConnectScreen";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
 import PremiumBanner from "@/components/wallet/PremiumBanner";
 import TabBar from "@/components/wallet/TabBar";
 import ToastNotification from "@/components/wallet/ToastNotification";
-import AchievementsTab from "@/components/wallet/tabs/AchievementsTab";
-import DashboardTab from "@/components/wallet/tabs/DashboardTab";
-import LeaderboardTab from "@/components/wallet/tabs/LeaderboardTab";
-import QuestsTab from "@/components/wallet/tabs/QuestsTab";
 import { useWalletApp } from "@/hooks/useWalletApp";
+
+const DashboardTab = dynamic(
+  () => import("@/components/wallet/tabs/DashboardTab"),
+  { loading: () => <TabSkeleton /> }
+);
+const AchievementsTab = dynamic(
+  () => import("@/components/wallet/tabs/AchievementsTab"),
+  { loading: () => <TabSkeleton /> }
+);
+const QuestsTab = dynamic(
+  () => import("@/components/wallet/tabs/QuestsTab"),
+  { loading: () => <TabSkeleton /> }
+);
+const LeaderboardTab = dynamic(
+  () => import("@/components/wallet/tabs/LeaderboardTab"),
+  { loading: () => <TabSkeleton /> }
+);
+const BaseHub = dynamic(() => import("@/components/BaseHub"), {
+  loading: () => <TabSkeleton />,
+});
+
+function TabSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-32 glass-panel rounded-3xl" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-24 glass-panel rounded-2xl" />
+        <div className="h-24 glass-panel rounded-2xl" />
+      </div>
+      <div className="h-48 glass-panel rounded-3xl" />
+    </div>
+  );
+}
 
 export default function Page() {
   const app = useWalletApp();
@@ -54,15 +84,8 @@ export default function Page() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] text-white font-sans">
-      <div
-        className="fixed inset-0 pointer-events-none opacity-20"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
+    <main className="min-h-screen text-white font-sans relative">
+      <AppBackground />
 
       {toast && (
         <ToastNotification
@@ -78,7 +101,7 @@ export default function Page() {
         onDisconnect={handleDisconnect}
       />
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
+      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
         <PremiumBanner
           premiumUnlocked={premiumUnlocked}
           premiumLoading={premiumLoading}
@@ -95,12 +118,6 @@ export default function Page() {
         {tab === "leaderboard" && <LeaderboardTab app={app} />}
         {tab === "basehub" && <BaseHub />}
       </div>
-
-      <style>{`
-        @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
-        .no-scrollbar::-webkit-scrollbar{display:none}
-        .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
-      `}</style>
     </main>
   );
 }

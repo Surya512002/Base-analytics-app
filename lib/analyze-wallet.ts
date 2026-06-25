@@ -27,6 +27,11 @@ import { ACHIEVEMENTS, MONTH_NAMES } from "@/lib/constants/season";
 import { getTargetTokenId } from "@/lib/utils/achievements";
 import { getDayKey, getMonthKey, getWeekKey } from "@/lib/utils/dates";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
+import {
+  computeScoreComponents,
+  computeTotalScore,
+  computeWalletRank,
+} from "@/lib/utils/score";
 import type {
   AlchemyTransfer,
   AnalyzeWalletResult,
@@ -495,24 +500,26 @@ export async function analyzeWalletAddress(
     Math.round(recentDays * 3 + Math.min(10, uMonths.size))
   );
 
-  const scoreComponents: Record<string, number> = {
-    txActivity: Math.min(25, actualTxCount / 20),
-    consistency: Math.min(20, uDays.size / 4),
-    longevity: Math.min(15, uMonths.size * 1.25),
-    streak: Math.min(15, curStreak * 2),
-    volume: Math.min(10, ethVol * 10),
-    diversity: Math.min(10, uTokens.size),
-    defiUsage: Math.min(5, defi),
-  };
-  const score = Math.min(
-    100,
-    Math.floor(Object.values(scoreComponents).reduce((a, b) => a + b, 0))
-  );
-  let walletRank = "Base Shrimp 🦐";
-  if (score >= 30) walletRank = "Base Dolphin 🐬";
-  if (score >= 50) walletRank = "Base Shark 🦈";
-  if (score >= 70) walletRank = "Base Whale 🐋";
-  if (score >= 85) walletRank = "Base God 👑";
+  const scoreComponents = computeScoreComponents({
+    txCount: actualTxCount,
+    uniqueDays: uDays.size,
+    activeMonths: uMonths.size,
+    activeWeeks: uWeeks.size,
+    currentStreak: curStreak,
+    longestStreak: longest,
+    ethVol,
+    uniqueTokens: uTokens.size,
+    defiInteractions: defi,
+    uniqueContracts: uContracts.size,
+    nftCount,
+    dexTradeCount,
+    bridgeTxCount,
+    hasBasename: !!bn,
+    gmCount,
+    checkInCount,
+  });
+  const score = computeTotalScore(scoreComponents);
+  const walletRank = computeWalletRank(score);
 
   const ethBalNum = parseFloat(formatEther(balWei));
   const portfolioValueUSD = parseFloat((ethBalNum * ethUSD).toFixed(2));

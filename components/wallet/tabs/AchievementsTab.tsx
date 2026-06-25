@@ -57,10 +57,10 @@ if (!wallet) return null;
   return (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-black text-blue-400/40 uppercase tracking-widest flex items-center gap-2"><Trophy size={12}/>Mint Your Identity</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Trophy size={12}/>Mint Your Identity</p>
               {mintedCount>0&&<div className="flex gap-1.5">
-                <button onClick={()=>shareAll(mintedCount,'w')} className="bg-[#0d1628] border border-blue-500/20 hover:bg-blue-600/15 text-blue-400/60 p-2 rounded-xl transition-all"><Send size={13}/></button>
-                <button onClick={()=>shareAll(mintedCount,'t')} className="bg-[#0d1628] border border-blue-500/20 hover:bg-blue-600/15 text-blue-400/60 p-2 rounded-xl transition-all"><Twitter size={13}/></button>
+                <button onClick={()=>shareAll(mintedCount,'w')} className="bg-white/[0.04] border border-cyan-500/18 hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Send size={13}/></button>
+                <button onClick={()=>shareAll(mintedCount,'t')} className="bg-white/[0.04] border border-cyan-500/18 hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Twitter size={13}/></button>
               </div>}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
@@ -86,24 +86,24 @@ if (!wallet) return null;
                 if(mintedTier===cat.thresholds.length)btnText='Fully Minted 👑';
                 else if(canMint)btnText=isBatch?`Claim ${toMint.length} Badges 🚀`:`Mint ${cat.tierNames[mintedTier]}`;
                 return(
-                  <div key={cat.id} className="bg-[#0d1628] border border-blue-500/15 rounded-3xl p-5 flex flex-col hover:border-blue-500/30 transition-all shadow-lg shadow-blue-900/10">
+                  <div key={cat.id} className="bg-white/[0.04] border border-cyan-500/15 rounded-3xl p-5 flex flex-col hover:border-cyan-500/28 transition-all shadow-lg shadow-black/20">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-blue-950/60 border border-blue-800/30 rounded-2xl flex items-center justify-center text-2xl">{cat.icon}</div>
+                        <div className="w-11 h-11 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-2xl">{cat.icon}</div>
                         <div>
                           <p className="font-black text-white text-sm">{cat.name}</p>
-                          <p className="text-[10px] text-blue-400/40 uppercase font-bold mt-0.5">{unlocked>0?cat.tierNames[unlocked-1]:'Unranked'} · L{unlocked}/{cat.thresholds.length}</p>
+                          <p className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">{unlocked>0?cat.tierNames[unlocked-1]:'Unranked'} · L{unlocked}/{cat.thresholds.length}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-black text-blue-400">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p>
-                        <p className="text-[10px] text-blue-400/40 uppercase">{cat.unit}</p>
+                        <p className="text-2xl font-black text-cyan-400">{typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()}</p>
+                        <p className="text-[10px] text-slate-500 uppercase">{cat.unit}</p>
                       </div>
                     </div>
-                    <div className="w-full bg-blue-950/60 rounded-full h-1.5 mb-1 overflow-hidden border border-blue-800/20">
-                      <div className="h-full bg-linear-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{width:`${prog}%`,filter:'drop-shadow(0 0 3px rgba(59,130,246,0.5))'}}/>
+                    <div className="w-full bg-white/5 rounded-full h-1.5 mb-1 overflow-hidden border border-white/8">
+                      <div className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all duration-1000" style={{width:`${prog}%`,filter:'drop-shadow(0 0 3px rgba(0,229,255,0.5))'}}/>
                     </div>
-                    <p className="text-right text-[10px] text-blue-400/40 font-bold mb-5">
+                    <p className="text-right text-[10px] text-slate-500 font-bold mb-5">
                       {unlocked===cat.thresholds.length?'Max Level 👑':`${typeof value==='number'&&value<1?value.toFixed(3):value.toLocaleString()} / ${typeof nextThr==='number'&&nextThr<1?nextThr.toFixed(3):nextThr.toLocaleString()}`}
                     </p>
                     <div className={`flex ${cat.thresholds.length===1?'justify-center':'justify-between'} items-end mb-5`}>
@@ -116,9 +116,9 @@ if (!wallet) return null;
                           <div key={tier} className="flex flex-col items-center gap-1.5 relative" style={{width:`${Math.floor(100/cat.thresholds.length)}%`}}>
                             <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-lg sm:text-xl transition-all ${style}`}>
                               {isEarned?cat.tierIcons[idx]:<Lock size={12} className="text-white/20"/>}
-                              {isMinted2&&<div className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#0a0f1e] z-10">✓</div>}
+                              {isMinted2&&<div className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#00040d] z-10">✓</div>}
                             </div>
-                            <span className={`text-[7px] font-black text-center uppercase leading-tight truncate w-full px-0.5 ${isMinted2?'text-blue-400':isEarned?'text-blue-300/60':'text-blue-800'}`}>{cat.tierNames[idx]}</span>
+                            <span className={`text-[7px] font-black text-center uppercase leading-tight truncate w-full px-0.5 ${isMinted2?'text-cyan-400':isEarned?'text-cyan-300/60':'text-slate-700'}`}>{cat.tierNames[idx]}</span>
                           </div>
                         );
                       })}
@@ -127,25 +127,25 @@ if (!wallet) return null;
                       <div className="flex gap-2">
                         {connType==='farcaster'?(
                           <button onClick={()=>doNativeMint(cat.id,toLevels,toMint,cat.name)} disabled={!canMint||!!minting}
-                            className={`flex-1 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${canMint&&!minting?'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20':'bg-blue-950/40 text-blue-800 cursor-not-allowed border border-blue-900/30'}`}>
+                            className={`flex-1 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${canMint&&!minting?'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18':'bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/830'}`}>
                             {minting===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={16}/>:btnText}
                           </button>
                         ):canMint?(
                           <Transaction key={`mint-${cat.id}-${txKeys[`mint-${cat.id}`]||0}`} chainId={base.id} calls={mintCall2} capabilities={txCaps}
                             onStatus={s=>{if(s.statusName==='success'){showToast(isBatch?`✅ Claimed ${toMint.length} ${cat.name} Badges!`:`✅ Badge minted!`,s.statusData.transactionReceipts?.[0]?.transactionHash||'');setMintedLevels(p=>({...p,[cat.id]:Math.max(...toLevels)}));setSponsored(v=>v+1);}}}>
-                            <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition-all" text={btnText}/>
+                            <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-xs btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18 transition-all" text={btnText}/>
                           </Transaction>
                         ):(
-                          <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-blue-950/40 text-blue-800 cursor-not-allowed border border-blue-900/30">{btnText}</button>
+                          <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/830">{btnText}</button>
                         )}
                         {mintedTier>0&&(
                           <div className="flex gap-1.5 shrink-0">
-                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="bg-[#0d1628] border border-blue-500/15 hover:bg-blue-600/15 text-blue-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>
-                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'t')} className="bg-[#0d1628] border border-blue-500/15 hover:bg-blue-600/15 text-blue-400/50 p-3 rounded-xl transition-all"><Twitter size={13}/></button>
+                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="bg-white/[0.04] border border-cyan-500/15 hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>
+                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'t')} className="bg-white/[0.04] border border-cyan-500/15 hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Twitter size={13}/></button>
                           </div>
                         )}
                       </div>
-                      {canMint&&<p className="text-[9px] text-blue-400/30 mt-2 text-center flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored via Coinbase Paymaster</p>}
+                      {canMint&&<p className="text-[9px] text-slate-600 mt-2 text-center flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored via Coinbase Paymaster</p>}
                     </div>
                   </div>
                 );

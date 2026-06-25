@@ -1,38 +1,42 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { Providers } from './providers';
+import type { Metadata } from "next";
+import "./globals.css";
+import { Providers } from "./providers";
 
-const APP_URL = 'https://base-analytics-app.vercel.app';
+const APP_URL = "https://base-analytics-app.vercel.app";
 
 export const metadata: Metadata = {
-  title: 'Base Analytics — Season 1: Genesis',
-  description: 'Track your onchain score, mint gasless badges, farm XP and climb the leaderboard on Base.',
+  title: "Base Analytics — What's Your Onchain Rank?",
+  description:
+    "Free wallet scan on Base. Discover your rank, mint gasless badges, farm Season XP.",
   metadataBase: new URL(APP_URL),
   openGraph: {
-    title: 'Base Analytics — Season 1: Genesis',
-    description: 'Track your onchain score, mint gasless badges, farm XP and climb the leaderboard on Base.',
+    title: "Base Analytics — What's Your Onchain Rank?",
+    description:
+      "Free scan on Base. Shrimp → Dolphin → Shark → Whale → God. Mint badges & earn XP.",
     url: APP_URL,
-    siteName: 'Base Analytics',
+    siteName: "Base Analytics",
     images: [{ url: `${APP_URL}/opengraph-image`, width: 1200, height: 630 }],
-    type: 'website',
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Base Analytics — Season 1: Genesis',
+    card: "summary_large_image",
+    title: "Base Analytics — What's Your Onchain Rank?",
+    description:
+      "Free scan on Base. Shrimp → Dolphin → Shark → Whale → God. Mint badges & earn XP.",
     images: [`${APP_URL}/opengraph-image`],
   },
   other: {
-    'fc:frame': JSON.stringify({
-      version: 'next',
+    "fc:frame": JSON.stringify({
+      version: "next",
       imageUrl: `${APP_URL}/opengraph-image`,
       button: {
-        title: 'Check Score & Mint Badges',
+        title: "Get My Score — Free",
         action: {
-          type: 'launch_frame',
-          name: 'Base Analytics',
+          type: "launch_frame",
+          name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: '#060a14',
+          splashBackgroundColor: "#00040d",
         },
       },
     }),
@@ -42,15 +46,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <meta property="og:image" content={`${APP_URL}/opengraph-image`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-      </head>
-      <body className="bg-[#060a14] text-white antialiased">
+      <body className="bg-[#00040d] text-white antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
- 

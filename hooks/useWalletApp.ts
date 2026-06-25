@@ -19,12 +19,15 @@ import {
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
 import { getCatValue } from "@/lib/utils/achievements";
-import { getDayKey, getISOWeekNumber, getMonthKey } from "@/lib/utils/dates";
+import { getDayKey, getISOWeekNumber, getMonthKey, getWeekKey } from "@/lib/utils/dates";
+import { computeChallengeScore, computeWalletRank } from "@/lib/utils/score";
 import { getCapabilities } from "@/lib/utils/paymaster";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import { computeWeeklyXP } from "@/lib/utils/season";
 import {
   buildShare,
+  buildShareCardData,
+  buildSharePageUrl,
   getReferralCode,
   twitterShare,
   warpcast,
@@ -285,21 +288,16 @@ export function useWalletApp() {
       const months = new Set(
         merged.map((tx) => getMonthKey(tx.metadata.blockTimestamp))
       );
-      const s = Math.min(
-        100,
-        Math.floor(
-          Math.min(25, merged.length / 20) +
-            Math.min(20, days.size / 4) +
-            Math.min(15, months.size * 1.25) +
-            Math.min(20, days.size / 3) +
-            Math.min(10, months.size)
-        )
+      const weeks = new Set(
+        merged.map((tx) => getWeekKey(tx.metadata.blockTimestamp))
       );
-      let rank = "Base Shrimp 🦐";
-      if (s >= 30) rank = "Base Dolphin 🐬";
-      if (s >= 50) rank = "Base Shark 🦈";
-      if (s >= 70) rank = "Base Whale 🐋";
-      if (s >= 85) rank = "Base God 👑";
+      const s = computeChallengeScore(
+        merged.length,
+        days.size,
+        months.size,
+        weeks.size
+      );
+      const rank = computeWalletRank(s);
       setChallengeResult({
         address: addr,
         score: s,
@@ -525,14 +523,24 @@ export function useWalletApp() {
       ref,
       `🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`
     );
-    if (pl === "w") window.open(warpcast(text), "_blank");
-    else if (pl === "t") window.open(twitterShare(text), "_blank");
+    const card = buildShareCardData(wallet, {
+      ref,
+      mintedCount,
+      streak,
+      weeklyXP,
+      variant: "score",
+    });
+    const pageUrl = buildSharePageUrl(card, ref);
+    if (pl === "w") window.open(warpcast(text, pageUrl), "_blank");
+    else if (pl === "t") window.open(twitterShare(text, pageUrl), "_blank");
     else if (navigator.share)
-      navigator.share({
-        title: "Base Analytics",
-        text,
-        url: "https://base-analytics-app.vercel.app",
-      }).catch(() => {});
+      navigator
+        .share({
+          title: "Base Analytics",
+          text,
+          url: pageUrl,
+        })
+        .catch(() => {});
   };
 
   const shareAch = (name: string, level: string, pl: "w" | "t") => {
@@ -542,8 +550,18 @@ export function useWalletApp() {
       ref,
       `🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`
     );
-    if (pl === "w") window.open(warpcast(text), "_blank");
-    else window.open(twitterShare(text), "_blank");
+    const card = buildShareCardData(wallet, {
+      ref,
+      mintedCount,
+      streak,
+      weeklyXP,
+      variant: "badge",
+      title: `${level} — ${name}`,
+      subtitle: `${wallet.score}/100 · ${mintedCount} badges on Base`,
+    });
+    const pageUrl = buildSharePageUrl(card, ref);
+    if (pl === "w") window.open(warpcast(text, pageUrl), "_blank");
+    else window.open(twitterShare(text, pageUrl), "_blank");
   };
 
   const shareAll = (count: number, pl: "w" | "t") => {
@@ -553,8 +571,18 @@ export function useWalletApp() {
       ref,
       `🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`
     );
-    if (pl === "w") window.open(warpcast(text), "_blank");
-    else window.open(twitterShare(text), "_blank");
+    const card = buildShareCardData(wallet, {
+      ref,
+      mintedCount: count,
+      streak,
+      weeklyXP,
+      variant: "badge",
+      title: `${count} Badges Minted`,
+      subtitle: `${wallet.walletRank} · Score ${wallet.score}/100`,
+    });
+    const pageUrl = buildSharePageUrl(card, ref);
+    if (pl === "w") window.open(warpcast(text, pageUrl), "_blank");
+    else window.open(twitterShare(text, pageUrl), "_blank");
   };
 
   const getAchievementValue = (id: string) =>
