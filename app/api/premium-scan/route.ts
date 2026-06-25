@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodePaymentSignatureHeader, encodePaymentRequiredHeader } from "@x402/core/http";
+import type { Network, PaymentRequired } from "@x402/core/types";
+import { settleX402Payment, verifyX402Payment } from "@/lib/x402-facilitator";
 
 const PAY_TO = "0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F";
-const NETWORK = "eip155:8453";
-const AMOUNT_USDC = "1000"; // 0.001 USDC in micro-units (6 decimals)
-// Native USDC on Base mainnet
+const NETWORK: Network = "eip155:8453";
+const AMOUNT_USDC = "5000"; // 0.005 USDC (6 decimals)
 const USDC_ADDRESS = "0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913";
 
-// Build the 402 payment required response manually
-function buildPaymentRequired(url: string) {
+function buildPaymentRequired(req: NextRequest): PaymentRequired {
+  const url = new URL(req.nextUrl.pathname, req.nextUrl.origin).toString();
   return {
     x402Version: 2,
     resource: {
@@ -38,9 +39,8 @@ export async function POST(req: NextRequest) {
     req.headers.get("payment-signature") ||
     req.headers.get("PAYMENT-SIGNATURE");
 
-  // No payment header → return 402
   if (!paymentHeader) {
-    const paymentRequired = buildPaymentRequired(req.url);
+    const paymentRequired = buildPaymentRequired(req);
     return NextResponse.json(
       {},
       {
@@ -53,58 +53,46 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Has payment header → forward to facilitator to verify + settle
   try {
     const paymentPayload = decodePaymentSignatureHeader(paymentHeader);
-    const paymentRequirements = buildPaymentRequired(req.url).accepts[0];
+    const paymentRequirements =
+      paymentPayload.accepted ?? buildPaymentRequired(req).accepts[0];
 
-    // Verify
-    const verifyRes = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/x402-facilitator/verify`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentPayload, paymentRequirements }),
-      }
-    );
-    const verifyData = await verifyRes.json();
+    const verifyData = await verifyX402Payment(paymentPayload, paymentRequirements);
 
     if (!verifyData.isValid) {
       return NextResponse.json(
-        { error: verifyData.invalidReason || "Payment invalid" },
+        {
+          error: verifyData.invalidReason || "Payment invalid",
+          detail: verifyData.invalidMessage,
+        },
         { status: 402 }
       );
     }
 
-    // Settle
-    const settleRes = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/x402-facilitator/settle`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentPayload, paymentRequirements }),
-      }
-    );
-    const settleData = await settleRes.json();
+    const settleData = await settleX402Payment(paymentPayload, paymentRequirements);
 
     if (!settleData.success) {
       return NextResponse.json(
-        { error: settleData.errorReason || "Settlement failed" },
+        {
+          error: settleData.errorReason || "Settlement failed",
+          detail: settleData.errorMessage,
+        },
         { status: 402 }
       );
     }
 
-    // Payment confirmed — run handler
     const body = await req.json().catch(() => ({}));
     return NextResponse.json({
       premium: true,
       address: (body as { address?: string }).address,
-      message: `🔓 Premium analytics unlocked`,
+      message: "Premium analytics unlocked",
       unlockedAt: new Date().toISOString(),
       transaction: settleData.transaction,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Payment error";
+    console.error("[premium-scan]", msg, e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-} 
+}

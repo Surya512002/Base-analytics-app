@@ -1,0 +1,43 @@
+export function calcWalletHealth(w: {
+  uniqueDays: number;
+  activeMonths: number;
+  currentStreak: number;
+  defiInteractions: number;
+  uniqueContracts: number;
+  txCount: number;
+  nftCount: number;
+  basename: string | null;
+  daysSinceActive: number;
+}): { score: number; label: string } {
+  let h = 0;
+  if (w.uniqueDays >= 100) h += 20;
+  else if (w.uniqueDays >= 30) h += 10;
+  else if (w.uniqueDays >= 7) h += 5;
+  if (w.activeMonths >= 12) h += 20;
+  else if (w.activeMonths >= 6) h += 12;
+  else if (w.activeMonths >= 3) h += 6;
+  if (w.currentStreak >= 30) h += 15;
+  else if (w.currentStreak >= 7) h += 8;
+  else if (w.currentStreak >= 3) h += 4;
+  if (w.defiInteractions >= 20) h += 15;
+  else if (w.defiInteractions >= 5) h += 8;
+  else if (w.defiInteractions >= 1) h += 4;
+  if (w.uniqueContracts >= 50) h += 15;
+  else if (w.uniqueContracts >= 10) h += 8;
+  else if (w.uniqueContracts >= 3) h += 4;
+  if (w.txCount >= 500) h += 10;
+  else if (w.txCount >= 100) h += 6;
+  else if (w.txCount >= 20) h += 3;
+  if (w.nftCount >= 10) h += 5;
+  if (w.basename) h += 5;
+  if (w.daysSinceActive <= 1) h += 10;
+  else if (w.daysSinceActive <= 7) h += 5;
+  else if (w.daysSinceActive > 30) h -= 10;
+  const score = Math.min(100, Math.max(0, h));
+  let label = "💀 Dormant";
+  if (score >= 80) label = "🔥 Excellent";
+  else if (score >= 60) label = "💪 Strong";
+  else if (score >= 40) label = "📈 Growing";
+  else if (score >= 20) label = "🌱 Early";
+  return { score, label };
+}
