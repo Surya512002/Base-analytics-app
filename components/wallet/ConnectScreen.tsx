@@ -1,7 +1,6 @@
 import {
   ChevronRight,
   Droplets,
-  Hexagon,
   RefreshCcw,
   Star,
   Target,
@@ -10,6 +9,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import AppLogo from "@/components/ui/AppLogo";
 import { PAYMASTER_URL } from "@/lib/constants/env";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
@@ -44,7 +44,7 @@ function HeroTeaser() {
         <p className="text-6xl font-black text-white leading-none tracking-tighter mb-1">
           <span className="text-gradient-blue">?</span>
         </p>
-        <p className="text-slate-400 text-sm font-medium mb-6">
+        <p className="text-slate-300 text-sm font-medium mb-6">
           Connect & discover your onchain tier on Base
         </p>
         <div className="space-y-1.5">
@@ -91,7 +91,7 @@ export default function ConnectScreen({
   onConnect,
 }: ConnectScreenProps) {
   return (
-    <div className="min-h-screen bg-[#00040d] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#071220] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-aurora pointer-events-none" />
       <div className="absolute inset-0 bg-grid-future opacity-30 pointer-events-none" />
       <div
@@ -105,12 +105,7 @@ export default function ConnectScreen({
 
       <div className="relative z-10 w-full max-w-5xl">
         <div className="flex items-center gap-3 mb-8 lg:mb-12">
-          <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center glow-ring"
-            style={{ background: "linear-gradient(135deg, #0052FF, #00E5FF)" }}
-          >
-            <Hexagon size={22} className="text-white" />
-          </div>
+          <AppLogo size="lg" />
           <span className="font-black text-lg sm:text-xl text-white tracking-[0.2em] uppercase">
             Base Analytics
           </span>
@@ -210,9 +205,7 @@ export default function ConnectScreen({
               <X size={16} />
             </button>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 bg-linear-to-br from-rose-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/40">
-                <Hexagon size={20} className="text-white" />
-              </div>
+              <AppLogo size="md" />
               <div>
                 <h3 className="font-black text-white text-base">Connect Wallet</h3>
                 <p className="text-slate-500 text-xs mt-0.5">Gas-free via Paymaster</p>

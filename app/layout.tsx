@@ -25,6 +25,10 @@ export const metadata: Metadata = {
       "Free scan on Base. Shrimp → Dolphin → Shark → Whale → God. Mint badges & earn XP.",
     images: [`${APP_URL}/opengraph-image`],
   },
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.svg",
+  },
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
@@ -35,8 +39,8 @@ export const metadata: Metadata = {
           type: "launch_frame",
           name: "Base Analytics",
           url: APP_URL,
-          splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#00040d",
+          splashImageUrl: `${APP_URL}/logo.svg`,
+          splashBackgroundColor: "#071220",
         },
       },
     }),
@@ -46,7 +50,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#00040d] text-white antialiased">
+      <body className="bg-[#071220] text-slate-200 antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -26,7 +26,7 @@ export const SCORE_LABELS: Record<keyof typeof SCORE_MAX, string> = {
   defiUsage: "DeFi",
   contracts: "Contracts",
   nftHolder: "NFTs",
-  dexTrading: "DEX",
+  dexTrading: "Swap Vol",
   bridge: "Bridge",
   identity: "Identity",
   engagement: "Social",
@@ -48,6 +48,7 @@ export interface ScoreInput {
   uniqueContracts: number;
   nftCount: number;
   dexTradeCount: number;
+  dexVolumeUSD: number;
   bridgeTxCount: number;
   hasBasename: boolean;
   gmCount: number;
@@ -72,6 +73,7 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
     uniqueContracts,
     nftCount,
     dexTradeCount,
+    dexVolumeUSD,
     bridgeTxCount,
     hasBasename,
     gmCount,
@@ -99,10 +101,17 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
     contracts: Math.min(SCORE_MAX.contracts, uniqueContracts / 25),
     // ~20 NFTs held to max
     nftHolder: Math.min(SCORE_MAX.nftHolder, nftCount / 5),
-    // ~175 DEX trades to max
-    dexTrading: Math.min(SCORE_MAX.dexTrading, dexTradeCount / 25),
-    // ~24 bridge txs to max
-    bridge: Math.min(SCORE_MAX.bridge, bridgeTxCount / 6),
+    // Trades + volume — ~$50k swap volume for full volume half
+    dexTrading: Math.min(
+      SCORE_MAX.dexTrading,
+      Math.min(3.5, dexTradeCount / 35) +
+        Math.min(3.5, Math.sqrt(dexVolumeUSD + 1) / 10)
+    ),
+    // 1 bridge = 1 pt min · ~24 bridges to max
+    bridge:
+      bridgeTxCount < 1
+        ? 0
+        : Math.min(SCORE_MAX.bridge, Math.max(1, bridgeTxCount / 6)),
     // Basename verified identity
     identity: hasBasename ? SCORE_MAX.identity : 0,
     // ~75 GM + check-in txs to max
@@ -148,6 +157,7 @@ export function computeChallengeScore(
       uniqueContracts: 0,
       nftCount: 0,
       dexTradeCount: 0,
+      dexVolumeUSD: 0,
       bridgeTxCount: 0,
       hasBasename: false,
       gmCount: 0,

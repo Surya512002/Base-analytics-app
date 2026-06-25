@@ -3,13 +3,14 @@
   "short_name": "Analytics",
   "icons": [
     {
-      "src": "https://base.org/favicon.ico",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ],
-  "theme_color": "#0F172A",
-  "background_color": "#F5F8FF",
+  "theme_color": "#071220",
+  "background_color": "#071220",
   "display": "standalone",
   "start_url": "/"
-} 
+}

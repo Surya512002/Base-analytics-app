@@ -45,7 +45,7 @@ if (!wallet) return null;
 
   return (
           <div className="space-y-4">
-            <div className="relative overflow-hidden bg-linear-to-br from-rose-600 via-cyan-500 to-[#00040d] rounded-3xl p-5 sm:p-7 border border-cyan-500/30 shadow-2xl shadow-black/40">
+            <div className="relative overflow-hidden bg-linear-to-br from-rose-600 via-cyan-500 to-[#071220] rounded-3xl p-5 sm:p-7 border border-cyan-500/30 shadow-2xl shadow-black/40">
               <div className="absolute inset-0 opacity-10" style={{backgroundImage:'linear-gradient(rgba(255,255,255,0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)',backgroundSize:'32px 32px'}}/>
               <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full"/>
               <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">

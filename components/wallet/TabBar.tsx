@@ -35,7 +35,7 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
           className={`flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-xl font-bold text-[11px] sm:text-xs whitespace-nowrap flex-1 transition-all ${
             tab === t.id
               ? "tab-active shadow-lg"
-              : "text-slate-500 hover:text-cyan-300 hover:bg-white/5"
+              : "text-slate-400 hover:text-cyan-200 hover:bg-white/8"
           }`}
         >
           {t.icon}

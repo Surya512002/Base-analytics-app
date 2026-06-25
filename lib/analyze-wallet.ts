@@ -15,18 +15,18 @@ import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
   BOOSTER_CONTRACT,
-  BASE_BRIDGE,
   CHECKIN_ABI,
   CHECKIN_CONTRACT,
   ENTRYPOINT_V06,
   ENTRYPOINT_V07,
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
-import { DEFI_PROTOCOLS, DEX_ROUTERS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
+import { DEFI_PROTOCOLS, DEX_ROUTERS, BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, MONTH_NAMES } from "@/lib/constants/season";
 import { getTargetTokenId } from "@/lib/utils/achievements";
 import { getDayKey, getMonthKey, getWeekKey } from "@/lib/utils/dates";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
+import { computeSwapVolume } from "@/lib/utils/swap-volume";
 import {
   computeScoreComponents,
   computeTotalScore,
@@ -206,7 +206,6 @@ export async function analyzeWalletAddress(
     });
   }
 
-  const dexTxHashes = new Set<string>();
   const bridgeTxHashes = new Set<string>();
   const outgoingHashes = new Set<string>();
   const paymasterTxHashes = new Set<string>();
@@ -217,68 +216,28 @@ export async function analyzeWalletAddress(
     const toAddr = (tx.to || "").toLowerCase();
     const fromAddr = (tx.from || "").toLowerCase();
     if (fromAddr === addrLow) outgoingHashes.add(tx.hash);
-    if (DEX_ROUTERS.has(toAddr) || DEX_ROUTERS.has(fromAddr))
-      dexTxHashes.add(tx.hash);
-    if (toAddr === BASE_BRIDGE.toLowerCase()) bridgeTxHashes.add(tx.hash);
+    if (
+      (BRIDGE_CONTRACTS.has(toAddr) || BRIDGE_CONTRACTS.has(fromAddr)) &&
+      (fromAddr === addrLow || toAddr === addrLow)
+    ) {
+      bridgeTxHashes.add(tx.hash);
+    }
     if (tx.category === "internal" && toAddr === addrLow)
       paymasterTxHashes.add(tx.hash);
     if (fromAddr === ep06 || fromAddr === ep07) paymasterTxHashes.add(tx.hash);
   }
 
-  const dexTradeCount = [...dexTxHashes].filter(
-    (h) => outgoingHashes.has(h) || paymasterTxHashes.has(h)
-  ).length;
-  const bridgeTxCount = [...bridgeTxHashes].filter((h) =>
-    outgoingHashes.has(h)
-  ).length;
+  const bridgeTxCount = bridgeTxHashes.size;
   const paymasterTxCount = paymasterTxHashes.size;
 
-  const STABLECOINS = new Set([
-    "USDC",
-    "USDBC",
-    "DAI",
-    "USDT",
-    "0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913",
-    "0XD9AAEC86B65D86F6A7B5B1B0C42FFA531710B6CA",
-  ]);
   const ethUSD = ethPriceData?.ethereum?.usd || 3200;
-  let dexVolumeUSD = 0;
-  const txFlows = new Map<string, { outUSD: number; inUSD: number }>();
-
-  for (const tx of allTxs) {
-    if (!dexTxHashes.has(tx.hash)) continue;
-    if (!outgoingHashes.has(tx.hash) && !paymasterTxHashes.has(tx.hash))
-      continue;
-    if (!tx.value || tx.value <= 0) continue;
-
-    const fromAddr = (tx.from || "").toLowerCase();
-    const toAddr = (tx.to || "").toLowerCase();
-    let valUSD = 0;
-    const assetUpper = (tx.asset || "").toUpperCase();
-
-    if (
-      assetUpper === "ETH" ||
-      assetUpper === "WETH" ||
-      (!tx.asset &&
-        (tx.category === "external" || tx.category === "internal"))
-    ) {
-      valUSD = tx.value * ethUSD;
-    } else if (STABLECOINS.has(assetUpper)) {
-      valUSD = tx.value;
-    } else {
-      continue;
-    }
-
-    if (!txFlows.has(tx.hash)) txFlows.set(tx.hash, { outUSD: 0, inUSD: 0 });
-    const flow = txFlows.get(tx.hash)!;
-    if (fromAddr === addrLow) flow.outUSD += valUSD;
-    if (toAddr === addrLow) flow.inUSD += valUSD;
-  }
-
-  for (const flow of txFlows.values()) {
-    dexVolumeUSD += Math.max(flow.inUSD, flow.outUSD);
-  }
-  const dexVolumeETH = dexVolumeUSD / ethUSD;
+  const {
+    dexTradeCount,
+    dexVolumeUSD,
+    dexVolumeETH,
+    dexTradeCount30d,
+    dexVolumeUSD30d,
+  } = await computeSwapVolume(allTxs, addrLow, ethUSD);
 
   const hashDateMap = new Map<string, string>();
   for (const tx of allTxs) {
@@ -513,6 +472,7 @@ export async function analyzeWalletAddress(
     uniqueContracts: uContracts.size,
     nftCount,
     dexTradeCount,
+    dexVolumeUSD,
     bridgeTxCount,
     hasBasename: !!bn,
     gmCount,
@@ -644,9 +604,11 @@ export async function analyzeWalletAddress(
     walletHealthLabel: health.label,
     scoreComponents,
     portfolioValueUSD,
-    dexVolumeETH: parseFloat(dexVolumeETH.toFixed(4)),
-    dexVolumeUSD: parseFloat(dexVolumeUSD.toFixed(2)),
+    dexVolumeETH,
+    dexVolumeUSD,
     dexTradeCount,
+    dexVolumeUSD30d,
+    dexTradeCount30d,
     paymasterTxCount,
     bridgeTxCount,
     netETHFlow: parseFloat((ethReceived - ethVol).toFixed(4)),

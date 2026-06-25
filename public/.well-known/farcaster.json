@@ -7,12 +7,12 @@
   "frame": {
     "version": "1",
     "name": "Base Analytics",
-    "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
+    "iconUrl": "https://base-analytics-app.vercel.app/logo.svg",
     "homeUrl": "https://base-analytics-app.vercel.app",
     "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image",
     "buttonTitle": "Check Score & Mint Badges",
-    "splashImageUrl": "https://base-analytics-app.vercel.app/icon.png",
-    "splashBackgroundColor": "#00040d",
+    "splashImageUrl": "https://base-analytics-app.vercel.app/logo.svg",
+    "splashBackgroundColor": "#071220",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
     "primaryCategory": "finance",
     "tags": [

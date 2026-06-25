@@ -73,7 +73,7 @@ export default async function SharePage({ searchParams }: Props) {
   const ref = pick(params, "ref");
 
   return (
-    <main className="min-h-screen bg-[#00040d] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <main className="min-h-screen bg-[#071220] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-aurora pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] btn-primary/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="relative z-10 max-w-md w-full text-center space-y-8">

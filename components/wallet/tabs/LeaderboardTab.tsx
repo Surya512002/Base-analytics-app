@@ -55,7 +55,7 @@ if (!wallet) return null;
                     <p className="text-[11px] text-slate-500 mt-0.5">Genesis Season Participants</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-3 py-1.5 rounded-xl"><Wifi size={9}/>Live · Redis backed</span>
+                    <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-2.5 sm:px-3 py-1.5 rounded-xl whitespace-nowrap"><Wifi size={9}/>Live · Redis</span>
                     <span className="text-[10px] text-slate-500 bg-white/[0.04] border border-white/8 px-3 py-1.5 rounded-xl">{getDaysLeft()}d left</span>
                   </div>
                 </div>
@@ -67,19 +67,19 @@ if (!wallet) return null;
               return pos>=0?(
                 <div className="bg-white/[0.04] border border-cyan-500/20 rounded-3xl overflow-hidden shadow-xl shadow-black/25">
                   <div className="h-0.5 bg-linear-to-r from-rose-500 to-cyan-400"/>
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-cyan-500/15 border border-cyan-500/30 rounded-2xl flex items-center justify-center font-black text-cyan-400 text-lg shrink-0">#{pos+1}</div>
-                        <div>
-                          <p className="font-black text-white text-base">{wallet.basename||`${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
-                          <span className="text-[10px] font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/15 px-2 py-0.5 rounded-lg">{wallet.walletRank}</span>
+                  <div className="p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 bg-cyan-500/15 border border-cyan-500/30 rounded-2xl flex items-center justify-center font-black text-cyan-400 text-base sm:text-lg shrink-0">#{pos+1}</div>
+                        <div className="min-w-0">
+                          <p className="font-black text-white text-sm sm:text-base break-all sm:truncate">{wallet.basename||`${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`}</p>
+                          <span className="inline-block text-[10px] font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/15 px-2 py-0.5 rounded-lg mt-1">{wallet.walletRank}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-cyan-400/50 uppercase tracking-widest mb-1">TOTAL SEASON XP</p>
-                        <p className="text-4xl font-black text-white">{(leaderboard[pos]?.totalXP??weeklyXP).toLocaleString()}</p>
-                        <p className="text-[11px] text-cyan-400 font-bold mt-1">+{weeklyXP} XP this week</p>
+                      <div className="sm:text-right shrink-0">
+                        <p className="text-[10px] font-black text-cyan-400/50 uppercase tracking-widest mb-1">Total Season XP</p>
+                        <p className="text-2xl sm:text-4xl font-black text-white tabular-nums leading-none">{(leaderboard[pos]?.totalXP??weeklyXP).toLocaleString()}</p>
+                        <p className="text-[11px] text-cyan-400 font-bold mt-1.5 whitespace-nowrap">+{weeklyXP} XP this week</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mt-4">
@@ -112,41 +112,41 @@ if (!wallet) return null;
               </div>
             ):(
               <div className="bg-white/[0.04] border border-cyan-500/15 rounded-3xl overflow-hidden shadow-lg shadow-black/25">
-                <div className="px-4 py-3 border-b border-white/8 bg-white/[0.03]">
-                  <div className="grid grid-cols-[auto_1fr_auto_auto_auto] text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                    <span className="w-10">Rank</span>
+                <div className="px-3 sm:px-4 py-3 border-b border-white/8 bg-white/[0.03]">
+                  <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem_2rem] gap-x-2 sm:gap-x-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                    <span>Rank</span>
                     <span>Wallet</span>
-                    <span className="hidden sm:block w-16 text-right">Badges</span>
-                    <span className="w-24 text-right">Season XP</span>
-                    <span className="hidden sm:block w-8"/>
+                    <span className="hidden sm:block text-right">Badges</span>
+                    <span className="text-right">Season XP</span>
+                    <span className="hidden sm:block"/>
                   </div>
                 </div>
                 {leaderboard.map((e,idx)=>{
                   const isMe=e.address.toLowerCase()===wallet.address.toLowerCase();
                   const medal=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':null;
                   return(
-                    <div key={e.address} className={`grid grid-cols-[auto_1fr_auto_auto_auto] items-center px-4 py-3.5 border-b border-white/6 last:border-0 transition-all ${isMe?'bg-cyan-500/8 border-l-2 border-l-rose-500':'hover:bg-white/[0.03]'}`}>
-                      <div className="w-10">
+                    <div key={e.address} className={`grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem_2rem] gap-x-2 sm:gap-x-3 items-center px-3 sm:px-4 py-3 border-b border-white/6 last:border-0 transition-all ${isMe?'bg-cyan-500/8 border-l-2 border-l-rose-500':'hover:bg-white/[0.03]'}`}>
+                      <div className="shrink-0">
                         {medal
-                          ?<span className="text-lg">{medal}</span>
-                          :<span className={`text-xs font-black ${idx<10?'text-cyan-300/60':'text-slate-600'}`}>#{idx+1}</span>}
+                          ?<span className="text-base sm:text-lg">{medal}</span>
+                          :<span className={`text-[11px] sm:text-xs font-black ${idx<10?'text-cyan-300/60':'text-slate-600'}`}>#{idx+1}</span>}
                       </div>
-                      <div className="min-w-0 pr-3">
-                        <p className={`font-black text-sm truncate ${isMe?'text-cyan-400':'text-white'}`}>
+                      <div className="min-w-0">
+                        <p className={`font-black text-[11px] sm:text-sm leading-snug break-all sm:truncate ${isMe?'text-cyan-400':'text-white'}`}>
                           {e.basename||`${e.address.slice(0,8)}...${e.address.slice(-4)}`}
-                          {isMe&&<span className="text-[9px] text-rose-400/60 ml-2 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded">you</span>}
+                          {isMe&&<span className="text-[8px] sm:text-[9px] text-rose-400/60 ml-1.5 font-bold bg-cyan-500/10 px-1 py-0.5 rounded align-middle">you</span>}
                         </p>
-                        <p className="text-[9px] text-slate-500 font-bold mt-0.5">{e.rank}</p>
+                        <p className="text-[8px] sm:text-[9px] text-slate-500 font-bold mt-0.5 truncate">{e.rank}</p>
                       </div>
-                      <div className="hidden sm:block w-16 text-right">
+                      <div className="hidden sm:block text-right">
                         <p className="text-xs font-black text-cyan-300/60">{e.badges}</p>
                         <p className="text-[8px] text-slate-600 font-bold">badges</p>
                       </div>
-                      <div className="w-24 text-right">
-                        <p className={`text-base font-black ${isMe?'text-cyan-400':'text-white'}`}>{(e.totalXP??e.weeklyXP??0).toLocaleString()}</p>
-                        <p className="text-[9px] text-cyan-400/50 font-bold">+{e.weeklyXP} wk</p>
+                      <div className="text-right shrink-0 tabular-nums">
+                        <p className={`text-xs sm:text-base font-black leading-none ${isMe?'text-cyan-400':'text-white'}`}>{(e.totalXP??e.weeklyXP??0).toLocaleString()}</p>
+                        <p className="text-[8px] sm:text-[9px] text-cyan-400/50 font-bold mt-0.5">+{e.weeklyXP} wk</p>
                       </div>
-                      <div className="hidden sm:flex w-8 justify-center">
+                      <div className="hidden sm:flex justify-center">
                         {idx===0?<ChevronUp size={12} className="text-cyan-400"/>:<ChevronDown size={12} className="text-slate-700"/>}
                       </div>
                     </div>

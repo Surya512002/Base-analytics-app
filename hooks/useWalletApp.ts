@@ -25,9 +25,12 @@ import { getCapabilities } from "@/lib/utils/paymaster";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import { computeWeeklyXP } from "@/lib/utils/season";
 import {
-  buildShare,
+  buildBadgeShareText,
+  buildBadgesShareText,
+  buildShareBody,
   buildShareCardData,
   buildSharePageUrl,
+  buildScoreShareText,
   getReferralCode,
   twitterShare,
   warpcast,
@@ -56,6 +59,7 @@ export function useWalletApp() {
   const [showModal, setShowModal] = useState(false);
   const [selDay, setSelDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sharingRef = useRef(false);
   const [boosts, setBoosts] = useState(0);
   const [sponsored, setSponsored] = useState(0);
   const [txKeys, setTxKeys] = useState<Record<string, number>>({
@@ -516,13 +520,35 @@ export function useWalletApp() {
     : 0;
   const ref = wallet ? getReferralCode(wallet.address) : "";
 
+  const openFarcasterShare = async (text: string, pageUrl: string) => {
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    try {
+      if (
+        connType === "farcaster" &&
+        typeof sdk.actions?.composeCast === "function"
+      ) {
+        await sdk.actions.composeCast({
+          text,
+          embeds: [pageUrl],
+          close: false,
+        });
+      } else {
+        window.open(warpcast(text, pageUrl), "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      showToast("Share cancelled", "");
+    } finally {
+      setTimeout(() => {
+        sharingRef.current = false;
+      }, 2500);
+    }
+  };
+
   const shareScore = (pl: "w" | "t" | "n") => {
-    if (!wallet) return;
-    const text = buildShare(
-      wallet,
-      ref,
-      `🏆 I'm a ${wallet.walletRank} on @base!\n\nScore: ${wallet.score}/100 🔵\nActive Days: ${wallet.uniqueDays} 📅\nStreak: ${streak}d 🔥\nBadges: ${mintedCount} 🎖️`
-    );
+    if (!wallet || sharingRef.current) return;
+    const main = buildScoreShareText(wallet, streak, mintedCount);
+    const text = buildShareBody(main, ref);
     const card = buildShareCardData(wallet, {
       ref,
       mintedCount,
@@ -531,8 +557,8 @@ export function useWalletApp() {
       variant: "score",
     });
     const pageUrl = buildSharePageUrl(card, ref);
-    if (pl === "w") window.open(warpcast(text, pageUrl), "_blank");
-    else if (pl === "t") window.open(twitterShare(text, pageUrl), "_blank");
+    if (pl === "w") void openFarcasterShare(text, pageUrl);
+    else if (pl === "t") window.open(twitterShare(text, pageUrl), "_blank", "noopener,noreferrer");
     else if (navigator.share)
       navigator
         .share({
@@ -544,12 +570,8 @@ export function useWalletApp() {
   };
 
   const shareAch = (name: string, level: string, pl: "w" | "t") => {
-    if (!wallet) return;
-    const text = buildShare(
-      wallet,
-      ref,
-      `🏅 Just unlocked "${level}" badge for ${name} on Base Analytics! 🔵`
-    );
+    if (!wallet || sharingRef.current) return;
+    const text = buildShareBody(buildBadgeShareText(name, level, wallet), ref);
     const card = buildShareCardData(wallet, {
       ref,
       mintedCount,
@@ -560,17 +582,13 @@ export function useWalletApp() {
       subtitle: `${wallet.score}/100 · ${mintedCount} badges on Base`,
     });
     const pageUrl = buildSharePageUrl(card, ref);
-    if (pl === "w") window.open(warpcast(text, pageUrl), "_blank");
-    else window.open(twitterShare(text, pageUrl), "_blank");
+    if (pl === "w") void openFarcasterShare(text, pageUrl);
+    else window.open(twitterShare(text, pageUrl), "_blank", "noopener,noreferrer");
   };
 
   const shareAll = (count: number, pl: "w" | "t") => {
-    if (!wallet) return;
-    const text = buildShare(
-      wallet,
-      ref,
-      `🎖️ Just claimed ${count} Onchain Badges gasless on Base Analytics! 🔵`
-    );
+    if (!wallet || sharingRef.current) return;
+    const text = buildShareBody(buildBadgesShareText(count, wallet), ref);
     const card = buildShareCardData(wallet, {
       ref,
       mintedCount: count,
@@ -581,8 +599,8 @@ export function useWalletApp() {
       subtitle: `${wallet.walletRank} · Score ${wallet.score}/100`,
     });
     const pageUrl = buildSharePageUrl(card, ref);
-    if (pl === "w") window.open(warpcast(text, pageUrl), "_blank");
-    else window.open(twitterShare(text, pageUrl), "_blank");
+    if (pl === "w") void openFarcasterShare(text, pageUrl);
+    else window.open(twitterShare(text, pageUrl), "_blank", "noopener,noreferrer");
   };
 
   const getAchievementValue = (id: string) =>

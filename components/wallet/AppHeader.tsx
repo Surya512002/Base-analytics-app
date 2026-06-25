@@ -1,4 +1,5 @@
-import { Droplets, Hexagon, Power, Zap } from "lucide-react";
+import { Droplets, Power, Zap } from "lucide-react";
+import AppLogo from "@/components/ui/AppLogo";
 import { SEASON_NAME } from "@/lib/constants/season";
 import { getDaysLeft } from "@/lib/utils/season";
 
@@ -14,15 +15,10 @@ export default function AppHeader({
   onDisconnect,
 }: AppHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-[#00040d]/90 backdrop-blur-xl border-b border-white/8">
+    <header className="sticky top-0 z-40 bg-[#071220]/92 backdrop-blur-xl border-b border-white/12 shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center glow-ring shrink-0"
-            style={{ background: "linear-gradient(135deg, #0052FF, #00E5FF)" }}
-          >
-            <Hexagon size={16} className="text-white" />
-          </div>
+          <AppLogo size="sm" />
           <span className="font-black text-sm sm:text-base text-white truncate tracking-wide">
             BASE<span className="text-cyan-400">.</span>ANALYTICS
           </span>
@@ -39,7 +35,7 @@ export default function AppHeader({
           <div className="flex items-center gap-1 glass-panel-accent rounded-xl px-2.5 py-1.5">
             <Zap size={11} className="text-cyan-400" />
             <span className="text-[10px] font-black text-cyan-300">{weeklyXP}</span>
-            <span className="text-[9px] text-slate-500 hidden sm:inline">XP</span>
+            <span className="text-[9px] text-slate-400 hidden sm:inline">XP</span>
           </div>
           {sponsored > 0 && (
             <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5">
@@ -49,7 +45,7 @@ export default function AppHeader({
           )}
           <button
             onClick={onDisconnect}
-            className="p-2 glass-panel rounded-xl text-slate-500 hover:text-white hover:border-cyan-500/30 transition-all"
+            className="p-2 glass-panel rounded-xl text-slate-400 hover:text-white hover:border-cyan-400/40 transition-all"
             aria-label="Disconnect wallet"
           >
             <Power size={14} />

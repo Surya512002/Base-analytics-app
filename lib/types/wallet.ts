@@ -49,6 +49,8 @@ export interface WalletData {
   dexVolumeETH: number;
   dexVolumeUSD: number;
   dexTradeCount: number;
+  dexVolumeUSD30d: number;
+  dexTradeCount30d: number;
   paymasterTxCount: number;
   bridgeTxCount: number;
   netETHFlow: number;

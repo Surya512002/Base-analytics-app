@@ -116,7 +116,7 @@ if (!wallet) return null;
                           <div key={tier} className="flex flex-col items-center gap-1.5 relative" style={{width:`${Math.floor(100/cat.thresholds.length)}%`}}>
                             <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-lg sm:text-xl transition-all ${style}`}>
                               {isEarned?cat.tierIcons[idx]:<Lock size={12} className="text-white/20"/>}
-                              {isMinted2&&<div className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#00040d] z-10">✓</div>}
+                              {isMinted2&&<div className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#071220] z-10">✓</div>}
                             </div>
                             <span className={`text-[7px] font-black text-center uppercase leading-tight truncate w-full px-0.5 ${isMinted2?'text-cyan-400':isEarned?'text-cyan-300/60':'text-slate-700'}`}>{cat.tierNames[idx]}</span>
                           </div>

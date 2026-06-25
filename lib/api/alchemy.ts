@@ -1,48 +1,50 @@
 import { ALCHEMY_KEY, BASE_RPC } from "@/lib/constants/env";
 import type { AlchemyResponse, AlchemyTransfer } from "@/lib/types/wallet";
 
-export async function fetchAlchemyTxsFast(
-  address: string
+async function fetchAssetTransferPage(
+  addressField: "fromAddress" | "toAddress",
+  address: string,
+  pageKey?: string
+): Promise<{ transfers: AlchemyTransfer[]; pageKey?: string }> {
+  try {
+    const params: Record<string, unknown> = {
+      fromBlock: "0x0",
+      toBlock: "latest",
+      [addressField]: address,
+      category: ["external", "internal", "erc20", "erc721", "erc1155"],
+      maxCount: "0x3e8",
+      withMetadata: true,
+      excludeZeroValue: false,
+    };
+    if (pageKey) params.pageKey = pageKey;
+    const r = await fetch(BASE_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [params],
+      }),
+    });
+    const d = (await r.json()) as AlchemyResponse;
+    return { transfers: d.result?.transfers || [], pageKey: d.result?.pageKey };
+  } catch {
+    return { transfers: [] };
+  }
+}
+
+async function fetchAllAssetTransfers(
+  addressField: "fromAddress" | "toAddress",
+  address: string,
+  maxPages = 8
 ): Promise<AlchemyTransfer[]> {
-  const fetchPage = async (
-    pageKey?: string
-  ): Promise<{ transfers: AlchemyTransfer[]; pageKey?: string }> => {
-    try {
-      const params: Record<string, unknown> = {
-        fromBlock: "0x0",
-        toBlock: "latest",
-        fromAddress: address,
-        category: ["external", "internal", "erc20", "erc721", "erc1155"],
-        maxCount: "0x3e8",
-        withMetadata: true,
-        excludeZeroValue: false,
-      };
-      if (pageKey) params.pageKey = pageKey;
-      const r = await fetch(BASE_RPC, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "alchemy_getAssetTransfers",
-          params: [params],
-        }),
-      });
-      const d = (await r.json()) as AlchemyResponse;
-      return { transfers: d.result?.transfers || [], pageKey: d.result?.pageKey };
-    } catch {
-      return { transfers: [] };
-    }
-  };
-
-  const first = await fetchPage();
+  const first = await fetchAssetTransferPage(addressField, address);
   const all = [...first.transfers];
-  if (!first.pageKey) return all;
-
-  let nextKey: string | undefined = first.pageKey;
+  let nextKey = first.pageKey;
   let page = 2;
-  while (nextKey && page <= 8) {
-    const res = await fetchPage(nextKey);
+  while (nextKey && page <= maxPages) {
+    const res = await fetchAssetTransferPage(addressField, address, nextKey);
     all.push(...res.transfers);
     nextKey = res.pageKey;
     page++;
@@ -50,35 +52,16 @@ export async function fetchAlchemyTxsFast(
   return all;
 }
 
+export async function fetchAlchemyTxsFast(
+  address: string
+): Promise<AlchemyTransfer[]> {
+  return fetchAllAssetTransfers("fromAddress", address);
+}
+
 export async function fetchAlchemyTxsIncoming(
   address: string
 ): Promise<AlchemyTransfer[]> {
-  try {
-    const r = await fetch(BASE_RPC, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 2,
-        method: "alchemy_getAssetTransfers",
-        params: [
-          {
-            fromBlock: "0x0",
-            toBlock: "latest",
-            toAddress: address,
-            category: ["external", "internal", "erc20", "erc721", "erc1155"],
-            maxCount: "0x3e8",
-            withMetadata: true,
-            excludeZeroValue: false,
-          },
-        ],
-      }),
-    });
-    const d = (await r.json()) as AlchemyResponse;
-    return d.result?.transfers || [];
-  } catch {
-    return [];
-  }
+  return fetchAllAssetTransfers("toAddress", address);
 }
 
 export async function fetchNftCount(address: string): Promise<number> {

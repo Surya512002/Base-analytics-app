@@ -26,6 +26,7 @@ import {
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
 import { DEX_ROUTERS } from "@/lib/constants/protocols";
+import { formatDexVolumeUsd, dexVolumeBarPct } from "@/lib/utils/swap-volume";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
@@ -154,17 +155,17 @@ if (!wallet) return null;
                       <span className="text-2xl text-slate-600 font-black">/100</span>
                     </div>
                     <p className="text-cyan-400 font-black text-base mt-2">{wallet.walletRank}</p>
-                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-8 sm:gap-x-10 gap-y-2.5 w-full">
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5 sm:gap-x-6 gap-y-1 max-w-lg">
                       {Object.entries(wallet.scoreComponents).map(([k,v],i)=>{
                         const key = k as keyof typeof SCORE_MAX;
                         const pct = Math.round((v / (SCORE_MAX[key] || 1)) * 100);
                         return(
-                          <div key={i} className="flex items-center gap-3 min-w-0">
-                            <span className="text-xs sm:text-sm text-slate-400 w-20 sm:w-24 font-bold shrink-0">{SCORE_LABELS[key]||k}</span>
-                            <div className="flex-1 min-w-0 bg-white/5 rounded-full h-2 overflow-hidden border border-white/8">
+                          <div key={i} className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] text-slate-400 w-16 sm:w-[4.25rem] font-bold shrink-0">{SCORE_LABELS[key]||k}</span>
+                            <div className="flex-1 min-w-0 bg-white/5 rounded-full h-1.5 overflow-hidden border border-white/8">
                               <div className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full" style={{width:`${pct}%`,transition:'width 1.5s ease-out'}}/>
                             </div>
-                            <span className="text-xs sm:text-sm text-cyan-400/80 w-7 text-right shrink-0 font-black tabular-nums">{v.toFixed(0)}</span>
+                            <span className="text-[10px] text-cyan-400/70 w-5 text-right shrink-0 font-bold tabular-nums">{Math.round(v)}</span>
                           </div>
                         );
                       })}
@@ -205,7 +206,7 @@ if (!wallet) return null;
                     {wallet.basename&&<span className="inline-flex items-center gap-1 text-[9px] font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-2 py-0.5 rounded-full mt-1.5"><BadgeCheck size={9}/>Verified Basename</span>}
                   </div>
                 </div>
-                <div className="bg-linear-to-br from-rose-500/20 to-[#00040d]/10 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 col-span-2 sm:col-span-1 shadow-lg shadow-black/25">
+                <div className="bg-linear-to-br from-rose-500/20 to-[#071220]/10 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 col-span-2 sm:col-span-1 shadow-lg shadow-black/25">
                   <div className="mb-2"><DollarSign size={15} className="text-cyan-400"/></div>
                   <p className="font-black text-white text-lg sm:text-xl">${wallet.portfolioValueUSD.toLocaleString('en-US',{maximumFractionDigits:0})}</p>
                   <p className="text-[9px] text-cyan-400/50 uppercase font-bold tracking-wide mt-0.5">Portfolio Value</p>
@@ -234,7 +235,9 @@ if (!wallet) return null;
                   {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                       i:<ArrowRightLeft size={15} className="text-cyan-300"/>},
                   {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                     i:<Gift size={15} className="text-cyan-400"/>},
                   {l:'Net ETH Flow',     v:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,i:<TrendingUp size={15} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>},
-                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),             i:<ArrowRightLeft size={15} className="text-cyan-400"/>},
+                  {l:'Swap Volume',      v:formatDexVolumeUsd(wallet.dexVolumeUSD),       i:<TrendingUp size={15} className="text-cyan-300"/>},
+                  {l:'Swap Count',       v:wallet.dexTradeCount.toLocaleString(),         i:<Repeat2 size={15} className="text-cyan-400"/>},
+                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),             i:<ArrowRightLeft size={15} className="text-cyan-300"/>},
                   {l:'Unique Tokens',    v:wallet.tokensSwapped.toString(),               i:<Coins size={15} className="text-cyan-300"/>},
                   {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),      i:<TrendingUp size={15} className="text-cyan-400"/>},
                   {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),             i:<Landmark size={15} className="text-cyan-300"/>},
@@ -397,6 +400,7 @@ if (!wallet) return null;
                 <div className="space-y-2">
                   {[
                     {label:'DeFi Depth',value:`${wallet.uniqueProtocols} protocols`,sub:wallet.mostUsedProtocol!=='None'?`Fav: ${wallet.mostUsedProtocol}`:'No DeFi yet',bar:Math.min(100,wallet.uniqueProtocols*10),icon:<Landmark size={12} className="text-cyan-300"/>},
+                    {label:'Swap Volume',value:formatDexVolumeUsd(wallet.dexVolumeUSD30d),sub:`30-day · ${wallet.dexTradeCount30d} swaps`,bar:dexVolumeBarPct(wallet.dexVolumeUSD30d),icon:<Repeat2 size={12} className="text-cyan-400"/>},
                     {label:'Consistency',value:`${wallet.avgTxPerDay}/day`,sub:`Peak: ${wallet.peakDayTxCount} txs`,bar:Math.min(100,wallet.avgTxPerDay*20),icon:<Gauge size={12} className="text-cyan-400"/>},
                   ].map((r,i)=>(
                     <div key={i} className="flex items-center gap-2.5 bg-white/[0.03] rounded-xl p-2 border border-white/8">
