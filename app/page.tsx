@@ -286,6 +286,10 @@ export default function Page(){
   const[refCopied,setRefCopied]=useState(false);
   const[weeklyXP,setWeeklyXP]=useState(0);
   const[scanProgress,setScanProgress]=useState('');
+  const [premiumUnlocked, setPremiumUnlocked] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumData, setPremiumData] = useState<{ message: string } | null>(null);
+  const [x402PayCount, setX402PayCount] = useState(0); // ← track payment count
 
   const boostDWT=`${encodeFunctionData({abi:BOOSTER_ABI,functionName:'boost'})}${getBuilderSuffix()}` as `0x${string}`;
   const gmDWT=`${encodeFunctionData({abi:GM_GN_ABI,functionName:'gm'})}${getBuilderSuffix()}` as `0x${string}`;
@@ -314,6 +318,46 @@ export default function Page(){
     const entry:LeaderboardPost={address:wallet.address,basename:wallet.basename,score:wallet.score,rank:wallet.walletRank,boosts,badges:mintedCount,weeklyXP:xp,weekNumber:getISOWeekNumber()};
     saveLeaderboard(entry).then(()=>fetchLeaderboard().then(d=>setLeaderboard(d)));
   },[wallet,boosts,mintedLevels,streak,txKeys]);
+
+   const handlePremiumScan = async () => {
+  if (!wallet) return;
+  setPremiumLoading(true);
+  try {
+    const provider = connType === 'farcaster'
+      ? sdk.wallet.ethProvider
+      : (window as unknown as { ethereum: typeof sdk.wallet.ethProvider }).ethereum;
+
+    const { getX402Fetch } = await import('../lib/x402-client');
+    const x402Fetch = await getX402Fetch(provider);
+
+    const res = await x402Fetch('/api/premium-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: wallet.address }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setPremiumData(data as { message: string });
+      setPremiumUnlocked(true);
+      // Track and persist x402 payment count
+      const key = `x402_count_${wallet.address.toLowerCase()}`;
+      const prev = parseInt(localStorage.getItem(key) || '0', 10);
+      const next = prev + 1;
+      localStorage.setItem(key, next.toString());
+      setX402PayCount(next);
+      showToast('✅ x402 payment confirmed on Base!', '');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(`❌ Payment failed: ${(err as {error?:string}).error || 'Try again'}`, '');
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message.split('\n')[0] : 'Payment error';
+    if (!msg.includes('rejected')) showToast(`❌ ${msg}`, '');
+  } finally {
+    setPremiumLoading(false);
+  }
+};
 
   const handleChallenge=useCallback(async()=>{
     const addr=challenge.trim().toLowerCase();
@@ -675,6 +719,13 @@ export default function Page(){
         .filter(tx=>{if(seenHash.has(tx.hash))return false;seenHash.add(tx.hash);return true;})
         .slice(0,20);
 
+        // Load persisted x402 payment count
+        const savedCount = parseInt(
+         localStorage.getItem(`x402_count_${address.toLowerCase()}`) || '0', 10
+          );
+        setX402PayCount(savedCount);
+        if (savedCount > 0) setPremiumUnlocked(true);
+
       setWallet({
         address,basename:bn,balance:ethBalNum.toFixed(4),ethVolume:ethVol.toFixed(4),
         txCount:actualTxCount,uniqueDays:uDays.size,activeWeeks:uWeeks.size,activeMonths:uMonths.size,
@@ -898,7 +949,76 @@ export default function Page(){
           </div>
         </div>
       </header>
-
+      {wallet && (
+  <div className={`mb-4 rounded-3xl border overflow-hidden transition-all ${
+    premiumUnlocked
+      ? 'bg-amber-950/20 border-yellow-500/30'
+      : 'bg-[#0d1628] border-blue-500/20'
+  }`}>
+    <div className={`h-0.5 ${premiumUnlocked
+      ? 'bg-linear-to-r from-yellow-500 via-amber-400 to-yellow-500'
+      : 'bg-linear-to-r from-blue-600 to-blue-500'}`}
+    />
+    <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+          premiumUnlocked
+            ? 'bg-yellow-500/15 border-yellow-500/25'
+            : 'bg-blue-600/15 border-blue-500/25'
+        }`}>
+          <Zap size={18} className={premiumUnlocked ? 'text-yellow-400' : 'text-blue-400'}/>
+        </div>
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-black text-white text-sm">x402 Payment</p>
+            <span className="text-[9px] font-black text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full">
+              HTTP 402 · Base
+            </span>
+            {x402PayCount > 0 && (
+              <span className="text-[9px] font-black text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                {x402PayCount} payment{x402PayCount > 1 ? 's' : ''} made
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-blue-400/50 mt-0.5">
+            {premiumUnlocked
+              ? `✅ ${premiumData?.message || 'Analytics unlocked'} · ${x402PayCount}× paid via x402`
+              : 'Pay 0.001 USDC via x402 micropayment protocol · no wallet popup, just a signature'}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {x402PayCount > 0 && (
+          <div className="text-center bg-blue-950/40 border border-blue-800/20 rounded-xl px-3 py-2">
+            <p className="text-base font-black text-yellow-400">{x402PayCount}</p>
+            <p className="text-[8px] text-blue-400/40 uppercase font-bold">x402 txs</p>
+          </div>
+        )}
+        {!premiumUnlocked ? (
+          <button
+            onClick={handlePremiumScan}
+            disabled={premiumLoading}
+            className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-black font-black text-xs px-5 py-3 rounded-2xl transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-yellow-500/20 whitespace-nowrap"
+          >
+            {premiumLoading
+              ? <><RefreshCcw size={13} className="animate-spin"/>Signing...</>
+              : <><Zap size={13}/>Pay 0.001 USDC</>}
+          </button>
+        ) : (
+          <button
+            onClick={handlePremiumScan}
+            disabled={premiumLoading}
+            className="bg-blue-950/40 hover:bg-blue-900/40 border border-blue-700/30 text-blue-300 font-black text-xs px-4 py-3 rounded-2xl transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+          >
+            {premiumLoading
+              ? <><RefreshCcw size={13} className="animate-spin"/>Signing...</>
+              : <><Zap size={13}/>Pay Again</>}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
         <div className="flex bg-[#0d1628] border border-blue-500/20 p-1 rounded-2xl mb-5 overflow-x-auto gap-0.5 no-scrollbar">
           {[
@@ -1154,6 +1274,7 @@ export default function Page(){
                 </div>
 
                 {([
+                  {l:'x402 Payments', v: x402PayCount.toString(), i:<Zap size={15} className="text-yellow-400"/>},
                   {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                        i:<CreditCard size={15} className="text-blue-400"/>},
                   {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(),            i:<Calendar size={15} className="text-blue-300"/>},
                   {l:'Active Days ✅',   v:wallet.uniqueDays.toString(),                  i:<Sun size={15} className="text-blue-400"/>},
