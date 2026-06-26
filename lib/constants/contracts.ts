@@ -84,3 +84,116 @@ export const GM_GN_ABI = [
     outputs: [],
   },
 ] as const;
+
+export const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
+export const ERC20_ABI = [
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+export const VOUCHER_ABI = [
+  {
+    name: "createEthBatch",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "cardCount", type: "uint256" },
+      { name: "secretHashes", type: "bytes32[]" },
+      { name: "message", type: "string" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "createUsdcBatch",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "cardCount", type: "uint256" },
+      { name: "secretHashes", type: "bytes32[]" },
+      { name: "message", type: "string" },
+      { name: "totalAmount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "redeem",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "cardIndex", type: "uint256" },
+      { name: "secret", type: "string" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "nextBatchId",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "getBatch",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [
+      { name: "creator", type: "address" },
+      { name: "token", type: "address" },
+      { name: "amountPerCard", type: "uint256" },
+      { name: "cardCount", type: "uint256" },
+      { name: "redeemedCount", type: "uint256" },
+      { name: "message", type: "string" },
+    ],
+  },
+  {
+    name: "hasWalletRedeemed",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "wallet", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "isCardRedeemed",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "cardIndex", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "cardSecretHashes",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "cardIndex", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+] as const;

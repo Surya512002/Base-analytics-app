@@ -10,9 +10,8 @@ import {
   Zap,
 } from "lucide-react";
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
-import { encodeFunctionData } from "viem";
+import { encodeContractCall } from "@/lib/utils/tx";
 import { base } from "viem/chains";
-import { APP_URL_WEB } from "@/lib/constants/env";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
@@ -27,7 +26,6 @@ import { DEX_ROUTERS } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
-import { getBuilderSuffix } from "@/lib/utils/tx";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 export default function AchievementsTab({ app }: { app: WalletAppState }) {
@@ -59,8 +57,8 @@ if (!wallet) return null;
             <div className="flex items-center justify-between mb-4">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Trophy size={12}/>Mint Your Identity</p>
               {mintedCount>0&&<div className="flex gap-1.5">
-                <button onClick={()=>shareAll(mintedCount,'w')} className="bg-white/[0.04] border border-cyan-500/18 hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Send size={13}/></button>
-                <button onClick={()=>shareAll(mintedCount,'t')} className="bg-white/[0.04] border border-cyan-500/18 hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Twitter size={13}/></button>
+                <button onClick={()=>shareAll(mintedCount,'w')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Send size={13}/></button>
+                <button onClick={()=>shareAll(mintedCount,'t')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Twitter size={13}/></button>
               </div>}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
@@ -77,16 +75,15 @@ if (!wallet) return null;
                 const isBatch=toMint.length>1;
                 let mintCall2:{to:`0x${string}`;data:`0x${string}`}[]=[];
                 if(toMint.length>0){
-                  const raw=isBatch
-                    ?encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintBatchAchievements',args:[toMint.map(id=>BigInt(id))]})
-                    :encodeFunctionData({abi:ACHIEVEMENTS_ABI,functionName:'mintAchievement',args:[BigInt(toMint[0])]});
-                  mintCall2=[{to:ACHIEVEMENTS_CONTRACT as `0x${string}`,data:`${raw}${getBuilderSuffix()}` as `0x${string}`}];
+                  mintCall2=[isBatch
+                    ?encodeContractCall(ACHIEVEMENTS_CONTRACT as `0x${string}`,ACHIEVEMENTS_ABI,'mintBatchAchievements',[toMint.map(id=>BigInt(id))])
+                    :encodeContractCall(ACHIEVEMENTS_CONTRACT as `0x${string}`,ACHIEVEMENTS_ABI,'mintAchievement',[BigInt(toMint[0])])];
                 }
                 let btnText=`${cat.tierNames[mintedTier]||'...'} Locked`;
                 if(mintedTier===cat.thresholds.length)btnText='Fully Minted 👑';
                 else if(canMint)btnText=isBatch?`Claim ${toMint.length} Badges 🚀`:`Mint ${cat.tierNames[mintedTier]}`;
                 return(
-                  <div key={cat.id} className="bg-white/[0.04] border border-cyan-500/15 rounded-3xl p-5 flex flex-col hover:border-cyan-500/28 transition-all shadow-lg shadow-black/20">
+                  <div key={cat.id} className="glass-panel-accent rounded-3xl p-5 flex flex-col hover:border-cyan-500/28 transition-all shadow-lg shadow-black/20">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-2xl">{cat.icon}</div>
@@ -140,8 +137,8 @@ if (!wallet) return null;
                         )}
                         {mintedTier>0&&(
                           <div className="flex gap-1.5 shrink-0">
-                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="bg-white/[0.04] border border-cyan-500/15 hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>
-                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'t')} className="bg-white/[0.04] border border-cyan-500/15 hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Twitter size={13}/></button>
+                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>
+                            <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'t')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Twitter size={13}/></button>
                           </div>
                         )}
                       </div>

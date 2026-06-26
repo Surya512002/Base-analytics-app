@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { encodeFunctionData } from "viem";
-import { base } from "viem/chains";
 import sdk from "@farcaster/miniapp-sdk";
 import { connectWallet } from "@/app/connection";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
-import { fetchAlchemyTxsFast } from "@/lib/api/alchemy";
+import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
@@ -35,7 +33,7 @@ import {
   twitterShare,
   warpcast,
 } from "@/lib/utils/share";
-import { getBuilderSuffix, normalizeTxHash } from "@/lib/utils/tx";
+import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
 import type { ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 
@@ -95,14 +93,10 @@ export function useWalletApp() {
   } | null>(null);
   const [x402PayCount, setX402PayCount] = useState(0);
 
-  const boostDWT = `${encodeFunctionData({ abi: BOOSTER_ABI, functionName: "boost" })}${getBuilderSuffix()}` as `0x${string}`;
-  const gmDWT = `${encodeFunctionData({ abi: GM_GN_ABI, functionName: "gm" })}${getBuilderSuffix()}` as `0x${string}`;
-  const gnDWT = `${encodeFunctionData({ abi: GM_GN_ABI, functionName: "gn" })}${getBuilderSuffix()}` as `0x${string}`;
-  const ciDWT = `${encodeFunctionData({ abi: CHECKIN_ABI, functionName: "checkIn" })}${getBuilderSuffix()}` as `0x${string}`;
-  const boostCall = [{ to: BOOSTER_CONTRACT as `0x${string}`, data: boostDWT }];
-  const gmCall = [{ to: GM_GN_CONTRACT as `0x${string}`, data: gmDWT }];
-  const gnCall = [{ to: GM_GN_CONTRACT as `0x${string}`, data: gnDWT }];
-  const ciCall = [{ to: CHECKIN_CONTRACT as `0x${string}`, data: ciDWT }];
+  const boostCall = [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")];
+  const gmCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gm")];
+  const gnCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gn")];
+  const ciCall = [encodeContractCall(CHECKIN_CONTRACT as `0x${string}`, CHECKIN_ABI, "checkIn")];
   const txCaps = getCapabilities();
 
   const showToast = useCallback((msg: string, hash: string) => {
@@ -259,35 +253,7 @@ export function useWalletApp() {
     }
     setChallengeLoading(true);
     try {
-      const [alchemyTxs, bscData] = await Promise.all([
-        fetchAlchemyTxsFast(addr).catch(() => []),
-        fetch(
-          `https://base.blockscout.com/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10000&sort=desc`
-        )
-          .then((r) => r.json())
-          .catch(() => ({})),
-      ]);
-      let rawTxs: { hash: string; metadata: { blockTimestamp: string } }[] =
-        [];
-      if (bscData.result && Array.isArray(bscData.result)) {
-        rawTxs = bscData.result.map(
-          (tx: { hash: string; timeStamp: string }) => ({
-            hash: tx.hash,
-            metadata: {
-              blockTimestamp: new Date(
-                Number(tx.timeStamp) * 1000
-              ).toISOString(),
-            },
-          })
-        );
-      }
-      const txMap = new Map<
-        string,
-        { hash: string; metadata: { blockTimestamp: string } }
-      >();
-      rawTxs.forEach((t) => txMap.set(t.hash, t));
-      alchemyTxs.forEach((t) => txMap.set(t.hash, t));
-      const merged = Array.from(txMap.values());
+      const merged = await fetchWalletTransfers(addr);
       const days = new Set(merged.map((tx) => getDayKey(tx.metadata.blockTimestamp)));
       const months = new Set(
         merged.map((tx) => getMonthKey(tx.metadata.blockTimestamp))
@@ -391,19 +357,19 @@ export function useWalletApp() {
     setMinting(type);
     try {
       let to: `0x${string}` = BOOSTER_CONTRACT as `0x${string}`;
-      let data: `0x${string}` = boostDWT;
+      let data: `0x${string}` = boostCall[0].data;
       let msg = "Boosted! 🎉";
       if (type === "gm") {
         to = GM_GN_CONTRACT as `0x${string}`;
-        data = gmDWT;
+        data = gmCall[0].data;
         msg = "GM on Base! ☀️";
       } else if (type === "gn") {
         to = GM_GN_CONTRACT as `0x${string}`;
-        data = gnDWT;
+        data = gnCall[0].data;
         msg = "GN on Base! 🌙";
       } else if (type === "checkin") {
         to = CHECKIN_CONTRACT as `0x${string}`;
-        data = ciDWT;
+        data = ciCall[0].data;
         msg = "Check-in secured! 🔥";
       }
       const p = {
@@ -466,25 +432,26 @@ export function useWalletApp() {
     setMinting(`mint-${catId}`);
     try {
       const isBatch = tokenIds.length > 1;
-      const raw = isBatch
-        ? encodeFunctionData({
-            abi: ACHIEVEMENTS_ABI,
-            functionName: "mintBatchAchievements",
-            args: [tokenIds.map((id) => BigInt(id))],
-          })
-        : encodeFunctionData({
-            abi: ACHIEVEMENTS_ABI,
-            functionName: "mintAchievement",
-            args: [BigInt(tokenIds[0])],
-          });
-      const data = `${raw}${getBuilderSuffix()}` as `0x${string}`;
+      const call = isBatch
+        ? encodeContractCall(
+            ACHIEVEMENTS_CONTRACT as `0x${string}`,
+            ACHIEVEMENTS_ABI,
+            "mintBatchAchievements",
+            [tokenIds.map((id) => BigInt(id))]
+          )
+        : encodeContractCall(
+            ACHIEVEMENTS_CONTRACT as `0x${string}`,
+            ACHIEVEMENTS_ABI,
+            "mintAchievement",
+            [BigInt(tokenIds[0])]
+          );
       const hash = await sdk.wallet.ethProvider.request({
         method: "eth_sendTransaction",
         params: [
           {
             from: wallet.address as `0x${string}`,
-            to: ACHIEVEMENTS_CONTRACT as `0x${string}`,
-            data,
+            to: call.to,
+            data: call.data,
             chainId: "0x2105" as `0x${string}`,
           },
         ],

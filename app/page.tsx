@@ -5,6 +5,7 @@ import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectScreen from "@/components/wallet/ConnectScreen";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
+import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
 import PremiumBanner from "@/components/wallet/PremiumBanner";
 import TabBar from "@/components/wallet/TabBar";
 import ToastNotification from "@/components/wallet/ToastNotification";
@@ -26,9 +27,10 @@ const LeaderboardTab = dynamic(
   () => import("@/components/wallet/tabs/LeaderboardTab"),
   { loading: () => <TabSkeleton /> }
 );
-const BaseHub = dynamic(() => import("@/components/BaseHub"), {
-  loading: () => <TabSkeleton />,
-});
+const BaseVoucherTab = dynamic(
+  () => import("@/components/wallet/tabs/BaseVoucherTab"),
+  { loading: () => <TabSkeleton /> }
+);
 
 function TabSkeleton() {
   return (
@@ -102,6 +104,8 @@ export default function Page() {
       />
 
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
+        <TabBar tab={tab} doneQuests={doneQuests} onTabChange={setTab} />
+
         <PremiumBanner
           premiumUnlocked={premiumUnlocked}
           premiumLoading={premiumLoading}
@@ -110,13 +114,13 @@ export default function Page() {
           onPay={handlePremiumScan}
         />
 
-        <TabBar tab={tab} doneQuests={doneQuests} onTabChange={setTab} />
+        <AppFeatureStrip />
 
         {tab === "dashboard" && <DashboardTab app={app} />}
         {tab === "achievements" && <AchievementsTab app={app} />}
         {tab === "quests" && <QuestsTab app={app} />}
         {tab === "leaderboard" && <LeaderboardTab app={app} />}
-        {tab === "basehub" && <BaseHub />}
+        {tab === "basehub" && <BaseVoucherTab app={app} />}
       </div>
     </main>
   );

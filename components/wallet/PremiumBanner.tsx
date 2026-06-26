@@ -18,7 +18,7 @@ export default function PremiumBanner({
 }: PremiumBannerProps) {
   return (
     <div
-      className={`mb-4 rounded-3xl border overflow-hidden transition-all glass-panel ${
+      className={`mb-3 rounded-3xl border overflow-hidden transition-all glass-panel ${
         premiumUnlocked ? "border-yellow-500/30 bg-amber-950/15" : "border-cyan-500/15"
       }`}
     >

@@ -1,89 +1,90 @@
-Here is a highly professional, visually appealing `README.md` template perfectly tailored for your project. It highlights all the amazing features you built and looks great to hackathon judges and other developers!
+# Base Analytics
 
-Copy and paste this directly into your `README.md` file:
+Gamified onchain wallet analytics on **Base** — score your wallet, mint gasless achievement badges, compete on leaderboards, pay with x402, and send **Base Voucher** crypto gift cards (ETH/USDC).
 
-```markdown
-# 🔵 Base Analytics 
+Live: [base-analytics-app.vercel.app](https://base-analytics-app.vercel.app)
 
-> **Gamify your Base journey: Calculate your onchain score and mint 40+ unique achievement badges entirely gasless.**
+## Features
 
-Built for the Base ecosystem, **Base Analytics** turns boring transaction hashes into a beautiful, readable dashboard. Discover your true onchain identity, track your stats, and flex your Base status—100% gasless. Fully integrated as a native Farcaster Mini-App (Frames v2).
+- **Wallet scan** — transaction history, active days, heatmap, contract interactions (Alchemy + Blockscout + Basescan)
+- **Onchain score & rank** — Shrimp → Dolphin → Shark → Whale → God
+- **40+ achievement badges** — batch mint via Coinbase Paymaster (gasless)
+- **Season quests & leaderboard** — weekly + global top 50
+- **x402 premium scan** — pay-per-use deep analysis
+- **Base Voucher** — split ETH/USDC into up to 50 gift cards with custom messages and 3D redeem reveal
+- **Farcaster mini-app** — native Frames v2 integration
+- **Builder attribution** — all app transactions include your Base builder code
 
-## ✨ Key Features
+## Tech stack
 
-* **🎮 Dynamic Onchain Scoring:** Calculates a unique score based on your transaction volume, streaks, contract interactions, and wallet age.
-* **🏆 40+ NFT Achievements:** Unlock milestone badges across categories like "DeFi Degen", "Diamond Hands", and "Whale Alert".
-* **⚡ One-Click Batch Minting:** Claim all your unlocked achievements at the exact same time in a single, seamless transaction.
-* **⛽ 100% Gasless Mints:** Powered by Coinbase OnchainKit Paymasters, allowing users to mint their identity with zero friction or gas fees.
-* **🚀 Blazing Fast Loads:** Utilizes `viem` Multicalls to bundle 50+ smart contract reads into a single network request, reducing load times to 1-2 seconds.
-* **📱 Native Farcaster Integration:** Built as a Frames v2 mini-app, allowing users to check stats and mint badges directly from their social feeds.
-* **🖼️ Dynamic OpenGraph Previews:** Code-based Satori OG images allow users to share their live Base Rank directly to X and Warpcast.
+- Next.js 16, React 19, Tailwind CSS 4
+- Viem, Wagmi, Coinbase OnchainKit
+- Solidity (Foundry) — `BaseVoucher.sol` on Base mainnet
+- Vercel KV (Redis) — leaderboard & voucher metadata
+- x402 — micropayments for premium features
 
-## 🛠️ Tech Stack
+## Local setup
 
-* **Frontend:** Next.js, React, Tailwind CSS
-* **Web3 & Blockchain:** Solidity, Base Network, Viem, `ethers.js`
-* **Infrastructure:** Alchemy API (Asset Transfers), Vercel
-* **Wallet & UX:** Coinbase OnchainKit, Account Abstraction (Paymasters)
-* **Social:** Farcaster Frames v2 SDK
-
-## 🧠 The Problem it Solves
-
-Navigating a new blockchain network can be overwhelming. Users stare at confusing block explorers, face high friction when interacting with dApps, and beginners often fall prey to phishing scams because they don't understand how the underlying tech works. 
-
-Base Analytics solves this by **gamifying the onchain footprint** and **eliminating Web3 UX friction** through sponsored, batched transactions inside a familiar social environment. 
-
-## 🗺️ Roadmap: Introducing "Base Hub"
-
-The immediate next milestone for this project is launching **Base Hub**, a dedicated educational layer inside the app designed to protect and onboard newcomers:
-* **Interactive Onboarding:** Step-by-step guides teaching users how to make their first transaction and how smart contracts execute under the hood.
-* **Builder Education:** Simple, jargon-free tutorials showing new developers how to easily deploy their first smart contract on Base.
-* **Anti-Scam Defense:** Teaching beginners vital security hygiene—how to identify malicious links, verify original website domains, and protect their wallets from draining attacks before they ever approve a transaction.
-
-## 💻 Local Setup
-
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/YOUR_USERNAME/base-analytics-app.git](https://github.com/YOUR_USERNAME/base-analytics-app.git)
-   cd base-analytics-app
-
-```
-
-2. Install dependencies:
 ```bash
+git clone https://github.com/YOUR_USERNAME/base-analytics-app.git
+cd base-analytics-app
 npm install
-
-```
-
-
-3. Set up your Environment Variables:
-Create a `.env.local` file in the root directory and add:
-```env
-NEXT_PUBLIC_ALCHEMY_KEY=your_alchemy_api_key
-NEXT_PUBLIC_PAYMASTER_URL=your_coinbase_paymaster_url
-
-```
-
-
-4. Run the development server:
-```bash
+cp .env.example .env.local
+# Fill in .env.local (see below)
 npm run dev
-
 ```
 
+Open [http://localhost:3000](http://localhost:3000).
 
+## Environment variables
 
-## 📄 Smart Contract
+Copy `.env.example` to `.env.local`. **Never commit `.env.local`.**
 
-The `BaseAnalyticsBadges` (ERC1155) contract is deployed on the Base Mainnet. It features a custom `mintBatchAchievements` function to support one-click multi-minting while preventing duplicate claims.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_ALCHEMY_KEY` | Yes | Alchemy Base RPC + wallet tx API |
+| `NEXT_PUBLIC_BUILDER_CODE` | Yes | Coinbase builder attribution (e.g. `bc_4uoh9iu2`) |
+| `NEXT_PUBLIC_VOUCHER_CONTRACT` | For vouchers | Deployed `BaseVoucher` address on Base |
+| `NEXT_PUBLIC_PAYMASTER_URL` | Optional | Gas sponsorship for badge mints |
+| `NEXT_PUBLIC_CDP_API_KEY` | Optional | Coinbase Developer Platform / OnchainKit analytics |
+| `BASESCAN_API_KEY` | Optional | Extra tx history via Etherscan v2 API |
+| `NEYNAR_API_KEY` | Optional | Farcaster analytics (server-side proxy) |
+| `KV_REDIS_URL` | For prod APIs | Redis for leaderboard + voucher index |
+| `X402_FACILITATOR_PRIVATE_KEY` | For x402 | Server wallet that settles premium payments |
 
-## 👨‍💻 Built By
+## Scripts
 
-* **X (Twitter):** [@TamilCrypt0](https://www.google.com/search?q=https://twitter.com/TamilCrypt0)
-* **Farcaster:** [@suryaprakash.farcaster.eth](https://www.google.com/search?q=https://warpcast.com/suryaprakash.farcaster.eth)
-
+```bash
+npm run dev          # development server
+npm run build        # production build
+npm run start        # production server
+npm run lint         # ESLint
+npm run voucher:deploy  # deploy BaseVoucher (needs DEPLOYER_PRIVATE_KEY)
 ```
 
-*(Note: Don't forget to replace `YOUR_USERNAME` in the `git clone` link under the Local Setup section with your actual GitHub username!)*
+## Smart contracts (Base mainnet)
 
-```
+| Contract | Address |
+|----------|---------|
+| Achievements (ERC1155) | `0xadb8120B4B18b892cFAD171243074487122Dea03` |
+| Booster | `0x0d1BE33F8B6a33BeEe7b3bb834DF6f8c168B2e46` |
+| GM/GN | `0xdb4f873B33F448aeA8Bb2b3B7e3ab9561329608A` |
+| Check-in | `0xABc7099C631E18640ea60b25116407aa17354FBb` |
+| Base Voucher | Set via `NEXT_PUBLIC_VOUCHER_CONTRACT` |
+
+## Deploy to Vercel
+
+1. Push to GitHub
+2. Import project in Vercel
+3. Add all env vars from `.env.example`
+4. Deploy
+
+## Security notes
+
+- API keys belong in `.env.local` / Vercel env — not in source code
+- Neynar requests are proxied through `/api/neynar` (server-only key)
+- Never commit private keys or `.env.local`
+
+## License
+
+MIT

@@ -5,7 +5,7 @@ import { toFacilitatorEvmSigner } from "@x402/evm";
 import { ExactEvmScheme } from "@x402/evm/exact/facilitator";
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 
-const BUILDER_CODE = process.env.NEXT_PUBLIC_BUILDER_CODE ?? "bc_4uoh9iu2";
+import { getBuilderDataSuffix } from "@/lib/utils/tx";
 
 function getAlchemyKey(): string {
   const key = process.env.NEXT_PUBLIC_ALCHEMY_KEY ?? "";
@@ -14,14 +14,6 @@ function getAlchemyKey(): string {
 
 function getRpcUrl(): string {
   return `https://base-mainnet.g.alchemy.com/v2/${getAlchemyKey()}`;
-}
-
-function getBuilderSuffix(): `0x${string}` {
-  const cb = new TextEncoder().encode(BUILDER_CODE);
-  const hex = Array.from(cb)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return `0x${hex}${cb.length.toString(16).padStart(2, "0")}0080218021802180218021802180218021` as `0x${string}`;
 }
 
 let _scheme: ExactEvmScheme | null = null;
@@ -36,6 +28,7 @@ export function getFacilitatorScheme(): ExactEvmScheme {
   const transport = http(getRpcUrl());
   const publicClient = createPublicClient({ chain: base, transport });
   const walletClient = createWalletClient({ account, chain: base, transport });
+  const builderSuffix = getBuilderDataSuffix();
 
   const signer = {
     address: account.address,
@@ -62,10 +55,10 @@ export function getFacilitatorScheme(): ExactEvmScheme {
     }) =>
       walletClient.writeContract({
         ...(args as Parameters<typeof walletClient.writeContract>[0]),
-        dataSuffix: getBuilderSuffix(),
+        dataSuffix: builderSuffix,
       }),
     sendTransaction: (args: { to: `0x${string}`; data: `0x${string}` }) =>
-      walletClient.sendTransaction(args),
+      walletClient.sendTransaction({ ...args, dataSuffix: builderSuffix }),
     waitForTransactionReceipt: (args: { hash: `0x${string}` }) =>
       publicClient.waitForTransactionReceipt(args) as Promise<{ status: string }>,
     getCode: (args: { address: `0x${string}` }) => publicClient.getCode(args),

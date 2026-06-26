@@ -2,29 +2,26 @@ import { JsonRpcProvider, formatEther } from "ethers";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import {
-  fetchAlchemyTxsFast,
-  fetchAlchemyTxsIncoming,
   fetchNftCount,
 } from "@/lib/api/alchemy";
-import {
-  fetchBlockscoutInternalTxs,
-  fetchBlockscoutTxs,
-} from "@/lib/api/blockscout";
+import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import { BASE_RPC } from "@/lib/constants/env";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
-  BOOSTER_CONTRACT,
   CHECKIN_ABI,
   CHECKIN_CONTRACT,
   ENTRYPOINT_V06,
   ENTRYPOINT_V07,
-  GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
-import { DEFI_PROTOCOLS, DEX_ROUTERS, BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
+import { BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, MONTH_NAMES } from "@/lib/constants/season";
 import { getTargetTokenId } from "@/lib/utils/achievements";
-import { getDayKey, getMonthKey, getWeekKey } from "@/lib/utils/dates";
+import {
+  countContractInteractions,
+  rollupWalletActivity,
+  walletInvolved,
+} from "@/lib/utils/wallet-activity";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
 import { computeSwapVolume } from "@/lib/utils/swap-volume";
 import {
@@ -33,7 +30,6 @@ import {
   computeWalletRank,
 } from "@/lib/utils/score";
 import type {
-  AlchemyTransfer,
   AnalyzeWalletResult,
   DayStats,
   WalletData,
@@ -63,11 +59,6 @@ const NAME_RESOLVER_ABI = [
     outputs: [{ name: "", type: "string" }],
   },
 ] as const;
-
-function getDedupKey(tx: AlchemyTransfer): string {
-  const valKey = tx.value ? tx.value.toFixed(6) : "0";
-  return `${tx.hash}-${tx.category}-${tx.asset || "ETH"}-${(tx.from || "").toLowerCase()}-${(tx.to || "").toLowerCase()}-${valKey}`;
-}
 
 export async function analyzeWalletAddress(
   address: string,
@@ -149,17 +140,14 @@ export async function analyzeWalletAddress(
   }
   const mcP = pub.multicall({ contracts: calls }).catch(() => []);
 
-  onProgress?.("Awaiting all sources...");
+  onProgress?.("Fetching full onchain history (Alchemy + Blockscout + Basescan)...");
 
   const [
     bn,
     balWei,
     nftCount,
     mcRes,
-    alchemyOut,
-    alchemyIn,
-    blockscoutTxs,
-    internalTxs,
+    allTxs,
     dbStreak,
     dbLastCI,
     ethPriceData,
@@ -168,26 +156,25 @@ export async function analyzeWalletAddress(
     balP,
     nftP,
     mcP,
-    fetchAlchemyTxsFast(address).catch(() => []),
-    fetchAlchemyTxsIncoming(address).catch(() => []),
-    fetchBlockscoutTxs(address).catch(() => []),
-    fetchBlockscoutInternalTxs(address).catch(() => []),
+    fetchWalletTransfers(address).catch(() => []),
     strkP,
     lastP,
     ethPriceP,
   ]);
 
-  onProgress?.("Computing stats...");
+  onProgress?.(`Computing stats from ${allTxs.length} transfer legs...`);
 
-  const txTransferMap = new Map<string, AlchemyTransfer>();
-  internalTxs.forEach((tx) => txTransferMap.set(getDedupKey(tx), tx));
-  blockscoutTxs.forEach((tx) => txTransferMap.set(getDedupKey(tx), tx));
-  alchemyIn.forEach((tx) => txTransferMap.set(getDedupKey(tx), tx));
-  alchemyOut.forEach((tx) => txTransferMap.set(getDedupKey(tx), tx));
-  const allTxs = Array.from(txTransferMap.values());
+  const activity = rollupWalletActivity(allTxs, addrLow);
+  const {
+    participatingHashes,
+    uDays,
+    uWeeks,
+    uMonths,
+    tpd,
+    monthActivity,
+  } = activity;
 
-  const uniqueHashes = new Set(allTxs.map((t) => t.hash));
-  const actualTxCount = uniqueHashes.size;
+  const actualTxCount = participatingHashes.size;
 
   const streak = Number(dbStreak);
   let checkedToday = false;
@@ -207,7 +194,6 @@ export async function analyzeWalletAddress(
   }
 
   const bridgeTxHashes = new Set<string>();
-  const outgoingHashes = new Set<string>();
   const paymasterTxHashes = new Set<string>();
   const ep06 = ENTRYPOINT_V06.toLowerCase();
   const ep07 = ENTRYPOINT_V07.toLowerCase();
@@ -215,7 +201,7 @@ export async function analyzeWalletAddress(
   for (const tx of allTxs) {
     const toAddr = (tx.to || "").toLowerCase();
     const fromAddr = (tx.from || "").toLowerCase();
-    if (fromAddr === addrLow) outgoingHashes.add(tx.hash);
+    if (!walletInvolved(tx, addrLow)) continue;
     if (
       (BRIDGE_CONTRACTS.has(toAddr) || BRIDGE_CONTRACTS.has(fromAddr)) &&
       (fromAddr === addrLow || toAddr === addrLow)
@@ -239,74 +225,33 @@ export async function analyzeWalletAddress(
     dexVolumeUSD30d,
   } = await computeSwapVolume(allTxs, addrLow, ethUSD);
 
-  const hashDateMap = new Map<string, string>();
-  for (const tx of allTxs) {
-    if (!tx.metadata?.blockTimestamp) continue;
-    if (!hashDateMap.has(tx.hash))
-      hashDateMap.set(tx.hash, getDayKey(tx.metadata.blockTimestamp));
-  }
+  const contractStats = countContractInteractions(
+    allTxs,
+    addrLow,
+    paymasterTxHashes
+  );
+  const uContracts = contractStats.uniqueContracts;
+  const defi = contractStats.defi;
+  const uProtocols = contractStats.uProtocols;
+  const protocolFreq = contractStats.protocolFreq;
+  const hBoosts = contractStats.hBoosts;
+  let hasGm = contractStats.hasGm;
+  const gmCount = contractStats.gmCount;
+  const checkInCount = contractStats.checkInCount;
+  const cxInteract = contractStats.contractInteractions;
 
-  const uDays = new Set<string>(),
-    uWeeks = new Set<string>(),
-    uMonths = new Set<string>();
-  const tpd = new Map<string, number>(),
-    monthActivity = new Map<string, number>();
+  const uTokens = new Set<string>();
+  const tokFreq = new Map<string, number>();
 
-  for (const tx of allTxs) {
-    if (!tx.metadata?.blockTimestamp) continue;
-    const dk = getDayKey(tx.metadata.blockTimestamp);
-    if (!uDays.has(dk)) {
-      uDays.add(dk);
-      tpd.set(dk, 0);
-    }
-    if (hashDateMap.get(tx.hash) === dk) {
-      const prevVal = tpd.get(dk) || 0;
-      const countKey = `${tx.hash}-${dk}`;
-      if (!tpd.has(countKey)) {
-        tpd.set(countKey, 1);
-        tpd.set(dk, prevVal + 1);
-      }
-    }
-    uWeeks.add(getWeekKey(tx.metadata.blockTimestamp));
-    const mk = getMonthKey(tx.metadata.blockTimestamp);
-    uMonths.add(mk);
-  }
-
-  tpd.clear();
-  const hashSeenOnDay = new Set<string>();
-  for (const tx of allTxs) {
-    if (!tx.metadata?.blockTimestamp) continue;
-    const dk = getDayKey(tx.metadata.blockTimestamp);
-    const seen = `${tx.hash}-${dk}`;
-    if (!hashSeenOnDay.has(seen)) {
-      hashSeenOnDay.add(seen);
-      tpd.set(dk, (tpd.get(dk) || 0) + 1);
-    }
-    const mk = getMonthKey(tx.metadata.blockTimestamp);
-    monthActivity.set(mk, (monthActivity.get(mk) || 0) + 1);
-  }
-
-  const uTokens = new Set<string>(),
-    uContracts = new Set<string>(),
-    uProtocols = new Set<string>();
-  const tokFreq = new Map<string, number>(),
-    protocolFreq = new Map<string, number>();
-
-  let ethVol = 0,
-    ethReceived = 0,
-    swapCount = 0,
-    cxInteract = 0,
-    hBoosts = 0,
-    defi = 0,
-    hasGm = false;
-  let erc20Txs = 0,
-    erc721Txs = 0,
-    gmCount = 0,
-    checkInCount = 0;
+  let ethVol = 0;
+  let ethReceived = 0;
+  let swapCount = 0;
+  let erc20Txs = 0;
+  let erc721Txs = 0;
   const processedHashes = new Set<string>();
 
   for (const tx of allTxs) {
-    if (!tx.metadata?.blockTimestamp) continue;
+    if (!tx.metadata?.blockTimestamp || !walletInvolved(tx, addrLow)) continue;
     const fromAddr = (tx.from || "").toLowerCase();
     const toAddr = (tx.to || "").toLowerCase();
     const isOutgoing = fromAddr === addrLow;
@@ -332,24 +277,6 @@ export async function analyzeWalletAddress(
     if (["erc20", "erc721", "erc1155"].includes(tx.category) && tx.asset) {
       uTokens.add(tx.asset);
       tokFreq.set(tx.asset, (tokFreq.get(tx.asset) || 0) + 1);
-    }
-
-    const isDirectCall = tx.category === "external" && isOutgoing;
-    const isSponsoredCall = paymasterTxHashes.has(tx.hash) && isIncoming;
-    if ((isDirectCall || isSponsoredCall) && isNewHash) {
-      cxInteract++;
-      if (tx.to) uContracts.add(toAddr);
-      if (DEFI_PROTOCOLS.has(toAddr)) {
-        defi++;
-        uProtocols.add(toAddr);
-        protocolFreq.set(toAddr, (protocolFreq.get(toAddr) || 0) + 1);
-      }
-      if (toAddr === BOOSTER_CONTRACT.toLowerCase()) hBoosts++;
-      if (toAddr === GM_GN_CONTRACT.toLowerCase()) {
-        hasGm = true;
-        gmCount++;
-      }
-      if (toAddr === CHECKIN_CONTRACT.toLowerCase()) checkInCount++;
     }
   }
 
@@ -404,6 +331,7 @@ export async function analyzeWalletAddress(
     daysOnBase = 0;
   if (actualTxCount > 0) {
     const stamps = allTxs
+      .filter((tx) => walletInvolved(tx, addrLow))
       .map((tx) => new Date(tx.metadata.blockTimestamp).getTime())
       .filter((t) => !isNaN(t));
     firstTs = Math.min(...stamps);
@@ -550,6 +478,7 @@ export async function analyzeWalletAddress(
     .map((e) => e[0]);
   const seenHash = new Set<string>();
   const recentTxs = [...allTxs]
+    .filter((tx) => walletInvolved(tx, addrLow))
     .sort(
       (a, b) =>
         new Date(b.metadata.blockTimestamp).getTime() -
@@ -560,7 +489,7 @@ export async function analyzeWalletAddress(
       seenHash.add(tx.hash);
       return true;
     })
-    .slice(0, 20);
+    .slice(0, 10);
 
   const wallet: WalletData = {
     address,

@@ -10,9 +10,9 @@ import {
   Zap,
 } from "lucide-react";
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
-import { encodeFunctionData } from "viem";
 import { base } from "viem/chains";
 import { APP_URL_WEB } from "@/lib/constants/env";
+import dynamic from "next/dynamic";
 import { ActivityHeatmap } from "@/components/wallet/ActivityHeatmap";
 import { SCORE_MAX, SCORE_LABELS } from "@/lib/utils/score";
 import {
@@ -26,12 +26,16 @@ import {
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
 import { DEX_ROUTERS } from "@/lib/constants/protocols";
-import { formatDexVolumeUsd, dexVolumeBarPct } from "@/lib/utils/swap-volume";
+import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
-import { getBuilderSuffix } from "@/lib/utils/tx";
 import type { WalletAppState } from "@/hooks/useWalletApp";
+
+const FarcasterAnalytics = dynamic(
+  () => import("@/components/wallet/FarcasterAnalytics"),
+  { loading: () => <div className="h-48 glass-panel rounded-3xl animate-pulse" /> }
+);
 
 export default function DashboardTab({ app }: { app: WalletAppState }) {
   const {
@@ -48,7 +52,18 @@ if (!wallet) return null;
 
   return (
           <div className="space-y-4">
-            <div className="bg-white/[0.04] border border-cyan-500/18 rounded-3xl overflow-hidden shadow-xl shadow-black/25">
+            <div className="glass-panel-accent rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.35em]">Onchain Analysis</p>
+                <h2 className="text-lg sm:text-xl font-black text-white mt-1">
+                  Your <span className="text-gradient-blue">Base Profile</span>
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                Wallet scan, badges, XP quests, and rankings — all on Base.
+              </p>
+            </div>
+            <div className="glass-panel rounded-3xl overflow-hidden shadow-xl shadow-black/25">
               <div className="h-0.5 bg-linear-to-r from-rose-500 via-cyan-400 to-blue-600"/>
               <div className="p-5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
@@ -135,7 +150,7 @@ if (!wallet) return null;
               </div>
             </div>
 
-            <div className="bg-white/[0.04] border border-cyan-500/18 rounded-3xl overflow-hidden shadow-xl shadow-black/25">
+            <div className="glass-panel rounded-3xl overflow-hidden shadow-xl shadow-black/25">
               <div className="h-0.5 bg-linear-to-r from-rose-500 via-cyan-400 to-blue-600"/>
               <div className="p-5 sm:p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-6">
@@ -198,7 +213,7 @@ if (!wallet) return null;
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><BarChart3 size={12}/>Wallet Intelligence</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
-                <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-4 col-span-2 flex items-center gap-3 overflow-hidden shadow-lg shadow-black/25">
+                <div className="glass-panel-accent rounded-2xl p-4 col-span-2 flex items-center gap-3 overflow-hidden shadow-lg shadow-black/25">
                   <div className="w-12 h-12 bg-cyan-500/15 border border-cyan-500/30 rounded-2xl flex items-center justify-center shrink-0"><User size={22} className="text-cyan-400"/></div>
                   <div className="min-w-0">
                     <p className="font-black text-white text-base sm:text-lg truncate">{wallet.basename||`${wallet.address.slice(0,8)}...${wallet.address.slice(-4)}`}</p>
@@ -256,7 +271,7 @@ if (!wallet) return null;
                   {l:'Activity Score',   v:`${wallet.activityScore}/100`,                 i:<Activity size={15} className="text-cyan-400"/>},
                   {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,             i:<ShieldCheck size={15} className="text-cyan-300"/>},
                 ] as {l:string;v:string|number;i:React.ReactNode}[]).map((s,i)=>(
-                  <div key={i} className="bg-white/[0.04] border border-cyan-500/15 rounded-2xl p-3 sm:p-4 hover:border-cyan-500/30 hover:bg-white/[0.04] transition-all group shadow-sm shadow-black/20">
+                  <div key={i} className="glass-panel-accent rounded-2xl p-3 sm:p-4 hover:border-cyan-500/30 transition-all group shadow-sm shadow-black/20">
                     <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
                     <p className="font-black text-white text-sm sm:text-base truncate leading-tight">{s.v}</p>
                     <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5 truncate">{s.l}</p>
@@ -266,7 +281,7 @@ if (!wallet) return null;
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-5 shadow-lg shadow-black/25">
+              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2"><Gift size={18} className="text-cyan-400"/><span className="font-black text-white">Referral Program</span></div>
                   <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-2 py-1 rounded-lg">+50 XP per ref</span>
@@ -281,7 +296,7 @@ if (!wallet) return null;
                 </div>
               </div>
 
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-5 shadow-lg shadow-black/25">
+              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
                 <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-cyan-400"/><span className="font-black text-white">Wallet Challenge</span></div>
                 <p className="text-xs text-cyan-300/50 mb-4">Enter any wallet to compare real onchain scores.</p>
                 <div className="flex gap-2 mb-3">
@@ -310,7 +325,7 @@ if (!wallet) return null;
                 )}
               </div>
 
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-lg shadow-black/25">
+              <div className="glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-lg shadow-black/25">
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
                   <div>
@@ -337,7 +352,7 @@ if (!wallet) return null;
                 </div>
               </div>
 
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-5 shadow-lg shadow-black/25">
+              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
                 <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
                 <div className="grid grid-cols-2 gap-3">
                   {(['gm','gn'] as const).map(type=>(
@@ -360,70 +375,11 @@ if (!wallet) return null;
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Activity size={14} className="text-cyan-400"/>
-                    <span className="font-black text-white text-sm">Activity Score</span>
-                    <span className="text-[9px] text-slate-500 font-bold">30-day weighted</span>
-                  </div>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${wallet.activityScore>=70?'text-green-300 bg-green-500/10 border-green-500/20':wallet.activityScore>=40?'text-cyan-300 bg-cyan-500/10 border-cyan-500/18':'text-orange-300 bg-orange-500/10 border-orange-500/20'}`}>
-                    {wallet.activityScore>=70?'🔥 Hot':wallet.activityScore>=40?'📈 Active':'💤 Cooling'}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1.5 mb-2">
-                  <span className="text-4xl font-black text-cyan-400">{wallet.activityScore}</span>
-                  <span className="text-lg text-slate-600 font-black">/100</span>
-                </div>
-                <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden border border-white/8 mb-3">
-                  <div className="h-full rounded-full transition-all duration-1000"
-                    style={{width:`${wallet.activityScore}%`,background:wallet.activityScore>=70?'linear-gradient(to right,#22c55e,#16a34a)':wallet.activityScore>=40?'linear-gradient(to right,#00E5FF,#2563eb)':'linear-gradient(to right,#f97316,#dc2626)'}}/>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white/[0.04] border border-white/8 rounded-xl p-2">
-                    <p className="text-sm font-black text-white">{wallet.weeklyTxAvg}</p>
-                    <p className="text-[9px] text-slate-500 uppercase font-bold">Avg Tx/Week</p>
-                  </div>
-                  <div className="bg-white/[0.04] border border-white/8 rounded-xl p-2">
-                    <p className="text-sm font-black text-white">{wallet.longestInactiveDays}d</p>
-                    <p className="text-[9px] text-slate-500 uppercase font-bold">Longest Gap</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <BrainCircuit size={14} className="text-cyan-400"/>
-                  <span className="font-black text-white text-sm">Onchain Profile</span>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    {label:'DeFi Depth',value:`${wallet.uniqueProtocols} protocols`,sub:wallet.mostUsedProtocol!=='None'?`Fav: ${wallet.mostUsedProtocol}`:'No DeFi yet',bar:Math.min(100,wallet.uniqueProtocols*10),icon:<Landmark size={12} className="text-cyan-300"/>},
-                    {label:'Swap Volume',value:formatDexVolumeUsd(wallet.dexVolumeUSD30d),sub:`30-day · ${wallet.dexTradeCount30d} swaps`,bar:dexVolumeBarPct(wallet.dexVolumeUSD30d),icon:<Repeat2 size={12} className="text-cyan-400"/>},
-                    {label:'Consistency',value:`${wallet.avgTxPerDay}/day`,sub:`Peak: ${wallet.peakDayTxCount} txs`,bar:Math.min(100,wallet.avgTxPerDay*20),icon:<Gauge size={12} className="text-cyan-400"/>},
-                  ].map((r,i)=>(
-                    <div key={i} className="flex items-center gap-2.5 bg-white/[0.03] rounded-xl p-2 border border-white/8">
-                      <div className="shrink-0">{r.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-[10px] text-cyan-400/50 font-bold uppercase">{r.label}</span>
-                          <span className="text-[10px] font-black text-white">{r.value}</span>
-                        </div>
-                        <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
-                          <div className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full" style={{width:`${r.bar}%`,transition:'width 1.2s ease'}}/>
-                        </div>
-                        <p className="text-[9px] text-slate-600 mt-0.5">{r.sub}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <FarcasterAnalytics />
 
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
-              <div className="bg-white/[0.04] border border-cyan-500/18 rounded-2xl overflow-hidden shadow-lg shadow-black/25">
+              <div className="glass-panel-accent rounded-2xl overflow-hidden shadow-lg shadow-black/25">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
                   const toAddr=(tx.to||'').toLowerCase();
                   const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';

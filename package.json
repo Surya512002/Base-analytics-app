@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh"
   },
   "dependencies": {
     "@base-org/account": "^2.5.4",

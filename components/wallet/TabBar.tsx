@@ -1,9 +1,9 @@
 import {
   BarChart3,
-  BookOpen,
   Target,
   Trophy,
   Users,
+  Gift,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
@@ -23,11 +23,11 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
       label: `Quests${doneQuests > 0 ? ` · ${doneQuests}` : ""}`,
     },
     { id: "leaderboard" as const, icon: <Users size={13} />, label: "Rankings" },
-    { id: "basehub" as const, icon: <BookOpen size={13} />, label: "Ecosystem" },
+    { id: "basehub" as const, icon: <Gift size={13} />, label: "Base Voucher" },
   ];
 
   return (
-    <div className="flex glass-panel p-1 rounded-2xl mb-5 overflow-x-auto gap-0.5 no-scrollbar">
+    <div className="flex glass-panel p-1 rounded-2xl mb-4 overflow-x-auto gap-0.5 no-scrollbar">
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -40,7 +40,7 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
         >
           {t.icon}
           <span className="hidden sm:inline">{t.label}</span>
-          <span className="sm:hidden">{t.label.split(" ")[0]}</span>
+          <span className="sm:hidden">{t.id === "basehub" ? "Voucher" : t.label.split(" ")[0]}</span>
         </button>
       ))}
     </div>

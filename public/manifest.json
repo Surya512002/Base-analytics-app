@@ -3,14 +3,19 @@
   "short_name": "Analytics",
   "icons": [
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/splash.png",
+      "sizes": "200x200",
+      "type": "image/png"
     }
   ],
-  "theme_color": "#071220",
-  "background_color": "#071220",
+  "theme_color": "#0052FF",
+  "background_color": "#0052FF",
   "display": "standalone",
   "start_url": "/"
 }

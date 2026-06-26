@@ -5,12 +5,12 @@ import { Providers } from "./providers";
 const APP_URL = "https://base-analytics-app.vercel.app";
 
 export const metadata: Metadata = {
-  title: "Base Analytics — What's Your Onchain Rank?",
+  title: "Base Analytics - What's Your Onchain Rank?",
   description:
     "Free wallet scan on Base. Discover your rank, mint gasless badges, farm Season XP.",
   metadataBase: new URL(APP_URL),
   openGraph: {
-    title: "Base Analytics — What's Your Onchain Rank?",
+    title: "Base Analytics - What's Your Onchain Rank?",
     description:
       "Free scan on Base. Shrimp → Dolphin → Shark → Whale → God. Mint badges & earn XP.",
     url: APP_URL,
@@ -20,27 +20,29 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics — What's Your Onchain Rank?",
+    title: "Base Analytics - What's Your Onchain Rank?",
     description:
       "Free scan on Base. Shrimp → Dolphin → Shark → Whale → God. Mint badges & earn XP.",
     images: [`${APP_URL}/opengraph-image`],
   },
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [
+      { url: "/icon.png", sizes: "1024x1024", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
       imageUrl: `${APP_URL}/opengraph-image`,
       button: {
-        title: "Get My Score — Free",
+        title: "Get My Score - Free",
         action: {
           type: "launch_frame",
           name: "Base Analytics",
           url: APP_URL,
-          splashImageUrl: `${APP_URL}/logo.svg`,
-          splashBackgroundColor: "#071220",
+          splashImageUrl: `${APP_URL}/splash.png`,
+          splashBackgroundColor: "#0052FF",
         },
       },
     }),
