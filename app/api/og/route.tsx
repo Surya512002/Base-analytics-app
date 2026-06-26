@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const data = parseOgParams(searchParams);
 
-  return new ImageResponse(
+    return new ImageResponse(
     renderOgCard({
       score: data.score,
       rank: data.rank,
@@ -19,6 +19,10 @@ export async function GET(request: Request) {
       title: data.title || undefined,
       subtitle: data.subtitle || undefined,
       variant: data.variant,
+      address: data.address,
+      activeDays: data.activeDays,
+      txs: data.txs,
+      healthScore: data.healthScore,
     }),
     { ...OG_SIZE }
   );

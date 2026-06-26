@@ -23,7 +23,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const rank = pick(params, "rank") || "Base God";
   const badges = pick(params, "badges") || "0";
   const ogImage = getOgImageUrl(APP_URL, {
-    score: parseInt(score, 10) || 88,
+    score: parseInt(score, 10) || 72,
     rank,
     badges: parseInt(badges, 10) || 0,
     days: parseInt(pick(params, "days"), 10) || undefined,
@@ -32,6 +32,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title: pick(params, "title") || undefined,
     subtitle: pick(params, "subtitle") || undefined,
     variant: (pick(params, "v") as "default" | "score" | "badge" | "referral") || "score",
+    address: pick(params, "addr") || undefined,
+    activeDays: parseInt(pick(params, "activeDays"), 10) || undefined,
+    txs: parseInt(pick(params, "txs"), 10) || undefined,
+    healthScore: parseInt(pick(params, "health"), 10) || undefined,
   });
 
   const title = pick(params, "title") || `${rank} — ${score}/100 on Base Analytics`;

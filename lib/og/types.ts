@@ -8,9 +8,19 @@ export interface OgCardData {
   title?: string;
   subtitle?: string;
   variant?: "default" | "score" | "badge" | "referral";
+  address?: string;
+  activeDays?: number;
+  txs?: number;
+  healthScore?: number;
 }
 
 export const OG_SIZE = { width: 1200, height: 630 };
+
+export function shortenAddress(addr: string): string {
+  const a = addr.trim();
+  if (a.length < 12) return a;
+  return `${a.slice(0, 6)}...${a.slice(-4)}`;
+}
 
 export function getOgQueryString(data: OgCardData): string {
   const params = new URLSearchParams();
@@ -23,6 +33,10 @@ export function getOgQueryString(data: OgCardData): string {
   if (data.title) params.set("title", data.title);
   if (data.subtitle) params.set("subtitle", data.subtitle);
   if (data.variant) params.set("v", data.variant);
+  if (data.address) params.set("addr", data.address);
+  if (data.activeDays != null) params.set("activeDays", String(data.activeDays));
+  if (data.txs != null) params.set("txs", String(data.txs));
+  if (data.healthScore != null) params.set("health", String(data.healthScore));
   return params.toString();
 }
 
@@ -31,26 +45,52 @@ export function getOgImageUrl(baseUrl: string, data: OgCardData = {}): string {
   return qs ? `${baseUrl}/api/og?${qs}` : `${baseUrl}/opengraph-image`;
 }
 
-export function parseOgParams(
-  searchParams: URLSearchParams
-): Required<
-  Pick<OgCardData, "score" | "rank" | "badges" | "days" | "xp" | "streak">
-> & {
+export function parseOgParams(searchParams: URLSearchParams): OgCardData & {
+  score: number;
+  rank: string;
+  badges: number;
+  days: number;
+  xp: number;
+  streak: number;
   title: string;
   subtitle: string;
   variant: OgCardData["variant"];
 } {
   const score = Math.min(
     100,
-    Math.max(0, parseInt(searchParams.get("score") || "88", 10) || 88)
+    Math.max(0, parseInt(searchParams.get("score") || "72", 10) || 72)
   );
-  const badges = Math.max(0, parseInt(searchParams.get("badges") || "4", 10) || 4);
+  const badges = Math.max(0, parseInt(searchParams.get("badges") || "3", 10) || 3);
   const days = Math.max(0, parseInt(searchParams.get("days") || "91", 10) || 91);
-  const xp = Math.max(0, parseInt(searchParams.get("xp") || "0", 10) || 0);
-  const streak = Math.max(0, parseInt(searchParams.get("streak") || "0", 10) || 0);
-  const rank = searchParams.get("rank") || "Base God 👑";
+  const xp = Math.max(0, parseInt(searchParams.get("xp") || "120", 10) || 120);
+  const streak = Math.max(0, parseInt(searchParams.get("streak") || "5", 10) || 5);
+  const rank = searchParams.get("rank") || "Base Shark";
   const title = searchParams.get("title") || "";
   const subtitle = searchParams.get("subtitle") || "";
   const variant = (searchParams.get("v") as OgCardData["variant"]) || "default";
-  return { score, rank, badges, days, xp, streak, title, subtitle, variant };
+  const address = searchParams.get("addr") || "0x3799cafa388da047cAF7c999e31c844705FadfAe";
+  const activeDays = Math.max(
+    0,
+    parseInt(searchParams.get("activeDays") || "47", 10) || 47
+  );
+  const txs = Math.max(0, parseInt(searchParams.get("txs") || "1248", 10) || 1248);
+  const healthScore = Math.min(
+    100,
+    Math.max(0, parseInt(searchParams.get("health") || String(score), 10) || score)
+  );
+  return {
+    score,
+    rank,
+    badges,
+    days,
+    xp,
+    streak,
+    title,
+    subtitle,
+    variant,
+    address,
+    activeDays,
+    txs,
+    healthScore,
+  };
 }

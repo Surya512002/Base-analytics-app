@@ -31,6 +31,10 @@ export function buildShareCardData(
     variant: opts.variant ?? "score",
     title: opts.title,
     subtitle: opts.subtitle,
+    address: wallet.address,
+    activeDays: wallet.uniqueDays,
+    txs: wallet.txCount,
+    healthScore: wallet.walletHealthScore,
   };
 }
 
@@ -45,6 +49,10 @@ export function buildSharePageUrl(data: OgCardData, ref?: string): string {
   if (data.title) params.set("title", data.title);
   if (data.subtitle) params.set("subtitle", data.subtitle);
   if (data.variant) params.set("v", data.variant);
+  if (data.address) params.set("addr", data.address);
+  if (data.activeDays != null) params.set("activeDays", String(data.activeDays));
+  if (data.txs != null) params.set("txs", String(data.txs));
+  if (data.healthScore != null) params.set("health", String(data.healthScore));
   if (ref) params.set("ref", ref);
   return `${APP_URL_WEB}/share?${params.toString()}`;
 }

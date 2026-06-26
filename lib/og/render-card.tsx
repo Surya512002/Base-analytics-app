@@ -1,45 +1,47 @@
 import type { OgCardData } from "./types";
+import { shortenAddress } from "./types";
 
-const RANK_TIERS = [
-  { emoji: "🦐", label: "Shrimp", min: 0 },
-  { emoji: "🐬", label: "Dolphin", min: 30 },
-  { emoji: "🦈", label: "Shark", min: 50 },
-  { emoji: "🐋", label: "Whale", min: 70 },
-  { emoji: "👑", label: "God", min: 85 },
-];
+const TABS = ["Dashboard", "Badges", "Quests", "Rankings", "Voucher"] as const;
 
-function getActiveTier(score: number) {
-  let idx = 0;
-  for (let i = RANK_TIERS.length - 1; i >= 0; i--) {
-    if (score >= RANK_TIERS[i].min) {
-      idx = i;
-      break;
-    }
-  }
-  return idx;
+function formatTxs(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return n.toLocaleString();
+}
+
+function glassPanel(extra?: Record<string, string | number>) {
+  return {
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 20,
+    ...extra,
+  };
 }
 
 export function renderOgCard(data: OgCardData = {}) {
-  const score = data.score ?? 88;
-  const rank = data.rank ?? "Base God 👑";
-  const badges = data.badges ?? 4;
+  const score = data.score ?? 72;
+  const rank = data.rank ?? "Base Shark";
+  const badges = data.badges ?? 3;
   const days = data.days ?? 91;
-  const xp = data.xp ?? 0;
-  const streak = data.streak ?? 0;
+  const xp = data.xp ?? 120;
+  const streak = data.streak ?? 5;
+  const activeDays = data.activeDays ?? 47;
+  const txs = data.txs ?? 1248;
+  const healthScore = data.healthScore ?? score;
+  const address = shortenAddress(
+    data.address || "0x3799cafa388da047cAF7c999e31c844705FadfAe"
+  );
   const variant = data.variant ?? "default";
   const isPersonal =
     variant === "score" || variant === "badge" || Boolean(data.title);
-  const activeTier = getActiveTier(score);
 
-  const hookLine = isPersonal
-    ? data.title || (variant === "badge" ? "BADGES UNLOCKED" : "I JUST SCORED")
-    : "WHAT'S YOUR";
-  const heroLine = isPersonal
-    ? variant === "badge"
-      ? `${badges} ON BASE`
-      : `${score}`
-    : "ONCHAIN RANK?";
-  const heroSuffix = isPersonal && variant !== "badge" ? "/100" : "";
+  const ringR = 38;
+  const ringC = 2 * Math.PI * ringR;
+  const ringOffset = ringC * (1 - healthScore / 100);
+
+  const ctaText = isPersonal ? "Challenge this wallet" : "Connect & scan free";
+  const headline = isPersonal
+    ? data.title || (variant === "badge" ? "Badges minted on Base" : "Live wallet dashboard")
+    : "Your connected Base dashboard";
 
   return (
     <div
@@ -47,397 +49,409 @@ export function renderOgCard(data: OgCardData = {}) {
         width: "100%",
         height: "100%",
         display: "flex",
+        flexDirection: "column",
         position: "relative",
         overflow: "hidden",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-        background: "#00040d",
+        background: "#071220",
       }}
     >
-      {/* Diagonal aurora mesh — no grid */}
+      {/* Aurora background */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(125deg, #001a4d 0%, #00040d 35%, #0a0018 70%, #00040d 100%)",
-          display: "flex",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: -200,
-          right: -100,
-          width: 700,
-          height: 700,
-          borderRadius: 350,
-          background:
-            "radial-gradient(circle, rgba(0,229,255,0.22) 0%, transparent 62%)",
-          display: "flex",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: -180,
-          left: -120,
-          width: 600,
-          height: 600,
-          borderRadius: 300,
-          background:
-            "radial-gradient(circle, rgba(255,51,102,0.18) 0%, transparent 65%)",
-          display: "flex",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "55%",
-          left: "30%",
-          width: 500,
-          height: 300,
-          background:
-            "radial-gradient(ellipse, rgba(0,82,255,0.15) 0%, transparent 70%)",
+            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,82,255,0.35), transparent), radial-gradient(ellipse 60% 40% at 100% 100%, rgba(255,51,102,0.2), transparent), #071220",
           display: "flex",
         }}
       />
 
-      {/* Diagonal accent stripe */}
-      <div
-        style={{
-          position: "absolute",
-          top: -80,
-          right: 120,
-          width: 4,
-          height: 900,
-          background: "linear-gradient(180deg, transparent, #00E5FF, #FF3366, transparent)",
-          transform: "rotate(25deg)",
-          opacity: 0.6,
-          display: "flex",
-        }}
-      />
-
-      {/* Content */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           width: "100%",
           height: "100%",
-          padding: "44px 56px 40px",
+          padding: "28px 36px 32px",
           position: "relative",
-          justifyContent: "space-between",
+          gap: 14,
         }}
       >
-        {/* Top bar */}
+        {/* App header — connected wallet */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            ...glassPanel({ borderRadius: 16, padding: "12px 18px" }),
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
+                width: 32,
+                height: 32,
+                borderRadius: 10,
                 background: "linear-gradient(135deg, #0052FF, #00E5FF)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 0 24px rgba(0,229,255,0.5)",
               }}
             >
-              <span style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>
-                B
-              </span>
+              <span style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>B</span>
             </div>
-            <span
-              style={{
-                color: "#fff",
-                fontSize: 15,
-                fontWeight: 800,
-                letterSpacing: 3,
-              }}
-            >
-              BASE ANALYTICS
+            <span style={{ color: "#fff", fontSize: 15, fontWeight: 900 }}>
+              BASE<span style={{ color: "#22d3ee" }}>.</span>ANALYTICS
             </span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: "rgba(255,51,102,0.15)",
-              border: "1px solid rgba(255,51,102,0.4)",
-              borderRadius: 100,
-              padding: "8px 18px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: 4,
-                background: "#FF3366",
-                boxShadow: "0 0 8px #FF3366",
-                display: "flex",
-              }}
-            />
-            <span
-              style={{
-                color: "#ff8fab",
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: 2,
-              }}
-            >
-              SEASON 1 LIVE
-            </span>
-          </div>
-        </div>
-
-        {/* Hero — center left, massive type */}
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            alignItems: "center",
-            gap: 48,
-            marginTop: 8,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              gap: 4,
-            }}
-          >
-            <span
-              style={{
-                fontSize: isPersonal && variant !== "badge" ? 28 : 36,
-                fontWeight: 800,
-                color: "#00E5FF",
-                letterSpacing: 6,
-                textTransform: "uppercase",
-              }}
-            >
-              {hookLine}
-            </span>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-              <span
-                style={{
-                  fontSize:
-                    isPersonal && variant !== "badge"
-                      ? 160
-                      : variant === "badge"
-                        ? 72
-                        : 88,
-                  fontWeight: 900,
-                  color: "#ffffff",
-                  lineHeight: 0.9,
-                  letterSpacing: -4,
-                  textShadow: "0 0 60px rgba(0,229,255,0.35)",
-                }}
-              >
-                {heroLine}
-              </span>
-              {heroSuffix && (
-                <span
-                  style={{
-                    fontSize: 36,
-                    fontWeight: 700,
-                    color: "#475569",
-                    marginBottom: 18,
-                  }}
-                >
-                  {heroSuffix}
-                </span>
-              )}
-            </div>
-            {isPersonal ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    marginTop: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      background: "linear-gradient(90deg, #0052FF, #00E5FF)",
-                      borderRadius: 100,
-                      padding: "10px 24px",
-                      display: "flex",
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: "#fff",
-                        fontSize: 22,
-                        fontWeight: 900,
-                      }}
-                    >
-                      {rank}
-                    </span>
-                  </div>
-                  {badges > 0 && (
-                    <span style={{ color: "#94a3b8", fontSize: 18, fontWeight: 700 }}>
-                      {badges} badges minted
-                    </span>
-                  )}
-                </div>
-                {(xp > 0 || streak > 0) && (
-                  <span style={{ color: "#64748b", fontSize: 16, fontWeight: 600 }}>
-                    {xp > 0 ? `${xp} XP this week` : ""}
-                    {xp > 0 && streak > 0 ? "  ·  " : ""}
-                    {streak > 0 ? `${streak} day streak` : ""}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span
-                style={{
-                  fontSize: 22,
-                  color: "#94a3b8",
-                  fontWeight: 600,
-                  maxWidth: 520,
-                  lineHeight: 1.4,
-                  marginTop: 12,
-                }}
-              >
-                Free wallet scan on Base. Mint gasless badges, farm XP, climb the
-                leaderboard.
-              </span>
-            )}
-          </div>
-
-          {/* Rank ladder — vertical pill on right */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 24,
-              padding: "20px 16px",
-              minWidth: 140,
-            }}
-          >
-            <span
-              style={{
-                color: "#64748b",
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                textAlign: "center",
-                marginBottom: 6,
-              }}
-            >
-              Rank Tiers
-            </span>
-            {RANK_TIERS.map((t, i) => (
-              <div
-                key={t.label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 12px",
-                  borderRadius: 12,
-                  background:
-                    i === activeTier
-                      ? "linear-gradient(90deg, rgba(0,82,255,0.35), rgba(0,229,255,0.15))"
-                      : "transparent",
-                  border:
-                    i === activeTier
-                      ? "1px solid rgba(0,229,255,0.4)"
-                      : "1px solid transparent",
-                }}
-              >
-                <span style={{ fontSize: 22 }}>{t.emoji}</span>
-                <span
-                  style={{
-                    color: i === activeTier ? "#fff" : "#475569",
-                    fontSize: 13,
-                    fontWeight: i === activeTier ? 800 : 600,
-                  }}
-                >
-                  {t.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Feature chips */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          {[
-            { icon: "⛽", label: "GASLESS TXS" },
-            { icon: "🏅", label: "11 BADGE TYPES" },
-            { icon: "⚡", label: "XP QUESTS" },
-            { icon: "📅", label: `${days}D SEASON` },
-          ].map((chip) => (
-            <div
-              key={chip.label}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                gap: 6,
+                background: "rgba(16,185,129,0.12)",
+                border: "1px solid rgba(16,185,129,0.35)",
                 borderRadius: 100,
-                padding: "10px 18px",
+                padding: "6px 12px",
               }}
             >
-              <span style={{ fontSize: 16 }}>{chip.icon}</span>
-              <span
+              <div
                 style={{
-                  color: "#cbd5e1",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: 1,
+                  width: 7,
+                  height: 7,
+                  borderRadius: 4,
+                  background: "#10b981",
+                  boxShadow: "0 0 8px #10b981",
+                  display: "flex",
                 }}
-              >
-                {chip.label}
+              />
+              <span style={{ color: "#6ee7b7", fontSize: 11, fontWeight: 800 }}>
+                Connected
               </span>
+            </div>
+            <span
+              style={{
+                color: "#94a3b8",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "monospace",
+              }}
+            >
+              {address}
+            </span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                ...glassPanel({ borderRadius: 12, padding: "6px 10px" }),
+              }}
+            >
+              <span style={{ color: "#22d3ee", fontSize: 11, fontWeight: 900 }}>
+                ⚡ {xp} XP
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            ...glassPanel({ borderRadius: 16, padding: 6 }),
+          }}
+        >
+          {TABS.map((tab, i) => (
+            <div
+              key={tab}
+              style={{
+                display: "flex",
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "10px 8px",
+                borderRadius: 12,
+                fontSize: 11,
+                fontWeight: 800,
+                color: i === 0 ? "#fff" : "#94a3b8",
+                background:
+                  i === 0
+                    ? "linear-gradient(135deg, #ff4d7a, #3d7bff)"
+                    : "transparent",
+              }}
+            >
+              {tab}
             </div>
           ))}
         </div>
 
-        {/* Bottom CTA bar */}
+        {/* Dashboard hero strip */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: "linear-gradient(90deg, rgba(0,82,255,0.25), rgba(255,51,102,0.2))",
-            border: "1px solid rgba(0,229,255,0.3)",
-            borderRadius: 20,
-            padding: "18px 32px",
+            ...glassPanel({
+              borderRadius: 18,
+              padding: "14px 20px",
+              border: "1px solid rgba(34,211,238,0.2)",
+            }),
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span
+              style={{
+                color: "#22d3ee",
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: 3,
+              }}
+            >
+              ONCHAIN ANALYSIS
+            </span>
+            <span style={{ color: "#fff", fontSize: 22, fontWeight: 900 }}>
+              Your <span style={{ color: "#60a5fa" }}>Base Profile</span>
+            </span>
+          </div>
+          <span style={{ color: "#64748b", fontSize: 13, fontWeight: 600, maxWidth: 280 }}>
+            {headline}
+          </span>
+        </div>
+
+        {/* Main dashboard row */}
+        <div style={{ display: "flex", flex: 1, gap: 14, minHeight: 0 }}>
+          {/* Health + score panel */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1.4,
+              ...glassPanel({ padding: "20px 22px" }),
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: 3,
+                width: "100%",
+                background: "linear-gradient(90deg, #ff4d7a, #22d3ee, #3b82f6)",
+                borderRadius: 2,
+                marginBottom: 16,
+                display: "flex",
+              }}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              {/* Score ring */}
+              <div
+                style={{
+                  display: "flex",
+                  position: "relative",
+                  width: 88,
+                  height: 88,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute" }}>
+                  <circle
+                    cx="44"
+                    cy="44"
+                    r={ringR}
+                    fill="none"
+                    stroke="rgba(0,229,255,0.12)"
+                    strokeWidth="7"
+                  />
+                  <circle
+                    cx="44"
+                    cy="44"
+                    r={ringR}
+                    fill="none"
+                    stroke="#00E5FF"
+                    strokeWidth="7"
+                    strokeLinecap="round"
+                    strokeDasharray={ringC}
+                    strokeDashoffset={ringOffset}
+                    transform="rotate(-90 44 44)"
+                  />
+                </svg>
+                <span
+                  style={{
+                    color: "#60a5fa",
+                    fontSize: 18,
+                    fontWeight: 800,
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {healthScore}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                <span
+                  style={{
+                    color: "rgba(34,211,238,0.65)",
+                    fontSize: 10,
+                    fontWeight: 900,
+                    letterSpacing: 2,
+                  }}
+                >
+                  WALLET HEALTH
+                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 64,
+                      fontWeight: 900,
+                      color: "#fff",
+                      lineHeight: 0.95,
+                      letterSpacing: -2,
+                    }}
+                  >
+                    {score}
+                  </span>
+                  <span style={{ fontSize: 22, color: "#475569", fontWeight: 800 }}>
+                    /100
+                  </span>
+                </div>
+                <span style={{ color: "#22d3ee", fontSize: 18, fontWeight: 900 }}>
+                  {rank}
+                </span>
+              </div>
+            </div>
+            {/* Mini stat row */}
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              {[
+                { label: "Active Days", value: String(activeDays) },
+                { label: "Total Txs", value: formatTxs(txs) },
+                { label: "Streak", value: `${streak}d` },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                    alignItems: "center",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 14,
+                    padding: "12px 8px",
+                  }}
+                >
+                  <span style={{ color: "#22d3ee", fontSize: 22, fontWeight: 900 }}>
+                    {s.value}
+                  </span>
+                  <span
+                    style={{
+                      color: "#64748b",
+                      fontSize: 9,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      marginTop: 4,
+                    }}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right column — badges + season */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 0.85,
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: 1,
+                ...glassPanel({ padding: "18px 20px" }),
+              }}
+            >
+              <span
+                style={{
+                  color: "#64748b",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: 2,
+                  marginBottom: 12,
+                }}
+              >
+                MINTED BADGES
+              </span>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {["👑", "🐋", "🏗️", "🦄"].slice(0, Math.max(badges, 1)).map((emoji, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 14,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 24,
+                    }}
+                  >
+                    {emoji}
+                  </div>
+                ))}
+              </div>
+              <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 700, marginTop: 12 }}>
+                {badges} badge{badges === 1 ? "" : "s"} on Base
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                background: "linear-gradient(135deg, rgba(255,77,122,0.15), rgba(0,82,255,0.2))",
+                border: "1px solid rgba(34,211,238,0.25)",
+                borderRadius: 18,
+                padding: "16px 18px",
+              }}
+            >
+              <span style={{ color: "#fda4af", fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>
+                SEASON 1 · GENESIS
+              </span>
+              <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>
+                {days} days left · {xp} XP this week
+              </span>
+              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+                Quests · Leaderboard · Base Voucher
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer CTA */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "linear-gradient(90deg, rgba(0,82,255,0.3), rgba(255,51,102,0.22))",
+            border: "1px solid rgba(34,211,238,0.3)",
+            borderRadius: 16,
+            padding: "14px 24px",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <span
-              style={{
-                color: "#fff",
-                fontSize: 20,
-                fontWeight: 900,
-              }}
-            >
-              {isPersonal
-                ? "Can you beat this score?"
-                : "Scan your wallet — it's free"}
+            <span style={{ color: "#fff", fontSize: 17, fontWeight: 900 }}>
+              {ctaText}
             </span>
-            <span style={{ color: "#94a3b8", fontSize: 14, fontWeight: 600 }}>
+            <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 600 }}>
               base-analytics-app.vercel.app
             </span>
           </div>
@@ -445,21 +459,13 @@ export function renderOgCard(data: OgCardData = {}) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              background: "linear-gradient(135deg, #FF3366, #0052FF)",
-              borderRadius: 14,
-              padding: "14px 28px",
-              boxShadow: "0 8px 32px rgba(255,51,102,0.35)",
+              background: "linear-gradient(135deg, #ff4d7a, #3d7bff)",
+              borderRadius: 12,
+              padding: "12px 24px",
             }}
           >
-            <span
-              style={{
-                color: "#fff",
-                fontSize: 17,
-                fontWeight: 900,
-              }}
-            >
-              {isPersonal ? "CHALLENGE ME →" : "GET MY SCORE →"}
+            <span style={{ color: "#fff", fontSize: 15, fontWeight: 900 }}>
+              {isPersonal ? "BEAT MY SCORE →" : "CONNECT WALLET →"}
             </span>
           </div>
         </div>
