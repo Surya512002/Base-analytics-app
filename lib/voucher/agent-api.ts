@@ -91,6 +91,27 @@ export async function prepareCreateBatch(
   input: PrepareCreateInput
 ): Promise<PrepareCreateResult> {
   const { asset, total, cards, message = "", creator } = input;
+  const trimmedMessage = message.trim();
+
+  if (trimmedMessage.length > 280) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      contract: VOUCHER_CONTRACT,
+      expectedBatchId: 0,
+      asset,
+      total,
+      cardCount: cards,
+      perCard: "0",
+      perCardFormatted: "",
+      message: trimmedMessage,
+      valid: false,
+      error: "Message too long (max 280 characters).",
+      calls: [],
+      cards: [],
+    };
+  }
+
   const split = computeSplit(total, cards, asset);
 
   if (!split) {
@@ -104,7 +125,7 @@ export async function prepareCreateBatch(
       cardCount: cards,
       perCard: "0",
       perCardFormatted: "",
-      message,
+      message: trimmedMessage,
       valid: false,
       error: `Invalid input. Use 1–${MAX_VOUCHER_CARDS} cards and an amount that splits evenly.`,
       calls: [],
@@ -123,7 +144,7 @@ export async function prepareCreateBatch(
       cardCount: cards,
       perCard: split.perCard.toString(),
       perCardFormatted: formatVoucherAmount(asset, split.perCard),
-      message,
+      message: trimmedMessage,
       valid: false,
       error: `${formatVoucherAmount(asset, split.total)} cannot split evenly into ${cards} cards.`,
       calls: [],
@@ -143,7 +164,7 @@ export async function prepareCreateBatch(
         VOUCHER_CONTRACT as `0x${string}`,
         VOUCHER_ABI,
         "createEthBatch",
-        [BigInt(cards), secretHashes, message.trim()],
+        [BigInt(cards), secretHashes, trimmedMessage],
         split.total
       )
     );
@@ -163,7 +184,7 @@ export async function prepareCreateBatch(
         VOUCHER_CONTRACT as `0x${string}`,
         VOUCHER_ABI,
         "createUsdcBatch",
-        [BigInt(cards), secretHashes, message.trim(), split.total]
+        [BigInt(cards), secretHashes, trimmedMessage, split.total]
       )
     );
   }
@@ -178,7 +199,7 @@ export async function prepareCreateBatch(
     cardCount: cards,
     perCard: split.perCard.toString(),
     perCardFormatted: formatVoucherAmount(asset, split.perCard),
-    message: message.trim(),
+    message: trimmedMessage,
     valid: true,
     calls: calls.map(toMcpCall),
     cards: voucherCards.map((c) => ({
@@ -188,7 +209,7 @@ export async function prepareCreateBatch(
       shareText: formatCardShareText(c, {
         asset,
         amountPerCard: split.perCard.toString(),
-        message: message.trim(),
+        message: trimmedMessage,
       }),
     })),
   };

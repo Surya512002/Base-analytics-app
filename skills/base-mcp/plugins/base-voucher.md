@@ -1,9 +1,9 @@
 ---
 title: "Base Voucher Plugin"
-description: "Create and redeem ETH/USDC crypto gift cards on Base via Base Analytics HTTP API → send_calls."
-tags: [agent-commerce, payment-cards, gift-cards, crypto-gift-cards]
+description: "Create and redeem ETH/USDC crypto gift cards on Base via Base Voucher MCP or HTTP prepare API → Base MCP send_calls."
+tags: [agent-commerce, payment-cards, gift-cards]
 name: base-voucher
-version: 0.1.0
+version: 0.2.0
 integration: hybrid
 chains: [base]
 requires:
@@ -21,58 +21,84 @@ risk: [pii, irreversible]
 # Base Voucher Plugin
 
 > [!IMPORTANT]
-> Complete the Base MCP onboarding flow in `SKILL.md` before calling any Base Voucher endpoint:
-> 1. Call `get_wallets` (Detection)
-> 2. Present wallet status and disclaimer (Onboarding)
->
-> The user's wallet address — required for USDC allowance optimization and redeem — is only confirmed during Detection. **Card secrets are shown once at create time and cannot be recovered from chain or the app if lost.**
+> Run Base MCP onboarding first (see `SKILL.md`). Base Voucher prepares **unsigned calldata only** — execute through Base MCP `send_calls` after the user approves. **Card secrets are shown once at create time and cannot be recovered** from chain or the app if lost.
 
 ## Overview
 
 Base Voucher is a decentralized crypto gift card protocol on Base mainnet (ETH and USDC only). Users deposit a total amount, split it evenly into 1–50 cards, and share each card's **Card ID** + **Secret** with recipients who redeem onchain.
 
-This plugin prepares unsigned calldata via **Base Voucher MCP** (`/api/mcp`) or HTTP fallback, then executes via Base MCP `send_calls`.
+This plugin has two prepare paths that both return unsigned `calls[]` for Base MCP `send_calls`:
+
+1. **Base Voucher MCP (preferred):** hosted at `https://base-analytics-app.vercel.app/api/mcp` — tools `voucher_prepare_create`, `voucher_prepare_redeem`, `voucher_lookup_batch`.
+2. **HTTP fallback:** GET prepare endpoints on `base-analytics-app.vercel.app` when the MCP is not connected but HTTP is available (harness HTTP, allowlisted `web_request`, or GET user-paste on consumer chat surfaces).
 
 **App:** https://base-analytics-app.vercel.app  
-**Base Voucher MCP:** `https://base-analytics-app.vercel.app/api/mcp`  
 **Supported chain:** Base mainnet (`8453` / Base MCP chain string `base`).
 
-> Connect **two** MCP servers: Base MCP (`https://mcp.base.org`) + Base Voucher MCP (above). No JSON paste required.
+## Detection
 
-## Surface Routing
+After Base MCP onboarding (`SKILL.md`), pick a prepare path:
 
-| Capability | Path |
-|-----------|------|
-| Prepare create / redeem | **Preferred:** Base Voucher MCP tools `voucher_prepare_create`, `voucher_prepare_redeem` at `{APP_URL}/api/mcp` |
-| Read batch metadata | MCP tool `voucher_lookup_batch` or GET `/api/vouchers?batchId=` |
-| Execute onchain | Base MCP `send_calls` only |
+1. **Base Voucher MCP connected** — `voucher_prepare_create`, `voucher_prepare_redeem`, or `voucher_lookup_batch` are callable → use MCP tools (Path 1). No JSON paste.
+2. **Harness HTTP tool available** (Claude Code, Cursor, Codex, …) → GET the HTTP endpoints below (Path 2).
+3. **No harness HTTP, Base MCP `web_request` allowlists `base-analytics-app.vercel.app`** → GET via `web_request` (Path 2).
+4. **Claude / ChatGPT consumer surface, host not allowlisted** → construct the full GET URL, ask the user to paste it into chat, then parse the response (Path 2, GET-only fallback per [../references/custom-plugins.md](../references/custom-plugins.md)).
+5. **None of the above** → stop and link the user to https://base-analytics-app.vercel.app for manual create/redeem.
 
-**Dual-connector setup (Claude / Cursor / ChatGPT):**
+Onchain execution always uses Base MCP `get_wallets` (when needed) and `send_calls` — Base Voucher never signs or broadcasts.
 
-1. **Base MCP** — `https://mcp.base.org` (OAuth, wallet, `send_calls`)
-2. **Base Voucher MCP** — `https://base-analytics-app.vercel.app/api/mcp` (prepare tools)
+## Installation
 
-**Fallback (Base MCP `web_request` only, no Voucher MCP):** GET prepare URLs below. If `base-analytics-app.vercel.app` is not allowlisted, user-paste JSON — avoid when Voucher MCP is available.
+Base Voucher MCP is a separate remote MCP server. Base MCP (`https://mcp.base.org`) must also be connected for wallet reads and `send_calls`.
 
-**Coding harnesses (Cursor, Claude Code):** may use harness HTTP or Base Voucher MCP.
+**Base Voucher MCP URL:** `https://base-analytics-app.vercel.app/api/mcp` (no OAuth)
 
-## MCP tools (Base Voucher MCP)
+- **Claude.ai / Claude Desktop:** Settings → Connectors → Add custom connector  
+  - Name: `Base Voucher`  
+  - URL: `https://base-analytics-app.vercel.app/api/mcp`  
+  One-click: [Add Base Voucher connector](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Base%20Voucher&connectorUrl=https%3A%2F%2Fbase-analytics-app.vercel.app%2Fapi%2Fmcp)
+- **Claude Code:** `claude mcp add --transport http base-voucher https://base-analytics-app.vercel.app/api/mcp`
+- **Cursor:** `.cursor/mcp.json` or `~/.cursor/mcp.json`:
 
-Server URL: `https://base-analytics-app.vercel.app/api/mcp`
+  ```json
+  {
+    "mcpServers": {
+      "base-voucher": {
+        "url": "https://base-analytics-app.vercel.app/api/mcp"
+      }
+    }
+  }
+  ```
+
+Reconnect or restart the harness after adding. For HTTP fallback on chat-only surfaces without the MCP, `base-analytics-app.vercel.app` must be on the Base MCP `web_request` allowlist — request this when opening the `base/skills` PR.
+
+### MCP tools (Path 1)
 
 | Tool | Parameters | Returns |
 |------|------------|---------|
-| `voucher_prepare_create` | `total`, `cards`, `asset?`, `message?`, `creator?` | JSON with `valid`, `calls[]`, `cards[]`, `nextStep` |
-| `voucher_prepare_redeem` | `cardId`, `secret` | JSON with `valid`, `calls[]`, `preview`, `nextStep` |
+| `voucher_prepare_create` | `total`, `cards`, `asset?`, `message?`, `creator?` | JSON with `valid`, `calls[]`, `cards[]` |
+| `voucher_prepare_redeem` | `cardId`, `secret` | JSON with `valid`, `calls[]`, `preview` |
 | `voucher_lookup_batch` | `batchId` | Public batch metadata (no secrets) |
 
 After a successful prepare tool call, map `calls[]` to Base MCP `send_calls` with `chain: "base"`.
 
-## Endpoints (HTTP fallback)
+## Surface Routing
+
+HTTP routing follows [../references/custom-plugins.md](../references/custom-plugins.md). Prepare endpoints are **GET-only**, so the user-paste fallback is viable on Claude/ChatGPT consumer surfaces when the host is not allowlisted.
+
+| Capability | Harness with Base Voucher MCP | Harness HTTP / allowlisted `web_request` | Chat-only, host not allowlisted |
+| --- | --- | --- | --- |
+| Prepare create / redeem | `voucher_prepare_create` / `voucher_prepare_redeem` | GET prepare URLs below | User-paste GET URL → parse JSON |
+| Read batch metadata | `voucher_lookup_batch` | GET `/api/vouchers?batchId=` | User-paste GET URL |
+| Execute onchain | Base MCP `send_calls` | Base MCP `send_calls` | Base MCP `send_calls` |
+
+Shell access is not required. If neither Base Voucher MCP nor any HTTP path can reach `base-analytics-app.vercel.app`, stop and link https://base-analytics-app.vercel.app.
+
+## Endpoints
 
 Base URL: `https://base-analytics-app.vercel.app`
 
-### Read endpoints (use web_request GET or harness HTTP)
+### Read endpoints (Path 2)
 
 ```
 GET https://base-analytics-app.vercel.app/api/vouchers?batchId=<batchId>
@@ -81,9 +107,7 @@ GET https://base-analytics-app.vercel.app/api/vouchers?creator=<0x-address>
 
 Returns public batch metadata only — **no card secrets**. Fields include `batchId`, `creator`, `asset`, `totalAmount`, `amountPerCard`, `cardCount`, `message`, `redeemedCount`.
 
-### Prepare endpoints (use web_request GET or harness HTTP → send_calls)
-
-#### Create gift card batch
+### Prepare create (Path 2)
 
 ```
 GET https://base-analytics-app.vercel.app/api/voucher/prepare-create?asset=USDC&total=10&cards=5&message=Happy+Birthday&creator=<0x-address>
@@ -128,7 +152,7 @@ When `valid: false`, read `error` and ask the user to adjust `total` or `cards`.
 
 For USDC, `calls` may contain **two** ordered steps: `approve` (USDC) then `createUsdcBatch`. For ETH, `calls` contains one payable step; use each item's `value` field (may be non-zero for ETH).
 
-#### Redeem gift card
+### Prepare redeem (Path 2)
 
 ```
 GET https://base-analytics-app.vercel.app/api/voucher/prepare-redeem?cardId=12-3&secret=ABCDE-FGHIJ-KLMNO-PQRST
@@ -176,7 +200,7 @@ If `preview.alreadyRedeemed` is `true` or `valid` is `false`, stop — do not ca
 
 ```
 1. get_wallets → address
-2. GET /api/voucher/prepare-create?... (only if Voucher MCP unavailable)
+2. GET /api/voucher/prepare-create?... (Path 2 routing above)
 3. send_calls → show cards
 ```
 
@@ -200,7 +224,8 @@ If `preview.alreadyRedeemed` is `true` or `valid` is `false`, stop — do not ca
 ### Lookup batch (read-only)
 
 ```
-1. GET /api/vouchers?batchId=<n> → show cardCount, redeemedCount, amounts (no secrets)
+1. voucher_lookup_batch(batchId) or GET /api/vouchers?batchId=<n>
+2. Report redeemedCount / cardCount and per-card amount (no secrets)
 ```
 
 ## Submission
