@@ -1,0 +1,312 @@
+import { createPublicClient, http, type Hex } from "viem";
+import { base } from "viem/chains";
+import {
+  ERC20_ABI,
+  USDC_BASE,
+  VOUCHER_ABI,
+} from "@/lib/constants/contracts";
+import { BASE_RPC, VOUCHER_CONTRACT } from "@/lib/constants/env";
+import type { ContractCall } from "@/lib/utils/tx";
+import { encodeContractCall } from "@/lib/utils/tx";
+import {
+  MAX_VOUCHER_CARDS,
+  computeSplit,
+  formatCardShareText,
+  formatVoucherAmount,
+  generateVoucherCards,
+  hashVoucherSecret,
+  parseCardId,
+  type VoucherAsset,
+} from "@/lib/utils/voucher";
+
+export type McpCall = {
+  to: `0x${string}`;
+  data: Hex;
+  value: string;
+};
+
+export function toMcpCall(call: ContractCall): McpCall {
+  return {
+    to: call.to,
+    data: call.data,
+    value: call.value ? `0x${call.value.toString(16)}` : "0x0",
+  };
+}
+
+export function voucherContractReady(): boolean {
+  return Boolean(VOUCHER_CONTRACT && BASE_RPC);
+}
+
+export async function readNextBatchId(): Promise<number> {
+  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const id = await client.readContract({
+    address: VOUCHER_CONTRACT as `0x${string}`,
+    abi: VOUCHER_ABI,
+    functionName: "nextBatchId",
+  });
+  return Number(id);
+}
+
+export async function readUsdcAllowance(owner: `0x${string}`): Promise<bigint> {
+  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  return client.readContract({
+    address: USDC_BASE as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [owner, VOUCHER_CONTRACT as `0x${string}`],
+  });
+}
+
+export interface PrepareCreateInput {
+  asset: VoucherAsset;
+  total: string;
+  cards: number;
+  message?: string;
+  creator?: `0x${string}`;
+}
+
+export interface PrepareCreateResult {
+  protocol: "Base Voucher";
+  chain: "base";
+  contract: string;
+  expectedBatchId: number;
+  asset: VoucherAsset;
+  total: string;
+  cardCount: number;
+  perCard: string;
+  perCardFormatted: string;
+  message: string;
+  valid: boolean;
+  error?: string;
+  calls: McpCall[];
+  cards: Array<{
+    cardId: string;
+    cardIndex: number;
+    secret: string;
+    shareText: string;
+  }>;
+}
+
+export async function prepareCreateBatch(
+  input: PrepareCreateInput
+): Promise<PrepareCreateResult> {
+  const { asset, total, cards, message = "", creator } = input;
+  const split = computeSplit(total, cards, asset);
+
+  if (!split) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      contract: VOUCHER_CONTRACT,
+      expectedBatchId: 0,
+      asset,
+      total,
+      cardCount: cards,
+      perCard: "0",
+      perCardFormatted: "",
+      message,
+      valid: false,
+      error: `Invalid input. Use 1–${MAX_VOUCHER_CARDS} cards and an amount that splits evenly.`,
+      calls: [],
+      cards: [],
+    };
+  }
+
+  if (!split.valid) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      contract: VOUCHER_CONTRACT,
+      expectedBatchId: 0,
+      asset,
+      total,
+      cardCount: cards,
+      perCard: split.perCard.toString(),
+      perCardFormatted: formatVoucherAmount(asset, split.perCard),
+      message,
+      valid: false,
+      error: `${formatVoucherAmount(asset, split.total)} cannot split evenly into ${cards} cards.`,
+      calls: [],
+      cards: [],
+    };
+  }
+
+  const expectedBatchId = await readNextBatchId();
+  const voucherCards = generateVoucherCards(expectedBatchId, cards);
+  const secretHashes = voucherCards.map((c) => hashVoucherSecret(c.secret));
+
+  const calls: ContractCall[] = [];
+
+  if (asset === "ETH") {
+    calls.push(
+      encodeContractCall(
+        VOUCHER_CONTRACT as `0x${string}`,
+        VOUCHER_ABI,
+        "createEthBatch",
+        [BigInt(cards), secretHashes, message.trim()],
+        split.total
+      )
+    );
+  } else {
+    const needsApproval =
+      !creator || (await readUsdcAllowance(creator)) < split.total;
+    if (needsApproval) {
+      calls.push(
+        encodeContractCall(USDC_BASE as `0x${string}`, ERC20_ABI, "approve", [
+          VOUCHER_CONTRACT as `0x${string}`,
+          split.total,
+        ])
+      );
+    }
+    calls.push(
+      encodeContractCall(
+        VOUCHER_CONTRACT as `0x${string}`,
+        VOUCHER_ABI,
+        "createUsdcBatch",
+        [BigInt(cards), secretHashes, message.trim(), split.total]
+      )
+    );
+  }
+
+  return {
+    protocol: "Base Voucher",
+    chain: "base",
+    contract: VOUCHER_CONTRACT,
+    expectedBatchId,
+    asset,
+    total,
+    cardCount: cards,
+    perCard: split.perCard.toString(),
+    perCardFormatted: formatVoucherAmount(asset, split.perCard),
+    message: message.trim(),
+    valid: true,
+    calls: calls.map(toMcpCall),
+    cards: voucherCards.map((c) => ({
+      cardId: c.cardId,
+      cardIndex: c.cardIndex,
+      secret: c.secret,
+      shareText: formatCardShareText(c, {
+        asset,
+        amountPerCard: split.perCard.toString(),
+        message: message.trim(),
+      }),
+    })),
+  };
+}
+
+export interface PrepareRedeemResult {
+  protocol: "Base Voucher";
+  chain: "base";
+  valid: boolean;
+  error?: string;
+  cardId?: string;
+  batchId?: number;
+  cardIndex?: number;
+  calls: McpCall[];
+  preview?: {
+    asset: VoucherAsset;
+    amountFormatted: string;
+    message: string;
+    alreadyRedeemed: boolean;
+  };
+}
+
+export async function prepareRedeem(
+  cardId: string,
+  secret: string
+): Promise<PrepareRedeemResult> {
+  const parsed = parseCardId(cardId);
+  if (!parsed) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      valid: false,
+      error: 'Invalid card ID. Use format "batchId-cardIndex" (e.g. 12-3).',
+      calls: [],
+    };
+  }
+
+  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const { batchId, cardIndex } = parsed;
+
+  const [batch, redeemed] = await Promise.all([
+    client.readContract({
+      address: VOUCHER_CONTRACT as `0x${string}`,
+      abi: VOUCHER_ABI,
+      functionName: "getBatch",
+      args: [BigInt(batchId)],
+    }),
+    client.readContract({
+      address: VOUCHER_CONTRACT as `0x${string}`,
+      abi: VOUCHER_ABI,
+      functionName: "isCardRedeemed",
+      args: [BigInt(batchId), BigInt(cardIndex)],
+    }),
+  ]);
+
+  const [, token, amountPerCard, cardCount] = batch;
+  if (cardCount === BigInt(0)) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      valid: false,
+      error: "Batch not found onchain.",
+      calls: [],
+    };
+  }
+
+  if (cardIndex >= Number(cardCount)) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      valid: false,
+      error: `This batch only has cards 0–${Number(cardCount) - 1}.`,
+      calls: [],
+    };
+  }
+
+  const asset: VoucherAsset =
+    token === "0x0000000000000000000000000000000000000000" ? "ETH" : "USDC";
+
+  if (redeemed) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      valid: false,
+      cardId,
+      batchId,
+      cardIndex,
+      error: "This card has already been redeemed.",
+      calls: [],
+      preview: {
+        asset,
+        amountFormatted: formatVoucherAmount(asset, amountPerCard),
+        message: batch[5] as string,
+        alreadyRedeemed: true,
+      },
+    };
+  }
+
+  const call = encodeContractCall(
+    VOUCHER_CONTRACT as `0x${string}`,
+    VOUCHER_ABI,
+    "redeem",
+    [BigInt(batchId), BigInt(cardIndex), secret.replace(/\s/g, "").toUpperCase()]
+  );
+
+  return {
+    protocol: "Base Voucher",
+    chain: "base",
+    valid: true,
+    cardId,
+    batchId,
+    cardIndex,
+    calls: [toMcpCall(call)],
+    preview: {
+      asset,
+      amountFormatted: formatVoucherAmount(asset, amountPerCard),
+      message: batch[5] as string,
+      alreadyRedeemed: false,
+    },
+  };
+}
