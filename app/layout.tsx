@@ -27,7 +27,7 @@ export const metadata: Metadata = {
       "Free scan on Base. Shrimp → Dolphin → Shark → Whale → God. Mint badges & earn XP.",
     images: [`${APP_URL}/opengraph-image`],
   },
-  // Tab + home-screen icons: app/icon.tsx + app/apple-icon.tsx (Next.js file convention)
+  // Tab + home-screen icons: app/icon.png + app/apple-icon.png
   other: {
     "fc:frame": JSON.stringify({
       version: "next",

@@ -4,10 +4,10 @@
   "description": "Free wallet scan on Base. Rank, badges, XP quests, and Base Voucher.",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/favicon-32x32.png",
@@ -30,16 +30,10 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/icon.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ],
-  "theme_color": "#071220",
-  "background_color": "#071220",
+  "theme_color": "#0052FF",
+  "background_color": "#0052FF",
   "display": "standalone",
   "start_url": "/"
 }
