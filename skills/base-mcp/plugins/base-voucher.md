@@ -4,12 +4,15 @@ description: "Create and redeem ETH/USDC crypto gift cards on Base via Base Anal
 tags: [agent-commerce, payment-cards, gift-cards, crypto-gift-cards]
 name: base-voucher
 version: 0.1.0
-integration: http-api
+integration: hybrid
 chains: [base]
 requires:
   shell: none
   allowlist: [base-analytics-app.vercel.app]
-  externalMcp: null
+  externalMcp:
+    name: base-voucher
+    transport: http
+    url: https://base-analytics-app.vercel.app/api/mcp
   cliPackage: null
 auth: none
 risk: [pii, irreversible]
@@ -28,26 +31,44 @@ risk: [pii, irreversible]
 
 Base Voucher is a decentralized crypto gift card protocol on Base mainnet (ETH and USDC only). Users deposit a total amount, split it evenly into 1–50 cards, and share each card's **Card ID** + **Secret** with recipients who redeem onchain.
 
-This plugin reads batch metadata and prepares unsigned calldata from the Base Analytics HTTP API, then executes via Base MCP `send_calls`. No separate MCP server or CLI required.
+This plugin prepares unsigned calldata via **Base Voucher MCP** (`/api/mcp`) or HTTP fallback, then executes via Base MCP `send_calls`.
 
 **App:** https://base-analytics-app.vercel.app  
+**Base Voucher MCP:** `https://base-analytics-app.vercel.app/api/mcp`  
 **Supported chain:** Base mainnet (`8453` / Base MCP chain string `base`).
+
+> Connect **two** MCP servers: Base MCP (`https://mcp.base.org`) + Base Voucher MCP (above). No JSON paste required.
 
 ## Surface Routing
 
-Base Voucher is HTTP-only; follow [../references/custom-plugins.md](../references/custom-plugins.md) for HTTP routing.
-
 | Capability | Path |
 |-----------|------|
-| Read batch metadata (no secrets) | Harness HTTP tool if available, else `web_request` GET against `base-analytics-app.vercel.app`. |
-| Prepare create batch (returns secrets + calls) | Harness HTTP tool or `web_request` GET → `send_calls`. |
-| Prepare redeem | Harness HTTP tool or `web_request` GET → confirm preview → `send_calls`. |
+| Prepare create / redeem | **Preferred:** Base Voucher MCP tools `voucher_prepare_create`, `voucher_prepare_redeem` at `{APP_URL}/api/mcp` |
+| Read batch metadata | MCP tool `voucher_lookup_batch` or GET `/api/vouchers?batchId=` |
+| Execute onchain | Base MCP `send_calls` only |
 
-**Shell-less / chat-only surfaces (Claude.ai, ChatGPT):** `base-analytics-app.vercel.app` must be on the Base MCP `web_request` allowlist. Until allowlisted, construct the GET URL with all query params and ask the user to paste the JSON response into chat, then continue with `send_calls`. Do not invent calldata or secrets.
+**Dual-connector setup (Claude / Cursor / ChatGPT):**
 
-**Coding harnesses (Cursor, Claude Code, Codex):** use the harness HTTP tool (`fetch` / `curl`) first — any GET, no allowlist needed.
+1. **Base MCP** — `https://mcp.base.org` (OAuth, wallet, `send_calls`)
+2. **Base Voucher MCP** — `https://base-analytics-app.vercel.app/api/mcp` (prepare tools)
 
-## Endpoints
+**Fallback (Base MCP `web_request` only, no Voucher MCP):** GET prepare URLs below. If `base-analytics-app.vercel.app` is not allowlisted, user-paste JSON — avoid when Voucher MCP is available.
+
+**Coding harnesses (Cursor, Claude Code):** may use harness HTTP or Base Voucher MCP.
+
+## MCP tools (Base Voucher MCP)
+
+Server URL: `https://base-analytics-app.vercel.app/api/mcp`
+
+| Tool | Parameters | Returns |
+|------|------------|---------|
+| `voucher_prepare_create` | `total`, `cards`, `asset?`, `message?`, `creator?` | JSON with `valid`, `calls[]`, `cards[]`, `nextStep` |
+| `voucher_prepare_redeem` | `cardId`, `secret` | JSON with `valid`, `calls[]`, `preview`, `nextStep` |
+| `voucher_lookup_batch` | `batchId` | Public batch metadata (no secrets) |
+
+After a successful prepare tool call, map `calls[]` to Base MCP `send_calls` with `chain: "base"`.
+
+## Endpoints (HTTP fallback)
 
 Base URL: `https://base-analytics-app.vercel.app`
 
@@ -140,29 +161,40 @@ If `preview.alreadyRedeemed` is `true` or `valid` is `false`, stop — do not ca
 
 ## Orchestration
 
-### Create and share cards
+### Create and share cards (MCP — preferred)
+
+```
+1. get_wallets → address (Base MCP)
+2. voucher_prepare_create(total, cards, asset?, message?, creator=address) (Base Voucher MCP)
+3. If valid: false → show error, stop
+4. send_calls(chain="base", calls from response.calls[]) (Base MCP)
+5. User approves → get_request_status(requestId)
+6. Print response.cards[] — cardId, secret, shareText
+```
+
+### Create and share cards (HTTP fallback)
 
 ```
 1. get_wallets → address
-2. GET /api/voucher/prepare-create?asset=...&total=...&cards=...&message=...&creator=<address>
-   (harness HTTP tool, or web_request if allowlisted, or user-paste fallback)
-3. If valid: false → show error, stop
+2. GET /api/voucher/prepare-create?... (only if Voucher MCP unavailable)
+3. send_calls → show cards
+```
+
+### Redeem a card (MCP — preferred)
+
+```
+1. get_wallets → address
+2. voucher_prepare_redeem(cardId, secret)
+3. Confirm preview.amountFormatted with user
 4. send_calls(chain="base", calls from response.calls[])
-5. User approves at approvalUrl → get_request_status(requestId) until confirmed
-6. Print every item in response.cards[]: cardId, secret, shareText
-7. Warn: secrets cannot be recovered if lost
+5. User approves → get_request_status
 ```
 
-### Redeem a card
+### Redeem a card (HTTP fallback)
 
 ```
-1. get_wallets → address (redeemer)
-2. GET /api/voucher/prepare-redeem?cardId=...&secret=...
-3. Show preview.amountFormatted and preview.message; confirm with user
-4. If preview.alreadyRedeemed → stop
-5. send_calls(chain="base", calls from response.calls[])
-6. User approves → get_request_status(requestId)
-7. Confirm: amount sent to user's Base Account
+1. GET /api/voucher/prepare-redeem?cardId=...&secret=...
+2. send_calls after user confirms preview
 ```
 
 ### Lookup batch (read-only)
@@ -196,7 +228,7 @@ Map every object in `response.calls[]` directly into the `calls` array:
 
 ```
 1. get_wallets → address
-2. GET /api/voucher/prepare-create?asset=USDC&total=10&cards=5&creator=<address>
+2. voucher_prepare_create(total="10", cards=5, creator=<address>)
 3. send_calls(chain="base", calls from response.calls)
 4. User approves → get_request_status
 5. Return all cardId + secret + shareText pairs to the user
@@ -206,7 +238,7 @@ Map every object in `response.calls[]` directly into the `calls` array:
 
 ```
 1. get_wallets → address
-2. GET /api/voucher/prepare-create?asset=ETH&total=0.01&cards=3&message=GM+from+Base&creator=<address>
+2. voucher_prepare_create(asset="ETH", total="0.01", cards=3, message="GM from Base", creator=<address>)
 3. send_calls(chain="base", calls from response.calls) — preserve ETH value field
 4. User approves → get_request_status
 5. Share cards with user
@@ -216,7 +248,7 @@ Map every object in `response.calls[]` directly into the `calls` array:
 
 ```
 1. get_wallets → address
-2. GET /api/voucher/prepare-redeem?cardId=12-3&secret=<user-provided-secret>
+2. voucher_prepare_redeem(cardId="12-3", secret=<user-provided-secret>)
 3. Confirm preview.amountFormatted with user
 4. send_calls(chain="base", calls from response.calls)
 5. User approves → get_request_status
