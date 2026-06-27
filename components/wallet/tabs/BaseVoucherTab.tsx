@@ -141,7 +141,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [view, setView] = useState<VoucherView>("create");
   const [asset, setAsset] = useState<VoucherAsset>("USDC");
   const [totalAmount, setTotalAmount] = useState("10");
-  const [cardCount, setCardCount] = useState(10);
+  const [cardCountInput, setCardCountInput] = useState("10");
   const [message, setMessage] = useState("");
   const [creating, setCreating] = useState(false);
   const [pendingCards, setPendingCards] = useState<StoredVoucherBatch | null>(null);
@@ -172,6 +172,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewError, setViewError] = useState("");
   const [viewedCard, setViewedCard] = useState<ViewedCard | null>(null);
+
+  const cardCount = useMemo(() => {
+    const n = parseInt(cardCountInput, 10);
+    return Number.isFinite(n) ? n : 0;
+  }, [cardCountInput]);
 
   const split = useMemo(
     () => computeSplit(totalAmount, cardCount, asset),
@@ -725,7 +730,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               className="w-full mt-1 glass-panel-accent border border-cyan-500/20 rounded-xl px-3 py-3 text-white font-bold outline-none focus:border-cyan-500/40"
             />
             <p className="text-[10px] text-slate-500 mt-1">
-              e.g. {asset === "USDC" ? "$10 USDC" : "0.01 ETH"} split into {cardCount} cards
+              e.g. {asset === "USDC" ? "$10 USDC" : "0.01 ETH"} split into {cardCountInput || "…"} cards
             </p>
           </div>
 
@@ -734,13 +739,31 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               Number of cards (max {MAX_VOUCHER_CARDS})
             </label>
             <input
-              type="number"
-              min={1}
-              max={MAX_VOUCHER_CARDS}
-              value={cardCount}
-              onChange={(e) =>
-                setCardCount(Math.min(MAX_VOUCHER_CARDS, Math.max(1, parseInt(e.target.value, 10) || 1)))
-              }
+              type="text"
+              inputMode="numeric"
+              value={cardCountInput}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") {
+                  setCardCountInput("");
+                  return;
+                }
+                if (!/^\d+$/.test(raw)) return;
+                const n = parseInt(raw, 10);
+                if (n > MAX_VOUCHER_CARDS) return;
+                setCardCountInput(raw);
+              }}
+              onBlur={() => {
+                const n = parseInt(cardCountInput, 10);
+                if (!cardCountInput || !Number.isFinite(n) || n < 1) {
+                  setCardCountInput("1");
+                } else if (n > MAX_VOUCHER_CARDS) {
+                  setCardCountInput(String(MAX_VOUCHER_CARDS));
+                } else {
+                  setCardCountInput(String(n));
+                }
+              }}
+              placeholder="1"
               className="w-full mt-1 glass-panel-accent border border-cyan-500/20 rounded-xl px-3 py-3 text-white font-bold outline-none focus:border-cyan-500/40"
             />
           </div>

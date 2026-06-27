@@ -1,6 +1,6 @@
-import Image from "next/image";
 import type { VoucherAsset } from "@/lib/utils/voucher";
 import { formatVoucherAmount } from "@/lib/utils/voucher";
+import AppLogo from "@/components/ui/AppLogo";
 
 function BaseNetworkBadge({ size = "sm" }: { size?: "sm" | "md" }) {
   const dim = size === "md" ? "w-5 h-5" : "w-4 h-4";
@@ -77,8 +77,8 @@ export default function VoucherGiftCard3D({
             </div>
             <div className="flex items-center gap-2">
               <BaseNetworkBadge size="md" />
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/15 shadow-lg">
-                <Image src="/icon.png" alt="Base" width={32} height={32} className="object-cover" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/15 shadow-lg flex items-center justify-center">
+                <AppLogo size="sm" />
               </div>
             </div>
           </div>

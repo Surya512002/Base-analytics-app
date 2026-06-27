@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import AppLogo from "@/components/ui/AppLogo";
 import { Gift, Sparkles, X, Wallet } from "lucide-react";
 import type { VoucherAsset } from "@/lib/utils/voucher";
 import { formatVoucherAmount } from "@/lib/utils/voucher";
@@ -150,7 +150,7 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
                   <div className="flex items-center gap-2">
                     <BaseNetworkBadge size="md" />
                     <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/15">
-                      <Image src="/icon.png" alt="Base" width={32} height={32} className="object-cover" />
+                      <AppLogo size="sm" />
                     </div>
                   </div>
                 </div>

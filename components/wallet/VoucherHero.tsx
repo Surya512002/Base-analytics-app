@@ -1,4 +1,5 @@
 import VoucherGiftCard3D from "@/components/wallet/VoucherGiftCard3D";
+import AppLogo from "@/components/ui/AppLogo";
 
 export default function VoucherHero() {
   return (
@@ -27,9 +28,7 @@ export default function VoucherHero() {
           </p>
 
           <div className="mt-6 inline-flex items-center gap-2.5 glass-panel-accent rounded-full px-4 py-2.5">
-            <div className="w-5 h-5 rounded-full bg-[#0052FF] flex items-center justify-center">
-              <div className="w-[55%] h-[2px] bg-white rounded-full" />
-            </div>
+            <AppLogo size="sm" />
             <span className="text-[10px] font-black text-white uppercase tracking-widest">
               Built on Base
             </span>
