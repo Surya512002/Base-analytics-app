@@ -12,6 +12,7 @@ export interface OgCardData {
   activeDays?: number;
   txs?: number;
   healthScore?: number;
+  boosts?: number;
 }
 
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -37,6 +38,7 @@ export function getOgQueryString(data: OgCardData): string {
   if (data.activeDays != null) params.set("activeDays", String(data.activeDays));
   if (data.txs != null) params.set("txs", String(data.txs));
   if (data.healthScore != null) params.set("health", String(data.healthScore));
+  if (data.boosts != null) params.set("boosts", String(data.boosts));
   return params.toString();
 }
 
@@ -78,6 +80,7 @@ export function parseOgParams(searchParams: URLSearchParams): OgCardData & {
     100,
     Math.max(0, parseInt(searchParams.get("health") || String(score), 10) || score)
   );
+  const boosts = Math.max(0, parseInt(searchParams.get("boosts") || "12", 10) || 12);
   return {
     score,
     rank,
@@ -92,5 +95,6 @@ export function parseOgParams(searchParams: URLSearchParams): OgCardData & {
     activeDays,
     txs,
     healthScore,
+    boosts,
   };
 }

@@ -63,6 +63,45 @@ if (!wallet) return null;
                 Wallet scan, badges, XP quests, and rankings — all on Base.
               </p>
             </div>
+
+            {/* Daily check-in — top of dashboard */}
+            <div className={`bg-white/[0.04] border rounded-3xl overflow-hidden ${checkedToday?'border-cyan-400/35':'border-cyan-500/18'}`}>
+              <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-cyan-400 to-cyan-300':'bg-linear-to-r from-rose-500 to-cyan-500'}`}/>
+              <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${checkedToday?'bg-cyan-400/15 border-cyan-400/30':'bg-cyan-500/12 border-cyan-500/20'}`}>
+                    <Flame size={22} className={checkedToday?'text-cyan-300':'text-cyan-400'}/>
+                  </div>
+                  <div>
+                    <p className="font-black text-white text-base">{checkedToday?`Day ${streak} streak 🔥`:'Daily Check-In Available'}</p>
+                    <p className={`text-xs mt-0.5 ${checkedToday?'text-cyan-300/60':'text-slate-500'}`}>{checkedToday?'Recorded immutably on Base.':'Sign once · earn XP · unlock multipliers'}</p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      {Array.from({length:Math.min(streak,7)}).map((_,i)=>(
+                        <div key={i} className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] bg-cyan-500/15 border border-cyan-500/30">🔥</div>
+                      ))}
+                      {streak>7&&<span className="text-[10px] text-slate-500 font-bold">+{streak-7}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0">
+                  {connType==='farcaster'?(
+                    <button onClick={()=>doNativeTx('checkin')} disabled={checkedToday||!!minting}
+                      className={`py-3 px-6 rounded-2xl font-black text-sm transition-all ${checkedToday?'bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18':'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95'}`}>
+                      {minting==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:checkedToday?'✓ Secured Today':'Check In'}
+                    </button>
+                  ):checkedToday?(
+                    <button disabled className="py-3 px-6 rounded-2xl font-black text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/18">✓ Secured Today</button>
+                  ):(
+                    <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps}
+                      onStatus={s=>{if(s.statusName==='success'){setCheckedToday(true);setStreak(v=>v+1);setSponsored(v=>v+1);showToast('✅ Onchain check-in secured!',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,checkin:(k.checkin||0)+1}));}}}>
+                      <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
+                    </Transaction>
+                  )}
+                  <p className="text-[9px] text-slate-500 flex items-center justify-center gap-1 mt-0.5"><Droplets size={8}/>Gas Sponsored</p>
+                </div>
+              </div>
+            </div>
+
             <div className="glass-panel rounded-3xl overflow-hidden shadow-xl shadow-black/25">
               <div className="h-0.5 bg-linear-to-r from-rose-500 via-cyan-400 to-blue-600"/>
               <div className="p-5">
@@ -97,55 +136,54 @@ if (!wallet) return null;
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-              {[
-                {label:'Age Percentile',value:`Top ${100-wallet.onchainAgePercentile}%`,sub:`vs Base median`,icon:<GitBranch size={16} className="text-cyan-400"/>,active:true},
-                {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="text-cyan-300"/>,active:true},
-                {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="text-cyan-400"/>,active:wallet.bridgeTxCount>0},
-                {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
-              ].map((s,i)=>(
-                <div key={i} className={`bg-white/[0.04] border rounded-2xl p-4 shadow-sm ${s.active?'border-cyan-500/20':'border-cyan-500/12'}`}>
-                  <div className="mb-2">{s.icon}</div>
-                  <p className={`font-black text-lg leading-tight ${s.active?'text-white':'text-slate-600'}`}>{s.value}</p>
-                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5">{s.label}</p>
-                  <p className="text-[9px] text-slate-600 mt-0.5">{s.sub}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className={`bg-white/[0.04] border rounded-3xl overflow-hidden ${checkedToday?'border-cyan-400/35':'border-cyan-500/18'}`}>
-              <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-cyan-400 to-cyan-300':'bg-linear-to-r from-rose-500 to-cyan-500'}`}/>
-              <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${checkedToday?'bg-cyan-400/15 border-cyan-400/30':'bg-cyan-500/12 border-cyan-500/20'}`}>
-                    <Flame size={22} className={checkedToday?'text-cyan-300':'text-cyan-400'}/>
-                  </div>
+            {/* XP Booster + Community Vibes — above onchain score */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+              <div className="glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-lg shadow-black/25">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
                   <div>
-                    <p className="font-black text-white text-base">{checkedToday?`Day ${streak} streak 🔥`:'Daily Check-In Available'}</p>
-                    <p className={`text-xs mt-0.5 ${checkedToday?'text-cyan-300/60':'text-slate-500'}`}>{checkedToday?'Recorded immutably on Base.':'Sign once · earn XP · unlock multipliers'}</p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      {Array.from({length:Math.min(streak,7)}).map((_,i)=>(
-                        <div key={i} className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] bg-cyan-500/15 border border-cyan-500/30">🔥</div>
-                      ))}
-                      {streak>7&&<span className="text-[10px] text-slate-500 font-bold">+{streak-7}</span>}
+                    <p className="font-black text-white text-base">XP Booster</p>
+                    <div className="flex gap-2 mt-1.5">
+                      <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-400 font-black">{boosts}</span><span className="text-slate-500 ml-1">boosts</span></span>
+                      <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-300 font-black">{streak}d</span><span className="text-slate-500 ml-1">streak</span></span>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0">
+                <div className="w-full sm:w-auto text-center">
                   {connType==='farcaster'?(
-                    <button onClick={()=>doNativeTx('checkin')} disabled={checkedToday||!!minting}
-                      className={`py-3 px-6 rounded-2xl font-black text-sm transition-all ${checkedToday?'bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18':'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95'}`}>
-                      {minting==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:checkedToday?'✓ Secured Today':'Check In'}
+                    <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
+                      className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-white/10/40 text-slate-500 cursor-not-allowed':'btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20'}`}>
+                      {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
                     </button>
-                  ):checkedToday?(
-                    <button disabled className="py-3 px-6 rounded-2xl font-black text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/18">✓ Secured Today</button>
                   ):(
-                    <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps}
-                      onStatus={s=>{if(s.statusName==='success'){setCheckedToday(true);setStreak(v=>v+1);setSponsored(v=>v+1);showToast('✅ Onchain check-in secured!',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,checkin:(k.checkin||0)+1}));}}}>
-                      <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
+                    <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps}
+                      onStatus={s=>{if(s.statusName==='success'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsored(v=>v+1);showToast('Boosted! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}}}>
+                      <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20 transition-all" text="BOOST (+1)"/>
                     </Transaction>
                   )}
-                  <p className="text-[9px] text-slate-500 flex items-center justify-center gap-1 mt-0.5"><Droplets size={8}/>Gas Sponsored</p>
+                  <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
+                </div>
+              </div>
+
+              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
+                <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(['gm','gn'] as const).map(type=>(
+                    <div key={type} className="text-center">
+                      {connType==='farcaster'?(
+                        <button onClick={()=>doNativeTx(type)} disabled={!!minting}
+                          className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/[0.04] border-white/8 text-slate-600':'bg-white/[0.04] hover:bg-cyan-500/12 border-white/8 hover:border-cyan-500/28 text-white'}`}>
+                          {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
+                        </button>
+                      ):(
+                        <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps}
+                          onStatus={s=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsored(v=>v+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,[type]:(k[type]||0)+1}));}}}>
+                          <TransactionButton className="w-full py-4 rounded-xl font-black text-xl bg-white/[0.04] hover:bg-cyan-500/12 border border-white/8 hover:border-cyan-500/28 text-white transition-all" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
+                        </Transaction>
+                      )}
+                      <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -208,6 +246,22 @@ if (!wallet) return null;
                   scrollRef={scrollRef}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {[
+                {label:'Age Percentile',value:`Top ${100-wallet.onchainAgePercentile}%`,sub:`vs Base median`,icon:<GitBranch size={16} className="text-cyan-400"/>,active:true},
+                {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="text-cyan-300"/>,active:true},
+                {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="text-cyan-400"/>,active:wallet.bridgeTxCount>0},
+                {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
+              ].map((s,i)=>(
+                <div key={i} className={`bg-white/[0.04] border rounded-2xl p-4 shadow-sm ${s.active?'border-cyan-500/20':'border-cyan-500/12'}`}>
+                  <div className="mb-2">{s.icon}</div>
+                  <p className={`font-black text-lg leading-tight ${s.active?'text-white':'text-slate-600'}`}>{s.value}</p>
+                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5">{s.label}</p>
+                  <p className="text-[9px] text-slate-600 mt-0.5">{s.sub}</p>
+                </div>
+              ))}
             </div>
 
             <div>
@@ -323,55 +377,6 @@ if (!wallet) return null;
                     </div>
                   </div>
                 )}
-              </div>
-
-              <div className="glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-lg shadow-black/25">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
-                  <div>
-                    <p className="font-black text-white text-base">XP Booster</p>
-                    <div className="flex gap-2 mt-1.5">
-                      <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-400 font-black">{boosts}</span><span className="text-slate-500 ml-1">boosts</span></span>
-                      <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-300 font-black">{streak}d</span><span className="text-slate-500 ml-1">streak</span></span>
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full sm:w-auto text-center">
-                  {connType==='farcaster'?(
-                    <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
-                      className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-white/10/40 text-slate-500 cursor-not-allowed':'btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20'}`}>
-                      {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
-                    </button>
-                  ):(
-                    <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps}
-                      onStatus={s=>{if(s.statusName==='success'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsored(v=>v+1);showToast('Boosted! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}}}>
-                      <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20 transition-all" text="BOOST (+1)"/>
-                    </Transaction>
-                  )}
-                  <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
-                </div>
-              </div>
-
-              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
-                <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['gm','gn'] as const).map(type=>(
-                    <div key={type} className="text-center">
-                      {connType==='farcaster'?(
-                        <button onClick={()=>doNativeTx(type)} disabled={!!minting}
-                          className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/[0.04] border-white/8 text-slate-600':'bg-white/[0.04] hover:bg-cyan-500/12 border-white/8 hover:border-cyan-500/28 text-white'}`}>
-                          {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
-                        </button>
-                      ):(
-                        <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps}
-                          onStatus={s=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsored(v=>v+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,[type]:(k[type]||0)+1}));}}}>
-                          <TransactionButton className="w-full py-4 rounded-xl font-black text-xl bg-white/[0.04] hover:bg-cyan-500/12 border border-white/8 hover:border-cyan-500/28 text-white transition-all" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
-                        </Transaction>
-                      )}
-                      <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 

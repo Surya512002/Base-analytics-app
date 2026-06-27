@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       activeDays: data.activeDays,
       txs: data.txs,
       healthScore: data.healthScore,
+      boosts: data.boosts,
     }),
     { ...OG_SIZE }
   );

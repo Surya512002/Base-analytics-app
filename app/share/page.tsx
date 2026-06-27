@@ -36,6 +36,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     activeDays: parseInt(pick(params, "activeDays"), 10) || undefined,
     txs: parseInt(pick(params, "txs"), 10) || undefined,
     healthScore: parseInt(pick(params, "health"), 10) || undefined,
+    boosts: parseInt(pick(params, "boosts"), 10) || undefined,
   });
 
   const title = pick(params, "title") || `${rank} — ${score}/100 on Base Analytics`;

@@ -17,3 +17,25 @@ export function neynarApiUrl(
   }
   return url.pathname + url.search;
 }
+
+export type NeynarFetchResult = {
+  ok: boolean;
+  status: number;
+  data: Record<string, unknown>;
+  unavailable: boolean;
+};
+
+/** Fetch via server proxy; `unavailable` is true when NEYNAR_API_KEY is not set. */
+export async function fetchNeynar(
+  path: string,
+  params?: Record<string, string | number | undefined>
+): Promise<NeynarFetchResult> {
+  const res = await fetch(neynarApiUrl(path, params));
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  return {
+    ok: res.ok,
+    status: res.status,
+    data,
+    unavailable: res.status === 503,
+  };
+}

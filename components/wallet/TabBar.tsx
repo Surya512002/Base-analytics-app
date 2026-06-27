@@ -16,6 +16,7 @@ interface TabBarProps {
 export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
   const tabs = [
     { id: "dashboard" as const, icon: <BarChart3 size={13} />, label: "Dashboard" },
+    { id: "basehub" as const, icon: <Gift size={13} />, label: "Base Voucher" },
     { id: "achievements" as const, icon: <Trophy size={13} />, label: "Badges" },
     {
       id: "quests" as const,
@@ -23,7 +24,6 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
       label: `Quests${doneQuests > 0 ? ` · ${doneQuests}` : ""}`,
     },
     { id: "leaderboard" as const, icon: <Users size={13} />, label: "Rankings" },
-    { id: "basehub" as const, icon: <Gift size={13} />, label: "Base Voucher" },
   ];
 
   return (

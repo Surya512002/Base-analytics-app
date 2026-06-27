@@ -521,6 +521,7 @@ export function useWalletApp() {
       mintedCount,
       streak,
       weeklyXP,
+      boosts,
       variant: "score",
     });
     const pageUrl = buildSharePageUrl(card, ref);
@@ -544,6 +545,7 @@ export function useWalletApp() {
       mintedCount,
       streak,
       weeklyXP,
+      boosts,
       variant: "badge",
       title: `${level} — ${name}`,
       subtitle: `${wallet.score}/100 · ${mintedCount} badges on Base`,
@@ -561,6 +563,7 @@ export function useWalletApp() {
       mintedCount: count,
       streak,
       weeklyXP,
+      boosts,
       variant: "badge",
       title: `${count} Badges Minted`,
       subtitle: `${wallet.walletRank} · Score ${wallet.score}/100`,

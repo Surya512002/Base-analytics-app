@@ -16,6 +16,7 @@ export function buildShareCardData(
     mintedCount: number;
     streak: number;
     weeklyXP: number;
+    boosts?: number;
     variant?: OgCardData["variant"];
     title?: string;
     subtitle?: string;
@@ -35,6 +36,7 @@ export function buildShareCardData(
     activeDays: wallet.uniqueDays,
     txs: wallet.txCount,
     healthScore: wallet.walletHealthScore,
+    boosts: opts.boosts,
   };
 }
 
@@ -53,6 +55,7 @@ export function buildSharePageUrl(data: OgCardData, ref?: string): string {
   if (data.activeDays != null) params.set("activeDays", String(data.activeDays));
   if (data.txs != null) params.set("txs", String(data.txs));
   if (data.healthScore != null) params.set("health", String(data.healthScore));
+  if (data.boosts != null) params.set("boosts", String(data.boosts));
   if (ref) params.set("ref", ref);
   return `${APP_URL_WEB}/share?${params.toString()}`;
 }

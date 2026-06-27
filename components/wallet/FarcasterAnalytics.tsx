@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from 'wagmi';
-import { neynarApiUrl } from "@/lib/api/neynar";
+import { fetchNeynar } from "@/lib/api/neynar";
 import {
   MessageCircle,
   RefreshCcw, Send, Twitter, Lock,
@@ -53,22 +53,24 @@ function getJoinedDate(fid:number):string {
 
 const fetchNeynarScore=async(fid:number):Promise<number>=>{
   try{
-    const res=await fetch(neynarApiUrl("v2/farcaster/user/bulk",{fids:fid}));
-    const data=await res.json();
-    const user=data?.users?.[0];
-    const score=user?.experimental?.neynar_user_score??user?.score;
+    const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/user/bulk",{fids:fid});
+    if(unavailable||!ok)return 0;
+    const users=data?.users as Record<string,unknown>[]|undefined;
+    const user=users?.[0];
+    const score=user?.experimental?(user.experimental as Record<string,unknown>).neynar_user_score:user?.score;
     if(score!==null&&score!==undefined){let n=Number(score);if(n<=1.0&&n>0)n*=10;return Math.min(10,parseFloat(n.toFixed(2)));}
     const fidBonus=fid<1000?3.5:fid<10000?2.5:fid<100000?1.5:0.5;
-    const followerBonus=Math.min(3.5,(user?.follower_count||0)/1000);
+    const followerBonus=Math.min(3.5,(Number(user?.follower_count)||0)/1000);
     return Math.min(9.9,parseFloat((4.0+fidBonus+followerBonus).toFixed(2)));
   }catch{return 0;}
 };
 
 const fetchTopFollower=async(fid:number):Promise<string>=>{
   try{
-    const res=await fetch(neynarApiUrl("v2/farcaster/followers",{fid,limit:50}));
-    const data=await res.json();
-    if(data.users&&data.users.length>0){const sorted=data.users.sort((a:{follower_count:number},b:{follower_count:number})=>b.follower_count-a.follower_count);return`@${sorted[0].username}`;}
+    const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/followers",{fid,limit:50});
+    if(unavailable||!ok)return'None found';
+    const users=data.users as {follower_count:number;username:string}[]|undefined;
+    if(users&&users.length>0){const sorted=users.sort((a,b)=>b.follower_count-a.follower_count);return`@${sorted[0].username}`;}
   }catch{}
   return'None found';
 };
@@ -110,58 +112,76 @@ export default function FarcasterAnalytics(){
   const[isFetchingForYou,setIsFetchingForYou]=useState(false);
   const[isFetchingGlobal,setIsFetchingGlobal]=useState(false);
   const[feedTab,setFeedTab]=useState<'stats'|'casts'>('stats');
+  const[neynarUnavailable,setNeynarUnavailable]=useState(false);
 
   useEffect(()=>{
-    if(!address||address===scannedAddress)return;
+    if(!address||address===scannedAddress||neynarUnavailable)return;
     const auto=async()=>{
       setScannedAddress(address);setIsScanningFc(true);setFcError('');
       try{
-        const res=await fetch(neynarApiUrl("v2/farcaster/user/bulk-by-address",{addresses:address}));
-        const data=await res.json();
+        const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/user/bulk-by-address",{addresses:address});
+        if(unavailable){setNeynarUnavailable(true);setFcError('Farcaster analytics need NEYNAR_API_KEY in .env.local (server).');return;}
+        if(!ok)return;
         const lower=address.toLowerCase();
-        if(data&&data[lower]&&data[lower].length>0){setFcResult(await buildFcResult(data[lower][0]));}
+        const users=(data[lower] as Record<string,unknown>[]|undefined);
+        if(users&&users.length>0){setFcResult(await buildFcResult(users[0]));}
       }catch(e){console.error(e);}finally{setIsScanningFc(false);}
     };
     auto();
-  },[address,scannedAddress]);
+  },[address,scannedAddress,neynarUnavailable]);
 
   useEffect(()=>{
-    if(!fcResult?.fid)return;
+    if(!fcResult?.fid||neynarUnavailable)return;
     const fetch2=async()=>{
       setIsFetchingHistory(true);
-      try{const res=await fetch(neynarApiUrl("v2/farcaster/feed/user/casts",{fid:fcResult.fid,limit:100}));const data=await res.json();if(data.casts)setUserCastsHistory(data.casts);}
-      catch{}finally{setIsFetchingHistory(false);}
+      try{
+        const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/feed/user/casts",{fid:fcResult.fid,limit:100});
+        if(unavailable){setNeynarUnavailable(true);return;}
+        if(ok&&data.casts)setUserCastsHistory(data.casts as RawCast[]);
+      }catch{}finally{setIsFetchingHistory(false);}
     };
     fetch2();
-  },[fcResult?.fid]);
+  },[fcResult?.fid,neynarUnavailable]);
 
   useEffect(()=>{
-    if(feedTab!=='casts'||!fcResult?.fid)return;
+    if(feedTab!=='casts'||!fcResult?.fid||neynarUnavailable)return;
     const fetch3=async()=>{
       setIsFetchingForYou(true);
-      try{const res=await fetch(neynarApiUrl("v2/farcaster/feed/user/casts",{fid:fcResult.fid,limit:10}));const data=await res.json();const casts=data.casts||(data.result&&data.result.casts);if(casts&&Array.isArray(casts)&&casts.length>0){setForYouFeed(casts.slice(0,6).map((c:RawCast)=>({hash:c.hash,text:c.text?c.text.substring(0,140)+(c.text.length>140?'...':''):'',author:{username:c.author?.username||'unknown',pfp_url:c.author?.pfp_url||c.author?.pfp?.url||''},likes:c.reactions?.likes_count||0})));}else setForYouFeed([]);}
-      catch{}finally{setIsFetchingForYou(false);}
+      try{
+        const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/feed/user/casts",{fid:fcResult.fid,limit:10});
+        if(unavailable){setNeynarUnavailable(true);return;}
+        if(!ok)return;
+        const casts=(data.casts||(data.result as Record<string,unknown>|undefined)?.casts) as RawCast[]|undefined;
+        if(casts&&Array.isArray(casts)&&casts.length>0){setForYouFeed(casts.slice(0,6).map((c:RawCast)=>({hash:c.hash,text:c.text?c.text.substring(0,140)+(c.text.length>140?'...':''):'',author:{username:c.author?.username||'unknown',pfp_url:c.author?.pfp_url||c.author?.pfp?.url||''},likes:c.reactions?.likes_count||0})));}else setForYouFeed([]);
+      }catch{}finally{setIsFetchingForYou(false);}
     };
     fetch3();
-  },[feedTab,fcResult?.fid]);
+  },[feedTab,fcResult?.fid,neynarUnavailable]);
 
   useEffect(()=>{
+    if(neynarUnavailable)return;
     const fetch4=async()=>{
       setIsFetchingGlobal(true);
-      try{const res=await fetch(neynarApiUrl("v2/farcaster/feed/user/casts",{fid:289309,limit:10}));if(!res.ok)return;const data=await res.json();const casts=data.casts||(data.result&&data.result.casts);if(casts&&Array.isArray(casts)&&casts.length>0){setGlobalFeed(casts.slice(0,4).map((c:RawCast)=>({hash:c.hash,text:c.text?c.text.substring(0,120)+(c.text.length>120?'...':''):'',author:{username:c.author?.username||'unknown',pfp_url:c.author?.pfp_url||c.author?.pfp?.url||''},likes:c.reactions?.likes_count||0})));}}
-      catch{}finally{setIsFetchingGlobal(false);}
+      try{
+        const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/feed/user/casts",{fid:289309,limit:10});
+        if(unavailable){setNeynarUnavailable(true);return;}
+        if(!ok)return;
+        const casts=(data.casts||(data.result as Record<string,unknown>|undefined)?.casts) as RawCast[]|undefined;
+        if(casts&&Array.isArray(casts)&&casts.length>0){setGlobalFeed(casts.slice(0,4).map((c:RawCast)=>({hash:c.hash,text:c.text?c.text.substring(0,120)+(c.text.length>120?'...':''):'',author:{username:c.author?.username||'unknown',pfp_url:c.author?.pfp_url||c.author?.pfp?.url||''},likes:c.reactions?.likes_count||0})));}
+      }catch{}finally{setIsFetchingGlobal(false);}
     };
     fetch4();
-  },[]);
+  },[neynarUnavailable]);
 
   const handleScanFarcaster=async(e:React.FormEvent)=>{
-    e.preventDefault();if(!fcUsername)return;
+    e.preventDefault();if(!fcUsername||neynarUnavailable)return;
     setIsScanningFc(true);setFcResult(null);setFcError('');setUserCastsHistory([]);
     try{
       const clean=fcUsername.replace('@','');
-      const res=await fetch(neynarApiUrl("v2/farcaster/user/by_username",{username:clean,viewer_fid:3}));
-      const data=await res.json();
-      if(data&&data.user){setFcResult(await buildFcResult(data.user));}else{setFcError('User not found. Check the username.');}
+      const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/user/by_username",{username:clean,viewer_fid:3});
+      if(unavailable){setNeynarUnavailable(true);setFcError('Farcaster analytics need NEYNAR_API_KEY in .env.local (server).');return;}
+      const user=data.user as Record<string,unknown>|undefined;
+      if(ok&&user){setFcResult(await buildFcResult(user));}else{setFcError('User not found. Check the username.');}
     }catch{setFcError('Failed to fetch. Try again.');}
     finally{setIsScanningFc(false);}
   };
@@ -238,7 +258,16 @@ export default function FarcasterAnalytics(){
             {isScanningFc?<RefreshCcw size={16} className="animate-spin"/>:<Search size={16}/>} Scan
           </button>
         </form>
-        {fcError&&<p className="text-red-400 text-xs mb-4 font-bold">{fcError}</p>}
+        {fcError&&<p className="text-amber-400/90 text-xs mb-4 font-bold">{fcError}</p>}
+        {neynarUnavailable&&!fcResult&&(
+          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+            Get a free key at{" "}
+            <a href="https://dev.neynar.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-bold hover:text-cyan-300">
+              dev.neynar.com
+            </a>
+            , add <span className="font-mono text-slate-400">NEYNAR_API_KEY=...</span> to <span className="font-mono text-slate-400">.env.local</span>, then restart <span className="font-mono text-slate-400">npm run dev</span>.
+          </p>
+        )}
 
         {fcResult?(
           <div className="space-y-4">
