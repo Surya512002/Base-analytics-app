@@ -515,6 +515,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       setPendingCards(batch);
       pendingBatchRef.current = batch;
       createHandledRef.current = false;
+      setUsdcApproveCompleted(false);
       notifiedTxRef.current = "";
       setPendingHashes(hashes);
       setPendingTotal(total);
@@ -530,6 +531,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [pendingTotal, setPendingTotal] = useState<bigint>(BigInt(0));
   const [usdcAllowance, setUsdcAllowance] = useState<bigint | null>(null);
   const [checkingAllowance, setCheckingAllowance] = useState(false);
+  const [usdcApproveCompleted, setUsdcApproveCompleted] = useState(false);
 
   const notifyVoucherTx = useCallback(
     (msg: string, hash?: string, dedupeRef: MutableRefObject<string> = notifiedTxRef) => {
@@ -609,18 +611,23 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const needsUsdcApproval =
     usdcAllowance === null ? true : usdcAllowance < pendingTotal;
 
-  const fundUsdcCalls = useMemo(() => {
-    if (!pendingCards || !contractReady || asset !== "USDC") return [];
-    if (!needsUsdcApproval) return createUsdcCall;
-    return [...approveUsdcCall, ...createUsdcCall];
-  }, [
-    pendingCards,
-    contractReady,
-    asset,
-    needsUsdcApproval,
-    approveUsdcCall,
-    createUsdcCall,
-  ]);
+  const usdcReadyToFund =
+    asset !== "USDC" || (usdcAllowance !== null && usdcAllowance >= pendingTotal);
+
+  const refreshUsdcAllowance = useCallback(async () => {
+    if (!address || !publicClient || !VOUCHER_CONTRACT) return;
+    try {
+      const value = await publicClient.readContract({
+        address: USDC_BASE as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address, VOUCHER_CONTRACT as `0x${string}`],
+      });
+      setUsdcAllowance(value);
+    } catch {
+      setUsdcAllowance(null);
+    }
+  }, [address, publicClient]);
 
   const redeemParsedForTx = useMemo(
     () => parseCardId(redeemCardId.trim()),
@@ -750,7 +757,21 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     async (txHash?: string) => {
       if (!address || createHandledRef.current) return;
       const batch = pendingCards ?? pendingBatchRef.current;
-      if (!batch) return;
+      if (!batch || !publicClient) return;
+
+      try {
+        const onChain = await publicClient.readContract({
+          address: VOUCHER_CONTRACT as `0x${string}`,
+          abi: VOUCHER_ABI,
+          functionName: "getBatch",
+          args: [BigInt(batch.batchId)],
+        });
+        const cardCountOnChain = Number(onChain[3]);
+        if (cardCountOnChain < 1) return;
+      } catch {
+        return;
+      }
+
       createHandledRef.current = true;
 
       const saved = { ...batch, txHash };
@@ -783,7 +804,25 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         createdSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     },
-    [address, pendingCards, refreshMyBatches]
+    [address, pendingCards, publicClient, refreshMyBatches]
+  );
+
+  const handleApproveTx = useCallback(
+    (status: LifecycleStatus) => {
+      if (
+        status.statusName !== "success" &&
+        status.statusName !== "transactionLegacyExecuted"
+      ) {
+        return;
+      }
+      notifyVoucherTx(
+        "✅ USDC approved — now confirm funding to create your cards",
+        txHashFromLifecycle(status)
+      );
+      setUsdcApproveCompleted(true);
+      void refreshUsdcAllowance();
+    },
+    [notifyVoucherTx, refreshUsdcAllowance]
   );
 
   const handleFundTx = useCallback(
@@ -796,7 +835,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       }
       const hash = txHashFromLifecycle(status);
       notifyVoucherTx(`✅ ${cardCount} voucher cards funded!`, hash);
-      if (hash) void onCreateSuccess(hash);
+      void onCreateSuccess(hash || undefined);
     },
     [cardCount, notifyVoucherTx, onCreateSuccess]
   );
@@ -1092,6 +1131,16 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             </button>
           ) : (
             <div className="space-y-3">
+              <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/8 px-4 py-3">
+                <p className="text-sm font-black text-cyan-200">Confirm in your wallet to create cards</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Card IDs and secret keys are generated now but{" "}
+                  <span className="text-white font-bold">only shown after your funding transaction confirms</span>
+                  {asset === "USDC" && needsUsdcApproval
+                    ? " — USDC requires approval first, then a separate funding confirmation."
+                    : "."}
+                </p>
+              </div>
               <VoucherSecurityNotice
                 asset={asset}
                 exactAmount={exactDepositLabel}
@@ -1103,12 +1152,6 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   calls={createEthCall}
                   capabilities={txCaps}
                   onStatus={handleFundTx}
-                  onSuccess={(r) => {
-                    const hash =
-                      r.transactionReceipts[r.transactionReceipts.length - 1]?.transactionHash;
-                    notifyVoucherTx(`✅ ${cardCount} voucher cards funded!`, hash);
-                    if (hash) void onCreateSuccess(hash);
-                  }}
                 >
                   <TransactionButton
                     className="w-full py-3.5 rounded-xl font-black bg-cyan-500 hover:bg-cyan-400 text-white"
@@ -1123,28 +1166,53 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 >
                   Checking USDC allowance…
                 </button>
+              ) : needsUsdcApproval ? (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-amber-300 uppercase tracking-widest text-center">
+                    Step 1 of 2 · Approve USDC
+                  </p>
+                  <Transaction
+                    chainId={base.id}
+                    calls={approveUsdcCall}
+                    capabilities={txCaps}
+                    onStatus={handleApproveTx}
+                  >
+                    <TransactionButton
+                      className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
+                      text={`Approve ${exactDepositLabel} USDC`}
+                    />
+                  </Transaction>
+                  <p className="text-[10px] text-slate-500 text-center">
+                    After approval, step 2 will appear to fund and create your cards.
+                  </p>
+                </div>
+              ) : usdcReadyToFund ? (
+                <div className="space-y-3">
+                  {usdcApproveCompleted && (
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest text-center">
+                      Step 2 of 2 · Fund & create cards
+                    </p>
+                  )}
+                  <Transaction
+                    chainId={base.id}
+                    calls={createUsdcCall}
+                    capabilities={txCaps}
+                    onStatus={handleFundTx}
+                  >
+                    <TransactionButton
+                      className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
+                      text={`Fund ${cardCount} USDC Vouchers`}
+                    />
+                  </Transaction>
+                </div>
               ) : (
-                <Transaction
-                  chainId={base.id}
-                  calls={fundUsdcCalls}
-                  capabilities={txCaps}
-                  onStatus={handleFundTx}
-                  onSuccess={(r) => {
-                    const hash =
-                      r.transactionReceipts[r.transactionReceipts.length - 1]?.transactionHash;
-                    notifyVoucherTx(`✅ ${cardCount} voucher cards funded!`, hash);
-                    if (hash) void onCreateSuccess(hash);
-                  }}
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-3.5 rounded-xl font-black bg-white/10 text-slate-500"
                 >
-                  <TransactionButton
-                    className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
-                    text={
-                      needsUsdcApproval
-                        ? `Approve & fund ${exactDepositLabel}`
-                        : `Fund ${cardCount} USDC Vouchers`
-                    }
-                  />
-                </Transaction>
+                  Preparing funding…
+                </button>
               )}
             </div>
           )}

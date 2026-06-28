@@ -9,8 +9,8 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image",
-    "buttonTitle": "Check Score & Mint Badges",
+    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?v=4",
+    "buttonTitle": "Open Base Analytics",
     "splashImageUrl": "https://base-analytics-app.vercel.app/splash.png",
     "splashBackgroundColor": "#0052FF",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
@@ -20,7 +20,9 @@
       "onchain",
       "utility",
       "base",
-      "score"
+      "vouchers",
+      "x402",
+      "gift-cards"
     ]
   },
   "miniapp": {
@@ -28,8 +30,8 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image",
-    "buttonTitle": "Check Score & Mint Badges",
+    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?v=4",
+    "buttonTitle": "Open Base Analytics",
     "splashImageUrl": "https://base-analytics-app.vercel.app/splash.png",
     "splashBackgroundColor": "#0052FF",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
@@ -39,7 +41,9 @@
       "onchain",
       "utility",
       "base",
-      "score"
+      "vouchers",
+      "x402",
+      "gift-cards"
     ]
   },
   "baseBuilder": {
