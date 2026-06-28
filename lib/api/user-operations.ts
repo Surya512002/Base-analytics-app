@@ -5,16 +5,22 @@ import { BASE_RPC } from "@/lib/constants/env";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
-const CHUNK_SIZE = BigInt(2_000_000);
-const MAX_CHUNKS = 12;
+const CHUNK_SIZE = BigInt(3_000_000);
 
 const USER_OP_EVENT = parseAbiItem(
   "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)"
 );
 
-/** ERC-4337 UserOperations — captures Base App / paymaster gasless activity. */
-export async function fetchUserOperationActivity(
-  address: string
+export interface UserOpFetchOptions {
+  /** Abort RPC scan after this many ms (non-fatal). */
+  timeoutMs?: number;
+  /** How many block chunks to scan per EntryPoint (newest first). */
+  maxChunks?: number;
+}
+
+async function fetchUserOpLogs(
+  address: string,
+  options: UserOpFetchOptions
 ): Promise<AlchemyTransfer[]> {
   if (!BASE_RPC) return [];
 
@@ -24,6 +30,8 @@ export async function fetchUserOperationActivity(
   const blockTimestampCache = new Map<bigint, string>();
   const transfers: AlchemyTransfer[] = [];
   const seenHashes = new Set<string>();
+  const maxChunks = options.maxChunks ?? 8;
+  const deadline = Date.now() + (options.timeoutMs ?? 12_000);
 
   let latest: bigint;
   try {
@@ -33,7 +41,9 @@ export async function fetchUserOperationActivity(
   }
 
   for (const entryPoint of entryPoints) {
-    for (let i = 0; i < MAX_CHUNKS; i++) {
+    for (let i = 0; i < maxChunks; i++) {
+      if (Date.now() > deadline) return transfers;
+
       const toBlock =
         latest - BigInt(i) * CHUNK_SIZE > BigInt(0)
           ? latest - BigInt(i) * CHUNK_SIZE
@@ -99,4 +109,18 @@ export async function fetchUserOperationActivity(
   }
 
   return transfers;
+}
+
+/** ERC-4337 UserOperations — Base App / Coinbase Paymaster gasless txs. */
+export async function fetchUserOperationActivity(
+  address: string,
+  options: UserOpFetchOptions = {}
+): Promise<AlchemyTransfer[]> {
+  const timeoutMs = options.timeoutMs ?? 12_000;
+  return Promise.race([
+    fetchUserOpLogs(address, options),
+    new Promise<AlchemyTransfer[]>((resolve) =>
+      setTimeout(() => resolve([]), timeoutMs)
+    ),
+  ]);
 }

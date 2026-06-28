@@ -54,14 +54,14 @@ async function fetchAllAssetTransfers(
 
 export async function fetchAlchemyTxsFast(
   address: string,
-  maxPages = 12
+  maxPages = 20
 ): Promise<AlchemyTransfer[]> {
   return fetchAllAssetTransfers("fromAddress", address, maxPages);
 }
 
 export async function fetchAlchemyTxsIncoming(
   address: string,
-  maxPages = 12
+  maxPages = 20
 ): Promise<AlchemyTransfer[]> {
   return fetchAllAssetTransfers("toAddress", address, maxPages);
 }

@@ -9,17 +9,10 @@ interface Paginated<T> {
   next_page_params?: Record<string, string | number | null> | null;
 }
 
-export interface BlockscoutFetchOptions {
-  tokenPages?: number;
-  internalPages?: number;
-  externalPages?: number;
-  deadlineMs?: number;
-}
-
 async function fetchBlockscoutPages<T>(
   basePath: string,
   maxPages = 6,
-  deadlineMs = 28000
+  deadlineMs = 20_000
 ): Promise<T[]> {
   const all: T[] = [];
   let path = basePath;
@@ -52,10 +45,6 @@ async function fetchBlockscoutPages<T>(
 
 function addrHash(entry: BlockscoutAddress | undefined): string {
   return (entry?.hash || "").toLowerCase();
-}
-
-function normalizeAddr(addr: string | null | undefined): string {
-  return (addr || "").toLowerCase();
 }
 
 function mapTokenTransfer(item: {
@@ -131,65 +120,37 @@ function mapExternalTx(item: {
   };
 }
 
-/** Blockscout v2 — token transfers + internal txs (critical for Base App / smart wallets). */
+/** Blockscout v2 supplement — token + internal + external (smart wallet / Base App). */
 export async function fetchBlockscoutV2Activity(
-  address: string,
-  options: BlockscoutFetchOptions = {}
+  address: string
 ): Promise<AlchemyTransfer[]> {
   const addr = address.toLowerCase();
   const base = `/addresses/${addr}`;
-  const tokenPages = options.tokenPages ?? 30;
-  const internalPages = options.internalPages ?? 25;
-  const externalPages = options.externalPages ?? 15;
-  const deadlineMs = options.deadlineMs ?? 28000;
 
   try {
     const [tokens, internals, externals] = await Promise.all([
       fetchBlockscoutPages<Parameters<typeof mapTokenTransfer>[0]>(
         `${base}/token-transfers`,
-        tokenPages,
-        deadlineMs
+        15,
+        18_000
       ),
       fetchBlockscoutPages<Parameters<typeof mapInternalTx>[0]>(
         `${base}/internal-transactions`,
-        internalPages,
-        deadlineMs
+        15,
+        18_000
       ),
       fetchBlockscoutPages<Parameters<typeof mapExternalTx>[0]>(
         `${base}/transactions`,
-        externalPages,
-        deadlineMs
+        8,
+        12_000
       ),
     ]);
 
-    const mapped = [
+    return [
       ...tokens.map(mapTokenTransfer),
       ...internals.map(mapInternalTx),
       ...externals.map(mapExternalTx),
     ].filter((t): t is AlchemyTransfer => t !== null);
-
-    // Ensure every tx hash with wallet-initiated internal/outgoing activity counts once.
-    const walletTxHashes = new Set<string>();
-    for (const tx of mapped) {
-      if (normalizeAddr(tx.from) === addr) walletTxHashes.add(tx.hash);
-    }
-    for (const hash of walletTxHashes) {
-      const sample = mapped.find((t) => t.hash === hash);
-      if (!sample?.metadata?.blockTimestamp) continue;
-      if (mapped.some((t) => t.hash === hash && t.category === "contractcall"))
-        continue;
-      mapped.push({
-        hash,
-        category: "contractcall",
-        value: 0,
-        asset: "ETH",
-        from: addr,
-        to: null,
-        metadata: { blockTimestamp: sample.metadata.blockTimestamp },
-      });
-    }
-
-    return mapped;
   } catch {
     return [];
   }

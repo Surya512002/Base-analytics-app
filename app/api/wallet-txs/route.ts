@@ -1,30 +1,23 @@
 import { NextResponse } from "next/server";
-import {
-  fetchWalletTransfersMerged,
-} from "@/lib/api/fetch-wallet-transfers";
-import type { FetchMode } from "@/lib/api/fetch-limits";
+import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
 import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const CACHE_TTL: Record<FetchMode, number> = {
-  fast: 300,
-  full: 900,
-};
+const CACHE_TTL = 600;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const refresh = searchParams.get("refresh") === "1";
-  const mode = (searchParams.get("mode") === "fast" ? "fast" : "full") as FetchMode;
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
-  const cacheKey = `wallet-txs:${mode}:${address}`;
+  const cacheKey = `wallet-txs:v3:${address}`;
 
   if (!refresh) {
     const cached = await cacheGet<{
@@ -32,7 +25,7 @@ export async function GET(req: Request) {
       sources: Record<string, number>;
     }>(cacheKey);
     if (cached) {
-      return NextResponse.json({ ...cached, cached: true, mode });
+      return NextResponse.json({ ...cached, cached: true });
     }
   }
 
@@ -44,11 +37,10 @@ export async function GET(req: Request) {
   try {
     const { transfers, sources } = await fetchWalletTransfersMerged(
       address,
-      basescanKey,
-      mode
+      basescanKey
     );
-    const payload = { transfers, sources, cached: false, mode };
-    await cacheSet(cacheKey, { transfers, sources }, CACHE_TTL[mode]);
+    const payload = { transfers, sources, cached: false };
+    await cacheSet(cacheKey, { transfers, sources }, CACHE_TTL);
     return NextResponse.json(payload);
   } catch (err) {
     console.error("[wallet-txs]", err);

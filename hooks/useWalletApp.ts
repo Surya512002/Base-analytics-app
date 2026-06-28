@@ -320,24 +320,14 @@ export function useWalletApp() {
       }
 
       try {
-        setScanProgress("Quick scan...");
-        const fast = await fetchWalletAnalysis(address, "fast");
-        if (fast) {
-          applyAnalysis(fast);
-          setLoading(false);
+        setScanProgress("Scanning onchain history...");
+        const result = await fetchWalletAnalysis(address, !cached);
+        if (result) {
+          applyAnalysis(result);
+          writeWalletCache(address, result, true);
         } else if (!cached) {
           showToast("❌ Analysis failed", "");
           setWallet(null);
-          setLoading(false);
-          return;
-        }
-
-        setWalletRefreshing(true);
-        setScanProgress("Syncing full Base App history...");
-        const full = await fetchWalletAnalysis(address, "full", !cached);
-        if (full) {
-          applyAnalysis(full);
-          writeWalletCache(address, full, true);
         }
       } catch (e) {
         console.error(e);

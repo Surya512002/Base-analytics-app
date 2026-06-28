@@ -1,32 +1,16 @@
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import { getDayKey, getMonthKey, getWeekKey } from "@/lib/utils/dates";
+import { getAppContractHit } from "@/lib/utils/app-contracts";
 import { DEFI_PROTOCOLS } from "@/lib/constants/protocols";
-import {
-  BOOSTER_CONTRACT,
-  CHECKIN_CONTRACT,
-  ENTRYPOINT_V06,
-  ENTRYPOINT_V07,
-  GM_GN_CONTRACT,
-} from "@/lib/constants/contracts";
-
-const EP06 = ENTRYPOINT_V06.toLowerCase();
-const EP07 = ENTRYPOINT_V07.toLowerCase();
 
 export function normalizeAddr(addr: string | null | undefined): string {
   return (addr || "").toLowerCase();
 }
 
-/** Wallet sent or received this transfer leg (+ Base App / paymaster extras). */
+/** Wallet sent or received this transfer leg. */
 export function walletInvolved(tx: AlchemyTransfer, wallet: string): boolean {
   const w = normalizeAddr(wallet);
-  const from = normalizeAddr(tx.from);
-  const to = normalizeAddr(tx.to);
-  if (from === w || to === w) return true;
-  if (tx.category === "contractcall" && from === w) return true;
-  if (tx.metadata?.isUserOperation && from === w) return true;
-  if (tx.category === "internal" && (from === EP06 || from === EP07) && to === w)
-    return true;
-  return false;
+  return normalizeAddr(tx.from) === w || normalizeAddr(tx.to) === w;
 }
 
 export function mergeTransfers(
@@ -127,10 +111,6 @@ export function countContractInteractions(
   let gmCount = 0;
   let checkInCount = 0;
 
-  const boost = BOOSTER_CONTRACT.toLowerCase();
-  const gm = GM_GN_CONTRACT.toLowerCase();
-  const checkin = CHECKIN_CONTRACT.toLowerCase();
-
   for (const tx of txs) {
     if (!walletInvolved(tx, w)) continue;
 
@@ -144,7 +124,15 @@ export function countContractInteractions(
       tx.metadata?.isSponsored === true ||
       (tx.category === "internal" && isIncoming);
 
-    if (!(isOutgoing || isSponsored || isUserOp)) continue;
+    const appHit = getAppContractHit(tx, w);
+    if (appHit === "gm") {
+      hasGm = true;
+      gmCount++;
+    }
+    if (appHit === "checkin") checkInCount++;
+    if (appHit === "booster") hBoosts++;
+
+    if (!(isOutgoing || isSponsored || isUserOp || appHit)) continue;
 
     interactHashes.add(tx.hash);
 
@@ -156,12 +144,6 @@ export function countContractInteractions(
       uProtocols.add(counterparty);
       protocolFreq.set(counterparty, (protocolFreq.get(counterparty) || 0) + 1);
     }
-    if (toAddr === boost && isOutgoing) hBoosts++;
-    if (toAddr === gm && isOutgoing) {
-      hasGm = true;
-      gmCount++;
-    }
-    if (toAddr === checkin && isOutgoing) checkInCount++;
   }
 
   return {

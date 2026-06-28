@@ -30,6 +30,7 @@ import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
+import { getAppContractHit, isPaymasterActivity } from "@/lib/utils/app-contracts";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const FarcasterAnalytics = dynamic(
@@ -387,13 +388,15 @@ if (!wallet) return null;
               <div className="glass-panel-accent rounded-2xl overflow-hidden shadow-lg shadow-black/25">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
                   const toAddr=(tx.to||'').toLowerCase();
-                  const isGM=toAddr===GM_GN_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isBoost=toAddr===BOOSTER_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isCI=toAddr===CHECKIN_CONTRACT.toLowerCase()&&tx.category==='external';
-                  const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
+                  const wAddr=wallet.address.toLowerCase();
+                  const appHit=getAppContractHit(tx,wAddr);
+                  const isGM=appHit==='gm';
+                  const isBoost=appHit==='booster';
+                  const isCI=appHit==='checkin';
+                  const isBadge=appHit==='achievements';
                   const isDEX=DEX_ROUTERS.has(toAddr);
                   const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
-                  const isPaymaster=tx.category==='useroperation'||tx.metadata?.isSponsored||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase()||(tx.category==='internal'&&toAddr===wallet.address.toLowerCase());
+                  const isPaymaster=isPaymasterActivity(tx,wAddr)||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
                   let label='Contract Call',badge:string|null=null;
                   let icon=<ArrowRightLeft size={13} className="text-cyan-400"/>;
                   if(isGM){label='GM / GN';icon=<Star size={13} className="text-yellow-400"/>;badge='☀️ Vibes';}
