@@ -1,6 +1,7 @@
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import {
+  mcpListByCreator,
   mcpLookupBatch,
   mcpPrepareCreate,
   mcpPrepareRedeem,
@@ -68,14 +69,31 @@ const handler = createMcpHandler(
     server.registerTool(
       "voucher_lookup_batch",
       {
-        title: "Lookup Base Voucher batch",
+        title: "Lookup Base Voucher batch status",
         description:
-          "Read-only batch metadata (no secrets): amounts, card count, redemption status.",
+          "Live onchain batch metadata and per-card redemption status (no secrets). " +
+          "Returns redeemedCount, unredeemedCount, and cards[] with redeemed flags.",
         inputSchema: {
           batchId: z.number().int().min(1).describe("Onchain batch ID"),
         },
       },
       async ({ batchId }) => mcpLookupBatch(batchId)
+    );
+
+    server.registerTool(
+      "voucher_list_by_creator",
+      {
+        title: "List Base Voucher batches by creator wallet",
+        description:
+          "List all gift-card batches created by a wallet with live redemption counts. " +
+          "Use the connected wallet from Base MCP get_wallets as creator. No card secrets returned.",
+        inputSchema: {
+          creator: z
+            .string()
+            .describe("Creator wallet 0x… from Base MCP get_wallets"),
+        },
+      },
+      async ({ creator }) => mcpListByCreator(creator)
     );
   },
   {},

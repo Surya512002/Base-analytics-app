@@ -165,6 +165,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   const [myBatches, setMyBatches] = useState<StoredVoucherBatch[]>([]);
   const [chainStats, setChainStats] = useState<Record<number, number>>({});
+  const [batchCardStatuses, setBatchCardStatuses] = useState<
+    Record<number, Array<{ cardIndex: number; cardId: string; redeemed: boolean }>>
+  >({});
+  const [creatorSummary, setCreatorSummary] = useState<{
+    batchCount: number;
+    totalCards: number;
+    totalUnredeemed: number;
+  } | null>(null);
+  const [loadingBatchDetail, setLoadingBatchDetail] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   const [viewCardId, setViewCardId] = useState("");
@@ -188,10 +197,75 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const refreshMyBatches = useCallback(async () => {
     if (!address) return;
     const local = loadLocalBatches(address);
-    setMyBatches(local);
-
-    if (!publicClient || !contractReady) return;
+    const merged = new Map(local.map((b) => [b.batchId, b]));
     const stats: Record<number, number> = {};
+
+    try {
+      const res = await fetch(
+        `/api/vouchers?creator=${encodeURIComponent(address)}&live=1`
+      );
+      if (res.ok) {
+        const summary = (await res.json()) as {
+          batchCount: number;
+          totalCards: number;
+          totalUnredeemed: number;
+          batches: Array<{
+            batchId: number;
+            asset: VoucherAsset;
+            totalAmount: string;
+            amountPerCard: string;
+            cardCount: number;
+            redeemedCount: number;
+            unredeemedCount: number;
+            message: string;
+            creator: string;
+            createdAt?: number;
+            txHash?: string;
+          }>;
+        };
+
+        setCreatorSummary({
+          batchCount: summary.batchCount,
+          totalCards: summary.totalCards,
+          totalUnredeemed: summary.totalUnredeemed,
+        });
+
+        for (const b of summary.batches ?? []) {
+          stats[b.batchId] = b.redeemedCount;
+          if (!merged.has(b.batchId)) {
+            merged.set(b.batchId, {
+              batchId: b.batchId,
+              asset: b.asset,
+              totalAmount: b.totalAmount,
+              amountPerCard: b.amountPerCard,
+              cardCount: b.cardCount,
+              message: b.message,
+              creator: b.creator,
+              createdAt: b.createdAt ?? Date.now(),
+              txHash: b.txHash,
+              cards: Array.from({ length: b.cardCount }, (_, i) => ({
+                batchId: b.batchId,
+                cardIndex: i,
+                cardId: formatCardId(b.batchId, i),
+                secret: "",
+              })),
+            });
+          }
+        }
+        setChainStats(stats);
+        setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
+        return;
+      }
+    } catch {
+      /* fall through to local + RPC */
+    }
+
+    setCreatorSummary(null);
+    if (!publicClient || !contractReady) {
+      setMyBatches(local);
+      return;
+    }
+
     for (const b of local) {
       try {
         const result = await publicClient.readContract({
@@ -202,11 +276,32 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
         stats[b.batchId] = Number(result[4]);
       } catch {
-        stats[b.batchId] = b.cards.filter(() => false).length;
+        stats[b.batchId] = 0;
       }
     }
     setChainStats(stats);
+    setMyBatches(local);
   }, [address, publicClient, contractReady]);
+
+  const loadBatchDetail = useCallback(async (batchId: number) => {
+    setLoadingBatchDetail(batchId);
+    try {
+      const res = await fetch(`/api/vouchers?batchId=${batchId}&live=1`);
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        batch?: { redeemedCount: number; unredeemedCount: number };
+        cards?: Array<{ cardIndex: number; cardId: string; redeemed: boolean }>;
+      };
+      if (data.batch) {
+        setChainStats((prev) => ({ ...prev, [batchId]: data.batch!.redeemedCount }));
+      }
+      if (data.cards) {
+        setBatchCardStatuses((prev) => ({ ...prev, [batchId]: data.cards! }));
+      }
+    } finally {
+      setLoadingBatchDetail((current) => (current === batchId ? null : current));
+    }
+  }, []);
 
   useEffect(() => {
     refreshMyBatches();
@@ -917,6 +1012,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                     <CheckCircle size={20} /> Your cards are ready!
                   </div>
                   <p className="text-sm text-white font-bold mt-1">Batch #{createdCards.batchId}</p>
+                  <p className="text-xs text-cyan-300 font-bold mt-1">
+                    {createdCards.cardCount} cards · {createdCards.cardCount} not redeemed yet
+                  </p>
                   <p className="text-xs text-amber-200 font-bold mt-2">
                     Save Card ID + Secret for each card — they cannot be recovered later.
                   </p>
@@ -1167,6 +1265,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             </button>
           </div>
 
+          {creatorSummary && creatorSummary.batchCount > 0 && (
+            <SectionCard bar={false} className="border border-amber-500/25 bg-amber-500/5">
+              <p className="text-[10px] font-black text-amber-300/80 uppercase tracking-widest">Wallet summary</p>
+              <p className="text-white font-black text-lg mt-1">
+                {creatorSummary.totalUnredeemed} of {creatorSummary.totalCards} cards not redeemed yet
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Across {creatorSummary.batchCount} batch{creatorSummary.batchCount === 1 ? "" : "es"} you created
+              </p>
+            </SectionCard>
+          )}
+
           {myBatches.length === 0 ? (
             <SectionCard>
               <div className="py-8 text-center">
@@ -1177,9 +1287,20 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           ) : (
             myBatches.map((b) => {
               const redeemed = chainStats[b.batchId] ?? 0;
+              const unredeemed = Math.max(0, b.cardCount - redeemed);
               const pct = Math.round((redeemed / b.cardCount) * 100);
+              const cardStatuses = batchCardStatuses[b.batchId];
+              const hasLocalSecrets = b.cards.some((c) => c.secret.length > 0);
               return (
                 <SectionCard key={b.batchId} bar={false} className="border border-cyan-500/20">
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => {
+                      setExpandedBatchId(b.batchId);
+                      void loadBatchDetail(b.batchId);
+                    }}
+                  >
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                     <div>
                       <p className="font-black text-white">Batch #{b.batchId}</p>
@@ -1187,10 +1308,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                         {formatVoucherAmount(b.asset, BigInt(b.totalAmount))} · {b.cardCount} cards
                       </p>
                     </div>
-                    <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                      {redeemed}/{b.cardCount} redeemed
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                        {redeemed}/{b.cardCount} redeemed
+                      </span>
+                      {unredeemed > 0 && (
+                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                          {unredeemed} not redeemed yet
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  </button>
                   {b.message && (
                     <p className="text-xs text-slate-400 italic mb-3">&quot;{b.message}&quot;</p>
                   )}
@@ -1201,6 +1330,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                     />
                   </div>
                   <div className="flex flex-wrap gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExpandedBatchId(b.batchId);
+                        void loadBatchDetail(b.batchId);
+                      }}
+                      className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 hover:bg-cyan-500/20"
+                    >
+                      {loadingBatchDetail === b.batchId ? "Loading…" : "View redemption status"}
+                    </button>
+                    {hasLocalSecrets && (
+                      <>
                     <button
                       type="button"
                       onClick={() => copyText(formatBatchShareText(b), `batch-${b.batchId}`)}
@@ -1216,13 +1357,43 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                     >
                       <Share2 size={14} /> Share batch
                     </button>
+                      </>
+                    )}
                   </div>
+
+                  {expandedBatchId === b.batchId && cardStatuses && (
+                    <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        Per-card status
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {cardStatuses.map((c) => (
+                          <div
+                            key={c.cardId}
+                            className={`rounded-lg px-2 py-2 text-xs font-bold border ${
+                              c.redeemed
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                            }`}
+                          >
+                            <span className="font-mono">{c.cardId}</span>
+                            <p className="mt-0.5 text-[10px] uppercase tracking-wide opacity-80">
+                              {c.redeemed ? "Redeemed" : "Available"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {hasLocalSecrets && (
                   <details
                     className="group"
                     open={expandedBatchId === b.batchId || b.cardCount <= 3}
                     onToggle={(e) => {
                       if ((e.target as HTMLDetailsElement).open) {
                         setExpandedBatchId(b.batchId);
+                        void loadBatchDetail(b.batchId);
                       }
                     }}
                   >
@@ -1250,6 +1421,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                       ))}
                     </div>
                   </details>
+                  )}
                 </SectionCard>
               );
             })

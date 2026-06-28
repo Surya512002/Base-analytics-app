@@ -1,4 +1,8 @@
 import {
+  listCreatorBatches,
+  readBatchDetail,
+} from "@/lib/voucher/batch-read";
+import {
   prepareCreateBatch,
   prepareRedeem,
   voucherContractReady,
@@ -89,10 +93,30 @@ export async function mcpLookupBatch(batchId: number) {
     return jsonResult({ error: "batchId must be a positive integer" });
   }
 
-  const base = APP_URL_WEB.replace(/\/$/, "");
-  const res = await fetch(`${base}/api/vouchers?batchId=${batchId}`, {
-    cache: "no-store",
+  const detail = await readBatchDetail(batchId);
+  if (!detail.batch) {
+    return jsonResult({ batch: null, cards: [], error: "Batch not found onchain." });
+  }
+
+  return jsonResult({
+    ...detail,
+    unredeemedCount: detail.batch.unredeemedCount,
   });
-  const data = await res.json();
-  return jsonResult(data);
+}
+
+export async function mcpListByCreator(creator: string) {
+  const trimmed = creator?.trim();
+  if (!trimmed?.startsWith("0x") || trimmed.length < 42) {
+    return jsonResult({ error: "creator must be a 0x wallet address from get_wallets" });
+  }
+
+  const summary = await listCreatorBatches(trimmed);
+  return jsonResult({
+    ...summary,
+    nextStep:
+      summary.batchCount > 0
+        ? "Use voucher_batch_status(batchId) for per-card redemption detail. Secrets are never returned here."
+        : "No batches found for this wallet. Create one with voucher_prepare_create.",
+    appUrl: APP_URL_WEB,
+  });
 }

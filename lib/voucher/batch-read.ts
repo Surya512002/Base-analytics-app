@@ -1,0 +1,256 @@
+import {
+  createPublicClient,
+  http,
+  parseAbiItem,
+  type Address,
+} from "viem";
+import { base } from "viem/chains";
+import { VOUCHER_ABI } from "@/lib/constants/contracts";
+import { BASE_RPC, VOUCHER_CONTRACT } from "@/lib/constants/env";
+import type { VoucherBatchMeta } from "@/lib/types/voucher";
+import {
+  formatCardId,
+  formatVoucherAmount,
+  tokenToAsset,
+  type VoucherAsset,
+} from "@/lib/utils/voucher";
+import { readStoredBatches } from "@/lib/voucher/batch-store";
+
+export interface BatchLiveStatus {
+  batchId: number;
+  creator: string;
+  asset: VoucherAsset;
+  totalAmount: string;
+  amountPerCard: string;
+  cardCount: number;
+  redeemedCount: number;
+  unredeemedCount: number;
+  message: string;
+  amountPerCardFormatted: string;
+  totalAmountFormatted: string;
+  createdAt?: number;
+  txHash?: string;
+  onchain: boolean;
+}
+
+export interface BatchCardLiveStatus {
+  cardIndex: number;
+  cardId: string;
+  redeemed: boolean;
+}
+
+export interface CreatorBatchSummary {
+  creator: string;
+  batchCount: number;
+  totalCards: number;
+  totalRedeemed: number;
+  totalUnredeemed: number;
+  batches: BatchLiveStatus[];
+}
+
+function getClient() {
+  if (!VOUCHER_CONTRACT || !BASE_RPC) return null;
+  return createPublicClient({ chain: base, transport: http(BASE_RPC) });
+}
+
+export async function readOnchainBatch(
+  batchId: number
+): Promise<BatchLiveStatus | null> {
+  const client = getClient();
+  if (!client) return null;
+
+  try {
+    const [creator, token, amountPerCard, cardCount, redeemedCount, message] =
+      await client.readContract({
+        address: VOUCHER_CONTRACT as Address,
+        abi: VOUCHER_ABI,
+        functionName: "getBatch",
+        args: [BigInt(batchId)],
+      });
+
+    const count = Number(cardCount);
+    if (count === 0) return null;
+
+    const asset = tokenToAsset(token as string);
+    const perCard = amountPerCard as bigint;
+    const total = perCard * BigInt(count);
+    const redeemed = Number(redeemedCount);
+
+    return {
+      batchId,
+      creator: (creator as string).toLowerCase(),
+      asset,
+      totalAmount: total.toString(),
+      amountPerCard: perCard.toString(),
+      cardCount: count,
+      redeemedCount: redeemed,
+      unredeemedCount: Math.max(0, count - redeemed),
+      message: message as string,
+      amountPerCardFormatted: formatVoucherAmount(asset, perCard),
+      totalAmountFormatted: formatVoucherAmount(asset, total),
+      onchain: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function readBatchCardStatuses(
+  batchId: number,
+  cardCount: number
+): Promise<BatchCardLiveStatus[]> {
+  const client = getClient();
+  if (!client || cardCount < 1) return [];
+
+  const contracts = Array.from({ length: cardCount }, (_, i) => ({
+    address: VOUCHER_CONTRACT as Address,
+    abi: VOUCHER_ABI,
+    functionName: "isCardRedeemed" as const,
+    args: [BigInt(batchId), BigInt(i)] as const,
+  }));
+
+  try {
+    const results = await client.multicall({ contracts, allowFailure: true });
+    return results.map((r, i) => ({
+      cardIndex: i,
+      cardId: formatCardId(batchId, i),
+      redeemed: r.status === "success" ? Boolean(r.result) : false,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
+  const client = getClient();
+  if (!client) return [];
+
+  const creatorAddr = creator.toLowerCase() as Address;
+  try {
+    const logs = await client.getLogs({
+      address: VOUCHER_CONTRACT as Address,
+      event: parseAbiItem(
+        "event BatchCreated(uint256 indexed batchId, address indexed creator, address token, uint256 totalAmount, uint256 cardCount, string message)"
+      ),
+      args: { creator: creatorAddr },
+      fromBlock: BigInt(0),
+      toBlock: "latest",
+    });
+
+    const ids = new Set<number>();
+    for (const log of logs) {
+      const id = log.args.batchId;
+      if (id != null) ids.add(Number(id));
+    }
+    return [...ids].sort((a, b) => b - a);
+  } catch {
+    return [];
+  }
+}
+
+function mergeMeta(
+  live: BatchLiveStatus,
+  meta?: VoucherBatchMeta
+): BatchLiveStatus {
+  if (!meta) return live;
+  return {
+    ...live,
+    createdAt: meta.createdAt,
+    txHash: meta.txHash,
+    message: live.message || meta.message,
+  };
+}
+
+export async function listCreatorBatches(
+  creator: string,
+  options?: { includeStored?: boolean; scanChain?: boolean }
+): Promise<CreatorBatchSummary> {
+  const normalized = creator.toLowerCase();
+  const includeStored = options?.includeStored !== false;
+  const scanChain = options?.scanChain !== false;
+
+  const batchIds = new Set<number>();
+  const metaById = new Map<number, VoucherBatchMeta>();
+
+  if (includeStored) {
+    try {
+      const stored = await readStoredBatches();
+      for (const b of stored) {
+        if (b.creator.toLowerCase() === normalized) {
+          batchIds.add(b.batchId);
+          metaById.set(b.batchId, b);
+        }
+      }
+    } catch {
+      /* Redis optional for read path */
+    }
+  }
+
+  if (scanChain) {
+    const chainIds = await discoverCreatorBatchIds(normalized);
+    for (const id of chainIds) batchIds.add(id);
+  }
+
+  const batches: BatchLiveStatus[] = [];
+  for (const batchId of [...batchIds].sort((a, b) => b - a)) {
+    const live = await readOnchainBatch(batchId);
+    if (live && live.creator === normalized) {
+      batches.push(mergeMeta(live, metaById.get(batchId)));
+    } else if (metaById.has(batchId)) {
+      const meta = metaById.get(batchId)!;
+      batches.push({
+        batchId: meta.batchId,
+        creator: meta.creator,
+        asset: meta.asset,
+        totalAmount: meta.totalAmount,
+        amountPerCard: meta.amountPerCard,
+        cardCount: meta.cardCount,
+        redeemedCount: meta.redeemedCount,
+        unredeemedCount: Math.max(0, meta.cardCount - meta.redeemedCount),
+        message: meta.message,
+        amountPerCardFormatted: formatVoucherAmount(
+          meta.asset,
+          BigInt(meta.amountPerCard)
+        ),
+        totalAmountFormatted: formatVoucherAmount(
+          meta.asset,
+          BigInt(meta.totalAmount)
+        ),
+        createdAt: meta.createdAt,
+        txHash: meta.txHash,
+        onchain: false,
+      });
+    }
+  }
+
+  const totalCards = batches.reduce((s, b) => s + b.cardCount, 0);
+  const totalRedeemed = batches.reduce((s, b) => s + b.redeemedCount, 0);
+
+  return {
+    creator: normalized,
+    batchCount: batches.length,
+    totalCards,
+    totalRedeemed,
+    totalUnredeemed: totalCards - totalRedeemed,
+    batches,
+  };
+}
+
+export async function readBatchDetail(batchId: number): Promise<{
+  batch: BatchLiveStatus | null;
+  cards: BatchCardLiveStatus[];
+}> {
+  const batch = await readOnchainBatch(batchId);
+  if (!batch) return { batch: null, cards: [] };
+
+  let meta: VoucherBatchMeta | undefined;
+  try {
+    const stored = await readStoredBatches();
+    meta = stored.find((b) => b.batchId === batchId);
+  } catch {
+    /* ignore */
+  }
+
+  const cards = await readBatchCardStatuses(batchId, batch.cardCount);
+  return { batch: mergeMeta(batch, meta), cards };
+}

@@ -1,72 +1,56 @@
 import { NextResponse } from "next/server";
-import { Redis } from "ioredis";
 import type { VoucherBatchMeta } from "@/lib/types/voucher";
+import {
+  listCreatorBatches,
+  readBatchDetail,
+} from "@/lib/voucher/batch-read";
+import { readStoredBatches, writeStoredBatches } from "@/lib/voucher/batch-store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const DB_KEY = "base_voucher_batches";
-
-function createRedis(): Redis {
-  const url = process.env.KV_REDIS_URL;
-  if (!url) throw new Error("KV_REDIS_URL not set");
-  const client = new Redis(url, {
-    tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-    connectTimeout: 8000,
-    commandTimeout: 5000,
-    enableReadyCheck: false,
-  });
-  client.on("error", (e) => console.error("[Voucher Redis]", e.message));
-  return client;
-}
-
-async function readAll(): Promise<VoucherBatchMeta[]> {
-  let redis: Redis | null = null;
-  try {
-    redis = createRedis();
-    await redis.connect();
-    const raw = await redis.get(DB_KEY);
-    return raw ? (JSON.parse(raw) as VoucherBatchMeta[]) : [];
-  } finally {
-    if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
-  }
-}
-
-async function writeAll(batches: VoucherBatchMeta[]): Promise<void> {
-  let redis: Redis | null = null;
-  try {
-    redis = createRedis();
-    await redis.connect();
-    await redis.set(DB_KEY, JSON.stringify(batches));
-  } finally {
-    if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
-  }
-}
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const creator = searchParams.get("creator")?.toLowerCase();
     const batchId = searchParams.get("batchId");
+    const live = searchParams.get("live") === "1" || searchParams.get("live") === "true";
 
-    const all = await readAll();
+    if (creator) {
+      if (live) {
+        const summary = await listCreatorBatches(creator);
+        return NextResponse.json(summary);
+      }
+
+      const all = await readStoredBatches();
+      const filtered = all.filter((b) => b.creator.toLowerCase() === creator);
+      return NextResponse.json({ batches: filtered });
+    }
 
     if (batchId) {
       const id = parseInt(batchId, 10);
-      const batch = all.find((b) => b.batchId === id);
-      return NextResponse.json({ batch: batch || null });
+      if (!Number.isFinite(id) || id < 1) {
+        return NextResponse.json({ error: "Invalid batchId" }, { status: 400 });
+      }
+
+      if (live) {
+        const detail = await readBatchDetail(id);
+        if (!detail.batch) {
+          return NextResponse.json({ batch: null, cards: [] });
+        }
+        return NextResponse.json(detail);
+      }
+
+      const all = await readStoredBatches();
+      const batch = all.find((b) => b.batchId === id) ?? null;
+      return NextResponse.json({ batch });
     }
 
-    const filtered = creator
-      ? all.filter((b) => b.creator.toLowerCase() === creator)
-      : all;
-
-    return NextResponse.json({ batches: filtered });
+    const all = await readStoredBatches();
+    return NextResponse.json({ batches: all });
   } catch (err) {
     console.error("[Voucher GET]", err);
-    return NextResponse.json({ batches: [] });
+    return NextResponse.json({ batches: [], batch: null });
   }
 }
 
@@ -77,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Invalid payload" }, { status: 400 });
     }
 
-    const all = await readAll();
+    const all = await readStoredBatches();
     const idx = all.findIndex((b) => b.batchId === body.batchId);
     const entry: VoucherBatchMeta = {
       ...body,
@@ -87,7 +71,7 @@ export async function POST(req: Request) {
     if (idx >= 0) all[idx] = { ...all[idx], ...entry };
     else all.unshift(entry);
 
-    await writeAll(all);
+    await writeStoredBatches(all);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[Voucher POST]", err);
@@ -105,13 +89,13 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false }, { status: 400 });
     }
 
-    const all = await readAll();
+    const all = await readStoredBatches();
     const idx = all.findIndex((b) => b.batchId === batchId);
     if (idx < 0) {
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     }
     all[idx].redeemedCount = redeemedCount;
-    await writeAll(all);
+    await writeStoredBatches(all);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[Voucher PATCH]", err);

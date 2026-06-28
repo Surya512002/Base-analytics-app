@@ -92,6 +92,26 @@ async function main() {
   ok("vouchers lookup returns 200", lookup.status === 200);
   ok("vouchers lookup has batch key", lookup.json && "batch" in lookup.json);
 
+  // 7. live batch detail
+  const liveBatch = await get("/api/vouchers?batchId=1&live=1");
+  ok("live batch lookup returns 200", liveBatch.status === 200);
+  ok(
+    "live batch has cards array",
+    liveBatch.json && ("cards" in liveBatch.json || liveBatch.json.batch === null)
+  );
+
+  // 8. creator summary
+  const creator = await get(
+    "/api/vouchers?creator=0x0000000000000000000000000000000000000001&live=1"
+  );
+  ok("creator live summary returns 200", creator.status === 200);
+  ok(
+    "creator summary has totals",
+    creator.json &&
+      typeof creator.json.totalUnredeemed === "number" &&
+      Array.isArray(creator.json.batches)
+  );
+
   const passed = tests.filter((t) => t.pass).length;
   const failed = tests.filter((t) => !t.pass).length;
   console.log(`\n${passed} passed, ${failed} failed\n`);

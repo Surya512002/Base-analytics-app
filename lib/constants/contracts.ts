@@ -196,4 +196,16 @@ export const VOUCHER_ABI = [
     ],
     outputs: [{ name: "", type: "bytes32" }],
   },
+  {
+    type: "event",
+    name: "BatchCreated",
+    inputs: [
+      { name: "batchId", type: "uint256", indexed: true },
+      { name: "creator", type: "address", indexed: true },
+      { name: "token", type: "address", indexed: false },
+      { name: "totalAmount", type: "uint256", indexed: false },
+      { name: "cardCount", type: "uint256", indexed: false },
+      { name: "message", type: "string", indexed: false },
+    ],
+  },
 ] as const;
