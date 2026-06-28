@@ -31,6 +31,11 @@ import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { getAppContractHit, isPaymasterActivity } from "@/lib/utils/app-contracts";
+import {
+  patchCheckInInWalletCache,
+  writeLocalCheckInToday,
+} from "@/lib/utils/check-in-status";
+import { txHashFromLifecycle } from "@/lib/utils/tx-status";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const FarcasterAnalytics = dynamic(
@@ -94,7 +99,24 @@ if (!wallet) return null;
                     <button disabled className="py-3 px-6 rounded-2xl font-black text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/18">✓ Secured Today</button>
                   ):(
                     <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps}
-                      onStatus={s=>{if(s.statusName==='success'){setCheckedToday(true);setStreak(v=>v+1);setSponsored(v=>v+1);showToast('✅ Onchain check-in secured!',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,checkin:(k.checkin||0)+1}));}}}>
+                      onStatus={(s) => {
+                        if (
+                          s.statusName !== "success" &&
+                          s.statusName !== "transactionLegacyExecuted"
+                        ) {
+                          return;
+                        }
+                        writeLocalCheckInToday(wallet.address);
+                        setCheckedToday(true);
+                        setStreak((v) => {
+                          const next = v + 1;
+                          patchCheckInInWalletCache(wallet.address, true, next);
+                          return next;
+                        });
+                        setSponsored((v) => v + 1);
+                        showToast("✅ Onchain check-in secured!", txHashFromLifecycle(s));
+                        setTxKeys((k) => ({ ...k, checkin: (k.checkin || 0) + 1 }));
+                      }}>
                       <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
                     </Transaction>
                   )}

@@ -184,6 +184,12 @@ export async function analyzeWalletAddress(
     const ld = new Date(Number(dbLastCI) * 1000).toISOString().slice(0, 10);
     checkedToday = ld === new Date().toISOString().slice(0, 10);
   }
+  if (typeof window !== "undefined") {
+    const localKey = `base_checkin_${addrLow}`;
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(localKey) === today) checkedToday = true;
+    else if (checkedToday) localStorage.setItem(localKey, today);
+  }
 
   const ms: Record<string, number> = {};
   if (Array.isArray(mcRes)) {

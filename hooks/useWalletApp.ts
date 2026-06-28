@@ -11,6 +11,12 @@ import {
   writeWalletCache,
   purgeLegacyWalletCaches,
 } from "@/lib/utils/wallet-cache";
+import {
+  fetchCheckInStatus,
+  patchCheckInInWalletCache,
+  readLocalCheckInToday,
+  writeLocalCheckInToday,
+} from "@/lib/utils/check-in-status";
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 import {
   ACHIEVEMENTS_ABI,
@@ -297,6 +303,14 @@ export function useWalletApp() {
     setWallet(result.wallet);
   }, []);
 
+  const syncCheckInStatus = useCallback(async (address: string) => {
+    const status = await fetchCheckInStatus(address);
+    setCheckedToday(status.checkedToday);
+    setStreak(status.streak);
+    patchCheckInInWalletCache(address, status.checkedToday, status.streak);
+    return status;
+  }, []);
+
   const analyzeWallet = useCallback(
     async (address: string) => {
       if (
@@ -313,18 +327,29 @@ export function useWalletApp() {
 
       const cached = readWalletCache(address);
       if (cached) {
-        applyAnalysis(cached);
+        applyAnalysis({
+          ...cached,
+          checkedToday: cached.checkedToday || readLocalCheckInToday(address),
+        });
         setLoading(false);
       } else {
         setLoading(true);
       }
 
+      void syncCheckInStatus(address);
+
       try {
         setScanProgress("Scanning onchain history...");
         const result = await fetchWalletAnalysis(address, !cached);
         if (result) {
-          applyAnalysis(result);
-          writeWalletCache(address, result, true);
+          const ci = await fetchCheckInStatus(address);
+          const merged = {
+            ...result,
+            checkedToday: ci.checkedToday || result.checkedToday,
+            streak: ci.streak || result.streak,
+          };
+          applyAnalysis(merged);
+          writeWalletCache(address, merged, true);
         } else if (!cached) {
           showToast("❌ Analysis failed", "");
           setWallet(null);
@@ -338,7 +363,7 @@ export function useWalletApp() {
         setScanProgress("");
       }
     },
-    [applyAnalysis, loadX402PremiumState, showToast]
+    [applyAnalysis, loadX402PremiumState, showToast, syncCheckInStatus]
   );
 
   const handleConnect = async (type: ConnectionType) => {
@@ -431,8 +456,13 @@ export function useWalletApp() {
         if (type === "gn")
           setTxKeys((k) => ({ ...k, gn: (k.gn || 0) + 1 }));
         if (type === "checkin") {
+          writeLocalCheckInToday(wallet.address);
           setCheckedToday(true);
-          setStreak((s) => s + 1);
+          setStreak((s) => {
+            const next = s + 1;
+            patchCheckInInWalletCache(wallet.address, true, next);
+            return next;
+          });
           setTxKeys((k) => ({ ...k, checkin: (k.checkin || 0) + 1 }));
         }
       }

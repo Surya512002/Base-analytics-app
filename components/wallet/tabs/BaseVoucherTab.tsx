@@ -87,6 +87,35 @@ interface RedeemSuccess {
   txHash?: string;
 }
 
+function RedeemStatusBanner({
+  cardId,
+  redeemed,
+  loading,
+}: {
+  cardId?: string;
+  redeemed?: boolean;
+  loading?: boolean;
+}) {
+  if (loading || !redeemed || !cardId) return null;
+
+  return (
+    <div
+      role="alert"
+      className="rounded-2xl border-2 border-red-400/55 bg-red-500/15 px-4 py-4 flex items-start gap-3"
+    >
+      <AlertCircle size={22} className="text-red-300 shrink-0 mt-0.5" />
+      <div>
+        <p className="text-base sm:text-lg font-black text-red-100">This card is already redeemed</p>
+        <p className="text-sm text-red-200/85 mt-1 leading-relaxed">
+          Card{" "}
+          <span className="font-mono font-bold text-white">{cardId}</span> was already claimed on Base.
+          You cannot redeem it again — the funds have been sent to whoever redeemed it first.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function VoucherCardPreview({
   cardId,
   secret,
@@ -95,6 +124,7 @@ function VoucherCardPreview({
   message,
   redeemed,
   showSecret = true,
+  showRedeemedNotice = true,
 }: {
   cardId: string;
   secret?: string;
@@ -103,9 +133,21 @@ function VoucherCardPreview({
   message?: string;
   redeemed?: boolean;
   showSecret?: boolean;
+  showRedeemedNotice?: boolean;
 }) {
   return (
     <div className="space-y-3">
+      {showRedeemedNotice && redeemed && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5">
+          <AlertCircle size={16} className="text-amber-300 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-black text-amber-200">This card has already been redeemed</p>
+            <p className="text-xs text-amber-200/70 mt-0.5">
+              Card <span className="font-mono font-bold">{cardId}</span> was used onchain and cannot be redeemed again.
+            </p>
+          </div>
+        </div>
+      )}
       <VoucherGiftCard3D
         asset={asset}
         amount={amount}
@@ -162,6 +204,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [redeemKey, setRedeemKey] = useState(0);
   const [redeemPreview, setRedeemPreview] = useState<RedeemPreview | null>(null);
   const [redeemPreviewLoading, setRedeemPreviewLoading] = useState(false);
+  const [redeemPreviewRefreshing, setRedeemPreviewRefreshing] = useState(false);
+  const [debouncedRedeemCardId, setDebouncedRedeemCardId] = useState("");
   const [redeemSuccess, setRedeemSuccess] = useState<RedeemSuccess | null>(null);
 
   const [myBatches, setMyBatches] = useState<StoredVoucherBatch[]>([]);
@@ -175,6 +219,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     totalUnredeemed: number;
   } | null>(null);
   const [loadingBatchDetail, setLoadingBatchDetail] = useState<number | null>(null);
+  const [mineStatusesLoading, setMineStatusesLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
   const [viewCardId, setViewCardId] = useState("");
@@ -307,6 +352,44 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   useEffect(() => {
     refreshMyBatches();
   }, [refreshMyBatches]);
+
+  const cardRedeemedMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const cards of Object.values(batchCardStatuses)) {
+      for (const c of cards) map.set(c.cardId, c.redeemed);
+    }
+    return map;
+  }, [batchCardStatuses]);
+
+  const isCardRedeemed = useCallback(
+    (cardId: string) => cardRedeemedMap.get(cardId) ?? false,
+    [cardRedeemedMap]
+  );
+
+  const isCardStatusKnown = useCallback(
+    (cardId: string) => cardRedeemedMap.has(cardId),
+    [cardRedeemedMap]
+  );
+
+  useEffect(() => {
+    if (!createdCards) return;
+    void loadBatchDetail(createdCards.batchId);
+  }, [createdCards, loadBatchDetail]);
+
+  useEffect(() => {
+    if (view !== "mine" || myBatches.length === 0) return;
+    let cancelled = false;
+    setMineStatusesLoading(true);
+
+    void (async () => {
+      await Promise.all(myBatches.map((b) => loadBatchDetail(b.batchId)));
+      if (!cancelled) setMineStatusesLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [view, myBatches, loadBatchDetail]);
 
   const copyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -539,89 +622,129 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     createUsdcCall,
   ]);
 
-  const redeemParsed = parseCardId(redeemCardId);
-  redeemParsedRef.current = redeemParsed;
+  const redeemParsedForTx = useMemo(
+    () => parseCardId(redeemCardId.trim()),
+    [redeemCardId]
+  );
+  const redeemParsed = parseCardId(debouncedRedeemCardId);
+  redeemParsedRef.current = redeemParsedForTx;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedRedeemCardId(redeemCardId.trim()), 450);
+    return () => window.clearTimeout(timer);
+  }, [redeemCardId]);
 
   useEffect(() => {
     redeemNotifiedRef.current = "";
   }, [redeemKey]);
 
   useEffect(() => {
-    if (!redeemParsed || !publicClient || !contractReady) {
-      setRedeemPreview(null);
-      redeemPreviewRef.current = null;
+    if (!redeemParsed || !contractReady) {
+      if (!parseCardId(redeemCardId.trim())) {
+        setRedeemPreview(null);
+        redeemPreviewRef.current = null;
+      }
+      setRedeemPreviewLoading(false);
+      setRedeemPreviewRefreshing(false);
       return;
     }
+
+    const lookupCardId = formatCardId(redeemParsed.batchId, redeemParsed.cardIndex);
+    const hasSamePreview = redeemPreviewRef.current?.cardId === lookupCardId;
     let cancelled = false;
-    setRedeemPreviewLoading(true);
+
+    if (!hasSamePreview) {
+      setRedeemPreviewLoading(true);
+    } else {
+      setRedeemPreviewRefreshing(true);
+    }
     setRedeemError("");
 
-    (async () => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+
+    void (async () => {
       try {
-        const [batch, redeemed] = await Promise.all([
-          publicClient.readContract({
-            address: VOUCHER_CONTRACT as `0x${string}`,
-            abi: VOUCHER_ABI,
-            functionName: "getBatch",
-            args: [BigInt(redeemParsed.batchId)],
-          }),
-          publicClient.readContract({
-            address: VOUCHER_CONTRACT as `0x${string}`,
-            abi: VOUCHER_ABI,
-            functionName: "isCardRedeemed",
-            args: [BigInt(redeemParsed.batchId), BigInt(redeemParsed.cardIndex)],
-          }),
-        ]);
-        const [, token, amountPerCard, cardCount, , message] = batch;
+        const res = await fetch(
+          `/api/vouchers?batchId=${redeemParsed.batchId}&live=1`,
+          { signal: controller.signal, cache: "no-store" }
+        );
+        if (!res.ok) throw new Error("lookup failed");
+
+        const data = (await res.json()) as {
+          batch?: {
+            asset: VoucherAsset;
+            amountPerCard: string;
+            message: string;
+            cardCount: number;
+          };
+          cards?: Array<{ cardIndex: number; cardId: string; redeemed: boolean }>;
+        };
+
         if (cancelled) return;
-        if (cardCount === BigInt(0)) {
+
+        const batch = data.batch;
+        if (!batch || batch.cardCount < 1) {
           setRedeemPreview(null);
           redeemPreviewRef.current = null;
           setRedeemError("Batch not found onchain.");
           return;
         }
-        if (redeemParsed.cardIndex >= Number(cardCount)) {
+        if (redeemParsed.cardIndex >= batch.cardCount) {
           setRedeemPreview(null);
           redeemPreviewRef.current = null;
-          setRedeemError(`This batch only has cards 0–${Number(cardCount) - 1}.`);
+          setRedeemError(`This batch only has cards 0–${batch.cardCount - 1}.`);
           return;
         }
+
+        const cardStatus = data.cards?.find((c) => c.cardIndex === redeemParsed.cardIndex);
         const preview: RedeemPreview = {
-          cardId: formatCardId(redeemParsed.batchId, redeemParsed.cardIndex),
-          asset: tokenToAsset(token),
-          amountPerCard,
-          message: String(message ?? ""),
-          redeemed,
+          cardId: lookupCardId,
+          asset: batch.asset,
+          amountPerCard: BigInt(batch.amountPerCard),
+          message: batch.message ?? "",
+          redeemed: cardStatus?.redeemed ?? false,
         };
         setRedeemPreview(preview);
         redeemPreviewRef.current = preview;
-        if (redeemed) {
-          setRedeemError("This card has already been redeemed.");
-        }
-      } catch {
-        if (!cancelled) {
+        setRedeemError("");
+      } catch (err) {
+        if (cancelled) return;
+        if (!hasSamePreview) {
           setRedeemPreview(null);
           redeemPreviewRef.current = null;
         }
+        const aborted = err instanceof Error && err.name === "AbortError";
+        setRedeemError(
+          aborted
+            ? "Loading timed out. Check your connection and try again."
+            : "Could not load card details. Try again in a moment."
+        );
       } finally {
-        if (!cancelled) setRedeemPreviewLoading(false);
+        window.clearTimeout(timeout);
+        if (!cancelled) {
+          setRedeemPreviewLoading(false);
+          setRedeemPreviewRefreshing(false);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      controller.abort();
+      window.clearTimeout(timeout);
     };
-  }, [redeemParsed, publicClient, contractReady, redeemKey]);
+  }, [redeemParsed, contractReady, redeemKey]);
   const redeemCall = useMemo(() => {
-    if (!redeemParsed || !redeemSecret.trim() || !contractReady) return [];
+    if (!redeemParsedForTx || !redeemSecret.trim() || !contractReady) return [];
     return [
       encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "redeem", [
-        BigInt(redeemParsed.batchId),
-        BigInt(redeemParsed.cardIndex),
+        BigInt(redeemParsedForTx.batchId),
+        BigInt(redeemParsedForTx.cardIndex),
         redeemSecret.trim().toUpperCase(),
       ]),
     ];
-  }, [redeemParsed, redeemSecret, contractReady]);
+  }, [redeemParsedForTx, redeemSecret, contractReady]);
 
   const onCreateSuccess = useCallback(
     async (txHash?: string) => {
@@ -715,6 +838,29 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
       }
 
+      setBatchCardStatuses((prev) => {
+        const cards = prev[parsed.batchId];
+        const cardId = formatCardId(parsed.batchId, parsed.cardIndex);
+        if (cards) {
+          return {
+            ...prev,
+            [parsed.batchId]: cards.map((c) =>
+              c.cardIndex === parsed.cardIndex ? { ...c, redeemed: true } : c
+            ),
+          };
+        }
+        return {
+          ...prev,
+          [parsed.batchId]: [
+            {
+              cardIndex: parsed.cardIndex,
+              cardId,
+              redeemed: true,
+            },
+          ],
+        };
+      });
+
       setRedeemError("");
       try {
         const result = await publicClient.readContract({
@@ -723,6 +869,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           functionName: "getBatch",
           args: [BigInt(parsed.batchId)],
         });
+        setChainStats((prev) => ({
+          ...prev,
+          [parsed.batchId]: Number(result[4]),
+        }));
         await fetch("/api/vouchers", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1011,7 +1161,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   </div>
                   <p className="text-sm text-white font-bold mt-1">Batch #{createdCards.batchId}</p>
                   <p className="text-xs text-cyan-300 font-bold mt-1">
-                    {createdCards.cardCount} cards · {createdCards.cardCount} not redeemed yet
+                    {createdCards.cardCount} cards
+                    {batchCardStatuses[createdCards.batchId]
+                      ? ` · ${batchCardStatuses[createdCards.batchId].filter((c) => !c.redeemed).length} not redeemed yet`
+                      : " · syncing redemption status…"}
                   </p>
                   <p className="text-xs text-amber-200 font-bold mt-2">
                     Save Card ID + Secret for each card — they cannot be recovered later.
@@ -1054,6 +1207,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                     onCopy={copyText}
                     onShare={shareText}
                     shareText={formatCardShareText(c, createdCards)}
+                    redeemed={isCardRedeemed(c.cardId)}
+                    statusLoading={
+                      !isCardStatusKnown(c.cardId) &&
+                      (mineStatusesLoading || loadingBatchDetail === createdCards.batchId)
+                    }
                   />
                 ))}
               </div>
@@ -1087,28 +1245,48 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             />
           </div>
 
-          {redeemError && <p className="text-red-400 text-xs font-bold">{redeemError}</p>}
-
-          {redeemPreviewLoading && redeemParsed && (
-            <div className="flex items-center justify-center gap-2 py-6 min-h-[320px] text-slate-500 text-sm">
-              <RefreshCcw size={16} className="animate-spin" />
-              Loading card details…
-            </div>
+          {redeemError && !redeemPreview?.redeemed && (
+            <p className="text-red-400 text-xs font-bold">{redeemError}</p>
           )}
 
-          {redeemPreview && !redeemPreviewLoading && (
-            <div className="glass-panel-accent border border-cyan-500/20 rounded-2xl p-4 min-h-[320px]">
-              <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-3">
-                Your gift card
-              </p>
-              <VoucherCardPreview
-                cardId={redeemPreview.cardId}
-                asset={redeemPreview.asset}
-                amount={redeemPreview.amountPerCard}
-                message={redeemPreview.message}
-                redeemed={redeemPreview.redeemed}
-                showSecret={false}
-              />
+          <RedeemStatusBanner
+            cardId={redeemPreview?.cardId}
+            redeemed={redeemPreview?.redeemed}
+            loading={redeemPreviewLoading && !redeemPreview}
+          />
+
+          {(redeemParsedForTx || redeemPreview) && (
+            <div className="relative min-h-[340px] rounded-2xl border border-cyan-500/20 bg-white/[0.02] overflow-hidden">
+              {redeemPreviewLoading && !redeemPreview ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <RefreshCcw size={20} className="animate-spin text-cyan-400/70" />
+                  <p className="text-sm font-bold">Loading card details…</p>
+                </div>
+              ) : redeemPreview ? (
+                <div
+                  className={`p-4 transition-opacity duration-200 ${
+                    redeemPreviewRefreshing ? "opacity-60" : "opacity-100"
+                  }`}
+                >
+                  {redeemPreviewRefreshing && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#020812]/40 backdrop-blur-[1px]">
+                      <RefreshCcw size={18} className="animate-spin text-cyan-300" />
+                    </div>
+                  )}
+                  <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-3">
+                    {redeemPreview.redeemed ? "Card preview (redeemed)" : "Your gift card"}
+                  </p>
+                  <VoucherCardPreview
+                    cardId={redeemPreview.cardId}
+                    asset={redeemPreview.asset}
+                    amount={redeemPreview.amountPerCard}
+                    message={redeemPreview.message}
+                    redeemed={redeemPreview.redeemed}
+                    showSecret={false}
+                    showRedeemedNotice={false}
+                  />
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -1141,9 +1319,19 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           ) : (
             <button
               disabled
-              className="w-full py-3.5 rounded-xl font-black bg-white/10 text-slate-600"
+              className={`w-full py-3.5 rounded-xl font-black ${
+                redeemPreview?.redeemed
+                  ? "bg-red-500/15 border border-red-400/40 text-red-200"
+                  : "bg-white/10 text-slate-600"
+              }`}
             >
-              Enter Card ID & Secret
+              {redeemPreviewLoading && !redeemPreview
+                ? "Checking card…"
+                : redeemPreview?.redeemed
+                  ? "Already redeemed — cannot claim again"
+                  : redeemParsedForTx && !redeemSecret.trim()
+                    ? "Enter secret key"
+                    : "Enter Card ID & Secret"}
             </button>
           )}
           </div>
@@ -1225,6 +1413,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                     <p className="font-mono text-white mt-0.5 text-[11px] truncate">{viewedCard.creator}</p>
                   </div>
                 </div>
+                {viewedCard.redeemed && (
+                  <p className="text-amber-300 text-xs font-bold flex items-center gap-1.5">
+                    <AlertCircle size={14} /> This card has already been redeemed onchain.
+                  </p>
+                )}
                 {viewedCard.secretValid === true && (
                   <p className="text-emerald-400 text-xs font-bold flex items-center gap-1.5">
                     <CheckCircle size={14} /> Secret verified — this key matches the card onchain.
@@ -1258,9 +1451,16 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your voucher batches</p>
-            <button onClick={refreshMyBatches} className="text-slate-500 hover:text-cyan-400 p-1">
-              <RefreshCcw size={14} />
-            </button>
+            <div className="flex items-center gap-2">
+              {mineStatusesLoading && (
+                <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                  <RefreshCcw size={12} className="animate-spin" /> Syncing…
+                </span>
+              )}
+              <button onClick={refreshMyBatches} className="text-slate-500 hover:text-cyan-400 p-1">
+                <RefreshCcw size={14} />
+              </button>
+            </div>
           </div>
 
           {creatorSummary && creatorSummary.batchCount > 0 && (
@@ -1289,6 +1489,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               const pct = Math.round((redeemed / b.cardCount) * 100);
               const cardStatuses = batchCardStatuses[b.batchId];
               const hasLocalSecrets = b.cards.some((c) => c.secret.length > 0);
+              const unredeemedCards = b.cards.filter((c) => !isCardRedeemed(c.cardId)).length;
+              const redeemedCardsKnown = b.cards.filter((c) => isCardStatusKnown(c.cardId)).length;
+              const allStatusesKnown = redeemedCardsKnown === b.cardCount;
               return (
                 <SectionCard key={b.batchId} bar={false} className="border border-cyan-500/20">
                   <button
@@ -1397,7 +1600,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   >
                     <summary className="cursor-pointer list-none flex items-center justify-between gap-2 py-2 text-cyan-400 font-black text-sm">
                       <span className="flex items-center gap-2">
-                        <Coins size={14} /> Show all Card IDs & secrets ({b.cardCount})
+                        <Coins size={14} />{" "}
+                        {allStatusesKnown
+                          ? `Show cards (${unredeemedCards} available · ${b.cardCount - unredeemedCards} redeemed)`
+                          : `Show all Card IDs & secrets (${b.cardCount})`}
                       </span>
                       <ChevronDown size={16} className="group-open:rotate-180 transition-transform" />
                     </summary>
@@ -1415,6 +1621,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                           onCopy={copyText}
                           onShare={shareText}
                           shareText={formatCardShareText(c, b)}
+                          redeemed={isCardRedeemed(c.cardId)}
+                          statusLoading={
+                            !isCardStatusKnown(c.cardId) &&
+                            (mineStatusesLoading || loadingBatchDetail === b.batchId)
+                          }
                         />
                       ))}
                     </div>
@@ -1434,6 +1645,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         onClose={() => {
           setRedeemSuccess(null);
           setRedeemCardId("");
+          setDebouncedRedeemCardId("");
           setRedeemSecret("");
           setRedeemPreview(null);
           redeemPreviewRef.current = null;
