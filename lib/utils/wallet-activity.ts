@@ -24,7 +24,7 @@ export function mergeTransfers(
   for (const list of sources) {
     for (const tx of list) {
       if (!tx.hash) continue;
-      const key = `${tx.hash}-${tx.category}-${tx.asset || "ETH"}-${normalizeAddr(tx.from)}-${normalizeAddr(tx.to)}-${tx.value ?? 0}`;
+      const key = `${tx.hash}-${tx.category}-${tx.asset || "ETH"}-${normalizeAddr(tx.from)}-${normalizeAddr(tx.to)}-${tx.value ?? 0}-${tx.metadata?.isUserOperation ? "uop" : ""}-${tx.metadata?.isSponsored ? "pm" : ""}`;
       if (!map.has(key)) map.set(key, tx);
     }
   }
@@ -126,9 +126,13 @@ export function countContractInteractions(
     const toAddr = normalizeAddr(tx.to);
     const isOutgoing = fromAddr === w;
     const isIncoming = toAddr === w;
-    const isSponsored = paymasterTxHashes.has(tx.hash) && isIncoming;
+    const isUserOp = tx.category === "useroperation" && isOutgoing;
+    const isSponsored =
+      paymasterTxHashes.has(tx.hash) ||
+      tx.metadata?.isSponsored === true ||
+      (tx.category === "internal" && isIncoming);
 
-    if (!(isOutgoing || isSponsored)) continue;
+    if (!(isOutgoing || isSponsored || isUserOp)) continue;
 
     interactHashes.add(tx.hash);
 

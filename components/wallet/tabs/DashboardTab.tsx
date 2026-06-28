@@ -393,7 +393,7 @@ if (!wallet) return null;
                   const isBadge=toAddr===ACHIEVEMENTS_CONTRACT.toLowerCase()&&tx.category==='external';
                   const isDEX=DEX_ROUTERS.has(toAddr);
                   const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
-                  const isPaymaster=toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase()||(tx.category==='internal'&&toAddr===wallet.address.toLowerCase());
+                  const isPaymaster=tx.category==='useroperation'||tx.metadata?.isSponsored||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase()||(tx.category==='internal'&&toAddr===wallet.address.toLowerCase());
                   let label='Contract Call',badge:string|null=null;
                   let icon=<ArrowRightLeft size={13} className="text-cyan-400"/>;
                   if(isGM){label='GM / GN';icon=<Star size={13} className="text-yellow-400"/>;badge='☀️ Vibes';}
@@ -402,7 +402,7 @@ if (!wallet) return null;
                   else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>;badge='🏅 Badge';}
                   else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="text-cyan-400"/>;badge='🔄 Swap';}
                   else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="text-cyan-300"/>;badge='🌉 Bridge';}
-                  else if(isPaymaster){label='Gasless Tx';icon=<Droplets size={13} className="text-cyan-400"/>;badge='⛽ Sponsored';}
+                  else if(isPaymaster){label=tx.category==='useroperation'?'Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="text-cyan-400"/>;badge='⛽ Sponsored';}
                   else if(tx.category==='erc721'){label='NFT Transfer';icon=<Sparkles size={13} className="text-cyan-300"/>;}
                   else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="text-cyan-400"/>;}
                   else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="text-cyan-300"/>;}

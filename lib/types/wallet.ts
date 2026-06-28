@@ -72,7 +72,11 @@ export interface AlchemyTransfer {
   asset: string | null;
   to: string | null;
   from: string | null;
-  metadata: { blockTimestamp: string };
+  metadata: {
+    blockTimestamp: string;
+    isSponsored?: boolean;
+    isUserOperation?: boolean;
+  };
 }
 
 export interface AlchemyResponse {

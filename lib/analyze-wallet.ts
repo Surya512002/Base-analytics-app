@@ -208,6 +208,9 @@ export async function analyzeWalletAddress(
     ) {
       bridgeTxHashes.add(tx.hash);
     }
+    if (tx.metadata?.isSponsored || tx.metadata?.isUserOperation) {
+      paymasterTxHashes.add(tx.hash);
+    }
     if (tx.category === "internal" && toAddr === addrLow)
       paymasterTxHashes.add(tx.hash);
     if (fromAddr === ep06 || fromAddr === ep07) paymasterTxHashes.add(tx.hash);

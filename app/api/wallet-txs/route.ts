@@ -7,7 +7,9 @@ import {
   fetchBlockscoutInternalTxs,
   fetchBlockscoutTxs,
 } from "@/lib/api/blockscout";
+import { fetchBlockscoutV2Activity } from "@/lib/api/blockscout-v2";
 import { fetchBasescanTxs } from "@/lib/api/basescan";
+import { fetchUserOperationActivity } from "@/lib/api/user-operations";
 import { mergeTransfers } from "@/lib/utils/wallet-activity";
 
 export const dynamic = "force-dynamic";
@@ -27,14 +29,23 @@ export async function GET(req: Request) {
     "";
 
   try {
-    const [alchemyOut, alchemyIn, blockscoutTxs, internalTxs, basescanTxs] =
-      await Promise.all([
-        fetchAlchemyTxsFast(address).catch(() => []),
-        fetchAlchemyTxsIncoming(address).catch(() => []),
-        fetchBlockscoutTxs(address).catch(() => []),
-        fetchBlockscoutInternalTxs(address).catch(() => []),
-        fetchBasescanTxs(address, basescanKey).catch(() => []),
-      ]);
+    const [
+      alchemyOut,
+      alchemyIn,
+      blockscoutTxs,
+      internalTxs,
+      basescanTxs,
+      blockscoutV2,
+      userOps,
+    ] = await Promise.all([
+      fetchAlchemyTxsFast(address).catch(() => []),
+      fetchAlchemyTxsIncoming(address).catch(() => []),
+      fetchBlockscoutTxs(address).catch(() => []),
+      fetchBlockscoutInternalTxs(address).catch(() => []),
+      fetchBasescanTxs(address, basescanKey).catch(() => []),
+      fetchBlockscoutV2Activity(address).catch(() => []),
+      fetchUserOperationActivity(address).catch(() => []),
+    ]);
 
     const transfers = mergeTransfers([
       alchemyOut,
@@ -42,6 +53,8 @@ export async function GET(req: Request) {
       blockscoutTxs,
       internalTxs,
       basescanTxs,
+      blockscoutV2,
+      userOps,
     ]);
 
     return NextResponse.json({
@@ -52,6 +65,8 @@ export async function GET(req: Request) {
         blockscout: blockscoutTxs.length,
         internal: internalTxs.length,
         basescan: basescanTxs.length,
+        blockscoutV2: blockscoutV2.length,
+        userOperations: userOps.length,
         merged: transfers.length,
       },
     });
