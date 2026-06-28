@@ -1,11 +1,14 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 
-const CACHE_VERSION = 1;
+/** Bump when cache shape or activity logic changes — clears stale local snapshots. */
+const CACHE_VERSION = 2;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface StoredWalletCache {
   v: number;
   ts: number;
+  /** Only persist after a full history sync (not the fast preview). */
+  complete: boolean;
   result: AnalyzeWalletResult;
 }
 
@@ -21,7 +24,7 @@ export function readWalletCache(
     const raw = localStorage.getItem(cacheKey(address));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredWalletCache;
-    if (parsed.v !== CACHE_VERSION) return null;
+    if (parsed.v !== CACHE_VERSION || !parsed.complete) return null;
     if (Date.now() - parsed.ts > CACHE_MAX_AGE_MS) return null;
     return parsed.result;
   } catch {
@@ -31,13 +34,15 @@ export function readWalletCache(
 
 export function writeWalletCache(
   address: string,
-  result: AnalyzeWalletResult
+  result: AnalyzeWalletResult,
+  complete = true
 ): void {
   if (typeof window === "undefined") return;
   try {
     const payload: StoredWalletCache = {
       v: CACHE_VERSION,
       ts: Date.now(),
+      complete,
       result,
     };
     localStorage.setItem(cacheKey(address), JSON.stringify(payload));
@@ -50,6 +55,16 @@ export function clearWalletCache(address: string): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(cacheKey(address));
+  } catch {
+    // ignore
+  }
+}
+
+/** Remove v1 caches that stored incomplete fast-scan snapshots. */
+export function purgeLegacyWalletCaches(address: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(`base_analytics_wallet_v1_${address.toLowerCase()}`);
   } catch {
     // ignore
   }

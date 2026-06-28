@@ -9,6 +9,7 @@ import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
   readWalletCache,
   writeWalletCache,
+  purgeLegacyWalletCaches,
 } from "@/lib/utils/wallet-cache";
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 import {
@@ -308,6 +309,7 @@ export function useWalletApp() {
         return;
       }
       loadX402PremiumState(address);
+      purgeLegacyWalletCaches(address);
 
       const cached = readWalletCache(address);
       if (cached) {
@@ -322,7 +324,6 @@ export function useWalletApp() {
         const fast = await fetchWalletAnalysis(address, "fast");
         if (fast) {
           applyAnalysis(fast);
-          writeWalletCache(address, fast);
           setLoading(false);
         } else if (!cached) {
           showToast("❌ Analysis failed", "");
@@ -333,10 +334,10 @@ export function useWalletApp() {
 
         setWalletRefreshing(true);
         setScanProgress("Syncing full Base App history...");
-        const full = await fetchWalletAnalysis(address, "full", true);
+        const full = await fetchWalletAnalysis(address, "full", !cached);
         if (full) {
           applyAnalysis(full);
-          writeWalletCache(address, full);
+          writeWalletCache(address, full, true);
         }
       } catch (e) {
         console.error(e);

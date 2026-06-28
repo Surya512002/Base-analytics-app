@@ -185,10 +185,7 @@ export async function fetchBlockscoutV2Activity(
         asset: "ETH",
         from: addr,
         to: null,
-        metadata: {
-          blockTimestamp: sample.metadata.blockTimestamp,
-          isUserOperation: true,
-        },
+        metadata: { blockTimestamp: sample.metadata.blockTimestamp },
       });
     }
 
