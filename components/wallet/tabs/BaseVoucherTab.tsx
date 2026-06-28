@@ -112,6 +112,7 @@ function VoucherCardPreview({
         message={message}
         status={redeemed ? "redeemed" : "active"}
         compact
+        flat
         showStack={false}
       />
       <div className="glass-panel-accent rounded-xl px-3 py-2.5 space-y-1">
@@ -714,10 +715,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
       }
 
-      setRedeemCardId("");
-      setRedeemSecret("");
       setRedeemError("");
-      setRedeemKey((k) => k + 1);
       try {
         const result = await publicClient.readContract({
           address: VOUCHER_CONTRACT as `0x${string}`,
@@ -1092,14 +1090,14 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           {redeemError && <p className="text-red-400 text-xs font-bold">{redeemError}</p>}
 
           {redeemPreviewLoading && redeemParsed && (
-            <div className="flex items-center justify-center gap-2 py-6 text-slate-500 text-sm">
+            <div className="flex items-center justify-center gap-2 py-6 min-h-[320px] text-slate-500 text-sm">
               <RefreshCcw size={16} className="animate-spin" />
               Loading card details…
             </div>
           )}
 
           {redeemPreview && !redeemPreviewLoading && (
-            <div className="glass-panel-accent border border-cyan-500/20 rounded-2xl p-4">
+            <div className="glass-panel-accent border border-cyan-500/20 rounded-2xl p-4 min-h-[320px]">
               <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-3">
                 Your gift card
               </p>
@@ -1433,7 +1431,14 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       <VoucherRedeemReveal
         key={redeemSuccess?.cardId ?? "closed"}
         data={redeemSuccess}
-        onClose={() => setRedeemSuccess(null)}
+        onClose={() => {
+          setRedeemSuccess(null);
+          setRedeemCardId("");
+          setRedeemSecret("");
+          setRedeemPreview(null);
+          redeemPreviewRef.current = null;
+          setRedeemKey((k) => k + 1);
+        }}
       />
     </div>
   );

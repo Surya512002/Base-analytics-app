@@ -22,16 +22,22 @@ interface VoucherRedeemRevealProps {
   onClose: () => void;
 }
 
-const SPARKLES = Array.from({ length: 18 }, (_, i) => ({
+const SPARKLES = Array.from({ length: 12 }, (_, i) => ({
   id: i,
-  left: `${8 + ((i * 17) % 84)}%`,
-  delay: `${(i * 0.15) % 2.2}s`,
-  duration: `${2.4 + (i % 4) * 0.35}s`,
-  size: 4 + (i % 3) * 2,
+  left: `${10 + ((i * 19) % 80)}%`,
+  delay: `${0.4 + (i * 0.18) % 2}s`,
+  duration: `${2.6 + (i % 3) * 0.4}s`,
+  size: 4 + (i % 2) * 2,
 }));
 
 export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemRevealProps) {
+  const [mounted, setMounted] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [phase, setPhase] = useState<"enter" | "flip" | "reveal">("enter");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -44,15 +50,22 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
 
   useEffect(() => {
     if (!data) return;
-    const t1 = window.setTimeout(() => setPhase("flip"), 500);
-    const t2 = window.setTimeout(() => setPhase("reveal"), 1400);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-    };
-  }, [data]);
 
-  if (typeof window === "undefined" || !data) return null;
+    setPhase("enter");
+    setSettled(false);
+
+    const settleTimer = window.setTimeout(() => setSettled(true), 480);
+    const flipTimer = window.setTimeout(() => setPhase("flip"), 520);
+    const revealTimer = window.setTimeout(() => setPhase("reveal"), 1550);
+
+    return () => {
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(flipTimer);
+      window.clearTimeout(revealTimer);
+    };
+  }, [data?.cardId, data?.txHash]);
+
+  if (!mounted || !data) return null;
 
   const amountLabel = formatVoucherAmount(data.asset, data.amountPerCard);
   const hasMessage = Boolean(data.message?.trim());
@@ -69,23 +82,24 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
     >
       <div className="absolute inset-0 bg-[#020812]/88 backdrop-blur-xl" />
 
-      {SPARKLES.map((s) => (
-        <span
-          key={s.id}
-          className="voucher-sparkle pointer-events-none absolute rounded-full bg-cyan-300"
-          style={{
-            left: s.left,
-            bottom: "18%",
-            width: s.size,
-            height: s.size,
-            animationDelay: s.delay,
-            animationDuration: s.duration,
-          }}
-        />
-      ))}
+      {phase !== "enter" &&
+        SPARKLES.map((s) => (
+          <span
+            key={s.id}
+            className="voucher-sparkle pointer-events-none absolute rounded-full bg-cyan-300"
+            style={{
+              left: s.left,
+              bottom: "18%",
+              width: s.size,
+              height: s.size,
+              animationDelay: s.delay,
+              animationDuration: s.duration,
+            }}
+          />
+        ))}
 
       <div
-        className={`relative w-full max-w-md voucher-reveal-pop ${phase !== "enter" ? "voucher-reveal-pop-done" : ""}`}
+        className={`relative w-full max-w-md voucher-reveal-shell ${settled ? "voucher-reveal-shell-settled" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -97,24 +111,24 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
           <X size={18} />
         </button>
 
-        <div className="text-center mb-5">
+        <div className="text-center mb-5 min-h-[4.5rem]">
           <p
-            className={`text-[11px] font-black uppercase tracking-[0.35em] text-cyan-300 transition-all duration-700 ${
-              phase === "reveal" ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+            className={`text-[11px] font-black uppercase tracking-[0.35em] text-cyan-300 transition-opacity duration-500 ${
+              phase === "reveal" ? "opacity-100" : "opacity-0"
             }`}
           >
             Gift unlocked
           </p>
           <h2
-            className={`text-2xl sm:text-3xl font-black text-white mt-2 transition-all duration-700 delay-100 ${
-              phase === "reveal" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            className={`text-2xl sm:text-3xl font-black text-white mt-2 transition-opacity duration-500 delay-75 ${
+              phase === "reveal" ? "opacity-100" : "opacity-0"
             }`}
           >
             You got a <span className="text-gradient-blue">Base Voucher</span>
           </h2>
         </div>
 
-        <div className="voucher-flip-stage mx-auto" style={{ perspective: "1400px" }}>
+        <div className="voucher-flip-stage mx-auto">
           <div className={`voucher-flip-card ${isOpen ? "voucher-flip-card-open" : ""}`}>
             <div className="voucher-flip-face voucher-flip-front">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_0%,rgba(255,77,122,0.35),transparent_55%)]" />
@@ -129,9 +143,9 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
                 <p className="text-xl font-black text-white">A gift is waiting</p>
                 <p className="text-sm text-slate-400 mt-2">Opening your card…</p>
                 <div className="mt-6 flex items-center gap-2 text-cyan-300/80">
-                  <Sparkles size={14} className="animate-pulse" />
+                  <Sparkles size={14} className="opacity-80" />
                   <span className="text-xs font-bold">Onchain greeting card</span>
-                  <Sparkles size={14} className="animate-pulse" />
+                  <Sparkles size={14} className="opacity-80" />
                 </div>
               </div>
             </div>
@@ -156,8 +170,8 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
                 </div>
 
                 <div
-                  className={`flex-1 flex flex-col justify-center transition-all duration-700 ${
-                    phase === "reveal" ? "voucher-message-reveal" : "opacity-0 scale-95"
+                  className={`flex-1 flex flex-col justify-center ${
+                    phase === "reveal" ? "voucher-message-reveal" : "opacity-0"
                   }`}
                 >
                   {hasMessage ? (
@@ -179,8 +193,8 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
                 </div>
 
                 <div
-                  className={`mt-5 pt-5 border-t border-white/10 transition-all duration-700 delay-200 ${
-                    phase === "reveal" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                  className={`mt-5 pt-5 border-t border-white/10 transition-opacity duration-500 ${
+                    phase === "reveal" ? "opacity-100" : "opacity-0"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -200,8 +214,8 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
         </div>
 
         <div
-          className={`mt-6 space-y-3 transition-all duration-700 ${
-            phase === "reveal" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          className={`mt-6 space-y-3 transition-opacity duration-500 ${
+            phase === "reveal" ? "opacity-100" : "opacity-0"
           }`}
         >
           <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm">

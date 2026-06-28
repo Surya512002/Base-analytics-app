@@ -19,6 +19,8 @@ interface VoucherGiftCard3DProps {
   compact?: boolean;
   label?: string;
   showStack?: boolean;
+  /** Flat 2D card — avoids 3D jitter in redeem preview */
+  flat?: boolean;
 }
 
 export default function VoucherGiftCard3D({
@@ -29,6 +31,7 @@ export default function VoucherGiftCard3D({
   compact = false,
   label = "Base Voucher",
   showStack = true,
+  flat = false,
 }: VoucherGiftCard3DProps) {
   const displayAmount = amount
     ? formatVoucherAmount(asset, amount)
@@ -42,9 +45,9 @@ export default function VoucherGiftCard3D({
   return (
     <div
       className={`relative mx-auto ${compact ? "w-[min(100%,280px)]" : "w-[min(100%,320px)]"}`}
-      style={{ perspective: "1200px" }}
+      style={flat ? undefined : { perspective: "1200px" }}
     >
-      {showStack && (
+      {showStack && !flat && (
         <>
           <div
             className="absolute inset-0 rounded-2xl border border-white/5 bg-linear-to-br from-emerald-950/80 to-slate-950/90"
@@ -60,8 +63,8 @@ export default function VoucherGiftCard3D({
       <div
         className="relative rounded-2xl overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.55),0_0_40px_rgba(0,82,255,0.15)]"
         style={{
-          transform: "rotateY(-8deg) rotateX(6deg)",
-          transformStyle: "preserve-3d",
+          transform: flat ? "none" : "rotateY(-8deg) rotateX(6deg)",
+          transformStyle: flat ? undefined : "preserve-3d",
           background: "linear-gradient(135deg, #0d3d2e 0%, #0a1f1a 35%, #111827 70%, #0f172a 100%)",
         }}
       >
