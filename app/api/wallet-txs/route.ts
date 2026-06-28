@@ -1,26 +1,32 @@
 import { NextResponse } from "next/server";
-import {
-  fetchAlchemyTxsFast,
-  fetchAlchemyTxsIncoming,
-} from "@/lib/api/alchemy";
-import {
-  fetchBlockscoutInternalTxs,
-  fetchBlockscoutTxs,
-} from "@/lib/api/blockscout";
-import { fetchBlockscoutV2Activity } from "@/lib/api/blockscout-v2";
-import { fetchBasescanTxs } from "@/lib/api/basescan";
-import { fetchUserOperationActivity } from "@/lib/api/user-operations";
-import { mergeTransfers } from "@/lib/utils/wallet-activity";
+import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
+import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
+
+const CACHE_TTL = 600;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const address = searchParams.get("address")?.trim();
+  const address = searchParams.get("address")?.trim().toLowerCase();
+  const refresh = searchParams.get("refresh") === "1";
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
+  }
+
+  const cacheKey = `wallet-txs:${address}`;
+
+  if (!refresh) {
+    const cached = await cacheGet<{
+      transfers: unknown[];
+      sources: Record<string, number>;
+    }>(cacheKey);
+    if (cached) {
+      return NextResponse.json({ ...cached, cached: true });
+    }
   }
 
   const basescanKey =
@@ -29,47 +35,13 @@ export async function GET(req: Request) {
     "";
 
   try {
-    const [
-      alchemyOut,
-      alchemyIn,
-      blockscoutTxs,
-      internalTxs,
-      basescanTxs,
-      blockscoutV2,
-      userOps,
-    ] = await Promise.all([
-      fetchAlchemyTxsFast(address).catch(() => []),
-      fetchAlchemyTxsIncoming(address).catch(() => []),
-      fetchBlockscoutTxs(address).catch(() => []),
-      fetchBlockscoutInternalTxs(address).catch(() => []),
-      fetchBasescanTxs(address, basescanKey).catch(() => []),
-      fetchBlockscoutV2Activity(address).catch(() => []),
-      fetchUserOperationActivity(address).catch(() => []),
-    ]);
-
-    const transfers = mergeTransfers([
-      alchemyOut,
-      alchemyIn,
-      blockscoutTxs,
-      internalTxs,
-      basescanTxs,
-      blockscoutV2,
-      userOps,
-    ]);
-
-    return NextResponse.json({
-      transfers,
-      sources: {
-        alchemyOut: alchemyOut.length,
-        alchemyIn: alchemyIn.length,
-        blockscout: blockscoutTxs.length,
-        internal: internalTxs.length,
-        basescan: basescanTxs.length,
-        blockscoutV2: blockscoutV2.length,
-        userOperations: userOps.length,
-        merged: transfers.length,
-      },
-    });
+    const { transfers, sources } = await fetchWalletTransfersMerged(
+      address,
+      basescanKey
+    );
+    const payload = { transfers, sources, cached: false };
+    await cacheSet(cacheKey, { transfers, sources }, CACHE_TTL);
+    return NextResponse.json(payload);
   } catch (err) {
     console.error("[wallet-txs]", err);
     return NextResponse.json({ transfers: [], sources: {} });

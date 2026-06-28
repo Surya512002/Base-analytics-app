@@ -43,6 +43,10 @@ function addrHash(entry: BlockscoutAddress | undefined): string {
   return (entry?.hash || "").toLowerCase();
 }
 
+function normalizeAddr(addr: string | null | undefined): string {
+  return (addr || "").toLowerCase();
+}
+
 function mapTokenTransfer(item: {
   transaction_hash?: string;
   timestamp?: string;
@@ -127,23 +131,44 @@ export async function fetchBlockscoutV2Activity(
     const [tokens, internals, externals] = await Promise.all([
       fetchBlockscoutPages<Parameters<typeof mapTokenTransfer>[0]>(
         `${base}/token-transfers`,
-        8
+        30
       ),
       fetchBlockscoutPages<Parameters<typeof mapInternalTx>[0]>(
         `${base}/internal-transactions`,
-        6
+        25
       ),
       fetchBlockscoutPages<Parameters<typeof mapExternalTx>[0]>(
         `${base}/transactions`,
-        4
+        15
       ),
     ]);
 
-    return [
+    const mapped = [
       ...tokens.map(mapTokenTransfer),
       ...internals.map(mapInternalTx),
       ...externals.map(mapExternalTx),
     ].filter((t): t is AlchemyTransfer => t !== null);
+
+    // One heatmap tick per unique tx hash where the wallet initiated activity.
+    const walletFromHashes = new Set<string>();
+    for (const tx of mapped) {
+      if (normalizeAddr(tx.from) === addr) walletFromHashes.add(tx.hash);
+    }
+    for (const hash of walletFromHashes) {
+      const sample = mapped.find((t) => t.hash === hash);
+      if (!sample?.metadata?.blockTimestamp) continue;
+      mapped.push({
+        hash,
+        category: "contractcall",
+        value: 0,
+        asset: "ETH",
+        from: addr,
+        to: null,
+        metadata: { blockTimestamp: sample.metadata.blockTimestamp },
+      });
+    }
+
+    return mapped;
   } catch {
     return [];
   }

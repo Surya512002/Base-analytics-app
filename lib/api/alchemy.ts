@@ -37,7 +37,7 @@ async function fetchAssetTransferPage(
 async function fetchAllAssetTransfers(
   addressField: "fromAddress" | "toAddress",
   address: string,
-  maxPages = 20
+  maxPages = 12
 ): Promise<AlchemyTransfer[]> {
   const first = await fetchAssetTransferPage(addressField, address);
   const all = [...first.transfers];

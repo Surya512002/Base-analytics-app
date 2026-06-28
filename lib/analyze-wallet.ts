@@ -4,7 +4,7 @@ import { base } from "viem/chains";
 import {
   fetchNftCount,
 } from "@/lib/api/alchemy";
-import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
+import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
 import { BASE_RPC } from "@/lib/constants/env";
 import {
   ACHIEVEMENTS_ABI,
@@ -156,7 +156,7 @@ export async function analyzeWalletAddress(
     balP,
     nftP,
     mcP,
-    fetchWalletTransfers(address).catch(() => []),
+    fetchWalletTransfersMerged(address).then((r) => r.transfers).catch(() => []),
     strkP,
     lastP,
     ethPriceP,

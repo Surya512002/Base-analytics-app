@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { connectWallet } from "@/app/connection";
-import { analyzeWalletAddress } from "@/lib/analyze-wallet";
+import { fetchWalletAnalysis } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
@@ -296,7 +296,8 @@ export function useWalletApp() {
       loadX402PremiumState(address);
       setLoading(true);
       try {
-        const result = await analyzeWalletAddress(address, setScanProgress);
+        setScanProgress("Loading wallet activity...");
+        const result = await fetchWalletAnalysis(address);
         if (!result) {
           showToast("❌ Analysis failed", "");
           setWallet(null);
