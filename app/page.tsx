@@ -52,6 +52,7 @@ export default function Page() {
     ready,
     loading,
     scanProgress,
+    walletRefreshing,
     showModal,
     setShowModal,
     handleConnect,
@@ -100,6 +101,7 @@ export default function Page() {
       <AppHeader
         weeklyXP={weeklyXP}
         sponsored={sponsored}
+        walletRefreshing={walletRefreshing}
         onDisconnect={handleDisconnect}
       />
 

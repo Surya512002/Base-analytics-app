@@ -5,6 +5,7 @@ import {
   fetchNftCount,
 } from "@/lib/api/alchemy";
 import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
+import type { FetchMode } from "@/lib/api/fetch-limits";
 import { BASE_RPC } from "@/lib/constants/env";
 import {
   ACHIEVEMENTS_ABI,
@@ -60,10 +61,17 @@ const NAME_RESOLVER_ABI = [
   },
 ] as const;
 
+export interface AnalyzeOptions {
+  mode?: FetchMode;
+}
+
 export async function analyzeWalletAddress(
   address: string,
-  onProgress?: (msg: string) => void
+  onProgress?: (msg: string) => void,
+  options: AnalyzeOptions = {}
 ): Promise<AnalyzeWalletResult | null> {
+  const mode = options.mode ?? "full";
+  const isFast = mode === "fast";
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return null;
   }
@@ -96,7 +104,9 @@ export async function analyzeWalletAddress(
     .catch(() => null);
 
   const balP = provider.getBalance(address).catch(() => BigInt(0));
-  const nftP = fetchNftCount(address);
+  const nftP = isFast
+    ? Promise.resolve(0)
+    : fetchNftCount(address);
   const strkP = pub
     .readContract({
       address: CHECKIN_CONTRACT as `0x${string}`,
@@ -113,11 +123,13 @@ export async function analyzeWalletAddress(
       args: [address as `0x${string}`],
     })
     .catch(() => BigInt(0));
-  const ethPriceP = fetch(
-    "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-  )
-    .then((r) => r.json())
-    .catch(() => ({ ethereum: { usd: 3200 } }));
+  const ethPriceP = isFast
+    ? Promise.resolve({ ethereum: { usd: 3200 } })
+    : fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+      )
+        .then((r) => r.json())
+        .catch(() => ({ ethereum: { usd: 3200 } }));
 
   const calls: {
     address: `0x${string}`;
@@ -126,21 +138,29 @@ export async function analyzeWalletAddress(
     args: readonly [`0x${string}`, bigint];
   }[] = [];
   const callMap: { catId: string; level: number }[] = [];
-  for (const cat of ACHIEVEMENTS) {
-    for (let i = cat.thresholds.length; i >= 1; i--) {
-      const tid = getTargetTokenId(cat.baseId, cat.thresholds.length, i);
-      calls.push({
-        address: ACHIEVEMENTS_CONTRACT as `0x${string}`,
-        abi: ACHIEVEMENTS_ABI,
-        functionName: "hasMinted",
-        args: [address as `0x${string}`, BigInt(tid)],
-      });
-      callMap.push({ catId: cat.id, level: i });
+  if (!isFast) {
+    for (const cat of ACHIEVEMENTS) {
+      for (let i = cat.thresholds.length; i >= 1; i--) {
+        const tid = getTargetTokenId(cat.baseId, cat.thresholds.length, i);
+        calls.push({
+          address: ACHIEVEMENTS_CONTRACT as `0x${string}`,
+          abi: ACHIEVEMENTS_ABI,
+          functionName: "hasMinted",
+          args: [address as `0x${string}`, BigInt(tid)],
+        });
+        callMap.push({ catId: cat.id, level: i });
+      }
     }
   }
-  const mcP = pub.multicall({ contracts: calls }).catch(() => []);
+  const mcP = isFast
+    ? Promise.resolve([])
+    : pub.multicall({ contracts: calls }).catch(() => []);
 
-  onProgress?.("Fetching full onchain history (Alchemy + Blockscout + Basescan)...");
+  onProgress?.(
+    isFast
+      ? "Quick scan (Base App + recent txs)..."
+      : "Fetching full onchain history..."
+  );
 
   const [
     bn,
@@ -156,7 +176,9 @@ export async function analyzeWalletAddress(
     balP,
     nftP,
     mcP,
-    fetchWalletTransfersMerged(address).then((r) => r.transfers).catch(() => []),
+    fetchWalletTransfersMerged(address, "", mode)
+      .then((r) => r.transfers)
+      .catch(() => []),
     strkP,
     lastP,
     ethPriceP,
@@ -226,7 +248,9 @@ export async function analyzeWalletAddress(
     dexVolumeETH,
     dexTradeCount30d,
     dexVolumeUSD30d,
-  } = await computeSwapVolume(allTxs, addrLow, ethUSD);
+  } = await computeSwapVolume(allTxs, addrLow, ethUSD, {
+    skipTokenPricing: isFast,
+  });
 
   const contractStats = countContractInteractions(
     allTxs,

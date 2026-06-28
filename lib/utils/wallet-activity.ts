@@ -11,10 +11,39 @@ export function normalizeAddr(addr: string | null | undefined): string {
   return (addr || "").toLowerCase();
 }
 
-/** Wallet sent or received this transfer leg. */
+import { ENTRYPOINT_V06, ENTRYPOINT_V07 } from "@/lib/constants/contracts";
+
+const EP06 = ENTRYPOINT_V06.toLowerCase();
+const EP07 = ENTRYPOINT_V07.toLowerCase();
+
+/** Wallet participated in this activity leg (incl. Base App / paymaster flows). */
 export function walletInvolved(tx: AlchemyTransfer, wallet: string): boolean {
   const w = normalizeAddr(wallet);
-  return normalizeAddr(tx.from) === w || normalizeAddr(tx.to) === w;
+  const from = normalizeAddr(tx.from);
+  const to = normalizeAddr(tx.to);
+  if (from === w || to === w) return true;
+  if (tx.category === "contractcall" && from === w) return true;
+  if (tx.metadata?.isUserOperation && from === w) return true;
+  if (tx.category === "internal" && (from === EP06 || from === EP07) && to === w)
+    return true;
+  return false;
+}
+
+/** Count toward heatmap / active days (outgoing + gasless execution, not inbound spam). */
+function countsAsUserActivity(tx: AlchemyTransfer, wallet: string): boolean {
+  const w = normalizeAddr(wallet);
+  const from = normalizeAddr(tx.from);
+  const to = normalizeAddr(tx.to);
+  if (from === w) return true;
+  if (tx.category === "contractcall" || tx.category === "useroperation") return true;
+  if (tx.metadata?.isUserOperation || tx.metadata?.isSponsored) return true;
+  if (tx.category === "internal" && (from === EP06 || from === EP07) && to === w)
+    return true;
+  if (tx.category === "internal" && from === w) return true;
+  if (tx.category === "external" && from === w) return true;
+  if (["erc20", "erc721", "erc1155"].includes(tx.category) && from === w)
+    return true;
+  return false;
 }
 
 export function mergeTransfers(
@@ -56,7 +85,7 @@ export function rollupWalletActivity(
   const dayHashSeen = new Set<string>();
 
   for (const tx of txs) {
-    if (!tx.metadata?.blockTimestamp || !walletInvolved(tx, w)) continue;
+    if (!tx.metadata?.blockTimestamp || !countsAsUserActivity(tx, w)) continue;
 
     const fromAddr = normalizeAddr(tx.from);
     const dk = getDayKey(tx.metadata.blockTimestamp);

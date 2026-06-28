@@ -7,6 +7,11 @@ import { fetchWalletAnalysis } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
+  readWalletCache,
+  writeWalletCache,
+} from "@/lib/utils/wallet-cache";
+import type { AnalyzeWalletResult } from "@/lib/types/wallet";
+import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
   BOOSTER_ABI,
@@ -85,6 +90,7 @@ export function useWalletApp() {
   const [refCopied, setRefCopied] = useState(false);
   const [weeklyXP, setWeeklyXP] = useState(0);
   const [scanProgress, setScanProgress] = useState("");
+  const [walletRefreshing, setWalletRefreshing] = useState(false);
   const [premiumUnlocked, setPremiumUnlocked] = useState(false);
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [premiumData, setPremiumData] = useState<{
@@ -282,6 +288,14 @@ export function useWalletApp() {
     }
   }, [challenge, showToast]);
 
+  const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
+    setMintedLevels(result.mintedLevels);
+    setStreak(result.streak);
+    setCheckedToday(result.checkedToday);
+    setBoosts(result.boosts);
+    setWallet(result.wallet);
+  }, []);
+
   const analyzeWallet = useCallback(
     async (address: string) => {
       if (
@@ -294,29 +308,46 @@ export function useWalletApp() {
         return;
       }
       loadX402PremiumState(address);
-      setLoading(true);
+
+      const cached = readWalletCache(address);
+      if (cached) {
+        applyAnalysis(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       try {
-        setScanProgress("Loading wallet activity...");
-        const result = await fetchWalletAnalysis(address);
-        if (!result) {
+        setScanProgress("Quick scan...");
+        const fast = await fetchWalletAnalysis(address, "fast");
+        if (fast) {
+          applyAnalysis(fast);
+          writeWalletCache(address, fast);
+          setLoading(false);
+        } else if (!cached) {
           showToast("❌ Analysis failed", "");
           setWallet(null);
+          setLoading(false);
           return;
         }
-        setMintedLevels(result.mintedLevels);
-        setStreak(result.streak);
-        setCheckedToday(result.checkedToday);
-        setBoosts(result.boosts);
-        setWallet(result.wallet);
+
+        setWalletRefreshing(true);
+        setScanProgress("Syncing full Base App history...");
+        const full = await fetchWalletAnalysis(address, "full", true);
+        if (full) {
+          applyAnalysis(full);
+          writeWalletCache(address, full);
+        }
       } catch (e) {
         console.error(e);
-        setWallet(null);
+        if (!cached) setWallet(null);
       } finally {
         setLoading(false);
+        setWalletRefreshing(false);
         setScanProgress("");
       }
     },
-    [loadX402PremiumState, showToast]
+    [applyAnalysis, loadX402PremiumState, showToast]
   );
 
   const handleConnect = async (type: ConnectionType) => {
@@ -618,6 +649,7 @@ export function useWalletApp() {
     setRefCopied,
     weeklyXP,
     scanProgress,
+    walletRefreshing,
     premiumUnlocked,
     premiumLoading,
     premiumData,

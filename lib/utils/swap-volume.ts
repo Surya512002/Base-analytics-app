@@ -183,7 +183,8 @@ function hashTimestamp(transfers: AlchemyTransfer[]): number {
 export async function computeSwapVolume(
   allTxs: AlchemyTransfer[],
   walletAddress: string,
-  ethUsd: number
+  ethUsd: number,
+  options?: { skipTokenPricing?: boolean }
 ): Promise<SwapVolumeMetrics> {
   const addr = walletAddress.toLowerCase();
   const safeEthUsd = ethUsd > 0 ? ethUsd : 3200;
@@ -213,7 +214,9 @@ export async function computeSwapVolume(
     );
   }
 
-  const tokenPrices = await fetchBaseTokenPrices(unpricedCandidates);
+  const tokenPrices = options?.skipTokenPricing
+    ? {}
+    : await fetchBaseTokenPrices(unpricedCandidates);
 
   const cutoff30d = Date.now() - 30 * 86400000;
   let swapVolumeUSD = 0;

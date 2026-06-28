@@ -175,6 +175,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     setRefCopied: noop,
     weeklyXP: 120,
     scanProgress: "",
+    walletRefreshing: false,
     premiumUnlocked: false,
     premiumLoading: false,
     premiumData: null,

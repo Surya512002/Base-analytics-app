@@ -5,12 +5,14 @@ import { getDaysLeft } from "@/lib/utils/season";
 interface AppHeaderProps {
   weeklyXP: number;
   sponsored: number;
+  walletRefreshing?: boolean;
   onDisconnect: () => void;
 }
 
 export default function AppHeader({
   weeklyXP,
   sponsored,
+  walletRefreshing = false,
   onDisconnect,
 }: AppHeaderProps) {
   return (
@@ -36,6 +38,14 @@ export default function AppHeader({
             <span className="text-[10px] font-black text-cyan-300">{weeklyXP}</span>
             <span className="text-[9px] text-slate-400 hidden sm:inline">XP</span>
           </div>
+          {walletRefreshing && (
+            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5 border border-cyan-500/20">
+              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+              <span className="text-[9px] font-bold text-cyan-300 uppercase tracking-wide">
+                Syncing
+              </span>
+            </div>
+          )}
           {sponsored > 0 && (
             <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5">
               <Droplets size={11} className="text-cyan-400" />

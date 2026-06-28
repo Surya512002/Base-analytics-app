@@ -53,15 +53,17 @@ async function fetchAllAssetTransfers(
 }
 
 export async function fetchAlchemyTxsFast(
-  address: string
+  address: string,
+  maxPages = 12
 ): Promise<AlchemyTransfer[]> {
-  return fetchAllAssetTransfers("fromAddress", address);
+  return fetchAllAssetTransfers("fromAddress", address, maxPages);
 }
 
 export async function fetchAlchemyTxsIncoming(
-  address: string
+  address: string,
+  maxPages = 12
 ): Promise<AlchemyTransfer[]> {
-  return fetchAllAssetTransfers("toAddress", address);
+  return fetchAllAssetTransfers("toAddress", address, maxPages);
 }
 
 export async function fetchNftCount(address: string): Promise<number> {

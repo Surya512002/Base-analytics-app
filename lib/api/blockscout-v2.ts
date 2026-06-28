@@ -9,14 +9,25 @@ interface Paginated<T> {
   next_page_params?: Record<string, string | number | null> | null;
 }
 
+export interface BlockscoutFetchOptions {
+  tokenPages?: number;
+  internalPages?: number;
+  externalPages?: number;
+  deadlineMs?: number;
+}
+
 async function fetchBlockscoutPages<T>(
   basePath: string,
-  maxPages = 6
+  maxPages = 6,
+  deadlineMs = 28000
 ): Promise<T[]> {
   const all: T[] = [];
   let path = basePath;
+  const started = Date.now();
 
   for (let page = 0; page < maxPages; page++) {
+    if (Date.now() - started > deadlineMs) break;
+
     const res = await fetch(`${BLOCKSCOUT_V2}${path}`, {
       next: { revalidate: 0 },
     });
@@ -122,24 +133,32 @@ function mapExternalTx(item: {
 
 /** Blockscout v2 — token transfers + internal txs (critical for Base App / smart wallets). */
 export async function fetchBlockscoutV2Activity(
-  address: string
+  address: string,
+  options: BlockscoutFetchOptions = {}
 ): Promise<AlchemyTransfer[]> {
   const addr = address.toLowerCase();
   const base = `/addresses/${addr}`;
+  const tokenPages = options.tokenPages ?? 30;
+  const internalPages = options.internalPages ?? 25;
+  const externalPages = options.externalPages ?? 15;
+  const deadlineMs = options.deadlineMs ?? 28000;
 
   try {
     const [tokens, internals, externals] = await Promise.all([
       fetchBlockscoutPages<Parameters<typeof mapTokenTransfer>[0]>(
         `${base}/token-transfers`,
-        30
+        tokenPages,
+        deadlineMs
       ),
       fetchBlockscoutPages<Parameters<typeof mapInternalTx>[0]>(
         `${base}/internal-transactions`,
-        25
+        internalPages,
+        deadlineMs
       ),
       fetchBlockscoutPages<Parameters<typeof mapExternalTx>[0]>(
         `${base}/transactions`,
-        15
+        externalPages,
+        deadlineMs
       ),
     ]);
 
@@ -149,14 +168,16 @@ export async function fetchBlockscoutV2Activity(
       ...externals.map(mapExternalTx),
     ].filter((t): t is AlchemyTransfer => t !== null);
 
-    // One heatmap tick per unique tx hash where the wallet initiated activity.
-    const walletFromHashes = new Set<string>();
+    // Ensure every tx hash with wallet-initiated internal/outgoing activity counts once.
+    const walletTxHashes = new Set<string>();
     for (const tx of mapped) {
-      if (normalizeAddr(tx.from) === addr) walletFromHashes.add(tx.hash);
+      if (normalizeAddr(tx.from) === addr) walletTxHashes.add(tx.hash);
     }
-    for (const hash of walletFromHashes) {
+    for (const hash of walletTxHashes) {
       const sample = mapped.find((t) => t.hash === hash);
       if (!sample?.metadata?.blockTimestamp) continue;
+      if (mapped.some((t) => t.hash === hash && t.category === "contractcall"))
+        continue;
       mapped.push({
         hash,
         category: "contractcall",
@@ -164,7 +185,10 @@ export async function fetchBlockscoutV2Activity(
         asset: "ETH",
         from: addr,
         to: null,
-        metadata: { blockTimestamp: sample.metadata.blockTimestamp },
+        metadata: {
+          blockTimestamp: sample.metadata.blockTimestamp,
+          isUserOperation: true,
+        },
       });
     }
 
