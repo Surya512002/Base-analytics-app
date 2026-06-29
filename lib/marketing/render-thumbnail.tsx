@@ -302,7 +302,7 @@ export function renderAppThumbnail() {
                   boxShadow: "0 6px 24px rgba(255,77,122,0.3)",
                 }}
               >
-                ⚡ Pay 0.005 USDC
+                ⚡ Pay from $0.01 USDC
               </div>
 
               <span style={{ color: "#64748b", fontSize: 9, fontWeight: 900, letterSpacing: "0.14em", marginBottom: 8 }}>
@@ -310,8 +310,8 @@ export function renderAppThumbnail() {
               </span>
 
               {[
-                { amount: "0.005 USDC", hash: "0x8f3a…c12e", status: "Confirmed", time: "2m ago" },
-                { amount: "0.005 USDC", hash: "0x2b91…7f4a", status: "Confirmed", time: "1h ago" },
+                { amount: "0.01 USDC", hash: "0x8f3a…c12e", status: "Confirmed", time: "2m ago" },
+                { amount: "0.05 USDC", hash: "0x2b91…7f4a", status: "Confirmed", time: "1h ago" },
               ].map((tx) => (
                 <div
                   key={tx.hash}

@@ -21,7 +21,7 @@ import {
   USDC_BASE,
   VOUCHER_ABI,
 } from "@/lib/constants/contracts";
-import { VOUCHER_CONTRACT } from "@/lib/constants/env";
+import { VOUCHER_CONTRACT, APP_URL_WEB } from "@/lib/constants/env";
 import type { VoucherBatchMeta } from "@/lib/types/voucher";
 import {
   MAX_VOUCHER_CARDS,
@@ -50,12 +50,28 @@ import VoucherWhySection from "@/components/wallet/VoucherWhySection";
 import VoucherCredentialCard from "@/components/wallet/VoucherCredentialCard";
 import VoucherSecurityNotice from "@/components/wallet/VoucherSecurityNotice";
 import VoucherRedeemReveal from "@/components/wallet/VoucherRedeemReveal";
-import { APP_URL_WEB } from "@/lib/constants/env";
+import VoucherSharePanel from "@/components/wallet/VoucherSharePanel";
+import { buildPayLinkUrl } from "@/lib/utils/voucher-share";
+import { VOUCHER_TEMPLATES } from "@/lib/constants/voucher-templates";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { txHashFromLifecycle } from "@/lib/utils/tx-status";
 import type { LifecycleStatus } from "@coinbase/onchainkit/transaction";
 
 type VoucherView = "create" | "redeem" | "view" | "mine";
+
+const USDC_PRESETS = [
+  { label: "$1", total: "1", cards: "1" },
+  { label: "$5", total: "5", cards: "5" },
+  { label: "$10", total: "10", cards: "10" },
+  { label: "$25", total: "25", cards: "25" },
+] as const;
+
+const ETH_PRESETS = [
+  { label: "0.001", total: "0.001", cards: "1" },
+  { label: "0.005", total: "0.005", cards: "5" },
+  { label: "0.01", total: "0.01", cards: "10" },
+  { label: "0.025", total: "0.025", cards: "25" },
+] as const;
 
 interface ViewedCard {
   cardId: string;
@@ -175,7 +191,7 @@ function VoucherCardPreview({
 }
 
 export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
-  const { showToast, setSponsored } = app;
+  const { showToast, setSponsored, setTab } = app;
   const { address } = useAccount();
   const publicClient = usePublicClient({ chainId: base.id });
   const txCaps = getCapabilities();
@@ -352,6 +368,21 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   useEffect(() => {
     refreshMyBatches();
   }, [refreshMyBatches]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const urlCard = new URLSearchParams(window.location.search).get("card");
+    const stored = localStorage.getItem("base_redeem_card");
+    const card = (urlCard || stored || "").trim();
+    if (!card) return;
+    setView("redeem");
+    setRedeemCardId(card);
+    setDebouncedRedeemCardId(card);
+    localStorage.removeItem("base_redeem_card");
+  }, []);
+
+  const activePresets = asset === "USDC" ? USDC_PRESETS : ETH_PRESETS;
+  const activePresetKey = `${totalAmount}:${cardCountInput}`;
 
   const cardRedeemedMap = useMemo(() => {
     const map = new Map<string, boolean>();
@@ -1002,6 +1033,54 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           </div>
 
           <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Occasion templates</p>
+            <div className="flex flex-wrap gap-2">
+              {VOUCHER_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    setAsset(t.asset);
+                    setTotalAmount(t.total);
+                    setCardCountInput(t.cards);
+                    setMessage(t.message);
+                  }}
+                  className="preset-chip rounded-full px-3 py-2 text-[10px] font-black text-slate-400 hover:text-white"
+                >
+                  {t.emoji} {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Quick presets</p>
+            <div className="flex flex-wrap gap-2">
+              {activePresets.map((p) => {
+                const key = `${p.total}:${p.cards}`;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setTotalAmount(p.total);
+                      setCardCountInput(p.cards);
+                    }}
+                    className={`preset-chip rounded-full px-4 py-2 text-xs font-black ${
+                      activePresetKey === key ? "preset-chip-active" : "text-slate-400"
+                    }`}
+                  >
+                    {p.label}
+                    <span className="text-[9px] font-bold opacity-70 ml-1">
+                      · {p.cards} card{p.cards !== "1" ? "s" : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
             <label className="text-[10px] font-bold text-slate-500 uppercase">
               Total deposit ({asset === "USDC" ? "USD" : "ETH"})
             </label>
@@ -1283,6 +1362,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   />
                 ))}
               </div>
+
+              <VoucherSharePanel batch={createdCards} />
             </div>
           )}
           </div>
@@ -1517,6 +1598,28 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
       {view === "mine" && (
         <div className="space-y-3">
+          {address && (
+            <SectionCard bar={false} className="border border-cyan-500/20">
+              <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Your pay link</p>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Share this link so anyone can send you vouchers or explore x402 on Base.
+              </p>
+              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                <code className="flex-1 text-[11px] font-mono text-cyan-300 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 truncate">
+                  {buildPayLinkUrl(address)}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => copyText(buildPayLinkUrl(address), "pay-link")}
+                  className="flex items-center justify-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 shrink-0"
+                >
+                  {copied === "pay-link" ? <CheckCircle size={14} /> : <Copy size={14} />}
+                  Copy link
+                </button>
+              </div>
+            </SectionCard>
+          )}
+
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your voucher batches</p>
             <div className="flex items-center gap-2">
@@ -1710,6 +1813,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       <VoucherRedeemReveal
         key={redeemSuccess?.cardId ?? "closed"}
         data={redeemSuccess}
+        onCreateOwn={() => {
+          setView("create");
+          setTab("basehub");
+        }}
         onClose={() => {
           setRedeemSuccess(null);
           setRedeemCardId("");

@@ -21,6 +21,8 @@ interface VoucherGiftCard3DProps {
   showStack?: boolean;
   /** Flat 2D card — avoids 3D jitter in redeem preview */
   flat?: boolean;
+  /** Subtle idle float animation */
+  animated?: boolean;
 }
 
 export default function VoucherGiftCard3D({
@@ -32,6 +34,7 @@ export default function VoucherGiftCard3D({
   label = "Base Voucher",
   showStack = true,
   flat = false,
+  animated = false,
 }: VoucherGiftCard3DProps) {
   const displayAmount = amount
     ? formatVoucherAmount(asset, amount)
@@ -61,9 +64,9 @@ export default function VoucherGiftCard3D({
       )}
 
       <div
-        className="relative rounded-2xl overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.55),0_0_40px_rgba(0,82,255,0.15)]"
+        className={`relative rounded-2xl overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.55),0_0_40px_rgba(139,92,246,0.18)] ${animated && !flat ? "gift-card-idle-3d" : ""}`}
         style={{
-          transform: flat ? "none" : "rotateY(-8deg) rotateX(6deg)",
+          transform: flat ? "none" : animated ? undefined : "rotateY(-8deg) rotateX(6deg)",
           transformStyle: flat ? undefined : "preserve-3d",
           background: "linear-gradient(135deg, #0d3d2e 0%, #0a1f1a 35%, #111827 70%, #0f172a 100%)",
         }}

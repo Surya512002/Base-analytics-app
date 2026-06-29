@@ -1,4 +1,5 @@
 import { TIER_GRADIENTS } from "@/lib/constants/season";
+import { ACHIEVEMENTS } from "@/lib/constants/season";
 
 export function getLevelStyle(
   level: number,
@@ -41,4 +42,21 @@ export function getCatValue(
     boosts,
   };
   return m[id] ?? 0;
+}
+
+/** Total badge tiers across all achievement categories (e.g. 51). */
+export function totalAchievementTiers(): number {
+  return ACHIEVEMENTS.reduce((n, c) => n + c.thresholds.length, 0);
+}
+
+/** Sum of minted tier levels — each category stores highest minted level (1–5). */
+export function sumMintedBadges(mintedLevels: Record<string, number>): number {
+  return Object.values(mintedLevels).reduce((sum, level) => sum + (level > 0 ? level : 0), 0);
+}
+
+/** Collection completion 0–100 based on individual badges minted vs total tiers. */
+export function mintedCollectionPct(mintedLevels: Record<string, number>): number {
+  const total = totalAchievementTiers();
+  if (total <= 0) return 0;
+  return Math.round((sumMintedBadges(mintedLevels) / total) * 100);
 }

@@ -28,7 +28,7 @@ import {
   GM_GN_ABI,
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
-import { getCatValue } from "@/lib/utils/achievements";
+import { getCatValue, sumMintedBadges } from "@/lib/utils/achievements";
 import { getDayKey, getISOWeekNumber, getMonthKey, getWeekKey } from "@/lib/utils/dates";
 import { computeChallengeScore, computeWalletRank } from "@/lib/utils/score";
 import { getCapabilities } from "@/lib/utils/paymaster";
@@ -46,6 +46,13 @@ import {
   warpcast,
 } from "@/lib/utils/share";
 import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
+import type { PremiumInsights } from "@/lib/premium/build-insights";
+import type { X402ProductId } from "@/lib/constants/x402-products";
+import {
+  readReferralBonusXp,
+  readStoredReferrer,
+  registerReferralJoin,
+} from "@/lib/utils/referral";
 import type { ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 
@@ -58,11 +65,36 @@ export type AppTab =
   | "leaderboard"
   | "basehub";
 
+function resolveTabFromUrl(): AppTab | null {
+  if (typeof window === "undefined") return null;
+  const t = new URLSearchParams(window.location.search).get("tab");
+  const map: Record<string, AppTab> = {
+    dashboard: "dashboard",
+    voucher: "basehub",
+    basehub: "basehub",
+    badges: "achievements",
+    achievements: "achievements",
+    quests: "quests",
+    rankings: "leaderboard",
+    leaderboard: "leaderboard",
+  };
+  return t && map[t] ? map[t] : null;
+}
+
+function resolveInitialTab(): AppTab {
+  const fromUrl = resolveTabFromUrl();
+  if (fromUrl) return fromUrl;
+  if (typeof window !== "undefined" && localStorage.getItem("base_has_connected") === "1") {
+    return "dashboard";
+  }
+  return "basehub";
+}
+
 export function useWalletApp() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [connType, setConnType] = useState<ConnectionType | null>(null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<AppTab>("dashboard");
+  const [tab, setTab] = useState<AppTab>("basehub");
   const [minting, setMinting] = useState<string | null>(null);
   const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
@@ -104,6 +136,9 @@ export function useWalletApp() {
     message: string;
     transaction?: string;
   } | null>(null);
+  const [premiumInsights, setPremiumInsights] = useState<PremiumInsights | null>(null);
+  const [x402Product, setX402Product] = useState<X402ProductId>("scan");
+  const [referralBonusXp, setReferralBonusXp] = useState(0);
   const [x402PayCount, setX402PayCount] = useState(0);
 
   const boostCall = [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")];
@@ -127,8 +162,17 @@ export function useWalletApp() {
       localStorage.getItem(`x402_unlocked_${key}`) === "true" ||
       savedCount > 0;
     const lastTx = localStorage.getItem(`x402_last_tx_${key}`);
+    const insightsRaw = localStorage.getItem(`x402_insights_${key}`);
     setX402PayCount(savedCount);
     setPremiumUnlocked(unlocked);
+    setReferralBonusXp(readReferralBonusXp());
+    if (insightsRaw) {
+      try {
+        setPremiumInsights(JSON.parse(insightsRaw) as PremiumInsights);
+      } catch {
+        setPremiumInsights(null);
+      }
+    }
     if (unlocked) {
       setPremiumData({
         message: "Premium analytics unlocked",
@@ -149,16 +193,17 @@ export function useWalletApp() {
         }
       }
       setReady(true);
+      setTab(resolveInitialTab());
+      const p = new URLSearchParams(window.location.search);
+      const r = p.get("ref");
+      if (r) localStorage.setItem("base_referrer", r);
+      const card = p.get("card");
+      if (card) localStorage.setItem("base_redeem_card", card);
     }
     fetchLeaderboard().then((d) => {
       setLeaderboard(d);
       setLbLoading(false);
     });
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      const r = p.get("ref");
-      if (r) localStorage.setItem("base_referrer", r);
-    }
   }, []);
 
   useEffect(() => {
@@ -171,11 +216,9 @@ export function useWalletApp() {
 
   useEffect(() => {
     if (!wallet) return;
-    const xp = computeWeeklyXP(wallet, boosts, streak, txKeys);
+    const xp = computeWeeklyXP(wallet, boosts, streak, txKeys, referralBonusXp);
     setWeeklyXP(xp);
-    const mintedCount = Object.keys(mintedLevels).filter(
-      (k) => mintedLevels[k] > 0
-    ).length;
+    const mintedCount = sumMintedBadges(mintedLevels);
     saveLeaderboard({
       address: wallet.address,
       basename: wallet.basename,
@@ -186,9 +229,9 @@ export function useWalletApp() {
       weeklyXP: xp,
       weekNumber: getISOWeekNumber(),
     }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
-  }, [wallet, boosts, mintedLevels, streak, txKeys]);
+  }, [wallet, boosts, mintedLevels, streak, txKeys, referralBonusXp]);
 
-  const handlePremiumScan = async () => {
+  const handlePremiumScan = async (product: X402ProductId = x402Product) => {
     if (!wallet) return;
     setPremiumLoading(true);
     try {
@@ -204,16 +247,24 @@ export function useWalletApp() {
       const res = await x402Fetch("/api/premium-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: wallet.address }),
+        body: JSON.stringify({ address: wallet.address, product }),
       });
 
       if (res.ok) {
         const data = (await res.json()) as {
           message: string;
           transaction?: string;
+          insights?: PremiumInsights;
         };
         setPremiumData(data);
         setPremiumUnlocked(true);
+        if (data.insights) {
+          setPremiumInsights(data.insights);
+          localStorage.setItem(
+            `x402_insights_${wallet.address.toLowerCase()}`,
+            JSON.stringify(data.insights)
+          );
+        }
         const key = wallet.address.toLowerCase();
         const prev = parseInt(
           localStorage.getItem(`x402_count_${key}`) || "0",
@@ -301,6 +352,9 @@ export function useWalletApp() {
     setCheckedToday(result.checkedToday);
     setBoosts(result.boosts);
     setWallet(result.wallet);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("base_has_connected", "1");
+    }
   }, []);
 
   const syncCheckInStatus = useCallback(async (address: string) => {
@@ -332,6 +386,10 @@ export function useWalletApp() {
           checkedToday: cached.checkedToday || readLocalCheckInToday(address),
         });
         setLoading(false);
+        const ref = readStoredReferrer();
+        void registerReferralJoin(address, ref).then((r) => {
+          if (r.bonusXp > 0) setReferralBonusXp((prev) => Math.max(prev, r.bonusXp));
+        });
       } else {
         setLoading(true);
       }
@@ -350,6 +408,13 @@ export function useWalletApp() {
           };
           applyAnalysis(merged);
           writeWalletCache(address, merged, true);
+          const ref = readStoredReferrer();
+          void registerReferralJoin(address, ref).then((r) => {
+            if (r.bonusXp > 0) {
+              setReferralBonusXp((prev) => prev + r.bonusXp);
+              showToast(`🎉 +${r.bonusXp} referral XP!`, "");
+            }
+          });
         } else if (!cached) {
           showToast("❌ Analysis failed", "");
           setWallet(null);
@@ -535,9 +600,7 @@ export function useWalletApp() {
     }
   };
 
-  const mintedCount = wallet
-    ? Object.keys(mintedLevels).filter((k) => mintedLevels[k] > 0).length
-    : 0;
+  const mintedCount = wallet ? sumMintedBadges(mintedLevels) : 0;
   const ref = wallet ? getReferralCode(wallet.address) : "";
 
   const openFarcasterShare = async (text: string, pageUrl: string) => {
@@ -674,6 +737,10 @@ export function useWalletApp() {
     premiumUnlocked,
     premiumLoading,
     premiumData,
+    premiumInsights,
+    x402Product,
+    setX402Product,
+    referralBonusXp,
     x402PayCount,
     boostCall,
     gmCall,

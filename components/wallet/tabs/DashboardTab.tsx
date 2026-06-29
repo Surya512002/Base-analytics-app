@@ -2,7 +2,7 @@
 
 import {
   Activity, ArrowRightLeft, BadgeCheck, BarChart3, BrainCircuit, Calendar,
-  CheckCircle, ChevronDown, ChevronUp, Clock, Coins, Copy, CreditCard,
+  ChevronDown, ChevronUp, Clock, Coins, CreditCard,
   Database, DollarSign, Droplets, ExternalLink, FileCode, Flame, Gauge, Gift,
   GitBranch, Globe, History, Landmark, Layers, Lock, MousePointerClick,
   Palette, RefreshCcw, Repeat2, Rocket, Send, Share2, ShieldCheck, Sparkles,
@@ -11,9 +11,14 @@ import {
 } from "lucide-react";
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
 import { base } from "viem/chains";
-import { APP_URL_WEB } from "@/lib/constants/env";
 import dynamic from "next/dynamic";
 import { ActivityHeatmap } from "@/components/wallet/ActivityHeatmap";
+import QuestProgressBanner from "@/components/wallet/QuestProgressBanner";
+import PremiumBanner from "@/components/wallet/PremiumBanner";
+import PremiumInsightsPanel from "@/components/wallet/PremiumInsightsPanel";
+import ReferralPanel from "@/components/wallet/ReferralPanel";
+import PaymasterInsightTile from "@/components/wallet/PaymasterInsightTile";
+import WatchlistPanel from "@/components/wallet/WatchlistPanel";
 import { SCORE_MAX, SCORE_LABELS } from "@/lib/utils/score";
 import {
   ACHIEVEMENTS_ABI,
@@ -48,110 +53,168 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     wallet, connType, minting, mintedLevels, setMintedLevels, selDay, setSelDay,
     scrollRef, boosts, setBoosts, sponsored, setSponsored, txKeys, setTxKeys, streak,
     checkedToday, setCheckedToday, setStreak, challenge, setChallenge,
-    challengeResult, challengeLoading, refCopied, setRefCopied, weeklyXP,
-    x402PayCount, boostCall, gmCall, gnCall, ciCall, txCaps, mintedCount, ref,
+    challengeResult, challengeLoading, weeklyXP,
+    x402PayCount, boostCall, gmCall, gnCall, ciCall, txCaps, mintedCount,
     showToast, handleChallenge, doNativeTx, doNativeMint, shareScore, shareAch,
     shareAll, leaderboard, lbLoading, doneQuests,
+    premiumUnlocked, premiumLoading, premiumData, premiumInsights, handlePremiumScan,
+    x402Product, setX402Product,
   } = app;
 
 if (!wallet) return null;
 
   return (
           <div className="space-y-4">
-            <div className="glass-panel-accent rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.35em]">Onchain Analysis</p>
-                <h2 className="text-lg sm:text-xl font-black text-white mt-1">
-                  Your <span className="text-gradient-blue">Base Profile</span>
-                </h2>
-              </div>
-              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-                Wallet scan, badges, XP quests, and rankings — all on Base.
-              </p>
-            </div>
-
-            {/* Daily check-in — top of dashboard */}
-            <div className={`bg-white/[0.04] border rounded-3xl overflow-hidden ${checkedToday?'border-cyan-400/35':'border-cyan-500/18'}`}>
-              <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-cyan-400 to-cyan-300':'bg-linear-to-r from-rose-500 to-cyan-500'}`}/>
-              <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${checkedToday?'bg-cyan-400/15 border-cyan-400/30':'bg-cyan-500/12 border-cyan-500/20'}`}>
-                    <Flame size={22} className={checkedToday?'text-cyan-300':'text-cyan-400'}/>
-                  </div>
-                  <div>
-                    <p className="font-black text-white text-base">{checkedToday?`Day ${streak} streak 🔥`:'Daily Check-In Available'}</p>
-                    <p className={`text-xs mt-0.5 ${checkedToday?'text-cyan-300/60':'text-slate-500'}`}>{checkedToday?'Recorded immutably on Base.':'Sign once · earn XP · unlock multipliers'}</p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      {Array.from({length:Math.min(streak,7)}).map((_,i)=>(
-                        <div key={i} className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] bg-cyan-500/15 border border-cyan-500/30">🔥</div>
-                      ))}
-                      {streak>7&&<span className="text-[10px] text-slate-500 font-bold">+{streak-7}</span>}
-                    </div>
-                  </div>
+            {/* ── Quick onchain actions (top priority) ── */}
+            <div className="elegant-panel rounded-3xl overflow-hidden border border-violet-500/20">
+              <div className="h-0.5 bg-linear-to-r from-champagne via-violet-500 to-cyan-400" />
+              <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/8">
+                <div>
+                  <p className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.35em]">Onchain Analysis</p>
+                  <h2 className="text-lg sm:text-xl font-black text-white mt-1">
+                    Your <span className="text-gradient-blue">Base Profile</span>
+                  </h2>
                 </div>
-                <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0">
-                  {connType==='farcaster'?(
-                    <button onClick={()=>doNativeTx('checkin')} disabled={checkedToday||!!minting}
-                      className={`py-3 px-6 rounded-2xl font-black text-sm transition-all ${checkedToday?'bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18':'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95'}`}>
-                      {minting==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:checkedToday?'✓ Secured Today':'Check In'}
-                    </button>
-                  ):checkedToday?(
-                    <button disabled className="py-3 px-6 rounded-2xl font-black text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/18">✓ Secured Today</button>
-                  ):(
-                    <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps}
-                      onStatus={(s) => {
-                        if (
-                          s.statusName !== "success" &&
-                          s.statusName !== "transactionLegacyExecuted"
-                        ) {
-                          return;
-                        }
-                        writeLocalCheckInToday(wallet.address);
-                        setCheckedToday(true);
-                        setStreak((v) => {
-                          const next = v + 1;
-                          patchCheckInInWalletCache(wallet.address, true, next);
-                          return next;
-                        });
-                        setSponsored((v) => v + 1);
-                        showToast("✅ Onchain check-in secured!", txHashFromLifecycle(s));
-                        setTxKeys((k) => ({ ...k, checkin: (k.checkin || 0) + 1 }));
-                      }}>
-                      <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
-                    </Transaction>
-                  )}
-                  <p className="text-[9px] text-slate-500 flex items-center justify-center gap-1 mt-0.5"><Droplets size={8}/>Gas Sponsored</p>
-                </div>
+                <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                  Check in, boost XP, and say GM — gas sponsored on Base.
+                </p>
               </div>
-            </div>
 
-            <div className="glass-panel rounded-3xl overflow-hidden shadow-xl shadow-black/25">
-              <div className="h-0.5 bg-linear-to-r from-rose-500 via-cyan-400 to-blue-600"/>
-              <div className="p-5">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+              {/* Daily check-in */}
+              <div className={`mx-4 sm:mx-5 mt-4 mb-4 border rounded-2xl overflow-hidden ${checkedToday?'border-cyan-400/35':'border-cyan-500/18'}`}>
+                <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-cyan-400 to-cyan-300':'bg-linear-to-r from-rose-500 to-cyan-500'}`}/>
+                <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between bg-white/[0.02]">
                   <div className="flex items-center gap-4">
-                    <div className="relative w-16 h-16 shrink-0">
-                      <svg width="64" height="64" viewBox="0 0 64 64">
-                        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(0,229,255,0.1)" strokeWidth="6"/>
-                        <circle cx="32" cy="32" r="26" fill="none" stroke="#00E5FF" strokeWidth="6" strokeLinecap="round"
-                          strokeDasharray={`${2*Math.PI*26}`} strokeDashoffset={`${2*Math.PI*26*(1-wallet.walletHealthScore/100)}`}
-                          transform="rotate(-90 32 32)" style={{filter:'drop-shadow(0 0 4px rgba(0,229,255,0.6))',transition:'stroke-dashoffset 1s ease'}}/>
-                        <text x="32" y="36" textAnchor="middle" fill="#60a5fa" fontSize="12" fontWeight="800" fontFamily="monospace">{wallet.walletHealthScore}</text>
-                      </svg>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${checkedToday?'bg-cyan-400/15 border-cyan-400/30':'bg-cyan-500/12 border-cyan-500/20'}`}>
+                      <Flame size={22} className={checkedToday?'text-cyan-300':'text-cyan-400'}/>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-black text-cyan-400/60 uppercase tracking-widest">Wallet Health</span>
-                        <span className="text-xs font-black text-white bg-cyan-500/12 border border-cyan-500/20 px-2 py-0.5 rounded-full">{wallet.walletHealthLabel}</span>
+                      <p className="font-black text-white text-base">{checkedToday?`Day ${streak} streak 🔥`:'Daily Check-In Available'}</p>
+                      <p className={`text-xs mt-0.5 ${checkedToday?'text-cyan-300/60':'text-slate-500'}`}>{checkedToday?'Recorded immutably on Base.':'Sign once · earn XP · unlock multipliers'}</p>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        {Array.from({length:Math.min(streak,7)}).map((_,i)=>(
+                          <div key={i} className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] bg-cyan-500/15 border border-cyan-500/30">🔥</div>
+                        ))}
+                        {streak>7&&<span className="text-[10px] text-slate-500 font-bold">+{streak-7}</span>}
                       </div>
-                      <p className="text-slate-200/70 text-xs leading-relaxed max-w-sm">{wallet.recommendation}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                    {[{l:'Active Days',v:wallet.uniqueDays,c:'text-cyan-400'},{l:'Months',v:wallet.activeMonths,c:'text-cyan-300'},{l:'Streak',v:`${wallet.currentStreak}d`,c:'text-cyan-400'}].map((s,i)=>(
-                      <div key={i} className="bg-white/[0.04] border border-white/10 rounded-xl p-2.5 text-center">
-                        <p className={`font-black text-lg ${s.c}`}>{s.v}</p>
-                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-0.5">{s.l}</p>
+                  <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0">
+                    {connType==='farcaster'?(
+                      <button onClick={()=>doNativeTx('checkin')} disabled={checkedToday||!!minting}
+                        className={`py-3 px-6 rounded-2xl font-black text-sm transition-all ${checkedToday?'bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18':'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95'}`}>
+                        {minting==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:checkedToday?'✓ Secured Today':'Check In'}
+                      </button>
+                    ):checkedToday?(
+                      <button disabled className="py-3 px-6 rounded-2xl font-black text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/18">✓ Secured Today</button>
+                    ):(
+                      <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps}
+                        onStatus={(s) => {
+                          if (
+                            s.statusName !== "success" &&
+                            s.statusName !== "transactionLegacyExecuted"
+                          ) {
+                            return;
+                          }
+                          writeLocalCheckInToday(wallet.address);
+                          setCheckedToday(true);
+                          setStreak((v) => {
+                            const next = v + 1;
+                            patchCheckInInWalletCache(wallet.address, true, next);
+                            return next;
+                          });
+                          setSponsored((v) => v + 1);
+                          showToast("✅ Onchain check-in secured!", txHashFromLifecycle(s));
+                          setTxKeys((k) => ({ ...k, checkin: (k.checkin || 0) + 1 }));
+                        }}>
+                        <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
+                      </Transaction>
+                    )}
+                    <p className="text-[9px] text-slate-500 flex items-center justify-center gap-1 mt-0.5"><Droplets size={8}/>Gas Sponsored</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Wallet health */}
+              <div className="mx-4 sm:mx-5 mb-4 glass-panel-accent rounded-2xl overflow-hidden">
+                <div className="p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-16 h-16 shrink-0">
+                        <svg width="64" height="64" viewBox="0 0 64 64">
+                          <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(0,229,255,0.1)" strokeWidth="6"/>
+                          <circle cx="32" cy="32" r="26" fill="none" stroke="#00E5FF" strokeWidth="6" strokeLinecap="round"
+                            strokeDasharray={`${2*Math.PI*26}`} strokeDashoffset={`${2*Math.PI*26*(1-wallet.walletHealthScore/100)}`}
+                            transform="rotate(-90 32 32)" style={{filter:'drop-shadow(0 0 4px rgba(0,229,255,0.6))',transition:'stroke-dashoffset 1s ease'}}/>
+                          <text x="32" y="36" textAnchor="middle" fill="#60a5fa" fontSize="12" fontWeight="800" fontFamily="monospace">{wallet.walletHealthScore}</text>
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-black text-cyan-400/60 uppercase tracking-widest">Wallet Health</span>
+                          <span className="text-xs font-black text-white bg-cyan-500/12 border border-cyan-500/20 px-2 py-0.5 rounded-full">{wallet.walletHealthLabel}</span>
+                        </div>
+                        <p className="text-slate-200/70 text-xs leading-relaxed max-w-sm">{wallet.recommendation}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                      {[{l:'Active Days',v:wallet.uniqueDays,c:'text-cyan-400'},{l:'Months',v:wallet.activeMonths,c:'text-cyan-300'},{l:'Streak',v:`${wallet.currentStreak}d`,c:'text-cyan-400'}].map((s,i)=>(
+                        <div key={i} className="bg-white/[0.04] border border-white/10 rounded-xl p-2.5 text-center">
+                          <p className={`font-black text-lg ${s.c}`}>{s.v}</p>
+                          <p className="text-[9px] text-slate-500 uppercase font-bold mt-0.5">{s.l}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* XP Booster + Community Vibes */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 px-4 sm:px-5 pb-5">
+                <div className="glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between card-tilt-3d">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
+                    <div>
+                      <p className="font-black text-white text-base">XP Booster</p>
+                      <div className="flex gap-2 mt-1.5">
+                        <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-400 font-black">{boosts}</span><span className="text-slate-500 ml-1">boosts</span></span>
+                        <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-300 font-black">{streak}d</span><span className="text-slate-500 ml-1">streak</span></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full sm:w-auto text-center">
+                    {connType==='farcaster'?(
+                      <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
+                        className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-white/10/40 text-slate-500 cursor-not-allowed':'btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20'}`}>
+                        {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
+                      </button>
+                    ):(
+                      <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps}
+                        onStatus={s=>{if(s.statusName==='success'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsored(v=>v+1);showToast('Boosted! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}}}>
+                        <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20 transition-all" text="BOOST (+1)"/>
+                      </Transaction>
+                    )}
+                    <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
+                  </div>
+                </div>
+
+                <div className="glass-panel-accent rounded-2xl p-5 card-tilt-3d">
+                  <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['gm','gn'] as const).map(type=>(
+                      <div key={type} className="text-center">
+                        {connType==='farcaster'?(
+                          <button onClick={()=>doNativeTx(type)} disabled={!!minting}
+                            className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/[0.04] border-white/8 text-slate-600':'bg-white/[0.04] hover:bg-cyan-500/12 border-white/8 hover:border-cyan-500/28 text-white'}`}>
+                            {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
+                          </button>
+                        ):(
+                          <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps}
+                            onStatus={s=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsored(v=>v+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,[type]:(k[type]||0)+1}));}}}>
+                            <TransactionButton className="w-full py-4 rounded-xl font-black text-xl bg-white/[0.04] hover:bg-cyan-500/12 border border-white/8 hover:border-cyan-500/28 text-white transition-all" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
+                          </Transaction>
+                        )}
+                        <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
                       </div>
                     ))}
                   </div>
@@ -159,57 +222,22 @@ if (!wallet) return null;
               </div>
             </div>
 
-            {/* XP Booster + Community Vibes — above onchain score */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-              <div className="glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-lg shadow-black/25">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
-                  <div>
-                    <p className="font-black text-white text-base">XP Booster</p>
-                    <div className="flex gap-2 mt-1.5">
-                      <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-400 font-black">{boosts}</span><span className="text-slate-500 ml-1">boosts</span></span>
-                      <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-300 font-black">{streak}d</span><span className="text-slate-500 ml-1">streak</span></span>
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full sm:w-auto text-center">
-                  {connType==='farcaster'?(
-                    <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
-                      className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-white/10/40 text-slate-500 cursor-not-allowed':'btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20'}`}>
-                      {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
-                    </button>
-                  ):(
-                    <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps}
-                      onStatus={s=>{if(s.statusName==='success'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsored(v=>v+1);showToast('Boosted! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}}}>
-                      <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20 transition-all" text="BOOST (+1)"/>
-                    </Transaction>
-                  )}
-                  <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
-                </div>
-              </div>
+            <QuestProgressBanner doneQuests={doneQuests} onGoQuests={() => app.setTab("quests")} />
 
-              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
-                <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['gm','gn'] as const).map(type=>(
-                    <div key={type} className="text-center">
-                      {connType==='farcaster'?(
-                        <button onClick={()=>doNativeTx(type)} disabled={!!minting}
-                          className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/[0.04] border-white/8 text-slate-600':'bg-white/[0.04] hover:bg-cyan-500/12 border-white/8 hover:border-cyan-500/28 text-white'}`}>
-                          {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
-                        </button>
-                      ):(
-                        <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps}
-                          onStatus={s=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsored(v=>v+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,[type]:(k[type]||0)+1}));}}}>
-                          <TransactionButton className="w-full py-4 rounded-xl font-black text-xl bg-white/[0.04] hover:bg-cyan-500/12 border border-white/8 hover:border-cyan-500/28 text-white transition-all" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
-                        </Transaction>
-                      )}
-                      <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <PremiumBanner
+              premiumLoading={premiumLoading}
+              premiumData={premiumData}
+              x402PayCount={x402PayCount}
+              product={x402Product}
+              onProductChange={setX402Product}
+              onPay={handlePremiumScan}
+            />
+
+            {premiumUnlocked && (
+              <PremiumInsightsPanel insights={premiumInsights} unlocked={premiumUnlocked} />
+            )}
+
+            <PaymasterInsightTile wallet={wallet} />
 
             <div className="glass-panel rounded-3xl overflow-hidden shadow-xl shadow-black/25">
               <div className="h-0.5 bg-linear-to-r from-rose-500 via-cyan-400 to-blue-600"/>
@@ -357,51 +385,38 @@ if (!wallet) return null;
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2"><Gift size={18} className="text-cyan-400"/><span className="font-black text-white">Referral Program</span></div>
-                  <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-2 py-1 rounded-lg">+50 XP per ref</span>
-                </div>
-                <p className="text-xs text-cyan-300/50 mb-4">Share your link. Friends who connect earn you bonus Season XP.</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-cyan-300/60 truncate">{APP_URL_WEB}?ref={ref}</div>
-                  <button onClick={()=>{navigator.clipboard.writeText(`${APP_URL_WEB}?ref=${ref}`);setRefCopied(true);setTimeout(()=>setRefCopied(false),2000);}}
-                    className={`shrink-0 px-4 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 ${refCopied?'bg-cyan-400 text-black':'btn-primary hover:opacity-90 text-white shadow-lg shadow-rose-500/20'}`}>
-                    {refCopied?<CheckCircle size={13}/>:<Copy size={13}/>}{refCopied?'Done!':'Copy'}
-                  </button>
-                </div>
-              </div>
+            <WatchlistPanel myAddress={wallet.address} />
 
-              <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
-                <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-cyan-400"/><span className="font-black text-white">Wallet Challenge</span></div>
-                <p className="text-xs text-cyan-300/50 mb-4">Enter any wallet to compare real onchain scores.</p>
-                <div className="flex gap-2 mb-3">
-                  <input value={challenge} onChange={e=>setChallenge(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleChallenge()}
-                    placeholder="0x..." className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 outline-none focus:border-cyan-500/50 transition-all"/>
-                  <button onClick={handleChallenge} disabled={challengeLoading}
-                    className="shrink-0 btn-primary hover:opacity-90 disabled:bg-white/10 text-white px-5 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 flex items-center gap-1">
-                    {challengeLoading?<RefreshCcw size={12} className="animate-spin"/>:'Go'}
-                  </button>
-                </div>
-                {challengeResult&&(
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className={`rounded-xl p-3 text-center border ${wallet.score>=challengeResult.score?'bg-cyan-500/10 border-cyan-500/20':'bg-white/[0.04] border-white/8'}`}>
-                      <p className="text-[10px] text-cyan-400/50 uppercase font-bold">You</p>
-                      <p className="text-3xl font-black text-cyan-400 my-1">{wallet.score}</p>
-                      <p className="text-[9px] text-cyan-300/50">{wallet.uniqueDays} days</p>
-                      {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
-                    </div>
-                    <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-white/530 border-cyan-500/25':'bg-white/[0.04] border-white/8'}`}>
-                      <p className="text-[10px] text-cyan-400/50 uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
-                      <p className="text-3xl font-black text-cyan-200 my-1">{challengeResult.score}</p>
-                      <p className="text-[9px] text-cyan-300/50">{challengeResult.days} days</p>
-                      {challengeResult.score>wallet.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
-                    </div>
-                  </div>
-                )}
+            <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
+              <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-cyan-400"/><span className="font-black text-white">Wallet Challenge</span></div>
+              <p className="text-xs text-cyan-300/50 mb-4">Enter any wallet to compare real onchain scores.</p>
+              <div className="flex gap-2 mb-3">
+                <input value={challenge} onChange={e=>setChallenge(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleChallenge()}
+                  placeholder="0x..." className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 outline-none focus:border-cyan-500/50 transition-all"/>
+                <button onClick={handleChallenge} disabled={challengeLoading}
+                  className="shrink-0 btn-primary hover:opacity-90 disabled:bg-white/10 text-white px-5 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 flex items-center gap-1">
+                  {challengeLoading?<RefreshCcw size={12} className="animate-spin"/>:'Go'}
+                </button>
               </div>
+              {challengeResult&&(
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`rounded-xl p-3 text-center border ${wallet.score>=challengeResult.score?'bg-cyan-500/10 border-cyan-500/20':'bg-white/[0.04] border-white/8'}`}>
+                    <p className="text-[10px] text-cyan-400/50 uppercase font-bold">You</p>
+                    <p className="text-3xl font-black text-cyan-400 my-1">{wallet.score}</p>
+                    <p className="text-[9px] text-cyan-300/50">{wallet.uniqueDays} days</p>
+                    {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
+                  </div>
+                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-white/530 border-cyan-500/25':'bg-white/[0.04] border-white/8'}`}>
+                    <p className="text-[10px] text-cyan-400/50 uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
+                    <p className="text-3xl font-black text-cyan-200 my-1">{challengeResult.score}</p>
+                    <p className="text-[9px] text-cyan-300/50">{challengeResult.days} days</p>
+                    {challengeResult.score>wallet.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
+                  </div>
+                </div>
+              )}
             </div>
+
+            <ReferralPanel address={wallet.address} />
 
             <FarcasterAnalytics />
 

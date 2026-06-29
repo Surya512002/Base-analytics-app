@@ -49,7 +49,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#071220] text-slate-200 antialiased">
+      <body className="bg-[#040a14] text-slate-200 antialiased theme-prism-vault">
         <Providers>{children}</Providers>
       </body>
     </html>

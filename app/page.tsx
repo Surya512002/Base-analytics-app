@@ -6,8 +6,9 @@ import AppHeader from "@/components/wallet/AppHeader";
 import ConnectScreen from "@/components/wallet/ConnectScreen";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
 import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
-import PremiumBanner from "@/components/wallet/PremiumBanner";
 import TabBar from "@/components/wallet/TabBar";
+import OnboardingTour from "@/components/wallet/OnboardingTour";
+import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import { useWalletApp } from "@/hooks/useWalletApp";
 
@@ -63,11 +64,6 @@ export default function Page() {
     weeklyXP,
     sponsored,
     handleDisconnect,
-    premiumUnlocked,
-    premiumLoading,
-    premiumData,
-    x402PayCount,
-    handlePremiumScan,
     doneQuests,
   } = app;
 
@@ -108,21 +104,19 @@ export default function Page() {
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
         <TabBar tab={tab} doneQuests={doneQuests} onTabChange={setTab} />
 
-        <PremiumBanner
-          premiumUnlocked={premiumUnlocked}
-          premiumLoading={premiumLoading}
-          premiumData={premiumData}
-          x402PayCount={x402PayCount}
-          onPay={handlePremiumScan}
-        />
+        <OnboardingTour onNavigate={setTab} />
 
-        <AppFeatureStrip />
+        <AppFeatureStrip onNavigate={setTab} />
 
-        {tab === "dashboard" && <DashboardTab app={app} />}
-        {tab === "achievements" && <AchievementsTab app={app} />}
-        {tab === "quests" && <QuestsTab app={app} />}
-        {tab === "leaderboard" && <LeaderboardTab app={app} />}
-        {tab === "basehub" && <BaseVoucherTab app={app} />}
+        <div key={tab} className="tab-content-enter">
+          {tab === "basehub" && <BaseVoucherTab app={app} />}
+          {tab === "dashboard" && <DashboardTab app={app} />}
+          {tab === "achievements" && <AchievementsTab app={app} />}
+          {tab === "quests" && <QuestsTab app={app} />}
+          {tab === "leaderboard" && <LeaderboardTab app={app} />}
+        </div>
+
+        <AppFooterNav />
       </div>
     </main>
   );

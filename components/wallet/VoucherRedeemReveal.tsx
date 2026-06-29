@@ -20,6 +20,7 @@ export interface VoucherRedeemRevealData {
 interface VoucherRedeemRevealProps {
   data: VoucherRedeemRevealData | null;
   onClose: () => void;
+  onCreateOwn?: () => void;
 }
 
 const SPARKLES = Array.from({ length: 12 }, (_, i) => ({
@@ -30,7 +31,7 @@ const SPARKLES = Array.from({ length: 12 }, (_, i) => ({
   size: 4 + (i % 2) * 2,
 }));
 
-export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemRevealProps) {
+export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: VoucherRedeemRevealProps) {
   const [mounted, setMounted] = useState(false);
   const [settled, setSettled] = useState(false);
   const [phase, setPhase] = useState<"enter" | "flip" | "reveal">("enter");
@@ -233,6 +234,18 @@ export default function VoucherRedeemReveal({ data, onClose }: VoucherRedeemReve
               >
                 View on BaseScan ↗
               </a>
+            )}
+            {onCreateOwn && (
+              <button
+                type="button"
+                onClick={() => {
+                  onCreateOwn();
+                  onClose();
+                }}
+                className="text-center text-sm font-black px-5 py-3 rounded-xl bg-cyan-500/15 border border-cyan-400/35 text-cyan-200 hover:bg-cyan-500/25 transition"
+              >
+                Create your own gift cards
+              </button>
             )}
             <button
               type="button"

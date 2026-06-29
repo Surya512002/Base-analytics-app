@@ -17,9 +17,10 @@ export function computeWeeklyXP(
   w: WalletData,
   b: number,
   s: number,
-  k?: Record<string, number>
+  k?: Record<string, number>,
+  referralBonus = 0
 ): number {
-  return getQuestXP(w, b, s, k) + Math.min(b, 10) * 10 + Math.min(s, 7) * 5;
+  return getQuestXP(w, b, s, k) + Math.min(b, 10) * 10 + Math.min(s, 7) * 5 + referralBonus;
 }
 
 export function getSeasonPct(): number {

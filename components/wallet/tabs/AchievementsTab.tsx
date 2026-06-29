@@ -26,6 +26,8 @@ import { DEX_ROUTERS } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
+import AchievementsHero from "@/components/wallet/AchievementsHero";
+import StaggerIn from "@/components/ui/StaggerIn";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 export default function AchievementsTab({ app }: { app: WalletAppState }) {
@@ -53,15 +55,17 @@ const getCatValue = (id: string, wallet: NonNullable<WalletAppState["wallet"]>, 
 if (!wallet) return null;
 
   return (
-          <div>
+          <div className="tab-content-enter">
+            <AchievementsHero wallet={wallet} mintedLevels={mintedLevels} weeklyXP={weeklyXP} />
+
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Trophy size={12}/>Mint Your Identity</p>
+              <p className="section-eyebrow flex items-center gap-2"><Trophy size={12}/> Badge collection</p>
               {mintedCount>0&&<div className="flex gap-1.5">
                 <button onClick={()=>shareAll(mintedCount,'w')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Send size={13}/></button>
                 <button onClick={()=>shareAll(mintedCount,'t')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/60 p-2 rounded-xl transition-all"><Twitter size={13}/></button>
               </div>}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+            <StaggerIn className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
               {ACHIEVEMENTS.map(cat=>{
                 const value=getCatValue(cat.id, wallet, boosts);
                 let unlocked=0;
@@ -83,7 +87,7 @@ if (!wallet) return null;
                 if(mintedTier===cat.thresholds.length)btnText='Fully Minted 👑';
                 else if(canMint)btnText=isBatch?`Claim ${toMint.length} Badges 🚀`:`Mint ${cat.tierNames[mintedTier]}`;
                 return(
-                  <div key={cat.id} className="glass-panel-accent rounded-3xl p-5 flex flex-col hover:border-cyan-500/28 transition-all shadow-lg shadow-black/20">
+                  <div key={cat.id} className="stagger-child achievement-card-3d glass-panel-accent rounded-3xl p-5 flex flex-col hover:border-violet-500/35 transition-all shadow-lg shadow-black/20 border border-white/8">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-2xl">{cat.icon}</div>
@@ -147,7 +151,7 @@ if (!wallet) return null;
                   </div>
                 );
               })}
-            </div>
+            </StaggerIn>
           </div>
   );
 }

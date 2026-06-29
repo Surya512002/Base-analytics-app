@@ -101,7 +101,7 @@ export default function ConnectScreen({
   onConnect,
 }: ConnectScreenProps) {
   return (
-    <div className="min-h-screen bg-[#071220] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#040a14] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-aurora pointer-events-none" />
       <div className="absolute inset-0 bg-grid-future opacity-30 pointer-events-none" />
       <div

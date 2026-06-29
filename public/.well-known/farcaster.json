@@ -22,7 +22,8 @@
       "base",
       "vouchers",
       "x402",
-      "gift-cards"
+      "gift-cards",
+      "redeem"
     ]
   },
   "miniapp": {
@@ -43,7 +44,8 @@
       "base",
       "vouchers",
       "x402",
-      "gift-cards"
+      "gift-cards",
+      "redeem"
     ]
   },
   "baseBuilder": {

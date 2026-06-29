@@ -21,6 +21,8 @@ import {
   xpForEntry,
   type BoardMode,
 } from "@/lib/utils/leaderboard";
+import LeaderboardPodium from "@/components/wallet/LeaderboardPodium";
+import StaggerIn from "@/components/ui/StaggerIn";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const TOP_N = 50;
@@ -175,7 +177,25 @@ export default function LeaderboardTab({ app }: { app: WalletAppState }) {
   if (!wallet) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 tab-content-enter">
+      <div className="glass-panel rounded-3xl overflow-hidden border border-violet-500/20 card-shimmer">
+        <div className="h-0.5 bg-linear-to-r from-amber-400 via-violet-500 to-cyan-400" />
+        <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="section-eyebrow">Season rankings</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
+              Climb the <span className="text-gradient-prism">leaderboard</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-2 max-w-sm">
+              Earn weekly XP from quests, check-ins, and onchain activity. Top {TOP_N} shown live.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Trophy size={28} className="text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
+          </div>
+        </div>
+      </div>
+
       <div className="flex gap-1 glass-panel p-1 rounded-2xl">
         {(
           [
@@ -293,13 +313,27 @@ export default function LeaderboardTab({ app }: { app: WalletAppState }) {
           <p className="text-cyan-400/50 font-bold text-sm">Loading rankings...</p>
         </div>
       ) : (
-        <LeaderboardTable
-          entries={activeTop}
-          mode={mode}
-          myAddress={wallet.address}
-          participationCount={activeParticipationCount}
-          currentWeek={currentWeek}
-        />
+        <StaggerIn>
+          {!lbLoading && activeTop.length >= 1 && (
+            <div className="stagger-child">
+              <LeaderboardPodium
+                entries={activeTop}
+                mode={mode}
+                currentWeek={currentWeek}
+                myAddress={wallet.address}
+              />
+            </div>
+          )}
+          <div className="stagger-child">
+            <LeaderboardTable
+              entries={activeTop}
+              mode={mode}
+              myAddress={wallet.address}
+              participationCount={activeParticipationCount}
+              currentWeek={currentWeek}
+            />
+          </div>
+        </StaggerIn>
       )}
     </div>
   );

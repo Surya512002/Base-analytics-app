@@ -7,7 +7,6 @@ import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectScreen from "@/components/wallet/ConnectScreen";
 import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
-import PremiumBanner from "@/components/wallet/PremiumBanner";
 import TabBar from "@/components/wallet/TabBar";
 import { createMockAppState } from "@/lib/marketing/mock-app-state";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -47,13 +46,6 @@ function CaptureContent() {
       <AppHeader weeklyXP={app.weeklyXP} sponsored={app.sponsored} onDisconnect={() => {}} />
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
         <TabBar tab={tab} doneQuests={app.doneQuests} onTabChange={() => {}} />
-        <PremiumBanner
-          premiumUnlocked={false}
-          premiumLoading={false}
-          premiumData={null}
-          x402PayCount={app.x402PayCount}
-          onPay={() => {}}
-        />
         <AppFeatureStrip />
         {tab === "dashboard" && <DashboardTab app={app} />}
         {tab === "basehub" && <BaseVoucherTab app={app} />}
