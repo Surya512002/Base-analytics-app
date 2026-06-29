@@ -1,7 +1,7 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 
 /** Bump when cache shape or activity logic changes — clears stale local snapshots. */
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface StoredWalletCache {
@@ -66,6 +66,7 @@ export function purgeLegacyWalletCaches(address: string): void {
   try {
     localStorage.removeItem(`base_analytics_wallet_v1_${key}`);
     localStorage.removeItem(`base_analytics_wallet_v2_${key}`);
+    localStorage.removeItem(`base_analytics_wallet_v3_${key}`);
   } catch {
     // ignore
   }

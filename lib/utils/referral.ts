@@ -14,13 +14,25 @@ export function storeReferrer(code: string) {
   }
 }
 
-export function readReferralBonusXp(): number {
+export function readReferralBonusXp(address?: string): number {
   if (typeof window === "undefined") return 0;
+  if (address) {
+    const key = `base_referral_bonus_xp_${address.toLowerCase()}`;
+    const perWallet = parseInt(localStorage.getItem(key) || "0", 10);
+    if (perWallet > 0) return perWallet;
+  }
   return parseInt(localStorage.getItem(REF_BONUS_KEY) || "0", 10);
 }
 
-export function setReferralBonusXp(xp: number) {
+export function setReferralBonusXp(xp: number, address?: string) {
   if (typeof window === "undefined") return;
+  if (address) {
+    localStorage.setItem(
+      `base_referral_bonus_xp_${address.toLowerCase()}`,
+      String(xp)
+    );
+    return;
+  }
   localStorage.setItem(REF_BONUS_KEY, String(xp));
 }
 
@@ -43,7 +55,7 @@ export async function registerReferralJoin(
     if (!res.ok) return { bonusXp: 0, referredBy: null };
     const data = (await res.json()) as { bonusXp?: number; referredBy?: string };
     const bonus = data.bonusXp ?? 0;
-    if (bonus > 0) setReferralBonusXp(bonus);
+    if (bonus > 0) setReferralBonusXp(bonus, address);
     return { bonusXp: bonus, referredBy: data.referredBy ?? null };
   } catch {
     return { bonusXp: 0, referredBy: null };
@@ -53,9 +65,9 @@ export async function registerReferralJoin(
 export async function fetchReferralStats(address: string) {
   try {
     const res = await fetch(`/api/referral?address=${encodeURIComponent(address)}`);
-    if (!res.ok) return { invites: 0, bonusXp: readReferralBonusXp() };
+    if (!res.ok) return { invites: 0, bonusXp: readReferralBonusXp(address) };
     return (await res.json()) as { invites: number; bonusXp: number };
   } catch {
-    return { invites: 0, bonusXp: readReferralBonusXp() };
+    return { invites: 0, bonusXp: readReferralBonusXp(address) };
   }
 }

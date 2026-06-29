@@ -196,6 +196,8 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     handleChallenge: noopAsync,
     handleConnect: noopAsync,
     handleDisconnect: noop,
+    handleCheckInSuccess: noopAsync,
+    handleBoostSuccess: noop,
     doNativeTx: noopAsync,
     doNativeMint: noopAsync,
     shareScore: noop,

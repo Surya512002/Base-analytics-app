@@ -4,7 +4,7 @@ import type { Network, PaymentRequired } from "@x402/core/types";
 import { settleX402Payment, verifyX402Payment } from "@/lib/x402-facilitator";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
 import { buildPremiumInsights } from "@/lib/premium/build-insights";
-import { getX402Product, type X402ProductId } from "@/lib/constants/x402-products";
+import { getX402Product, productIdFromAmount, type X402ProductId } from "@/lib/constants/x402-products";
 
 const PAY_TO = "0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F";
 const NETWORK: Network = "eip155:8453";
@@ -87,18 +87,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const paidProductId = productIdFromAmount(
+      String(paymentRequirements.amount ?? "")
+    );
+
     const address = body.address?.toLowerCase();
     let insights = null;
     if (address?.startsWith("0x") && address.length === 42) {
       const result = await analyzeWalletAddress(address);
       if (result?.wallet) {
-        insights = buildPremiumInsights(result.wallet, productId);
+        insights = buildPremiumInsights(result.wallet, paidProductId);
       }
     }
 
     return NextResponse.json({
       premium: true,
-      product: productId,
+      product: paidProductId,
       address,
       message: "Premium analytics unlocked",
       unlockedAt: new Date().toISOString(),

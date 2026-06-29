@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { Redis } from "ioredis";
+import { getReferralCode } from "@/lib/utils/share";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const REFERRALS_KEY = "base_referrals_v1";
+const REF_CODE_INDEX_KEY = "base_ref_code_index_v1";
 const JOIN_BONUS_XP = 50;
 const REFERRER_XP_PER_INVITE = 25;
 
@@ -21,38 +23,94 @@ function createRedis(): Redis | null {
   });
 }
 
-type RefStore = Record<
-  string,
-  { invites: string[]; referredBy?: string; bonusXp: number }
->;
+type RefEntry = {
+  invites: string[];
+  referredBy?: string;
+  bonusXp: number;
+};
+
+type RefStore = Record<string, RefEntry>;
+type CodeIndex = Record<string, string>;
+
+function referralCode(address: string): string {
+  return getReferralCode(address).toLowerCase();
+}
+
+function isSelfReferral(address: string, referrerCode: string): boolean {
+  return referralCode(address) === referrerCode.toLowerCase();
+}
 
 async function loadStore(redis: Redis): Promise<RefStore> {
   const raw = await redis.get(REFERRALS_KEY);
   return raw ? (JSON.parse(raw) as RefStore) : {};
 }
 
+async function loadCodeIndex(redis: Redis): Promise<CodeIndex> {
+  const raw = await redis.get(REF_CODE_INDEX_KEY);
+  return raw ? (JSON.parse(raw) as CodeIndex) : {};
+}
+
+function ensureEntry(store: RefStore, address: string): RefEntry {
+  if (!store[address]) {
+    store[address] = { invites: [], bonusXp: 0 };
+  }
+  return store[address];
+}
+
+/** Merge legacy 8-char code buckets into full-address entries. */
+function migrateLegacyReferrerBucket(
+  store: RefStore,
+  address: string
+): void {
+  const code = referralCode(address);
+  const legacy = store[code];
+  if (!legacy || code === address) return;
+  const entry = ensureEntry(store, address);
+  for (const invite of legacy.invites ?? []) {
+    if (!entry.invites.includes(invite)) entry.invites.push(invite);
+  }
+  entry.bonusXp = Math.max(entry.bonusXp, legacy.bonusXp ?? 0);
+  delete store[code];
+}
+
+async function registerReferrerCode(
+  redis: Redis,
+  store: RefStore,
+  address: string
+): Promise<void> {
+  const code = referralCode(address);
+  const index = await loadCodeIndex(redis);
+  if (!index[code]) {
+    index[code] = address;
+    await redis.set(REF_CODE_INDEX_KEY, JSON.stringify(index));
+  }
+  migrateLegacyReferrerBucket(store, address);
+}
+
 export async function GET(req: Request) {
   const address = new URL(req.url).searchParams.get("address")?.toLowerCase();
-  if (!address?.startsWith("0x")) {
+  if (!address?.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
   const redis = createRedis();
   if (!redis) {
-    return NextResponse.json({ invites: 0, bonusXp: 0 });
+    return NextResponse.json({ invites: 0, bonusXp: 0, referredBy: null });
   }
 
   try {
     await redis.connect();
     const store = await loadStore(redis);
-    const entry = store[address];
+    await registerReferrerCode(redis, store, address);
+    const entry = ensureEntry(store, address);
+    await redis.set(REFERRALS_KEY, JSON.stringify(store));
     return NextResponse.json({
-      invites: entry?.invites?.length ?? 0,
-      bonusXp: entry?.bonusXp ?? 0,
-      referredBy: entry?.referredBy ?? null,
+      invites: entry.invites.length,
+      bonusXp: entry.bonusXp,
+      referredBy: entry.referredBy ?? null,
     });
   } catch {
-    return NextResponse.json({ invites: 0, bonusXp: 0 });
+    return NextResponse.json({ invites: 0, bonusXp: 0, referredBy: null });
   } finally {
     try {
       await redis.quit();
@@ -65,56 +123,60 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = (await req.json()) as { address?: string; referrer?: string };
   const address = body.address?.toLowerCase();
-  const referrer = body.referrer?.toLowerCase();
+  const referrerCode = body.referrer?.toLowerCase().trim();
 
   if (!address?.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
-  if (!referrer || referrer === address) {
+  if (!referrerCode || isSelfReferral(address, referrerCode)) {
     return NextResponse.json({ bonusXp: 0, referredBy: null });
   }
 
   const redis = createRedis();
   if (!redis) {
-    return NextResponse.json({ bonusXp: JOIN_BONUS_XP, referredBy: referrer });
+    return NextResponse.json({ bonusXp: 0, referredBy: null });
   }
 
   try {
     await redis.connect();
     const store = await loadStore(redis);
+    const codeIndex = await loadCodeIndex(redis);
 
-    if (store[address]?.referredBy) {
+    await registerReferrerCode(redis, store, address);
+
+    const existing = store[address];
+    if (existing?.referredBy) {
       return NextResponse.json({
-        bonusXp: store[address].bonusXp ?? 0,
-        referredBy: store[address].referredBy,
+        bonusXp: existing.bonusXp ?? 0,
+        referredBy: existing.referredBy,
       });
     }
 
-    if (!store[address]) {
-      store[address] = { invites: [], bonusXp: JOIN_BONUS_XP, referredBy: referrer };
-    } else {
-      store[address].referredBy = referrer;
-      store[address].bonusXp = (store[address].bonusXp ?? 0) + JOIN_BONUS_XP;
+    const referrerAddress = codeIndex[referrerCode];
+    if (!referrerAddress || referrerAddress === address) {
+      return NextResponse.json({ bonusXp: 0, referredBy: null });
     }
 
-    if (!store[referrer]) {
-      store[referrer] = { invites: [], bonusXp: 0 };
-    }
-    if (!store[referrer].invites.includes(address)) {
-      store[referrer].invites.push(address);
-      store[referrer].bonusXp =
-        (store[referrer].bonusXp ?? 0) + REFERRER_XP_PER_INVITE;
+    const joiner = ensureEntry(store, address);
+    joiner.referredBy = referrerCode;
+    joiner.bonusXp = (joiner.bonusXp ?? 0) + JOIN_BONUS_XP;
+
+    const referrer = ensureEntry(store, referrerAddress);
+    if (!referrer.invites.includes(address)) {
+      referrer.invites.push(address);
+      referrer.bonusXp =
+        (referrer.bonusXp ?? 0) + REFERRER_XP_PER_INVITE;
     }
 
     await redis.set(REFERRALS_KEY, JSON.stringify(store));
 
     return NextResponse.json({
       bonusXp: JOIN_BONUS_XP,
-      referredBy: referrer,
+      referredBy: referrerCode,
     });
   } catch (e) {
     console.error("[referral]", e);
-    return NextResponse.json({ bonusXp: JOIN_BONUS_XP, referredBy: referrer });
+    return NextResponse.json({ bonusXp: 0, referredBy: null });
   } finally {
     try {
       await redis.quit();

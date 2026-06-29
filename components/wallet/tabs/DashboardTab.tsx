@@ -36,10 +36,6 @@ import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { getAppContractHit, isPaymasterActivity } from "@/lib/utils/app-contracts";
-import {
-  patchCheckInInWalletCache,
-  writeLocalCheckInToday,
-} from "@/lib/utils/check-in-status";
 import { txHashFromLifecycle } from "@/lib/utils/tx-status";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
@@ -55,7 +51,7 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     checkedToday, setCheckedToday, setStreak, challenge, setChallenge,
     challengeResult, challengeLoading, weeklyXP,
     x402PayCount, boostCall, gmCall, gnCall, ciCall, txCaps, mintedCount,
-    showToast, handleChallenge, doNativeTx, doNativeMint, shareScore, shareAch,
+    showToast, handleChallenge, doNativeTx, doNativeMint, handleCheckInSuccess, handleBoostSuccess, shareScore, shareAch,
     shareAll, leaderboard, lbLoading, doneQuests,
     premiumUnlocked, premiumLoading, premiumData, premiumInsights, handlePremiumScan,
     x402Product, setX402Product,
@@ -65,6 +61,19 @@ if (!wallet) return null;
 
   return (
           <div className="space-y-4">
+            <PremiumBanner
+              premiumLoading={premiumLoading}
+              premiumData={premiumData}
+              x402PayCount={x402PayCount}
+              product={x402Product}
+              onProductChange={setX402Product}
+              onPay={handlePremiumScan}
+            />
+
+            {premiumUnlocked && (
+              <PremiumInsightsPanel insights={premiumInsights} unlocked={premiumUnlocked} />
+            )}
+
             {/* ── Quick onchain actions (top priority) ── */}
             <div className="elegant-panel rounded-3xl overflow-hidden border border-violet-500/20">
               <div className="h-0.5 bg-linear-to-r from-champagne via-violet-500 to-cyan-400" />
@@ -116,16 +125,9 @@ if (!wallet) return null;
                           ) {
                             return;
                           }
-                          writeLocalCheckInToday(wallet.address);
-                          setCheckedToday(true);
-                          setStreak((v) => {
-                            const next = v + 1;
-                            patchCheckInInWalletCache(wallet.address, true, next);
-                            return next;
-                          });
+                          const txHash = txHashFromLifecycle(s);
+                          void handleCheckInSuccess(wallet.address, txHash);
                           setSponsored((v) => v + 1);
-                          showToast("✅ Onchain check-in secured!", txHashFromLifecycle(s));
-                          setTxKeys((k) => ({ ...k, checkin: (k.checkin || 0) + 1 }));
                         }}>
                         <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
                       </Transaction>
@@ -190,7 +192,7 @@ if (!wallet) return null;
                       </button>
                     ):(
                       <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps}
-                        onStatus={s=>{if(s.statusName==='success'){setBoosts(b=>{const n=b+1;if(typeof window!=='undefined')localStorage.setItem(`base_boosts_${wallet.address.toLowerCase()}`,n.toString());return n;});setSponsored(v=>v+1);showToast('Boosted! 🎉',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setTxKeys(k=>({...k,boost:(k.boost||0)+1}));}}}>
+                        onStatus={s=>{if(s.statusName==='success'){setSponsored(v=>v+1);handleBoostSuccess(wallet.address,s.statusData.transactionReceipts?.[0]?.transactionHash||'');}}}>
                         <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20 transition-all" text="BOOST (+1)"/>
                       </Transaction>
                     )}
@@ -223,19 +225,6 @@ if (!wallet) return null;
             </div>
 
             <QuestProgressBanner doneQuests={doneQuests} onGoQuests={() => app.setTab("quests")} />
-
-            <PremiumBanner
-              premiumLoading={premiumLoading}
-              premiumData={premiumData}
-              x402PayCount={x402PayCount}
-              product={x402Product}
-              onProductChange={setX402Product}
-              onPay={handlePremiumScan}
-            />
-
-            {premiumUnlocked && (
-              <PremiumInsightsPanel insights={premiumInsights} unlocked={premiumUnlocked} />
-            )}
 
             <PaymasterInsightTile wallet={wallet} />
 
@@ -406,7 +395,7 @@ if (!wallet) return null;
                     <p className="text-[9px] text-cyan-300/50">{wallet.uniqueDays} days</p>
                     {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
                   </div>
-                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-white/530 border-cyan-500/25':'bg-white/[0.04] border-white/8'}`}>
+                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-cyan-500/10 border-cyan-500/25':'bg-white/[0.04] border-white/8'}`}>
                     <p className="text-[10px] text-cyan-400/50 uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
                     <p className="text-3xl font-black text-cyan-200 my-1">{challengeResult.score}</p>
                     <p className="text-[9px] text-cyan-300/50">{challengeResult.days} days</p>

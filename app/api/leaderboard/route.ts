@@ -64,9 +64,20 @@ export async function POST(req: Request) {
     // Client NEVER controls totalXP — backend always computes it
     const client: Omit<LeaderboardEntry, 'totalXP'> = await req.json();
 
-    if (!client.address?.startsWith('0x')) {
+    if (!client.address?.startsWith('0x') || client.address.length !== 42) {
       return NextResponse.json({ success: false, error: 'Invalid address' }, { status: 400 });
     }
+
+    const sanitized = {
+      ...client,
+      address: client.address.toLowerCase(),
+      score: Math.min(100, Math.max(0, Math.round(client.score ?? 0))),
+      boosts: Math.min(10_000, Math.max(0, Math.round(client.boosts ?? 0))),
+      badges: Math.min(100, Math.max(0, Math.round(client.badges ?? 0))),
+      weeklyXP: Math.min(800, Math.max(0, Math.round(client.weeklyXP ?? 0))),
+      basename: client.basename?.slice(0, 64) ?? null,
+      rank: (client.rank ?? 'Base User').slice(0, 48),
+    };
 
     const thisWeek = isoWeek(new Date());
     const now = Date.now();
@@ -74,13 +85,12 @@ export async function POST(req: Request) {
     const raw = await redis.get(DB_KEY);
     const lb: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
 
-    const idx = lb.findIndex(e => e.address.toLowerCase() === client.address.toLowerCase());
+    const idx = lb.findIndex(e => e.address.toLowerCase() === sanitized.address.toLowerCase());
 
     if (idx === -1) {
-      // ── Brand new user: totalXP = weeklyXP from first week ─────────────────
       lb.push({
-        ...client,
-        totalXP: client.weeklyXP,
+        ...sanitized,
+        totalXP: sanitized.weeklyXP,
         weekNumber: thisWeek,
         lastSeen: now,
       });
@@ -93,22 +103,14 @@ export async function POST(req: Request) {
       let newTotal: number;
 
       if (prevWeekNum !== thisWeek) {
-        // ── Week rolled over: old weeklyXP is now "locked" into history ────────
-        // totalXP = everything before this week + new week's XP
-        // We keep prevTotal (which already includes all previous weeks' XP locked)
-        // and just add the new weeklyXP on top.
-        // BUT if the user is visiting for the first time this week, prevTotal
-        // already contains last week's contribution, so:
-        newTotal = prevTotal + client.weeklyXP;
+        newTotal = prevTotal + sanitized.weeklyXP;
       } else {
-        // ── Same week: totalXP = (total minus last recorded weekly) + new weekly
-        // This handles the user earning more XP within the same week
-        const lockedHistory = prevTotal - prevWeekly; // XP from all weeks BEFORE this one
-        newTotal = lockedHistory + client.weeklyXP;
+        const lockedHistory = prevTotal - prevWeekly;
+        newTotal = lockedHistory + sanitized.weeklyXP;
       }
 
       lb[idx] = {
-        ...client,
+        ...sanitized,
         totalXP:    newTotal,
         weekNumber: thisWeek,
         lastSeen:   now,

@@ -22,7 +22,7 @@ export const ACHIEVEMENTS = [
 export const WEEKLY_QUESTS = [
   { id: "q_boost", icon: "🚀", title: "Boost your score", desc: "Use the XP Booster at least once", xp: 25, check: (w: WalletData, b: number) => b >= 1 },
   { id: "q_gm", icon: "☀️", title: "Say GM on Base", desc: "Send a GM transaction onchain", xp: 15, check: (w: WalletData, _b: number, _s: number, k?: Record<string, number>) => w.hasGm || !!(k?.gm && k.gm > 0) },
-  { id: "q_checkin", icon: "🔥", title: "Onchain check-in", desc: "Complete a daily onchain check-in", xp: 20, check: (_w: WalletData, _b: number, s: number, k?: Record<string, number>) => s >= 1 || !!(k?.checkin && k.checkin > 0) },
+  { id: "q_checkin", icon: "🔥", title: "Onchain check-in", desc: "Complete a daily onchain check-in", xp: 20, check: (w: WalletData, _b: number, s: number, k?: Record<string, number>) => w.checkInCount >= 1 || s >= 1 || !!(k?.checkin && k.checkin > 0) },
   { id: "q_streak", icon: "⚡", title: "3-day streak", desc: "Maintain a 3+ day onchain streak", xp: 30, check: (_w: WalletData, _b: number, s: number) => s >= 3 },
   { id: "q_defi", icon: "🦄", title: "DeFi interaction", desc: "Interact with a DeFi protocol", xp: 40, check: (w: WalletData) => w.defiInteractions >= 1 },
   { id: "q_swap", icon: "🔄", title: "Token swap", desc: "Swap at least one token on Base", xp: 20, check: (w: WalletData) => w.swapCount >= 1 },

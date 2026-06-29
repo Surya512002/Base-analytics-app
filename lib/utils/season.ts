@@ -13,14 +13,22 @@ export function getQuestXP(
   );
 }
 
+function streakQuestMultiplier(streak: number): number {
+  if (streak >= 7) return 3;
+  if (streak >= 3) return 2;
+  return 1;
+}
+
+/** Weekly quest XP + boost/streak bonuses. Referral XP is tracked separately. */
 export function computeWeeklyXP(
   w: WalletData,
   b: number,
   s: number,
-  k?: Record<string, number>,
-  referralBonus = 0
+  k?: Record<string, number>
 ): number {
-  return getQuestXP(w, b, s, k) + Math.min(b, 10) * 10 + Math.min(s, 7) * 5 + referralBonus;
+  const questXp = getQuestXP(w, b, s, k);
+  const multipliedQuest = Math.round(questXp * streakQuestMultiplier(s));
+  return multipliedQuest + Math.min(b, 10) * 10 + Math.min(s, 7) * 5;
 }
 
 export function getSeasonPct(): number {

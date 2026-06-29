@@ -3,6 +3,10 @@ import { base } from "viem/chains";
 import { CHECKIN_ABI, CHECKIN_CONTRACT } from "@/lib/constants/contracts";
 import { BASE_RPC } from "@/lib/constants/env";
 import { readWalletCache, writeWalletCache } from "@/lib/utils/wallet-cache";
+import {
+  bumpLocalCheckInCount,
+  resolveCheckInCount,
+} from "@/lib/utils/wallet-session";
 
 export function todayUtcKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -20,6 +24,15 @@ export function readLocalCheckInToday(address: string): boolean {
 export function writeLocalCheckInToday(address: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(checkInLocalKey(address), todayUtcKey());
+}
+
+/** Call only after a successful onchain check-in transaction. */
+export function recordCheckInSuccess(
+  address: string,
+  onChainFloor = 0
+): number {
+  writeLocalCheckInToday(address);
+  return bumpLocalCheckInCount(address, onChainFloor);
 }
 
 export async function fetchCheckInStatus(
@@ -67,9 +80,22 @@ export async function fetchCheckInStatus(
 export function patchCheckInInWalletCache(
   address: string,
   checkedToday: boolean,
-  streak: number
+  streak: number,
+  incrementCount = false
 ): void {
   const cached = readWalletCache(address);
   if (!cached) return;
-  writeWalletCache(address, { ...cached, checkedToday, streak }, true);
+  const checkInCount = incrementCount
+    ? resolveCheckInCount(cached.wallet.checkInCount + 1, address)
+    : resolveCheckInCount(cached.wallet.checkInCount, address);
+  writeWalletCache(
+    address,
+    {
+      ...cached,
+      checkedToday,
+      streak,
+      wallet: { ...cached.wallet, checkInCount },
+    },
+    true
+  );
 }

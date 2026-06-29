@@ -43,3 +43,9 @@ export const X402_PRODUCTS: X402Product[] = [
 export function getX402Product(id: X402ProductId): X402Product {
   return X402_PRODUCTS.find((p) => p.id === id) ?? X402_PRODUCTS[0];
 }
+
+export function productIdFromAmount(amount: string | undefined): X402ProductId {
+  if (!amount) return "scan";
+  const match = X402_PRODUCTS.find((p) => p.amountUsdc === amount);
+  return match?.id ?? "scan";
+}

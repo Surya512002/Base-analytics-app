@@ -128,7 +128,7 @@ if (!wallet) return null;
                       <div className="flex gap-2">
                         {connType==='farcaster'?(
                           <button onClick={()=>doNativeMint(cat.id,toLevels,toMint,cat.name)} disabled={!canMint||!!minting}
-                            className={`flex-1 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${canMint&&!minting?'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18':'bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/830'}`}>
+                            className={`flex-1 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${canMint&&!minting?'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18':'bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/8'}`}>
                             {minting===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={16}/>:btnText}
                           </button>
                         ):canMint?(
@@ -137,7 +137,7 @@ if (!wallet) return null;
                             <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-xs btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18 transition-all" text={btnText}/>
                           </Transaction>
                         ):(
-                          <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/830">{btnText}</button>
+                          <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/8">{btnText}</button>
                         )}
                         {mintedTier>0&&(
                           <div className="flex gap-1.5 shrink-0">

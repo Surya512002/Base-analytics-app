@@ -291,14 +291,8 @@ export async function analyzeWalletAddress(
     }
   }
 
-  let fBoosts = hBoosts;
+  const fBoosts = hBoosts;
   if (typeof window !== "undefined") {
-    const c = localStorage.getItem(`base_boosts_${addrLow}`);
-    if (c) {
-      const p = parseInt(c, 10);
-      if (p > fBoosts) fBoosts = p;
-    }
-    localStorage.setItem(`base_boosts_${addrLow}`, fBoosts.toString());
     if (localStorage.getItem(`base_gm_${addrLow}`) === "true") hasGm = true;
     else if (hasGm) localStorage.setItem(`base_gm_${addrLow}`, "true");
   }
@@ -317,7 +311,7 @@ export async function analyzeWalletAddress(
       runLen++;
       longest = Math.max(longest, runLen);
     } else runLen = 1;
-    if (diff > longestInactiveDays) longestInactiveDays = diff;
+    if (diff > longestInactiveDays) longestInactiveDays = diff > 1 ? diff - 1 : 0;
   }
 
   const todayKey = new Date().toISOString().slice(0, 10);

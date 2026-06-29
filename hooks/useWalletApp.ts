@@ -6,6 +6,7 @@ import { connectWallet } from "@/app/connection";
 import { fetchWalletAnalysis } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
+import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import {
   readWalletCache,
   writeWalletCache,
@@ -15,7 +16,7 @@ import {
   fetchCheckInStatus,
   patchCheckInInWalletCache,
   readLocalCheckInToday,
-  writeLocalCheckInToday,
+  recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 import {
@@ -29,7 +30,7 @@ import {
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
 import { getCatValue, sumMintedBadges } from "@/lib/utils/achievements";
-import { getDayKey, getISOWeekNumber, getMonthKey, getWeekKey } from "@/lib/utils/dates";
+import { getISOWeekNumber } from "@/lib/utils/dates";
 import { computeChallengeScore, computeWalletRank } from "@/lib/utils/score";
 import { getCapabilities } from "@/lib/utils/paymaster";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
@@ -49,10 +50,20 @@ import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
 import type { PremiumInsights } from "@/lib/premium/build-insights";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
-  readReferralBonusXp,
   readStoredReferrer,
   registerReferralJoin,
+  fetchReferralStats,
 } from "@/lib/utils/referral";
+import {
+  bumpBoostCount,
+  DEFAULT_TX_KEYS,
+  deriveTxKeysFromAnalysis,
+  ensureSessionStorageVersion,
+  readReferralBonusXpForAddress,
+  setReferralBonusXpForAddress,
+  syncSessionFromAnalysis,
+  writePersistedTxKeys,
+} from "@/lib/utils/wallet-session";
 import type { ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 
@@ -105,10 +116,7 @@ export function useWalletApp() {
   const [boosts, setBoosts] = useState(0);
   const [sponsored, setSponsored] = useState(0);
   const [txKeys, setTxKeys] = useState<Record<string, number>>({
-    boost: 0,
-    gm: 0,
-    gn: 0,
-    checkin: 0,
+    ...DEFAULT_TX_KEYS,
   });
   const [toast, setToast] = useState<{ msg: string; hash: string } | null>(
     null
@@ -165,7 +173,13 @@ export function useWalletApp() {
     const insightsRaw = localStorage.getItem(`x402_insights_${key}`);
     setX402PayCount(savedCount);
     setPremiumUnlocked(unlocked);
-    setReferralBonusXp(readReferralBonusXp());
+    setReferralBonusXp(readReferralBonusXpForAddress(address));
+    void fetchReferralStats(address).then((s) => {
+      const local = readReferralBonusXpForAddress(address);
+      const bonus = Math.max(local, s.bonusXp);
+      if (bonus > local) setReferralBonusXpForAddress(address, bonus);
+      setReferralBonusXp(bonus);
+    });
     if (insightsRaw) {
       try {
         setPremiumInsights(JSON.parse(insightsRaw) as PremiumInsights);
@@ -194,6 +208,7 @@ export function useWalletApp() {
       }
       setReady(true);
       setTab(resolveInitialTab());
+      ensureSessionStorageVersion();
       const p = new URLSearchParams(window.location.search);
       const r = p.get("ref");
       if (r) localStorage.setItem("base_referrer", r);
@@ -216,7 +231,8 @@ export function useWalletApp() {
 
   useEffect(() => {
     if (!wallet) return;
-    const xp = computeWeeklyXP(wallet, boosts, streak, txKeys, referralBonusXp);
+    const questXp = computeWeeklyXP(wallet, boosts, streak, txKeys);
+    const xp = questXp + referralBonusXp;
     setWeeklyXP(xp);
     const mintedCount = sumMintedBadges(mintedLevels);
     saveLeaderboard({
@@ -226,7 +242,7 @@ export function useWalletApp() {
       rank: wallet.walletRank,
       boosts,
       badges: mintedCount,
-      weeklyXP: xp,
+      weeklyXP: questXp,
       weekNumber: getISOWeekNumber(),
     }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
   }, [wallet, boosts, mintedLevels, streak, txKeys, referralBonusXp]);
@@ -318,15 +334,13 @@ export function useWalletApp() {
     setChallengeLoading(true);
     try {
       const merged = await fetchWalletTransfers(addr);
-      const days = new Set(merged.map((tx) => getDayKey(tx.metadata.blockTimestamp)));
-      const months = new Set(
-        merged.map((tx) => getMonthKey(tx.metadata.blockTimestamp))
-      );
-      const weeks = new Set(
-        merged.map((tx) => getWeekKey(tx.metadata.blockTimestamp))
-      );
+      const activity = rollupWalletActivity(merged, addr);
+      const txCount = activity.participatingHashes.size;
+      const days = activity.uDays;
+      const months = activity.uMonths;
+      const weeks = activity.uWeeks;
       const s = computeChallengeScore(
-        merged.length,
+        txCount,
         days.size,
         months.size,
         weeks.size
@@ -337,7 +351,7 @@ export function useWalletApp() {
         score: s,
         rank,
         days: days.size,
-        txs: merged.length,
+        txs: txCount,
       });
     } catch {
       showToast("❌ Lookup failed", "");
@@ -347,11 +361,25 @@ export function useWalletApp() {
   }, [challenge, showToast]);
 
   const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
+    const address = result.wallet.address;
+    const session =
+      typeof window !== "undefined"
+        ? syncSessionFromAnalysis(address, result)
+        : {
+            boosts: result.boosts,
+            checkInCount: result.wallet.checkInCount,
+            txKeys: deriveTxKeysFromAnalysis(result),
+          };
     setMintedLevels(result.mintedLevels);
     setStreak(result.streak);
-    setCheckedToday(result.checkedToday);
-    setBoosts(result.boosts);
-    setWallet(result.wallet);
+    setCheckedToday(
+      result.checkedToday || readLocalCheckInToday(address)
+    );
+    setBoosts(session.boosts);
+    setWallet({ ...result.wallet, checkInCount: session.checkInCount });
+    setReferralBonusXp(readReferralBonusXpForAddress(address));
+    setTxKeys(session.txKeys);
+    void fetchReferralStats(address);
     if (typeof window !== "undefined") {
       localStorage.setItem("base_has_connected", "1");
     }
@@ -364,6 +392,52 @@ export function useWalletApp() {
     patchCheckInInWalletCache(address, status.checkedToday, status.streak);
     return status;
   }, []);
+
+  const handleCheckInSuccess = useCallback(
+    async (address: string, txHash?: string) => {
+      const floor =
+        wallet?.address.toLowerCase() === address.toLowerCase()
+          ? wallet.checkInCount
+          : 0;
+      const count = recordCheckInSuccess(address, floor);
+      setCheckedToday(true);
+      setTxKeys((k) => {
+        const next = { ...k, checkin: 1 };
+        writePersistedTxKeys(address, next);
+        return next;
+      });
+      setWallet((current) => {
+        if (!current || current.address.toLowerCase() !== address.toLowerCase()) {
+          return current;
+        }
+        return { ...current, checkInCount: count };
+      });
+      const status = await syncCheckInStatus(address);
+      patchCheckInInWalletCache(
+        address,
+        status.checkedToday,
+        status.streak,
+        true
+      );
+      if (txHash) {
+        showToast("✅ Onchain check-in secured!", txHash);
+      }
+    },
+    [showToast, syncCheckInStatus, wallet]
+  );
+
+  const handleBoostSuccess = useCallback(
+    (address: string, txHash?: string) => {
+      setBoosts((current) => bumpBoostCount(address, current));
+      setTxKeys((k) => {
+        const next = { ...k, boost: 1 };
+        writePersistedTxKeys(address, next);
+        return next;
+      });
+      if (txHash) showToast("Boosted! 🎉", txHash);
+    },
+    [showToast]
+  );
 
   const analyzeWallet = useCallback(
     async (address: string) => {
@@ -380,16 +454,28 @@ export function useWalletApp() {
       purgeLegacyWalletCaches(address);
 
       const cached = readWalletCache(address);
+      let referralRegistered = false;
+      const registerReferralOnce = () => {
+        if (referralRegistered) return;
+        referralRegistered = true;
+        const ref = readStoredReferrer();
+        void registerReferralJoin(address, ref).then((r) => {
+          if (r.bonusXp > 0) {
+            setReferralBonusXpForAddress(address, r.bonusXp);
+            setReferralBonusXp(r.bonusXp);
+            showToast(`🎉 +${r.bonusXp} referral XP!`, "");
+          }
+        });
+      };
+
       if (cached) {
         applyAnalysis({
           ...cached,
           checkedToday: cached.checkedToday || readLocalCheckInToday(address),
         });
         setLoading(false);
-        const ref = readStoredReferrer();
-        void registerReferralJoin(address, ref).then((r) => {
-          if (r.bonusXp > 0) setReferralBonusXp((prev) => Math.max(prev, r.bonusXp));
-        });
+        setWalletRefreshing(true);
+        registerReferralOnce();
       } else {
         setLoading(true);
       }
@@ -408,13 +494,7 @@ export function useWalletApp() {
           };
           applyAnalysis(merged);
           writeWalletCache(address, merged, true);
-          const ref = readStoredReferrer();
-          void registerReferralJoin(address, ref).then((r) => {
-            if (r.bonusXp > 0) {
-              setReferralBonusXp((prev) => prev + r.bonusXp);
-              showToast(`🎉 +${r.bonusXp} referral XP!`, "");
-            }
-          });
+          registerReferralOnce();
         } else if (!cached) {
           showToast("❌ Analysis failed", "");
           setWallet(null);
@@ -457,12 +537,27 @@ export function useWalletApp() {
     }
   };
 
-  const handleDisconnect = () => {
+  const resetSessionState = useCallback(() => {
     setWallet(null);
     setConnType(null);
+    setMintedLevels({});
+    setBoosts(0);
+    setStreak(0);
+    setCheckedToday(false);
+    setTxKeys({ ...DEFAULT_TX_KEYS });
+    setWeeklyXP(0);
+    setReferralBonusXp(0);
+    setChallenge("");
+    setChallengeResult(null);
     setPremiumUnlocked(false);
     setPremiumData(null);
+    setPremiumInsights(null);
     setX402PayCount(0);
+    setSponsored(0);
+  }, []);
+
+  const handleDisconnect = () => {
+    resetSessionState();
   };
 
   const doNativeTx = async (type: "boost" | "gm" | "gn" | "checkin") => {
@@ -496,39 +591,33 @@ export function useWalletApp() {
         params: [p],
       });
       if (hash && typeof hash === "string") {
-        showToast(msg, hash);
         setSponsored((s) => s + 1);
-        if (type === "boost") {
-          setBoosts((b) => {
-            const n = b + 1;
+        if (type === "checkin") {
+          void handleCheckInSuccess(wallet.address, hash);
+        } else {
+          showToast(msg, hash);
+          if (type === "boost") {
+            handleBoostSuccess(wallet.address, hash);
+          }
+          if (type === "gm") {
             if (typeof window !== "undefined")
               localStorage.setItem(
-                `base_boosts_${wallet.address.toLowerCase()}`,
-                n.toString()
+                `base_gm_${wallet.address.toLowerCase()}`,
+                "true"
               );
-            return n;
-          });
-          setTxKeys((k) => ({ ...k, boost: (k.boost || 0) + 1 }));
-        }
-        if (type === "gm") {
-          if (typeof window !== "undefined")
-            localStorage.setItem(
-              `base_gm_${wallet.address.toLowerCase()}`,
-              "true"
-            );
-          setTxKeys((k) => ({ ...k, gm: (k.gm || 0) + 1 }));
-        }
-        if (type === "gn")
-          setTxKeys((k) => ({ ...k, gn: (k.gn || 0) + 1 }));
-        if (type === "checkin") {
-          writeLocalCheckInToday(wallet.address);
-          setCheckedToday(true);
-          setStreak((s) => {
-            const next = s + 1;
-            patchCheckInInWalletCache(wallet.address, true, next);
-            return next;
-          });
-          setTxKeys((k) => ({ ...k, checkin: (k.checkin || 0) + 1 }));
+            setTxKeys((k) => {
+              const next = { ...k, gm: (k.gm || 0) + 1 };
+              writePersistedTxKeys(wallet.address, next);
+              return next;
+            });
+          }
+          if (type === "gn") {
+            setTxKeys((k) => {
+              const next = { ...k, gn: (k.gn || 0) + 1 };
+              writePersistedTxKeys(wallet.address, next);
+              return next;
+            });
+          }
         }
       }
     } catch (e: unknown) {
@@ -754,6 +843,8 @@ export function useWalletApp() {
     handleChallenge,
     handleConnect,
     handleDisconnect,
+    handleCheckInSuccess,
+    handleBoostSuccess,
     doNativeTx,
     doNativeMint,
     shareScore,
