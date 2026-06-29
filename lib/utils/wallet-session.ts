@@ -1,7 +1,7 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 
 /** Bump to reset stale per-wallet session keys after storage logic changes. */
-export const SESSION_STORAGE_VERSION = 2;
+export const SESSION_STORAGE_VERSION = 3;
 
 export const DEFAULT_TX_KEYS: Record<string, number> = {
   boost: 0,
@@ -161,17 +161,33 @@ export function deriveTxKeysFromAnalysis(
   };
 }
 
+/** Keep Transaction remount counters when re-syncing from on-chain analysis. */
+export function mergeTxKeyCounters(
+  derived: Record<string, number>,
+  current: Record<string, number>
+): Record<string, number> {
+  return {
+    boost: Math.max(derived.boost || 0, current.boost || 0),
+    gm: Math.max(derived.gm || 0, current.gm || 0),
+    gn: Math.max(derived.gn || 0, current.gn || 0),
+    checkin: Math.max(derived.checkin || 0, current.checkin || 0),
+  };
+}
+
 export function syncSessionFromAnalysis(
   address: string,
   result: AnalyzeWalletResult
 ): { boosts: number; checkInCount: number; txKeys: Record<string, number> } {
   const boosts = resolveBoostCount(result.boosts, address);
   const checkInCount = resolveCheckInCount(result.wallet.checkInCount, address);
-  const txKeys = deriveTxKeysFromAnalysis({
-    ...result,
-    boosts,
-    wallet: { ...result.wallet, checkInCount },
-  });
+  const txKeys = mergeTxKeyCounters(
+    deriveTxKeysFromAnalysis({
+      ...result,
+      boosts,
+      wallet: { ...result.wallet, checkInCount },
+    }),
+    readPersistedTxKeys(address)
+  );
   writePersistedTxKeys(address, txKeys);
   return { boosts, checkInCount, txKeys };
 }

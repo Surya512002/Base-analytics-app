@@ -10,34 +10,36 @@ interface WindowWithEthereum extends Omit<Window, 'ethereum' | 'coinbaseWalletEx
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
-export async function getWalletProvider(
+export async function getEip1193Provider(
   type: "farcaster" | "coinbase" | "metamask"
-): Promise<BrowserProvider> {
+): Promise<Eip1193Provider> {
   if (typeof window === "undefined") throw new Error("Window not found");
 
   const win = window as unknown as WindowWithEthereum;
   let selectedProvider: Eip1193Provider | undefined;
 
-  // 1. COINBASE WALLET
   if (type === "coinbase") {
     const cbProvider = win.coinbaseWalletExtension || win.ethereum;
     selectedProvider = cbProvider as Eip1193Provider;
-    
+
     if (!selectedProvider) {
       throw new Error("Coinbase Wallet not found. Please install or open Coinbase Wallet.");
     }
-  }
-
-  // 2. METAMASK
-  else if (type === "metamask") {
+  } else if (type === "metamask") {
     if (!win.ethereum) {
       throw new Error("MetaMask not found. Please install the extension.");
     }
-    selectedProvider = win.ethereum as Eip1193Provider;
-  }
-
-  // 3. FARCASTER MINI APP WALLET
-  else if (type === "farcaster") {
+    const eth = win.ethereum as Eip1193Provider & {
+      providers?: Array<Eip1193Provider & { isMetaMask?: boolean; isCoinbaseWallet?: boolean }>;
+      isMetaMask?: boolean;
+    };
+    if (eth.providers?.length) {
+      const mm = eth.providers.find((p) => p.isMetaMask && !p.isCoinbaseWallet);
+      selectedProvider = (mm ?? eth.providers[0]) as Eip1193Provider;
+    } else {
+      selectedProvider = eth as Eip1193Provider;
+    }
+  } else if (type === "farcaster") {
     if (sdk?.actions?.ready) {
       await sdk.actions.ready();
     }
@@ -58,6 +60,13 @@ export async function getWalletProvider(
     throw new Error("No wallet provider found");
   }
 
+  return selectedProvider;
+}
+
+export async function getWalletProvider(
+  type: "farcaster" | "coinbase" | "metamask"
+): Promise<BrowserProvider> {
+  const selectedProvider = await getEip1193Provider(type);
   return new BrowserProvider(selectedProvider);
 }
 

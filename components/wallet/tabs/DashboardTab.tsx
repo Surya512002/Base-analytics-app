@@ -9,8 +9,6 @@ import {
   Star, Sun, Swords, Target, TrendingUp, Trophy, Twitter, User, Users, Wifi,
   Zap,
 } from "lucide-react";
-import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
-import { base } from "viem/chains";
 import dynamic from "next/dynamic";
 import { ActivityHeatmap } from "@/components/wallet/ActivityHeatmap";
 import QuestProgressBanner from "@/components/wallet/QuestProgressBanner";
@@ -36,7 +34,6 @@ import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { getAppContractHit, isPaymasterActivity } from "@/lib/utils/app-contracts";
-import { txHashFromLifecycle } from "@/lib/utils/tx-status";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const FarcasterAnalytics = dynamic(
@@ -46,12 +43,12 @@ const FarcasterAnalytics = dynamic(
 
 export default function DashboardTab({ app }: { app: WalletAppState }) {
   const {
-    wallet, connType, minting, mintedLevels, setMintedLevels, selDay, setSelDay,
-    scrollRef, boosts, setBoosts, sponsored, setSponsored, txKeys, setTxKeys, streak,
-    checkedToday, setCheckedToday, setStreak, challenge, setChallenge,
+    wallet, minting, selDay, setSelDay,
+    scrollRef, boosts, sponsored, streak,
+    checkedToday, challenge, setChallenge,
     challengeResult, challengeLoading, weeklyXP,
-    x402PayCount, boostCall, gmCall, gnCall, ciCall, txCaps, mintedCount,
-    showToast, handleChallenge, doNativeTx, doNativeMint, handleCheckInSuccess, handleBoostSuccess, shareScore, shareAch,
+    x402PayCount, mintedCount,
+    showToast, handleChallenge, doNativeTx, shareScore, shareAch,
     shareAll, leaderboard, lbLoading, doneQuests,
     premiumUnlocked, premiumLoading, premiumData, premiumInsights, handlePremiumScan,
     x402Product, setX402Product,
@@ -109,29 +106,24 @@ if (!wallet) return null;
                     </div>
                   </div>
                   <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0">
-                    {connType==='farcaster'?(
-                      <button onClick={()=>doNativeTx('checkin')} disabled={checkedToday||!!minting}
-                        className={`py-3 px-6 rounded-2xl font-black text-sm transition-all ${checkedToday?'bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18':'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95'}`}>
-                        {minting==='checkin'?<RefreshCcw className="animate-spin mx-auto" size={14}/>:checkedToday?'✓ Secured Today':'Check In'}
-                      </button>
-                    ):checkedToday?(
-                      <button disabled className="py-3 px-6 rounded-2xl font-black text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/18">✓ Secured Today</button>
-                    ):(
-                      <Transaction key={`ci-${txKeys.checkin}`} chainId={base.id} calls={ciCall} capabilities={txCaps}
-                        onStatus={(s) => {
-                          if (
-                            s.statusName !== "success" &&
-                            s.statusName !== "transactionLegacyExecuted"
-                          ) {
-                            return;
-                          }
-                          const txHash = txHashFromLifecycle(s);
-                          void handleCheckInSuccess(wallet.address, txHash);
-                          setSponsored((v) => v + 1);
-                        }}>
-                        <TransactionButton className="py-3 px-6 rounded-2xl font-black text-sm btn-primary hover:opacity-90 text-white transition-all w-full" text="Check In"/>
-                      </Transaction>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => doNativeTx("checkin")}
+                      disabled={checkedToday || minting === "checkin"}
+                      className={`py-3 px-6 rounded-2xl font-black text-sm transition-all w-full sm:w-auto ${
+                        checkedToday
+                          ? "bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18"
+                          : "btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95"
+                      }`}
+                    >
+                      {minting === "checkin" ? (
+                        <RefreshCcw className="animate-spin mx-auto" size={14} />
+                      ) : checkedToday ? (
+                        "✓ Secured Today"
+                      ) : (
+                        "Check In"
+                      )}
+                    </button>
                     <p className="text-[9px] text-slate-500 flex items-center justify-center gap-1 mt-0.5"><Droplets size={8}/>Gas Sponsored</p>
                   </div>
                 </div>
@@ -172,9 +164,9 @@ if (!wallet) return null;
               </div>
 
               {/* XP Booster + Community Vibes */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 px-4 sm:px-5 pb-5">
-                <div className="glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between card-tilt-3d">
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 px-4 sm:px-5 pb-5 isolate">
+                <div className="min-w-0 relative z-10 glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between">
+                  <div className="flex items-center gap-3 w-full sm:w-auto min-w-0">
                     <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
                     <div>
                       <p className="font-black text-white text-base">XP Booster</p>
@@ -184,38 +176,50 @@ if (!wallet) return null;
                       </div>
                     </div>
                   </div>
-                  <div className="w-full sm:w-auto text-center">
-                    {connType==='farcaster'?(
-                      <button onClick={()=>doNativeTx('boost')} disabled={!!minting}
-                        className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 ${minting?'bg-white/10/40 text-slate-500 cursor-not-allowed':'btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20'}`}>
-                        {minting==='boost'?<RefreshCcw className="animate-spin mx-auto" size={18}/>:'BOOST (+1)'}
-                      </button>
-                    ):(
-                      <Transaction key={`boost-${txKeys.boost}`} chainId={base.id} calls={boostCall} capabilities={txCaps}
-                        onStatus={s=>{if(s.statusName==='success'){setSponsored(v=>v+1);handleBoostSuccess(wallet.address,s.statusData.transactionReceipts?.[0]?.transactionHash||'');}}}>
-                        <TransactionButton className="w-full py-3 px-5 rounded-xl font-black text-sm btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20 transition-all" text="BOOST (+1)"/>
-                      </Transaction>
-                    )}
+                  <div className="relative z-20 w-full sm:w-auto text-center shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => doNativeTx("boost")}
+                      disabled={minting === "boost"}
+                      className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 cursor-pointer touch-manipulation ${
+                        minting === "boost"
+                          ? "bg-white/10 text-slate-500 cursor-wait"
+                          : "btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20"
+                      }`}
+                    >
+                      {minting === "boost" ? (
+                        <RefreshCcw className="animate-spin mx-auto" size={18} />
+                      ) : (
+                        "BOOST (+1)"
+                      )}
+                    </button>
                     <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
                   </div>
                 </div>
 
-                <div className="glass-panel-accent rounded-2xl p-5 card-tilt-3d">
+                <div className="min-w-0 relative z-10 glass-panel-accent rounded-2xl p-5">
                   <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
                   <div className="grid grid-cols-2 gap-3">
                     {(['gm','gn'] as const).map(type=>(
-                      <div key={type} className="text-center">
-                        {connType==='farcaster'?(
-                          <button onClick={()=>doNativeTx(type)} disabled={!!minting}
-                            className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border ${minting?'opacity-40 cursor-not-allowed bg-white/[0.04] border-white/8 text-slate-600':'bg-white/[0.04] hover:bg-cyan-500/12 border-white/8 hover:border-cyan-500/28 text-white'}`}>
-                            {minting===type?<RefreshCcw className="animate-spin mx-auto" size={18}/>:(type==='gm'?'☀️ GM':'🌙 GN')}
-                          </button>
-                        ):(
-                          <Transaction key={`${type}-${txKeys[type]}`} chainId={base.id} calls={type==='gm'?gmCall:gnCall} capabilities={txCaps}
-                            onStatus={s=>{if(s.statusName==='success'){showToast(type==='gm'?'GM! ☀️':'GN! 🌙',s.statusData.transactionReceipts?.[0]?.transactionHash||'');setSponsored(v=>v+1);if(type==='gm'&&typeof window!=='undefined')localStorage.setItem(`base_gm_${wallet.address.toLowerCase()}`,'true');setTxKeys(k=>({...k,[type]:(k[type]||0)+1}));}}}>
-                            <TransactionButton className="w-full py-4 rounded-xl font-black text-xl bg-white/[0.04] hover:bg-cyan-500/12 border border-white/8 hover:border-cyan-500/28 text-white transition-all" text={type==='gm'?'☀️ GM':'🌙 GN'}/>
-                          </Transaction>
-                        )}
+                      <div key={type} className="relative z-20 text-center">
+                        <button
+                          type="button"
+                          onClick={() => doNativeTx(type)}
+                          disabled={minting === type}
+                          className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border cursor-pointer touch-manipulation ${
+                            minting === type
+                              ? "opacity-40 cursor-wait bg-white/[0.04] border-white/8 text-slate-600"
+                              : "btn-primary hover:opacity-90 text-white border-transparent shadow-lg shadow-cyan-500/15"
+                          }`}
+                        >
+                          {minting === type ? (
+                            <RefreshCcw className="animate-spin mx-auto" size={18} />
+                          ) : type === "gm" ? (
+                            "☀️ GM"
+                          ) : (
+                            "🌙 GN"
+                          )}
+                        </button>
                         <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
                       </div>
                     ))}

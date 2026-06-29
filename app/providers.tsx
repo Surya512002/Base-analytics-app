@@ -1,24 +1,11 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { WagmiProvider, createConfig, http } from 'wagmi';
-import { base } from 'wagmi/chains';
+import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
-import { ALCHEMY_KEY, BASE_RPC } from '@/lib/constants/env';
-
-const wagmiConfig = createConfig({
-  chains: [base],
-  transports: {
-    [base.id]: http(
-      BASE_RPC ||
-        (ALCHEMY_KEY
-          ? `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`
-          : 'https://mainnet.base.org')
-    ),
-  },
-  ssr: true,
-});
+import { base } from 'wagmi/chains';
+import { wagmiConfig } from '@/lib/wagmi/config';
 
 const queryClient = new QueryClient();
 

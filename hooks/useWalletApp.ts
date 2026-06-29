@@ -47,6 +47,16 @@ import {
   warpcast,
 } from "@/lib/utils/share";
 import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
+import { sendAppTransaction } from "@/lib/utils/send-app-tx";
+import {
+  clearConnType,
+  inferConnType,
+  persistConnType,
+  readConnType,
+} from "@/lib/utils/wallet-connection";
+import { wagmiConfig } from "@/lib/wagmi/config";
+import { connect, disconnect } from "wagmi/actions";
+import { injected } from "wagmi/connectors";
 import type { PremiumInsights } from "@/lib/premium/build-insights";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
@@ -59,6 +69,7 @@ import {
   DEFAULT_TX_KEYS,
   deriveTxKeysFromAnalysis,
   ensureSessionStorageVersion,
+  mergeTxKeyCounters,
   readReferralBonusXpForAddress,
   setReferralBonusXpForAddress,
   syncSessionFromAnalysis,
@@ -103,7 +114,9 @@ function resolveInitialTab(): AppTab {
 
 export function useWalletApp() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [connType, setConnType] = useState<ConnectionType | null>(null);
+  const [connType, setConnType] = useState<ConnectionType | null>(() =>
+    typeof window !== "undefined" ? readConnType() : null
+  );
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<AppTab>("basehub");
   const [minting, setMinting] = useState<string | null>(null);
@@ -113,6 +126,8 @@ export function useWalletApp() {
   const [selDay, setSelDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sharingRef = useRef(false);
+  const pendingTx = useRef<Set<string>>(new Set());
+  const handledActionTxs = useRef<Set<string>>(new Set());
   const [boosts, setBoosts] = useState(0);
   const [sponsored, setSponsored] = useState(0);
   const [txKeys, setTxKeys] = useState<Record<string, number>>({
@@ -378,7 +393,7 @@ export function useWalletApp() {
     setBoosts(session.boosts);
     setWallet({ ...result.wallet, checkInCount: session.checkInCount });
     setReferralBonusXp(readReferralBonusXpForAddress(address));
-    setTxKeys(session.txKeys);
+    setTxKeys((prev) => mergeTxKeyCounters(session.txKeys, prev));
     void fetchReferralStats(address);
     if (typeof window !== "undefined") {
       localStorage.setItem("base_has_connected", "1");
@@ -395,6 +410,12 @@ export function useWalletApp() {
 
   const handleCheckInSuccess = useCallback(
     async (address: string, txHash?: string) => {
+      if (txHash) {
+        const h = (normalizeTxHash(txHash) ?? txHash).toLowerCase();
+        const key = `checkin:${h}`;
+        if (handledActionTxs.current.has(key)) return;
+        handledActionTxs.current.add(key);
+      }
       const floor =
         wallet?.address.toLowerCase() === address.toLowerCase()
           ? wallet.checkInCount
@@ -402,7 +423,7 @@ export function useWalletApp() {
       const count = recordCheckInSuccess(address, floor);
       setCheckedToday(true);
       setTxKeys((k) => {
-        const next = { ...k, checkin: 1 };
+        const next = { ...k, checkin: (k.checkin || 0) + 1 };
         writePersistedTxKeys(address, next);
         return next;
       });
@@ -428,9 +449,15 @@ export function useWalletApp() {
 
   const handleBoostSuccess = useCallback(
     (address: string, txHash?: string) => {
+      if (txHash) {
+        const h = (normalizeTxHash(txHash) ?? txHash).toLowerCase();
+        const key = `boost:${h}`;
+        if (handledActionTxs.current.has(key)) return;
+        handledActionTxs.current.add(key);
+      }
       setBoosts((current) => bumpBoostCount(address, current));
       setTxKeys((k) => {
-        const next = { ...k, boost: 1 };
+        const next = { ...k, boost: (k.boost || 0) + 1 };
         writePersistedTxKeys(address, next);
         return next;
       });
@@ -530,6 +557,14 @@ export function useWalletApp() {
         addr = address;
       }
       setConnType(type);
+      persistConnType(type);
+      if (type !== "farcaster") {
+        try {
+          await connect(wagmiConfig, { connector: injected() });
+        } catch {
+          // wagmi sync is optional; sendAppTransaction uses the injected provider
+        }
+      }
       analyzeWallet(addr);
     } catch {
       setLoading(false);
@@ -540,6 +575,7 @@ export function useWalletApp() {
   const resetSessionState = useCallback(() => {
     setWallet(null);
     setConnType(null);
+    clearConnType();
     setMintedLevels({});
     setBoosts(0);
     setStreak(0);
@@ -554,77 +590,95 @@ export function useWalletApp() {
     setPremiumInsights(null);
     setX402PayCount(0);
     setSponsored(0);
+    pendingTx.current.clear();
+    handledActionTxs.current.clear();
   }, []);
 
   const handleDisconnect = () => {
+    void disconnect(wagmiConfig).catch(() => {});
     resetSessionState();
   };
 
   const doNativeTx = async (type: "boost" | "gm" | "gn" | "checkin") => {
-    if (!wallet || minting) return;
-    setMinting(type);
-    try {
-      let to: `0x${string}` = BOOSTER_CONTRACT as `0x${string}`;
-      let data: `0x${string}` = boostCall[0].data;
-      let msg = "Boosted! 🎉";
-      if (type === "gm") {
-        to = GM_GN_CONTRACT as `0x${string}`;
-        data = gmCall[0].data;
-        msg = "GM on Base! ☀️";
-      } else if (type === "gn") {
-        to = GM_GN_CONTRACT as `0x${string}`;
-        data = gnCall[0].data;
-        msg = "GN on Base! 🌙";
-      } else if (type === "checkin") {
-        to = CHECKIN_CONTRACT as `0x${string}`;
-        data = ciCall[0].data;
-        msg = "Check-in secured! 🔥";
+    if (!wallet) {
+      showToast("❌ Connect your wallet first", "");
+      return;
+    }
+    if (pendingTx.current.has(type)) {
+      showToast("⏳ Already waiting for MetaMask…", "");
+      return;
+    }
+
+    let activeConn = connType;
+    if (!activeConn) {
+      activeConn = await inferConnType(wallet.address);
+      if (activeConn) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
       }
-      const p = {
-        from: wallet.address as `0x${string}`,
-        to,
-        data,
-        chainId: "0x2105" as `0x${string}`,
-      };
-      const hash = await sdk.wallet.ethProvider.request({
-        method: "eth_sendTransaction",
-        params: [p],
-      });
-      if (hash && typeof hash === "string") {
-        setSponsored((s) => s + 1);
-        if (type === "checkin") {
-          void handleCheckInSuccess(wallet.address, hash);
-        } else {
-          showToast(msg, hash);
-          if (type === "boost") {
-            handleBoostSuccess(wallet.address, hash);
-          }
-          if (type === "gm") {
-            if (typeof window !== "undefined")
-              localStorage.setItem(
-                `base_gm_${wallet.address.toLowerCase()}`,
-                "true"
-              );
-            setTxKeys((k) => {
-              const next = { ...k, gm: (k.gm || 0) + 1 };
-              writePersistedTxKeys(wallet.address, next);
-              return next;
-            });
-          }
-          if (type === "gn") {
-            setTxKeys((k) => {
-              const next = { ...k, gn: (k.gn || 0) + 1 };
-              writePersistedTxKeys(wallet.address, next);
-              return next;
-            });
-          }
+    }
+    if (!activeConn) {
+      showToast("❌ Reconnect MetaMask to continue", "");
+      return;
+    }
+
+    const callByType = {
+      boost: boostCall[0],
+      gm: gmCall[0],
+      gn: gnCall[0],
+      checkin: ciCall[0],
+    } as const;
+    const successMsg = {
+      boost: "Boosted! 🎉",
+      gm: "GM on Base! ☀️",
+      gn: "GN on Base! 🌙",
+      checkin: "Check-in secured! 🔥",
+    } as const;
+
+    pendingTx.current.add(type);
+    setMinting(type);
+    showToast("⏳ Confirm in MetaMask…", "");
+    try {
+      const hash = await sendAppTransaction(
+        activeConn,
+        wallet.address,
+        callByType[type]
+      );
+
+      setSponsored((s) => s + 1);
+      if (type === "checkin") {
+        void handleCheckInSuccess(wallet.address, hash);
+      } else if (type === "boost") {
+        handleBoostSuccess(wallet.address, hash);
+      } else {
+        showToast(successMsg[type], hash);
+        if (type === "gm") {
+          if (typeof window !== "undefined")
+            localStorage.setItem(
+              `base_gm_${wallet.address.toLowerCase()}`,
+              "true"
+            );
+          setTxKeys((k) => {
+            const next = { ...k, gm: (k.gm || 0) + 1 };
+            writePersistedTxKeys(wallet.address, next);
+            return next;
+          });
+        }
+        if (type === "gn") {
+          setTxKeys((k) => {
+            const next = { ...k, gn: (k.gn || 0) + 1 };
+            writePersistedTxKeys(wallet.address, next);
+            return next;
+          });
         }
       }
     } catch (e: unknown) {
       const m =
-        e instanceof Error ? e.message.split("\n")[0] : "Rejected.";
-      if (!m.includes("rejected")) showToast(`❌ ${m}`, "");
+        e instanceof Error ? e.message.split("\n")[0] : "Transaction failed.";
+      const rejected = m.toLowerCase().includes("reject");
+      showToast(rejected ? "Transaction cancelled" : `❌ ${m}`, "");
     } finally {
+      pendingTx.current.delete(type);
       setMinting(null);
     }
   };

@@ -79,7 +79,7 @@ export const GM_GN_ABI = [
   {
     name: "gn",
     type: "function",
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
     inputs: [],
     outputs: [],
   },

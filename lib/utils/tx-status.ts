@@ -12,3 +12,10 @@ export function txHashFromLifecycle(status: LifecycleStatus): string {
   }
   return "";
 }
+
+export function isLifecycleSuccess(status: LifecycleStatus): boolean {
+  return (
+    status.statusName === "success" ||
+    status.statusName === "transactionLegacyExecuted"
+  );
+}
