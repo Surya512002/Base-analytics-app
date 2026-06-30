@@ -32,6 +32,13 @@ export function withBuilderSuffix(data: Hex): Hex {
   return `${data}${getBuilderSuffix()}` as Hex;
 }
 
+/** Remove builder suffix for wallet_sendCalls (wallet applies dataSuffix capability). */
+export function stripBuilderSuffix(data: Hex): Hex {
+  if (!hasBuilderSuffix(data)) return data;
+  const suffix = getBuilderSuffix();
+  return (`0x${data.slice(2).slice(0, -suffix.length)}`) as Hex;
+}
+
 export type ContractCall = {
   to: `0x${string}`;
   data: Hex;

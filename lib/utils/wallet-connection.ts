@@ -20,12 +20,45 @@ export function clearConnType(): void {
   localStorage.removeItem(CONN_TYPE_KEY);
 }
 
+/** True when running inside Base App / Farcaster mini app with an embedded wallet. */
+export async function detectMiniAppConnType(): Promise<ConnectionType | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const { sdk } = await import("@farcaster/miniapp-sdk");
+    if (!sdk?.wallet?.getEthereumProvider) return null;
+    const provider = await sdk.wallet.getEthereumProvider();
+    if (provider) return "farcaster";
+  } catch {
+    // not in mini app
+  }
+  return null;
+}
+
 /** Best-effort recovery when React state lost connType but wallet is still connected. */
 export async function inferConnType(
   address: string
 ): Promise<ConnectionType | null> {
   const saved = readConnType();
   if (saved) return saved;
+
+  const mini = await detectMiniAppConnType();
+  if (mini) {
+    try {
+      const { sdk } = await import("@farcaster/miniapp-sdk");
+      const provider = await sdk.wallet.getEthereumProvider();
+      if (!provider) return null;
+      const accounts = (await provider.request({
+        method: "eth_accounts",
+      })) as string[];
+      if (
+        accounts?.find((a) => a?.toLowerCase() === address.toLowerCase())
+      ) {
+        return "farcaster";
+      }
+    } catch {
+      // fall through
+    }
+  }
 
   if (typeof window === "undefined") return null;
   const eth = (
