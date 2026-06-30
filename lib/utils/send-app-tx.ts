@@ -6,7 +6,7 @@ import {
 } from "@/lib/utils/paymaster";
 import type { ContractCall } from "@/lib/utils/tx";
 import { stripBuilderSuffix, withBuilderSuffix } from "@/lib/utils/tx";
-import { ensureBaseNetwork, detectMiniAppConnType } from "@/lib/utils/wallet-connection";
+import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 
 const BASE_CHAIN_HEX = "0x2105" as const;
 const WALLET_PROMPT_MS = 120_000;
@@ -39,6 +39,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
+function isUserRejection(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("reject") ||
+    msg.includes("denied") ||
+    msg.includes("cancel") ||
+    msg.includes("4001")
+  );
+}
+
 async function ensureActiveAccount(
   provider: Eip1193,
   from: string
@@ -60,19 +70,16 @@ async function ensureActiveAccount(
 
 function buildLegacyTxParams(
   from: string,
-  call: ContractCall,
-  connType: ConnectionType
+  call: ContractCall
 ): Record<string, string> {
   const params: Record<string, string> = {
     from,
     to: call.to,
     data: withBuilderSuffix(call.data),
+    chainId: BASE_CHAIN_HEX,
   };
   if (call.value && call.value > BigInt(0)) {
     params.value = `0x${call.value.toString(16)}`;
-  }
-  if (connType === "farcaster") {
-    params.chainId = BASE_CHAIN_HEX;
   }
   return params;
 }
@@ -183,13 +190,12 @@ async function sendViaWalletSendCalls(
 async function sendViaEthSendTransaction(
   provider: Eip1193,
   from: string,
-  call: ContractCall,
-  connType: ConnectionType
+  call: ContractCall
 ): Promise<string> {
   const hash = await withTimeout(
     provider.request({
       method: "eth_sendTransaction",
-      params: [buildLegacyTxParams(from, call, connType)],
+      params: [buildLegacyTxParams(from, call)],
     }),
     WALLET_PROMPT_MS,
     "Wallet confirmation"
@@ -212,33 +218,17 @@ export async function sendAppTransaction(
   await ensureBaseNetwork(provider);
   await ensureActiveAccount(provider, from);
 
-  let effectiveConn = connType;
-  if (!supportsPaymaster(effectiveConn)) {
-    const mini = await detectMiniAppConnType();
-    if (mini) effectiveConn = mini;
-  }
+  const trySponsored = supportsPaymaster(connType);
 
-  const trySponsored = supportsPaymaster(effectiveConn);
-
-  try {
-    if (trySponsored) {
+  if (trySponsored) {
+    try {
       return await sendViaWalletSendCalls(provider, from, call);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+      // Paymaster / sendCalls failed — fall back to a normal wallet popup.
+      return sendViaEthSendTransaction(provider, from, call);
     }
-    return await sendViaEthSendTransaction(provider, from, call, effectiveConn);
-  } catch (e: unknown) {
-    if (trySponsored && isSendCallsUnsupported(e)) {
-      return sendViaEthSendTransaction(provider, from, call, effectiveConn);
-    }
-
-    const msg = e instanceof Error ? e.message : String(e);
-    if (
-      msg.toLowerCase().includes("insufficient funds") ||
-      msg.toLowerCase().includes("gas")
-    ) {
-      throw new Error(
-        "Need a small amount of ETH on Base for gas — or open in Base App for sponsored txs"
-      );
-    }
-    throw e;
   }
+
+  return sendViaEthSendTransaction(provider, from, call);
 }

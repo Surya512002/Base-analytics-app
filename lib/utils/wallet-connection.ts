@@ -25,7 +25,8 @@ export async function detectMiniAppConnType(): Promise<ConnectionType | null> {
   if (typeof window === "undefined") return null;
   try {
     const { sdk } = await import("@farcaster/miniapp-sdk");
-    if (!sdk?.wallet?.getEthereumProvider) return null;
+    const inMiniApp = await sdk.isInMiniApp();
+    if (!inMiniApp) return null;
     const provider = await sdk.wallet.getEthereumProvider();
     if (provider) return "farcaster";
   } catch {
@@ -39,7 +40,12 @@ export async function inferConnType(
   address: string
 ): Promise<ConnectionType | null> {
   const saved = readConnType();
-  if (saved) return saved;
+  if (saved === "farcaster") {
+    if (await detectMiniAppConnType()) return "farcaster";
+    // Stale mini-app conn type on a regular browser — fall through to injected wallet.
+  } else if (saved) {
+    return saved;
+  }
 
   const mini = await detectMiniAppConnType();
   if (mini) {
@@ -83,6 +89,20 @@ export async function inferConnType(
     // ignore
   }
   return null;
+}
+
+/** Normalize conn type for onchain txs (avoids mini-app path in a regular browser). */
+export async function resolveActiveConnType(
+  connType: ConnectionType | null,
+  address: string
+): Promise<ConnectionType | null> {
+  let active = connType ?? (await inferConnType(address));
+  if (!active) return null;
+
+  if (active === "farcaster" && !(await detectMiniAppConnType())) {
+    active = "metamask";
+  }
+  return active;
 }
 
 type Eip1193 = {

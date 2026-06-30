@@ -53,6 +53,7 @@ import {
   inferConnType,
   persistConnType,
   readConnType,
+  resolveActiveConnType,
 } from "@/lib/utils/wallet-connection";
 import type { PremiumInsights } from "@/lib/premium/build-insights";
 import type { X402ProductId } from "@/lib/constants/x402-products";
@@ -623,16 +624,13 @@ export function useWalletApp() {
     }
     if (pendingTx.current.has(type)) return;
 
-    let activeConn = connType;
-    if (!activeConn) {
-      activeConn = await inferConnType(wallet.address);
-      if (activeConn) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
+    let activeConn = await resolveActiveConnType(connType, wallet.address);
+    if (activeConn && activeConn !== connType) {
+      setConnType(activeConn);
+      persistConnType(activeConn);
     }
     if (!activeConn) {
-      showToast("❌ Reconnect MetaMask to continue", "");
+      showToast("❌ Reconnect your wallet to continue", "");
       return;
     }
 
@@ -723,13 +721,10 @@ export function useWalletApp() {
             [BigInt(tokenIds[0])]
           );
 
-      let activeConn = connType;
-      if (!activeConn) {
-        activeConn = await inferConnType(wallet.address);
-        if (activeConn) {
-          setConnType(activeConn);
-          persistConnType(activeConn);
-        }
+      let activeConn = await resolveActiveConnType(connType, wallet.address);
+      if (activeConn && activeConn !== connType) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
       }
       if (!activeConn) {
         showToast("❌ Reconnect wallet to mint", "");
