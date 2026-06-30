@@ -54,9 +54,6 @@ import {
   persistConnType,
   readConnType,
 } from "@/lib/utils/wallet-connection";
-import { wagmiConfig } from "@/lib/wagmi/config";
-import { connect, disconnect } from "wagmi/actions";
-import { injected } from "wagmi/connectors";
 import type { PremiumInsights } from "@/lib/premium/build-insights";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
@@ -128,6 +125,7 @@ export function useWalletApp() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sharingRef = useRef(false);
   const pendingTx = useRef<Set<string>>(new Set());
+  const connectingRef = useRef(false);
   const x402Paying = useRef(false);
   const handledActionTxs = useRef<Set<string>>(new Set());
   const [boosts, setBoosts] = useState(0);
@@ -556,6 +554,8 @@ export function useWalletApp() {
   );
 
   const handleConnect = async (type: ConnectionType) => {
+    if (connectingRef.current) return;
+    connectingRef.current = true;
     try {
       setShowModal(false);
       setLoading(true);
@@ -575,17 +575,12 @@ export function useWalletApp() {
       }
       setConnType(type);
       persistConnType(type);
-      if (type !== "farcaster") {
-        try {
-          await connect(wagmiConfig, { connector: injected() });
-        } catch {
-          // wagmi sync is optional; sendAppTransaction uses the injected provider
-        }
-      }
       analyzeWallet(addr);
     } catch {
       setLoading(false);
       showToast("❌ Connection Failed.", "");
+    } finally {
+      connectingRef.current = false;
     }
   };
 
@@ -618,7 +613,6 @@ export function useWalletApp() {
     if (address) {
       lockX402PremiumSession(address);
     }
-    void disconnect(wagmiConfig).catch(() => {});
     resetSessionState();
   };
 

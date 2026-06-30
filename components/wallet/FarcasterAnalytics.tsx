@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
-import { useAccount } from 'wagmi';
 import { fetchNeynar } from "@/lib/api/neynar";
 import {
   MessageCircle,
@@ -95,8 +94,7 @@ const buildFcResult=async(user:Record<string,unknown>):Promise<FarcasterData>=>{
   };
 };
 
-export default function FarcasterAnalytics(){
-  const{address}=useAccount();
+export default function FarcasterAnalytics({ address }: { address: string }) {
 
   const[fcUsername,setFcUsername]=useState('');
   const[isScanningFc,setIsScanningFc]=useState(false);

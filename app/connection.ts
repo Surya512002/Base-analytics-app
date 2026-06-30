@@ -74,17 +74,18 @@ export async function connectWallet(
   type: "farcaster" | "coinbase" | "metamask"
 ): Promise<{ signer: JsonRpcSigner; address: string }> {
   const provider = await getWalletProvider(type);
+  const eip1193 = await getEip1193Provider(type);
 
-  if (type === "metamask") {
-    try {
-      await provider.send("wallet_requestPermissions", [{ eth_accounts: {} }]);
-    } catch (e) {
-      console.log("MetaMask permission request skipped or rejected", e);
-    }
+  // Single wallet prompt — avoid wallet_requestPermissions + getSigner double popup.
+  const accounts = (await eip1193.request({
+    method: "eth_requestAccounts",
+  })) as string[];
+
+  const address = accounts?.find((a) => a?.startsWith("0x"));
+  if (!address) {
+    throw new Error("No wallet account connected");
   }
 
-  const signer = await provider.getSigner();
-  const address = await signer.getAddress();
-
+  const signer = await provider.getSigner(address);
   return { signer, address };
 } 

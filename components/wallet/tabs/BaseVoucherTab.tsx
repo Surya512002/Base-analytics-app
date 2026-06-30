@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
 import { encodeContractCall } from "@/lib/utils/tx";
 import { base } from "viem/chains";
-import { useAccount, usePublicClient } from "wagmi";
+import { usePublicClient } from "wagmi";
 import {
   Copy,
   CreditCard,
@@ -191,8 +191,8 @@ function VoucherCardPreview({
 }
 
 export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
-  const { showToast, setSponsored, setTab } = app;
-  const { address } = useAccount();
+  const { showToast, setSponsored, setTab, wallet } = app;
+  const address = wallet?.address as `0x${string}` | undefined;
   const publicClient = usePublicClient({ chainId: base.id });
   const txCaps = getCapabilities();
   const contractReady = Boolean(VOUCHER_CONTRACT);

@@ -244,7 +244,8 @@ export default function ConnectScreen({
                 <button
                   key={w.type}
                   onClick={() => onConnect(w.type)}
-                  className={`w-full flex items-center justify-between ${w.cls} border text-white p-4 rounded-2xl transition-all active:scale-[0.98] group`}
+                  disabled={loading}
+                  className={`w-full flex items-center justify-between ${w.cls} border text-white p-4 rounded-2xl transition-all active:scale-[0.98] group disabled:opacity-50 disabled:pointer-events-none`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-base">{w.emoji}</span>

@@ -412,7 +412,7 @@ if (!wallet) return null;
 
             <ReferralPanel address={wallet.address} />
 
-            <FarcasterAnalytics />
+            <FarcasterAnalytics address={wallet.address} />
 
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
