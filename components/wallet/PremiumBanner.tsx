@@ -7,6 +7,7 @@ import { X402_PRODUCTS, type X402ProductId } from "@/lib/constants/x402-products
 
 interface PremiumBannerProps {
   premiumLoading: boolean;
+  premiumUnlocked: boolean;
   premiumData: { message: string; transaction?: string } | null;
   x402PayCount: number;
   product: X402ProductId;
@@ -16,6 +17,7 @@ interface PremiumBannerProps {
 
 export default function PremiumBanner({
   premiumLoading,
+  premiumUnlocked,
   premiumData,
   x402PayCount,
   product,
@@ -41,11 +43,14 @@ export default function PremiumBanner({
                 </span>
                 {x402PayCount > 0 && (
                   <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle size={10} /> {x402PayCount}
+                    <CheckCircle size={10} /> {x402PayCount} paid
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 truncate">{selected.description}</p>
+              <p className="text-xs text-slate-500">{selected.description}</p>
+              <p className="text-[10px] text-amber-300/80 mt-1 leading-snug">
+                Pay as many times as you like — no logout needed. Each Deep Scan, Export, or Compare is one payment.
+              </p>
             </div>
           </div>
 
@@ -88,7 +93,8 @@ export default function PremiumBanner({
               </>
             ) : (
               <>
-                <Zap size={14} /> Pay {selected.amountLabel}
+                <Zap size={14} />{" "}
+                {premiumUnlocked ? "Pay again" : "Pay"} {selected.amountLabel}
               </>
             )}
           </button>

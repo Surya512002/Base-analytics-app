@@ -60,6 +60,7 @@ if (!wallet) return null;
           <div className="space-y-4">
             <PremiumBanner
               premiumLoading={premiumLoading}
+              premiumUnlocked={premiumUnlocked}
               premiumData={premiumData}
               x402PayCount={x402PayCount}
               product={x402Product}
@@ -82,7 +83,7 @@ if (!wallet) return null;
                   </h2>
                 </div>
                 <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-                  Check in, boost XP, and say GM — gas sponsored on Base.
+                  Boost, GM & GN — tap as many times as you want. Check-in is once per day.
                 </p>
               </div>
 

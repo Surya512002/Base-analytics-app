@@ -105,11 +105,11 @@ export function countContractInteractions(
   const uniqueContracts = new Set<string>();
   const uProtocols = new Set<string>();
   const protocolFreq = new Map<string, number>();
+  const boostHashes = new Set<string>();
+  const checkInHashes = new Set<string>();
+  const gmHashes = new Set<string>();
   let defi = 0;
-  let hBoosts = 0;
   let hasGm = false;
-  let gmCount = 0;
-  let checkInCount = 0;
 
   for (const tx of txs) {
     if (!walletInvolved(tx, w)) continue;
@@ -127,10 +127,14 @@ export function countContractInteractions(
     const appHit = getAppContractHit(tx, w);
     if (appHit === "gm") {
       hasGm = true;
-      gmCount++;
+      if (tx.hash) gmHashes.add(tx.hash.toLowerCase());
     }
-    if (appHit === "checkin") checkInCount++;
-    if (appHit === "booster") hBoosts++;
+    if (appHit === "checkin" && tx.hash) {
+      checkInHashes.add(tx.hash.toLowerCase());
+    }
+    if (appHit === "booster" && tx.hash) {
+      boostHashes.add(tx.hash.toLowerCase());
+    }
 
     if (!(isOutgoing || isSponsored || isUserOp || appHit)) continue;
 
@@ -152,9 +156,9 @@ export function countContractInteractions(
     defi,
     uProtocols,
     protocolFreq,
-    hBoosts,
+    hBoosts: boostHashes.size,
     hasGm,
-    gmCount,
-    checkInCount,
+    gmCount: gmHashes.size,
+    checkInCount: checkInHashes.size,
   };
 }

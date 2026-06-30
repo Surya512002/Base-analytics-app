@@ -1,7 +1,7 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 
 /** Bump to reset stale per-wallet session keys after storage logic changes. */
-export const SESSION_STORAGE_VERSION = 3;
+export const SESSION_STORAGE_VERSION = 4;
 
 export const DEFAULT_TX_KEYS: Record<string, number> = {
   boost: 0,
@@ -103,29 +103,30 @@ export function writeLocalBoostCount(address: string, count: number): void {
   localStorage.setItem(boostsKey(address), String(Math.max(0, count)));
 }
 
-/** On-chain tx count is source of truth; local may be +1 while indexing catches up. */
+/** On-chain count is floor; local session boosts can run ahead until indexer catches up. */
 export function resolveBoostCount(onChainBoosts: number, address: string): number {
   const chain = Math.max(0, onChainBoosts);
   const local = readLocalBoostCount(address);
-  if (local > chain + 1) {
+  // Only clamp obvious corruption — never cap normal rapid-fire boosting
+  if (local > chain + 100) {
     writeLocalBoostCount(address, chain);
     return chain;
   }
   const resolved = Math.max(chain, local);
-  writeLocalBoostCount(address, resolved);
+  if (local !== resolved) writeLocalBoostCount(address, resolved);
   return resolved;
 }
 
-/** Total check-ins from tx history — never use streak (consecutive days) here. */
+/** Total check-ins — allow session count ahead of indexer like boosts. */
 export function resolveCheckInCount(onChainCount: number, address: string): number {
   const chain = Math.max(0, onChainCount);
   const local = readLocalCheckInCount(address);
-  if (local > chain + 1) {
+  if (local > chain + 100) {
     writeLocalCheckInCount(address, chain);
     return chain;
   }
   const resolved = Math.max(chain, local);
-  writeLocalCheckInCount(address, resolved);
+  if (local !== resolved) writeLocalCheckInCount(address, resolved);
   return resolved;
 }
 
@@ -192,8 +193,19 @@ export function syncSessionFromAnalysis(
   return { boosts, checkInCount, txKeys };
 }
 
-export function bumpBoostCount(address: string, current: number): number {
-  const next = current + 1;
+export function clearWalletActionSession(address: string): void {
+  if (typeof window === "undefined" || !address) return;
+  const key = addrKey(address);
+  localStorage.removeItem(boostsKey(address));
+  localStorage.removeItem(txKeysKey(address));
+  localStorage.removeItem(checkInCountKey(address));
+  localStorage.removeItem(`base_gm_${key}`);
+}
+
+export function bumpBoostCount(address: string, onChainFloor: number): number {
+  const chain = Math.max(0, onChainFloor);
+  const local = readLocalBoostCount(address);
+  const next = Math.max(local, chain) + 1;
   writeLocalBoostCount(address, next);
   return next;
 }

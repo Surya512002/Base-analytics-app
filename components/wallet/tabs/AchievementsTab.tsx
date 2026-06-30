@@ -9,9 +9,6 @@ import {
   Star, Sun, Swords, Target, TrendingUp, Trophy, Twitter, User, Users, Wifi,
   Zap,
 } from "lucide-react";
-import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
-import { encodeContractCall } from "@/lib/utils/tx";
-import { base } from "viem/chains";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
@@ -77,12 +74,6 @@ if (!wallet) return null;
                 const toMint:number[]=[],toLevels:number[]=[];
                 for(let i=mintedTier+1;i<=unlocked;i++){toLevels.push(i);toMint.push(getTargetTokenId(cat.baseId,cat.thresholds.length,i));}
                 const isBatch=toMint.length>1;
-                let mintCall2:{to:`0x${string}`;data:`0x${string}`}[]=[];
-                if(toMint.length>0){
-                  mintCall2=[isBatch
-                    ?encodeContractCall(ACHIEVEMENTS_CONTRACT as `0x${string}`,ACHIEVEMENTS_ABI,'mintBatchAchievements',[toMint.map(id=>BigInt(id))])
-                    :encodeContractCall(ACHIEVEMENTS_CONTRACT as `0x${string}`,ACHIEVEMENTS_ABI,'mintAchievement',[BigInt(toMint[0])])];
-                }
                 let btnText=`${cat.tierNames[mintedTier]||'...'} Locked`;
                 if(mintedTier===cat.thresholds.length)btnText='Fully Minted 👑';
                 else if(canMint)btnText=isBatch?`Claim ${toMint.length} Badges 🚀`:`Mint ${cat.tierNames[mintedTier]}`;
@@ -126,19 +117,22 @@ if (!wallet) return null;
                     </div>
                     <div className="flex flex-col mt-auto">
                       <div className="flex gap-2">
-                        {connType==='farcaster'?(
-                          <button onClick={()=>doNativeMint(cat.id,toLevels,toMint,cat.name)} disabled={!canMint||!!minting}
-                            className={`flex-1 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${canMint&&!minting?'btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18':'bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/8'}`}>
-                            {minting===`mint-${cat.id}`?<RefreshCcw className="animate-spin mx-auto" size={16}/>:btnText}
-                          </button>
-                        ):canMint?(
-                          <Transaction key={`mint-${cat.id}-${txKeys[`mint-${cat.id}`]||0}`} chainId={base.id} calls={mintCall2} capabilities={txCaps}
-                            onStatus={s=>{if(s.statusName==='success'){showToast(isBatch?`✅ Claimed ${toMint.length} ${cat.name} Badges!`:`✅ Badge minted!`,s.statusData.transactionReceipts?.[0]?.transactionHash||'');setMintedLevels(p=>({...p,[cat.id]:Math.max(...toLevels)}));setSponsored(v=>v+1);}}}>
-                            <TransactionButton className="flex-1 py-3 w-full rounded-xl font-black text-xs btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18 transition-all" text={btnText}/>
-                          </Transaction>
-                        ):(
-                          <button disabled className="flex-1 py-3 rounded-xl font-black text-xs bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/8">{btnText}</button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => doNativeMint(cat.id, toLevels, toMint, cat.name)}
+                          disabled={!canMint || minting === `mint-${cat.id}`}
+                          className={`flex-1 py-3 rounded-xl font-black text-xs transition-all active:scale-95 ${
+                            canMint && minting !== `mint-${cat.id}`
+                              ? "btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/18"
+                              : "bg-white/[0.04] text-slate-700 cursor-not-allowed border border-white/8"
+                          }`}
+                        >
+                          {minting === `mint-${cat.id}` ? (
+                            <RefreshCcw className="animate-spin mx-auto" size={16} />
+                          ) : (
+                            btnText
+                          )}
+                        </button>
                         {mintedTier>0&&(
                           <div className="flex gap-1.5 shrink-0">
                             <button onClick={()=>shareAch(cat.name,cat.tierNames[mintedTier-1],'w')} className="glass-panel-accent hover:bg-cyan-500/12 text-cyan-400/50 p-3 rounded-xl transition-all"><Send size={13}/></button>

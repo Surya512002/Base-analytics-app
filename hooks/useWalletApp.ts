@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
-import { connectWallet } from "@/app/connection";
+import { connectWallet, getEip1193Provider } from "@/app/connection";
 import { fetchWalletAnalysis } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
@@ -64,6 +64,7 @@ import {
   registerReferralJoin,
   fetchReferralStats,
 } from "@/lib/utils/referral";
+import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
   bumpBoostCount,
   DEFAULT_TX_KEYS,
@@ -127,6 +128,7 @@ export function useWalletApp() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sharingRef = useRef(false);
   const pendingTx = useRef<Set<string>>(new Set());
+  const x402Paying = useRef(false);
   const handledActionTxs = useRef<Set<string>>(new Set());
   const [boosts, setBoosts] = useState(0);
   const [sponsored, setSponsored] = useState(0);
@@ -176,16 +178,14 @@ export function useWalletApp() {
   }, []);
 
   const loadX402PremiumState = useCallback((address: string) => {
-    const key = address.toLowerCase();
+    const keys = x402StorageKeys(address);
     const savedCount = parseInt(
-      localStorage.getItem(`x402_count_${key}`) || "0",
+      localStorage.getItem(keys.count) || "0",
       10
     );
-    const unlocked =
-      localStorage.getItem(`x402_unlocked_${key}`) === "true" ||
-      savedCount > 0;
-    const lastTx = localStorage.getItem(`x402_last_tx_${key}`);
-    const insightsRaw = localStorage.getItem(`x402_insights_${key}`);
+    const unlocked = localStorage.getItem(keys.unlocked) === "true";
+    const lastTx = localStorage.getItem(keys.lastTx);
+    const insightsRaw = localStorage.getItem(keys.insights);
     setX402PayCount(savedCount);
     setPremiumUnlocked(unlocked);
     setReferralBonusXp(readReferralBonusXpForAddress(address));
@@ -263,15 +263,25 @@ export function useWalletApp() {
   }, [wallet, boosts, mintedLevels, streak, txKeys, referralBonusXp]);
 
   const handlePremiumScan = async (product: X402ProductId = x402Product) => {
-    if (!wallet) return;
+    if (!wallet || x402Paying.current) return;
+
+    let activeConn = connType;
+    if (!activeConn) {
+      activeConn = await inferConnType(wallet.address);
+      if (activeConn) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
+      }
+    }
+    if (!activeConn) {
+      showToast("❌ Reconnect wallet to continue", "");
+      return;
+    }
+
+    x402Paying.current = true;
     setPremiumLoading(true);
     try {
-      const provider =
-        connType === "farcaster"
-          ? sdk.wallet.ethProvider
-          : (window as unknown as { ethereum: typeof sdk.wallet.ethProvider })
-              .ethereum;
-
+      const provider = await getEip1193Provider(activeConn);
       const { getX402Fetch } = await import("@/lib/x402-client");
       const x402Fetch = await getX402Fetch(provider);
 
@@ -292,21 +302,21 @@ export function useWalletApp() {
         if (data.insights) {
           setPremiumInsights(data.insights);
           localStorage.setItem(
-            `x402_insights_${wallet.address.toLowerCase()}`,
+            x402StorageKeys(wallet.address).insights,
             JSON.stringify(data.insights)
           );
         }
-        const key = wallet.address.toLowerCase();
+        const keys = x402StorageKeys(wallet.address);
         const prev = parseInt(
-          localStorage.getItem(`x402_count_${key}`) || "0",
+          localStorage.getItem(keys.count) || "0",
           10
         );
         const next = prev + 1;
-        localStorage.setItem(`x402_count_${key}`, next.toString());
-        localStorage.setItem(`x402_unlocked_${key}`, "true");
+        localStorage.setItem(keys.count, next.toString());
+        localStorage.setItem(keys.unlocked, "true");
         if (data.transaction) {
           localStorage.setItem(
-            `x402_last_tx_${wallet.address.toLowerCase()}`,
+            keys.lastTx,
             normalizeTxHash(data.transaction) ?? data.transaction
           );
         }
@@ -336,6 +346,7 @@ export function useWalletApp() {
         e instanceof Error ? e.message.split("\n")[0] : "Payment error";
       if (!msg.includes("rejected")) showToast(`❌ ${msg}`, "");
     } finally {
+      x402Paying.current = false;
       setPremiumLoading(false);
     }
   };
@@ -390,8 +401,11 @@ export function useWalletApp() {
     setCheckedToday(
       result.checkedToday || readLocalCheckInToday(address)
     );
-    setBoosts(session.boosts);
-    setWallet({ ...result.wallet, checkInCount: session.checkInCount });
+    setBoosts((prev) => Math.max(prev, session.boosts));
+    setWallet((prev) => ({
+      ...result.wallet,
+      checkInCount: Math.max(prev?.checkInCount ?? 0, session.checkInCount),
+    }));
     setReferralBonusXp(readReferralBonusXpForAddress(address));
     setTxKeys((prev) => mergeTxKeyCounters(session.txKeys, prev));
     void fetchReferralStats(address);
@@ -428,11 +442,14 @@ export function useWalletApp() {
         return next;
       });
       setWallet((current) => {
-        if (!current || current.address.toLowerCase() !== address.toLowerCase()) {
-          return current;
-        }
-        return { ...current, checkInCount: count };
-      });
+      if (!current || current.address.toLowerCase() !== address.toLowerCase()) {
+        return current;
+      }
+      return {
+        ...current,
+        checkInCount: Math.max(current.checkInCount, count),
+      };
+    });
       const status = await syncCheckInStatus(address);
       patchCheckInInWalletCache(
         address,
@@ -589,12 +606,18 @@ export function useWalletApp() {
     setPremiumData(null);
     setPremiumInsights(null);
     setX402PayCount(0);
+    setX402Product("scan");
     setSponsored(0);
     pendingTx.current.clear();
+    x402Paying.current = false;
     handledActionTxs.current.clear();
   }, []);
 
   const handleDisconnect = () => {
+    const address = wallet?.address;
+    if (address) {
+      lockX402PremiumSession(address);
+    }
     void disconnect(wagmiConfig).catch(() => {});
     resetSessionState();
   };
@@ -604,10 +627,7 @@ export function useWalletApp() {
       showToast("❌ Connect your wallet first", "");
       return;
     }
-    if (pendingTx.current.has(type)) {
-      showToast("⏳ Already waiting for MetaMask…", "");
-      return;
-    }
+    if (pendingTx.current.has(type)) return;
 
     let activeConn = connType;
     if (!activeConn) {
@@ -637,7 +657,6 @@ export function useWalletApp() {
 
     pendingTx.current.add(type);
     setMinting(type);
-    showToast("⏳ Confirm in MetaMask…", "");
     try {
       const hash = await sendAppTransaction(
         activeConn,
@@ -689,8 +708,11 @@ export function useWalletApp() {
     tokenIds: number[],
     catName: string
   ) => {
-    if (!wallet || minting) return;
-    setMinting(`mint-${catId}`);
+    if (!wallet) return;
+    const pendingKey = `mint-${catId}`;
+    if (pendingTx.current.has(pendingKey)) return;
+    pendingTx.current.add(pendingKey);
+    setMinting(pendingKey);
     try {
       const isBatch = tokenIds.length > 1;
       const call = isBatch
@@ -706,39 +728,42 @@ export function useWalletApp() {
             "mintAchievement",
             [BigInt(tokenIds[0])]
           );
-      const hash = await sdk.wallet.ethProvider.request({
-        method: "eth_sendTransaction",
-        params: [
-          {
-            from: wallet.address as `0x${string}`,
-            to: call.to,
-            data: call.data,
-            chainId: "0x2105" as `0x${string}`,
-          },
-        ],
-      });
-      if (hash && typeof hash === "string") {
-        showToast(
-          isBatch
-            ? `✅ Claimed ${tokenIds.length} ${catName} Badges!`
-            : `✅ Badge minted!`,
-          hash
-        );
-        setMintedLevels((p) => ({
-          ...p,
-          [catId]: Math.max(...targetLevels),
-        }));
-        setTxKeys((p) => ({
-          ...p,
-          [`mint-${catId}`]: (p[`mint-${catId}`] || 0) + 1,
-        }));
-        setSponsored((s) => s + 1);
+
+      let activeConn = connType;
+      if (!activeConn) {
+        activeConn = await inferConnType(wallet.address);
+        if (activeConn) {
+          setConnType(activeConn);
+          persistConnType(activeConn);
+        }
       }
+      if (!activeConn) {
+        showToast("❌ Reconnect wallet to mint", "");
+        return;
+      }
+
+      const hash = await sendAppTransaction(activeConn, wallet.address, call);
+      showToast(
+        isBatch
+          ? `✅ Claimed ${tokenIds.length} ${catName} Badges!`
+          : `✅ Badge minted!`,
+        hash
+      );
+      setMintedLevels((p) => ({
+        ...p,
+        [catId]: Math.max(...targetLevels),
+      }));
+      setTxKeys((p) => ({
+        ...p,
+        [`mint-${catId}`]: (p[`mint-${catId}`] || 0) + 1,
+      }));
+      setSponsored((s) => s + 1);
     } catch (e: unknown) {
       const m =
         e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
-      if (!m.includes("rejected")) showToast("❌ Mint Failed", "");
+      if (!m.toLowerCase().includes("reject")) showToast(`❌ ${m}`, "");
     } finally {
+      pendingTx.current.delete(pendingKey);
       setMinting(null);
     }
   };
