@@ -21,6 +21,7 @@ import {
 } from "@/lib/constants/contracts";
 import { DEX_ROUTERS } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
+import { XP_PER_BADGE_MINT } from "@/lib/utils/badge-mint-xp";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import AchievementsHero from "@/components/wallet/AchievementsHero";
@@ -140,7 +141,12 @@ if (!wallet) return null;
                           </div>
                         )}
                       </div>
-                      {canMint&&<p className="text-[9px] text-slate-600 mt-2 text-center flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored via Coinbase Paymaster</p>}
+                      {canMint && (
+                        <p className="text-[9px] text-slate-500 mt-2 text-center">
+                          +{XP_PER_BADGE_MINT} season XP per badge minted
+                        </p>
+                      )}
+                      {canMint&&<p className="text-[9px] text-slate-600 mt-1 text-center flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored via Coinbase Paymaster</p>}
                     </div>
                   </div>
                 );

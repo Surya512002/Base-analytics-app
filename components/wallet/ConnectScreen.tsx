@@ -1,14 +1,21 @@
+import type { ReactNode } from "react";
 import {
   BarChart3,
   ChevronRight,
   Droplets,
   Gift,
+  Globe,
   RefreshCcw,
   Wallet,
   X,
   Zap,
 } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
+import {
+  BaseAppWalletIcon,
+  FarcasterWalletIcon,
+  MetaMaskWalletIcon,
+} from "@/components/wallet/WalletBrandIcon";
 import { PAYMASTER_URL } from "@/lib/constants/env";
 import { SEASON_NAME } from "@/lib/constants/season";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
@@ -43,6 +50,45 @@ const LANDING_FEATURES = [
     desc: "Free wallet scan, badges, XP quests, and your rank from Shrimp to God.",
   },
 ] as const;
+
+type WalletOption = {
+  type: ConnectionType;
+  label: string;
+  sub: string;
+  icon: ReactNode;
+  accent: string;
+};
+
+const WALLET_OPTIONS: WalletOption[] = [
+  {
+    type: "coinbase",
+    label: "Base App Wallet",
+    sub: "Coinbase Wallet on Base · best for gas sponsorship",
+    icon: <BaseAppWalletIcon size={30} />,
+    accent: "bg-[#0052FF] border-[#0052FF]/60 shadow-[0_0_20px_rgba(0,82,255,0.25)]",
+  },
+  {
+    type: "metamask",
+    label: "MetaMask",
+    sub: "Popular browser extension",
+    icon: <MetaMaskWalletIcon size={30} />,
+    accent: "bg-[#F6851B]/15 border-[#F6851B]/45",
+  },
+  {
+    type: "injected",
+    label: "Browser Wallet",
+    sub: "Rabby, Rainbow, OKX & other injected wallets",
+    icon: <Globe size={18} className="text-cyan-300" />,
+    accent: "bg-cyan-500/12 border-cyan-400/35",
+  },
+  {
+    type: "farcaster",
+    label: "Farcaster Wallet",
+    sub: "Warpcast & Farcaster mini-app wallet",
+    icon: <FarcasterWalletIcon size={30} />,
+    accent: "bg-[#855DCD]/20 border-[#855DCD]/50",
+  },
+];
 
 function GiftCardTeaser() {
   return (
@@ -189,7 +235,7 @@ export default function ConnectScreen({
             </button>
             <p className="text-center lg:text-left text-[10px] text-slate-500 flex items-center justify-center lg:justify-start gap-1.5 mt-3">
               <Droplets size={9} className="text-blue-400" />
-              Gas sponsored via Coinbase Paymaster
+              Base network only · gas sponsored via Coinbase Paymaster
             </p>
           </div>
 
@@ -216,52 +262,62 @@ export default function ConnectScreen({
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/85 backdrop-blur-xl">
-          <div className="glass-panel rounded-3xl w-full max-w-sm p-6 relative shadow-2xl shadow-black/40">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <div className="glass-panel rounded-3xl w-full max-w-md p-5 sm:p-6 relative shadow-2xl shadow-black/50 border border-white/12">
             <button
               onClick={onCloseModal}
-              className="absolute top-4 right-4 text-slate-500 hover:text-white w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 transition-colors"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-xl bg-white/8 border border-white/10 transition-colors"
             >
               <X size={16} />
             </button>
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-3 mb-4 pr-8">
               <AppLogo size="md" />
               <div>
-                <h3 className="font-black text-white text-base">Connect Wallet</h3>
-                <p className="text-slate-500 text-xs mt-0.5">
-                  Gift cards, x402 & onchain analysis
+                <h3 className="font-black text-white text-lg">Connect Wallet</h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Base network only — switch if prompted
                 </p>
               </div>
             </div>
-            <div className="space-y-2">
-              {(
-                [
-                  { type: "coinbase" as ConnectionType, label: "Coinbase Wallet", sub: "Best for gas sponsorship", emoji: "🔵", cls: "btn-primary hover:opacity-90 border-cyan-500/50" },
-                  { type: "metamask" as ConnectionType, label: "MetaMask", sub: "EVM compatible wallet", emoji: "🦊", cls: "bg-white/5 hover:bg-white/10 border-white/10" },
-                  { type: "farcaster" as ConnectionType, label: "Farcaster", sub: "Social + onchain wallet", emoji: "🟣", cls: "bg-white/5 hover:bg-white/10 border-white/10" },
-                ] as const
-              ).map((w) => (
+
+            <div className="mb-4 rounded-xl bg-blue-500/10 border border-blue-400/25 px-3.5 py-2.5">
+              <p className="text-[11px] font-bold text-blue-200 leading-relaxed">
+                This app runs on <span className="text-white font-black">Base mainnet</span> only.
+                Your wallet must be connected to Base — we&apos;ll prompt you to switch networks if needed.
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              {WALLET_OPTIONS.map((w) => (
                 <button
                   key={w.type}
                   onClick={() => onConnect(w.type)}
                   disabled={loading}
-                  className={`w-full flex items-center justify-between ${w.cls} border text-white p-4 rounded-2xl transition-all active:scale-[0.98] group disabled:opacity-50 disabled:pointer-events-none`}
+                  className={`w-full flex items-center justify-between border ${w.accent} text-white p-3.5 rounded-2xl transition-all active:scale-[0.98] group disabled:opacity-50 disabled:pointer-events-none hover:brightness-110`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-base">{w.emoji}</span>
-                    <div className="text-left">
-                      <p className="font-black text-sm">{w.label}</p>
-                      <p className="text-[10px] text-slate-500">{w.sub}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-11 h-11 shrink-0 rounded-xl bg-black/20 border border-white/15 flex items-center justify-center overflow-hidden">
+                      {w.icon}
+                    </span>
+                    <div className="text-left min-w-0">
+                      <p className="font-black text-sm text-white">{w.label}</p>
+                      <p className="text-[11px] text-slate-300/90 leading-snug mt-0.5">{w.sub}</p>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-500 group-hover:text-white transition-all" />
+                  <ChevronRight
+                    size={18}
+                    className="text-white/50 group-hover:text-white shrink-0 transition-colors"
+                  />
                 </button>
               ))}
             </div>
+
             {PAYMASTER_URL && (
-              <div className="mt-4 flex items-center justify-center gap-1.5 bg-cyan-500/8 border border-cyan-500/20 rounded-xl p-2.5">
-                <Droplets size={11} className="text-blue-400" />
-                <p className="text-[10px] text-blue-400 font-bold">Paymaster active — gas sponsored</p>
+              <div className="mt-4 flex items-center justify-center gap-1.5 bg-cyan-500/10 border border-cyan-500/25 rounded-xl p-2.5">
+                <Droplets size={11} className="text-cyan-300" />
+                <p className="text-[10px] text-cyan-200 font-bold">
+                  Paymaster active — gas sponsored on Base App Wallet
+                </p>
               </div>
             )}
           </div>

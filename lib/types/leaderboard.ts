@@ -6,6 +6,7 @@ export interface LeaderboardEntry {
   boosts: number;
   badges: number;
   weeklyXP: number;
+  badgeMintXp?: number;
   totalXP: number;
   weekNumber: number;
   lastSeen?: number;

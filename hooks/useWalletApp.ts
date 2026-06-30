@@ -34,7 +34,16 @@ import { getISOWeekNumber } from "@/lib/utils/dates";
 import { computeChallengeScore, computeWalletRank } from "@/lib/utils/score";
 import { getCapabilities } from "@/lib/utils/paymaster";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
-import { computeWeeklyXP } from "@/lib/utils/season";
+import {
+  buildAppQuestContext,
+  computeWeeklyXP,
+  countDoneQuests,
+} from "@/lib/utils/season";
+import {
+  getBadgeMintXpTotal,
+  recordBadgeMints,
+  syncBadgeMintCountFromLevels,
+} from "@/lib/utils/badge-mint-xp";
 import {
   buildBadgeShareText,
   buildBadgesShareText,
@@ -50,6 +59,7 @@ import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
 import { sendAppTransaction } from "@/lib/utils/send-app-tx";
 import {
   clearConnType,
+  ensureBaseNetwork,
   inferConnType,
   persistConnType,
   readConnType,
@@ -74,6 +84,14 @@ import {
   syncSessionFromAnalysis,
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
+import {
+  recordBoostPoints,
+  recordCheckInPoints,
+  recordGmPoints,
+  recordGnPoints,
+  syncActivityPointsFromSession,
+  tryAwardSevenDayAllTasksBonus,
+} from "@/lib/utils/daily-points";
 import type { ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 
@@ -81,8 +99,8 @@ export type WalletAppState = ReturnType<typeof useWalletApp>;
 
 export type AppTab =
   | "dashboard"
+  | "checkin"
   | "achievements"
-  | "quests"
   | "leaderboard"
   | "basehub";
 
@@ -91,13 +109,15 @@ function resolveTabFromUrl(): AppTab | null {
   const t = new URLSearchParams(window.location.search).get("tab");
   const map: Record<string, AppTab> = {
     dashboard: "dashboard",
+    checkin: "checkin",
+    "check-in": "checkin",
+    quests: "checkin",
+    rankings: "leaderboard",
+    leaderboard: "leaderboard",
     voucher: "basehub",
     basehub: "basehub",
     badges: "achievements",
     achievements: "achievements",
-    quests: "quests",
-    rankings: "leaderboard",
-    leaderboard: "leaderboard",
   };
   return t && map[t] ? map[t] : null;
 }
@@ -152,10 +172,13 @@ export function useWalletApp() {
   const [challengeLoading, setChallengeLoading] = useState(false);
   const [refCopied, setRefCopied] = useState(false);
   const [weeklyXP, setWeeklyXP] = useState(0);
+  const [pointsRevision, setPointsRevision] = useState(0);
   const [scanProgress, setScanProgress] = useState("");
   const [walletRefreshing, setWalletRefreshing] = useState(false);
   const [premiumUnlocked, setPremiumUnlocked] = useState(false);
   const [premiumLoading, setPremiumLoading] = useState(false);
+  const [farcasterUnlocked, setFarcasterUnlocked] = useState(false);
+  const [farcasterUnlockLoading, setFarcasterUnlockLoading] = useState(false);
   const [premiumData, setPremiumData] = useState<{
     message: string;
     transaction?: string;
@@ -163,6 +186,7 @@ export function useWalletApp() {
   const [premiumInsights, setPremiumInsights] = useState<PremiumInsights | null>(null);
   const [x402Product, setX402Product] = useState<X402ProductId>("scan");
   const [referralBonusXp, setReferralBonusXp] = useState(0);
+  const [referralInvites, setReferralInvites] = useState(0);
   const [x402PayCount, setX402PayCount] = useState(0);
 
   const boostCall = [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")];
@@ -193,6 +217,7 @@ export function useWalletApp() {
       const bonus = Math.max(local, s.bonusXp);
       if (bonus > local) setReferralBonusXpForAddress(address, bonus);
       setReferralBonusXp(bonus);
+      setReferralInvites(s.invites ?? 0);
     });
     if (insightsRaw) {
       try {
@@ -245,7 +270,25 @@ export function useWalletApp() {
 
   useEffect(() => {
     if (!wallet) return;
-    const questXp = computeWeeklyXP(wallet, boosts, streak, txKeys);
+    syncBadgeMintCountFromLevels(wallet.address, mintedLevels);
+    const activitySynced = syncActivityPointsFromSession(
+      wallet.address,
+      txKeys,
+      streak,
+      checkedToday
+    );
+    if (activitySynced) setPointsRevision((n) => n + 1);
+    const questCtx = buildAppQuestContext({
+      wallet,
+      streak,
+      checkedToday,
+      txKeys,
+      x402PayCount,
+      referralInvites,
+      didChallenge: Boolean(challengeResult),
+    });
+    const questXp = computeWeeklyXP(questCtx, boosts);
+    const badgeMintXp = getBadgeMintXpTotal(wallet.address);
     const xp = questXp + referralBonusXp;
     setWeeklyXP(xp);
     const mintedCount = sumMintedBadges(mintedLevels);
@@ -257,9 +300,50 @@ export function useWalletApp() {
       boosts,
       badges: mintedCount,
       weeklyXP: questXp,
+      badgeMintXp,
       weekNumber: getISOWeekNumber(),
     }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
-  }, [wallet, boosts, mintedLevels, streak, txKeys, referralBonusXp]);
+  }, [
+    wallet,
+    boosts,
+    mintedLevels,
+    streak,
+    checkedToday,
+    txKeys,
+    referralBonusXp,
+    referralInvites,
+    x402PayCount,
+    challengeResult,
+    pointsRevision,
+  ]);
+
+  useEffect(() => {
+    if (!wallet) return;
+    const questCtx = buildAppQuestContext({
+      wallet,
+      streak,
+      checkedToday,
+      txKeys,
+      x402PayCount,
+      referralInvites,
+      didChallenge: Boolean(challengeResult),
+    });
+    const done = countDoneQuests(questCtx);
+    const awarded = tryAwardSevenDayAllTasksBonus(
+      wallet.address,
+      streak,
+      done
+    );
+    if (awarded > 0) setPointsRevision((n) => n + 1);
+  }, [
+    wallet,
+    streak,
+    checkedToday,
+    txKeys,
+    x402PayCount,
+    referralInvites,
+    challengeResult,
+  ]);
 
   const handlePremiumScan = async (product: X402ProductId = x402Product) => {
     if (!wallet || x402Paying.current) return;
@@ -347,6 +431,79 @@ export function useWalletApp() {
     } finally {
       x402Paying.current = false;
       setPremiumLoading(false);
+    }
+  };
+
+  const handleFarcasterUnlock = async () => {
+    if (!wallet || x402Paying.current) return;
+
+    let activeConn = connType;
+    if (!activeConn) {
+      activeConn = await inferConnType(wallet.address);
+      if (activeConn) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
+      }
+    }
+    if (!activeConn) {
+      showToast("❌ Reconnect wallet to continue", "");
+      return;
+    }
+
+    x402Paying.current = true;
+    setFarcasterUnlockLoading(true);
+    try {
+      const provider = await getEip1193Provider(activeConn);
+      const { getX402Fetch } = await import("@/lib/x402-client");
+      const x402Fetch = await getX402Fetch(provider);
+
+      const res = await x402Fetch("/api/premium-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: wallet.address, product: "farcaster" }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as {
+          message: string;
+          transaction?: string;
+        };
+        setFarcasterUnlocked(true);
+        const keys = x402StorageKeys(wallet.address);
+        const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
+        const next = prev + 1;
+        localStorage.setItem(keys.count, next.toString());
+        setX402PayCount(next);
+        const txHash = data.transaction
+          ? normalizeTxHash(data.transaction)
+          : null;
+        showToast(
+          txHash
+            ? `✅ Farcaster unlocked! Tx: ${txHash.slice(0, 10)}…`
+            : "✅ Farcaster analysis unlocked!",
+          txHash ?? ""
+        );
+      } else {
+        let errMsg = `HTTP ${res.status}`;
+        const text = await res.text().catch(() => "");
+        try {
+          const err = JSON.parse(text) as { error?: string; detail?: string };
+          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
+        } catch {
+          if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
+        }
+        if (res.status === 404) {
+          errMsg = "Payment service unavailable — refresh the page and try again";
+        }
+        showToast(`❌ Payment failed: ${errMsg}`, "");
+      }
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message.split("\n")[0] : "Payment error";
+      if (!msg.includes("rejected")) showToast(`❌ ${msg}`, "");
+    } finally {
+      x402Paying.current = false;
+      setFarcasterUnlockLoading(false);
     }
   };
 
@@ -456,8 +613,19 @@ export function useWalletApp() {
         status.streak,
         true
       );
+      const { credited, hitCap } = recordCheckInPoints(
+        address,
+        status.streak
+      );
+      setPointsRevision((n) => n + 1);
       if (txHash) {
-        showToast("✅ Onchain check-in secured!", txHash);
+        if (hitCap && credited === 0) {
+          showToast("✅ Check-in secured — daily point cap reached", txHash);
+        } else if (credited > 0) {
+          showToast(`✅ Check-in secured! +${credited} PP`, txHash);
+        } else {
+          showToast("✅ Onchain check-in secured!", txHash);
+        }
       }
     },
     [showToast, syncCheckInStatus, wallet]
@@ -477,7 +645,17 @@ export function useWalletApp() {
         writePersistedTxKeys(address, next);
         return next;
       });
-      if (txHash) showToast("Boosted! 🎉", txHash);
+      const { credited, hitCap } = recordBoostPoints(address);
+      setPointsRevision((n) => n + 1);
+      if (txHash) {
+        if (hitCap && credited === 0) {
+          showToast("Boost recorded — daily point cap reached", txHash);
+        } else if (credited > 0) {
+          showToast(`Boosted! +${credited} pts 🎉`, txHash);
+        } else {
+          showToast("Boosted! 🎉", txHash);
+        }
+      }
     },
     [showToast]
   );
@@ -563,23 +741,28 @@ export function useWalletApp() {
       let addr = "";
       if (type === "farcaster") {
         showToast("⏳ Connecting Farcaster...", "");
-        const accs = (await sdk.wallet.ethProvider.request({
+        const provider = await sdk.wallet.getEthereumProvider();
+        if (!provider) throw new Error("Farcaster wallet not available");
+        const accs = (await provider.request({
           method: "eth_requestAccounts",
         })) as string[];
         const evm = accs.find((a) => a && a.startsWith("0x"));
         if (!evm) throw new Error("No EVM wallet");
         addr = evm;
+        await ensureBaseNetwork(provider);
         showToast("✅ Scanning...", "");
       } else {
         const { address } = await connectWallet(type);
         addr = address;
+        const provider = await getEip1193Provider(type);
+        await ensureBaseNetwork(provider);
       }
       setConnType(type);
       persistConnType(type);
       analyzeWallet(addr);
     } catch {
       setLoading(false);
-      showToast("❌ Connection Failed.", "");
+      showToast("❌ Connection failed. Switch to Base network and try again.", "");
     } finally {
       connectingRef.current = false;
     }
@@ -601,6 +784,8 @@ export function useWalletApp() {
     setPremiumUnlocked(false);
     setPremiumData(null);
     setPremiumInsights(null);
+    setFarcasterUnlocked(false);
+    setFarcasterUnlockLoading(false);
     setX402PayCount(0);
     setX402Product("scan");
     setSponsored(0);
@@ -661,26 +846,40 @@ export function useWalletApp() {
         void handleCheckInSuccess(wallet.address, hash);
       } else if (type === "boost") {
         handleBoostSuccess(wallet.address, hash);
-      } else {
-        showToast(successMsg[type], hash);
-        if (type === "gm") {
-          if (typeof window !== "undefined")
-            localStorage.setItem(
-              `base_gm_${wallet.address.toLowerCase()}`,
-              "true"
-            );
-          setTxKeys((k) => {
-            const next = { ...k, gm: (k.gm || 0) + 1 };
-            writePersistedTxKeys(wallet.address, next);
-            return next;
-          });
+      } else if (type === "gm") {
+        if (typeof window !== "undefined")
+          localStorage.setItem(
+            `base_gm_${wallet.address.toLowerCase()}`,
+            "true"
+          );
+        setTxKeys((k) => {
+          const next = { ...k, gm: (k.gm || 0) + 1 };
+          writePersistedTxKeys(wallet.address, next);
+          return next;
+        });
+        const { credited, hitCap } = recordGmPoints(wallet.address);
+        setPointsRevision((n) => n + 1);
+        if (hitCap && credited === 0) {
+          showToast("GM sent — daily point cap reached", hash);
+        } else if (credited > 0) {
+          showToast(`GM on Base! +${credited} pts ☀️`, hash);
+        } else {
+          showToast(successMsg.gm, hash);
         }
-        if (type === "gn") {
-          setTxKeys((k) => {
-            const next = { ...k, gn: (k.gn || 0) + 1 };
-            writePersistedTxKeys(wallet.address, next);
-            return next;
-          });
+      } else if (type === "gn") {
+        setTxKeys((k) => {
+          const next = { ...k, gn: (k.gn || 0) + 1 };
+          writePersistedTxKeys(wallet.address, next);
+          return next;
+        });
+        const { credited, hitCap } = recordGnPoints(wallet.address);
+        setPointsRevision((n) => n + 1);
+        if (hitCap && credited === 0) {
+          showToast("GN sent — daily point cap reached", hash);
+        } else if (credited > 0) {
+          showToast(`GN on Base! +${credited} pts 🌙`, hash);
+        } else {
+          showToast(successMsg.gn, hash);
         }
       }
     } catch (e: unknown) {
@@ -732,21 +931,30 @@ export function useWalletApp() {
       }
 
       const hash = await sendAppTransaction(activeConn, wallet.address, call);
-      showToast(
-        isBatch
-          ? `✅ Claimed ${tokenIds.length} ${catName} Badges!`
-          : `✅ Badge minted!`,
-        hash
-      );
       setMintedLevels((p) => ({
         ...p,
         [catId]: Math.max(...targetLevels),
       }));
-      setTxKeys((p) => ({
-        ...p,
-        [`mint-${catId}`]: (p[`mint-${catId}`] || 0) + 1,
-      }));
+      const minted = tokenIds.length;
+      const badgeXp = recordBadgeMints(wallet.address, minted);
+      setTxKeys((p) => {
+        const next = {
+          ...p,
+          [`mint-${catId}`]: (p[`mint-${catId}`] || 0) + 1,
+        };
+        writePersistedTxKeys(wallet.address, next);
+        return next;
+      });
       setSponsored((s) => s + 1);
+      if (badgeXp > 0) {
+        setPointsRevision((n) => n + 1);
+      }
+      showToast(
+        isBatch
+          ? `✅ Claimed ${tokenIds.length} ${catName} badges! +${badgeXp} season XP`
+          : `✅ Badge minted! +${badgeXp} season XP`,
+        hash
+      );
     } catch (e: unknown) {
       const m =
         e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
@@ -849,8 +1057,20 @@ export function useWalletApp() {
   const getAchievementValue = (id: string) =>
     wallet ? getCatValue(wallet, boosts, id) : 0;
 
-  const doneQuests = wallet
-    ? WEEKLY_QUESTS.filter((q) => q.check(wallet, boosts, streak, txKeys)).length
+  const questContext = wallet
+    ? buildAppQuestContext({
+        wallet,
+        streak,
+        checkedToday,
+        txKeys,
+        x402PayCount,
+        referralInvites,
+        didChallenge: Boolean(challengeResult),
+      })
+    : null;
+
+  const doneQuests = questContext
+    ? WEEKLY_QUESTS.filter((q) => q.check(questContext)).length
     : 0;
 
   return {
@@ -895,9 +1115,14 @@ export function useWalletApp() {
     premiumLoading,
     premiumData,
     premiumInsights,
+    farcasterUnlocked,
+    farcasterUnlockLoading,
+    handleFarcasterUnlock,
     x402Product,
     setX402Product,
     referralBonusXp,
+    referralInvites,
+    questContext,
     x402PayCount,
     boostCall,
     gmCall,
@@ -920,5 +1145,6 @@ export function useWalletApp() {
     shareAll,
     getAchievementValue,
     doneQuests,
+    pointsRevision,
   };
 }

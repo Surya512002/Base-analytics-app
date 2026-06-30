@@ -11,7 +11,7 @@ import {
   Users,
   Wifi,
 } from "lucide-react";
-import { getDaysLeft } from "@/lib/utils/season";
+import { computeXPBreakdown, getDaysLeft } from "@/lib/utils/season";
 import { getISOWeekNumber } from "@/lib/utils/dates";
 import {
   effectiveWeeklyXP,
@@ -149,9 +149,19 @@ function LeaderboardTable({
 }
 
 export default function LeaderboardTab({ app }: { app: WalletAppState }) {
-  const { wallet, weeklyXP, mintedCount, streak, leaderboard, lbLoading } = app;
+  const {
+    wallet,
+    weeklyXP,
+    mintedCount,
+    streak,
+    boosts,
+    questContext,
+    leaderboard,
+    lbLoading,
+  } = app;
   const [mode, setMode] = useState<BoardMode>("weekly");
   const currentWeek = getISOWeekNumber();
+  const xpBreakdown = questContext ? computeXPBreakdown(questContext, boosts) : null;
 
   const weeklyCount = participationCount(leaderboard, "weekly", currentWeek);
   const globalCount = participationCount(leaderboard, "global", currentWeek);
@@ -187,7 +197,7 @@ export default function LeaderboardTab({ app }: { app: WalletAppState }) {
               Climb the <span className="text-gradient-prism">leaderboard</span>
             </h2>
             <p className="text-xs text-slate-400 mt-2 max-w-sm">
-              Earn weekly XP from quests, check-ins, and onchain activity. Top {TOP_N} shown live.
+              Rankings combine quest XP, check-in streak, XP boosts, and GM/GN. Top {TOP_N} shown live.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -230,7 +240,7 @@ export default function LeaderboardTab({ app }: { app: WalletAppState }) {
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 {mode === "weekly"
-                  ? `Active this week (W${currentWeek}) · top ${TOP_N} shown`
+                  ? `Active this week · top ${TOP_N} shown`
                   : `Total season participants · top ${TOP_N} shown`}
               </p>
             </div>
@@ -288,7 +298,28 @@ export default function LeaderboardTab({ app }: { app: WalletAppState }) {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+              {[
+                { l: "XP", v: xpBreakdown?.questXp ?? 0, c: "text-cyan-400" },
+                { l: "Activity", v: xpBreakdown?.weekActivityXp ?? 0, c: "text-violet-300" },
+                {
+                  l: "Today",
+                  v:
+                    (xpBreakdown?.todayActivityXp ?? 0) +
+                    (xpBreakdown?.todayBonusXp ?? 0),
+                  c: "text-emerald-400",
+                },
+              ].map((s, i) => (
+                <div
+                  key={i}
+                  className="bg-white/[0.04] border border-white/8 rounded-xl p-2.5 text-center"
+                >
+                  <p className={`font-black text-base tabular-nums ${s.c}`}>{s.v}</p>
+                  <p className="text-[9px] text-slate-500 uppercase font-bold mt-0.5">{s.l}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
               {[
                 { l: "Score", v: `${wallet.score}/100`, c: "text-cyan-400" },
                 { l: "Badges", v: String(mintedCount), c: "text-cyan-300" },

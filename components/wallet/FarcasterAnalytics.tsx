@@ -13,10 +13,134 @@ interface FarcasterData {
   reputation:string; tier:string; topFollower:string;
   fidAgeMonths:number; fidAgeLabel:string; joinedDate:string;
   pfpUrl:string; bio:string; verifications:number;
-  powerBadge:boolean;
+  powerBadge:boolean; castCount:number;
 }
 interface FarcasterCast { hash:string; text:string; author:{username:string;pfp_url:string;}; likes:number; }
 interface RawCast { hash:string; text:string; timestamp?:string; author?:{username?:string;pfp_url?:string;pfp?:{url?:string}}; reactions?:{likes_count?:number;recasts_count?:number}; replies?:{count?:number}; }
+
+const TIMEFRAME_DAYS: Record<'24h'|'3d'|'7d'|'14d'|'30d', number> = {
+  '24h': 1,
+  '3d': 3,
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+};
+
+function castDayKey(timestamp?: string): string | null {
+  if (!timestamp) return null;
+  return timestamp.split('T')[0] ?? null;
+}
+
+function uniqueCastDays(casts: RawCast[]): Set<string> {
+  const days = new Set<string>();
+  for (const cast of casts) {
+    const day = castDayKey(cast.timestamp);
+    if (day) days.add(day);
+  }
+  return days;
+}
+
+function getPeriodDayTrack(
+  periodDays: number,
+  activeDays: Set<string>
+): { key: string; label: string; active: boolean }[] {
+  const track: { key: string; label: string; active: boolean }[] = [];
+  for (let offset = periodDays - 1; offset >= 0; offset--) {
+    const date = new Date(Date.now() - offset * 86400000);
+    const key = date.toISOString().split('T')[0];
+    const label =
+      periodDays <= 7
+        ? date.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3)
+        : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    track.push({ key, label, active: activeDays.has(key) });
+  }
+  return track;
+}
+
+const RECENT_CAST_WINDOW_MS = 30 * 86400000;
+const CAST_PAGE_LIMIT = 150;
+const CAST_MAX_PAGES = 400;
+
+type CastHistoryFetch = {
+  recentCasts: RawCast[];
+  allTimeActiveDays: Set<string>;
+  firstCastAt: string | null;
+  totalScanned: number;
+  complete: boolean;
+  unavailable: boolean;
+};
+
+async function fetchFullCastAnalytics(
+  fid: number,
+  profileCastCount = 0
+): Promise<CastHistoryFetch> {
+  const allTimeActiveDays = new Set<string>();
+  const recentCasts: RawCast[] = [];
+  const recentCutoff = Date.now() - RECENT_CAST_WINDOW_MS;
+  let firstCastAt: string | null = null;
+  let totalScanned = 0;
+  let cursor: string | undefined;
+  let unavailable = false;
+  let complete = true;
+
+  for (let page = 0; page < CAST_MAX_PAGES; page++) {
+    const params: Record<string, string | number> = {
+      fid,
+      limit: CAST_PAGE_LIMIT,
+    };
+    if (cursor) params.cursor = cursor;
+
+    const { ok, data, unavailable: up } = await fetchNeynar(
+      "v2/farcaster/feed/user/casts",
+      params
+    );
+    if (up) {
+      unavailable = true;
+      complete = false;
+      break;
+    }
+    if (!ok) {
+      complete = false;
+      break;
+    }
+
+    const casts = data.casts as RawCast[] | undefined;
+    if (!casts?.length) break;
+
+    for (const cast of casts) {
+      totalScanned++;
+      const day = castDayKey(cast.timestamp);
+      if (day) allTimeActiveDays.add(day);
+      if (cast.timestamp) {
+        if (!firstCastAt || cast.timestamp < firstCastAt) {
+          firstCastAt = cast.timestamp;
+        }
+        if (new Date(cast.timestamp).getTime() >= recentCutoff) {
+          recentCasts.push(cast);
+        }
+      }
+    }
+
+    const next = (data.next as { cursor?: string } | undefined)?.cursor;
+    if (!next) break;
+    cursor = next;
+
+    if (profileCastCount > 0 && totalScanned >= profileCastCount) break;
+  }
+
+  if (profileCastCount > 0 && totalScanned < profileCastCount) {
+    complete = false;
+  }
+
+  return {
+    recentCasts,
+    allTimeActiveDays,
+    firstCastAt,
+    totalScanned,
+    complete,
+    unavailable,
+  };
+}
 
 function getFidAgeMonths(fid:number):number {
   const now = new Date();
@@ -91,10 +215,21 @@ const buildFcResult=async(user:Record<string,unknown>):Promise<FarcasterData>=>{
     bio:String((user.profile as Record<string,Record<string,unknown>>|undefined)?.bio?.text||''),
     verifications:Number((user.verifications as string[]|undefined)?.length||0),
     powerBadge:Boolean(user.power_badge),
+    castCount:Number(user.cast_count)||0,
   };
 };
 
-export default function FarcasterAnalytics({ address }: { address: string }) {
+export default function FarcasterAnalytics({
+  address,
+  unlocked,
+  unlockLoading,
+  onUnlock,
+}: {
+  address: string;
+  unlocked: boolean;
+  unlockLoading: boolean;
+  onUnlock: () => void;
+}) {
 
   const[fcUsername,setFcUsername]=useState('');
   const[isScanningFc,setIsScanningFc]=useState(false);
@@ -104,6 +239,11 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
 
   const[analyticsTimeframe,setAnalyticsTimeframe]=useState<'24h'|'3d'|'7d'|'14d'|'30d'>('7d');
   const[userCastsHistory,setUserCastsHistory]=useState<RawCast[]>([]);
+  const[allTimeActiveDayKeys,setAllTimeActiveDayKeys]=useState<string[]>([]);
+  const[firstCastDate,setFirstCastDate]=useState<string|null>(null);
+  const[castHistoryMeta,setCastHistoryMeta]=useState({
+    scanned:0,complete:true,profileCastCount:0,
+  });
   const[forYouFeed,setForYouFeed]=useState<FarcasterCast[]>([]);
   const[globalFeed,setGlobalFeed]=useState<FarcasterCast[]>([]);
   const[isFetchingHistory,setIsFetchingHistory]=useState(false);
@@ -113,7 +253,21 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
   const[neynarUnavailable,setNeynarUnavailable]=useState(false);
 
   useEffect(()=>{
-    if(!address||address===scannedAddress||neynarUnavailable)return;
+    if(unlocked)return;
+    setFcUsername('');
+    setFcResult(null);
+    setFcError('');
+    setScannedAddress('');
+    setUserCastsHistory([]);
+    setAllTimeActiveDayKeys([]);
+    setFirstCastDate(null);
+    setCastHistoryMeta({scanned:0,complete:true,profileCastCount:0});
+    setForYouFeed([]);
+    setFeedTab('stats');
+  },[unlocked]);
+
+  useEffect(()=>{
+    if(!unlocked||!address||address===scannedAddress||neynarUnavailable)return;
     const auto=async()=>{
       setScannedAddress(address);setIsScanningFc(true);setFcError('');
       try{
@@ -126,23 +280,36 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
       }catch(e){console.error(e);}finally{setIsScanningFc(false);}
     };
     auto();
-  },[address,scannedAddress,neynarUnavailable]);
+  },[address,scannedAddress,neynarUnavailable,unlocked]);
 
   useEffect(()=>{
-    if(!fcResult?.fid||neynarUnavailable)return;
+    if(!unlocked||!fcResult?.fid||neynarUnavailable)return;
     const fetch2=async()=>{
       setIsFetchingHistory(true);
+      setUserCastsHistory([]);
+      setAllTimeActiveDayKeys([]);
+      setFirstCastDate(null);
       try{
-        const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/feed/user/casts",{fid:fcResult.fid,limit:100});
-        if(unavailable){setNeynarUnavailable(true);return;}
-        if(ok&&data.casts)setUserCastsHistory(data.casts as RawCast[]);
+        const result=await fetchFullCastAnalytics(
+          fcResult.fid,
+          fcResult.castCount
+        );
+        if(result.unavailable){setNeynarUnavailable(true);return;}
+        setUserCastsHistory(result.recentCasts);
+        setAllTimeActiveDayKeys(Array.from(result.allTimeActiveDays).sort());
+        setFirstCastDate(result.firstCastAt);
+        setCastHistoryMeta({
+          scanned:result.totalScanned,
+          complete:result.complete,
+          profileCastCount:fcResult.castCount,
+        });
       }catch{}finally{setIsFetchingHistory(false);}
     };
     fetch2();
-  },[fcResult?.fid,neynarUnavailable]);
+  },[fcResult?.fid,fcResult?.castCount,neynarUnavailable,unlocked]);
 
   useEffect(()=>{
-    if(feedTab!=='casts'||!fcResult?.fid||neynarUnavailable)return;
+    if(!unlocked||feedTab!=='casts'||!fcResult?.fid||neynarUnavailable)return;
     const fetch3=async()=>{
       setIsFetchingForYou(true);
       try{
@@ -154,10 +321,10 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
       }catch{}finally{setIsFetchingForYou(false);}
     };
     fetch3();
-  },[feedTab,fcResult?.fid,neynarUnavailable]);
+  },[feedTab,fcResult?.fid,neynarUnavailable,unlocked]);
 
   useEffect(()=>{
-    if(neynarUnavailable)return;
+    if(!unlocked||neynarUnavailable)return;
     const fetch4=async()=>{
       setIsFetchingGlobal(true);
       try{
@@ -169,11 +336,15 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
       }catch{}finally{setIsFetchingGlobal(false);}
     };
     fetch4();
-  },[neynarUnavailable]);
+  },[neynarUnavailable,unlocked]);
 
   const handleScanFarcaster=async(e:React.FormEvent)=>{
-    e.preventDefault();if(!fcUsername||neynarUnavailable)return;
-    setIsScanningFc(true);setFcResult(null);setFcError('');setUserCastsHistory([]);
+    e.preventDefault();
+    if(!unlocked){onUnlock();return;}
+    if(!fcUsername||neynarUnavailable)return;
+    setIsScanningFc(true);setFcResult(null);setFcError('');
+    setUserCastsHistory([]);setAllTimeActiveDayKeys([]);setFirstCastDate(null);
+    setCastHistoryMeta({scanned:0,complete:true,profileCastCount:0});
     try{
       const clean=fcUsername.replace('@','');
       const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/user/by_username",{username:clean,viewer_fid:3});
@@ -185,11 +356,9 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
   };
 
   const castAnalytics=useMemo(()=>{
-    if(!userCastsHistory.length)return null;
-    const now=new Date().getTime();
-    const daysMap:Record<string,number>={'24h':1,'3d':3,'7d':7,'14d':14,'30d':30};
-    const days=daysMap[analyticsTimeframe]||7;
-    const cutoff=now-(days*86400000);
+    if(!allTimeActiveDayKeys.length&&!userCastsHistory.length)return null;
+    const days=TIMEFRAME_DAYS[analyticsTimeframe]||7;
+    const cutoff=Date.now()-(days*86400000);
     const filtered=userCastsHistory.filter(c=>c.timestamp&&new Date(c.timestamp).getTime()>=cutoff);
 
     const totalLikes=filtered.reduce((s,c)=>s+(c.reactions?.likes_count||0),0);
@@ -197,9 +366,23 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
     const totalReplies=filtered.reduce((s,c)=>s+(c.replies?.count||0),0);
     const totalCasts=filtered.length;
 
-    const castDays=new Set(filtered.map(c=>c.timestamp?.split('T')[0]).filter((d):d is string=>typeof d==='string'));
+    const periodActiveDays=uniqueCastDays(filtered);
+    const activeDays=periodActiveDays.size;
+    const allTimeDays=allTimeActiveDayKeys.length;
+    const activeDayPct=days>0?Math.round((activeDays/days)*100):0;
+    const periodTrack=getPeriodDayTrack(days,periodActiveDays);
 
-    const sortedDays=Array.from(castDays).sort();
+    const firstCastLabel=firstCastDate
+      ?new Date(firstCastDate).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
+      :null;
+    const daysSinceFirstCast=firstCastDate
+      ?Math.max(1,Math.ceil((Date.now()-new Date(firstCastDate).getTime())/86400000)+1)
+      :null;
+    const allTimePostingPct=daysSinceFirstCast
+      ?Math.round((allTimeDays/daysSinceFirstCast)*100)
+      :0;
+
+    const sortedDays=Array.from(periodActiveDays).sort();
     let longest=0,current=0,prev='';
     for(const d of sortedDays){
       if(prev){const diff=(new Date(d).getTime()-new Date(prev).getTime())/86400000;if(Math.round(diff)===1)current++;else current=1;}else current=1;
@@ -208,12 +391,14 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
     const todayStr=new Date().toISOString().split('T')[0];
     const yesterdayStr=new Date(Date.now()-86400000).toISOString().split('T')[0];
     let currentStreak=0;
-    if(castDays.has(todayStr)||castDays.has(yesterdayStr)){
-      let check=castDays.has(todayStr)?todayStr:yesterdayStr;
-      while(castDays.has(check)){currentStreak++;const prev2=new Date(new Date(check).getTime()-86400000).toISOString().split('T')[0];check=prev2;}
+    if(periodActiveDays.has(todayStr)||periodActiveDays.has(yesterdayStr)){
+      let check=periodActiveDays.has(todayStr)?todayStr:yesterdayStr;
+      while(periodActiveDays.has(check)){currentStreak++;const prev2=new Date(new Date(check).getTime()-86400000).toISOString().split('T')[0];check=prev2;}
     }
 
-    const mostLiked=filtered.reduce((best,c)=>(c.reactions?.likes_count||0)>(best.reactions?.likes_count||0)?c:best,filtered[0]);
+    const mostLiked=filtered.length
+      ?filtered.reduce((best,c)=>(c.reactions?.likes_count||0)>(best.reactions?.likes_count||0)?c:best,filtered[0])
+      :null;
 
     const avgPerDay=days>0?Math.round((totalCasts/days)*10)/10:0;
     const engRate=totalCasts>0?Math.round(((totalLikes+totalRecasts+totalReplies)/totalCasts)*10)/10:0;
@@ -222,8 +407,17 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
     filtered.forEach(c=>{if(c.timestamp){const d=new Date(c.timestamp);dayCount[dayKeys[d.getDay()]]=(dayCount[dayKeys[d.getDay()]]||0)+1;}});
     const bestDay=Object.entries(dayCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||'N/A';
 
-    return{totalCasts,totalLikes,totalRecasts,totalReplies,castDays:castDays.size,longestStreak:longest,currentStreak,avgPerDay,engRate,bestDay,mostLiked};
-  },[userCastsHistory,analyticsTimeframe]);
+    return{
+      totalCasts,totalLikes,totalRecasts,totalReplies,
+      activeDays,allTimeDays,activeDayPct,periodTrack,periodDays:days,
+      firstCastLabel,daysSinceFirstCast,allTimePostingPct,
+      castDays:activeDays,
+      longestStreak:longest,currentStreak,avgPerDay,engRate,bestDay,mostLiked,
+      castsScanned:castHistoryMeta.scanned,
+      historyComplete:castHistoryMeta.complete,
+      profileCastCount:castHistoryMeta.profileCastCount,
+    };
+  },[userCastsHistory,analyticsTimeframe,allTimeActiveDayKeys,firstCastDate,castHistoryMeta]);
 
   const ethosScore=fcResult?Math.min(1000,500+(fcResult.followers*0.05)+(Number(fcResult.reputation)*30)).toFixed(0):'0';
   const quotientScore=fcResult?Math.min(99.9,40+(Number(fcResult.reputation)*5)).toFixed(1):'0';
@@ -240,9 +434,12 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
   const fcLink=`https://warpcast.com/~/compose?text=${encodeURIComponent(shareMsg)}&embeds[]=${encodeURIComponent(sharePageUrl||FARCASTER_MINI_APP_URL)}`;
 
   return(
-    <div className="space-y-4 w-full">
-
-      <div className="w-full">
+    <div className="space-y-4 w-full relative">
+      <div
+        className={`space-y-4 w-full transition-[filter] duration-300 ${
+          unlocked ? "" : "blur-md pointer-events-none select-none"
+        }`}
+      >
         <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-4">
           <MessageCircle size={13}/> Farcaster Identity {isScanningFc&&<RefreshCcw size={11} className="animate-spin text-slate-700"/>}
         </h3>
@@ -336,7 +533,14 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
                 <div>
                   <h4 className="font-black text-white text-base sm:text-lg">Cast Analytics</h4>
-                  <p className="text-xs text-slate-600 mt-0.5">Calculated from your recent cast history {isFetchingHistory&&<RefreshCcw size={10} className="animate-spin inline ml-1"/>}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {isFetchingHistory
+                      ? "Scanning full cast history from first post…"
+                      : castAnalytics?.historyComplete
+                        ? "Full history scanned from first cast to today"
+                        : "Partial history — still loading or capped"}
+                    {isFetchingHistory&&<RefreshCcw size={10} className="animate-spin inline ml-1"/>}
+                  </p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
@@ -354,6 +558,95 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
 
               {feedTab==='stats'&&castAnalytics?(
                 <div className="space-y-4">
+                  <div className="bg-linear-to-br from-cyan-500/10 via-[#13182a] to-violet-500/10 border border-cyan-500/20 rounded-2xl p-4 sm:p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <Calendar size={12} className="text-cyan-400" />
+                          Active days
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-md">
+                          Each day you post at least one cast counts as 1 active day.
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-4xl sm:text-5xl font-black text-white tabular-nums leading-none">
+                          {castAnalytics.activeDays}
+                        </p>
+                        <p className="text-[11px] font-bold text-cyan-400 mt-1">
+                          of {castAnalytics.periodDays} days ({analyticsTimeframe})
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center">
+                        <p className="text-xl font-black text-emerald-400 tabular-nums">{castAnalytics.activeDayPct}%</p>
+                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">Posting consistency</p>
+                      </div>
+                      <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center">
+                        <p className="text-xl font-black text-violet-300 tabular-nums">{castAnalytics.allTimeDays}</p>
+                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">All-time active days</p>
+                        {castAnalytics.firstCastLabel&&(
+                          <p className="text-[9px] text-slate-600 mt-1 leading-snug">
+                            Since {castAnalytics.firstCastLabel}
+                            {castAnalytics.daysSinceFirstCast
+                              ? ` · ${castAnalytics.daysSinceFirstCast}d span`
+                              : ""}
+                          </p>
+                        )}
+                      </div>
+                      <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center col-span-2 sm:col-span-1">
+                        <p className="text-xl font-black text-cyan-300 tabular-nums">{castAnalytics.castsScanned.toLocaleString()}</p>
+                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">Casts scanned</p>
+                        {castAnalytics.profileCastCount>0&&(
+                          <p className="text-[9px] text-slate-600 mt-1">
+                            of {castAnalytics.profileCastCount.toLocaleString()} total
+                            {!castAnalytics.historyComplete?" · partial":""}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                          {analyticsTimeframe} activity track
+                        </p>
+                        <span className="text-[10px] font-black text-cyan-400 tabular-nums">
+                          {castAnalytics.activeDays}/{castAnalytics.periodDays}
+                        </span>
+                      </div>
+                      <div
+                        className="grid gap-1.5"
+                        style={{
+                          gridTemplateColumns: `repeat(${Math.min(castAnalytics.periodTrack.length, 14)}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        {castAnalytics.periodTrack.map((day) => (
+                          <div
+                            key={day.key}
+                            title={day.key}
+                            className={`aspect-square max-h-12 rounded-lg flex flex-col items-center justify-center gap-0.5 border ${
+                              day.active
+                                ? "border-emerald-500/35 bg-emerald-500/12"
+                                : "border-white/8 bg-white/[0.02]"
+                            }`}
+                          >
+                            <span
+                              className={`text-[8px] font-black uppercase ${
+                                day.active ? "text-emerald-400" : "text-slate-600"
+                              }`}
+                            >
+                              {day.label}
+                            </span>
+                            {day.active && <span className="text-[10px] leading-none">✓</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
                       {icon:<MessageCircle size={18}/>,label:'Total Casts',val:castAnalytics.totalCasts,c:'text-cyan-400',bg:'bg-cyan-500/10'},
@@ -372,13 +665,12 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
                   <div className="space-y-2">
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Detailed Breakdown</p>
                     {[
-                      {icon:<Calendar size={15} className="text-cyan-400"/>,label:'Active Cast Days',value:`${castAnalytics.castDays} days`,sub:`out of ${analyticsTimeframe==='24h'?1:analyticsTimeframe==='3d'?3:analyticsTimeframe==='7d'?7:analyticsTimeframe==='14d'?14:30} days`,positive:castAnalytics.castDays>0},
                       {icon:<Flame size={15} className="text-orange-400"/>,label:'Longest Streak',value:`${castAnalytics.longestStreak} days`,sub:'consecutive days casting',positive:castAnalytics.longestStreak>3},
                       {icon:<Zap size={15} className="text-yellow-400"/>,label:'Current Streak',value:`${castAnalytics.currentStreak} days`,sub:castAnalytics.currentStreak>0?'keep it going!':'streak broken',positive:castAnalytics.currentStreak>0},
                       {icon:<BarChart3 size={15} className="text-cyan-400"/>,label:'Avg Casts / Day',value:`${castAnalytics.avgPerDay}`,sub:'over selected period',positive:castAnalytics.avgPerDay>1},
                       {icon:<Target size={15} className="text-purple-400"/>,label:'Engagement Rate',value:`${castAnalytics.engRate}x`,sub:'avg reactions per cast',positive:castAnalytics.engRate>2},
                       {icon:<Star size={15} className="text-yellow-400"/>,label:'Best Day to Cast',value:castAnalytics.bestDay,sub:'most active weekday',positive:true},
-                      {icon:<Heart size={15} className="text-red-400"/>,label:'Most Liked Cast',value:`${castAnalytics.mostLiked?.reactions?.likes_count||0} likes`,sub:castAnalytics.mostLiked?.text?.substring(0,40)+'...'||'',positive:(castAnalytics.mostLiked?.reactions?.likes_count||0)>5},
+                      {icon:<Heart size={15} className="text-red-400"/>,label:'Most Liked Cast',value:`${castAnalytics.mostLiked?.reactions?.likes_count||0} likes`,sub:castAnalytics.mostLiked?.text?.substring(0,40)+'...'||'No casts in period',positive:(castAnalytics.mostLiked?.reactions?.likes_count||0)>5},
                     ].map((row,i)=>(
                       <div key={i} className="flex items-center justify-between bg-white/3 hover:bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 transition-colors gap-3">
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -488,6 +780,46 @@ export default function FarcasterAnalytics({ address }: { address: string }) {
           </div>
         )}
       </div>
+
+      {!unlocked && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-[#040a14]/75 backdrop-blur-[2px] p-4">
+          <div className="max-w-sm w-full glass-panel border border-violet-500/30 rounded-2xl p-6 text-center shadow-2xl shadow-black/40">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center mx-auto mb-4">
+              <Lock size={22} className="text-violet-300" />
+            </div>
+            <p className="text-[10px] font-black text-violet-300 uppercase tracking-widest">
+              x402 · Base mainnet
+            </p>
+            <h4 className="text-lg font-black text-white mt-2">Unlock Farcaster Analysis</h4>
+            <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+              Pay once per session to view your linked Farcaster profile, cast analytics, and username search results.
+            </p>
+            <p className="text-2xl font-black text-white mt-4 tabular-nums">$0.10 USDC</p>
+            <p className="text-[11px] text-slate-500 mt-1">via x402 on Base · session unlock only</p>
+            <button
+              type="button"
+              onClick={onUnlock}
+              disabled={unlockLoading}
+              className="w-full mt-5 py-3.5 rounded-xl font-black text-sm btn-primary text-white disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {unlockLoading ? (
+                <>
+                  <RefreshCcw size={16} className="animate-spin" />
+                  Confirming payment…
+                </>
+              ) : (
+                <>
+                  <Zap size={16} />
+                  Pay 0.10 USDC to unlock
+                </>
+              )}
+            </button>
+            <p className="text-[10px] text-slate-600 mt-3 leading-relaxed">
+              Disconnecting or refreshing requires payment again.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

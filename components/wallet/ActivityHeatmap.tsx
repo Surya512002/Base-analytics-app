@@ -43,7 +43,7 @@ export function ActivityHeatmap({
     <div className="space-y-3">
       <div
         ref={scrollRef}
-        className="overflow-x-auto pb-1 no-scrollbar"
+        className="overflow-x-auto pb-1 no-scrollbar touch-scroll-x"
       >
         <div className="inline-flex gap-2 min-w-max">
           {/* Day-of-week labels */}

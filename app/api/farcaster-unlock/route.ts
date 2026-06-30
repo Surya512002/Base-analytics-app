@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodePaymentSignatureHeader, encodePaymentRequiredHeader } from "@x402/core/http";
 import type { Network, PaymentRequired } from "@x402/core/types";
 import { settleX402Payment, verifyX402Payment } from "@/lib/x402-facilitator";
-import { analyzeWalletAddress } from "@/lib/analyze-wallet";
-import { buildPremiumInsights } from "@/lib/premium/build-insights";
-import { getX402Product, productIdFromAmount, type X402ProductId } from "@/lib/constants/x402-products";
+import { getX402Product } from "@/lib/constants/x402-products";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,9 +10,10 @@ export const runtime = "nodejs";
 const PAY_TO = "0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F";
 const NETWORK: Network = "eip155:8453";
 const USDC_ADDRESS = "0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913";
+const PRODUCT_ID = "farcaster" as const;
 
-function buildPaymentRequired(req: NextRequest, productId: X402ProductId): PaymentRequired {
-  const product = getX402Product(productId);
+function buildPaymentRequired(req: NextRequest): PaymentRequired {
+  const product = getX402Product(PRODUCT_ID);
   const url = new URL(req.nextUrl.pathname, req.nextUrl.origin).toString();
   return {
     x402Version: 2,
@@ -41,14 +40,13 @@ function buildPaymentRequired(req: NextRequest, productId: X402ProductId): Payme
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({})) as { address?: string; product?: X402ProductId };
-  const productId = body.product ?? "scan";
+  const body = (await req.json().catch(() => ({}))) as { address?: string };
   const paymentHeader =
     req.headers.get("payment-signature") ||
     req.headers.get("PAYMENT-SIGNATURE");
 
   if (!paymentHeader) {
-    const paymentRequired = buildPaymentRequired(req, productId);
+    const paymentRequired = buildPaymentRequired(req);
     return NextResponse.json(
       {},
       {
@@ -64,7 +62,7 @@ export async function POST(req: NextRequest) {
   try {
     const paymentPayload = decodePaymentSignatureHeader(paymentHeader);
     const paymentRequirements =
-      paymentPayload.accepted ?? buildPaymentRequired(req, productId).accepts[0];
+      paymentPayload.accepted ?? buildPaymentRequired(req).accepts[0];
 
     const verifyData = await verifyX402Payment(paymentPayload, paymentRequirements);
 
@@ -90,31 +88,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const paidProductId = productIdFromAmount(
-      String(paymentRequirements.amount ?? "")
-    );
-
-    const address = body.address?.toLowerCase();
-    let insights = null;
-    if (address?.startsWith("0x") && address.length === 42) {
-      const result = await analyzeWalletAddress(address);
-      if (result?.wallet) {
-        insights = buildPremiumInsights(result.wallet, paidProductId);
-      }
-    }
-
     return NextResponse.json({
-      premium: true,
-      product: paidProductId,
-      address,
-      message: "Premium analytics unlocked",
+      unlocked: true,
+      product: PRODUCT_ID,
+      address: body.address?.toLowerCase(),
+      message: "Farcaster analysis unlocked for this session",
       unlockedAt: new Date().toISOString(),
       transaction: settleData.transaction,
-      insights,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Payment error";
-    console.error("[premium-scan]", msg, e);
+    console.error("[farcaster-unlock]", msg, e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

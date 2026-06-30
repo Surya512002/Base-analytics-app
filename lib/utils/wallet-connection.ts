@@ -11,7 +11,7 @@ export function persistConnType(type: ConnectionType): void {
 export function readConnType(): ConnectionType | null {
   if (typeof window === "undefined") return null;
   const v = localStorage.getItem(CONN_TYPE_KEY);
-  if (v === "farcaster" || v === "metamask" || v === "coinbase") return v;
+  if (v === "farcaster" || v === "metamask" || v === "coinbase" || v === "injected") return v;
   return null;
 }
 
@@ -84,7 +84,7 @@ export async function inferConnType(
     const match = accounts?.find(
       (a) => a?.toLowerCase() === address.toLowerCase()
     );
-    if (match) return eth.isMetaMask ? "metamask" : "coinbase";
+    if (match) return eth.isMetaMask ? "metamask" : "injected";
   } catch {
     // ignore
   }
@@ -100,7 +100,7 @@ export async function resolveActiveConnType(
   if (!active) return null;
 
   if (active === "farcaster" && !(await detectMiniAppConnType())) {
-    active = "metamask";
+    active = readConnType() === "injected" ? "injected" : "metamask";
   }
   return active;
 }

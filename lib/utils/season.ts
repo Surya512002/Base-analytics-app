@@ -1,34 +1,121 @@
 import { SEASON_END, SEASON_START, WEEKLY_QUESTS } from "@/lib/constants/season";
+import type { AppQuestContext } from "@/lib/constants/season";
+import {
+  CHECK_IN_TRACK_DAYS,
+  streakBoostPercent,
+} from "@/lib/utils/check-in-rewards";
+import {
+  DAILY_POINTS_CAP,
+  getTodayPointsSummary,
+  getWeekPointsTotal,
+} from "@/lib/utils/daily-points";
+import { getBadgeMintXpTotal } from "@/lib/utils/badge-mint-xp";
+import { loadLocalBatches } from "@/lib/utils/voucher";
 import type { WalletData } from "@/lib/types/wallet";
 
-export function getQuestXP(
-  w: WalletData,
-  b: number,
-  s: number,
-  k?: Record<string, number>
-): number {
-  return WEEKLY_QUESTS.filter((q) => q.check(w, b, s, k)).reduce(
+export type { AppQuestContext } from "@/lib/constants/season";
+
+export function buildAppQuestContext(args: {
+  wallet: WalletData;
+  streak: number;
+  checkedToday: boolean;
+  txKeys: Record<string, number>;
+  x402PayCount: number;
+  referralInvites: number;
+  didChallenge: boolean;
+}): AppQuestContext {
+  return {
+    wallet: args.wallet,
+    streak: args.streak,
+    checkedToday: args.checkedToday,
+    txKeys: args.txKeys,
+    x402PayCount: args.x402PayCount,
+    voucherBatchCount: loadLocalBatches(args.wallet.address).length,
+    referralInvites: args.referralInvites,
+    didChallenge: args.didChallenge,
+  };
+}
+
+export function getQuestXP(ctx: AppQuestContext): number {
+  return WEEKLY_QUESTS.filter((q) => q.check(ctx)).reduce(
     (acc, q) => acc + q.xp,
     0
   );
 }
 
-function streakQuestMultiplier(streak: number): number {
-  if (streak >= 7) return 3;
-  if (streak >= 3) return 2;
-  return 1;
+export function countDoneQuests(ctx: AppQuestContext): number {
+  return WEEKLY_QUESTS.filter((q) => q.check(ctx)).length;
 }
 
-/** Weekly quest XP + boost/streak bonuses. Referral XP is tracked separately. */
+export interface XPBreakdown {
+  questBase: number;
+  questMultiplier: number;
+  questXp: number;
+  weekActivityXp: number;
+  badgeMintXp: number;
+  todayActivityXp: number;
+  todayBonusXp: number;
+  dailyCap: number;
+  dailyRemaining: number;
+  /** Quest + activity for the current week (weekly leaderboard). */
+  weeklyTotal: number;
+  /** Weekly total + all-time badge mint XP (season leaderboard). */
+  seasonTotal: number;
+  /** @deprecated Use weeklyTotal or seasonTotal */
+  total: number;
+}
+
+/** Quest XP + capped daily activity (week sum) + 7-day all-tasks bonus. */
+export function computeXPBreakdown(
+  ctx: AppQuestContext,
+  _boosts: number,
+  doneQuests?: number
+): XPBreakdown {
+  const address = ctx.wallet.address;
+
+  const questBase = getQuestXP(ctx);
+  const cycleDay = Math.min(Math.max(ctx.streak, 0), CHECK_IN_TRACK_DAYS);
+  const boostPct = streakBoostPercent(cycleDay || 1);
+  const questMultiplier = 1 + boostPct / 100;
+  const questXp = Math.round(questBase * questMultiplier);
+
+  const weekActivityXp = getWeekPointsTotal(address);
+  const badgeMintXp = getBadgeMintXpTotal(address);
+  const today = getTodayPointsSummary(address);
+
+  const weeklyTotal = questXp + weekActivityXp;
+  const seasonTotal = weeklyTotal + badgeMintXp;
+
+  return {
+    questBase,
+    questMultiplier,
+    questXp,
+    weekActivityXp,
+    badgeMintXp,
+    todayActivityXp: today.activity,
+    todayBonusXp: today.bonus,
+    dailyCap: DAILY_POINTS_CAP,
+    dailyRemaining: today.remaining,
+    weeklyTotal,
+    seasonTotal,
+    total: weeklyTotal,
+  };
+}
+
 export function computeWeeklyXP(
-  w: WalletData,
-  b: number,
-  s: number,
-  k?: Record<string, number>
+  ctx: AppQuestContext,
+  boosts: number,
+  doneQuests?: number
 ): number {
-  const questXp = getQuestXP(w, b, s, k);
-  const multipliedQuest = Math.round(questXp * streakQuestMultiplier(s));
-  return multipliedQuest + Math.min(b, 10) * 10 + Math.min(s, 7) * 5;
+  return computeXPBreakdown(ctx, boosts, doneQuests).weeklyTotal;
+}
+
+export function computeSeasonXP(
+  ctx: AppQuestContext,
+  boosts: number,
+  doneQuests?: number
+): number {
+  return computeXPBreakdown(ctx, boosts, doneQuests).seasonTotal;
 }
 
 export function getSeasonPct(): number {

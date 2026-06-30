@@ -43,15 +43,16 @@ const FarcasterAnalytics = dynamic(
 
 export default function DashboardTab({ app }: { app: WalletAppState }) {
   const {
-    wallet, minting, selDay, setSelDay,
+    wallet, selDay, setSelDay,
     scrollRef, boosts, sponsored, streak,
-    checkedToday, challenge, setChallenge,
+    challenge, setChallenge,
     challengeResult, challengeLoading, weeklyXP,
     x402PayCount, mintedCount,
-    showToast, handleChallenge, doNativeTx, shareScore, shareAch,
+    showToast, handleChallenge, shareScore, shareAch,
     shareAll, leaderboard, lbLoading, doneQuests,
     premiumUnlocked, premiumLoading, premiumData, premiumInsights, handlePremiumScan,
     x402Product, setX402Product,
+    farcasterUnlocked, farcasterUnlockLoading, handleFarcasterUnlock,
   } = app;
 
 if (!wallet) return null;
@@ -83,54 +84,17 @@ if (!wallet) return null;
                   </h2>
                 </div>
                 <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-                  Boost, GM & GN — tap as many times as you want. Check-in is once per day.
+                  Wallet score, heatmap & activity — daily check-in, boosts & GM/GN live on the Check-In tab.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => app.setTab("checkin")}
+                  className="mt-3 text-xs font-black text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                >
+                  <Flame size={12} /> Open Check-In →
+                </button>
               </div>
 
-              {/* Daily check-in */}
-              <div className={`mx-4 sm:mx-5 mt-4 mb-4 border rounded-2xl overflow-hidden ${checkedToday?'border-cyan-400/35':'border-cyan-500/18'}`}>
-                <div className={`h-0.5 ${checkedToday?'bg-linear-to-r from-cyan-400 to-cyan-300':'bg-linear-to-r from-rose-500 to-cyan-500'}`}/>
-                <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between bg-white/[0.02]">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${checkedToday?'bg-cyan-400/15 border-cyan-400/30':'bg-cyan-500/12 border-cyan-500/20'}`}>
-                      <Flame size={22} className={checkedToday?'text-cyan-300':'text-cyan-400'}/>
-                    </div>
-                    <div>
-                      <p className="font-black text-white text-base">{checkedToday?`Day ${streak} streak 🔥`:'Daily Check-In Available'}</p>
-                      <p className={`text-xs mt-0.5 ${checkedToday?'text-cyan-300/60':'text-slate-500'}`}>{checkedToday?'Recorded immutably on Base.':'Sign once · earn XP · unlock multipliers'}</p>
-                      <div className="flex items-center gap-1.5 mt-2">
-                        {Array.from({length:Math.min(streak,7)}).map((_,i)=>(
-                          <div key={i} className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] bg-cyan-500/15 border border-cyan-500/30">🔥</div>
-                        ))}
-                        {streak>7&&<span className="text-[10px] text-slate-500 font-bold">+{streak-7}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-stretch sm:items-end gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => doNativeTx("checkin")}
-                      disabled={checkedToday || minting === "checkin"}
-                      className={`py-3 px-6 rounded-2xl font-black text-sm transition-all w-full sm:w-auto ${
-                        checkedToday
-                          ? "bg-cyan-500/10 text-cyan-300 cursor-default border border-cyan-500/18"
-                          : "btn-primary hover:opacity-90 text-white shadow-lg shadow-cyan-500/20 active:scale-95"
-                      }`}
-                    >
-                      {minting === "checkin" ? (
-                        <RefreshCcw className="animate-spin mx-auto" size={14} />
-                      ) : checkedToday ? (
-                        "✓ Secured Today"
-                      ) : (
-                        "Check In"
-                      )}
-                    </button>
-                    <p className="text-[9px] text-slate-500 flex items-center justify-center gap-1 mt-0.5"><Droplets size={8}/>Gas Sponsored</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Wallet health */}
               <div className="mx-4 sm:mx-5 mb-4 glass-panel-accent rounded-2xl overflow-hidden">
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
@@ -163,73 +127,9 @@ if (!wallet) return null;
                   </div>
                 </div>
               </div>
-
-              {/* XP Booster + Community Vibes */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 px-4 sm:px-5 pb-5 isolate">
-                <div className="min-w-0 relative z-10 glass-panel-accent rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 justify-between">
-                  <div className="flex items-center gap-3 w-full sm:w-auto min-w-0">
-                    <div className="w-12 h-12 bg-cyan-500/12 rounded-2xl border border-cyan-500/18 flex items-center justify-center shrink-0"><Rocket size={22} className="text-cyan-400"/></div>
-                    <div>
-                      <p className="font-black text-white text-base">XP Booster</p>
-                      <div className="flex gap-2 mt-1.5">
-                        <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-400 font-black">{boosts}</span><span className="text-slate-500 ml-1">boosts</span></span>
-                        <span className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs"><span className="text-cyan-300 font-black">{streak}d</span><span className="text-slate-500 ml-1">streak</span></span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="relative z-20 w-full sm:w-auto text-center shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => doNativeTx("boost")}
-                      disabled={minting === "boost"}
-                      className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-95 cursor-pointer touch-manipulation ${
-                        minting === "boost"
-                          ? "bg-white/10 text-slate-500 cursor-wait"
-                          : "btn-primary hover:opacity-90 text-white shadow-xl shadow-cyan-500/20"
-                      }`}
-                    >
-                      {minting === "boost" ? (
-                        <RefreshCcw className="animate-spin mx-auto" size={18} />
-                      ) : (
-                        "BOOST (+1)"
-                      )}
-                    </button>
-                    <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
-                  </div>
-                </div>
-
-                <div className="min-w-0 relative z-10 glass-panel-accent rounded-2xl p-5">
-                  <p className="font-black text-white mb-4 flex items-center gap-2"><Star size={15} className="text-cyan-400"/>Community Vibes</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(['gm','gn'] as const).map(type=>(
-                      <div key={type} className="relative z-20 text-center">
-                        <button
-                          type="button"
-                          onClick={() => doNativeTx(type)}
-                          disabled={minting === type}
-                          className={`w-full py-4 rounded-xl font-black text-xl transition-all active:scale-95 border cursor-pointer touch-manipulation ${
-                            minting === type
-                              ? "opacity-40 cursor-wait bg-white/[0.04] border-white/8 text-slate-600"
-                              : "btn-primary hover:opacity-90 text-white border-transparent shadow-lg shadow-cyan-500/15"
-                          }`}
-                        >
-                          {minting === type ? (
-                            <RefreshCcw className="animate-spin mx-auto" size={18} />
-                          ) : type === "gm" ? (
-                            "☀️ GM"
-                          ) : (
-                            "🌙 GN"
-                          )}
-                        </button>
-                        <p className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-center gap-1"><Droplets size={8}/>Gas Sponsored</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
-            <QuestProgressBanner doneQuests={doneQuests} onGoQuests={() => app.setTab("quests")} />
+            <QuestProgressBanner doneQuests={doneQuests} onGoQuests={() => app.setTab("checkin")} />
 
             <PaymasterInsightTile wallet={wallet} />
 
@@ -412,7 +312,12 @@ if (!wallet) return null;
 
             <ReferralPanel address={wallet.address} />
 
-            <FarcasterAnalytics address={wallet.address} />
+            <FarcasterAnalytics
+              address={wallet.address}
+              unlocked={farcasterUnlocked}
+              unlockLoading={farcasterUnlockLoading}
+              onUnlock={handleFarcasterUnlock}
+            />
 
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>

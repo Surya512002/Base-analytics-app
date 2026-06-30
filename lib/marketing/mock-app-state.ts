@@ -180,9 +180,14 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     premiumLoading: false,
     premiumData: null,
     premiumInsights: null,
+    farcasterUnlocked: false,
+    farcasterUnlockLoading: false,
+    handleFarcasterUnlock: noopAsync,
     x402Product: "scan" as const,
     setX402Product: noop,
     referralBonusXp: 0,
+    referralInvites: 0,
+    questContext: null,
     x402PayCount: 2,
     boostCall: [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")],
     gmCall: [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gm")],
@@ -205,5 +210,6 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     shareAll: noop,
     getAchievementValue: () => 0,
     doneQuests: 6,
+    pointsRevision: 0,
   };
 }

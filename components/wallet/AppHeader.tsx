@@ -16,7 +16,7 @@ export default function AppHeader({
   onDisconnect,
 }: AppHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-[#03080f]/90 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
+    <header className="app-header sticky top-0 z-40 bg-[#03080f]/90 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <AppLogo size="sm" />
@@ -54,7 +54,7 @@ export default function AppHeader({
           )}
           <button
             onClick={onDisconnect}
-            className="p-2 glass-panel rounded-xl text-slate-400 hover:text-white hover:border-cyan-400/40 transition-all"
+            className="p-2 glass-panel rounded-xl text-slate-400 hover:text-white hover:border-cyan-400/40 transition-colors"
             aria-label="Disconnect wallet"
           >
             <Power size={14} />

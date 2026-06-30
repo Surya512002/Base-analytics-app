@@ -11,7 +11,8 @@ interface LeaderboardEntry {
   rank:       string;
   boosts:     number;
   badges:     number;
-  weeklyXP:   number;   // XP earned THIS week (resets Mon)
+  weeklyXP:   number;   // XP earned THIS week (resets Mon) — quests + activity only
+  badgeMintXp?: number; // cumulative badge mint XP (season global ranking only)
   totalXP:    number;   // cumulative all-time season XP (NEVER sent by client — always computed here)
   weekNumber: number;   // ISO week when weeklyXP was last set
   lastSeen?:  number;
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
   try {
     redis = createRedis(); await redis.connect();
 
-    // Client sends: address, basename, score, rank, boosts, badges, weeklyXP, weekNumber
+    // Client sends: address, basename, score, rank, boosts, badges, weeklyXP, badgeMintXp, weekNumber
     // Client NEVER controls totalXP — backend always computes it
     const client: Omit<LeaderboardEntry, 'totalXP'> = await req.json();
 
@@ -74,7 +75,8 @@ export async function POST(req: Request) {
       score: Math.min(100, Math.max(0, Math.round(client.score ?? 0))),
       boosts: Math.min(10_000, Math.max(0, Math.round(client.boosts ?? 0))),
       badges: Math.min(100, Math.max(0, Math.round(client.badges ?? 0))),
-      weeklyXP: Math.min(800, Math.max(0, Math.round(client.weeklyXP ?? 0))),
+      weeklyXP: Math.min(2500, Math.max(0, Math.round(client.weeklyXP ?? 0))),
+      badgeMintXp: Math.min(5000, Math.max(0, Math.round(client.badgeMintXp ?? 0))),
       basename: client.basename?.slice(0, 64) ?? null,
       rank: (client.rank ?? 'Base User').slice(0, 48),
     };
@@ -87,10 +89,24 @@ export async function POST(req: Request) {
 
     const idx = lb.findIndex(e => e.address.toLowerCase() === sanitized.address.toLowerCase());
 
+    const computeTotal = (
+      prevTotal: number,
+      prevWeekly: number,
+      prevBadge: number,
+      weekly: number,
+      badge: number,
+      sameWeek: boolean
+    ) => {
+      const weeklyHistory = sameWeek
+        ? prevTotal - prevWeekly - prevBadge
+        : prevTotal - prevBadge;
+      return weeklyHistory + weekly + badge;
+    };
+
     if (idx === -1) {
       lb.push({
         ...sanitized,
-        totalXP: sanitized.weeklyXP,
+        totalXP: sanitized.weeklyXP + (sanitized.badgeMintXp ?? 0),
         weekNumber: thisWeek,
         lastSeen: now,
       });
@@ -98,16 +114,18 @@ export async function POST(req: Request) {
       const existing = lb[idx];
       const prevTotal   = existing.totalXP   ?? existing.weeklyXP ?? 0;
       const prevWeekly  = existing.weeklyXP  ?? 0;
+      const prevBadge   = existing.badgeMintXp ?? 0;
       const prevWeekNum = existing.weekNumber ?? 0;
+      const sameWeek = prevWeekNum === thisWeek;
 
-      let newTotal: number;
-
-      if (prevWeekNum !== thisWeek) {
-        newTotal = prevTotal + sanitized.weeklyXP;
-      } else {
-        const lockedHistory = prevTotal - prevWeekly;
-        newTotal = lockedHistory + sanitized.weeklyXP;
-      }
+      const newTotal = computeTotal(
+        prevTotal,
+        prevWeekly,
+        prevBadge,
+        sanitized.weeklyXP,
+        sanitized.badgeMintXp ?? 0,
+        sameWeek
+      );
 
       lb[idx] = {
         ...sanitized,

@@ -75,7 +75,7 @@ export default function HallOfFamePage() {
               href={`${APP_URL_WEB}/?tab=rankings`}
               className="block text-center mt-4 text-sm font-black text-violet-400 hover:underline"
             >
-              View full leaderboard →
+              View Rankings →
             </Link>
           </div>
         </div>

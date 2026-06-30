@@ -19,17 +19,130 @@ export const ACHIEVEMENTS = [
   { id: "boosts", baseId: 110, name: "XP Booster", icon: "🔋", unit: "Boosts", thresholds: [5, 10, 25, 50, 100], tierNames: ["Novice", "Supporter", "Fanatic", "Champion", "Apex"], tierIcons: ["🔰", "🤝", "📣", "🏆", "🔋"] },
 ];
 
-export const WEEKLY_QUESTS = [
-  { id: "q_boost", icon: "🚀", title: "Boost your score", desc: "Use the XP Booster at least once", xp: 25, check: (w: WalletData, b: number) => b >= 1 },
-  { id: "q_gm", icon: "☀️", title: "Say GM on Base", desc: "Send a GM transaction onchain", xp: 15, check: (w: WalletData, _b: number, _s: number, k?: Record<string, number>) => w.hasGm || !!(k?.gm && k.gm > 0) },
-  { id: "q_checkin", icon: "🔥", title: "Onchain check-in", desc: "Complete a daily onchain check-in", xp: 20, check: (w: WalletData, _b: number, s: number, k?: Record<string, number>) => w.checkInCount >= 1 || s >= 1 || !!(k?.checkin && k.checkin > 0) },
-  { id: "q_streak", icon: "⚡", title: "3-day streak", desc: "Maintain a 3+ day onchain streak", xp: 30, check: (_w: WalletData, _b: number, s: number) => s >= 3 },
-  { id: "q_defi", icon: "🦄", title: "DeFi interaction", desc: "Interact with a DeFi protocol", xp: 40, check: (w: WalletData) => w.defiInteractions >= 1 },
-  { id: "q_swap", icon: "🔄", title: "Token swap", desc: "Swap at least one token on Base", xp: 20, check: (w: WalletData) => w.swapCount >= 1 },
-  { id: "q_nft", icon: "🎨", title: "Collect an NFT", desc: "Hold 1+ NFTs on Base network", xp: 35, check: (w: WalletData) => w.nftCount >= 1 },
-  { id: "q_basename", icon: "🆔", title: "Claim Basename", desc: "Register a .base.eth username", xp: 50, check: (w: WalletData) => !!w.basename },
-  { id: "q_vol", icon: "💎", title: "Volume milestone", desc: "Reach 0.001+ ETH transaction volume", xp: 30, check: (w: WalletData) => parseFloat(w.ethVolume) >= 0.001 },
-  { id: "q_txs", icon: "📊", title: "Active trader", desc: "Complete 10+ transactions on Base", xp: 25, check: (w: WalletData) => w.txCount >= 10 },
+/** Actions completed inside Base Analytics — not passive on-chain history. */
+export type AppQuestContext = {
+  wallet: WalletData;
+  streak: number;
+  checkedToday: boolean;
+  txKeys: Record<string, number>;
+  x402PayCount: number;
+  voucherBatchCount: number;
+  referralInvites: number;
+  didChallenge: boolean;
+};
+
+export type AppQuestTab = "checkin" | "achievements" | "basehub" | "dashboard";
+
+export type WeeklyQuest = {
+  id: string;
+  icon: string;
+  title: string;
+  desc: string;
+  xp: number;
+  tab?: AppQuestTab;
+  check: (ctx: AppQuestContext) => boolean;
+};
+
+export const WEEKLY_QUESTS: WeeklyQuest[] = [
+  {
+    id: "q_boost",
+    icon: "🚀",
+    title: "Fire XP Boost",
+    desc: "Tap Boost on the Check-In tab",
+    xp: 25,
+    tab: "checkin",
+    check: (c) => (c.txKeys.boost ?? 0) >= 1,
+  },
+  {
+    id: "q_gm",
+    icon: "☀️",
+    title: "Say GM",
+    desc: "Send GM from the Check-In tab",
+    xp: 15,
+    tab: "checkin",
+    check: (c) => (c.txKeys.gm ?? 0) >= 1,
+  },
+  {
+    id: "q_gn",
+    icon: "🌙",
+    title: "Say GN",
+    desc: "Send GN from the Check-In tab",
+    xp: 15,
+    tab: "checkin",
+    check: (c) => (c.txKeys.gn ?? 0) >= 1,
+  },
+  {
+    id: "q_checkin",
+    icon: "🔥",
+    title: "Daily check-in",
+    desc: "Complete onchain check-in in this app",
+    xp: 20,
+    tab: "checkin",
+    check: (c) => (c.txKeys.checkin ?? 0) >= 1 || c.checkedToday,
+  },
+  {
+    id: "q_streak3",
+    icon: "⚡",
+    title: "3-day streak",
+    desc: "Check in 3 days in a row via this app",
+    xp: 30,
+    tab: "checkin",
+    check: (c) => c.streak >= 3,
+  },
+  {
+    id: "q_streak7",
+    icon: "🏆",
+    title: "7-day streak",
+    desc: "Finish the full 7-day check-in track",
+    xp: 50,
+    tab: "checkin",
+    check: (c) => c.streak >= 7,
+  },
+  {
+    id: "q_x402",
+    icon: "💳",
+    title: "x402 Premium",
+    desc: "Pay for Deep Scan, Export, or Compare once",
+    xp: 40,
+    tab: "dashboard",
+    check: (c) => c.x402PayCount >= 1,
+  },
+  {
+    id: "q_voucher",
+    icon: "🎁",
+    title: "Create gift cards",
+    desc: "Create a Base Voucher batch in-app",
+    xp: 45,
+    tab: "basehub",
+    check: (c) => c.voucherBatchCount >= 1,
+  },
+  {
+    id: "q_redeem",
+    icon: "🎫",
+    title: "Redeem a voucher",
+    desc: "Claim a Base Voucher gift card in-app",
+    xp: 35,
+    tab: "basehub",
+    check: (c) => (c.txKeys.redeem ?? 0) >= 1,
+  },
+  {
+    id: "q_challenge",
+    icon: "🎯",
+    title: "Score battle",
+    desc: "Challenge another wallet on Analytics",
+    xp: 20,
+    tab: "dashboard",
+    check: (c) => c.didChallenge,
+  },
+  {
+    id: "q_referral",
+    icon: "🤝",
+    title: "Refer a friend",
+    desc: "Get 1+ friend to join via your referral link",
+    xp: 30,
+    tab: "dashboard",
+    check: (c) => c.referralInvites >= 1,
+  },
 ];
 
 export const SEASON_START = new Date("2026-04-20T00:00:00Z");

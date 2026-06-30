@@ -1,14 +1,26 @@
 "use client";
 
-import { Zap, Star } from "lucide-react";
+import { ChevronRight, Zap, Star } from "lucide-react";
 import { SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
+import {
+  DAILY_POINTS_CAP,
+  SEVEN_DAY_ALL_TASKS_BONUS,
+} from "@/lib/utils/daily-points";
+import { CHECK_IN_TRACK_DAYS } from "@/lib/utils/check-in-rewards";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
-export default function QuestsTab({ app }: { app: WalletAppState }) {
-  const { wallet, weeklyXP, doneQuests, boosts, streak, txKeys } = app;
+const TAB_LABELS: Record<string, string> = {
+  checkin: "Check-In",
+  achievements: "Badges",
+  basehub: "Vouchers",
+  dashboard: "Analytics",
+};
 
-  if (!wallet) return null;
+export default function QuestsTab({ app }: { app: WalletAppState }) {
+  const { wallet, weeklyXP, doneQuests, questContext, setTab, streak } = app;
+
+  if (!wallet || !questContext) return null;
 
   return (
     <div className="space-y-4">
@@ -30,13 +42,13 @@ export default function QuestsTab({ app }: { app: WalletAppState }) {
                 {SEASON_NAME}
               </span>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-white">Season Pass</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-white">Weekly Quests</h3>
             <p className="text-sm text-white/60 mt-0.5">
-              {getDaysLeft()} days remaining · XP carries over weekly
+              Complete tasks inside Base Analytics · {getDaysLeft()} days left
             </p>
             <div className="mt-4 w-full sm:max-w-xs">
               <div className="flex justify-between text-[10px] text-white/50 font-bold mb-1.5">
-                <span>Progress</span>
+                <span>Season progress</span>
                 <span>{getSeasonPct()}%</span>
               </div>
               <div className="w-full bg-white/15 rounded-full h-2 overflow-hidden">
@@ -52,72 +64,85 @@ export default function QuestsTab({ app }: { app: WalletAppState }) {
             <p className="text-sm text-white/60 uppercase font-bold">This Week XP</p>
             <div className="mt-3 flex sm:justify-end gap-2 flex-wrap">
               <span className="bg-white/10 border border-white/15 rounded-xl px-3 py-1.5 text-xs font-black text-white">
-                {doneQuests}/{WEEKLY_QUESTS.length} quests
-              </span>
-              <span className="bg-white/10 border border-white/15 rounded-xl px-3 py-1.5 text-xs font-black text-white">
-                {streak}d streak
+                {doneQuests}/{WEEKLY_QUESTS.length} in-app quests
               </span>
             </div>
           </div>
         </div>
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {WEEKLY_QUESTS.map((q) => {
-          const done = q.check(wallet, boosts, streak, txKeys);
+          const done = q.check(questContext);
           return (
             <div
               key={q.id}
-              className={`rounded-2xl p-4 border flex items-center gap-4 justify-between transition-all ${
+              className={`rounded-2xl p-4 border flex flex-col gap-3 transition-all ${
                 done
                   ? "bg-cyan-500/8 border-cyan-500/20"
                   : "bg-white/[0.04] border-cyan-500/15 hover:border-cyan-500/20"
               }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-start gap-3 min-w-0">
                 <div
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
                     done
                       ? "bg-cyan-500/12 border border-cyan-500/20"
-                      : "bg-white/[0.04] border border-white/8"
+                      : "bg-white/5 border border-white/10"
                   }`}
                 >
                   {done ? "✅" : q.icon}
                 </div>
-                <div className="min-w-0">
-                  <p
-                    className={`font-black text-sm truncate ${done ? "text-cyan-300" : "text-white"}`}
-                  >
-                    {q.title}
-                  </p>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5">{q.desc}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black text-white text-sm">{q.title}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{q.desc}</p>
                 </div>
+                <span
+                  className={`text-xs font-black shrink-0 ${
+                    done ? "text-cyan-400" : "text-slate-500"
+                  }`}
+                >
+                  +{q.xp} XP
+                </span>
               </div>
-              <div
-                className={`shrink-0 px-3 py-2 rounded-xl font-black text-xs border whitespace-nowrap ${
-                  done
-                    ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/18"
-                    : "bg-white/[0.04] text-cyan-400 border-white/8"
-                }`}
-              >
-                +{q.xp} XP
-              </div>
+              {!done && q.tab && (
+                <button
+                  type="button"
+                  onClick={() => setTab(q.tab!)}
+                  className="flex items-center justify-between w-full text-left text-[11px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/8 border border-cyan-500/15 rounded-xl px-3 py-2 transition-colors"
+                >
+                  <span>Go to {TAB_LABELS[q.tab] ?? q.tab}</span>
+                  <ChevronRight size={14} />
+                </button>
+              )}
             </div>
           );
         })}
       </div>
+
+      {streak >= CHECK_IN_TRACK_DAYS &&
+        doneQuests === WEEKLY_QUESTS.length && (
+          <div className="rounded-2xl p-4 border border-amber-500/25 bg-amber-500/8 text-center">
+            <p className="text-sm font-black text-amber-200">
+              7-day streak + all quests complete!
+            </p>
+            <p className="text-xs text-amber-200/70 mt-1">
+              +{SEVEN_DAY_ALL_TASKS_BONUS} bonus PP today (above daily cap)
+            </p>
+          </div>
+        )}
+
       <div className="glass-panel-accent rounded-2xl p-5">
         <p className="font-black text-white mb-4 flex items-center gap-2">
           <Zap size={15} className="text-cyan-400" />
-          XP Multipliers & Season Rewards
+          How quest XP works
         </p>
         <div className="space-y-2">
           {[
-            { l: "3-day check-in streak", b: "2× XP on all quests" },
-            { l: "7-day check-in streak", b: "3× XP on all quests" },
-            { l: "Top 10 at season end", b: "Exclusive Genesis Badge NFT" },
-            { l: "Refer 3+ friends", b: "+150 bonus XP + referral badge" },
-            { l: "All 10 weekly quests", b: "Season multiplier bonus" },
-            { l: "Mint all 11 badges", b: "Hall of Fame status" },
+            { l: "In-app only", b: "Quests unlock when you act inside this app" },
+            { l: "Daily activity cap", b: `${DAILY_POINTS_CAP} PP/day from boost, GM/GN & check-in` },
+            { l: "3-day check-in streak", b: "+20% quest XP multiplier" },
+            { l: "7-day check-in streak", b: `+60% quest XP · +${SEVEN_DAY_ALL_TASKS_BONUS} bonus when all quests done` },
             { l: "Weekly XP resets Mon", b: "Past weeks carry to Total Season XP" },
           ].map((m, i) => (
             <div

@@ -11,7 +11,7 @@ interface WindowWithEthereum extends Omit<Window, 'ethereum' | 'coinbaseWalletEx
 }
 
 export async function getEip1193Provider(
-  type: "farcaster" | "coinbase" | "metamask"
+  type: "farcaster" | "coinbase" | "metamask" | "injected"
 ): Promise<Eip1193Provider> {
   if (typeof window === "undefined") throw new Error("Window not found");
 
@@ -39,6 +39,13 @@ export async function getEip1193Provider(
     } else {
       selectedProvider = eth as Eip1193Provider;
     }
+  } else if (type === "injected") {
+    if (!win.ethereum) {
+      throw new Error(
+        "No browser wallet found. Install Rabby, Rainbow, or another EVM wallet extension."
+      );
+    }
+    selectedProvider = win.ethereum as Eip1193Provider;
   } else if (type === "farcaster") {
     if (sdk?.actions?.ready) {
       await sdk.actions.ready();
@@ -64,14 +71,14 @@ export async function getEip1193Provider(
 }
 
 export async function getWalletProvider(
-  type: "farcaster" | "coinbase" | "metamask"
+  type: "farcaster" | "coinbase" | "metamask" | "injected"
 ): Promise<BrowserProvider> {
   const selectedProvider = await getEip1193Provider(type);
   return new BrowserProvider(selectedProvider);
 }
 
 export async function connectWallet(
-  type: "farcaster" | "coinbase" | "metamask"
+  type: "farcaster" | "coinbase" | "metamask" | "injected"
 ): Promise<{ signer: JsonRpcSigner; address: string }> {
   const provider = await getWalletProvider(type);
   const eip1193 = await getEip1193Provider(type);

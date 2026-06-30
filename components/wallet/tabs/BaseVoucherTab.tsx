@@ -43,6 +43,7 @@ import {
   tokenToAsset,
 } from "@/lib/utils/voucher";
 import { getCapabilities } from "@/lib/utils/paymaster";
+import { writePersistedTxKeys } from "@/lib/utils/wallet-session";
 import SectionCard from "@/components/ui/SectionCard";
 import VoucherHero from "@/components/wallet/VoucherHero";
 import VoucherGiftCard3D from "@/components/wallet/VoucherGiftCard3D";
@@ -191,7 +192,7 @@ function VoucherCardPreview({
 }
 
 export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
-  const { showToast, setSponsored, setTab, wallet } = app;
+  const { showToast, setSponsored, setTab, wallet, setTxKeys } = app;
   const address = wallet?.address as `0x${string}` | undefined;
   const publicClient = usePublicClient({ chainId: base.id });
   const txCaps = getCapabilities();
@@ -908,6 +909,14 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
       }
 
+      if (wallet) {
+        setTxKeys((k) => {
+          const next = { ...k, redeem: (k.redeem || 0) + 1 };
+          writePersistedTxKeys(wallet.address, next);
+          return next;
+        });
+      }
+
       setBatchCardStatuses((prev) => {
         const cards = prev[parsed.batchId];
         const cardId = formatCardId(parsed.batchId, parsed.cardIndex);
@@ -956,7 +965,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       }
       refreshMyBatches();
     },
-    [notifyVoucherTx, publicClient, refreshMyBatches]
+    [notifyVoucherTx, publicClient, refreshMyBatches, wallet, setTxKeys]
   );
 
   const exactDepositLabel = formatVoucherAmount(asset, pendingTotal);

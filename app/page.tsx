@@ -16,16 +16,16 @@ const DashboardTab = dynamic(
   () => import("@/components/wallet/tabs/DashboardTab"),
   { loading: () => <TabSkeleton /> }
 );
+const CheckInTab = dynamic(
+  () => import("@/components/wallet/tabs/CheckInTab"),
+  { loading: () => <TabSkeleton /> }
+);
 const AchievementsTab = dynamic(
   () => import("@/components/wallet/tabs/AchievementsTab"),
   { loading: () => <TabSkeleton /> }
 );
-const QuestsTab = dynamic(
-  () => import("@/components/wallet/tabs/QuestsTab"),
-  { loading: () => <TabSkeleton /> }
-);
-const LeaderboardTab = dynamic(
-  () => import("@/components/wallet/tabs/LeaderboardTab"),
+const RankingsTab = dynamic(
+  () => import("@/components/wallet/tabs/RankingsTab"),
   { loading: () => <TabSkeleton /> }
 );
 const BaseVoucherTab = dynamic(
@@ -83,7 +83,7 @@ export default function Page() {
   }
 
   return (
-    <main className="min-h-screen text-white font-sans relative">
+    <main className="main-app-shell min-h-screen text-white font-sans relative">
       <AppBackground />
 
       {toast && (
@@ -101,7 +101,7 @@ export default function Page() {
         onDisconnect={handleDisconnect}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
+      <div className="relative z-10 w-full max-w-[min(100%,88rem)] mx-auto px-3 sm:px-6 pt-4 pb-24">
         <TabBar tab={tab} doneQuests={doneQuests} onTabChange={setTab} />
 
         <OnboardingTour onNavigate={setTab} />
@@ -111,9 +111,9 @@ export default function Page() {
         <div key={tab} className="tab-content-enter">
           {tab === "basehub" && <BaseVoucherTab app={app} />}
           {tab === "dashboard" && <DashboardTab app={app} />}
+          {tab === "checkin" && <CheckInTab app={app} />}
           {tab === "achievements" && <AchievementsTab app={app} />}
-          {tab === "quests" && <QuestsTab app={app} />}
-          {tab === "leaderboard" && <LeaderboardTab app={app} />}
+          {tab === "leaderboard" && <RankingsTab app={app} />}
         </div>
 
         <AppFooterNav />

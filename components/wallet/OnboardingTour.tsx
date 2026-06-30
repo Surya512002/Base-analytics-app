@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Gift, Sparkles, X, Zap } from "lucide-react";
+import { BarChart3, CalendarCheck, Layers, Sparkles, X } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
-const TOUR_KEY = "base_onboarding_done_v2";
+const TOUR_KEY = "base_onboarding_done_v3";
 
 const STEPS: {
   icon: React.ReactNode;
@@ -13,22 +13,21 @@ const STEPS: {
   tab?: AppTab;
 }[] = [
   {
-    icon: <Gift size={20} className="text-emerald-400" />,
-    title: "Send crypto gift cards",
-    body: "Create Base Vouchers in USDC or ETH — split into up to 50 cards and share with anyone.",
-    tab: "basehub",
-  },
-  {
-    icon: <Zap size={20} className="text-amber-400" />,
-    title: "Try x402 payments",
-    body: "Pay tiny USDC amounts for premium wallet insights — no subscription, fully onchain.",
-    tab: "dashboard",
+    icon: <Layers size={20} className="text-blue-400" />,
+    title: "Welcome, Base user",
+    body: "You're on Base — the onchain home for builders, traders, and everyday crypto users. This app turns your wallet into scores, rewards, and real utility.",
   },
   {
     icon: <BarChart3 size={20} className="text-cyan-400" />,
-    title: "Scan your Base profile",
-    body: "Score, heatmap, badges, quests, and leaderboard — all from your wallet history.",
+    title: "Your onchain analysis",
+    body: "We scan your wallet history — active days, heatmap, rank, volume, and contract activity — all updated from real Base transactions.",
     tab: "dashboard",
+  },
+  {
+    icon: <CalendarCheck size={20} className="text-amber-400" />,
+    title: "Daily check-in & quests",
+    body: "Earn weekly XP with daily check-ins, boosts, GM/GN, and quests. Start here each day to climb the leaderboard.",
+    tab: "checkin",
   },
 ];
 
@@ -92,7 +91,7 @@ export default function OnboardingTour({ onNavigate }: OnboardingTourProps) {
               Skip
             </button>
             <button type="button" onClick={next} className="flex-1 py-3 rounded-xl text-sm font-black btn-primary">
-              {step >= STEPS.length - 1 ? "Get started" : "Next →"}
+              {step >= STEPS.length - 1 ? "Go to Check-In" : "Next →"}
             </button>
           </div>
         </div>

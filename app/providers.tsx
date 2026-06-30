@@ -1,5 +1,6 @@
 'use client';
 
+import ScrollPerf from '@/components/ui/ScrollPerf';
 import { ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -24,6 +25,7 @@ export function Providers({ children }: { children: ReactNode }) {
             paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined,
           }}
         >
+          <ScrollPerf />
           {children}
         </OnchainKitProvider>
       </QueryClientProvider>
