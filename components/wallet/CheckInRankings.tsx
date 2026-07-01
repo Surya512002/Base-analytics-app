@@ -238,12 +238,16 @@ export default function CheckInRankings({ app }: { app: WalletAppState }) {
                 {[
                   { l: "Quest XP", v: xpBreakdown.questXp },
                   { l: "Activity", v: xpBreakdown.weekActivityXp },
+                  { l: "Streak", v: xpBreakdown.weekStreakXp },
                   ...(mode === "global"
                     ? [{ l: "Badge XP", v: xpBreakdown.badgeMintXp }]
                     : []),
                   {
                     l: "Today",
-                    v: xpBreakdown.todayActivityXp + xpBreakdown.todayBonusXp,
+                    v:
+                      xpBreakdown.todayActivityXp +
+                      xpBreakdown.todayStreakXp +
+                      xpBreakdown.todayBonusXp,
                   },
                   ...(referralBonusXp > 0
                     ? [{ l: "Referral", v: referralBonusXp }]

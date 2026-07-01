@@ -48,9 +48,6 @@ export default function PremiumBanner({
                 )}
               </div>
               <p className="text-xs text-slate-500">{selected.description}</p>
-              <p className="text-[10px] text-amber-300/80 mt-1 leading-snug">
-                Pay as many times as you like — no logout needed. Each Deep Scan, Export, or Compare is one payment.
-              </p>
             </div>
           </div>
 

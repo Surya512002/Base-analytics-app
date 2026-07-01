@@ -73,6 +73,7 @@ import {
   fetchReferralStats,
 } from "@/lib/utils/referral";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
+import { loadLocalBatches } from "@/lib/utils/voucher";
 import {
   bumpBoostCount,
   DEFAULT_TX_KEYS,
@@ -86,6 +87,7 @@ import {
 } from "@/lib/utils/wallet-session";
 import {
   recordBoostPoints,
+  recordChallengePoints,
   recordCheckInPoints,
   recordGmPoints,
   recordGnPoints,
@@ -206,11 +208,11 @@ export function useWalletApp() {
       localStorage.getItem(keys.count) || "0",
       10
     );
-    const unlocked = localStorage.getItem(keys.unlocked) === "true";
-    const lastTx = localStorage.getItem(keys.lastTx);
-    const insightsRaw = localStorage.getItem(keys.insights);
+    lockX402PremiumSession(address);
     setX402PayCount(savedCount);
-    setPremiumUnlocked(unlocked);
+    setPremiumUnlocked(false);
+    setPremiumData(null);
+    setPremiumInsights(null);
     setReferralBonusXp(readReferralBonusXpForAddress(address));
     void fetchReferralStats(address).then((s) => {
       const local = readReferralBonusXpForAddress(address);
@@ -219,21 +221,6 @@ export function useWalletApp() {
       setReferralBonusXp(bonus);
       setReferralInvites(s.invites ?? 0);
     });
-    if (insightsRaw) {
-      try {
-        setPremiumInsights(JSON.parse(insightsRaw) as PremiumInsights);
-      } catch {
-        setPremiumInsights(null);
-      }
-    }
-    if (unlocked) {
-      setPremiumData({
-        message: "Premium analytics unlocked",
-        ...(lastTx ? { transaction: lastTx } : {}),
-      });
-    } else {
-      setPremiumData(null);
-    }
   }, []);
 
   useEffect(() => {
@@ -275,7 +262,10 @@ export function useWalletApp() {
       wallet.address,
       txKeys,
       streak,
-      checkedToday
+      checkedToday,
+      x402PayCount,
+      loadLocalBatches(wallet.address).length,
+      Boolean(challengeResult)
     );
     if (activitySynced) setPointsRevision((n) => n + 1);
     const questCtx = buildAppQuestContext({
@@ -384,10 +374,6 @@ export function useWalletApp() {
         setPremiumUnlocked(true);
         if (data.insights) {
           setPremiumInsights(data.insights);
-          localStorage.setItem(
-            x402StorageKeys(wallet.address).insights,
-            JSON.stringify(data.insights)
-          );
         }
         const keys = x402StorageKeys(wallet.address);
         const prev = parseInt(
@@ -396,13 +382,6 @@ export function useWalletApp() {
         );
         const next = prev + 1;
         localStorage.setItem(keys.count, next.toString());
-        localStorage.setItem(keys.unlocked, "true");
-        if (data.transaction) {
-          localStorage.setItem(
-            keys.lastTx,
-            normalizeTxHash(data.transaction) ?? data.transaction
-          );
-        }
         setX402PayCount(next);
         const txHash = data.transaction
           ? normalizeTxHash(data.transaction)
@@ -535,12 +514,16 @@ export function useWalletApp() {
         days: days.size,
         txs: txCount,
       });
+      if (wallet) {
+        const { credited } = recordChallengePoints(wallet.address);
+        if (credited > 0) setPointsRevision((n) => n + 1);
+      }
     } catch {
       showToast("❌ Lookup failed", "");
     } finally {
       setChallengeLoading(false);
     }
-  }, [challenge, showToast]);
+  }, [challenge, showToast, wallet]);
 
   const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
     const address = result.wallet.address;
@@ -613,16 +596,11 @@ export function useWalletApp() {
         status.streak,
         true
       );
-      const { credited, hitCap } = recordCheckInPoints(
-        address,
-        status.streak
-      );
+      const { credited } = recordCheckInPoints(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
-        if (hitCap && credited === 0) {
-          showToast("✅ Check-in secured — daily point cap reached", txHash);
-        } else if (credited > 0) {
-          showToast(`✅ Check-in secured! +${credited} PP`, txHash);
+        if (credited > 0) {
+          showToast(`✅ Check-in secured! +${credited} weekly streak PP`, txHash);
         } else {
           showToast("✅ Onchain check-in secured!", txHash);
         }

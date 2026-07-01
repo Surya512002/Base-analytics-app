@@ -4,18 +4,21 @@ import { ChevronRight, Droplets, Flame, RefreshCcw, Rocket, Target, Zap } from "
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import {
   CHECK_IN_TRACK_DAYS,
-  dailyRewardPP,
-  getTrackDayStatuses,
-  rewardDayForToday,
+  capStreakProgressLabel,
+  getCapStreakTrackStatuses,
   streakBoostPercent,
-  trackProgressLabel,
+  weeklyStreakBonusPP,
 } from "@/lib/utils/check-in-rewards";
 import {
   DAILY_POINTS_CAP,
+  getCapStreakUIState,
   POINTS_PER_BOOST,
+  POINTS_PER_CHECKIN,
   POINTS_PER_GM,
   POINTS_PER_GN,
   SEVEN_DAY_ALL_TASKS_BONUS,
+  TARGET_TXS_IDEAL,
+  TARGET_TXS_MIN,
 } from "@/lib/utils/daily-points";
 import { computeXPBreakdown } from "@/lib/utils/season";
 import type { WalletAppState } from "@/hooks/useWalletApp";
@@ -45,17 +48,23 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
 
   if (!wallet || !questContext) return null;
 
-  const rewardDay = rewardDayForToday(streak, checkedToday);
-  const boostPct = checkedToday
-    ? streakBoostPercent(Math.min(streak, CHECK_IN_TRACK_DAYS) || 1)
-    : streakBoostPercent(rewardDay);
-  const dailyPP = dailyRewardPP(rewardDay);
-  const trackDays = getTrackDayStatuses(streak, checkedToday);
+  const boostPct = streakBoostPercent(
+    Math.min(Math.max(streak, 1), CHECK_IN_TRACK_DAYS)
+  );
+  const capStreak = getCapStreakUIState(wallet.address);
+  const trackDays = getCapStreakTrackStatuses(
+    capStreak.nextAwardDay,
+    capStreak.capBonusAwardedToday
+  );
   const xp = computeXPBreakdown(questContext, boosts);
   void pointsRevision;
   const dailyPct = Math.min(
     100,
     Math.round((xp.todayActivityXp / xp.dailyCap) * 100)
+  );
+  const txPct = Math.min(
+    100,
+    Math.round((xp.todayTxCount / TARGET_TXS_IDEAL) * 100)
   );
   const questPct = Math.round((doneQuests / WEEKLY_QUESTS.length) * 100);
 
@@ -66,6 +75,9 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
         <div className="px-4 sm:px-5 py-3 border-b border-white/8">
           <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
             Daily actions
+          </p>
+          <p className="text-[10px] text-slate-500 mt-1">
+            Check-in, boost, GM &amp; GN fill the daily cap · hit {DAILY_POINTS_CAP} PP for weekly streak bonus
           </p>
         </div>
         <div className="p-4 sm:p-5 space-y-3">
@@ -79,12 +91,12 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {streak > 0
-                      ? `${streak}d streak · ${checkedToday ? "done today" : "gas sponsored"}`
-                      : "Start Day 1 — 50 PP"}
+                      ? `${streak}d on-chain streak · ${checkedToday ? "done today" : "gas sponsored"}`
+                      : "Onchain check-in · gas sponsored"}
                   </p>
                 </div>
                 <span className="text-[11px] font-black text-emerald-400 shrink-0 tabular-nums">
-                  +{checkedToday ? dailyRewardPP(Math.min(streak, CHECK_IN_TRACK_DAYS) || 1) : dailyPP} PP
+                  +{POINTS_PER_CHECKIN}
                 </span>
               </div>
               <button
@@ -152,7 +164,15 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
             <span className="font-black text-cyan-400 tabular-nums">+{boostPct}% quest boost</span>
             <span className="flex items-center gap-1.5">
               <Droplets size={9} className="text-cyan-400" />
-              {xp.dailyRemaining} PP left · {boosts} boosts
+              {xp.dailyRemaining} PP to cap
+              {!capStreak.capBonusAwardedToday && capStreak.hitCapToday === false && (
+                <span className="text-amber-300/90">
+                  · +{capStreak.nextBonusPP} weekly at cap
+                </span>
+              )}
+              {capStreak.capBonusAwardedToday && (
+                <span className="text-emerald-400">· cap bonus earned</span>
+              )}
             </span>
           </div>
         </div>
@@ -160,33 +180,68 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
 
       {/* Daily cap + 7-day track — compact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="glass-panel rounded-xl p-3.5 border border-white/8">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-              Daily cap
+        <div className="glass-panel rounded-xl p-3.5 border border-white/8 space-y-3">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                Daily activity
+              </p>
+              {xp.todayStreakXp > 0 && (
+                <span className="text-[9px] font-black text-amber-300">
+                  +{xp.todayStreakXp} streak
+                </span>
+              )}
+            </div>
+            <p className="text-sm font-black text-white tabular-nums mb-2">
+              {xp.todayActivityXp} / {DAILY_POINTS_CAP} PP
             </p>
-            {xp.todayBonusXp > 0 && (
-              <span className="text-[9px] font-black text-amber-300">+{xp.todayBonusXp} bonus</span>
-            )}
+            <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-linear-to-r from-emerald-500 to-cyan-400 rounded-full transition-[width] duration-500"
+                style={{ width: `${dailyPct}%` }}
+              />
+            </div>
           </div>
-          <p className="text-sm font-black text-white tabular-nums mb-2">
-            {xp.todayActivityXp} / {DAILY_POINTS_CAP} PP
-          </p>
-          <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-linear-to-r from-emerald-500 to-cyan-400 rounded-full transition-[width] duration-500"
-              style={{ width: `${dailyPct}%` }}
-            />
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                In-app txs today
+              </p>
+              <span
+                className={`text-[9px] font-black tabular-nums ${
+                  xp.todayTxCount >= TARGET_TXS_MIN ? "text-emerald-400" : "text-slate-500"
+                }`}
+              >
+                aim {TARGET_TXS_MIN}–{TARGET_TXS_IDEAL}
+              </span>
+            </div>
+            <p className="text-sm font-black text-white tabular-nums mb-2">
+              {xp.todayTxCount} txs
+            </p>
+            <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-linear-to-r from-violet-500 to-cyan-400 rounded-full transition-[width] duration-500"
+                style={{ width: `${txPct}%` }}
+              />
+            </div>
           </div>
+          {xp.todayBonusXp > 0 && (
+            <p className="text-[9px] font-bold text-amber-300">
+              +{xp.todayBonusXp} weekly bonus PP
+            </p>
+          )}
         </div>
 
         <div className="glass-panel rounded-xl border border-white/8 overflow-hidden">
           <div className="px-3.5 py-2 border-b border-white/8 flex items-center justify-between">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-              {CHECK_IN_TRACK_DAYS} day track
+              {CHECK_IN_TRACK_DAYS}-day weekly bonus
             </p>
             <span className="text-[10px] font-black text-cyan-400 tabular-nums">
-              {trackProgressLabel(streak, checkedToday)}
+              {capStreakProgressLabel(
+                capStreak.nextAwardDay,
+                capStreak.capBonusAwardedToday
+              )}
             </span>
           </div>
           <div className="p-2.5 grid grid-cols-7 gap-1.5">
@@ -194,6 +249,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
               const day = i + 1;
               const isToday = status === "today";
               const isDone = status === "done";
+              const dayPP = weeklyStreakBonusPP(day);
               return (
                 <div
                   key={day}
@@ -204,6 +260,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                         ? "border-emerald-500/30 bg-emerald-500/8"
                         : "border-white/8 bg-white/[0.03]"
                   }`}
+                  title={`Day ${day}: +${dayPP} weekly PP`}
                 >
                   <span
                     className={`text-[8px] font-black uppercase ${
@@ -212,12 +269,16 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                   >
                     D{day}
                   </span>
+                  <span className="text-[7px] font-bold text-slate-500 tabular-nums">{dayPP}</span>
                   {isDone && <span className="text-[10px] leading-none">✓</span>}
                   {isToday && <Flame size={11} className="text-cyan-400" />}
                 </div>
               );
             })}
           </div>
+          <p className="px-3.5 pb-2.5 text-[9px] text-slate-500">
+            Hit {DAILY_POINTS_CAP} PP daily · D1 = 10 → D7 = 100 weekly (resets after day 7)
+          </p>
         </div>
       </div>
 
@@ -294,7 +355,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
             {streak >= CHECK_IN_TRACK_DAYS &&
               doneQuests === WEEKLY_QUESTS.length && (
                 <p className="text-[11px] font-bold text-amber-300 mt-3 text-center">
-                  7-day streak + all quests — +{SEVEN_DAY_ALL_TASKS_BONUS} bonus PP
+                  7-day streak + all quests — +{SEVEN_DAY_ALL_TASKS_BONUS} weekly bonus PP
                 </p>
               )}
           </div>
@@ -316,7 +377,8 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
           {[
             { l: "Quest XP", v: xp.questXp },
             { l: "Activity", v: xp.weekActivityXp },
-            { l: "Today", v: xp.todayActivityXp + xp.todayBonusXp },
+            { l: "Streak", v: xp.weekStreakXp },
+            { l: "Today", v: xp.todayActivityXp + xp.todayStreakXp + xp.todayBonusXp },
             ...(referralBonusXp > 0
               ? [{ l: "Referral", v: referralBonusXp }]
               : []),

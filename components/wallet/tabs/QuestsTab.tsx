@@ -4,9 +4,13 @@ import { ChevronRight, Zap, Star } from "lucide-react";
 import { SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import {
   DAILY_POINTS_CAP,
+  POINTS_PER_CHECKIN,
+  POINTS_PER_BOOST,
   SEVEN_DAY_ALL_TASKS_BONUS,
+  TARGET_TXS_IDEAL,
+  TARGET_TXS_MIN,
 } from "@/lib/utils/daily-points";
-import { CHECK_IN_TRACK_DAYS } from "@/lib/utils/check-in-rewards";
+import { CHECK_IN_TRACK_DAYS, BASE_STREAK_PP } from "@/lib/utils/check-in-rewards";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
@@ -127,7 +131,7 @@ export default function QuestsTab({ app }: { app: WalletAppState }) {
               7-day streak + all quests complete!
             </p>
             <p className="text-xs text-amber-200/70 mt-1">
-              +{SEVEN_DAY_ALL_TASKS_BONUS} bonus PP today (above daily cap)
+              +{SEVEN_DAY_ALL_TASKS_BONUS} weekly bonus PP
             </p>
           </div>
         )}
@@ -140,9 +144,16 @@ export default function QuestsTab({ app }: { app: WalletAppState }) {
         <div className="space-y-2">
           {[
             { l: "In-app only", b: "Quests unlock when you act inside this app" },
-            { l: "Daily activity cap", b: `${DAILY_POINTS_CAP} PP/day from boost, GM/GN & check-in` },
-            { l: "3-day check-in streak", b: "+20% quest XP multiplier" },
-            { l: "7-day check-in streak", b: `+60% quest XP · +${SEVEN_DAY_ALL_TASKS_BONUS} bonus when all quests done` },
+            {
+              l: "Daily activity cap",
+              b: `${DAILY_POINTS_CAP} PP/day — check-in ${POINTS_PER_CHECKIN}, boost ${POINTS_PER_BOOST}, GM/GN 10 each`,
+            },
+            {
+              l: "Weekly cap streak",
+              b: `Hit daily cap ${CHECK_IN_TRACK_DAYS} days in a row → ${BASE_STREAK_PP}→100 weekly PP (resets after D7)`,
+            },
+            { l: "Daily txs target", b: `${TARGET_TXS_MIN}–${TARGET_TXS_IDEAL} in-app txs/day helps reach the cap` },
+            { l: "7-day check-in streak", b: `+60% quest XP · +${SEVEN_DAY_ALL_TASKS_BONUS} weekly bonus when all quests done` },
             { l: "Weekly XP resets Mon", b: "Past weeks carry to Total Season XP" },
           ].map((m, i) => (
             <div

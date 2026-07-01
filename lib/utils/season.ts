@@ -7,7 +7,8 @@ import {
 import {
   DAILY_POINTS_CAP,
   getTodayPointsSummary,
-  getWeekPointsTotal,
+  getWeekActivityTotal,
+  getWeekStreakTotal,
 } from "@/lib/utils/daily-points";
 import { getBadgeMintXpTotal } from "@/lib/utils/badge-mint-xp";
 import { loadLocalBatches } from "@/lib/utils/voucher";
@@ -52,9 +53,12 @@ export interface XPBreakdown {
   questMultiplier: number;
   questXp: number;
   weekActivityXp: number;
+  weekStreakXp: number;
   badgeMintXp: number;
   todayActivityXp: number;
+  todayStreakXp: number;
   todayBonusXp: number;
+  todayTxCount: number;
   dailyCap: number;
   dailyRemaining: number;
   /** Quest + activity for the current week (weekly leaderboard). */
@@ -79,11 +83,12 @@ export function computeXPBreakdown(
   const questMultiplier = 1 + boostPct / 100;
   const questXp = Math.round(questBase * questMultiplier);
 
-  const weekActivityXp = getWeekPointsTotal(address);
+  const weekActivityXp = getWeekActivityTotal(address);
+  const weekStreakXp = getWeekStreakTotal(address);
   const badgeMintXp = getBadgeMintXpTotal(address);
   const today = getTodayPointsSummary(address);
 
-  const weeklyTotal = questXp + weekActivityXp;
+  const weeklyTotal = questXp + weekActivityXp + weekStreakXp;
   const seasonTotal = weeklyTotal + badgeMintXp;
 
   return {
@@ -91,9 +96,12 @@ export function computeXPBreakdown(
     questMultiplier,
     questXp,
     weekActivityXp,
+    weekStreakXp,
     badgeMintXp,
     todayActivityXp: today.activity,
+    todayStreakXp: today.streak,
     todayBonusXp: today.bonus,
+    todayTxCount: today.txs,
     dailyCap: DAILY_POINTS_CAP,
     dailyRemaining: today.remaining,
     weeklyTotal,

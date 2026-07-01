@@ -302,10 +302,12 @@ export default function LeaderboardTab({ app }: { app: WalletAppState }) {
               {[
                 { l: "XP", v: xpBreakdown?.questXp ?? 0, c: "text-cyan-400" },
                 { l: "Activity", v: xpBreakdown?.weekActivityXp ?? 0, c: "text-violet-300" },
+                { l: "Streak", v: xpBreakdown?.weekStreakXp ?? 0, c: "text-amber-300" },
                 {
                   l: "Today",
                   v:
                     (xpBreakdown?.todayActivityXp ?? 0) +
+                    (xpBreakdown?.todayStreakXp ?? 0) +
                     (xpBreakdown?.todayBonusXp ?? 0),
                   c: "text-emerald-400",
                 },

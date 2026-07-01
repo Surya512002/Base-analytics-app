@@ -1,7 +1,7 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 
 /** Bump to reset stale per-wallet session keys after storage logic changes. */
-export const SESSION_STORAGE_VERSION = 5;
+export const SESSION_STORAGE_VERSION = 7;
 
 export const DEFAULT_TX_KEYS: Record<string, number> = {
   boost: 0,
@@ -41,6 +41,10 @@ export function ensureSessionStorageVersion(): void {
     "base_boosts_",
     "base_checkin_count_",
     "base_txkeys_",
+    "base_daily_pts_",
+    "base_act_synced_",
+    "base_cap_cycle_",
+    "base_cap_last_hit_",
   ];
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
