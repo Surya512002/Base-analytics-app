@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight, Droplets, Flame, RefreshCcw, Rocket, Target, Zap } from "lucide-react";
+import { ChevronRight, Droplets, Flame, RefreshCcw, Rocket, Target, Trophy } from "lucide-react";
+import CheckInRankings from "@/components/wallet/CheckInRankings";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import {
   CHECK_IN_TRACK_DAYS,
@@ -16,6 +17,7 @@ import {
   POINTS_PER_CHECKIN,
   POINTS_PER_GM,
   POINTS_PER_GN,
+  POINTS_PER_PREDICTION,
   SEVEN_DAY_ALL_TASKS_BONUS,
   TARGET_TXS_IDEAL,
   TARGET_TXS_MIN,
@@ -24,6 +26,7 @@ import { computeXPBreakdown } from "@/lib/utils/season";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const TAB_LABELS: Record<string, string> = {
+  predictions: "Predictions",
   checkin: "Check-In",
   achievements: "Badges",
   basehub: "Vouchers",
@@ -43,7 +46,6 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
     doneQuests,
     setTab,
     weeklyXP,
-    referralBonusXp,
   } = app;
 
   if (!wallet || !questContext) return null;
@@ -70,6 +72,33 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
 
   return (
     <div className="w-full space-y-4 tab-content-enter">
+      {/* Page header */}
+      <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
+        <div className="h-0.5 bg-linear-to-r from-emerald-500 via-amber-400 to-cyan-400" />
+        <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+              <Trophy size={11} className="text-amber-400" />
+              Daily progress & live standings
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 leading-tight">
+              Check-In <span className="text-cyan-400">&</span> Rankings
+            </h2>
+            <p className="text-xs text-slate-500 mt-1.5">
+              Prediction trades earn the most XP — then check in, quest & rank.
+            </p>
+          </div>
+          <div className="shrink-0 sm:text-right bg-white/[0.04] border border-white/8 rounded-xl px-4 py-3">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              Your weekly XP
+            </p>
+            <p className="text-3xl font-black text-cyan-300 tabular-nums leading-none mt-0.5">
+              {weeklyXP}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Daily actions — top */}
       <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-white/8">
@@ -77,7 +106,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
             Daily actions
           </p>
           <p className="text-[10px] text-slate-500 mt-1">
-            Check-in, boost, GM &amp; GN fill the daily cap · hit {DAILY_POINTS_CAP} PP for weekly streak bonus
+            Predictions +{POINTS_PER_PREDICTION} PP each · check-in, boost, GM &amp; GN fill the daily cap
           </p>
         </div>
         <div className="p-4 sm:p-5 space-y-3">
@@ -290,6 +319,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
               <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                 Weekly quests
               </p>
+              <p className="text-[10px] text-slate-600 mt-0.5">Prediction quests at the top — highest XP</p>
             </div>
             <div className="flex items-center gap-3 min-w-[150px]">
               <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden min-w-[88px]">
@@ -338,7 +368,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                         +{q.xp}
                       </span>
                     </div>
-                    {!done && q.tab && q.tab !== "checkin" && (
+                    {!done && q.tab && (
                       <button
                         type="button"
                         onClick={() => setTab(q.tab!)}
@@ -361,38 +391,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
           </div>
         </div>
 
-      <div className="glass-panel-accent rounded-2xl p-4 sm:p-5 border border-white/8 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Zap size={18} className="text-amber-400 shrink-0" />
-          <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              Your weekly score
-            </p>
-            <p className="text-3xl sm:text-4xl font-black text-white tabular-nums leading-none mt-0.5">
-              {weeklyXP} XP
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 flex-1 min-w-[200px] max-w-2xl">
-          {[
-            { l: "Quest XP", v: xp.questXp },
-            { l: "Activity", v: xp.weekActivityXp },
-            { l: "Streak", v: xp.weekStreakXp },
-            { l: "Today", v: xp.todayActivityXp + xp.todayStreakXp + xp.todayBonusXp },
-            ...(referralBonusXp > 0
-              ? [{ l: "Referral", v: referralBonusXp }]
-              : []),
-          ].map((row) => (
-            <div
-              key={row.l}
-              className="bg-white/[0.04] border border-white/8 rounded-xl py-2 px-1 text-center"
-            >
-              <p className="text-sm font-black text-cyan-300 tabular-nums">{row.v}</p>
-              <p className="text-[8px] text-slate-500 font-bold uppercase mt-0.5">{row.l}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <CheckInRankings app={app} embedded />
     </div>
   );
 }

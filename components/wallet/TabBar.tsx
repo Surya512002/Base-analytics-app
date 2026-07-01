@@ -1,4 +1,4 @@
-import { BarChart3, Flame, Gift, Trophy, Users } from "lucide-react";
+import { BarChart3, Flame, Gift, TrendingUp, Trophy } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface TabBarProps {
@@ -9,15 +9,20 @@ interface TabBarProps {
 
 export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
   const tabs = [
-    { id: "basehub" as const, icon: <Gift size={14} />, label: "Vouchers", featured: true },
+    {
+      id: "predictions" as const,
+      icon: <TrendingUp size={14} />,
+      label: "Predictions",
+      featured: true,
+    },
+    { id: "basehub" as const, icon: <Gift size={14} />, label: "Vouchers" },
     { id: "dashboard" as const, icon: <BarChart3 size={14} />, label: "Analytics" },
     {
       id: "checkin" as const,
       icon: <Flame size={14} />,
-      label: `Check-In${doneQuests > 0 ? ` · ${doneQuests}` : ""}`,
+      label: `Check-In & Rank${doneQuests > 0 ? ` · ${doneQuests}` : ""}`,
     },
     { id: "achievements" as const, icon: <Trophy size={13} />, label: "Badges" },
-    { id: "leaderboard" as const, icon: <Users size={13} />, label: "Rankings" },
   ];
 
   return (

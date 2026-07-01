@@ -34,6 +34,7 @@ import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { getAppContractHit, isPaymasterActivity } from "@/lib/utils/app-contracts";
+import type { AlchemyTransfer } from "@/lib/types/wallet";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const FarcasterAnalytics = dynamic(
@@ -156,14 +157,15 @@ if (!wallet) return null;
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5 sm:gap-x-6 gap-y-1 max-w-lg">
                       {Object.entries(wallet.scoreComponents).map(([k,v],i)=>{
                         const key = k as keyof typeof SCORE_MAX;
-                        const pct = Math.round((v / (SCORE_MAX[key] || 1)) * 100);
+                        const val = Number(v);
+                        const pct = Math.round((val / (SCORE_MAX[key] || 1)) * 100);
                         return(
                           <div key={i} className="flex items-center gap-2 min-w-0">
                             <span className="text-[10px] text-slate-400 w-16 sm:w-[4.25rem] font-bold shrink-0">{SCORE_LABELS[key]||k}</span>
                             <div className="flex-1 min-w-0 bg-white/5 rounded-full h-1.5 overflow-hidden border border-white/8">
                               <div className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full" style={{width:`${pct}%`,transition:'width 1.5s ease-out'}}/>
                             </div>
-                            <span className="text-[10px] text-cyan-400/70 w-5 text-right shrink-0 font-bold tabular-nums">{Math.round(v)}</span>
+                            <span className="text-[10px] text-cyan-400/70 w-5 text-right shrink-0 font-bold tabular-nums">{Math.round(val)}</span>
                           </div>
                         );
                       })}
@@ -322,7 +324,7 @@ if (!wallet) return null;
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
               <div className="glass-panel-accent rounded-2xl overflow-hidden shadow-lg shadow-black/25">
-                {wallet.recentTxs.length>0?wallet.recentTxs.map((tx,i)=>{
+                {wallet.recentTxs.length>0?wallet.recentTxs.map((tx: AlchemyTransfer, i: number)=>{
                   const toAddr=(tx.to||'').toLowerCase();
                   const wAddr=wallet.address.toLowerCase();
                   const appHit=getAppContractHit(tx,wAddr);
@@ -330,6 +332,7 @@ if (!wallet) return null;
                   const isBoost=appHit==='booster';
                   const isCI=appHit==='checkin';
                   const isBadge=appHit==='achievements';
+                  const isPredict=appHit==='predictions';
                   const isDEX=DEX_ROUTERS.has(toAddr);
                   const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
                   const isPaymaster=isPaymasterActivity(tx,wAddr)||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
@@ -339,6 +342,7 @@ if (!wallet) return null;
                   else if(isBoost){label='XP Boost';icon=<Rocket size={13} className="text-cyan-300"/>;badge='🚀 Boost';}
                   else if(isCI){label='Check-In';icon=<Flame size={13} className="text-orange-400"/>;badge='🔥 Streak';}
                   else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>;badge='🏅 Badge';}
+                  else if(isPredict){label='Prediction Trade';icon=<TrendingUp size={13} className="text-emerald-400"/>;badge='📈 Predict';}
                   else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="text-cyan-400"/>;badge='🔄 Swap';}
                   else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="text-cyan-300"/>;badge='🌉 Bridge';}
                   else if(isPaymaster){label=tx.category==='useroperation'?'Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="text-cyan-400"/>;badge='⛽ Sponsored';}

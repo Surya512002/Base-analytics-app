@@ -1,37 +1,44 @@
 @import "tailwindcss";
 
-/* ── Prism Vault theme — holographic gift-card noir ── */
+/* ── Terminal Exchange theme — prediction market / trading UI ── */
 :root {
-  --bg-deep: #040a14;
-  --bg-aurora-mid: #0a1e4a;
-  --bg-panel: rgba(255, 255, 255, 0.06);
-  --bg-glass: rgba(255, 255, 255, 0.07);
-  --cyan: #2ee8ff;
-  --cyan-soft: #7df8ff;
-  --violet: #8b5cf6;
-  --violet-soft: #c4b5fd;
-  --emerald: #10b981;
+  --bg-deep: #020508;
+  --bg-aurora-mid: #061018;
+  --bg-panel: rgba(8, 16, 28, 0.92);
+  --bg-glass: rgba(10, 18, 32, 0.88);
+  --cyan: #38bdf8;
+  --cyan-soft: #7dd3fc;
+  --violet: #6366f1;
+  --violet-soft: #a5b4fc;
+  --emerald: #22c55e;
+  --trade-yes: #22c55e;
+  --trade-yes-soft: #4ade80;
+  --trade-no: #ef4444;
+  --trade-no-soft: #f87171;
   --gold: #fbbf24;
-  --blue: #3d7bff;
-  --rose: #ff3d6e;
-  --rose-soft: #ff8fab;
-  --text-primary: #ffffff;
-  --text-secondary: #e8eef7;
-  --text-muted: #b8c8dc;
-  --text-dim: #8fa3bc;
-  --border-glass: rgba(139, 92, 246, 0.32);
-  --border-subtle: rgba(255, 255, 255, 0.12);
-  --glow-cyan: rgba(46, 232, 255, 0.45);
-  --glow-violet: rgba(139, 92, 246, 0.4);
-  --glow-rose: rgba(255, 61, 110, 0.42);
+  --blue: #3b82f6;
+  --rose: #f43f5e;
+  --rose-soft: #fb7185;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --border-glass: rgba(34, 197, 94, 0.22);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --glow-cyan: rgba(56, 189, 248, 0.35);
+  --glow-violet: rgba(99, 102, 241, 0.35);
+  --glow-rose: rgba(244, 63, 94, 0.35);
+  --glow-yes: rgba(34, 197, 94, 0.4);
 }
 
 @theme inline {
-  --color-brand-deep: #040a14;
-  --color-brand-cyan: #2ee8ff;
-  --color-brand-violet: #8b5cf6;
-  --color-brand-blue: #3d7bff;
-  --color-brand-rose: #ff3d6e;
+  --color-brand-deep: #020508;
+  --color-brand-cyan: #38bdf8;
+  --color-brand-violet: #6366f1;
+  --color-brand-blue: #3b82f6;
+  --color-brand-rose: #f43f5e;
+  --color-trade-yes: #22c55e;
+  --color-trade-no: #ef4444;
   /* Lift default slate scale for readability on dark UI */
   --color-slate-300: #d4dce8;
   --color-slate-400: #b8c8dc;
@@ -162,42 +169,51 @@ html.is-scrolling .prism-scene {
   }
 }
 
-/* Aurora — Prism Vault depth */
+/* Aurora — terminal depth */
 .bg-aurora {
   background: linear-gradient(
-    155deg,
-    #0f1f4a 0%,
-    #040a14 25%,
-    #12082a 55%,
-    #061018 100%
+    165deg,
+    #041018 0%,
+    #020508 35%,
+    #030a12 65%,
+    #020508 100%
   );
 }
 
 .bg-grid-future {
   background-image:
-    linear-gradient(rgba(0, 229, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.07) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 197, 94, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-grid-terminal {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .glass-panel {
   background: var(--bg-glass);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .glass-panel-accent {
-  background: rgba(0, 82, 255, 0.12);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--border-glass);
-  box-shadow: inset 0 1px 0 rgba(0, 229, 255, 0.08);
+  background: rgba(34, 197, 94, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  box-shadow: inset 0 1px 0 rgba(34, 197, 94, 0.08);
 }
 
 .text-gradient-blue {
-  background: linear-gradient(135deg, #2ee8ff 0%, #8b5cf6 45%, #ff3d6e 100%);
+  background: linear-gradient(135deg, #4ade80 0%, #38bdf8 50%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -232,16 +248,16 @@ html.is-scrolling .prism-scene {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ff3d6e, #8b5cf6 55%, #3d7bff);
+  background: linear-gradient(135deg, #16a34a, #059669 45%, #0d9488);
   color: #fff;
   font-weight: 800;
-  box-shadow: 0 8px 32px var(--glow-violet);
+  box-shadow: 0 8px 32px var(--glow-yes);
   transition: all 0.25s ease;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #ff5c85, #a78bfa 55%, #5c94ff);
-  box-shadow: 0 12px 44px rgba(139, 92, 246, 0.45);
+  background: linear-gradient(135deg, #22c55e, #10b981 45%, #14b8a6);
+  box-shadow: 0 12px 44px rgba(34, 197, 94, 0.4);
 }
 
 .btn-primary:active {
@@ -502,9 +518,10 @@ html.is-scrolling .prism-scene {
 }
 
 .tab-active {
-  background: linear-gradient(135deg, #ff3d6e, #8b5cf6 50%, #3d7bff) !important;
+  background: linear-gradient(135deg, #15803d, #059669 50%, #0d9488) !important;
   color: #fff !important;
-  box-shadow: 0 4px 28px var(--glow-violet);
+  box-shadow: 0 4px 24px var(--glow-yes);
+  border: 1px solid rgba(74, 222, 128, 0.35) !important;
 }
 
 .text-accent {
@@ -797,4 +814,105 @@ html.is-scrolling .prism-scene {
 @keyframes giftCardIdle3d {
   0%, 100% { transform: rotateY(-8deg) rotateX(6deg) translateY(0); }
   50% { transform: rotateY(-6deg) rotateX(4deg) translateY(-6px); }
+}
+
+/* ── Trading terminal utilities ── */
+.bg-trade-yes {
+  background-color: var(--trade-yes);
+}
+
+.bg-trade-no {
+  background-color: var(--trade-no);
+}
+
+.text-trade-yes {
+  color: var(--trade-yes-soft);
+}
+
+.text-trade-no {
+  color: var(--trade-no-soft);
+}
+
+.terminal-panel {
+  background: linear-gradient(180deg, rgba(8, 16, 28, 0.98) 0%, rgba(4, 10, 18, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.trade-btn-yes {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.28) 0%, rgba(22, 163, 74, 0.18) 100%);
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  color: #bbf7d0;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+  transition: all 0.2s ease;
+}
+
+.trade-btn-yes:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.38) 0%, rgba(22, 163, 74, 0.28) 100%);
+  box-shadow: 0 6px 28px rgba(34, 197, 94, 0.35);
+}
+
+.trade-btn-no {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.18) 100%);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2);
+  transition: all 0.2s ease;
+}
+
+.trade-btn-no:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.38) 0%, rgba(220, 38, 38, 0.28) 100%);
+  box-shadow: 0 6px 28px rgba(239, 68, 68, 0.35);
+}
+
+.trade-input {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-input:focus {
+  outline: none;
+  border-color: rgba(74, 222, 128, 0.45);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15);
+}
+
+.share-btn-x {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.share-btn-x:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.share-btn-farcaster {
+  background: rgba(133, 93, 205, 0.12);
+  border: 1px solid rgba(133, 93, 205, 0.35);
+  color: #e9d5ff;
+  transition: all 0.2s ease;
+}
+
+.share-btn-farcaster:hover {
+  background: rgba(133, 93, 205, 0.22);
+}
+
+.prob-pill-yes {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.prob-pill-no {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.terminal-chart {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }

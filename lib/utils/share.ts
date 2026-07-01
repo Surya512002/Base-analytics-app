@@ -107,6 +107,26 @@ export function twitterShare(text: string, pageUrl?: string): string {
   return pageUrl ? `${base}&url=${encodeURIComponent(pageUrl)}` : base;
 }
 
+export function buildPredictionShareText(args: {
+  asset: string;
+  duration: string;
+  yesPct: number;
+  price: string;
+  openPrice: string;
+  ref?: string;
+}): string {
+  const dir = args.yesPct >= 50 ? "bullish" : "bearish";
+  const lines = [
+    `${args.asset} ${args.duration} · YES ${args.yesPct}%`,
+    `Price ${args.price} · Open ${args.openPrice}`,
+    `My read: ${dir} on Base Analytics Predictions`,
+  ];
+  if (args.ref) {
+    lines.push(`→ base-analytics.app?ref=${args.ref}`);
+  }
+  return lines.join("\n");
+}
+
 export function getSharePreviewUrl(data: OgCardData): string {
   return getOgImageUrl(APP_URL_WEB, data);
 }

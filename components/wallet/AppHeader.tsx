@@ -1,4 +1,4 @@
-import { Droplets, Power, Zap } from "lucide-react";
+import { Droplets, Power, TrendingUp, Zap } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import { getDaysLeft } from "@/lib/utils/season";
 
@@ -26,12 +26,12 @@ export default function AppHeader({
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="hidden sm:flex items-center gap-1.5 badge-live rounded-xl px-2.5 py-1.5">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_6px_#10b981]" />
-            <span className="text-[10px] font-black whitespace-nowrap uppercase tracking-wide text-rose-200">
-              x402 Live
+            <TrendingUp size={10} className="text-emerald-400" />
+            <span className="text-[10px] font-black whitespace-nowrap uppercase tracking-wide text-emerald-200">
+              Predictions
             </span>
-            <span className="text-rose-300/50 mx-0.5">·</span>
-            <span className="text-[10px] text-slate-300">{getDaysLeft()}d</span>
+            <span className="text-emerald-300/50 mx-0.5">·</span>
+            <span className="text-[10px] text-slate-300">{getDaysLeft()}d left</span>
           </div>
           <div className="flex items-center gap-1 glass-panel-accent rounded-xl px-2.5 py-1.5">
             <Zap size={11} className="text-cyan-400" />

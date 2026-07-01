@@ -72,7 +72,7 @@ export default function HallOfFamePage() {
               Genesis badge rewards for top 10 — announced at season end.
             </p>
             <Link
-              href={`${APP_URL_WEB}/?tab=rankings`}
+              href={`${APP_URL_WEB}/?tab=checkin`}
               className="block text-center mt-4 text-sm font-black text-violet-400 hover:underline"
             >
               View Rankings →

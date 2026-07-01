@@ -6,26 +6,26 @@ const APP_URL = "https://base-analytics-app.vercel.app";
 const OG_IMAGE = `${APP_URL}/opengraph-image?v=4`;
 
 export const metadata: Metadata = {
-  title: "Base Analytics — Base Voucher & x402 on Base",
+  title: "Base Analytics — Crypto Prediction Market on Base",
   description:
-    "Create & redeem crypto gift cards (Base Voucher). x402 pay-per-use micropayments + free onchain wallet analytics.",
+    "Trade BTC, ETH & SOL prediction markets on Base. Live YES/NO odds, weekly quests, wallet analytics, vouchers & x402 — all in one mini-app.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",
   openGraph: {
-    title: "Base Analytics — Base Voucher & x402 on Base",
+    title: "Base Analytics — Crypto Prediction Market on Base",
     description:
-      "Crypto gift cards as the main product. x402 HTTP 402 payments + wallet analytics — all on Base.",
+      "Polymarket-style crypto predictions on Base. Hourly, 4h & daily rounds for BTC, ETH, SOL with CPMM pricing.",
     url: APP_URL,
     siteName: "Base Analytics",
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics homepage preview" }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics prediction market" }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics — Base Voucher & x402 on Base",
+    title: "Base Analytics — Crypto Prediction Market on Base",
     description:
-      "Base Voucher gift cards + x402 micropayments on Base. Create, redeem & share ETH/USDC vouchers.",
+      "Trade BTC/ETH/SOL predictions on Base. Earn XP, climb the leaderboard, win USDC on resolve.",
     images: [OG_IMAGE],
   },
   other: {
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#040a14] text-slate-200 antialiased theme-prism-vault">
+      <body className="bg-[#020508] text-slate-200 antialiased theme-terminal">
         <Providers>{children}</Providers>
       </body>
     </html>

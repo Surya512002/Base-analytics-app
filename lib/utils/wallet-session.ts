@@ -9,6 +9,7 @@ export const DEFAULT_TX_KEYS: Record<string, number> = {
   gn: 0,
   checkin: 0,
   redeem: 0,
+  prediction: 0,
 };
 
 function addrKey(address: string): string {

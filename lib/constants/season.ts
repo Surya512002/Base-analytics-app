@@ -31,7 +31,7 @@ export type AppQuestContext = {
   didChallenge: boolean;
 };
 
-export type AppQuestTab = "checkin" | "achievements" | "basehub" | "dashboard";
+export type AppQuestTab = "predictions" | "checkin" | "achievements" | "basehub" | "dashboard";
 
 export type WeeklyQuest = {
   id: string;
@@ -44,6 +44,51 @@ export type WeeklyQuest = {
 };
 
 export const WEEKLY_QUESTS: WeeklyQuest[] = [
+  {
+    id: "q_pred_first",
+    icon: "📈",
+    title: "First prediction",
+    desc: "Place your first YES or NO trade on any crypto market",
+    xp: 55,
+    tab: "predictions",
+    check: (c) => (c.txKeys.prediction ?? 0) >= 1,
+  },
+  {
+    id: "q_pred_3",
+    icon: "🎯",
+    title: "Active trader",
+    desc: "Complete 3 prediction trades this week",
+    xp: 50,
+    tab: "predictions",
+    check: (c) => (c.txKeys.prediction ?? 0) >= 3,
+  },
+  {
+    id: "q_pred_5",
+    icon: "🔥",
+    title: "Market regular",
+    desc: "Complete 5 prediction trades — top weekly XP",
+    xp: 65,
+    tab: "predictions",
+    check: (c) => (c.txKeys.prediction ?? 0) >= 5,
+  },
+  {
+    id: "q_pred_10",
+    icon: "👑",
+    title: "Prediction pro",
+    desc: "Hit 10 prediction trades in one week",
+    xp: 80,
+    tab: "predictions",
+    check: (c) => (c.txKeys.prediction ?? 0) >= 10,
+  },
+  {
+    id: "q_checkin",
+    icon: "🔥",
+    title: "Daily check-in",
+    desc: "Complete onchain check-in in this app",
+    xp: 20,
+    tab: "checkin",
+    check: (c) => (c.txKeys.checkin ?? 0) >= 1 || c.checkedToday,
+  },
   {
     id: "q_boost",
     icon: "🚀",
@@ -72,15 +117,6 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     check: (c) => (c.txKeys.gn ?? 0) >= 1,
   },
   {
-    id: "q_checkin",
-    icon: "🔥",
-    title: "Daily check-in",
-    desc: "Complete onchain check-in in this app",
-    xp: 20,
-    tab: "checkin",
-    check: (c) => (c.txKeys.checkin ?? 0) >= 1 || c.checkedToday,
-  },
-  {
     id: "q_streak3",
     icon: "⚡",
     title: "3-day streak",
@@ -99,20 +135,11 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     check: (c) => c.streak >= 7,
   },
   {
-    id: "q_x402",
-    icon: "💳",
-    title: "x402 Premium",
-    desc: "Pay for Deep Scan, Export, or Compare once",
-    xp: 40,
-    tab: "dashboard",
-    check: (c) => c.x402PayCount >= 1,
-  },
-  {
     id: "q_voucher",
     icon: "🎁",
     title: "Create gift cards",
     desc: "Create a Base Voucher batch in-app",
-    xp: 45,
+    xp: 35,
     tab: "basehub",
     check: (c) => c.voucherBatchCount >= 1,
   },
@@ -121,9 +148,18 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     icon: "🎫",
     title: "Redeem a voucher",
     desc: "Claim a Base Voucher gift card in-app",
-    xp: 35,
+    xp: 30,
     tab: "basehub",
     check: (c) => (c.txKeys.redeem ?? 0) >= 1,
+  },
+  {
+    id: "q_x402",
+    icon: "💳",
+    title: "x402 Premium",
+    desc: "Pay for Deep Scan, Export, or Compare once",
+    xp: 30,
+    tab: "dashboard",
+    check: (c) => c.x402PayCount >= 1,
   },
   {
     id: "q_challenge",
@@ -139,7 +175,7 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     icon: "🤝",
     title: "Refer a friend",
     desc: "Get 1+ friend to join via your referral link",
-    xp: 30,
+    xp: 25,
     tab: "dashboard",
     check: (c) => c.referralInvites >= 1,
   },
@@ -147,7 +183,7 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
 
 export const SEASON_START = new Date("2026-04-20T00:00:00Z");
 export const SEASON_END = new Date("2026-10-20T23:59:59Z");
-export const SEASON_NAME = "Season 1: Genesis";
+export const SEASON_NAME = "Season 1: Predictions";
 export const TIER_GRADIENTS = [
   "from-slate-500 to-slate-600",
   "from-amber-500 to-orange-600",

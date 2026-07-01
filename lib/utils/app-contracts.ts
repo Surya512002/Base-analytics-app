@@ -5,12 +5,16 @@ import {
   CHECKIN_CONTRACT,
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
+import { PREDICTIONS_CONTRACT } from "@/lib/constants/env";
 
 export const APP_CONTRACTS = {
   gm: GM_GN_CONTRACT.toLowerCase(),
   checkin: CHECKIN_CONTRACT.toLowerCase(),
   booster: BOOSTER_CONTRACT.toLowerCase(),
   achievements: ACHIEVEMENTS_CONTRACT.toLowerCase(),
+  ...(PREDICTIONS_CONTRACT
+    ? { predictions: PREDICTIONS_CONTRACT.toLowerCase() }
+    : {}),
 } as const;
 
 export type AppContractKey = keyof typeof APP_CONTRACTS;

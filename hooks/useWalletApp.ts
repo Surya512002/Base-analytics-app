@@ -18,7 +18,7 @@ import {
   readLocalCheckInToday,
   recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
-import type { AnalyzeWalletResult } from "@/lib/types/wallet";
+import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
@@ -56,7 +56,7 @@ import {
   warpcast,
 } from "@/lib/utils/share";
 import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
-import { sendAppTransaction } from "@/lib/utils/send-app-tx";
+import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
 import {
   clearConnType,
   ensureBaseNetwork,
@@ -91,15 +91,26 @@ import {
   recordCheckInPoints,
   recordGmPoints,
   recordGnPoints,
+  recordPredictionPoints,
   syncActivityPointsFromSession,
   tryAwardSevenDayAllTasksBonus,
 } from "@/lib/utils/daily-points";
-import type { ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
+import { PREDICTIONS_CONTRACT, BASE_RPC } from "@/lib/constants/env";
+import {
+  ERC20_ABI,
+  PREDICTIONS_ABI,
+  USDC_BASE,
+} from "@/lib/constants/contracts";
+import type { PredictionAsset, PredictionDuration } from "@/lib/constants/predictions";
+import type { StreakEntry } from "@/lib/predictions/types";
+import { parseUnits, createPublicClient, http, maxUint256 } from "viem";
+import { base } from "viem/chains";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 
 export type WalletAppState = ReturnType<typeof useWalletApp>;
 
 export type AppTab =
+  | "predictions"
   | "dashboard"
   | "checkin"
   | "achievements"
@@ -110,12 +121,15 @@ function resolveTabFromUrl(): AppTab | null {
   if (typeof window === "undefined") return null;
   const t = new URLSearchParams(window.location.search).get("tab");
   const map: Record<string, AppTab> = {
+    predictions: "predictions",
+    predict: "predictions",
+    markets: "predictions",
     dashboard: "dashboard",
     checkin: "checkin",
     "check-in": "checkin",
     quests: "checkin",
-    rankings: "leaderboard",
-    leaderboard: "leaderboard",
+    rankings: "checkin",
+    leaderboard: "checkin",
     voucher: "basehub",
     basehub: "basehub",
     badges: "achievements",
@@ -127,10 +141,7 @@ function resolveTabFromUrl(): AppTab | null {
 function resolveInitialTab(): AppTab {
   const fromUrl = resolveTabFromUrl();
   if (fromUrl) return fromUrl;
-  if (typeof window !== "undefined" && localStorage.getItem("base_has_connected") === "1") {
-    return "dashboard";
-  }
-  return "basehub";
+  return "predictions";
 }
 
 export function useWalletApp() {
@@ -139,7 +150,7 @@ export function useWalletApp() {
     typeof window !== "undefined" ? readConnType() : null
   );
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<AppTab>("basehub");
+  const [tab, setTab] = useState<AppTab>("predictions");
   const [minting, setMinting] = useState<string | null>(null);
   const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
@@ -181,6 +192,8 @@ export function useWalletApp() {
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [farcasterUnlocked, setFarcasterUnlocked] = useState(false);
   const [farcasterUnlockLoading, setFarcasterUnlockLoading] = useState(false);
+  const [predictionLoading, setPredictionLoading] = useState(false);
+  const [predictionStreak, setPredictionStreak] = useState<StreakEntry[]>([]);
   const [premiumData, setPremiumData] = useState<{
     message: string;
     transaction?: string;
@@ -486,6 +499,134 @@ export function useWalletApp() {
     }
   };
 
+  const handlePredictionTrade = useCallback(
+    async (args: {
+      asset: PredictionAsset;
+      duration: PredictionDuration;
+      side: "yes" | "no";
+      usdcAmount: number;
+      marketId: number;
+    }): Promise<boolean> => {
+      if (!wallet) return false;
+
+      setPredictionLoading(true);
+      try {
+        const usdcRaw = parseUnits(args.usdcAmount.toFixed(6), 6);
+        const contract = PREDICTIONS_CONTRACT as `0x${string}`;
+
+        const creditPredictionSuccess = (txHash?: string) => {
+          setTxKeys((k) => {
+            const next = { ...k, prediction: (k.prediction || 0) + 1 };
+            writePersistedTxKeys(wallet.address, next);
+            return next;
+          });
+          const { credited, hitCap } = recordPredictionPoints(wallet.address);
+          setPointsRevision((n) => n + 1);
+          if (txHash) {
+            if (hitCap && credited === 0) {
+              showToast("Trade recorded — daily point cap reached", txHash);
+            } else if (credited > 0) {
+              showToast(
+                `${args.side.toUpperCase()} on ${args.asset} · +${credited} pts`,
+                txHash
+              );
+            } else {
+              showToast(
+                `✅ ${args.side.toUpperCase()} shares · ${args.asset} ${args.duration}`,
+                txHash
+              );
+            }
+          }
+        };
+
+        if (!contract) {
+          const key = `base_pred_trades_${wallet.address.toLowerCase()}`;
+          const prev = parseInt(localStorage.getItem(key) || "0", 10);
+          localStorage.setItem(key, String(prev + 1));
+          creditPredictionSuccess();
+          showToast(
+            `✅ ${args.side.toUpperCase()} on ${args.asset} ${args.duration} (demo — set NEXT_PUBLIC_PREDICTIONS_CONTRACT)`,
+            ""
+          );
+          return true;
+        }
+
+        let activeConn = await resolveActiveConnType(connType, wallet.address);
+        if (activeConn && activeConn !== connType) {
+          setConnType(activeConn);
+          persistConnType(activeConn);
+        }
+        if (!activeConn) {
+          showToast("❌ Reconnect wallet to trade", "");
+          return false;
+        }
+
+        const calls = [];
+        if (BASE_RPC) {
+          const pub = createPublicClient({
+            chain: base,
+            transport: http(BASE_RPC),
+          });
+          const allowance = await pub.readContract({
+            address: USDC_BASE as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "allowance",
+            args: [wallet.address as `0x${string}`, contract],
+          });
+          if (allowance < usdcRaw) {
+            calls.push(
+              encodeContractCall(USDC_BASE as `0x${string}`, ERC20_ABI, "approve", [
+                contract,
+                maxUint256,
+              ])
+            );
+          }
+        }
+
+        const fn = args.side === "yes" ? "buyYes" : "buyNo";
+        calls.push(
+          encodeContractCall(contract, PREDICTIONS_ABI, fn, [
+            BigInt(Math.max(1, args.marketId)),
+            usdcRaw,
+          ])
+        );
+
+        const hash = await sendAppTransactions(
+          activeConn,
+          wallet.address,
+          calls
+        );
+        setSponsored((s) => s + 1);
+        creditPredictionSuccess(hash);
+        return true;
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message.split("\n")[0] : "Trade failed";
+        if (!msg.toLowerCase().includes("reject")) {
+          showToast(`❌ ${msg}`, "");
+        }
+        return false;
+      } finally {
+        setPredictionLoading(false);
+      }
+    },
+    [connType, showToast, wallet]
+  );
+
+  useEffect(() => {
+    if (!wallet || !leaderboard.length) {
+      setPredictionStreak([]);
+      return;
+    }
+    const rows: StreakEntry[] = leaderboard.slice(0, 10).map((e) => ({
+      address: e.address.toLowerCase(),
+      basename: e.basename,
+      wins: Math.max(1, Math.floor((e.weeklyXP ?? 0) / 50)),
+      streak: Math.min(14, Math.max(1, Math.floor((e.weeklyXP ?? 0) / 80))),
+    }));
+    setPredictionStreak(rows);
+  }, [wallet, leaderboard]);
+
   const handleChallenge = useCallback(async () => {
     const addr = challenge.trim().toLowerCase();
     if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
@@ -767,6 +908,8 @@ export function useWalletApp() {
     setX402PayCount(0);
     setX402Product("scan");
     setSponsored(0);
+    setPredictionLoading(false);
+    setPredictionStreak([]);
     pendingTx.current.clear();
     x402Paying.current = false;
     handledActionTxs.current.clear();
@@ -1096,6 +1239,9 @@ export function useWalletApp() {
     farcasterUnlocked,
     farcasterUnlockLoading,
     handleFarcasterUnlock,
+    predictionLoading,
+    predictionStreak,
+    handlePredictionTrade,
     x402Product,
     setX402Product,
     referralBonusXp,

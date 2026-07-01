@@ -136,13 +136,20 @@ async function pollCallsStatus(provider: Eip1193, id: string): Promise<string> {
 async function sendViaWalletSendCalls(
   provider: Eip1193,
   from: string,
-  call: ContractCall
+  calls: ContractCall[]
 ): Promise<string> {
-  const calldata = stripBuilderSuffix(call.data);
-  const valueHex =
-    call.value && call.value > BigInt(0)
-      ? `0x${call.value.toString(16)}`
-      : "0x0";
+  const callPayload = calls.map((call) => {
+    const calldata = stripBuilderSuffix(call.data);
+    const valueHex =
+      call.value && call.value > BigInt(0)
+        ? `0x${call.value.toString(16)}`
+        : "0x0";
+    return {
+      to: call.to,
+      data: calldata,
+      value: valueHex,
+    };
+  });
 
   const capabilities = getSendCallsCapabilities();
   let lastErr: unknown;
@@ -157,13 +164,7 @@ async function sendViaWalletSendCalls(
               version,
               chainId: BASE_CHAIN_HEX,
               from,
-              calls: [
-                {
-                  to: call.to,
-                  data: calldata,
-                  value: valueHex,
-                },
-              ],
+              calls: callPayload,
               capabilities,
             },
           ],
@@ -207,12 +208,16 @@ async function sendViaEthSendTransaction(
   return hash;
 }
 
-/** Sends an app contract call — sponsored via paymaster in Base App / Coinbase Wallet. */
-export async function sendAppTransaction(
+/** Sends one or more app contract calls — sponsored via paymaster in Base App / Coinbase Wallet. */
+export async function sendAppTransactions(
   connType: ConnectionType,
   from: string,
-  call: ContractCall
+  calls: ContractCall[]
 ): Promise<string> {
+  if (calls.length === 0) {
+    throw new Error("No transactions to send");
+  }
+
   const provider = (await getEip1193Provider(connType)) as unknown as Eip1193;
 
   await ensureBaseNetwork(provider);
@@ -222,13 +227,28 @@ export async function sendAppTransaction(
 
   if (trySponsored) {
     try {
-      return await sendViaWalletSendCalls(provider, from, call);
+      return await sendViaWalletSendCalls(provider, from, calls);
     } catch (e) {
       if (isUserRejection(e)) throw e;
-      // Paymaster / sendCalls failed — fall back to a normal wallet popup.
-      return sendViaEthSendTransaction(provider, from, call);
+      if (calls.length === 1) {
+        return sendViaEthSendTransaction(provider, from, calls[0]);
+      }
+      throw e;
     }
   }
 
-  return sendViaEthSendTransaction(provider, from, call);
+  let lastHash = "";
+  for (const call of calls) {
+    lastHash = await sendViaEthSendTransaction(provider, from, call);
+  }
+  return lastHash;
+}
+
+/** Sends an app contract call — sponsored via paymaster in Base App / Coinbase Wallet. */
+export async function sendAppTransaction(
+  connType: ConnectionType,
+  from: string,
+  call: ContractCall
+): Promise<string> {
+  return sendAppTransactions(connType, from, [call]);
 }

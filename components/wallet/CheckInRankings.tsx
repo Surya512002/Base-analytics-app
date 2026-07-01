@@ -43,7 +43,7 @@ function LeaderboardTable({
       <div className="bg-white/[0.04] border-2 border-dashed border-white/10 rounded-2xl p-10 text-center">
         <Users size={24} className="text-slate-700 mx-auto mb-2" />
         <p className="font-black text-slate-600 text-sm">No rankings yet</p>
-        <p className="text-xs text-slate-700 mt-1">Complete quests and check in to appear here.</p>
+        <p className="text-xs text-slate-700 mt-1">Trade predictions and complete quests to climb the board.</p>
       </div>
     );
   }
@@ -112,7 +112,13 @@ function LeaderboardTable({
   );
 }
 
-export default function CheckInRankings({ app }: { app: WalletAppState }) {
+export default function CheckInRankings({
+  app,
+  embedded = false,
+}: {
+  app: WalletAppState;
+  embedded?: boolean;
+}) {
   const {
     wallet,
     weeklyXP,
@@ -148,22 +154,48 @@ export default function CheckInRankings({ app }: { app: WalletAppState }) {
   if (!wallet) return null;
 
   return (
-    <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
-      <div className="h-0.5 bg-linear-to-r from-amber-400 via-violet-500 to-cyan-400" />
-      <div className="p-4 sm:p-5 border-b border-white/8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div
+      className={
+        embedded
+          ? "space-y-4"
+          : "glass-panel rounded-2xl border border-white/8 overflow-hidden"
+      }
+    >
+      {!embedded && <div className="h-0.5 bg-linear-to-r from-amber-400 via-violet-500 to-cyan-400" />}
+      <div
+        className={
+          embedded
+            ? "flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2"
+            : "p-4 sm:p-5 border-b border-white/8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        }
+      >
         <div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-            <Trophy size={12} className="text-amber-400" />
-            Rankings
-          </p>
-          <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
-            Quest & activity leaderboard
-          </h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-xl">
-            {mode === "weekly"
-              ? "Ranked by weekly XP from quests, check-in streak, boosts, GM/GN, and daily activity."
-              : "Season standings include all weekly XP plus badge mint rewards (+25 XP per badge)."}
-          </p>
+          {embedded ? (
+            <>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <Trophy size={12} className="text-amber-400" />
+                Rankings
+              </p>
+              <h3 className="text-lg sm:text-xl font-black text-white mt-1">
+                Weekly & season leaderboard
+              </h3>
+            </>
+          ) : (
+            <>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <Trophy size={12} className="text-amber-400" />
+                Rankings
+              </p>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                Quest & activity leaderboard
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                {mode === "weekly"
+                  ? "Ranked by weekly XP — prediction trades, quests, check-in streak, and daily activity."
+                  : "Season standings include all weekly XP plus badge mint rewards (+25 XP per badge)."}
+              </p>
+            </>
+          )}
         </div>
         <div className="flex gap-1 glass-panel p-1 rounded-xl shrink-0">
           {(
@@ -187,7 +219,13 @@ export default function CheckInRankings({ app }: { app: WalletAppState }) {
         </div>
       </div>
 
-      <div className="p-4 sm:p-5 space-y-4">
+      <div
+        className={
+          embedded
+            ? "glass-panel rounded-2xl border border-white/8 overflow-hidden p-4 sm:p-5 space-y-4"
+            : "p-4 sm:p-5 space-y-4"
+        }
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-2xl font-black text-white tabular-nums">

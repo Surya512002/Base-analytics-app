@@ -5,11 +5,12 @@ import { settleX402Payment, verifyX402Payment } from "@/lib/x402-facilitator";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
 import { buildPremiumInsights } from "@/lib/premium/build-insights";
 import { getX402Product, productIdFromAmount, type X402ProductId } from "@/lib/constants/x402-products";
+import { APP_TREASURY } from "@/lib/constants/treasury";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const PAY_TO = "0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F";
+const PAY_TO = APP_TREASURY;
 const NETWORK: Network = "eip155:8453";
 const USDC_ADDRESS = "0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913";
 

@@ -27,6 +27,7 @@ export const POINTS_PER_REDEEM = 18;
 export const POINTS_PER_VOUCHER = 20;
 export const POINTS_PER_X402 = 22;
 export const POINTS_PER_CHALLENGE = 15;
+export const POINTS_PER_PREDICTION = 28;
 
 type DayEntry = {
   activity: number;
@@ -45,7 +46,8 @@ type ActivityAction =
   | "redeem"
   | "voucher"
   | "x402"
-  | "challenge";
+  | "challenge"
+  | "prediction";
 
 const ACTIVITY_POINTS: Record<ActivityAction, number> = {
   boost: POINTS_PER_BOOST,
@@ -55,6 +57,7 @@ const ACTIVITY_POINTS: Record<ActivityAction, number> = {
   voucher: POINTS_PER_VOUCHER,
   x402: POINTS_PER_X402,
   challenge: POINTS_PER_CHALLENGE,
+  prediction: POINTS_PER_PREDICTION,
 };
 
 function ledgerKey(address: string): string {
@@ -276,6 +279,7 @@ export function syncActivityPointsFromSession(
     ["voucher", voucherBatchCount],
     ["x402", x402PayCount],
     ["challenge", didChallenge ? 1 : 0],
+    ["prediction", txKeys.prediction ?? 0],
   ];
 
   for (const [action, count] of actions) {
@@ -413,6 +417,13 @@ export function recordChallengePoints(address: string): {
 }
 
 /** Daily check-in — 15 PP toward daily cap; weekly streak bonus is separate on cap hit. */
+export function recordPredictionPoints(address: string): {
+  credited: number;
+  hitCap: boolean;
+} {
+  return addActivityPoints(address, POINTS_PER_PREDICTION);
+}
+
 export function recordCheckInPoints(
   address: string
 ): { credited: number; hitCap: boolean } {

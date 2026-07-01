@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, CalendarCheck, Layers, Sparkles, X } from "lucide-react";
+import { BarChart3, Sparkles, TrendingUp, Trophy, X } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
-const TOUR_KEY = "base_onboarding_done_v3";
+const TOUR_KEY = "base_onboarding_done_v4";
 
 const STEPS: {
   icon: React.ReactNode;
@@ -13,20 +13,21 @@ const STEPS: {
   tab?: AppTab;
 }[] = [
   {
-    icon: <Layers size={20} className="text-blue-400" />,
-    title: "Welcome, Base user",
-    body: "You're on Base — the onchain home for builders, traders, and everyday crypto users. This app turns your wallet into scores, rewards, and real utility.",
+    icon: <TrendingUp size={20} className="text-emerald-400" />,
+    title: "Welcome to the prediction market",
+    body: "Trade BTC, ETH & SOL on hourly, 4h & daily rounds. Live YES/NO odds from a real AMM — like Polymarket, built on Base.",
+    tab: "predictions",
+  },
+  {
+    icon: <Trophy size={20} className="text-amber-400" />,
+    title: "Earn XP by trading",
+    body: "Every prediction trade earns activity points toward your daily cap and weekly quests. The more you trade, the higher you climb the leaderboard.",
+    tab: "predictions",
   },
   {
     icon: <BarChart3 size={20} className="text-cyan-400" />,
-    title: "Your onchain analysis",
-    body: "We scan your wallet history — active days, heatmap, rank, volume, and contract activity — all updated from real Base transactions.",
-    tab: "dashboard",
-  },
-  {
-    icon: <CalendarCheck size={20} className="text-amber-400" />,
-    title: "Daily check-in & quests",
-    body: "Earn weekly XP with daily check-ins, boosts, GM/GN, and quests. Start here each day to climb the leaderboard.",
+    title: "Plus wallet analytics & rewards",
+    body: "Check in daily, complete quests, mint badges, and use vouchers — all from the same app. Predictions are the core; everything else supports your onchain journey.",
     tab: "checkin",
   },
 ];
@@ -45,9 +46,14 @@ export default function OnboardingTour({ onNavigate }: OnboardingTourProps) {
     }
   }, []);
 
+  useEffect(() => {
+    if (open) onNavigate(STEPS[step].tab ?? "predictions");
+  }, [open, step, onNavigate]);
+
   const close = () => {
     localStorage.setItem(TOUR_KEY, "1");
     setOpen(false);
+    onNavigate("predictions");
   };
 
   const next = () => {
@@ -67,8 +73,8 @@ export default function OnboardingTour({ onNavigate }: OnboardingTourProps) {
   return (
     <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#020608]/80 backdrop-blur-md" onClick={close} />
-      <div className="relative w-full max-w-md elegant-panel rounded-3xl border border-violet-500/30 overflow-hidden tab-content-enter">
-        <div className="h-0.5 bg-linear-to-r from-champagne via-violet-400 to-cyan-400" />
+      <div className="relative w-full max-w-md elegant-panel rounded-3xl border border-emerald-500/30 overflow-hidden tab-content-enter">
+        <div className="h-0.5 bg-linear-to-r from-emerald-500 via-cyan-400 to-violet-400" />
         <button
           type="button"
           onClick={close}
@@ -79,7 +85,7 @@ export default function OnboardingTour({ onNavigate }: OnboardingTourProps) {
         </button>
         <div className="p-6 pt-8">
           <p className="section-eyebrow flex items-center gap-2">
-            <Sparkles size={11} /> Welcome · Step {step + 1}/{STEPS.length}
+            <Sparkles size={11} /> Predictions · Step {step + 1}/{STEPS.length}
           </p>
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mt-4 mb-4">
             {current.icon}
@@ -91,7 +97,7 @@ export default function OnboardingTour({ onNavigate }: OnboardingTourProps) {
               Skip
             </button>
             <button type="button" onClick={next} className="flex-1 py-3 rounded-xl text-sm font-black btn-primary">
-              {step >= STEPS.length - 1 ? "Go to Check-In" : "Next →"}
+              {step >= STEPS.length - 1 ? "Start trading →" : "Next →"}
             </button>
           </div>
         </div>

@@ -12,6 +12,10 @@ import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import { useWalletApp } from "@/hooks/useWalletApp";
 
+const PredictionsTab = dynamic(
+  () => import("@/components/wallet/tabs/PredictionsTab"),
+  { loading: () => <TabSkeleton /> }
+);
 const DashboardTab = dynamic(
   () => import("@/components/wallet/tabs/DashboardTab"),
   { loading: () => <TabSkeleton /> }
@@ -22,10 +26,6 @@ const CheckInTab = dynamic(
 );
 const AchievementsTab = dynamic(
   () => import("@/components/wallet/tabs/AchievementsTab"),
-  { loading: () => <TabSkeleton /> }
-);
-const RankingsTab = dynamic(
-  () => import("@/components/wallet/tabs/RankingsTab"),
   { loading: () => <TabSkeleton /> }
 );
 const BaseVoucherTab = dynamic(
@@ -109,11 +109,11 @@ export default function Page() {
         <AppFeatureStrip onNavigate={setTab} />
 
         <div key={tab} className="tab-content-enter">
+          {tab === "predictions" && <PredictionsTab app={app} />}
           {tab === "basehub" && <BaseVoucherTab app={app} />}
           {tab === "dashboard" && <DashboardTab app={app} />}
           {tab === "checkin" && <CheckInTab app={app} />}
           {tab === "achievements" && <AchievementsTab app={app} />}
-          {tab === "leaderboard" && <RankingsTab app={app} />}
         </div>
 
         <AppFooterNav />

@@ -203,6 +203,16 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     handleDisconnect: noop,
     handleCheckInSuccess: noopAsync,
     handleBoostSuccess: noop,
+    predictionLoading: false,
+    predictionStreak: [
+      {
+        address: wallet.address.toLowerCase(),
+        basename: wallet.basename,
+        wins: 8,
+        streak: 5,
+      },
+    ],
+    handlePredictionTrade: async () => true,
     doNativeTx: noopAsync,
     doNativeMint: noopAsync,
     shareScore: noop,

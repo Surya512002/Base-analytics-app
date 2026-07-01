@@ -6,6 +6,7 @@ import {
   Gift,
   Globe,
   RefreshCcw,
+  TrendingUp,
   Wallet,
   X,
   Zap,
@@ -33,21 +34,21 @@ interface ConnectScreenProps {
 const LANDING_FEATURES = [
   {
     n: "01",
-    icon: <Zap size={16} className="text-amber-400" />,
-    title: "x402 Payments",
-    desc: "Decentralized pay-per-use on Base — no accounts, no middlemen.",
+    icon: <TrendingUp size={16} className="text-emerald-400" />,
+    title: "Crypto Prediction Market",
+    desc: "BTC · ETH · SOL — hourly, 4h & daily rounds with live YES/NO odds on Base.",
   },
   {
     n: "02",
-    icon: <Gift size={16} className="text-cyan-400" />,
-    title: "Crypto Gift Cards",
-    desc: "Create & redeem ETH or USDC vouchers. Split into up to 50 cards.",
+    icon: <Zap size={16} className="text-amber-400" />,
+    title: "Trade & earn XP",
+    desc: "Every prediction trade counts toward daily points and weekly quests — climb the leaderboard.",
   },
   {
     n: "03",
-    icon: <BarChart3 size={16} className="text-rose-400" />,
-    title: "Onchain Analysis",
-    desc: "Free wallet scan, badges, XP quests, and your rank from Shrimp to God.",
+    icon: <Gift size={16} className="text-cyan-400" />,
+    title: "Vouchers & analytics",
+    desc: "Gift cards, wallet scan, badges, and check-in rewards — all in one Base mini-app.",
   },
 ] as const;
 
@@ -78,7 +79,7 @@ const WALLET_OPTIONS: WalletOption[] = [
     type: "injected",
     label: "Browser Wallet",
     sub: "Rabby, Rainbow, OKX & other injected wallets",
-    icon: <Globe size={18} className="text-cyan-300" />,
+    icon: <Globe size={22} className="text-cyan-600" />,
     accent: "bg-cyan-500/12 border-cyan-400/35",
   },
   {
@@ -90,41 +91,46 @@ const WALLET_OPTIONS: WalletOption[] = [
   },
 ];
 
-function GiftCardTeaser() {
+function PredictionMarketTeaser() {
+  const markets = [
+    { asset: "BTC", prob: 58, price: "$97,240", dur: "1H" },
+    { asset: "ETH", prob: 44, price: "$3,612", dur: "4H" },
+    { asset: "SOL", prob: 62, price: "$148", dur: "Daily" },
+  ];
+
   return (
     <div className="relative w-full max-w-[360px] mx-auto lg:mx-0">
-      <div className="absolute -inset-1 bg-linear-to-r from-cyan-500/20 via-violet-500/15 to-rose-500/20 rounded-3xl blur-xl" />
-      <div className="relative glass-panel rounded-3xl p-6 border border-cyan-500/20 overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl" />
+      <div className="absolute -inset-1 bg-linear-to-r from-emerald-500/20 via-cyan-500/15 to-violet-500/20 rounded-3xl blur-xl" />
+      <div className="relative glass-panel rounded-3xl p-6 border border-emerald-500/20 overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl" />
         <div className="flex items-center gap-2 mb-4">
-          <Gift size={14} className="text-cyan-400" />
-          <p className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.35em]">
-            Base Voucher
+          <TrendingUp size={14} className="text-emerald-400" />
+          <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.35em]">
+            Live on Base
           </p>
         </div>
-        <div className="rounded-2xl bg-linear-to-br from-blue-600/40 via-cyan-500/20 to-violet-600/30 border border-white/10 p-5 mb-4">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-            Card ID · 12-3
-          </p>
-          <p className="font-mono text-sm text-white/90 tracking-wider mb-4">
-            K7M2P-9XQ4R-8N3WT-5J6YH
-          </p>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase">Balance</p>
-              <p className="text-3xl font-black text-white">25.00</p>
-              <p className="text-xs font-bold text-cyan-400">USDC</p>
+        <div className="space-y-2 mb-4">
+          {markets.map((m) => (
+            <div
+              key={m.asset}
+              className="rounded-xl bg-white/[0.04] border border-white/10 p-3 flex items-center justify-between"
+            >
+              <div>
+                <p className="text-xs font-black text-white">{m.asset} · {m.dur}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{m.price}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-black text-emerald-400 tabular-nums">{m.prob}%</p>
+                <p className="text-[9px] font-bold text-slate-500 uppercase">YES</p>
+              </div>
             </div>
-            <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-2.5 py-1 uppercase">
-              Redeemable
-            </span>
-          </div>
+          ))}
         </div>
         <p className="text-slate-300 text-sm font-medium leading-relaxed">
-          Send crypto to anyone with a shareable card code — fully onchain on Base.
+          Polymarket-style crypto markets with CPMM pricing — trade YES or NO, win $1 USDC per share on resolve.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {["ETH", "USDC", "Onchain", "Decentralized"].map((tag) => (
+          {["BTC", "ETH", "SOL", "CPMM", "Chainlink"].map((tag) => (
             <span
               key={tag}
               className="text-[10px] font-bold text-slate-400 bg-white/5 border border-white/8 rounded-full px-3 py-1"
@@ -147,7 +153,7 @@ export default function ConnectScreen({
   onConnect,
 }: ConnectScreenProps) {
   return (
-    <div className="min-h-screen bg-[#040a14] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#020508] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-aurora pointer-events-none" />
       <div className="absolute inset-0 bg-grid-future opacity-30 pointer-events-none" />
       <div
@@ -173,20 +179,20 @@ export default function ConnectScreen({
             <div className="inline-flex items-center gap-2 badge-live rounded-full px-4 py-2 mb-6">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-glow shadow-[0_0_6px_#10b981]" />
               <span className="text-[10px] font-black uppercase tracking-widest">
-                x402 Live · Decentralized on Base
+                9 markets live · BTC ETH SOL on Base
               </span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-black leading-[1.05] tracking-tight mb-3">
               <span className="text-white">Crypto </span>
-              <span className="text-gradient-blue">Gift Cards</span>
+              <span className="text-gradient-blue">Predictions</span>
             </h1>
-            <p className="text-cyan-400 text-lg sm:text-xl font-extrabold tracking-wide mb-4">
-              For anyone, anywhere!
+            <p className="text-emerald-400 text-lg sm:text-xl font-extrabold tracking-wide mb-4">
+              Trade the market. Earn XP. Win USDC.
             </p>
             <p className="text-slate-400 text-sm sm:text-base font-medium leading-relaxed max-w-md mx-auto lg:mx-0 mb-8">
-              The world&apos;s first decentralized tangible crypto gift card protocol.
-              Create and redeem crypto gift cards on Base — then unlock your full onchain profile.
+              Hourly, 4-hour & daily BTC/ETH/SOL rounds with live YES/NO odds.
+              Connect your wallet to trade, complete quests, and climb the leaderboard.
             </p>
 
             <div className="space-y-3 max-w-md mx-auto lg:mx-0 mb-8">
@@ -229,7 +235,7 @@ export default function ConnectScreen({
               ) : (
                 <div className="flex items-center gap-2">
                   <Wallet size={20} />
-                  <span>Connect Wallet — Free</span>
+                  <span>Connect Wallet — Start trading</span>
                 </div>
               )}
             </button>
@@ -241,7 +247,7 @@ export default function ConnectScreen({
 
           {/* RIGHT — Preview card */}
           <div className="hidden sm:block animate-float">
-            <GiftCardTeaser />
+            <PredictionMarketTeaser />
             <div className="mt-4 glass-panel rounded-2xl p-4 max-w-[340px] mx-auto lg:mx-0">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Season Progress</span>
@@ -296,7 +302,7 @@ export default function ConnectScreen({
                   className={`w-full flex items-center justify-between border ${w.accent} text-white p-3.5 rounded-2xl transition-all active:scale-[0.98] group disabled:opacity-50 disabled:pointer-events-none hover:brightness-110`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-11 h-11 shrink-0 rounded-xl bg-black/20 border border-white/15 flex items-center justify-center overflow-hidden">
+                    <span className="w-11 h-11 shrink-0 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
                       {w.icon}
                     </span>
                     <div className="text-left min-w-0">

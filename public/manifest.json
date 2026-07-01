@@ -1,7 +1,7 @@
 {
-  "name": "Base Analytics",
-  "short_name": "Base Analytics",
-  "description": "Crypto gift cards, x402 payments & free wallet analytics on Base.",
+  "name": "Base Analytics — Predictions",
+  "short_name": "Predictions",
+  "description": "Crypto prediction market on Base — BTC, ETH, SOL with live YES/NO odds, quests & wallet analytics.",
   "icons": [
     {
       "src": "/icon.png",
@@ -35,5 +35,5 @@
   "theme_color": "#0052FF",
   "background_color": "#0052FF",
   "display": "standalone",
-  "start_url": "/"
+  "start_url": "/?tab=predictions"
 }

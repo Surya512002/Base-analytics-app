@@ -209,3 +209,33 @@ export const VOUCHER_ABI = [
     ],
   },
 ] as const;
+
+export const PREDICTIONS_ABI = [
+  {
+    name: "buyYes",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "marketId", type: "uint256" },
+      { name: "usdcIn", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "buyNo",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "marketId", type: "uint256" },
+      { name: "usdcIn", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "impliedYesBps",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
