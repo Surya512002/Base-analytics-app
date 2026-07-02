@@ -19,12 +19,10 @@ import {
   DURATION_LABEL,
   PREDICTION_ASSETS,
   PREDICTION_DURATIONS,
-  PROTOCOL_FEE_LABEL,
   trackFor,
   type PredictionAsset,
   type PredictionDuration,
 } from "@/lib/constants/predictions";
-import { APP_TREASURY } from "@/lib/constants/treasury";
 import { POINTS_PER_PREDICTION } from "@/lib/utils/daily-points";
 import {
   buyNoShares,
@@ -49,10 +47,12 @@ function formatUsd(n: number): string {
 
 function timeLeft(ms: number): string {
   if (ms <= 0) return "Resolving…";
-  const m = Math.floor(ms / 60_000);
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
   const h = Math.floor(m / 60);
   if (h > 0) return `${h}h ${m % 60}m`;
-  return `${m}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
 }
 
 export default function PredictionsTab({ app }: { app: WalletAppState }) {
@@ -67,11 +67,13 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
   } = app;
 
   const [asset, setAsset] = useState<PredictionAsset>("BTC");
-  const [duration, setDuration] = useState<PredictionDuration>("1h");
+  const [duration, setDuration] = useState<PredictionDuration>("15m");
   const [markets, setMarkets] = useState<LiveMarket[]>([]);
+  const [onChainMode, setOnChainMode] = useState(false);
+  const [contractAddress, setContractAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("5");
-  const [tvInterval, setTvInterval] = useState<TvInterval>("15");
+  const [tvInterval, setTvInterval] = useState<TvInterval>("1");
   const [localPool, setLocalPool] = useState<{ yesReserve: number; noReserve: number } | null>(null);
 
   useEffect(() => {
@@ -82,8 +84,14 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
     setLoading(true);
     try {
       const res = await fetch("/api/predictions");
-      const data = (await res.json()) as { markets: LiveMarket[] };
+      const data = (await res.json()) as {
+        markets: LiveMarket[];
+        onChain?: boolean;
+        contract?: string | null;
+      };
       setMarkets(data.markets ?? []);
+      setOnChainMode(Boolean(data.onChain));
+      setContractAddress(data.contract ?? null);
     } catch {
       showToast("❌ Could not load markets", "");
     } finally {
@@ -93,16 +101,20 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
 
   useEffect(() => {
     void loadMarkets();
-    const id = setInterval(() => void loadMarkets(), 60_000);
+    const pollMs = duration === "15m" ? 30_000 : 60_000;
+    const id = setInterval(() => void loadMarkets(), pollMs);
     return () => clearInterval(id);
-  }, [loadMarkets]);
+  }, [loadMarkets, duration]);
 
   const market = useMemo(() => {
     const track = trackFor(asset, duration);
     return markets.find((m) => m.trackId === track?.id) ?? null;
   }, [markets, asset, duration]);
 
-  const pool = localPool ?? market?.pool ?? { yesReserve: 10_000, noReserve: 10_000 };
+  const pool =
+    onChainMode || !localPool
+      ? market?.pool ?? { yesReserve: 10_000, noReserve: 10_000 }
+      : localPool;
   const yesProb = impliedYesProbability(pool);
   const noProb = impliedNoProbability(pool);
 
@@ -115,10 +127,15 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
   }, [amount, pool]);
 
   const onTrade = async (side: "yes" | "no") => {
-    if (!wallet) return;
+    if (!wallet || !market) return;
     const usdc = parseFloat(amount);
     if (!usdc || usdc < 0.1) {
       showToast("❌ Min trade 0.10 USDC", "");
+      return;
+    }
+    if (onChainMode && !market.onChainMarketId) {
+      showToast("⏳ On-chain market syncing — refresh in a moment", "");
+      void loadMarkets();
       return;
     }
     const next = side === "yes" ? preview.yes.nextPool : preview.no.nextPool;
@@ -127,9 +144,16 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
       duration,
       side,
       usdcAmount: usdc,
-      marketId: market?.roundId ?? 0,
+      marketId: market.onChainMarketId ?? 0,
     });
-    if (ok) setLocalPool(next);
+    if (ok) {
+      if (onChainMode) {
+        setLocalPool(null);
+        void loadMarkets();
+      } else {
+        setLocalPool(next);
+      }
+    }
   };
 
   const shareText = useMemo(() => {
@@ -178,19 +202,21 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
               Predictions <span className="text-trade-yes">Market</span>
             </h1>
             <p className="text-xs text-slate-500 mt-1.5 max-w-xl">
-              BTC · ETH · SOL — hourly, 4h & daily rounds. CPMM YES/NO pricing on Base.
-              Each trade +{POINTS_PER_PREDICTION} activity PP · protocol fee {PROTOCOL_FEE_LABEL} on settlement.
+              BTC · ETH · SOL — 15m, hourly, 4h & daily rounds. CPMM YES/NO pricing on Base.
+              Each trade +{POINTS_PER_PREDICTION} activity PP.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px]">
             <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-bold">
-              9 live tracks
+              12 live tracks
             </span>
+            {onChainMode && (
+              <span className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-bold">
+                On-chain
+              </span>
+            )}
             <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold">
               Chainlink resolve
-            </span>
-            <span className="px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 font-bold truncate max-w-[200px]" title={APP_TREASURY}>
-              Fees → treasury
             </span>
           </div>
         </div>
@@ -272,8 +298,11 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                  <Clock size={11} /> {timeLeft(market.resolveTime - Date.now())} ·{" "}
+                  <Clock size={11} /> {timeLeft(market.closeTime - Date.now())} left ·{" "}
                   <span className="text-cyan-400 uppercase">{market.phase}</span>
+                  {market.isOnChain && market.onChainMarketId && (
+                    <span className="text-emerald-500">· #{market.onChainMarketId}</span>
+                  )}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -346,15 +375,16 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
             <div className="rounded-xl bg-white/[0.03] border border-white/8 p-3 text-[11px] space-y-1.5 text-slate-400">
               <p>YES est. shares: <span className="text-emerald-400 font-bold">{preview.yes.sharesOut.toFixed(2)}</span></p>
               <p>NO est. shares: <span className="text-rose-400 font-bold">{preview.no.sharesOut.toFixed(2)}</span></p>
-              <p className="text-amber-300/90 pt-1 border-t border-white/8">
-                Protocol fee {PROTOCOL_FEE_LABEL} on settlement (shown before every trade)
-              </p>
-              <p className="text-slate-500">Winning shares redeem $1 USDC each · auto on resolve</p>
+              <p className="text-slate-500 pt-1 border-t border-white/8">Winning shares redeem $1 USDC each · auto on resolve</p>
             </div>
 
             <button
               type="button"
-              disabled={predictionLoading || market.phase !== "open"}
+              disabled={
+                predictionLoading ||
+                market.phase !== "open" ||
+                (onChainMode && !market.onChainMarketId)
+              }
               onClick={() => void onTrade("yes")}
               className="trade-btn-yes w-full py-3.5 rounded-xl font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
@@ -363,7 +393,11 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
             </button>
             <button
               type="button"
-              disabled={predictionLoading || market.phase !== "open"}
+              disabled={
+                predictionLoading ||
+                market.phase !== "open" ||
+                (onChainMode && !market.onChainMarketId)
+              }
               onClick={() => void onTrade("no")}
               className="trade-btn-no w-full py-3.5 rounded-xl font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
@@ -389,8 +423,19 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
             </div>
 
             <p className="text-[9px] text-slate-600 leading-snug">
-              All trades include Base builder attribution. Deploy{" "}
-              <code className="text-slate-500">NEXT_PUBLIC_PREDICTIONS_CONTRACT</code> for on-chain settlement.
+              {onChainMode && contractAddress ? (
+                <>
+                  Settled on-chain via{" "}
+                  <code className="text-slate-500">{contractAddress.slice(0, 10)}…</code>
+                  . Winning shares auto-redeem on resolve.
+                </>
+              ) : (
+                <>
+                  Demo mode — deploy{" "}
+                  <code className="text-slate-500">NEXT_PUBLIC_PREDICTIONS_CONTRACT</code> and set{" "}
+                  <code className="text-slate-500">PREDICTIONS_KEEPER_PRIVATE_KEY</code> for live markets.
+                </>
+              )}
             </p>
           </div>
         </div>

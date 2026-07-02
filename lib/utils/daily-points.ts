@@ -232,21 +232,40 @@ function writeSyncedCount(address: string, action: string, count: number): void 
   }
 }
 
+function checkInPointsFlag(address: string): string {
+  return `base_ci_pts_${address.toLowerCase()}_${todayUtcKey()}`;
+}
+
+/** Credit activity for an action up to totalCount without double-counting. */
+export function creditActivityFromCount(
+  address: string,
+  action: ActivityAction,
+  totalCount: number
+): { credited: number; hitCap: boolean; changed: boolean } {
+  const synced = readSyncedCount(address, action);
+  const delta = Math.max(0, totalCount - synced);
+  if (delta === 0) {
+    return { credited: 0, hitCap: false, changed: false };
+  }
+
+  const pointsEach = ACTIVITY_POINTS[action];
+  let credited = 0;
+  let hitCap = false;
+  for (let i = 0; i < delta; i++) {
+    const result = addActivityPoints(address, pointsEach);
+    credited += result.credited;
+    hitCap = hitCap || result.hitCap;
+  }
+  writeSyncedCount(address, action, totalCount);
+  return { credited, hitCap, changed: true };
+}
+
 function creditActionDelta(
   address: string,
   action: ActivityAction,
   txCount: number
 ): boolean {
-  const synced = readSyncedCount(address, action);
-  const delta = Math.max(0, txCount - synced);
-  if (delta === 0) return false;
-
-  const pointsEach = ACTIVITY_POINTS[action];
-  for (let i = 0; i < delta; i++) {
-    addActivityPoints(address, pointsEach);
-  }
-  writeSyncedCount(address, action, txCount);
-  return true;
+  return creditActivityFromCount(address, action, txCount).changed;
 }
 
 export function syncActivityPointsFromSession(
@@ -263,12 +282,8 @@ export function syncActivityPointsFromSession(
   let changed = false;
 
   if (checkedToday) {
-    const flag = `base_ci_pts_${address.toLowerCase()}_${todayUtcKey()}`;
-    if (typeof window !== "undefined" && !localStorage.getItem(flag)) {
-      recordCheckInPoints(address);
-      localStorage.setItem(flag, "1");
-      changed = true;
-    }
+    const ci = recordCheckInPointsOnce(address);
+    if (ci.credited > 0) changed = true;
   }
 
   const actions: Array<[ActivityAction, number]> = [
@@ -428,4 +443,20 @@ export function recordCheckInPoints(
   address: string
 ): { credited: number; hitCap: boolean } {
   return addActivityPoints(address, POINTS_PER_CHECKIN);
+}
+
+/** Check-in points at most once per UTC day (avoids duplicate in-app tx count). */
+export function recordCheckInPointsOnce(
+  address: string
+): { credited: number; hitCap: boolean } {
+  if (!address || typeof window === "undefined") {
+    return { credited: 0, hitCap: false };
+  }
+  const flag = checkInPointsFlag(address);
+  if (localStorage.getItem(flag)) {
+    return { credited: 0, hitCap: false };
+  }
+  const result = recordCheckInPoints(address);
+  localStorage.setItem(flag, "1");
+  return result;
 }

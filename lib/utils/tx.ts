@@ -39,6 +39,16 @@ export function stripBuilderSuffix(data: Hex): Hex {
   return (`0x${data.slice(2).slice(0, -suffix.length)}`) as Hex;
 }
 
+/** Strip calldata suffix before wallet_sendCalls / OnchainKit (wallet appends via capability). */
+export function prepareCallsForWalletSendCalls(
+  calls: ContractCall[]
+): ContractCall[] {
+  return calls.map((call) => ({
+    ...call,
+    data: stripBuilderSuffix(call.data),
+  }));
+}
+
 export type ContractCall = {
   to: `0x${string}`;
   data: Hex;

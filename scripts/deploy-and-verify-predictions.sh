@@ -54,7 +54,7 @@ DEPLOY_OUT=$(forge script script/DeployCryptoPredictionMarket.s.sol:DeployCrypto
 
 echo "$DEPLOY_OUT"
 
-CONTRACT=$(echo "$DEPLOY_OUT" | grep -oE '0x[a-fA-F0-9]{40}' | tail -1)
+CONTRACT=$(echo "$DEPLOY_OUT" | grep -E 'deployed: address|CryptoPredictionMarket deployed at:' | grep -oE '0x[a-fA-F0-9]{40}' | tail -1)
 if [[ -z "$CONTRACT" ]]; then
   CONTRACT=$(echo "$DEPLOY_OUT" | grep 'CryptoPredictionMarket deployed at:' | awk '{print $NF}')
 fi
@@ -100,5 +100,11 @@ fi
 echo ""
 echo "Add to .env.local:"
 echo "NEXT_PUBLIC_PREDICTIONS_CONTRACT=$CONTRACT"
+echo "PREDICTIONS_KEEPER_PRIVATE_KEY=\$DEPLOYER_PRIVATE_KEY"
+echo "PREDICTIONS_KEEPER_SECRET=<random-cron-secret>"
+echo "PREDICTIONS_INITIAL_LIQUIDITY_USDC=10000"
 echo ""
-echo "Next: fund contract USDC liquidity, call openMarket per track, set Chainlink Automation registry."
+echo "Keeper: POST /api/predictions/keeper with Authorization: Bearer <PREDICTIONS_KEEPER_SECRET>"
+echo "        or run: bash scripts/run-prediction-keeper.sh"
+echo ""
+echo "Markets auto-open on each /api/predictions fetch when keeper key is set (12 tracks incl. 15m)."

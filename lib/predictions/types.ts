@@ -8,6 +8,10 @@ export interface LiveMarket {
   asset: PredictionAsset;
   duration: PredictionDuration;
   roundId: number;
+  /** On-chain `marketId` from CryptoPredictionMarket — null in demo mode. */
+  onChainMarketId: number | null;
+  /** Whether odds/pool are read from the deployed contract. */
+  isOnChain: boolean;
   phase: MarketPhase;
   openTime: number;
   closeTime: number;

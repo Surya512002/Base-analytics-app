@@ -17,7 +17,7 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
     <div className="mb-4 flex flex-wrap gap-2 items-center">
       <div className="inline-flex items-center gap-2 badge-live rounded-full px-3 py-1.5">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow shadow-[0_0_6px_#10b981]" />
-        <span className="text-[9px] font-black uppercase tracking-widest">9 markets live</span>
+        <span className="text-[9px] font-black uppercase tracking-widest">12 markets live</span>
       </div>
       {STRIP.map((s) => (
         <button

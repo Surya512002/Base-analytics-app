@@ -21,6 +21,8 @@ function roundBounds(
   return { roundId, open, close, resolve };
 }
 
+export { roundBounds };
+
 function phaseFor(
   track: MarketTrack,
   now = Date.now()
@@ -60,6 +62,8 @@ export function buildLiveMarket(
     asset: track.asset,
     duration: track.duration,
     roundId,
+    onChainMarketId: null,
+    isOnChain: false,
     phase,
     openTime: open,
     closeTime: close,

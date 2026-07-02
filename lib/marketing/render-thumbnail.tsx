@@ -26,7 +26,19 @@ function LogoMark({ size }: { size: number }) {
   );
 }
 
-/** Link preview — Base Voucher hero + x402 payment tx panel + analytics strip. */
+const MARKETS = [
+  { asset: "BTC", prob: 58, price: "$97,240", dur: "1H" },
+  { asset: "ETH", prob: 44, price: "$3,612", dur: "4H" },
+  { asset: "SOL", prob: 62, price: "$148", dur: "Daily" },
+] as const;
+
+const FEATURES = [
+  { n: "01", title: "Crypto Prediction Market", desc: "BTC · ETH · SOL — 15m, hourly, 4h & daily rounds" },
+  { n: "02", title: "Trade & earn XP", desc: "Every trade counts toward quests & leaderboard" },
+  { n: "03", title: "Vouchers & analytics", desc: "Gift cards, wallet scan & check-in rewards" },
+] as const;
+
+/** Link preview — matches the predictions-first homepage. */
 export function renderAppThumbnail() {
   return (
     <div
@@ -38,7 +50,7 @@ export function renderAppThumbnail() {
         position: "relative",
         overflow: "hidden",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-        background: "#071220",
+        background: "#020508",
       }}
     >
       <div
@@ -46,7 +58,7 @@ export function renderAppThumbnail() {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse 65% 50% at 25% 40%, rgba(0,229,255,0.2), transparent), radial-gradient(ellipse 50% 45% at 95% 20%, rgba(251,191,36,0.15), transparent), radial-gradient(ellipse 45% 40% at 80% 90%, rgba(255,51,102,0.14), transparent), #071220",
+            "radial-gradient(circle at 85% 15%, rgba(0,229,255,0.18) 0%, transparent 55%), radial-gradient(circle at 10% 90%, rgba(255,51,102,0.14) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(16,185,129,0.08) 0%, transparent 60%), #020508",
           display: "flex",
         }}
       />
@@ -54,10 +66,10 @@ export function renderAppThumbnail() {
         style={{
           position: "absolute",
           inset: 0,
-          opacity: 0.25,
+          opacity: 0.22,
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
+            "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
           display: "flex",
         }}
       />
@@ -68,16 +80,16 @@ export function renderAppThumbnail() {
           flexDirection: "column",
           width: "100%",
           height: "100%",
-          padding: "28px 40px 24px",
+          padding: "28px 40px 22px",
           position: "relative",
-          gap: 14,
+          gap: 16,
         }}
       >
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <LogoMark size={40} />
-            <span style={{ color: "#fff", fontSize: 18, fontWeight: 900, letterSpacing: "0.12em" }}>
+            <span style={{ color: "#fff", fontSize: 17, fontWeight: 900, letterSpacing: "0.14em" }}>
               BASE ANALYTICS
             </span>
           </div>
@@ -86,7 +98,7 @@ export function renderAppThumbnail() {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              background: "rgba(16,185,129,0.1)",
+              background: "rgba(16,185,129,0.12)",
               border: "1px solid rgba(16,185,129,0.35)",
               borderRadius: 100,
               padding: "6px 14px",
@@ -102,278 +114,184 @@ export function renderAppThumbnail() {
               }}
             />
             <span style={{ color: "#6ee7b7", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em" }}>
-              LIVE ON BASE
+              12 MARKETS LIVE · BASE
             </span>
           </div>
         </div>
 
-        {/* Main body */}
-        <div style={{ display: "flex", flex: 1, gap: 24, minHeight: 0 }}>
-          {/* LEFT — Voucher hero (primary) */}
-          <div style={{ display: "flex", flexDirection: "column", flex: 1.35, gap: 12 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ color: "#22d3ee", fontSize: 11, fontWeight: 900, letterSpacing: "0.22em" }}>
-                BASE VOUCHER
-              </span>
-              <div style={{ display: "flex", flexWrap: "wrap", fontSize: 44, fontWeight: 900, lineHeight: 1.05 }}>
-                <span style={{ color: "#fff", marginRight: 10 }}>Crypto</span>
-                <span style={{ color: "#60a5fa" }}>Gift Cards</span>
+        {/* Main */}
+        <div style={{ display: "flex", flex: 1, gap: 28, minHeight: 0 }}>
+          {/* LEFT — Hero */}
+          <div style={{ display: "flex", flexDirection: "column", flex: 1.1, gap: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", fontSize: 48, fontWeight: 900, lineHeight: 1.02 }}>
+                <span style={{ color: "#fff", marginRight: 12 }}>Crypto</span>
+                <span
+                  style={{
+                    background: "linear-gradient(90deg, #60a5fa, #22d3ee)",
+                    backgroundClip: "text",
+                    color: "transparent",
+                  }}
+                >
+                  Predictions
+                </span>
               </div>
-              <span style={{ color: "#94a3b8", fontSize: 14, fontWeight: 600 }}>
-                Create · redeem · share ETH & USDC vouchers onchain
+              <span style={{ color: "#34d399", fontSize: 20, fontWeight: 800 }}>
+                Trade the market. Earn XP. Win USDC.
+              </span>
+              <span style={{ color: "#94a3b8", fontSize: 14, fontWeight: 600, lineHeight: 1.45, maxWidth: 420 }}>
+                Hourly, 4-hour & daily BTC/ETH/SOL rounds with live YES/NO odds — Polymarket-style CPMM on Base.
               </span>
             </div>
 
-            {/* Large voucher card */}
-            <div
-              style={{
-                display: "flex",
-                flex: 1,
-                flexDirection: "column",
-                ...glass({ padding: 20, borderRadius: 22 }),
-                border: "2px solid rgba(34,211,238,0.35)",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.45), 0 0 50px rgba(0,82,255,0.15)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  flexDirection: "column",
-                  background:
-                    "linear-gradient(135deg, rgba(37,99,235,0.5), rgba(34,211,238,0.22), rgba(139,92,246,0.32))",
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  borderRadius: 18,
-                  padding: 22,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ color: "#94a3b8", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em" }}>
-                      CARD ID · 12-3
-                    </span>
-                    <span
-                      style={{
-                        color: "#fff",
-                        fontSize: 15,
-                        fontWeight: 700,
-                        fontFamily: "monospace",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      K7M2P-9XQ4R-8N3WT-5J6YH
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      color: "#6ee7b7",
-                      fontSize: 10,
-                      fontWeight: 900,
-                      background: "rgba(16,185,129,0.18)",
-                      border: "1px solid rgba(16,185,129,0.4)",
-                      borderRadius: 99,
-                      padding: "6px 12px",
-                    }}
-                  >
-                    REDEEMABLE
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {FEATURES.map((f) => (
+                <div
+                  key={f.n}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    ...glass({ padding: "10px 14px", borderRadius: 14 }),
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <span style={{ color: "#64748b", fontSize: 9, fontWeight: 900, letterSpacing: "0.1em", marginTop: 2 }}>
+                    {f.n}
                   </span>
-                </div>
-
-                <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "space-between", marginTop: 16 }}>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <span style={{ color: "#94a3b8", fontSize: 10, fontWeight: 800 }}>VOUCHER VALUE</span>
-                    <span style={{ color: "#fff", fontSize: 52, fontWeight: 900, lineHeight: 1 }}>25.00</span>
-                    <span style={{ color: "#22d3ee", fontSize: 16, fontWeight: 800, marginTop: 4 }}>USDC on Base</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                    <span style={{ fontSize: 36 }}>🎁</span>
-                    <span style={{ color: "#e2e8f0", fontSize: 11, fontWeight: 700, fontStyle: "italic", maxWidth: 180, textAlign: "right" }}>
-                      &quot;Happy day! Enjoy your gift.&quot;
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                {["Create batch", "Redeem", "Share card"].map((action) => (
-                  <div
-                    key={action}
-                    style={{
-                      display: "flex",
-                      flex: 1,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background:
-                        action === "Create batch"
-                          ? "linear-gradient(135deg, #ff4d7a, #3d7bff)"
-                          : "rgba(255,255,255,0.07)",
-                      border: action === "Create batch" ? "none" : "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: 12,
-                      padding: "10px 8px",
-                      fontSize: 11,
-                      fontWeight: 900,
-                      color: "#fff",
-                    }}
-                  >
-                    {action}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT — x402 payments (secondary but visible tx UI) */}
-          <div style={{ display: "flex", flexDirection: "column", flex: 0.85, gap: 12 }}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                ...glass({ padding: 18, borderRadius: 20 }),
-                border: "1px solid rgba(251,191,36,0.35)",
-                background: "rgba(251,191,36,0.06)",
-                flex: 1,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 12,
-                    background: "rgba(251,191,36,0.15)",
-                    border: "1px solid rgba(251,191,36,0.35)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                  }}
-                >
-                  ⚡
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>x402 Payment</span>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <span
-                      style={{
-                        color: "#22d3ee",
-                        fontSize: 9,
-                        fontWeight: 900,
-                        background: "rgba(34,211,238,0.12)",
-                        border: "1px solid rgba(34,211,238,0.3)",
-                        borderRadius: 99,
-                        padding: "3px 8px",
-                      }}
-                    >
-                      HTTP 402 · Base
-                    </span>
-                    <span
-                      style={{
-                        color: "#fda4af",
-                        fontSize: 9,
-                        fontWeight: 900,
-                        background: "rgba(255,51,102,0.12)",
-                        border: "1px solid rgba(255,51,102,0.3)",
-                        borderRadius: 99,
-                        padding: "3px 8px",
-                      }}
-                    >
-                      DECENTRALIZED
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <p style={{ margin: "0 0 12px", color: "#94a3b8", fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>
-                Pay-per-use micropayments — no accounts, settled onchain via HTTP 402.
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "linear-gradient(135deg, #ff4d7a, #3d7bff)",
-                  borderRadius: 14,
-                  padding: "12px 16px",
-                  fontSize: 13,
-                  fontWeight: 900,
-                  color: "#fff",
-                  marginBottom: 14,
-                  boxShadow: "0 6px 24px rgba(255,77,122,0.3)",
-                }}
-              >
-                ⚡ Pay from $0.01 USDC
-              </div>
-
-              <span style={{ color: "#64748b", fontSize: 9, fontWeight: 900, letterSpacing: "0.14em", marginBottom: 8 }}>
-                RECENT x402 SETTLEMENTS
-              </span>
-
-              {[
-                { amount: "0.01 USDC", hash: "0x8f3a…c12e", status: "Confirmed", time: "2m ago" },
-                { amount: "0.05 USDC", hash: "0x2b91…7f4a", status: "Confirmed", time: "1h ago" },
-              ].map((tx) => (
-                <div
-                  key={tx.hash}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    ...glass({ padding: "10px 12px", borderRadius: 12 }),
-                    marginBottom: 8,
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{tx.amount}</span>
-                    <span style={{ color: "#64748b", fontSize: 10, fontWeight: 600, fontFamily: "monospace" }}>
-                      {tx.hash} ↗
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                    <span style={{ color: "#6ee7b7", fontSize: 10, fontWeight: 900 }}>✓ {tx.status}</span>
-                    <span style={{ color: "#475569", fontSize: 9, fontWeight: 600 }}>{tx.time}</span>
+                    <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>{f.title}</span>
+                    <span style={{ color: "#64748b", fontSize: 11, fontWeight: 600 }}>{f.desc}</span>
                   </div>
                 </div>
               ))}
-
-              <div
-                style={{
-                  display: "flex",
-                  marginTop: "auto",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  paddingTop: 10,
-                  borderTop: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <span style={{ color: "#fbbf24", fontSize: 11, fontWeight: 800 }}>2 payments</span>
-                <span style={{ color: "#475569", fontSize: 11 }}>·</span>
-                <span style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600 }}>View on Basescan ↗</span>
-              </div>
             </div>
 
-            {/* Analytics — compact tertiary */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                ...glass({ padding: "12px 16px", borderRadius: 14 }),
-                border: "1px solid rgba(244,63,94,0.2)",
+                justifyContent: "center",
+                marginTop: "auto",
+                background: "linear-gradient(135deg, #ff4d7a, #3d7bff)",
+                borderRadius: 14,
+                padding: "14px 20px",
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#fff",
+                boxShadow: "0 8px 32px rgba(61,123,255,0.35)",
               }}
             >
-              <span style={{ fontSize: 20 }}>📊</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>Onchain Analytics</span>
-                <span style={{ color: "#64748b", fontSize: 10, fontWeight: 600 }}>
-                  Free wallet scan · badges · leaderboard
+              Connect Wallet — Start Trading →
+            </div>
+          </div>
+
+          {/* RIGHT — Live markets card */}
+          <div style={{ display: "flex", flexDirection: "column", flex: 0.9, gap: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                flex: 1,
+                flexDirection: "column",
+                ...glass({ padding: 22, borderRadius: 22 }),
+                border: "1px solid rgba(16,185,129,0.28)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(16,185,129,0.12)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ color: "#34d399", fontSize: 14 }}>▲</span>
+                <span style={{ color: "#34d399", fontSize: 10, fontWeight: 900, letterSpacing: "0.28em" }}>
+                  LIVE ON BASE
                 </span>
               </div>
-              <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                <span style={{ color: "#22d3ee", fontSize: 18, fontWeight: 900 }}>72</span>
-                <span style={{ color: "#475569", fontSize: 9, fontWeight: 700 }}>/100</span>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                {MARKETS.map((m) => (
+                  <div
+                    key={m.asset}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 12,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>
+                        {m.asset} · {m.dur}
+                      </span>
+                      <span style={{ color: "#64748b", fontSize: 11, fontWeight: 600 }}>{m.price}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                      <span style={{ color: "#34d399", fontSize: 22, fontWeight: 900 }}>{m.prob}%</span>
+                      <span style={{ color: "#64748b", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em" }}>
+                        YES
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p style={{ margin: "0 0 12px", color: "#cbd5e1", fontSize: 12, fontWeight: 600, lineHeight: 1.45 }}>
+                CPMM pricing · Chainlink resolution · $1 USDC per winning share
+              </p>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {["BTC", "ETH", "SOL", "CPMM", "Chainlink"].map((tag) => (
+                  <span
+                    key={tag}
+                    style={{
+                      color: "#94a3b8",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 99,
+                      padding: "5px 12px",
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Season progress strip */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                ...glass({ padding: "12px 16px", borderRadius: 14 }),
+                border: "1px solid rgba(96,165,250,0.25)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#64748b", fontSize: 9, fontWeight: 900, letterSpacing: "0.12em" }}>
+                  SEASON 1: PREDICTIONS
+                </span>
+                <span style={{ color: "#60a5fa", fontSize: 10, fontWeight: 900 }}>Quests · XP · USDC</span>
+              </div>
+              <div
+                style={{
+                  height: 6,
+                  background: "#1e293b",
+                  borderRadius: 99,
+                  overflow: "hidden",
+                  display: "flex",
+                }}
+              >
+                <div
+                  style={{
+                    width: "62%",
+                    height: "100%",
+                    background: "linear-gradient(90deg, #f43f5e, #22d3ee)",
+                    borderRadius: 99,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -385,14 +303,14 @@ export function renderAppThumbnail() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: "linear-gradient(90deg, rgba(0,82,255,0.25), rgba(255,51,102,0.18))",
-            border: "1px solid rgba(34,211,238,0.28)",
+            background: "linear-gradient(90deg, rgba(0,82,255,0.22), rgba(16,185,129,0.15))",
+            border: "1px solid rgba(34,211,238,0.22)",
             borderRadius: 12,
             padding: "10px 20px",
           }}
         >
           <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>
-            Vouchers first · x402 payments · wallet analytics
+            Predictions · Quests · Wallet analytics · Base mini-app
           </span>
           <span style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700 }}>
             base-analytics-app.vercel.app

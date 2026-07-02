@@ -9,21 +9,20 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?v=4",
+    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?v=5",
     "buttonTitle": "Open Base Analytics",
     "splashImageUrl": "https://base-analytics-app.vercel.app/splash.png",
-    "splashBackgroundColor": "#0052FF",
+    "splashBackgroundColor": "#020508",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
     "primaryCategory": "finance",
     "tags": [
+      "predictions",
+      "crypto",
+      "base",
+      "defi",
       "analytics",
       "onchain",
-      "utility",
-      "base",
-      "vouchers",
-      "x402",
-      "gift-cards",
-      "redeem"
+      "utility"
     ]
   },
   "miniapp": {
@@ -31,21 +30,20 @@
     "name": "Base Analytics",
     "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
     "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?v=4",
+    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?v=5",
     "buttonTitle": "Open Base Analytics",
     "splashImageUrl": "https://base-analytics-app.vercel.app/splash.png",
-    "splashBackgroundColor": "#0052FF",
+    "splashBackgroundColor": "#020508",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
     "primaryCategory": "finance",
     "tags": [
+      "predictions",
+      "crypto",
+      "base",
+      "defi",
       "analytics",
       "onchain",
-      "utility",
-      "base",
-      "vouchers",
-      "x402",
-      "gift-cards",
-      "redeem"
+      "utility"
     ]
   },
   "baseBuilder": {

@@ -86,12 +86,8 @@ import {
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
 import {
-  recordBoostPoints,
-  recordChallengePoints,
-  recordCheckInPoints,
-  recordGmPoints,
-  recordGnPoints,
-  recordPredictionPoints,
+  creditActivityFromCount,
+  recordCheckInPointsOnce,
   syncActivityPointsFromSession,
   tryAwardSevenDayAllTasksBonus,
 } from "@/lib/utils/daily-points";
@@ -515,12 +511,18 @@ export function useWalletApp() {
         const contract = PREDICTIONS_CONTRACT as `0x${string}`;
 
         const creditPredictionSuccess = (txHash?: string) => {
+          let nextCount = 0;
           setTxKeys((k) => {
-            const next = { ...k, prediction: (k.prediction || 0) + 1 };
+            nextCount = (k.prediction || 0) + 1;
+            const next = { ...k, prediction: nextCount };
             writePersistedTxKeys(wallet.address, next);
             return next;
           });
-          const { credited, hitCap } = recordPredictionPoints(wallet.address);
+          const { credited, hitCap } = creditActivityFromCount(
+            wallet.address,
+            "prediction",
+            nextCount
+          );
           setPointsRevision((n) => n + 1);
           if (txHash) {
             if (hitCap && credited === 0) {
@@ -551,7 +553,12 @@ export function useWalletApp() {
           return true;
         }
 
-        let activeConn = await resolveActiveConnType(connType, wallet.address);
+        if (!args.marketId) {
+          showToast("❌ On-chain market not open yet — wait for keeper sync", "");
+          return false;
+        }
+
+        const activeConn = await resolveActiveConnType(connType, wallet.address);
         if (activeConn && activeConn !== connType) {
           setConnType(activeConn);
           persistConnType(activeConn);
@@ -586,7 +593,7 @@ export function useWalletApp() {
         const fn = args.side === "yes" ? "buyYes" : "buyNo";
         calls.push(
           encodeContractCall(contract, PREDICTIONS_ABI, fn, [
-            BigInt(Math.max(1, args.marketId)),
+            BigInt(args.marketId),
             usdcRaw,
           ])
         );
@@ -656,7 +663,7 @@ export function useWalletApp() {
         txs: txCount,
       });
       if (wallet) {
-        const { credited } = recordChallengePoints(wallet.address);
+        const { credited } = creditActivityFromCount(wallet.address, "challenge", 1);
         if (credited > 0) setPointsRevision((n) => n + 1);
       }
     } catch {
@@ -737,7 +744,7 @@ export function useWalletApp() {
         status.streak,
         true
       );
-      const { credited } = recordCheckInPoints(address);
+      const { credited } = recordCheckInPointsOnce(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
         if (credited > 0) {
@@ -759,12 +766,18 @@ export function useWalletApp() {
         handledActionTxs.current.add(key);
       }
       setBoosts((current) => bumpBoostCount(address, current));
+      let nextCount = 0;
       setTxKeys((k) => {
-        const next = { ...k, boost: (k.boost || 0) + 1 };
+        nextCount = (k.boost || 0) + 1;
+        const next = { ...k, boost: nextCount };
         writePersistedTxKeys(address, next);
         return next;
       });
-      const { credited, hitCap } = recordBoostPoints(address);
+      const { credited, hitCap } = creditActivityFromCount(
+        address,
+        "boost",
+        nextCount
+      );
       setPointsRevision((n) => n + 1);
       if (txHash) {
         if (hitCap && credited === 0) {
@@ -930,7 +943,7 @@ export function useWalletApp() {
     }
     if (pendingTx.current.has(type)) return;
 
-    let activeConn = await resolveActiveConnType(connType, wallet.address);
+    const activeConn = await resolveActiveConnType(connType, wallet.address);
     if (activeConn && activeConn !== connType) {
       setConnType(activeConn);
       persistConnType(activeConn);
@@ -973,12 +986,18 @@ export function useWalletApp() {
             `base_gm_${wallet.address.toLowerCase()}`,
             "true"
           );
+        let nextCount = 0;
         setTxKeys((k) => {
-          const next = { ...k, gm: (k.gm || 0) + 1 };
+          nextCount = (k.gm || 0) + 1;
+          const next = { ...k, gm: nextCount };
           writePersistedTxKeys(wallet.address, next);
           return next;
         });
-        const { credited, hitCap } = recordGmPoints(wallet.address);
+        const { credited, hitCap } = creditActivityFromCount(
+          wallet.address,
+          "gm",
+          nextCount
+        );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {
           showToast("GM sent — daily point cap reached", hash);
@@ -988,12 +1007,18 @@ export function useWalletApp() {
           showToast(successMsg.gm, hash);
         }
       } else if (type === "gn") {
+        let nextCount = 0;
         setTxKeys((k) => {
-          const next = { ...k, gn: (k.gn || 0) + 1 };
+          nextCount = (k.gn || 0) + 1;
+          const next = { ...k, gn: nextCount };
           writePersistedTxKeys(wallet.address, next);
           return next;
         });
-        const { credited, hitCap } = recordGnPoints(wallet.address);
+        const { credited, hitCap } = creditActivityFromCount(
+          wallet.address,
+          "gn",
+          nextCount
+        );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {
           showToast("GN sent — daily point cap reached", hash);
@@ -1041,7 +1066,7 @@ export function useWalletApp() {
             [BigInt(tokenIds[0])]
           );
 
-      let activeConn = await resolveActiveConnType(connType, wallet.address);
+      const activeConn = await resolveActiveConnType(connType, wallet.address);
       if (activeConn && activeConn !== connType) {
         setConnType(activeConn);
         persistConnType(activeConn);

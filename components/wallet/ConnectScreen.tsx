@@ -36,7 +36,7 @@ const LANDING_FEATURES = [
     n: "01",
     icon: <TrendingUp size={16} className="text-emerald-400" />,
     title: "Crypto Prediction Market",
-    desc: "BTC · ETH · SOL — hourly, 4h & daily rounds with live YES/NO odds on Base.",
+    desc: "BTC · ETH · SOL — 15m, hourly, 4h & daily rounds with live YES/NO odds on Base.",
   },
   {
     n: "02",
@@ -93,8 +93,8 @@ const WALLET_OPTIONS: WalletOption[] = [
 
 function PredictionMarketTeaser() {
   const markets = [
-    { asset: "BTC", prob: 58, price: "$97,240", dur: "1H" },
-    { asset: "ETH", prob: 44, price: "$3,612", dur: "4H" },
+    { asset: "BTC", prob: 58, price: "$97,240", dur: "15M" },
+    { asset: "ETH", prob: 44, price: "$3,612", dur: "1H" },
     { asset: "SOL", prob: 62, price: "$148", dur: "Daily" },
   ];
 
@@ -179,7 +179,7 @@ export default function ConnectScreen({
             <div className="inline-flex items-center gap-2 badge-live rounded-full px-4 py-2 mb-6">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-glow shadow-[0_0_6px_#10b981]" />
               <span className="text-[10px] font-black uppercase tracking-widest">
-                9 markets live · BTC ETH SOL on Base
+                12 markets live · BTC ETH SOL on Base
               </span>
             </div>
 

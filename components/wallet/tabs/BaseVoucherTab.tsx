@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
-import { encodeContractCall } from "@/lib/utils/tx";
+import { encodeContractCall, prepareCallsForWalletSendCalls } from "@/lib/utils/tx";
 import { base } from "viem/chains";
 import { usePublicClient } from "wagmi";
 import {
@@ -42,7 +42,10 @@ import {
   saveLocalBatch,
   tokenToAsset,
 } from "@/lib/utils/voucher";
-import { getCapabilities } from "@/lib/utils/paymaster";
+import {
+  getOnchainKitCapabilities,
+  usesWalletSendCallsAttribution,
+} from "@/lib/utils/paymaster";
 import { writePersistedTxKeys } from "@/lib/utils/wallet-session";
 import SectionCard from "@/components/ui/SectionCard";
 import VoucherHero from "@/components/wallet/VoucherHero";
@@ -192,10 +195,20 @@ function VoucherCardPreview({
 }
 
 export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
-  const { showToast, setSponsored, setTab, wallet, setTxKeys } = app;
+  const { showToast, setSponsored, setTab, wallet, setTxKeys, connType } = app;
   const address = wallet?.address as `0x${string}` | undefined;
   const publicClient = usePublicClient({ chainId: base.id });
-  const txCaps = getCapabilities();
+  const txCaps = useMemo(
+    () => getOnchainKitCapabilities(connType),
+    [connType]
+  );
+  const prepareOnchainKitCalls = useCallback(
+    (calls: ReturnType<typeof encodeContractCall>[]) =>
+      usesWalletSendCallsAttribution(connType)
+        ? prepareCallsForWalletSendCalls(calls)
+        : calls,
+    [connType]
+  );
   const contractReady = Boolean(VOUCHER_CONTRACT);
 
   const [view, setView] = useState<VoucherView>("create");
@@ -1237,7 +1250,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               {asset === "ETH" ? (
                 <Transaction
                   chainId={base.id}
-                  calls={createEthCall}
+                  calls={prepareOnchainKitCalls(createEthCall)}
                   capabilities={txCaps}
                   onStatus={handleFundTx}
                 >
@@ -1261,7 +1274,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   </p>
                   <Transaction
                     chainId={base.id}
-                    calls={approveUsdcCall}
+                    calls={prepareOnchainKitCalls(approveUsdcCall)}
                     capabilities={txCaps}
                     onStatus={handleApproveTx}
                   >
@@ -1283,7 +1296,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   )}
                   <Transaction
                     chainId={base.id}
-                    calls={createUsdcCall}
+                    calls={prepareOnchainKitCalls(createUsdcCall)}
                     capabilities={txCaps}
                     onStatus={handleFundTx}
                   >
@@ -1456,7 +1469,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             <Transaction
               key={redeemKey}
               chainId={base.id}
-              calls={redeemCall}
+              calls={prepareOnchainKitCalls(redeemCall)}
               capabilities={txCaps}
               onStatus={handleRedeemTx}
               onSuccess={(r) => {

@@ -3,12 +3,12 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 const APP_URL = "https://base-analytics-app.vercel.app";
-const OG_IMAGE = `${APP_URL}/opengraph-image?v=4`;
+const OG_IMAGE = `${APP_URL}/opengraph-image?v=5`;
 
 export const metadata: Metadata = {
   title: "Base Analytics — Crypto Prediction Market on Base",
   description:
-    "Trade BTC, ETH & SOL prediction markets on Base. Live YES/NO odds, weekly quests, wallet analytics, vouchers & x402 — all in one mini-app.",
+    "Trade BTC, ETH & SOL prediction markets on Base. 15m, hourly, 4h & daily rounds with live YES/NO odds, quests & wallet analytics.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#0052FF",
+          splashBackgroundColor: "#020508",
         },
       },
     }),

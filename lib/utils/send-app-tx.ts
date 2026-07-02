@@ -5,7 +5,10 @@ import {
   supportsPaymaster,
 } from "@/lib/utils/paymaster";
 import type { ContractCall } from "@/lib/utils/tx";
-import { stripBuilderSuffix, withBuilderSuffix } from "@/lib/utils/tx";
+import {
+  prepareCallsForWalletSendCalls,
+  withBuilderSuffix,
+} from "@/lib/utils/tx";
 import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 
 const BASE_CHAIN_HEX = "0x2105" as const;
@@ -138,15 +141,14 @@ async function sendViaWalletSendCalls(
   from: string,
   calls: ContractCall[]
 ): Promise<string> {
-  const callPayload = calls.map((call) => {
-    const calldata = stripBuilderSuffix(call.data);
+  const callPayload = prepareCallsForWalletSendCalls(calls).map((call) => {
     const valueHex =
       call.value && call.value > BigInt(0)
         ? `0x${call.value.toString(16)}`
         : "0x0";
     return {
       to: call.to,
-      data: calldata,
+      data: call.data,
       value: valueHex,
     };
   });
