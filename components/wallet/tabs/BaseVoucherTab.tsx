@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Share2,
   Search,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   ERC20_ABI,
@@ -31,7 +33,6 @@ import {
   formatCardShareText,
   formatBatchShareText,
   formatCardId,
-  generateVoucherCards,
   hashVoucherSecret,
   loadLocalBatches,
   loadAllLocalBatchesForDevice,
@@ -68,6 +69,7 @@ import VoucherWhySection from "@/components/wallet/VoucherWhySection";
 import VoucherCredentialCard from "@/components/wallet/VoucherCredentialCard";
 import VoucherSecurityNotice from "@/components/wallet/VoucherSecurityNotice";
 import VoucherRedeemReveal from "@/components/wallet/VoucherRedeemReveal";
+import VoucherCardsReadyGate from "@/components/wallet/VoucherCardsReadyGate";
 import VoucherSharePanel from "@/components/wallet/VoucherSharePanel";
 import { buildPayLinkUrl } from "@/lib/utils/voucher-share";
 import { VOUCHER_TEMPLATES } from "@/lib/constants/voucher-templates";
@@ -270,6 +272,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [recoverLoading, setRecoverLoading] = useState(false);
   const [recoverError, setRecoverError] = useState("");
   const [confirmingDeposit, setConfirmingDeposit] = useState(false);
+  const [cardsReadyGate, setCardsReadyGate] = useState<StoredVoucherBatch | null>(null);
 
   const [viewCardId, setViewCardId] = useState("");
   const [viewSecret, setViewSecret] = useState("");
@@ -569,24 +572,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   }, [address, createdCards]);
 
   useEffect(() => {
-    if (view !== "mine" || myBatches.length === 0) return;
-    let cancelled = false;
+    if (view !== "mine" || expandedBatchId === null) return;
     setMineStatusesLoading(true);
-
-    const first = myBatches[0];
-    if (expandedBatchId === null) {
-      setExpandedBatchId(first.batchId);
-    }
-
-    void (async () => {
-      await Promise.all(myBatches.map((b) => loadBatchDetail(b.batchId)));
-      if (!cancelled) setMineStatusesLoading(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [view, myBatches, loadBatchDetail, expandedBatchId]);
+    void loadBatchDetail(expandedBatchId).finally(() => setMineStatusesLoading(false));
+  }, [view, expandedBatchId, loadBatchDetail]);
 
   const copyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -673,36 +662,83 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   };
 
   const prepareCreate = async () => {
-    if (!address || !publicClient || !contractReady) return;
+    if (!address || !contractReady) return;
     setCreating(true);
     setCreatedCards(null);
     try {
-      const total =
-        asset === "ETH" ? parseEthAmount(totalAmount) : parseUsdcAmount(totalAmount);
-      if (!total || !perCardWei) {
-        alert("Enter a valid amount that splits evenly across all cards.");
-        return;
-      }
       if (cardCount < 1 || cardCount > MAX_VOUCHER_CARDS) {
         alert(`Card count must be 1–${MAX_VOUCHER_CARDS}.`);
         return;
       }
 
-      const nextId = await publicClient.readContract({
-        address: VOUCHER_CONTRACT as `0x${string}`,
-        abi: VOUCHER_ABI,
-        functionName: "nextBatchId",
+      const res = await fetch("/api/voucher/prepare-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          asset,
+          total: totalAmount,
+          cards: cardCount,
+          message: message.trim(),
+          creator: address,
+        }),
       });
-      const batchId = Number(nextId);
-      const cards = generateVoucherCards(batchId, cardCount);
+
+      const result = (await res.json()) as {
+        valid?: boolean;
+        error?: string;
+        expectedBatchId?: number;
+        perCard?: string;
+        total?: string;
+        cardCount?: number;
+        credentialsSaved?: boolean;
+        cards?: Array<{
+          cardId: string;
+          cardIndex: number;
+          secret: string;
+        }>;
+      };
+
+      if (!res.ok || !result.valid || !result.expectedBatchId || !result.cards?.length) {
+        alert(result.error || "Could not prepare voucher batch. Check contract connection.");
+        return;
+      }
+
+      if (!result.credentialsSaved) {
+        console.warn("[BaseVoucher] Server did not confirm credential save — retrying");
+        void saveWalletCredentials(address, {
+          batchId: result.expectedBatchId,
+          asset,
+          totalAmount: result.total ?? totalAmount,
+          amountPerCard: result.perCard ?? "0",
+          cardCount: result.cardCount ?? cardCount,
+          message: message.trim(),
+          creator: address,
+          createdAt: Date.now(),
+          cards: result.cards.map((c) => ({
+            batchId: result.expectedBatchId!,
+            cardIndex: c.cardIndex,
+            secret: c.secret,
+            cardId: c.cardId,
+          })),
+        });
+      }
+
+      const total = BigInt(result.total ?? "0");
+      const perCardWei = BigInt(result.perCard ?? "0");
+      const cards = result.cards.map((c) => ({
+        batchId: result.expectedBatchId!,
+        cardIndex: c.cardIndex,
+        secret: c.secret,
+        cardId: c.cardId,
+      }));
       const hashes = cards.map((c) => hashVoucherSecret(c.secret));
 
       const batch: StoredVoucherBatch = {
-        batchId,
+        batchId: result.expectedBatchId,
         asset,
         totalAmount: total.toString(),
         amountPerCard: perCardWei.toString(),
-        cardCount,
+        cardCount: result.cardCount ?? cardCount,
         message: message.trim(),
         creator: address,
         createdAt: Date.now(),
@@ -712,7 +748,6 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       setPendingCards(batch);
       pendingBatchRef.current = batch;
       savePendingBatch(address, batch);
-      void saveWalletCredentials(address, batch);
       createHandledRef.current = false;
       setUsdcApproveCompleted(false);
       notifiedTxRef.current = "";
@@ -993,6 +1028,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       setExpandedBatchId(saved.batchId);
       setView("create");
       setConfirmingDeposit(false);
+      if (hasSecrets) {
+        setCardsReadyGate(saved);
+      }
 
       await fetch("/api/vouchers", {
         method: "POST",
@@ -2135,7 +2173,12 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           )}
 
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your voucher batches</p>
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                Your voucher batches
+              </p>
+              <p className="text-[10px] text-slate-600 mt-0.5">Tap a batch to view its cards</p>
+            </div>
             <div className="flex items-center gap-2">
               {mineStatusesLoading && (
                 <span className="text-[10px] text-slate-500 flex items-center gap-1">
@@ -2235,127 +2278,165 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               const cardStatuses = batchCardStatuses[b.batchId];
               const displayCards = displayCardsForBatch(b);
               const hasLocalSecrets = displayCards.some((c) => c.secret.length > 0);
+              const isExpanded = expandedBatchId === b.batchId;
+
+              const toggleBatch = () => {
+                if (isExpanded) {
+                  setExpandedBatchId(null);
+                  return;
+                }
+                setExpandedBatchId(b.batchId);
+                void loadBatchDetail(b.batchId);
+              };
+
               return (
-                <SectionCard key={b.batchId} bar={false} className="border border-cyan-500/20">
+                <SectionCard key={b.batchId} bar={false} className="border border-cyan-500/20 overflow-hidden">
                   <button
                     type="button"
                     className="w-full text-left"
-                    onClick={() => {
-                      setExpandedBatchId(b.batchId);
-                      void loadBatchDetail(b.batchId);
-                    }}
+                    onClick={toggleBatch}
+                    aria-expanded={isExpanded}
                   >
-                  <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                    <div>
-                      <p className="font-black text-white">Batch #{b.batchId}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {formatVoucherAmount(b.asset, BigInt(b.totalAmount))} · {b.cardCount} cards
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                        {redeemed}/{b.cardCount} redeemed
-                      </span>
-                      {unredeemed > 0 && (
-                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                          {unredeemed} not redeemed yet
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-white">Batch #{b.batchId}</p>
+                          {hasLocalSecrets && (
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 uppercase">
+                              Secrets saved
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {formatVoucherAmount(b.asset, BigInt(b.totalAmount))} · {b.cardCount} card
+                          {b.cardCount === 1 ? "" : "s"}
+                        </p>
+                        {b.message && !isExpanded && (
+                          <p className="text-xs text-slate-400 italic mt-1 truncate">
+                            &quot;{b.message}&quot;
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-start gap-2 shrink-0">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                            {redeemed}/{b.cardCount} redeemed
+                          </span>
+                          {unredeemed > 0 && (
+                            <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                              {unredeemed} available
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-slate-500 mt-1">
+                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                         </span>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                  </button>
-                  {b.message && (
-                    <p className="text-xs text-slate-400 italic mb-3">&quot;{b.message}&quot;</p>
-                  )}
-
-                  <div className="mb-4 space-y-3">
-                    <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
-                      Your card{displayCards.length === 1 ? "" : "s"}
-                    </p>
-                    {displayCards.map((c, i) => (
-                      <VoucherCredentialCard
-                        key={c.cardId}
-                        cardId={c.cardId}
-                        secret={c.secret}
-                        asset={b.asset}
-                        amountPerCard={BigInt(b.amountPerCard)}
-                        index={i}
-                        total={b.cardCount}
-                        copied={copied}
-                        onCopy={copyText}
-                        onShare={shareText}
-                        shareText={formatCardShareText(c, b)}
-                        redeemed={isCardRedeemed(c.cardId)}
-                        statusLoading={
-                          !isCardStatusKnown(c.cardId) &&
-                          (mineStatusesLoading || loadingBatchDetail === b.batchId)
-                        }
-                      />
-                    ))}
-                  </div>
-
-                  <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden mb-3">
-                    <div
-                      className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExpandedBatchId(b.batchId);
-                        void loadBatchDetail(b.batchId);
-                      }}
-                      className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 hover:bg-cyan-500/20"
-                    >
-                      {loadingBatchDetail === b.batchId ? "Loading…" : "View redemption status"}
-                    </button>
-                    {hasLocalSecrets && (
-                      <>
-                    <button
-                      type="button"
-                      onClick={() => copyText(formatBatchShareText(b), `batch-${b.batchId}`)}
-                      className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15"
-                    >
-                      {copied === `batch-${b.batchId}` ? <CheckCircle size={14} /> : <Copy size={14} />}
-                      Copy all cards
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => shareText(formatBatchShareText(b), `share-batch-${b.batchId}`)}
-                      className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl btn-primary"
-                    >
-                      <Share2 size={14} /> Share batch
-                    </button>
-                      </>
+                    {!isExpanded && (
+                      <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden mt-3">
+                        <div
+                          className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     )}
-                  </div>
+                  </button>
 
-                  {expandedBatchId === b.batchId && (
-                    <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                        Redemption status
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(cardStatuses?.length ? cardStatuses : displayCards.map((c) => ({
-                          cardId: c.cardId,
-                          redeemed: isCardRedeemed(c.cardId),
-                        }))).map((c) => (
-                          <div
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
+                      {b.message && (
+                        <p className="text-xs text-slate-400 italic">&quot;{b.message}&quot;</p>
+                      )}
+
+                      <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {hasLocalSecrets && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => copyText(formatBatchShareText(b), `batch-${b.batchId}`)}
+                              className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15"
+                            >
+                              {copied === `batch-${b.batchId}` ? (
+                                <CheckCircle size={14} />
+                              ) : (
+                                <Copy size={14} />
+                              )}
+                              Copy all cards
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                shareText(formatBatchShareText(b), `share-batch-${b.batchId}`)
+                              }
+                              className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl btn-primary"
+                            >
+                              <Share2 size={14} /> Share batch
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                          {displayCards.length} card{displayCards.length === 1 ? "" : "s"} in this batch
+                        </p>
+                        {displayCards.map((c, i) => (
+                          <VoucherCredentialCard
                             key={c.cardId}
-                            className={`rounded-lg px-3 py-2.5 text-xs font-bold border ${
-                              c.redeemed
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                                : "border-amber-500/30 bg-amber-500/10 text-amber-200"
-                            }`}
-                          >
-                            <span className="font-mono text-sm">{c.cardId}</span>
-                            <p className="mt-0.5 text-[10px] uppercase tracking-wide opacity-80">
-                              {c.redeemed ? "Redeemed" : "Available to redeem"}
-                            </p>
-                          </div>
+                            cardId={c.cardId}
+                            secret={c.secret}
+                            asset={b.asset}
+                            amountPerCard={BigInt(b.amountPerCard)}
+                            index={i}
+                            total={b.cardCount}
+                            copied={copied}
+                            onCopy={copyText}
+                            onShare={shareText}
+                            shareText={formatCardShareText(c, b)}
+                            redeemed={isCardRedeemed(c.cardId)}
+                            statusLoading={
+                              !isCardStatusKnown(c.cardId) &&
+                              (mineStatusesLoading || loadingBatchDetail === b.batchId)
+                            }
+                          />
                         ))}
+                      </div>
+
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                          Redemption status
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {(cardStatuses?.length
+                            ? cardStatuses
+                            : displayCards.map((c) => ({
+                                cardId: c.cardId,
+                                redeemed: isCardRedeemed(c.cardId),
+                              }))
+                          ).map((c) => (
+                            <div
+                              key={c.cardId}
+                              className={`rounded-lg px-3 py-2.5 text-xs font-bold border ${
+                                c.redeemed
+                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                  : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                              }`}
+                            >
+                              <span className="font-mono text-sm">{c.cardId}</span>
+                              <p className="mt-0.5 text-[10px] uppercase tracking-wide opacity-80">
+                                {c.redeemed ? "Redeemed" : "Available to redeem"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2366,6 +2447,17 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         </div>
       )}
       <VoucherWhySection />
+
+      <VoucherCardsReadyGate
+        batch={cardsReadyGate}
+        onDismiss={() => {
+          if (cardsReadyGate) {
+            setView("mine");
+            setExpandedBatchId(cardsReadyGate.batchId);
+          }
+          setCardsReadyGate(null);
+        }}
+      />
 
       <VoucherRedeemReveal
         key={redeemSuccess?.cardId ?? "closed"}

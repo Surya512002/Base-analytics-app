@@ -16,8 +16,10 @@ import {
   generateVoucherCards,
   hashVoucherSecret,
   parseCardId,
+  type StoredVoucherBatch,
   type VoucherAsset,
 } from "@/lib/utils/voucher";
+import { upsertCreatorBatch } from "@/lib/voucher/credentials-store";
 
 export type McpCall = {
   to: `0x${string}`;
@@ -187,6 +189,26 @@ export async function prepareCreateBatch(
         [BigInt(cards), secretHashes, trimmedMessage, split.total]
       )
     );
+  }
+
+  // Server-first: persist secrets by wallet address BEFORE user signs deposit (Base App / web / Farcaster).
+  if (creator) {
+    const stored: StoredVoucherBatch = {
+      batchId: expectedBatchId,
+      asset,
+      totalAmount: split.total.toString(),
+      amountPerCard: split.perCard.toString(),
+      cardCount: cards,
+      message: trimmedMessage,
+      creator: creator.toLowerCase(),
+      createdAt: Date.now(),
+      cards: voucherCards,
+    };
+    try {
+      await upsertCreatorBatch(creator, stored);
+    } catch (err) {
+      console.error("[prepareCreateBatch] failed to persist credentials:", err);
+    }
   }
 
   return {

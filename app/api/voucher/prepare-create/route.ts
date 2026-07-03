@@ -62,3 +62,68 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Failed to prepare create batch" }, { status: 500 });
   }
 }
+
+/** POST — preferred for UI; requires creator so secrets are saved by wallet address before deposit. */
+export async function POST(req: Request) {
+  if (!voucherContractReady()) {
+    return NextResponse.json(
+      { error: "Voucher contract not configured on this deployment." },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const body = (await req.json()) as {
+      asset?: string;
+      total?: string;
+      cards?: number;
+      message?: string;
+      creator?: string;
+    };
+
+    const asset = (body.asset || "USDC").toUpperCase() as VoucherAsset;
+    if (asset !== "USDC" && asset !== "ETH") {
+      return NextResponse.json({ error: "asset must be USDC or ETH" }, { status: 400 });
+    }
+
+    const total = body.total?.trim() || "";
+    const cards = Number(body.cards);
+    const message = body.message?.trim() || "";
+    const creator = body.creator?.trim() as `0x${string}` | undefined;
+
+    if (!creator?.startsWith("0x") || creator.length !== 42) {
+      return NextResponse.json(
+        { error: "creator wallet address is required" },
+        { status: 400 }
+      );
+    }
+    if (!total) {
+      return NextResponse.json({ error: "total is required" }, { status: 400 });
+    }
+    if (!Number.isFinite(cards) || cards < 1 || cards > MAX_VOUCHER_CARDS) {
+      return NextResponse.json(
+        { error: `cards must be 1–${MAX_VOUCHER_CARDS}` },
+        { status: 400 }
+      );
+    }
+
+    const result = await prepareCreateBatch({
+      asset,
+      total,
+      cards,
+      message,
+      creator,
+    });
+
+    return NextResponse.json(
+      {
+        ...result,
+        credentialsSaved: Boolean(creator && result.valid),
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (err) {
+    console.error("[voucher/prepare-create POST]", err);
+    return NextResponse.json({ error: "Failed to prepare create batch" }, { status: 500 });
+  }
+}
