@@ -6,13 +6,12 @@ import {
 } from "@/lib/utils/voucher";
 import { readOnchainBatch } from "@/lib/voucher/batch-read";
 import { readNextBatchId } from "@/lib/voucher/agent-api";
-import { createPublicClient, http, type Address } from "viem";
-import { base } from "viem/chains";
-import { BASE_RPC } from "@/lib/constants/env";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import type { Address } from "viem";
 
 function getClient() {
-  if (!VOUCHER_CONTRACT || !BASE_RPC) return null;
-  return createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  if (!VOUCHER_CONTRACT) return null;
+  return createBasePublicClient();
 }
 
 /** True when submitted secrets match on-chain hashes (or batch not created yet). */

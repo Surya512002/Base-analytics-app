@@ -1377,7 +1377,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       if (createHandledRef.current || attempts >= maxAttempts) return;
       attempts += 1;
       void onCreateSuccess(fundTx);
-    }, 4_000);
+    }, 8_000);
 
     return () => window.clearInterval(interval);
   }, [pendingCards, address, publicClient, onCreateSuccess]);

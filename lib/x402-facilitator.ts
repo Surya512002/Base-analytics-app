@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, http } from "viem";
+import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { toFacilitatorEvmSigner } from "@x402/evm";
@@ -6,15 +6,11 @@ import { ExactEvmScheme } from "@x402/evm/exact/facilitator";
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 
 import { getBuilderDataSuffix } from "@/lib/utils/tx";
-
-function getAlchemyKey(): string {
-  const key = process.env.NEXT_PUBLIC_ALCHEMY_KEY ?? "";
-  return key.replace(/^["']|["']$/g, "");
-}
-
-function getRpcUrl(): string {
-  return `https://base-mainnet.g.alchemy.com/v2/${getAlchemyKey()}`;
-}
+import {
+  createBaseHttpTransport,
+  createBasePublicClient,
+  withRpcRetry,
+} from "@/lib/utils/base-rpc";
 
 let _scheme: ExactEvmScheme | null = null;
 
@@ -25,8 +21,8 @@ export function getFacilitatorScheme(): ExactEvmScheme {
   if (!pk) throw new Error("X402_FACILITATOR_PRIVATE_KEY not set");
 
   const account = privateKeyToAccount(pk);
-  const transport = http(getRpcUrl());
-  const publicClient = createPublicClient({ chain: base, transport });
+  const transport = createBaseHttpTransport();
+  const publicClient = createBasePublicClient();
   const walletClient = createWalletClient({ account, chain: base, transport });
   const builderSuffix = getBuilderDataSuffix();
 
@@ -79,7 +75,9 @@ export async function verifyX402Payment(
   paymentRequirements: PaymentRequirements
 ) {
   const requirements = paymentPayload.accepted ?? paymentRequirements;
-  return getFacilitatorScheme().verify(paymentPayload, requirements);
+  return withRpcRetry(() =>
+    getFacilitatorScheme().verify(paymentPayload, requirements)
+  );
 }
 
 export async function settleX402Payment(
@@ -87,5 +85,7 @@ export async function settleX402Payment(
   paymentRequirements: PaymentRequirements
 ) {
   const requirements = paymentPayload.accepted ?? paymentRequirements;
-  return getFacilitatorScheme().settle(paymentPayload, requirements);
+  return withRpcRetry(() =>
+    getFacilitatorScheme().settle(paymentPayload, requirements)
+  );
 }

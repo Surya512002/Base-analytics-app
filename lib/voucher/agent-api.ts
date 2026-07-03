@@ -1,4 +1,4 @@
-import { createPublicClient, http, type Hex } from "viem";
+import { type Hex } from "viem";
 import { base } from "viem/chains";
 import {
   ERC20_ABI,
@@ -20,6 +20,7 @@ import {
   type VoucherAsset,
 } from "@/lib/utils/voucher";
 import { upsertCreatorBatch } from "@/lib/voucher/credentials-store";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
 export type McpCall = {
   to: `0x${string}`;
@@ -40,7 +41,7 @@ export function voucherContractReady(): boolean {
 }
 
 export async function readNextBatchId(): Promise<number> {
-  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const client = createBasePublicClient();
   const id = await client.readContract({
     address: VOUCHER_CONTRACT as `0x${string}`,
     abi: VOUCHER_ABI,
@@ -50,7 +51,7 @@ export async function readNextBatchId(): Promise<number> {
 }
 
 export async function readUsdcAllowance(owner: `0x${string}`): Promise<bigint> {
-  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const client = createBasePublicClient();
   return client.readContract({
     address: USDC_BASE as `0x${string}`,
     abi: ERC20_ABI,
@@ -285,7 +286,7 @@ export async function prepareRedeem(
     };
   }
 
-  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const client = createBasePublicClient();
   const { batchId, cardIndex } = parsed;
 
   const [batch, redeemed] = await Promise.all([

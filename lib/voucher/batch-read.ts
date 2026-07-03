@@ -1,11 +1,7 @@
-import {
-  createPublicClient,
-  http,
-  type Address,
-} from "viem";
-import { base } from "viem/chains";
+import { type Address } from "viem";
 import { VOUCHER_ABI } from "@/lib/constants/contracts";
-import { BASE_RPC, VOUCHER_CONTRACT } from "@/lib/constants/env";
+import { VOUCHER_CONTRACT } from "@/lib/constants/env";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import type { VoucherBatchMeta } from "@/lib/types/voucher";
 import {
   formatCardId,
@@ -48,8 +44,8 @@ export interface CreatorBatchSummary {
 }
 
 function getClient() {
-  if (!VOUCHER_CONTRACT || !BASE_RPC) return null;
-  return createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  if (!VOUCHER_CONTRACT) return null;
+  return createBasePublicClient();
 }
 
 export async function readOnchainBatch(

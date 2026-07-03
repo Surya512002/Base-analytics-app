@@ -100,6 +100,15 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Payment error";
     console.error("[farcaster-unlock]", msg, e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const isRpc = /compute units|rate limit|RPC Request failed|throughput/i.test(msg);
+    return NextResponse.json(
+      {
+        error: isRpc
+          ? "Base RPC is busy — wait a few seconds and try again"
+          : msg,
+        detail: isRpc ? msg : undefined,
+      },
+      { status: isRpc ? 503 : 500 }
+    );
   }
 }
