@@ -36,6 +36,8 @@ import {
   loadLocalBatches,
   loadPendingBatch,
   loadAnyPendingBatch,
+  loadPendingBatchForTx,
+  savePendingBatchForTx,
   clearPendingBatch,
   savePendingBatch,
   saveLastVoucherTx,
@@ -44,6 +46,7 @@ import {
   parseEthAmount,
   parseUsdcAmount,
   saveLocalBatch,
+  mergeSecretsIntoBatch,
   tokenToAsset,
 } from "@/lib/utils/voucher";
 import { confirmVoucherBatchCreate, finalizePendingBatchFromTx, asConfirmClient } from "@/lib/voucher/confirm-create";
@@ -260,6 +263,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [recoverTxInput, setRecoverTxInput] = useState("");
   const [recoverLoading, setRecoverLoading] = useState(false);
   const [recoverError, setRecoverError] = useState("");
+  const [confirmingDeposit, setConfirmingDeposit] = useState(false);
 
   const [viewCardId, setViewCardId] = useState("");
   const [viewSecret, setViewSecret] = useState("");
@@ -368,7 +372,19 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           upsertBatchInMap(merged, b);
         }
         setChainStats(stats);
-        setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
+
+        const withSecrets = [...merged.values()].map((b) => {
+          const mergedBatch = mergeSecretsIntoBatch(b);
+          if (
+            address &&
+            mergedBatch.cards.some((c) => c.secret.length > 0) &&
+            !b.cards.some((c) => c.secret.length > 0)
+          ) {
+            saveLocalBatch(address, mergedBatch);
+          }
+          return mergedBatch;
+        });
+        setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
         return;
       }
     } catch {
@@ -388,7 +404,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         : null
     );
     if (!publicClient || !contractReady) {
-      setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
+      const withSecrets = [...merged.values()].map((b) => mergeSecretsIntoBatch(b));
+      setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
       return;
     }
 
@@ -406,7 +423,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       }
     }
     setChainStats(stats);
-    setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
+    const withSecrets = [...merged.values()].map((b) => {
+      const mergedBatch = mergeSecretsIntoBatch(b);
+      if (
+        address &&
+        mergedBatch.cards.some((c) => c.secret.length > 0) &&
+        !b.cards.some((c) => c.secret.length > 0)
+      ) {
+        saveLocalBatch(address, mergedBatch);
+      }
+      return mergedBatch;
+    });
+    setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
   }, [address, publicClient, contractReady, upsertBatchInMap]);
 
   const loadBatchDetail = useCallback(async (batchId: number) => {
@@ -472,14 +500,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   }, [createdCards, loadBatchDetail]);
 
   const displayCardsForBatch = useCallback((b: StoredVoucherBatch) => {
-    if (b.cards.length >= b.cardCount && b.cards.every((c) => c.cardId)) {
-      return b.cards;
+    const withSecrets = mergeSecretsIntoBatch(b);
+    if (withSecrets.cards.length >= withSecrets.cardCount && withSecrets.cards.every((c) => c.cardId)) {
+      return withSecrets.cards;
     }
-    return Array.from({ length: b.cardCount }, (_, i) => ({
-      batchId: b.batchId,
+    return Array.from({ length: withSecrets.cardCount }, (_, i) => ({
+      batchId: withSecrets.batchId,
       cardIndex: i,
-      cardId: formatCardId(b.batchId, i),
-      secret: b.cards[i]?.secret ?? "",
+      cardId: formatCardId(withSecrets.batchId, i),
+      secret: withSecrets.cards[i]?.secret ?? "",
     }));
   }, []);
 
@@ -866,19 +895,46 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     ];
   }, [redeemParsedForTx, redeemSecret, contractReady]);
 
+  const resolvePendingBatch = useCallback(
+    (txHash?: string): StoredVoucherBatch | null => {
+      if (!address) return loadAnyPendingBatch(txHash);
+      return (
+        (txHash ? loadPendingBatchForTx(txHash) : null) ??
+        pendingCards ??
+        pendingBatchRef.current ??
+        loadPendingBatch(address) ??
+        loadAnyPendingBatch(txHash)
+      );
+    },
+    [address, pendingCards]
+  );
+
   const finalizeCreatedBatch = useCallback(
     async (batch: StoredVoucherBatch, txHash?: string) => {
       if (!address) return false;
 
-      const saved = { ...batch, creator: address, txHash };
+      const pending = resolvePendingBatch(txHash);
+      const cardsWithSecrets = batch.cards.map((c, i) => ({
+        ...c,
+        secret: pending?.cards[i]?.secret ?? c.secret,
+      }));
+      const hasSecrets = cardsWithSecrets.some((c) => c.secret.length > 0);
+
+      const saved = {
+        ...batch,
+        creator: address,
+        txHash,
+        cards: cardsWithSecrets,
+      };
       saveLocalBatch(address, saved);
-      clearPendingBatch(address);
+      clearPendingBatch(address, txHash);
       if (txHash) saveLastVoucherTx(address, txHash);
       setCreatedCards(saved);
       setPendingCards(null);
       pendingBatchRef.current = null;
       setExpandedBatchId(saved.batchId);
       setView("create");
+      setConfirmingDeposit(false);
 
       await fetch("/api/vouchers", {
         method: "POST",
@@ -901,29 +957,27 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       requestAnimationFrame(() => {
         createdSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
-      return true;
-    },
-    [address, refreshMyBatches]
-  );
 
-  const resolvePendingBatch = useCallback((): StoredVoucherBatch | null => {
-    if (!address) return null;
-    return (
-      pendingCards ??
-      pendingBatchRef.current ??
-      loadPendingBatch(address) ??
-      loadAnyPendingBatch()
-    );
-  }, [address, pendingCards]);
+      if (!hasSecrets) {
+        showToast(
+          "Batch confirmed — Card ID saved. Secret was not found on this device.",
+          txHash ?? ""
+        );
+      }
+      return hasSecrets;
+    },
+    [address, refreshMyBatches, resolvePendingBatch, showToast]
+  );
 
   const tryShowCardsWithSecrets = useCallback(
     async (txHash?: string): Promise<boolean> => {
       if (!address || !publicClient || createHandledRef.current) return false;
 
-      const pending = resolvePendingBatch();
-      if (!pending?.cards.some((c) => c.secret)) return false;
+      const pending = resolvePendingBatch(txHash);
+      if (!pending) return false;
 
       confirmingCreateRef.current = true;
+      setConfirmingDeposit(true);
       try {
         if (txHash) {
           const fromSecrets = await finalizePendingBatchFromTx(
@@ -933,8 +987,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           );
           if (fromSecrets) {
             createHandledRef.current = true;
-            await finalizeCreatedBatch(fromSecrets, txHash);
-            return true;
+            return (await finalizeCreatedBatch(fromSecrets, txHash)) ?? false;
           }
         }
 
@@ -947,10 +1000,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         if (!confirmed) return false;
 
         createHandledRef.current = true;
-        await finalizeCreatedBatch(confirmed, txHash);
-        return true;
+        return (await finalizeCreatedBatch(confirmed, txHash)) ?? false;
       } finally {
         confirmingCreateRef.current = false;
+        setConfirmingDeposit(false);
       }
     },
     [address, publicClient, resolvePendingBatch, finalizeCreatedBatch]
@@ -1037,13 +1090,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
         saveLastVoucherTx(address, hash);
 
-        const pending = resolvePendingBatch();
-        if (pending?.cards.some((c) => c.secret)) {
-          const fromSecrets = await finalizePendingBatchFromTx(
-            asConfirmClient(publicClient),
-            pending,
-            hash
-          );
+        const pending = resolvePendingBatch(hash);
+        if (pending) {
+          const fromSecrets = pending.cards.some((c) => c.secret)
+            ? await finalizePendingBatchFromTx(
+                asConfirmClient(publicClient),
+                pending,
+                hash
+              )
+            : null;
           if (fromSecrets) {
             createHandledRef.current = true;
             await finalizeCreatedBatch(fromSecrets, hash);
@@ -1060,12 +1115,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           if (confirmed) {
             createHandledRef.current = true;
             await finalizeCreatedBatch(confirmed, hash);
-            showToast("✅ Voucher cards recovered with secrets!", hash);
+            const hasSecrets = confirmed.cards.some((c) => c.secret.length > 0);
+            showToast(
+              hasSecrets
+                ? "✅ Voucher cards recovered with secrets!"
+                : "Batch linked — Card ID saved. Secret was not on this device.",
+              hash
+            );
             return true;
           }
         }
 
-        const placeholder: StoredVoucherBatch = {
+        const placeholder: StoredVoucherBatch = mergeSecretsIntoBatch({
           batchId: data.batch.batchId,
           asset: data.batch.asset,
           totalAmount: data.batch.totalAmount,
@@ -1081,7 +1142,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             cardId: formatCardId(data.batch!.batchId, i),
             secret: "",
           })),
-        };
+        });
         saveLocalBatch(address, placeholder);
         await fetch("/api/vouchers", {
           method: "POST",
@@ -1103,8 +1164,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         setCreatedCards(placeholder);
         setExpandedBatchId(placeholder.batchId);
         setView("mine");
+        const recoveredSecrets = placeholder.cards.some((c) => c.secret.length > 0);
         showToast(
-          "Batch linked — your Card ID is in My Cards. Secret was not saved on this device.",
+          recoveredSecrets
+            ? "✅ Voucher cards recovered with secrets!"
+            : "Batch linked — Card ID saved. Secret was not stored when you deposited (app bug, not cleared history).",
           hash
         );
         return true;
@@ -1123,8 +1187,16 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     const lastTx = loadLastVoucherTx(address);
     if (lastTx) setRecoverTxInput(lastTx);
     if (!lastTx || myBatches.length > 0) return;
-    void recoverBatchByTx(lastTx);
-  }, [view, address, myBatches.length, recoverLoading, recoverBatchByTx]);
+
+    void (async () => {
+      const pending = loadAnyPendingBatch(lastTx);
+      if (pending?.cards.some((c) => c.secret)) {
+        const ok = await tryShowCardsWithSecrets(lastTx);
+        if (ok) return;
+      }
+      await recoverBatchByTx(lastTx);
+    })();
+  }, [view, address, myBatches.length, recoverLoading, recoverBatchByTx, tryShowCardsWithSecrets]);
 
   const handleApproveTx = useCallback(
     (status: LifecycleStatus) => {
@@ -1149,13 +1221,33 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       return;
     }
 
+    const lastTx = loadLastVoucherTx(address);
+    let attempts = 0;
+    const maxAttempts = 30;
+
     const interval = window.setInterval(() => {
-      if (createHandledRef.current) return;
-      void onCreateSuccess();
+      if (createHandledRef.current || attempts >= maxAttempts) return;
+      attempts += 1;
+      void onCreateSuccess(lastTx ?? undefined);
     }, 4_000);
 
     return () => window.clearInterval(interval);
   }, [pendingCards, address, publicClient, createdCards, onCreateSuccess]);
+
+  useEffect(() => {
+    const hasPendingSecrets =
+      pendingCards?.cards.some((c) => c.secret.length > 0) ||
+      confirmingDeposit ||
+      confirmingCreateRef.current;
+    if (!hasPendingSecrets) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [pendingCards, confirmingDeposit]);
 
   const handleFundTx = useCallback(
     (status: LifecycleStatus) => {
@@ -1166,7 +1258,14 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         return;
       }
       const hash = txHashFromLifecycle(status);
-      if (hash && address) saveLastVoucherTx(address, hash);
+      const pending = resolvePendingBatch();
+      if (hash && pending) {
+        savePendingBatchForTx(hash, pending);
+        if (address) saveLastVoucherTx(address, hash);
+      } else if (hash && address) {
+        saveLastVoucherTx(address, hash);
+      }
+      setConfirmingDeposit(true);
       void (async () => {
         const ok = await onCreateSuccess(hash || undefined);
         if (ok) {
@@ -1175,7 +1274,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           const recovered = await recoverBatchByTx(hash);
           if (!recovered) {
             showToast(
-              "Deposit sent — open My Cards and recover with your tx hash if needed.",
+              "Deposit sent — confirming on Base… keep this tab open until cards appear.",
               hash
             );
           }
@@ -1187,7 +1286,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         }
       })();
     },
-    [address, cardCount, notifyVoucherTx, onCreateSuccess, recoverBatchByTx, showToast]
+    [
+      address,
+      cardCount,
+      notifyVoucherTx,
+      onCreateSuccess,
+      recoverBatchByTx,
+      resolvePendingBatch,
+      showToast,
+    ]
   );
 
   const handleRedeemTx = useCallback(
@@ -1555,6 +1662,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 exactAmount={exactDepositLabel}
                 needsApproval={asset === "USDC" && needsUsdcApproval}
               />
+              {confirmingDeposit && (
+                <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 animate-pulse">
+                  <p className="text-sm font-black text-amber-200">Confirming deposit on Base…</p>
+                  <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
+                    Waiting for your transaction to confirm. Keep this tab open — your Card ID and
+                    Secret will appear here automatically.
+                  </p>
+                </div>
+              )}
               {asset === "ETH" ? (
                 <Transaction
                   chainId={base.id}
@@ -1633,12 +1749,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             >
               {!createdCards.cards.some((c) => c.secret) && (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-                  <p className="text-sm font-black text-amber-200">Card ID only — secret not on this device</p>
+                  <p className="text-sm font-black text-amber-200">Card ID only — secret not stored</p>
                   <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
-                    Your deposit is on Base (Batch #{createdCards.batchId}). The secret key
-                    was generated before deposit but isn&apos;t saved here — it cannot be read
-                    from the blockchain. If you still have the same Base App session, refresh
-                    and open the Create tab again.
+                    Your deposit is on Base (Batch #{createdCards.batchId}). The app failed to
+                    save the secret when your deposit confirmed — this is not from clearing history.
+                    If you still have the secret from a screenshot or copy, you can redeem manually.
                   </p>
                 </div>
               )}

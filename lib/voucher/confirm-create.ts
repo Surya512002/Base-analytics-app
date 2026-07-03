@@ -12,10 +12,11 @@ import {
 } from "@/lib/voucher/tx-recovery";
 
 const RECEIPT_TIMEOUT_MS = 120_000;
-const POLL_ATTEMPTS = 10;
-const POLL_BASE_MS = 1_500;
+const POLL_ATTEMPTS = 20;
+const POLL_BASE_MS = 2_000;
+const BATCH_SCAN_LOOKBACK = 25;
 
-type ConfirmClient = VoucherChainReader & {
+export type ConfirmClient = VoucherChainReader & {
   waitForTransactionReceipt: (args: {
     hash: `0x${string}`;
     timeout?: number;
@@ -33,7 +34,7 @@ function reconcileBatchId(
   actualBatchId: number,
   onChainCreator?: string
 ): StoredVoucherBatch {
-  const next = {
+  return {
     ...batch,
     batchId: actualBatchId,
     creator: onChainCreator ?? batch.creator,
@@ -42,13 +43,26 @@ function reconcileBatchId(
       batchId: actualBatchId,
       cardIndex: i,
       cardId: formatCardId(actualBatchId, i),
+      secret: batch.cards[i]?.secret ?? c.secret,
     })),
   };
-  if (batch.batchId === actualBatchId && !onChainCreator) return batch;
-  return next;
 }
 
-/** Match pending card secrets against on-chain hashes (works even if creator address differs). */
+/** Never drop locally generated secrets when reconciling on-chain metadata. */
+export function preservePendingSecrets(
+  pending: StoredVoucherBatch,
+  resolved: StoredVoucherBatch
+): StoredVoucherBatch {
+  return {
+    ...resolved,
+    cards: resolved.cards.map((c, i) => ({
+      ...c,
+      secret: pending.cards[i]?.secret ?? c.secret,
+    })),
+  };
+}
+
+/** Match every pending card secret against on-chain hashes for a batch id. */
 export async function secretsMatchOnChain(
   publicClient: ConfirmClient,
   batch: StoredVoucherBatch
@@ -74,21 +88,44 @@ export async function secretsMatchOnChain(
   }
 }
 
-async function tryResolveBatchBySecrets(
+async function readNextBatchId(publicClient: ConfirmClient): Promise<number> {
+  const next = (await publicClient.readContract({
+    address: VOUCHER_CONTRACT as `0x${string}`,
+    abi: VOUCHER_ABI,
+    functionName: "nextBatchId",
+    args: [],
+  })) as bigint;
+  return Number(next);
+}
+
+/** Scan recent on-chain batches until pending secrets match (handles batchId race). */
+export async function findBatchIdBySecrets(
   publicClient: ConfirmClient,
   pending: StoredVoucherBatch,
-  hintBatchId: number,
-  onChainCreator?: string
+  hintBatchId?: number
 ): Promise<StoredVoucherBatch | null> {
+  if (!pending.cards.some((c) => c.secret)) return null;
+
   const ids = new Set<number>();
-  ids.add(hintBatchId);
-  for (let delta = 1; delta <= 3; delta++) {
-    if (hintBatchId - delta >= 1) ids.add(hintBatchId - delta);
-    ids.add(hintBatchId + delta);
+  if (hintBatchId != null) {
+    ids.add(hintBatchId);
+    for (let delta = 1; delta <= 5; delta++) {
+      if (hintBatchId - delta >= 1) ids.add(hintBatchId - delta);
+      ids.add(hintBatchId + delta);
+    }
   }
 
-  for (const batchId of ids) {
-    const candidate = reconcileBatchId(pending, batchId, onChainCreator);
+  try {
+    const nextId = await readNextBatchId(publicClient);
+    for (let id = nextId - 1; id >= Math.max(1, nextId - BATCH_SCAN_LOOKBACK); id--) {
+      ids.add(id);
+    }
+  } catch {
+    /* fall through with hint ids only */
+  }
+
+  for (const batchId of [...ids].sort((a, b) => b - a)) {
+    const candidate = reconcileBatchId(pending, batchId);
     if (await secretsMatchOnChain(publicClient, candidate)) {
       return candidate;
     }
@@ -96,9 +133,45 @@ async function tryResolveBatchBySecrets(
   return null;
 }
 
+async function verifyBatchOnChain(
+  publicClient: ConfirmClient,
+  batch: StoredVoucherBatch,
+  creator: string,
+  txHash?: string
+): Promise<boolean> {
+  try {
+    const onChain = (await publicClient.readContract({
+      address: VOUCHER_CONTRACT as `0x${string}`,
+      abi: VOUCHER_ABI,
+      functionName: "getBatch",
+      args: [BigInt(batch.batchId)],
+    })) as readonly [string, string, bigint, bigint, bigint, string];
+    const [batchCreator, , , cardCount] = onChain;
+    if (Number(cardCount) < batch.cardCount) return false;
+
+    if (await secretsMatchOnChain(publicClient, batch)) return true;
+    if (batchCreator.toLowerCase() === creator.toLowerCase()) return true;
+
+    if (
+      txHash &&
+      (await walletParticipatedInBatchTx(
+        publicClient,
+        txHash as `0x${string}`,
+        creator
+      ))
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * After deposit: attach pending secrets to the batch created in txHash.
- * Primary path for showing Card ID + Secret in Base App.
+ * Primary path for showing Card ID + Secret (Base App + all wallets).
  */
 export async function finalizePendingBatchFromTx(
   publicClient: ConfirmClient,
@@ -119,14 +192,14 @@ export async function finalizePendingBatchFromTx(
         publicClient,
         txHash as `0x${string}`
       );
-      if (fromReceipt) {
-        const matched = await tryResolveBatchBySecrets(
-          publicClient,
-          pending,
-          fromReceipt.batchId,
-          fromReceipt.onChainCreator
-        );
-        if (matched) return { ...matched, txHash };
+
+      const matched = await findBatchIdBySecrets(
+        publicClient,
+        pending,
+        fromReceipt?.batchId
+      );
+      if (matched) {
+        return preservePendingSecrets(pending, { ...matched, txHash });
       }
     } catch {
       /* receipt not ready yet */
@@ -137,52 +210,7 @@ export async function finalizePendingBatchFromTx(
   return null;
 }
 
-/** Match pending card secrets against on-chain hashes (internal alias). */
-async function secretsMatchOnChainInternal(
-  publicClient: ConfirmClient,
-  batch: StoredVoucherBatch
-): Promise<boolean> {
-  return secretsMatchOnChain(publicClient, batch);
-}
-
-async function verifyBatchOnChain(
-  publicClient: ConfirmClient,
-  batch: StoredVoucherBatch,
-  creator: string,
-  txHash?: string
-): Promise<boolean> {
-  try {
-    const onChain = (await publicClient.readContract({
-      address: VOUCHER_CONTRACT as `0x${string}`,
-      abi: VOUCHER_ABI,
-      functionName: "getBatch",
-      args: [BigInt(batch.batchId)],
-    })) as readonly [string, string, bigint, bigint, bigint, string];
-    const [batchCreator, , , cardCount] = onChain;
-    if (Number(cardCount) < batch.cardCount) return false;
-
-    if (await secretsMatchOnChainInternal(publicClient, batch)) return true;
-
-    if (batchCreator.toLowerCase() === creator.toLowerCase()) return true;
-
-    if (
-      txHash &&
-      (await walletParticipatedInBatchTx(
-        publicClient,
-        txHash as `0x${string}`,
-        creator
-      ))
-    ) {
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-/** Wait for funding tx, resolve the real batchId, and verify the batch exists onchain. */
+/** Wait for funding tx, resolve batchId, preserve secrets — works across wallet types. */
 export async function confirmVoucherBatchCreate(
   publicClient: ConfirmClient,
   batch: StoredVoucherBatch,
@@ -190,6 +218,15 @@ export async function confirmVoucherBatchCreate(
   txHash?: string
 ): Promise<StoredVoucherBatch | null> {
   if (!VOUCHER_CONTRACT) return null;
+
+  if (txHash && batch.cards.some((c) => c.secret)) {
+    const fromSecrets = await finalizePendingBatchFromTx(
+      publicClient,
+      batch,
+      txHash
+    );
+    if (fromSecrets) return fromSecrets;
+  }
 
   let resolved = batch;
 
@@ -199,20 +236,28 @@ export async function confirmVoucherBatchCreate(
         hash: txHash as `0x${string}`,
         timeout: RECEIPT_TIMEOUT_MS,
       });
-      if (receipt.status !== "success") return null;
-
-      const fromReceipt = await batchCreatedInTx(
-        publicClient,
-        txHash as `0x${string}`
-      );
-      if (fromReceipt) {
-        resolved = reconcileBatchId(
-          batch,
-          fromReceipt.batchId,
-          fromReceipt.onChainCreator
+      if (receipt.status === "success") {
+        const fromReceipt = await batchCreatedInTx(
+          publicClient,
+          txHash as `0x${string}`
         );
-        if (await verifyBatchOnChain(publicClient, resolved, creator, txHash)) {
-          return { ...resolved, txHash };
+        if (fromReceipt) {
+          resolved = reconcileBatchId(
+            batch,
+            fromReceipt.batchId,
+            fromReceipt.onChainCreator
+          );
+          const bySecrets = await findBatchIdBySecrets(
+            publicClient,
+            batch,
+            fromReceipt.batchId
+          );
+          if (bySecrets) {
+            return preservePendingSecrets(batch, { ...bySecrets, txHash });
+          }
+          if (await verifyBatchOnChain(publicClient, resolved, creator, txHash)) {
+            return preservePendingSecrets(batch, { ...resolved, txHash });
+          }
         }
       }
     } catch {
@@ -221,8 +266,12 @@ export async function confirmVoucherBatchCreate(
   }
 
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
+    const bySecrets = await findBatchIdBySecrets(publicClient, batch, resolved.batchId);
+    if (bySecrets) {
+      return preservePendingSecrets(batch, { ...bySecrets, txHash });
+    }
     if (await verifyBatchOnChain(publicClient, resolved, creator, txHash)) {
-      return { ...resolved, txHash };
+      return preservePendingSecrets(batch, { ...resolved, txHash });
     }
     await new Promise((r) => setTimeout(r, POLL_BASE_MS * (attempt + 1)));
   }
@@ -230,7 +279,6 @@ export async function confirmVoucherBatchCreate(
   return null;
 }
 
-/** Cast wagmi/viem clients for voucher confirmation helpers. */
 export function asConfirmClient(client: unknown): ConfirmClient {
   return client as ConfirmClient;
 }

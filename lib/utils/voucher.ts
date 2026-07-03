@@ -117,16 +117,43 @@ export function saveLocalBatch(address: string, batch: StoredVoucherBatch): void
 const pendingKey = (address: string) =>
   `base_voucher_pending_${address.toLowerCase()}`;
 
+const pendingLatestKey = "base_voucher_pending_latest";
+
+const pendingTxKey = (txHash: string) =>
+  `base_voucher_pending_tx_${txHash.toLowerCase()}`;
+
 /** Persist in-flight batch (with secrets) until funding confirms — localStorage survives Base App reloads. */
 export function savePendingBatch(address: string, batch: StoredVoucherBatch): void {
   if (typeof window === "undefined") return;
   const json = JSON.stringify(batch);
   localStorage.setItem(pendingKey(address), json);
+  localStorage.setItem(pendingLatestKey, json);
   try {
     sessionStorage.setItem(pendingKey(address), json);
   } catch {
     /* sessionStorage may be unavailable in some webviews */
   }
+}
+
+/** Link pending secrets to a deposit tx as soon as the wallet returns a hash. */
+export function savePendingBatchForTx(txHash: string, batch: StoredVoucherBatch): void {
+  if (typeof window === "undefined" || !txHash) return;
+  localStorage.setItem(pendingTxKey(txHash), JSON.stringify(batch));
+}
+
+export function loadPendingBatchForTx(txHash: string): StoredVoucherBatch | null {
+  if (typeof window === "undefined" || !txHash) return null;
+  try {
+    const raw = localStorage.getItem(pendingTxKey(txHash));
+    return raw ? (JSON.parse(raw) as StoredVoucherBatch) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingBatchForTx(txHash: string): void {
+  if (typeof window === "undefined" || !txHash) return;
+  localStorage.removeItem(pendingTxKey(txHash));
 }
 
 export function loadPendingBatch(address: string): StoredVoucherBatch | null {
@@ -141,14 +168,31 @@ export function loadPendingBatch(address: string): StoredVoucherBatch | null {
   }
 }
 
-/** Find a pending batch (with secrets) saved under any wallet key — helps Base App address mismatches. */
-export function loadAnyPendingBatch(): StoredVoucherBatch | null {
+/** Find a pending batch (with secrets) — wallet address, latest, or by tx hash. */
+export function loadAnyPendingBatch(txHash?: string): StoredVoucherBatch | null {
   if (typeof window === "undefined") return null;
+
+  if (txHash) {
+    const byTx = loadPendingBatchForTx(txHash);
+    if (byTx?.cards?.some((c) => c.secret)) return byTx;
+  }
+
+  try {
+    const latest = localStorage.getItem(pendingLatestKey);
+    if (latest) {
+      const batch = JSON.parse(latest) as StoredVoucherBatch;
+      if (batch.cards?.some((c) => c.secret)) return batch;
+    }
+  } catch {
+    /* ignore */
+  }
+
   const prefix = "base_voucher_pending_";
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key?.startsWith(prefix)) continue;
+      if (!key?.startsWith(prefix) || key === pendingLatestKey) continue;
+      if (key.startsWith("base_voucher_pending_tx_")) continue;
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       const batch = JSON.parse(raw) as StoredVoucherBatch;
@@ -160,9 +204,11 @@ export function loadAnyPendingBatch(): StoredVoucherBatch | null {
   return null;
 }
 
-export function clearPendingBatch(address: string): void {
+export function clearPendingBatch(address: string, txHash?: string): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(pendingKey(address));
+  localStorage.removeItem(pendingLatestKey);
+  if (txHash) clearPendingBatchForTx(txHash);
   try {
     sessionStorage.removeItem(pendingKey(address));
   } catch {
@@ -181,6 +227,84 @@ export function saveLastVoucherTx(address: string, txHash: string): void {
 export function loadLastVoucherTx(address: string): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(lastTxKey(address));
+}
+
+function parseStoredBatch(raw: string | null): StoredVoucherBatch | null {
+  if (!raw) return null;
+  try {
+    const b = JSON.parse(raw) as StoredVoucherBatch;
+    if (b?.batchId == null || !Array.isArray(b.cards)) return null;
+    return b;
+  } catch {
+    return null;
+  }
+}
+
+/** Every voucher batch blob in local/session storage — used to recover secrets after Base App reloads. */
+export function scanAllVoucherBatches(): StoredVoucherBatch[] {
+  if (typeof window === "undefined") return [];
+
+  const seen = new Set<number>();
+  const batches: StoredVoucherBatch[] = [];
+
+  const collect = (raw: string | null) => {
+    const b = parseStoredBatch(raw);
+    if (!b || seen.has(b.batchId)) return;
+    seen.add(b.batchId);
+    batches.push(b);
+  };
+
+  collect(localStorage.getItem(pendingLatestKey));
+
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith("base_voucher_")) continue;
+      collect(localStorage.getItem(key));
+    }
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (!key?.startsWith("base_voucher_")) continue;
+      collect(sessionStorage.getItem(key));
+    }
+  } catch {
+    /* sessionStorage may be unavailable in Base App webviews */
+  }
+
+  return batches;
+}
+
+/** Pull card secrets from any storage slot (pending, saved batches, tx-keyed pending). */
+export function mergeSecretsIntoBatch(batch: StoredVoucherBatch): StoredVoucherBatch {
+  const secretByIndex = new Map<number, string>();
+
+  for (const c of batch.cards) {
+    if (c.secret?.trim()) secretByIndex.set(c.cardIndex, c.secret);
+  }
+
+  for (const source of scanAllVoucherBatches()) {
+    if (source.batchId !== batch.batchId) continue;
+    for (const c of source.cards) {
+      if (c.secret?.trim()) secretByIndex.set(c.cardIndex, c.secret);
+    }
+  }
+
+  if (secretByIndex.size === 0) return batch;
+
+  return {
+    ...batch,
+    cards: Array.from({ length: batch.cardCount }, (_, i) => ({
+      batchId: batch.batchId,
+      cardIndex: i,
+      cardId: formatCardId(batch.batchId, i),
+      secret: secretByIndex.get(i) ?? batch.cards[i]?.secret ?? "",
+    })),
+  };
 }
 
 export function evenSplit(total: bigint, count: number): bigint | null {
