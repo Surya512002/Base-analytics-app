@@ -84,7 +84,12 @@ export interface AlchemyResponse {
   error?: { message: string };
 }
 
-export type ConnectionType = "farcaster" | "coinbase" | "metamask" | "injected";
+export type ConnectionType =
+  | "farcaster"
+  | "baseAccount"
+  | "coinbase"
+  | "metamask"
+  | "injected";
 
 export interface BlockscoutTx {
   hash: string;

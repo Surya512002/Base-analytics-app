@@ -62,9 +62,16 @@ type WalletOption = {
 
 const WALLET_OPTIONS: WalletOption[] = [
   {
+    type: "baseAccount",
+    label: "Coinbase Base Wallet",
+    sub: "Email or passkey — smart wallet in your browser on Base",
+    icon: <BaseAppWalletIcon size={30} />,
+    accent: "bg-[#0052FF] border-[#0052FF]/60 shadow-[0_0_20px_rgba(0,82,255,0.25)]",
+  },
+  {
     type: "coinbase",
-    label: "Base App Wallet",
-    sub: "Coinbase Wallet on Base · best for gas sponsorship",
+    label: "Base App / Extension",
+    sub: "Coinbase Wallet extension or mobile deep link",
     icon: <BaseAppWalletIcon size={30} />,
     accent: "bg-[#0052FF] border-[#0052FF]/60 shadow-[0_0_20px_rgba(0,82,255,0.25)]",
   },

@@ -11,14 +11,17 @@ interface WindowWithEthereum extends Omit<Window, 'ethereum' | 'coinbaseWalletEx
 }
 
 export async function getEip1193Provider(
-  type: "farcaster" | "coinbase" | "metamask" | "injected"
+  type: "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected"
 ): Promise<Eip1193Provider> {
   if (typeof window === "undefined") throw new Error("Window not found");
 
   const win = window as unknown as WindowWithEthereum;
   let selectedProvider: Eip1193Provider | undefined;
 
-  if (type === "coinbase") {
+  if (type === "baseAccount") {
+    const { getBaseAccountProvider } = await import("@/lib/base-account");
+    return getBaseAccountProvider() as unknown as Eip1193Provider;
+  } else if (type === "coinbase") {
     const cbProvider = win.coinbaseWalletExtension || win.ethereum;
     selectedProvider = cbProvider as Eip1193Provider;
 
@@ -71,14 +74,14 @@ export async function getEip1193Provider(
 }
 
 export async function getWalletProvider(
-  type: "farcaster" | "coinbase" | "metamask" | "injected"
+  type: "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected"
 ): Promise<BrowserProvider> {
   const selectedProvider = await getEip1193Provider(type);
   return new BrowserProvider(selectedProvider);
 }
 
 export async function connectWallet(
-  type: "farcaster" | "coinbase" | "metamask" | "injected"
+  type: "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected"
 ): Promise<{ signer: JsonRpcSigner; address: string }> {
   const provider = await getWalletProvider(type);
   const eip1193 = await getEip1193Provider(type);

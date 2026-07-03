@@ -31,7 +31,7 @@ export function getOnchainKitCapabilities(
   if (connType && supportsPaymaster(connType)) {
     return getSendCallsCapabilities();
   }
-  if (connType === "coinbase" || connType === "farcaster") {
+  if (connType === "coinbase" || connType === "baseAccount" || connType === "farcaster") {
     return { ...BUILDER_DATA_SUFFIX_CAP };
   }
   // EOAs / injected wallets: builder suffix is appended in calldata — no paymaster.
@@ -41,12 +41,18 @@ export function getOnchainKitCapabilities(
 export function usesWalletSendCallsAttribution(
   connType: ConnectionType | null
 ): boolean {
-  return connType === "coinbase" || connType === "farcaster";
+  return (
+    connType === "coinbase" ||
+    connType === "baseAccount" ||
+    connType === "farcaster"
+  );
 }
 
 export function supportsPaymaster(connType: ConnectionType): boolean {
   return (
-    (connType === "farcaster" || connType === "coinbase") &&
+    (connType === "farcaster" ||
+      connType === "coinbase" ||
+      connType === "baseAccount") &&
     Boolean(PAYMASTER_URL)
   );
 }

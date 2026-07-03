@@ -11,7 +11,7 @@ export function persistConnType(type: ConnectionType): void {
 export function readConnType(): ConnectionType | null {
   if (typeof window === "undefined") return null;
   const v = localStorage.getItem(CONN_TYPE_KEY);
-  if (v === "farcaster" || v === "metamask" || v === "coinbase" || v === "injected") return v;
+  if (v === "farcaster" || v === "baseAccount" || v === "metamask" || v === "coinbase" || v === "injected") return v;
   return null;
 }
 

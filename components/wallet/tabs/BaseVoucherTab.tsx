@@ -2263,7 +2263,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             </div>
           </div>
 
-          {(connType === "coinbase" || connType === "farcaster") && (
+          {(connType === "coinbase" || connType === "baseAccount" || connType === "farcaster") && (
             <SectionCard bar={false} className="border border-cyan-500/25 bg-cyan-500/5">
               <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
                 Base App deposit

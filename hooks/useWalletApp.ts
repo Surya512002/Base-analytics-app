@@ -72,6 +72,7 @@ import {
   registerReferralJoin,
   fetchReferralStats,
 } from "@/lib/utils/referral";
+import { createPlaceholderAnalysis } from "@/lib/utils/wallet-placeholder";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import { loadLocalBatches } from "@/lib/utils/voucher";
 import {
@@ -821,22 +822,27 @@ export function useWalletApp() {
         });
       };
 
-      if (cached) {
+      const enterWithResult = (result: AnalyzeWalletResult) => {
         applyAnalysis({
-          ...cached,
-          checkedToday: cached.checkedToday || readLocalCheckInToday(address),
+          ...result,
+          checkedToday:
+            result.checkedToday || readLocalCheckInToday(address),
         });
         setLoading(false);
+      };
+
+      if (cached) {
+        enterWithResult(cached);
         setWalletRefreshing(true);
         registerReferralOnce();
       } else {
-        setLoading(true);
+        enterWithResult(createPlaceholderAnalysis(address));
+        setWalletRefreshing(true);
       }
 
       void syncCheckInStatus(address);
 
       try {
-        setScanProgress("Scanning onchain history...");
         const result = await fetchWalletAnalysis(address, !cached);
         if (result) {
           const ci = await fetchCheckInStatus(address);
@@ -848,13 +854,9 @@ export function useWalletApp() {
           applyAnalysis(merged);
           writeWalletCache(address, merged, true);
           registerReferralOnce();
-        } else if (!cached) {
-          showToast("❌ Analysis failed", "");
-          setWallet(null);
         }
       } catch (e) {
         console.error(e);
-        if (!cached) setWallet(null);
       } finally {
         setLoading(false);
         setWalletRefreshing(false);
@@ -882,7 +884,10 @@ export function useWalletApp() {
         if (!evm) throw new Error("No EVM wallet");
         addr = evm;
         await ensureBaseNetwork(provider);
-        showToast("✅ Scanning...", "");
+      } else if (type === "baseAccount") {
+        const { connectBaseAccount } = await import("@/lib/base-account");
+        const connected = await connectBaseAccount();
+        addr = connected.address;
       } else {
         const { address } = await connectWallet(type);
         addr = address;
@@ -891,7 +896,7 @@ export function useWalletApp() {
       }
       setConnType(type);
       persistConnType(type);
-      analyzeWallet(addr);
+      void analyzeWallet(addr);
     } catch {
       setLoading(false);
       showToast("❌ Connection failed. Switch to Base network and try again.", "");
