@@ -11,10 +11,8 @@ import {
   RefreshCcw,
   CheckCircle,
   AlertCircle,
-  Coins,
   Share2,
   Search,
-  ChevronDown,
 } from "lucide-react";
 import {
   ERC20_ABI,
@@ -37,6 +35,7 @@ import {
   hashVoucherSecret,
   loadLocalBatches,
   loadPendingBatch,
+  loadAnyPendingBatch,
   clearPendingBatch,
   savePendingBatch,
   saveLastVoucherTx,
@@ -47,7 +46,7 @@ import {
   saveLocalBatch,
   tokenToAsset,
 } from "@/lib/utils/voucher";
-import { confirmVoucherBatchCreate, asConfirmClient } from "@/lib/voucher/confirm-create";
+import { confirmVoucherBatchCreate, finalizePendingBatchFromTx, asConfirmClient } from "@/lib/voucher/confirm-create";
 import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
@@ -472,10 +471,27 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     void loadBatchDetail(createdCards.batchId);
   }, [createdCards, loadBatchDetail]);
 
+  const displayCardsForBatch = useCallback((b: StoredVoucherBatch) => {
+    if (b.cards.length >= b.cardCount && b.cards.every((c) => c.cardId)) {
+      return b.cards;
+    }
+    return Array.from({ length: b.cardCount }, (_, i) => ({
+      batchId: b.batchId,
+      cardIndex: i,
+      cardId: formatCardId(b.batchId, i),
+      secret: b.cards[i]?.secret ?? "",
+    }));
+  }, []);
+
   useEffect(() => {
     if (view !== "mine" || myBatches.length === 0) return;
     let cancelled = false;
     setMineStatusesLoading(true);
+
+    const first = myBatches[0];
+    if (expandedBatchId === null) {
+      setExpandedBatchId(first.batchId);
+    }
 
     void (async () => {
       await Promise.all(myBatches.map((b) => loadBatchDetail(b.batchId)));
@@ -485,7 +501,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     return () => {
       cancelled = true;
     };
-  }, [view, myBatches, loadBatchDetail]);
+  }, [view, myBatches, loadBatchDetail, expandedBatchId]);
 
   const copyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -890,58 +906,99 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     [address, refreshMyBatches]
   );
 
-  const onCreateSuccess = useCallback(
+  const resolvePendingBatch = useCallback((): StoredVoucherBatch | null => {
+    if (!address) return null;
+    return (
+      pendingCards ??
+      pendingBatchRef.current ??
+      loadPendingBatch(address) ??
+      loadAnyPendingBatch()
+    );
+  }, [address, pendingCards]);
+
+  const tryShowCardsWithSecrets = useCallback(
     async (txHash?: string): Promise<boolean> => {
-      if (
-        !address ||
-        createHandledRef.current ||
-        confirmingCreateRef.current
-      ) {
-        return false;
-      }
-      const batch =
-        pendingCards ?? pendingBatchRef.current ?? loadPendingBatch(address);
-      if (!batch || !publicClient) return false;
+      if (!address || !publicClient || createHandledRef.current) return false;
+
+      const pending = resolvePendingBatch();
+      if (!pending?.cards.some((c) => c.secret)) return false;
 
       confirmingCreateRef.current = true;
       try {
+        if (txHash) {
+          const fromSecrets = await finalizePendingBatchFromTx(
+            asConfirmClient(publicClient),
+            pending,
+            txHash
+          );
+          if (fromSecrets) {
+            createHandledRef.current = true;
+            await finalizeCreatedBatch(fromSecrets, txHash);
+            return true;
+          }
+        }
+
         const confirmed = await confirmVoucherBatchCreate(
           asConfirmClient(publicClient),
-          batch,
+          pending,
           address,
           txHash
         );
         if (!confirmed) return false;
 
         createHandledRef.current = true;
-        return finalizeCreatedBatch(confirmed, txHash);
+        await finalizeCreatedBatch(confirmed, txHash);
+        return true;
       } finally {
         confirmingCreateRef.current = false;
       }
     },
-    [address, pendingCards, publicClient, finalizeCreatedBatch]
+    [address, publicClient, resolvePendingBatch, finalizeCreatedBatch]
+  );
+
+  const onCreateSuccess = useCallback(
+    async (txHash?: string): Promise<boolean> => {
+      if (!address || !publicClient) return false;
+      return tryShowCardsWithSecrets(txHash);
+    },
+    [address, publicClient, tryShowCardsWithSecrets]
   );
 
   useEffect(() => {
+    if (!address) return;
+    const local = loadLocalBatches(address);
+    const withSecrets = local.find((b) => b.cards.some((c) => c.secret.length > 0));
+    if (withSecrets && !createdCards) {
+      setCreatedCards(withSecrets);
+      setView("create");
+    }
+  }, [address, createdCards]);
+
+  useEffect(() => {
     if (!address || !publicClient || !contractReady || createdCards) return;
-    const stored = loadPendingBatch(address);
+    const stored = resolvePendingBatch();
     if (!stored) return;
 
     pendingBatchRef.current = stored;
     setPendingCards(stored);
 
+    const lastTx = loadLastVoucherTx(address);
+
     void (async () => {
-      const confirmed = await confirmVoucherBatchCreate(
-        asConfirmClient(publicClient),
-        stored,
-        address
-      );
-      if (!confirmed || createHandledRef.current) return;
-      createHandledRef.current = true;
-      await finalizeCreatedBatch(confirmed);
-      showToast("✅ Your voucher cards are ready!", "");
+      const ok = await tryShowCardsWithSecrets(lastTx ?? undefined);
+      if (ok) {
+        showToast("✅ Your voucher cards are ready!", lastTx ?? "");
+      }
     })();
-  }, [address, publicClient, contractReady, createdCards, finalizeCreatedBatch, showToast]);
+  }, [
+    address,
+    publicClient,
+    contractReady,
+    createdCards,
+    resolvePendingBatch,
+    tryShowCardsWithSecrets,
+    showToast,
+  ]);
 
   const recoverBatchByTx = useCallback(
     async (txHash: string) => {
@@ -980,8 +1037,20 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
         saveLastVoucherTx(address, hash);
 
-        const pending = loadPendingBatch(address);
-        if (pending) {
+        const pending = resolvePendingBatch();
+        if (pending?.cards.some((c) => c.secret)) {
+          const fromSecrets = await finalizePendingBatchFromTx(
+            asConfirmClient(publicClient),
+            pending,
+            hash
+          );
+          if (fromSecrets) {
+            createHandledRef.current = true;
+            await finalizeCreatedBatch(fromSecrets, hash);
+            showToast("✅ Voucher cards recovered with secrets!", hash);
+            return true;
+          }
+
           const confirmed = await confirmVoucherBatchCreate(
             asConfirmClient(publicClient),
             pending,
@@ -1031,7 +1100,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           } satisfies VoucherBatchMeta),
         });
         await refreshMyBatches();
-        showToast("✅ Voucher batch linked to your wallet", hash);
+        setCreatedCards(placeholder);
+        setExpandedBatchId(placeholder.batchId);
+        setView("mine");
+        showToast(
+          "Batch linked — your Card ID is in My Cards. Secret was not saved on this device.",
+          hash
+        );
         return true;
       } catch {
         setRecoverError("Recovery failed — try again in a moment.");
@@ -1040,12 +1115,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         setRecoverLoading(false);
       }
     },
-    [address, publicClient, finalizeCreatedBatch, refreshMyBatches, showToast]
+    [address, publicClient, finalizeCreatedBatch, refreshMyBatches, showToast, resolvePendingBatch]
   );
 
   useEffect(() => {
     if (view !== "mine" || !address || recoverLoading) return;
     const lastTx = loadLastVoucherTx(address);
+    if (lastTx) setRecoverTxInput(lastTx);
     if (!lastTx || myBatches.length > 0) return;
     void recoverBatchByTx(lastTx);
   }, [view, address, myBatches.length, recoverLoading, recoverBatchByTx]);
@@ -1095,15 +1171,23 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         const ok = await onCreateSuccess(hash || undefined);
         if (ok) {
           notifyVoucherTx(`✅ ${cardCount} voucher cards ready!`, hash);
+        } else if (hash) {
+          const recovered = await recoverBatchByTx(hash);
+          if (!recovered) {
+            showToast(
+              "Deposit sent — open My Cards and recover with your tx hash if needed.",
+              hash
+            );
+          }
         } else {
           showToast(
             "Deposit sent — confirming on Base… Your cards will appear shortly.",
-            hash
+            ""
           );
         }
       })();
     },
-    [address, cardCount, notifyVoucherTx, onCreateSuccess, showToast]
+    [address, cardCount, notifyVoucherTx, onCreateSuccess, recoverBatchByTx, showToast]
   );
 
   const handleRedeemTx = useCallback(
@@ -1547,6 +1631,17 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               ref={createdSectionRef}
               className="border-2 border-emerald-400/40 bg-emerald-500/10 rounded-2xl p-4 sm:p-5 space-y-4 mt-4 scroll-mt-24"
             >
+              {!createdCards.cards.some((c) => c.secret) && (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+                  <p className="text-sm font-black text-amber-200">Card ID only — secret not on this device</p>
+                  <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
+                    Your deposit is on Base (Batch #{createdCards.batchId}). The secret key
+                    was generated before deposit but isn&apos;t saved here — it cannot be read
+                    from the blockchain. If you still have the same Base App session, refresh
+                    and open the Create tab again.
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 text-emerald-400 font-black text-base sm:text-lg">
@@ -1880,6 +1975,38 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             </div>
           </div>
 
+          {(connType === "coinbase" || connType === "farcaster") && (
+            <SectionCard bar={false} className="border border-cyan-500/25 bg-cyan-500/5">
+              <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                Base App deposit
+              </p>
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                Deposits through Base App use a smart wallet bundle. If your batch
+                doesn&apos;t appear right away, paste your deposit transaction hash
+                below — we link it to your wallet automatically.
+              </p>
+              <div className="mt-3 space-y-2">
+                <input
+                  value={recoverTxInput}
+                  onChange={(e) => setRecoverTxInput(e.target.value.trim())}
+                  placeholder="0x… deposit tx hash"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-white font-mono text-xs outline-none focus:border-cyan-500/40"
+                />
+                {recoverError && (
+                  <p className="text-red-400 text-xs font-bold">{recoverError}</p>
+                )}
+                <button
+                  type="button"
+                  disabled={recoverLoading || !recoverTxInput}
+                  onClick={() => void recoverBatchByTx(recoverTxInput)}
+                  className="w-full py-2.5 rounded-xl text-xs font-black bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25 disabled:opacity-40"
+                >
+                  {recoverLoading ? "Linking batch…" : "Link deposit to My Cards"}
+                </button>
+              </div>
+            </SectionCard>
+          )}
+
           {creatorSummary && creatorSummary.batchCount > 0 && (
             <SectionCard bar={false} className="border border-amber-500/25 bg-amber-500/5">
               <p className="text-[10px] font-black text-amber-300/80 uppercase tracking-widest">Wallet summary</p>
@@ -1933,10 +2060,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               const unredeemed = Math.max(0, b.cardCount - redeemed);
               const pct = Math.round((redeemed / b.cardCount) * 100);
               const cardStatuses = batchCardStatuses[b.batchId];
-              const hasLocalSecrets = b.cards.some((c) => c.secret.length > 0);
-              const unredeemedCards = b.cards.filter((c) => !isCardRedeemed(c.cardId)).length;
-              const redeemedCardsKnown = b.cards.filter((c) => isCardStatusKnown(c.cardId)).length;
-              const allStatusesKnown = redeemedCardsKnown === b.cardCount;
+              const displayCards = displayCardsForBatch(b);
+              const hasLocalSecrets = displayCards.some((c) => c.secret.length > 0);
               return (
                 <SectionCard key={b.batchId} bar={false} className="border border-cyan-500/20">
                   <button
@@ -1969,6 +2094,33 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   {b.message && (
                     <p className="text-xs text-slate-400 italic mb-3">&quot;{b.message}&quot;</p>
                   )}
+
+                  <div className="mb-4 space-y-3">
+                    <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                      Your card{displayCards.length === 1 ? "" : "s"}
+                    </p>
+                    {displayCards.map((c, i) => (
+                      <VoucherCredentialCard
+                        key={c.cardId}
+                        cardId={c.cardId}
+                        secret={c.secret}
+                        asset={b.asset}
+                        amountPerCard={BigInt(b.amountPerCard)}
+                        index={i}
+                        total={b.cardCount}
+                        copied={copied}
+                        onCopy={copyText}
+                        onShare={shareText}
+                        shareText={formatCardShareText(c, b)}
+                        redeemed={isCardRedeemed(c.cardId)}
+                        statusLoading={
+                          !isCardStatusKnown(c.cardId) &&
+                          (mineStatusesLoading || loadingBatchDetail === b.batchId)
+                        }
+                      />
+                    ))}
+                  </div>
+
                   <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden mb-3">
                     <div
                       className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all"
@@ -2007,74 +2159,32 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                     )}
                   </div>
 
-                  {expandedBatchId === b.batchId && cardStatuses && (
+                  {expandedBatchId === b.batchId && (
                     <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                        Per-card status
+                        Redemption status
                       </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {cardStatuses.map((c) => (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(cardStatuses?.length ? cardStatuses : displayCards.map((c) => ({
+                          cardId: c.cardId,
+                          redeemed: isCardRedeemed(c.cardId),
+                        }))).map((c) => (
                           <div
                             key={c.cardId}
-                            className={`rounded-lg px-2 py-2 text-xs font-bold border ${
+                            className={`rounded-lg px-3 py-2.5 text-xs font-bold border ${
                               c.redeemed
                                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                                 : "border-amber-500/30 bg-amber-500/10 text-amber-200"
                             }`}
                           >
-                            <span className="font-mono">{c.cardId}</span>
+                            <span className="font-mono text-sm">{c.cardId}</span>
                             <p className="mt-0.5 text-[10px] uppercase tracking-wide opacity-80">
-                              {c.redeemed ? "Redeemed" : "Available"}
+                              {c.redeemed ? "Redeemed" : "Available to redeem"}
                             </p>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  {hasLocalSecrets && (
-                  <details
-                    className="group"
-                    open={expandedBatchId === b.batchId || b.cardCount <= 3}
-                    onToggle={(e) => {
-                      if ((e.target as HTMLDetailsElement).open) {
-                        setExpandedBatchId(b.batchId);
-                        void loadBatchDetail(b.batchId);
-                      }
-                    }}
-                  >
-                    <summary className="cursor-pointer list-none flex items-center justify-between gap-2 py-2 text-cyan-400 font-black text-sm">
-                      <span className="flex items-center gap-2">
-                        <Coins size={14} />{" "}
-                        {allStatusesKnown
-                          ? `Show cards (${unredeemedCards} available · ${b.cardCount - unredeemedCards} redeemed)`
-                          : `Show all Card IDs & secrets (${b.cardCount})`}
-                      </span>
-                      <ChevronDown size={16} className="group-open:rotate-180 transition-transform" />
-                    </summary>
-                    <div className="mt-3 space-y-4 max-h-[min(70vh,600px)] overflow-y-auto pr-1">
-                      {b.cards.map((c, i) => (
-                        <VoucherCredentialCard
-                          key={c.cardId}
-                          cardId={c.cardId}
-                          secret={c.secret}
-                          asset={b.asset}
-                          amountPerCard={BigInt(b.amountPerCard)}
-                          index={i}
-                          total={b.cardCount}
-                          copied={copied}
-                          onCopy={copyText}
-                          onShare={shareText}
-                          shareText={formatCardShareText(c, b)}
-                          redeemed={isCardRedeemed(c.cardId)}
-                          statusLoading={
-                            !isCardStatusKnown(c.cardId) &&
-                            (mineStatusesLoading || loadingBatchDetail === b.batchId)
-                          }
-                        />
-                      ))}
-                    </div>
-                  </details>
                   )}
                 </SectionCard>
               );

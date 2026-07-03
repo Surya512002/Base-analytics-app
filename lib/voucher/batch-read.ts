@@ -157,7 +157,7 @@ async function discoverBatchIdsFromStoredTxs(creator: string): Promise<number[]>
     const { recoverBatchFromTx } = await import("@/lib/voucher/tx-recovery");
 
     for (const meta of stored) {
-      if (meta.creator.toLowerCase() !== normalized || !meta.txHash) continue;
+      if (!meta.txHash) continue;
       const recovered = await recoverBatchFromTx(
         client,
         meta.txHash as `0x${string}`,
@@ -199,10 +199,26 @@ export async function listCreatorBatches(
   if (includeStored) {
     try {
       const stored = await readStoredBatches();
+      const client = getClient();
       for (const b of stored) {
         if (b.creator.toLowerCase() === normalized) {
           batchIds.add(b.batchId);
           metaById.set(b.batchId, b);
+        } else if (b.txHash && client) {
+          const { recoverBatchFromTx } = await import("@/lib/voucher/tx-recovery");
+          const recovered = await recoverBatchFromTx(
+            client,
+            b.txHash as `0x${string}`,
+            normalized
+          );
+          if (recovered) {
+            batchIds.add(recovered.batchId);
+            metaById.set(recovered.batchId, {
+              ...b,
+              batchId: recovered.batchId,
+              creator: normalized,
+            });
+          }
         }
       }
     } catch {

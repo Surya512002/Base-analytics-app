@@ -117,25 +117,57 @@ export function saveLocalBatch(address: string, batch: StoredVoucherBatch): void
 const pendingKey = (address: string) =>
   `base_voucher_pending_${address.toLowerCase()}`;
 
-/** Persist in-flight batch (with secrets) until funding confirms. */
+/** Persist in-flight batch (with secrets) until funding confirms — localStorage survives Base App reloads. */
 export function savePendingBatch(address: string, batch: StoredVoucherBatch): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(pendingKey(address), JSON.stringify(batch));
+  const json = JSON.stringify(batch);
+  localStorage.setItem(pendingKey(address), json);
+  try {
+    sessionStorage.setItem(pendingKey(address), json);
+  } catch {
+    /* sessionStorage may be unavailable in some webviews */
+  }
 }
 
 export function loadPendingBatch(address: string): StoredVoucherBatch | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(pendingKey(address));
+    const raw =
+      localStorage.getItem(pendingKey(address)) ??
+      sessionStorage.getItem(pendingKey(address));
     return raw ? (JSON.parse(raw) as StoredVoucherBatch) : null;
   } catch {
     return null;
   }
 }
 
+/** Find a pending batch (with secrets) saved under any wallet key — helps Base App address mismatches. */
+export function loadAnyPendingBatch(): StoredVoucherBatch | null {
+  if (typeof window === "undefined") return null;
+  const prefix = "base_voucher_pending_";
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(prefix)) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const batch = JSON.parse(raw) as StoredVoucherBatch;
+      if (batch.cards?.some((c) => c.secret)) return batch;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export function clearPendingBatch(address: string): void {
   if (typeof window === "undefined") return;
-  sessionStorage.removeItem(pendingKey(address));
+  localStorage.removeItem(pendingKey(address));
+  try {
+    sessionStorage.removeItem(pendingKey(address));
+  } catch {
+    /* ignore */
+  }
 }
 
 const lastTxKey = (address: string) =>

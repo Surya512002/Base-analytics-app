@@ -76,6 +76,7 @@ export default function VoucherCredentialCard({
 }: VoucherCredentialCardProps) {
   const bothId = `both-${cardId}`;
   const shareId = `share-${cardId}`;
+  const hasSecret = secret.trim().length > 0;
 
   return (
     <div
@@ -122,45 +123,73 @@ export default function VoucherCredentialCard({
 
       <CopyField
         label="Card ID"
-        value={cardId}
+        value={cardId || "—"}
         copyId={`id-${cardId}`}
         copied={copied}
         onCopy={onCopy}
       />
 
-      <CopyField
-        label="Secret Key"
-        value={secret}
-        copyId={`sec-${cardId}`}
-        copied={copied}
-        onCopy={onCopy}
-      />
+      {hasSecret ? (
+        <CopyField
+          label="Secret Key"
+          value={secret}
+          copyId={`sec-${cardId}`}
+          copied={copied}
+          onCopy={onCopy}
+        />
+      ) : (
+        <div>
+          <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1.5">
+            Secret Key
+          </p>
+          <div className="rounded-xl px-4 py-3.5 bg-amber-500/10 border-2 border-amber-500/30">
+            <p className="text-sm font-bold text-amber-200">Not saved on this device</p>
+            <p className="text-xs text-amber-200/75 mt-1 leading-relaxed">
+              The secret was shown once after deposit. It cannot be loaded from the blockchain.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2 pt-1">
+        {hasSecret && (
+          <button
+            type="button"
+            onClick={() => onCopy(`${cardId}\n${secret}`, bothId)}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-white hover:bg-white/15 active:scale-[0.98] transition"
+          >
+            {copied === bothId ? <CheckCircle size={16} /> : <Copy size={16} />}
+            {copied === bothId ? "Copied ID + Secret!" : "Copy ID + Secret"}
+          </button>
+        )}
+        {hasSecret && (
+          <button
+            type="button"
+            onClick={() => onCopy(shareText, cardId)}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-slate-200 hover:bg-white/15 active:scale-[0.98] transition"
+          >
+            {copied === cardId ? <CheckCircle size={16} /> : <Copy size={16} />}
+            Copy full card
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => onCopy(`${cardId}\n${secret}`, bothId)}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-white hover:bg-white/15 active:scale-[0.98] transition"
+          onClick={() => onCopy(cardId, `id-only-${cardId}`)}
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25 active:scale-[0.98] transition"
         >
-          {copied === bothId ? <CheckCircle size={16} /> : <Copy size={16} />}
-          {copied === bothId ? "Copied ID + Secret!" : "Copy ID + Secret"}
+          {copied === `id-only-${cardId}` ? <CheckCircle size={16} /> : <Copy size={16} />}
+          Copy Card ID
         </button>
-        <button
-          type="button"
-          onClick={() => onCopy(shareText, cardId)}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-slate-200 hover:bg-white/15 active:scale-[0.98] transition"
-        >
-          {copied === cardId ? <CheckCircle size={16} /> : <Copy size={16} />}
-          Copy full card
-        </button>
-        <button
-          type="button"
-          onClick={() => onShare(shareText, shareId)}
-          disabled={redeemed}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm btn-primary active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Share2 size={16} /> Share
-        </button>
+        {hasSecret && (
+          <button
+            type="button"
+            onClick={() => onShare(shareText, shareId)}
+            disabled={redeemed}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm btn-primary active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Share2 size={16} /> Share
+          </button>
+        )}
       </div>
     </div>
   );
