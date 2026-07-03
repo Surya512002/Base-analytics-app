@@ -36,12 +36,16 @@ import {
   generateVoucherCards,
   hashVoucherSecret,
   loadLocalBatches,
+  loadPendingBatch,
+  clearPendingBatch,
+  savePendingBatch,
   parseCardId,
   parseEthAmount,
   parseUsdcAmount,
   saveLocalBatch,
   tokenToAsset,
 } from "@/lib/utils/voucher";
+import { confirmVoucherBatchCreate } from "@/lib/voucher/confirm-create";
 import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
@@ -227,6 +231,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const redeemParsedRef = useRef<ReturnType<typeof parseCardId>>(null);
   const redeemPreviewRef = useRef<RedeemPreview | null>(null);
   const createHandledRef = useRef(false);
+  const confirmingCreateRef = useRef(false);
 
   const [redeemCardId, setRedeemCardId] = useState("");
   const [redeemSecret, setRedeemSecret] = useState("");
@@ -559,6 +564,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
       setPendingCards(batch);
       pendingBatchRef.current = batch;
+      savePendingBatch(address, batch);
       createHandledRef.current = false;
       setUsdcApproveCompleted(false);
       notifiedTxRef.current = "";
@@ -798,29 +804,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     ];
   }, [redeemParsedForTx, redeemSecret, contractReady]);
 
-  const onCreateSuccess = useCallback(
-    async (txHash?: string) => {
-      if (!address || createHandledRef.current) return;
-      const batch = pendingCards ?? pendingBatchRef.current;
-      if (!batch || !publicClient) return;
-
-      try {
-        const onChain = await publicClient.readContract({
-          address: VOUCHER_CONTRACT as `0x${string}`,
-          abi: VOUCHER_ABI,
-          functionName: "getBatch",
-          args: [BigInt(batch.batchId)],
-        });
-        const cardCountOnChain = Number(onChain[3]);
-        if (cardCountOnChain < 1) return;
-      } catch {
-        return;
-      }
-
-      createHandledRef.current = true;
+  const finalizeCreatedBatch = useCallback(
+    async (batch: StoredVoucherBatch, txHash?: string) => {
+      if (!address) return false;
 
       const saved = { ...batch, txHash };
       saveLocalBatch(address, saved);
+      clearPendingBatch(address);
       setCreatedCards(saved);
       setPendingCards(null);
       pendingBatchRef.current = null;
@@ -848,9 +838,76 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       requestAnimationFrame(() => {
         createdSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
+      return true;
     },
-    [address, pendingCards, publicClient, refreshMyBatches]
+    [address, refreshMyBatches]
   );
+
+  const onCreateSuccess = useCallback(
+    async (txHash?: string): Promise<boolean> => {
+      if (
+        !address ||
+        createHandledRef.current ||
+        confirmingCreateRef.current
+      ) {
+        return false;
+      }
+      const batch =
+        pendingCards ?? pendingBatchRef.current ?? loadPendingBatch(address);
+      if (!batch || !publicClient) return false;
+
+      confirmingCreateRef.current = true;
+      try {
+        const confirmed = await confirmVoucherBatchCreate(
+          publicClient,
+          batch,
+          address,
+          txHash
+        );
+        if (!confirmed) return false;
+
+        createHandledRef.current = true;
+        return finalizeCreatedBatch(confirmed, txHash);
+      } finally {
+        confirmingCreateRef.current = false;
+      }
+    },
+    [address, pendingCards, publicClient, finalizeCreatedBatch]
+  );
+
+  useEffect(() => {
+    if (!address || !publicClient || !contractReady || createdCards) return;
+    const stored = loadPendingBatch(address);
+    if (!stored) return;
+
+    pendingBatchRef.current = stored;
+    setPendingCards(stored);
+
+    void (async () => {
+      const confirmed = await confirmVoucherBatchCreate(
+        publicClient,
+        stored,
+        address
+      );
+      if (!confirmed || createHandledRef.current) return;
+      createHandledRef.current = true;
+      await finalizeCreatedBatch(confirmed);
+      showToast("✅ Your voucher cards are ready!");
+    })();
+  }, [address, publicClient, contractReady, createdCards, finalizeCreatedBatch, showToast]);
+
+  useEffect(() => {
+    if (!pendingCards || !address || !publicClient || createdCards || createHandledRef.current) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (createHandledRef.current) return;
+      void onCreateSuccess();
+    }, 4_000);
+
+    return () => window.clearInterval(interval);
+  }, [pendingCards, address, publicClient, createdCards, onCreateSuccess]);
 
   const handleApproveTx = useCallback(
     (status: LifecycleStatus) => {
@@ -879,10 +936,19 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         return;
       }
       const hash = txHashFromLifecycle(status);
-      notifyVoucherTx(`✅ ${cardCount} voucher cards funded!`, hash);
-      void onCreateSuccess(hash || undefined);
+      void (async () => {
+        const ok = await onCreateSuccess(hash || undefined);
+        if (ok) {
+          notifyVoucherTx(`✅ ${cardCount} voucher cards ready!`, hash);
+        } else {
+          showToast(
+            "Deposit sent — confirming on Base… Your cards will appear shortly.",
+            hash
+          );
+        }
+      })();
     },
-    [cardCount, notifyVoucherTx, onCreateSuccess]
+    [cardCount, notifyVoucherTx, onCreateSuccess, showToast]
   );
 
   const handleRedeemTx = useCallback(
@@ -1236,10 +1302,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 <p className="text-sm font-black text-cyan-200">Confirm in your wallet to create cards</p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   Card IDs and secret keys are generated now but{" "}
-                  <span className="text-white font-bold">only shown after your funding transaction confirms</span>
+                  <span className="text-white font-bold">only shown after your deposit confirms</span>
                   {asset === "USDC" && needsUsdcApproval
-                    ? " — USDC requires approval first, then a separate funding confirmation."
+                    ? " — USDC requires approval first, then a separate deposit confirmation."
                     : "."}
+                </p>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  Already deposited? Your cards will appear automatically once Base confirms the transaction.
                 </p>
               </div>
               <VoucherSecurityNotice
@@ -1256,7 +1325,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 >
                   <TransactionButton
                     className="w-full py-3.5 rounded-xl font-black bg-cyan-500 hover:bg-cyan-400 text-white"
-                    text={`Fund ${cardCount} ETH Vouchers`}
+                    text="Deposit"
                   />
                 </Transaction>
               ) : checkingAllowance ? (
@@ -1302,7 +1371,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   >
                     <TransactionButton
                       className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
-                      text={`Fund ${cardCount} USDC Vouchers`}
+                      text="Deposit"
                     />
                   </Transaction>
                 </div>

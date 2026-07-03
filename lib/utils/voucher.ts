@@ -114,6 +114,30 @@ export function saveLocalBatch(address: string, batch: StoredVoucherBatch): void
   localStorage.setItem(storageKey(address), JSON.stringify(existing));
 }
 
+const pendingKey = (address: string) =>
+  `base_voucher_pending_${address.toLowerCase()}`;
+
+/** Persist in-flight batch (with secrets) until funding confirms. */
+export function savePendingBatch(address: string, batch: StoredVoucherBatch): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(pendingKey(address), JSON.stringify(batch));
+}
+
+export function loadPendingBatch(address: string): StoredVoucherBatch | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(pendingKey(address));
+    return raw ? (JSON.parse(raw) as StoredVoucherBatch) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingBatch(address: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(pendingKey(address));
+}
+
 export function evenSplit(total: bigint, count: number): bigint | null {
   if (count < 1 || count > MAX_VOUCHER_CARDS) return null;
   if (total % BigInt(count) !== BigInt(0)) return null;
