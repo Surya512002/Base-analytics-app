@@ -1,11 +1,10 @@
 import { JsonRpcProvider, formatEther } from "ethers";
-import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
 import {
   fetchNftCount,
 } from "@/lib/api/alchemy";
 import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
-import { BASE_RPC } from "@/lib/constants/env";
+import { createBasePublicClient, getBaseRpcUrls } from "@/lib/utils/base-rpc";
+import { BASE_PUBLIC_RPC } from "@/lib/constants/env";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
@@ -70,8 +69,9 @@ export async function analyzeWalletAddress(
 
   onProgress?.("Firing all data sources in parallel...");
 
-  const provider = new JsonRpcProvider(BASE_RPC);
-  const pub = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const rpcUrl = getBaseRpcUrls()[0] ?? BASE_PUBLIC_RPC;
+  const provider = new JsonRpcProvider(rpcUrl);
+  const pub = createBasePublicClient();
   const addrLow = address.toLowerCase();
 
   const bnP = pub

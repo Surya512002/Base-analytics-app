@@ -72,9 +72,8 @@ import {
   registerReferralJoin,
   fetchReferralStats,
 } from "@/lib/utils/referral";
-import { createPlaceholderAnalysis } from "@/lib/utils/wallet-placeholder";
-import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import { loadLocalBatches } from "@/lib/utils/voucher";
+import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
   bumpBoostCount,
   DEFAULT_TX_KEYS,
@@ -822,41 +821,66 @@ export function useWalletApp() {
         });
       };
 
-      const enterWithResult = (result: AnalyzeWalletResult) => {
-        applyAnalysis({
+      const mergeAndApply = (
+        result: AnalyzeWalletResult,
+        ci: { checkedToday: boolean; streak: number }
+      ) => {
+        const merged = {
           ...result,
+          checkedToday: ci.checkedToday || result.checkedToday,
+          streak: ci.streak || result.streak,
+        };
+        applyAnalysis({
+          ...merged,
           checkedToday:
-            result.checkedToday || readLocalCheckInToday(address),
+            merged.checkedToday || readLocalCheckInToday(address),
         });
-        setLoading(false);
+        writeWalletCache(address, merged, true);
+        registerReferralOnce();
       };
 
       if (cached) {
-        enterWithResult(cached);
+        applyAnalysis({
+          ...cached,
+          checkedToday: cached.checkedToday || readLocalCheckInToday(address),
+        });
+        setLoading(false);
         setWalletRefreshing(true);
         registerReferralOnce();
-      } else {
-        enterWithResult(createPlaceholderAnalysis(address));
-        setWalletRefreshing(true);
+
+        try {
+          const [result, ci] = await Promise.all([
+            fetchWalletAnalysis(address, false),
+            fetchCheckInStatus(address),
+          ]);
+          if (result) mergeAndApply(result, ci);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setWalletRefreshing(false);
+          setScanProgress("");
+        }
+        return;
       }
 
-      void syncCheckInStatus(address);
+      setLoading(true);
+      setScanProgress("Loading onchain score & profile…");
 
       try {
-        const result = await fetchWalletAnalysis(address, !cached);
-        if (result) {
-          const ci = await fetchCheckInStatus(address);
-          const merged = {
-            ...result,
-            checkedToday: ci.checkedToday || result.checkedToday,
-            streak: ci.streak || result.streak,
-          };
-          applyAnalysis(merged);
-          writeWalletCache(address, merged, true);
-          registerReferralOnce();
+        const [result, ci] = await Promise.all([
+          fetchWalletAnalysis(address, true),
+          fetchCheckInStatus(address),
+        ]);
+        if (!result) {
+          showToast("❌ Could not load wallet data — try again", "");
+          setWallet(null);
+          return;
         }
+        mergeAndApply(result, ci);
       } catch (e) {
         console.error(e);
+        showToast("❌ Wallet scan failed — check connection and retry", "");
+        setWallet(null);
       } finally {
         setLoading(false);
         setWalletRefreshing(false);
@@ -896,7 +920,7 @@ export function useWalletApp() {
       }
       setConnType(type);
       persistConnType(type);
-      void analyzeWallet(addr);
+      await analyzeWallet(addr);
     } catch {
       setLoading(false);
       showToast("❌ Connection failed. Switch to Base network and try again.", "");
