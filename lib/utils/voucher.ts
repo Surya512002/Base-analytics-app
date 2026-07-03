@@ -138,6 +138,19 @@ export function clearPendingBatch(address: string): void {
   sessionStorage.removeItem(pendingKey(address));
 }
 
+const lastTxKey = (address: string) =>
+  `base_voucher_last_tx_${address.toLowerCase()}`;
+
+export function saveLastVoucherTx(address: string, txHash: string): void {
+  if (typeof window === "undefined" || !txHash) return;
+  localStorage.setItem(lastTxKey(address), txHash);
+}
+
+export function loadLastVoucherTx(address: string): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(lastTxKey(address));
+}
+
 export function evenSplit(total: bigint, count: number): bigint | null {
   if (count < 1 || count > MAX_VOUCHER_CARDS) return null;
   if (total % BigInt(count) !== BigInt(0)) return null;

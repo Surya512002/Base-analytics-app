@@ -1,7 +1,6 @@
 import {
   createPublicClient,
   http,
-  parseAbiItem,
   type Address,
 } from "viem";
 import { base } from "viem/chains";
@@ -123,29 +122,54 @@ export async function readBatchCardStatuses(
 
 async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
   const client = getClient();
+  if (!client || !VOUCHER_CONTRACT) return [];
+
+  const normalized = creator.toLowerCase();
+  const ids = new Set<number>();
+
+  try {
+    const nextId = await client.readContract({
+      address: VOUCHER_CONTRACT as Address,
+      abi: VOUCHER_ABI,
+      functionName: "nextBatchId",
+    });
+    const max = Number(nextId);
+    for (let batchId = 1; batchId < max; batchId++) {
+      const live = await readOnchainBatch(batchId);
+      if (live?.creator === normalized) ids.add(batchId);
+    }
+  } catch {
+    /* RPC unavailable */
+  }
+
+  return [...ids].sort((a, b) => b - a);
+}
+
+async function discoverBatchIdsFromStoredTxs(creator: string): Promise<number[]> {
+  const client = getClient();
   if (!client) return [];
 
-  const creatorAddr = creator.toLowerCase() as Address;
-  try {
-    const logs = await client.getLogs({
-      address: VOUCHER_CONTRACT as Address,
-      event: parseAbiItem(
-        "event BatchCreated(uint256 indexed batchId, address indexed creator, address token, uint256 totalAmount, uint256 cardCount, string message)"
-      ),
-      args: { creator: creatorAddr },
-      fromBlock: BigInt(0),
-      toBlock: "latest",
-    });
+  const normalized = creator.toLowerCase();
+  const ids = new Set<number>();
 
-    const ids = new Set<number>();
-    for (const log of logs) {
-      const id = log.args.batchId;
-      if (id != null) ids.add(Number(id));
+  try {
+    const stored = await readStoredBatches();
+    const { recoverBatchFromTx } = await import("@/lib/voucher/tx-recovery");
+
+    for (const meta of stored) {
+      if (meta.creator.toLowerCase() !== normalized || !meta.txHash) continue;
+      const recovered = await recoverBatchFromTx(
+        client,
+        meta.txHash as `0x${string}`,
+        normalized
+      );
+      if (recovered) ids.add(recovered.batchId);
     }
-    return [...ids].sort((a, b) => b - a);
   } catch {
-    return [];
+    /* ignore */
   }
+
+  return [...ids];
 }
 
 function mergeMeta(
@@ -189,15 +213,22 @@ export async function listCreatorBatches(
   if (scanChain) {
     const chainIds = await discoverCreatorBatchIds(normalized);
     for (const id of chainIds) batchIds.add(id);
+    const txIds = await discoverBatchIdsFromStoredTxs(normalized);
+    for (const id of txIds) batchIds.add(id);
   }
 
   const batches: BatchLiveStatus[] = [];
   for (const batchId of [...batchIds].sort((a, b) => b - a)) {
     const live = await readOnchainBatch(batchId);
-    if (live && live.creator === normalized) {
-      batches.push(mergeMeta(live, metaById.get(batchId)));
-    } else if (metaById.has(batchId)) {
-      const meta = metaById.get(batchId)!;
+    const meta = metaById.get(batchId);
+    if (live && (live.creator === normalized || meta)) {
+      batches.push(
+        mergeMeta(
+          meta ? { ...live, creator: normalized } : live,
+          meta
+        )
+      );
+    } else if (meta) {
       batches.push({
         batchId: meta.batchId,
         creator: meta.creator,
@@ -253,4 +284,30 @@ export async function readBatchDetail(batchId: number): Promise<{
 
   const cards = await readBatchCardStatuses(batchId, batch.cardCount);
   return { batch: mergeMeta(batch, meta), cards };
+}
+
+/** Link a deposit tx to a wallet for My Cards recovery. */
+export async function recoverBatchForWallet(
+  txHash: string,
+  wallet: string
+): Promise<BatchLiveStatus | null> {
+  const client = getClient();
+  if (!client) return null;
+
+  const { recoverBatchFromTx } = await import("@/lib/voucher/tx-recovery");
+  const recovered = await recoverBatchFromTx(
+    client,
+    txHash as `0x${string}`,
+    wallet
+  );
+  if (!recovered) return null;
+
+  const live = await readOnchainBatch(recovered.batchId);
+  if (!live) return null;
+
+  return {
+    ...live,
+    creator: wallet.toLowerCase(),
+    txHash,
+  };
 }

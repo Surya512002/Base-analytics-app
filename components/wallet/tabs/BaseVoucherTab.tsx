@@ -39,13 +39,15 @@ import {
   loadPendingBatch,
   clearPendingBatch,
   savePendingBatch,
+  saveLastVoucherTx,
+  loadLastVoucherTx,
   parseCardId,
   parseEthAmount,
   parseUsdcAmount,
   saveLocalBatch,
   tokenToAsset,
 } from "@/lib/utils/voucher";
-import { confirmVoucherBatchCreate } from "@/lib/voucher/confirm-create";
+import { confirmVoucherBatchCreate, asConfirmClient } from "@/lib/voucher/confirm-create";
 import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
@@ -256,6 +258,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const [loadingBatchDetail, setLoadingBatchDetail] = useState<number | null>(null);
   const [mineStatusesLoading, setMineStatusesLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [recoverTxInput, setRecoverTxInput] = useState("");
+  const [recoverLoading, setRecoverLoading] = useState(false);
+  const [recoverError, setRecoverError] = useState("");
 
   const [viewCardId, setViewCardId] = useState("");
   const [viewSecret, setViewSecret] = useState("");
@@ -275,11 +280,59 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   const perCardWei = split?.valid ? split.perCard : null;
 
+  const upsertBatchInMap = useCallback(
+    (
+      merged: Map<number, StoredVoucherBatch>,
+      b: {
+        batchId: number;
+        asset: VoucherAsset;
+        totalAmount: string;
+        amountPerCard: string;
+        cardCount: number;
+        message: string;
+        creator: string;
+        createdAt?: number;
+        txHash?: string;
+      }
+    ) => {
+      const existing = merged.get(b.batchId);
+      merged.set(b.batchId, {
+        batchId: b.batchId,
+        asset: b.asset,
+        totalAmount: b.totalAmount,
+        amountPerCard: b.amountPerCard,
+        cardCount: b.cardCount,
+        message: b.message,
+        creator: b.creator,
+        createdAt: b.createdAt ?? existing?.createdAt ?? Date.now(),
+        txHash: b.txHash ?? existing?.txHash,
+        cards:
+          existing?.cards.some((c) => c.secret.length > 0)
+            ? existing.cards
+            : Array.from({ length: b.cardCount }, (_, i) => ({
+                batchId: b.batchId,
+                cardIndex: i,
+                cardId: formatCardId(b.batchId, i),
+                secret: existing?.cards[i]?.secret ?? "",
+              })),
+      });
+    },
+    []
+  );
+
   const refreshMyBatches = useCallback(async () => {
     if (!address) return;
     const local = loadLocalBatches(address);
     const merged = new Map(local.map((b) => [b.batchId, b]));
     const stats: Record<number, number> = {};
+
+    const pending = loadPendingBatch(address);
+    if (pending) {
+      upsertBatchInMap(merged, {
+        ...pending,
+        creator: address,
+      });
+    }
 
     try {
       const res = await fetch(
@@ -313,25 +366,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
         for (const b of summary.batches ?? []) {
           stats[b.batchId] = b.redeemedCount;
-          if (!merged.has(b.batchId)) {
-            merged.set(b.batchId, {
-              batchId: b.batchId,
-              asset: b.asset,
-              totalAmount: b.totalAmount,
-              amountPerCard: b.amountPerCard,
-              cardCount: b.cardCount,
-              message: b.message,
-              creator: b.creator,
-              createdAt: b.createdAt ?? Date.now(),
-              txHash: b.txHash,
-              cards: Array.from({ length: b.cardCount }, (_, i) => ({
-                batchId: b.batchId,
-                cardIndex: i,
-                cardId: formatCardId(b.batchId, i),
-                secret: "",
-              })),
-            });
-          }
+          upsertBatchInMap(merged, b);
         }
         setChainStats(stats);
         setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
@@ -341,13 +376,24 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       /* fall through to local + RPC */
     }
 
-    setCreatorSummary(null);
+    setCreatorSummary(
+      merged.size > 0
+        ? {
+            batchCount: merged.size,
+            totalCards: [...merged.values()].reduce((s, b) => s + b.cardCount, 0),
+            totalUnredeemed: [...merged.values()].reduce(
+              (s, b) => s + Math.max(0, b.cardCount - (stats[b.batchId] ?? 0)),
+              0
+            ),
+          }
+        : null
+    );
     if (!publicClient || !contractReady) {
-      setMyBatches(local);
+      setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
       return;
     }
 
-    for (const b of local) {
+    for (const b of merged.values()) {
       try {
         const result = await publicClient.readContract({
           address: VOUCHER_CONTRACT as `0x${string}`,
@@ -357,12 +403,12 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
         stats[b.batchId] = Number(result[4]);
       } catch {
-        stats[b.batchId] = 0;
+        stats[b.batchId] = stats[b.batchId] ?? 0;
       }
     }
     setChainStats(stats);
-    setMyBatches(local);
-  }, [address, publicClient, contractReady]);
+    setMyBatches([...merged.values()].sort((a, b) => b.batchId - a.batchId));
+  }, [address, publicClient, contractReady, upsertBatchInMap]);
 
   const loadBatchDetail = useCallback(async (batchId: number) => {
     setLoadingBatchDetail(batchId);
@@ -808,9 +854,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     async (batch: StoredVoucherBatch, txHash?: string) => {
       if (!address) return false;
 
-      const saved = { ...batch, txHash };
+      const saved = { ...batch, creator: address, txHash };
       saveLocalBatch(address, saved);
       clearPendingBatch(address);
+      if (txHash) saveLastVoucherTx(address, txHash);
       setCreatedCards(saved);
       setPendingCards(null);
       pendingBatchRef.current = null;
@@ -859,7 +906,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       confirmingCreateRef.current = true;
       try {
         const confirmed = await confirmVoucherBatchCreate(
-          publicClient,
+          asConfirmClient(publicClient),
           batch,
           address,
           txHash
@@ -885,7 +932,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
     void (async () => {
       const confirmed = await confirmVoucherBatchCreate(
-        publicClient,
+        asConfirmClient(publicClient),
         stored,
         address
       );
@@ -896,18 +943,112 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     })();
   }, [address, publicClient, contractReady, createdCards, finalizeCreatedBatch, showToast]);
 
+  const recoverBatchByTx = useCallback(
+    async (txHash: string) => {
+      if (!address || !publicClient) return false;
+      const hash = txHash.trim();
+      if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+        setRecoverError("Enter a valid transaction hash (0x…).");
+        return false;
+      }
+
+      setRecoverLoading(true);
+      setRecoverError("");
+      try {
+        const res = await fetch(
+          `/api/vouchers?creator=${encodeURIComponent(address)}&tx=${encodeURIComponent(hash)}&live=1`
+        );
+        const data = (await res.json()) as {
+          recovered?: boolean;
+          batch?: {
+            batchId: number;
+            asset: VoucherAsset;
+            totalAmount: string;
+            amountPerCard: string;
+            cardCount: number;
+            message: string;
+            redeemedCount: number;
+          };
+        };
+
+        if (!data.recovered || !data.batch) {
+          setRecoverError(
+            "No voucher batch found for your wallet in this transaction."
+          );
+          return false;
+        }
+
+        saveLastVoucherTx(address, hash);
+
+        const pending = loadPendingBatch(address);
+        if (pending) {
+          const confirmed = await confirmVoucherBatchCreate(
+            asConfirmClient(publicClient),
+            pending,
+            address,
+            hash
+          );
+          if (confirmed) {
+            createHandledRef.current = true;
+            await finalizeCreatedBatch(confirmed, hash);
+            showToast("✅ Voucher cards recovered with secrets!", hash);
+            return true;
+          }
+        }
+
+        const placeholder: StoredVoucherBatch = {
+          batchId: data.batch.batchId,
+          asset: data.batch.asset,
+          totalAmount: data.batch.totalAmount,
+          amountPerCard: data.batch.amountPerCard,
+          cardCount: data.batch.cardCount,
+          message: data.batch.message,
+          creator: address,
+          createdAt: Date.now(),
+          txHash: hash,
+          cards: Array.from({ length: data.batch.cardCount }, (_, i) => ({
+            batchId: data.batch!.batchId,
+            cardIndex: i,
+            cardId: formatCardId(data.batch!.batchId, i),
+            secret: "",
+          })),
+        };
+        saveLocalBatch(address, placeholder);
+        await fetch("/api/vouchers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            batchId: placeholder.batchId,
+            creator: address,
+            asset: placeholder.asset,
+            totalAmount: placeholder.totalAmount,
+            amountPerCard: placeholder.amountPerCard,
+            cardCount: placeholder.cardCount,
+            message: placeholder.message,
+            redeemedCount: data.batch.redeemedCount ?? 0,
+            createdAt: placeholder.createdAt,
+            txHash: hash,
+          } satisfies VoucherBatchMeta),
+        });
+        await refreshMyBatches();
+        showToast("✅ Voucher batch linked to your wallet", hash);
+        return true;
+      } catch {
+        setRecoverError("Recovery failed — try again in a moment.");
+        return false;
+      } finally {
+        setRecoverLoading(false);
+      }
+    },
+    [address, publicClient, finalizeCreatedBatch, refreshMyBatches, showToast]
+  );
+
   useEffect(() => {
-    if (!pendingCards || !address || !publicClient || createdCards || createHandledRef.current) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      if (createHandledRef.current) return;
-      void onCreateSuccess();
-    }, 4_000);
-
-    return () => window.clearInterval(interval);
-  }, [pendingCards, address, publicClient, createdCards, onCreateSuccess]);
+    if (view !== "mine" || !address || recoverLoading) return;
+    const lastTx = loadLastVoucherTx(address);
+    if (!lastTx || myBatches.length > 0) return;
+    void recoverBatchByTx(lastTx);
+  }, [view, address, myBatches.length, recoverLoading, recoverBatchByTx]);
 
   const handleApproveTx = useCallback(
     (status: LifecycleStatus) => {
@@ -927,6 +1068,19 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     [notifyVoucherTx, refreshUsdcAllowance]
   );
 
+  useEffect(() => {
+    if (!pendingCards || !address || !publicClient || createdCards || createHandledRef.current) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (createHandledRef.current) return;
+      void onCreateSuccess();
+    }, 4_000);
+
+    return () => window.clearInterval(interval);
+  }, [pendingCards, address, publicClient, createdCards, onCreateSuccess]);
+
   const handleFundTx = useCallback(
     (status: LifecycleStatus) => {
       if (
@@ -936,6 +1090,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         return;
       }
       const hash = txHashFromLifecycle(status);
+      if (hash && address) saveLastVoucherTx(address, hash);
       void (async () => {
         const ok = await onCreateSuccess(hash || undefined);
         if (ok) {
@@ -948,7 +1103,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         }
       })();
     },
-    [cardCount, notifyVoucherTx, onCreateSuccess, showToast]
+    [address, cardCount, notifyVoucherTx, onCreateSuccess, showToast]
   );
 
   const handleRedeemTx = useCallback(
@@ -1294,7 +1449,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               disabled={!contractReady || creating || !perCardWei}
               className="w-full py-3.5 rounded-xl font-black btn-primary disabled:opacity-40"
             >
-              {creating ? "Preparing…" : "Generate Cards & Fund"}
+              {creating ? "Preparing…" : "Create cards"}
             </button>
           ) : (
             <div className="space-y-3">
@@ -1349,18 +1504,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   >
                     <TransactionButton
                       className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
-                      text={`Approve ${exactDepositLabel} USDC`}
+                      text="Approve"
                     />
                   </Transaction>
                   <p className="text-[10px] text-slate-500 text-center">
-                    After approval, step 2 will appear to fund and create your cards.
+                    After approval, tap Deposit to create your cards.
                   </p>
                 </div>
               ) : usdcReadyToFund ? (
                 <div className="space-y-3">
                   {usdcApproveCompleted && (
                     <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest text-center">
-                      Step 2 of 2 · Fund & create cards
+                      Step 2 of 2 · Deposit
                     </p>
                   )}
                   <Transaction
@@ -1739,9 +1894,37 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
           {myBatches.length === 0 ? (
             <SectionCard>
-              <div className="py-8 text-center">
-                <CreditCard size={28} className="text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm font-bold">No vouchers yet. Create your first batch!</p>
+              <div className="py-6 text-center space-y-4">
+                <CreditCard size={28} className="text-slate-600 mx-auto" />
+                <p className="text-slate-400 text-sm font-bold">
+                  No vouchers yet — or your deposit needs to be linked.
+                </p>
+                <div className="text-left max-w-md mx-auto space-y-2 pt-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">
+                    Recover by deposit transaction hash
+                  </label>
+                  <input
+                    value={recoverTxInput}
+                    onChange={(e) => setRecoverTxInput(e.target.value.trim())}
+                    placeholder="0x…"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-white font-mono text-xs outline-none focus:border-cyan-500/40"
+                  />
+                  {recoverError && (
+                    <p className="text-red-400 text-xs font-bold">{recoverError}</p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={recoverLoading || !recoverTxInput}
+                    onClick={() => void recoverBatchByTx(recoverTxInput)}
+                    className="w-full py-3 rounded-xl font-black btn-primary disabled:opacity-40"
+                  >
+                    {recoverLoading ? "Recovering…" : "Recover my batch"}
+                  </button>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Paste the Base transaction hash from your wallet after depositing. Card
+                    secrets only appear if this browser still has them saved.
+                  </p>
+                </div>
               </div>
             </SectionCard>
           ) : (

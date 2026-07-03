@@ -3,8 +3,10 @@ import type { VoucherBatchMeta } from "@/lib/types/voucher";
 import {
   listCreatorBatches,
   readBatchDetail,
+  recoverBatchForWallet,
 } from "@/lib/voucher/batch-read";
 import { readStoredBatches, writeStoredBatches } from "@/lib/voucher/batch-store";
+import { VOUCHER_CONTRACT, BASE_RPC } from "@/lib/constants/env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,7 +16,19 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const creator = searchParams.get("creator")?.toLowerCase();
     const batchId = searchParams.get("batchId");
+    const tx = searchParams.get("tx")?.trim();
     const live = searchParams.get("live") === "1" || searchParams.get("live") === "true";
+
+    if (creator && tx && live && VOUCHER_CONTRACT && BASE_RPC) {
+      const batch = await recoverBatchForWallet(tx, creator);
+      if (!batch) {
+        return NextResponse.json({ recovered: false, batch: null });
+      }
+      return NextResponse.json({
+        recovered: true,
+        batch,
+      });
+    }
 
     if (creator) {
       if (live) {
