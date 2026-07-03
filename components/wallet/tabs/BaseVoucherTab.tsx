@@ -34,6 +34,7 @@ import {
   generateVoucherCards,
   hashVoucherSecret,
   loadLocalBatches,
+  loadAllLocalBatchesForDevice,
   loadPendingBatch,
   loadAnyPendingBatch,
   loadPendingBatchForTx,
@@ -50,6 +51,11 @@ import {
   tokenToAsset,
 } from "@/lib/utils/voucher";
 import { confirmVoucherBatchCreate, finalizePendingBatchFromTx, asConfirmClient } from "@/lib/voucher/confirm-create";
+import {
+  loadWalletCredentials,
+  saveWalletCredentials,
+  mergeServerSecrets,
+} from "@/lib/voucher/credentials-client";
 import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
@@ -296,9 +302,33 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         creator: string;
         createdAt?: number;
         txHash?: string;
+        cards?: StoredVoucherBatch["cards"];
       }
     ) => {
       const existing = merged.get(b.batchId);
+      const incoming = b.cards;
+      const incomingHasSecrets = incoming?.some((c) => c.secret?.trim());
+      const existingHasSecrets = existing?.cards.some((c) => c.secret?.trim());
+
+      let cards: StoredVoucherBatch["cards"];
+      if (existingHasSecrets && incomingHasSecrets) {
+        cards = existing!.cards.map((c, i) => ({
+          ...c,
+          secret: c.secret?.trim() || incoming![i]?.secret?.trim() || "",
+        }));
+      } else if (existingHasSecrets) {
+        cards = existing!.cards;
+      } else if (incomingHasSecrets) {
+        cards = incoming!;
+      } else {
+        cards = Array.from({ length: b.cardCount }, (_, i) => ({
+          batchId: b.batchId,
+          cardIndex: i,
+          cardId: formatCardId(b.batchId, i),
+          secret: existing?.cards[i]?.secret?.trim() || incoming?.[i]?.secret?.trim() || "",
+        }));
+      }
+
       merged.set(b.batchId, {
         batchId: b.batchId,
         asset: b.asset,
@@ -309,15 +339,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         creator: b.creator,
         createdAt: b.createdAt ?? existing?.createdAt ?? Date.now(),
         txHash: b.txHash ?? existing?.txHash,
-        cards:
-          existing?.cards.some((c) => c.secret.length > 0)
-            ? existing.cards
-            : Array.from({ length: b.cardCount }, (_, i) => ({
-                batchId: b.batchId,
-                cardIndex: i,
-                cardId: formatCardId(b.batchId, i),
-                secret: existing?.cards[i]?.secret ?? "",
-              })),
+        cards,
       });
     },
     []
@@ -325,9 +347,26 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   const refreshMyBatches = useCallback(async () => {
     if (!address) return;
-    const local = loadLocalBatches(address);
+    const local = loadAllLocalBatchesForDevice(address);
     const merged = new Map(local.map((b) => [b.batchId, b]));
     const stats: Record<number, number> = {};
+
+    let serverCredentials: StoredVoucherBatch[] = [];
+    try {
+      serverCredentials = await loadWalletCredentials(address);
+      for (const sb of serverCredentials) {
+        upsertBatchInMap(merged, { ...sb, creator: address });
+      }
+    } catch {
+      /* server credentials optional */
+    }
+
+    // Migrate any local secrets to server (e.g. batch 11 saved before server storage existed).
+    for (const b of merged.values()) {
+      if (b.cards.some((c) => c.secret?.trim())) {
+        void saveWalletCredentials(address, b);
+      }
+    }
 
     const pending = loadPendingBatch(address);
     if (pending) {
@@ -374,13 +413,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         setChainStats(stats);
 
         const withSecrets = [...merged.values()].map((b) => {
-          const mergedBatch = mergeSecretsIntoBatch(b);
+          const withServer = mergeServerSecrets(b, serverCredentials);
+          const mergedBatch = mergeSecretsIntoBatch(withServer);
           if (
             address &&
             mergedBatch.cards.some((c) => c.secret.length > 0) &&
             !b.cards.some((c) => c.secret.length > 0)
           ) {
             saveLocalBatch(address, mergedBatch);
+            void saveWalletCredentials(address, mergedBatch);
           }
           return mergedBatch;
         });
@@ -404,7 +445,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         : null
     );
     if (!publicClient || !contractReady) {
-      const withSecrets = [...merged.values()].map((b) => mergeSecretsIntoBatch(b));
+      const withSecrets = [...merged.values()].map((b) =>
+        mergeSecretsIntoBatch(mergeServerSecrets(b, serverCredentials))
+      );
       setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
       return;
     }
@@ -424,13 +467,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     }
     setChainStats(stats);
     const withSecrets = [...merged.values()].map((b) => {
-      const mergedBatch = mergeSecretsIntoBatch(b);
+      const withServer = mergeServerSecrets(b, serverCredentials);
+      const mergedBatch = mergeSecretsIntoBatch(withServer);
       if (
         address &&
         mergedBatch.cards.some((c) => c.secret.length > 0) &&
         !b.cards.some((c) => c.secret.length > 0)
       ) {
         saveLocalBatch(address, mergedBatch);
+        void saveWalletCredentials(address, mergedBatch);
       }
       return mergedBatch;
     });
@@ -511,6 +556,17 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       secret: withSecrets.cards[i]?.secret ?? "",
     }));
   }, []);
+
+  useEffect(() => {
+    if (!address || !createdCards || createdCards.cards.some((c) => c.secret)) return;
+    void (async () => {
+      const server = await loadWalletCredentials(address);
+      const match = server.find((b) => b.batchId === createdCards.batchId);
+      if (match?.cards.some((c) => c.secret)) {
+        setCreatedCards(mergeServerSecrets(createdCards, server));
+      }
+    })();
+  }, [address, createdCards]);
 
   useEffect(() => {
     if (view !== "mine" || myBatches.length === 0) return;
@@ -656,6 +712,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       setPendingCards(batch);
       pendingBatchRef.current = batch;
       savePendingBatch(address, batch);
+      void saveWalletCredentials(address, batch);
       createHandledRef.current = false;
       setUsdcApproveCompleted(false);
       notifiedTxRef.current = "";
@@ -927,6 +984,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         cards: cardsWithSecrets,
       };
       saveLocalBatch(address, saved);
+      void saveWalletCredentials(address, saved);
       clearPendingBatch(address, txHash);
       if (txHash) saveLastVoucherTx(address, txHash);
       setCreatedCards(saved);
@@ -1144,6 +1202,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           })),
         });
         saveLocalBatch(address, placeholder);
+        void saveWalletCredentials(address, placeholder);
         await fetch("/api/vouchers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1261,10 +1320,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       const pending = resolvePendingBatch();
       if (hash && pending) {
         savePendingBatchForTx(hash, pending);
-        if (address) saveLastVoucherTx(address, hash);
-      } else if (hash && address) {
-        saveLastVoucherTx(address, hash);
+        if (address) void saveWalletCredentials(address, pending);
       }
+      if (hash && address) saveLastVoucherTx(address, hash);
       setConfirmingDeposit(true);
       void (async () => {
         const ok = await onCreateSuccess(hash || undefined);

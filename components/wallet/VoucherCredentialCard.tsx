@@ -145,9 +145,9 @@ export default function VoucherCredentialCard({
           <div className="rounded-xl px-4 py-3.5 bg-amber-500/10 border-2 border-amber-500/30">
             <p className="text-sm font-bold text-amber-200">Secret not saved on this device</p>
             <p className="text-xs text-amber-200/75 mt-1 leading-relaxed">
-              This is not from clearing browser history — the app failed to store the secret when
-              your deposit confirmed (common in Base App). Only a hash is on-chain; the secret
-              cannot be recovered from the blockchain.
+              Secrets are stored by your wallet address on our server after you create cards.
+              This batch was created before that fix, or the save failed — the secret cannot be
+              read from the blockchain.
             </p>
           </div>
         </div>
