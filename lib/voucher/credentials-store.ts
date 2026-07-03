@@ -39,7 +39,7 @@ export async function readCreatorCredentials(
 export async function upsertCreatorBatch(
   creator: string,
   batch: StoredVoucherBatch
-): Promise<void> {
+): Promise<boolean> {
   let redis: Redis | null = null;
   try {
     redis = createRedis();
@@ -53,15 +53,18 @@ export async function upsertCreatorBatch(
       creator: normalized,
     };
 
+    const secretFrom = (cards: StoredVoucherBatch["cards"], cardIndex: number) =>
+      cards.find((c) => c.cardIndex === cardIndex)?.secret?.trim() || "";
+
     const idx = existing.findIndex((b) => b.batchId === entry.batchId);
     if (idx >= 0) {
       const prev = existing[idx];
       existing[idx] = {
         ...prev,
         ...entry,
-        cards: entry.cards.map((c, i) => ({
+        cards: entry.cards.map((c) => ({
           ...c,
-          secret: c.secret?.trim() || prev.cards[i]?.secret || "",
+          secret: c.secret?.trim() || secretFrom(prev.cards, c.cardIndex),
         })),
       };
     } else {
@@ -69,6 +72,10 @@ export async function upsertCreatorBatch(
     }
 
     await redis.set(key, JSON.stringify(existing));
+    return true;
+  } catch (err) {
+    console.error("[upsertCreatorBatch]", err);
+    return false;
   } finally {
     if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
   }

@@ -321,10 +321,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       const existingHasSecrets = existing?.cards.some((c) => c.secret?.trim());
 
       let cards: StoredVoucherBatch["cards"];
+      const secretFrom = (
+        list: StoredVoucherBatch["cards"] | undefined,
+        cardIndex: number
+      ) => list?.find((c) => c.cardIndex === cardIndex)?.secret?.trim() || "";
+
       if (existingHasSecrets && incomingHasSecrets) {
-        cards = existing!.cards.map((c, i) => ({
+        cards = existing!.cards.map((c) => ({
           ...c,
-          secret: c.secret?.trim() || incoming![i]?.secret?.trim() || "",
+          secret: c.secret?.trim() || secretFrom(incoming, c.cardIndex),
         }));
       } else if (existingHasSecrets) {
         cards = existing!.cards;
@@ -335,7 +340,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           batchId: b.batchId,
           cardIndex: i,
           cardId: formatCardId(b.batchId, i),
-          secret: existing?.cards[i]?.secret?.trim() || incoming?.[i]?.secret?.trim() || "",
+          secret:
+            secretFrom(existing?.cards, i) ||
+            secretFrom(incoming, i),
         }));
       }
 
@@ -365,6 +372,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     try {
       serverCredentials = await loadWalletCredentials(address);
       for (const sb of serverCredentials) {
+        if (sb.creator?.toLowerCase() !== address.toLowerCase()) continue;
         upsertBatchInMap(merged, { ...sb, creator: address });
       }
     } catch {
@@ -417,6 +425,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
 
         for (const b of summary.batches ?? []) {
+          if (b.creator?.toLowerCase() !== address.toLowerCase()) continue;
           stats[b.batchId] = b.redeemedCount;
           upsertBatchInMap(merged, b);
         }
@@ -693,9 +702,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       const result = (await res.json()) as {
         valid?: boolean;
         error?: string;
+        asset?: VoucherAsset;
         expectedBatchId?: number;
         perCard?: string;
-        total?: string;
+        totalAmount?: string;
+        totalInput?: string;
         cardCount?: number;
         credentialsSaved?: boolean;
         cards?: Array<{
@@ -710,13 +721,22 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         return;
       }
 
+      const totalWei = BigInt(result.totalAmount ?? "0");
+      const perCardWei = BigInt(result.perCard ?? "0");
+      if (totalWei <= BigInt(0) || perCardWei <= BigInt(0)) {
+        alert("Invalid deposit amount from server. Please try again.");
+        return;
+      }
+
+      const batchAsset = result.asset === "ETH" || result.asset === "USDC" ? result.asset : asset;
+
       if (!result.credentialsSaved) {
         console.warn("[BaseVoucher] Server did not confirm credential save — retrying");
         void saveWalletCredentials(address, {
           batchId: result.expectedBatchId,
-          asset,
-          totalAmount: result.total ?? totalAmount,
-          amountPerCard: result.perCard ?? "0",
+          asset: batchAsset,
+          totalAmount: totalWei.toString(),
+          amountPerCard: perCardWei.toString(),
           cardCount: result.cardCount ?? cardCount,
           message: message.trim(),
           creator: address,
@@ -730,8 +750,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         });
       }
 
-      const total = BigInt(result.total ?? "0");
-      const perCardWei = BigInt(result.perCard ?? "0");
+      if (batchAsset !== asset) {
+        setAsset(batchAsset);
+      }
+
       const cards = result.cards.map((c) => ({
         batchId: result.expectedBatchId!,
         cardIndex: c.cardIndex,
@@ -741,8 +763,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
       const batch: StoredVoucherBatch = {
         batchId: result.expectedBatchId,
-        asset,
-        totalAmount: total.toString(),
+        asset: batchAsset,
+        totalAmount: totalWei.toString(),
         amountPerCard: perCardWei.toString(),
         cardCount: result.cardCount ?? cardCount,
         message: message.trim(),
@@ -758,6 +780,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       fundTxRef.current = undefined;
       createHandledRef.current = false;
       setUsdcApproveCompleted(false);
+      setUsdcTxKey(0);
       notifiedTxRef.current = "";
     } catch (e) {
       console.error(e);
@@ -779,9 +802,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   /** Only show completed batch on Create tab — never while a new deposit is in progress. */
   const readyBatchOnCreate = pendingCards ? null : createdCards;
+  const pendingAsset = pendingCards?.asset ?? asset;
   const [usdcAllowance, setUsdcAllowance] = useState<bigint | null>(null);
   const [checkingAllowance, setCheckingAllowance] = useState(false);
   const [usdcApproveCompleted, setUsdcApproveCompleted] = useState(false);
+  const [usdcTxKey, setUsdcTxKey] = useState(0);
 
   const cancelPendingCreate = useCallback(() => {
     if (!address) return;
@@ -791,8 +816,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     clearCreateSession(address);
     fundTxRef.current = undefined;
     createHandledRef.current = false;
-    setUsdcApproveCompleted(false);
-    setConfirmingDeposit(false);
+      setUsdcApproveCompleted(false);
+      setUsdcTxKey(0);
+      setConfirmingDeposit(false);
   }, [address]);
 
   const notifyVoucherTx = useCallback(
@@ -808,7 +834,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   );
 
   useEffect(() => {
-    if (!address || !pendingCards || asset !== "USDC" || !publicClient) {
+    if (!address || !pendingCards || pendingAsset !== "USDC" || !publicClient) {
       setUsdcAllowance(null);
       return;
     }
@@ -833,10 +859,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     return () => {
       cancelled = true;
     };
-  }, [address, pendingCards, asset, publicClient, pendingTotal]);
+  }, [address, pendingCards, pendingAsset, publicClient, pendingTotal]);
 
   const createEthCall = useMemo(() => {
-    if (!pendingCards || !contractReady || asset !== "ETH") return [];
+    if (!pendingCards || !contractReady || pendingAsset !== "ETH") return [];
     return [
       encodeContractCall(
         VOUCHER_CONTRACT as `0x${string}`,
@@ -846,20 +872,20 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         pendingTotal
       ),
     ];
-  }, [pendingCards, contractReady, asset, pendingHashes, pendingTotal]);
+  }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
 
   const approveUsdcCall = useMemo(() => {
-    if (!pendingCards || !contractReady || asset !== "USDC") return [];
+    if (!pendingCards || !contractReady || pendingAsset !== "USDC") return [];
     return [
       encodeContractCall(USDC_BASE as `0x${string}`, ERC20_ABI, "approve", [
         VOUCHER_CONTRACT as `0x${string}`,
         pendingTotal,
       ]),
     ];
-  }, [pendingCards, contractReady, asset, pendingTotal]);
+  }, [pendingCards, contractReady, pendingAsset, pendingTotal]);
 
   const createUsdcCall = useMemo(() => {
-    if (!pendingCards || !contractReady || asset !== "USDC") return [];
+    if (!pendingCards || !contractReady || pendingAsset !== "USDC") return [];
     return [
       encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createUsdcBatch", [
         BigInt(pendingCards.cardCount),
@@ -868,13 +894,20 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         pendingTotal,
       ]),
     ];
-  }, [pendingCards, contractReady, asset, pendingHashes, pendingTotal]);
+  }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
+
+  const usdcAllowanceError =
+    pendingAsset === "USDC" && usdcAllowance === null && !checkingAllowance;
 
   const needsUsdcApproval =
-    usdcAllowance === null ? true : usdcAllowance < pendingTotal;
+    usdcAllowance !== null &&
+    usdcAllowance < pendingTotal &&
+    !usdcApproveCompleted;
 
   const usdcReadyToFund =
-    asset !== "USDC" || (usdcAllowance !== null && usdcAllowance >= pendingTotal);
+    pendingAsset !== "USDC" ||
+    usdcApproveCompleted ||
+    (usdcAllowance !== null && usdcAllowance >= pendingTotal);
 
   const refreshUsdcAllowance = useCallback(async () => {
     if (!address || !publicClient || !VOUCHER_CONTRACT) return;
@@ -1017,13 +1050,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   const resolvePendingBatch = useCallback(
     (txHash?: string): StoredVoucherBatch | null => {
-      if (!address) return loadAnyPendingBatch(txHash);
+      if (!address) return loadAnyPendingBatch(undefined, txHash);
       return (
         (txHash ? loadPendingBatchForTx(txHash) : null) ??
         pendingCards ??
         pendingBatchRef.current ??
         loadPendingBatch(address) ??
-        loadAnyPendingBatch(txHash)
+        loadAnyPendingBatch(address, txHash)
       );
     },
     [address, pendingCards]
@@ -1034,9 +1067,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       if (!address) return false;
 
       const pending = resolvePendingBatch(txHash);
-      const cardsWithSecrets = batch.cards.map((c, i) => ({
+      const cardsWithSecrets = batch.cards.map((c) => ({
         ...c,
-        secret: pending?.cards[i]?.secret ?? c.secret,
+        secret:
+          pending?.cards.find((p) => p.cardIndex === c.cardIndex)?.secret ??
+          c.secret,
       }));
       const hasSecrets = cardsWithSecrets.some((c) => c.secret.length > 0);
 
@@ -1097,7 +1132,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   const tryShowCardsWithSecrets = useCallback(
     async (txHash?: string): Promise<boolean> => {
-      if (!address || !publicClient || createHandledRef.current) return false;
+      if (!address || !publicClient || createHandledRef.current || confirmingCreateRef.current) {
+        return false;
+      }
 
       const pending = resolvePendingBatch(txHash);
       if (!pending) return false;
@@ -1106,7 +1143,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       if (session && pending.batchId !== session.batchId) return false;
 
       confirmingCreateRef.current = true;
-      setConfirmingDeposit(true);
+      if (txHash) setConfirmingDeposit(true);
       try {
         if (txHash) {
           const fromSecrets = await finalizePendingBatchFromTx(
@@ -1150,7 +1187,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     if (!address || !publicClient || !contractReady || pendingCards) return;
 
     const session = loadCreateSession(address);
-    const stored = loadPendingBatch(address) ?? loadAnyPendingBatch(session?.fundTxHash);
+    const stored = loadPendingBatch(address) ?? loadAnyPendingBatch(address, session?.fundTxHash);
     if (!stored) return;
     if (session && stored.batchId !== session.batchId) return;
 
@@ -1296,7 +1333,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     if (!lastTx || myBatches.length > 0) return;
 
     void (async () => {
-      const pending = loadAnyPendingBatch(lastTx);
+      const pending = loadAnyPendingBatch(address, lastTx);
       if (pending?.cards.some((c) => c.secret)) {
         const ok = await tryShowCardsWithSecrets(lastTx);
         if (ok) return;
@@ -1314,11 +1351,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         return;
       }
       notifyVoucherTx(
-        "✅ USDC approved — now confirm funding to create your cards",
+        "✅ USDC approved — now tap Deposit to create your cards",
         txHashFromLifecycle(status)
       );
       setUsdcApproveCompleted(true);
+      setUsdcTxKey((k) => k + 1);
       void refreshUsdcAllowance();
+      window.setTimeout(() => void refreshUsdcAllowance(), 2500);
     },
     [notifyVoucherTx, refreshUsdcAllowance]
   );
@@ -1328,9 +1367,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       return;
     }
 
+    const fundTx = fundTxRef.current ?? loadCreateSession(address)?.fundTxHash;
+    if (!fundTx) return;
+
     let attempts = 0;
     const maxAttempts = 30;
-    const fundTx = fundTxRef.current ?? loadCreateSession(address)?.fundTxHash;
 
     const interval = window.setInterval(() => {
       if (createHandledRef.current || attempts >= maxAttempts) return;
@@ -1416,10 +1457,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         setRedeemError("Redeem failed. Card may be used or secret invalid.");
         return;
       }
-      if (
-        status.statusName !== "success" &&
-        status.statusName !== "transactionLegacyExecuted"
-      ) {
+      if (status.statusName !== "success") {
         return;
       }
 
@@ -1429,9 +1467,6 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         hash,
         redeemNotifiedRef
       );
-
-      // Wait for confirmed success before clearing the form (avoids unmounting mid-flight)
-      if (status.statusName !== "success") return;
 
       const parsed = redeemParsedRef.current;
       const preview = redeemPreviewRef.current;
@@ -1506,7 +1541,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     [notifyVoucherTx, publicClient, refreshMyBatches, wallet, setTxKeys]
   );
 
-  const exactDepositLabel = formatVoucherAmount(asset, pendingTotal);
+  const exactDepositLabel = formatVoucherAmount(pendingAsset, pendingTotal);
 
   return (
     <div className="space-y-4 pb-8">
@@ -1567,12 +1602,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               <button
                 key={a}
                 type="button"
-                onClick={() => setAsset(a)}
+                disabled={!!pendingCards}
+                onClick={() => !pendingCards && setAsset(a)}
                 className={`py-3 rounded-xl font-black text-sm border transition ${
                   asset === a
                     ? "bg-cyan-500/15 border-cyan-500/35 text-cyan-300"
                     : "bg-white/[0.03] border-white/8 text-slate-500"
-                }`}
+                } ${pendingCards ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {a}
               </button>
@@ -1782,7 +1818,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   Card IDs and secret keys are generated now but{" "}
                   <span className="text-white font-bold">only shown after your deposit confirms</span>
-                  {asset === "USDC" && needsUsdcApproval
+                  {pendingAsset === "USDC" && needsUsdcApproval
                     ? " — USDC requires approval first, then a separate deposit confirmation."
                     : "."}
                 </p>
@@ -1791,20 +1827,20 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 </p>
               </div>
               <VoucherSecurityNotice
-                asset={asset}
+                asset={pendingAsset}
                 exactAmount={exactDepositLabel}
-                needsApproval={asset === "USDC" && needsUsdcApproval}
+                needsApproval={pendingAsset === "USDC" && needsUsdcApproval}
               />
               {confirmingDeposit && (
                 <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 animate-pulse">
                   <p className="text-sm font-black text-amber-200">Confirming deposit on Base…</p>
                   <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
-                    Waiting for your transaction to confirm. Keep this tab open — your Card ID and
-                    Secret will appear here automatically.
+                    Waiting for your deposit transaction to confirm. Keep this tab open — your Card
+                    ID and Secret will appear automatically.
                   </p>
                 </div>
               )}
-              {asset === "ETH" ? (
+              {pendingAsset === "ETH" ? (
                 <Transaction
                   chainId={base.id}
                   calls={prepareOnchainKitCalls(createEthCall)}
@@ -1824,12 +1860,21 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 >
                   Checking USDC allowance…
                 </button>
+              ) : usdcAllowanceError ? (
+                <button
+                  type="button"
+                  onClick={() => void refreshUsdcAllowance()}
+                  className="w-full py-3.5 rounded-xl font-black bg-amber-500/15 border border-amber-500/35 text-amber-200"
+                >
+                  Could not read USDC allowance — tap to retry
+                </button>
               ) : needsUsdcApproval ? (
                 <div className="space-y-3">
                   <p className="text-[10px] font-black text-amber-300 uppercase tracking-widest text-center">
-                    Step 1 of 2 · Approve USDC
+                    Step 1 of 2 · Approve {exactDepositLabel}
                   </p>
                   <Transaction
+                    key={`usdc-approve-${pendingCards.batchId}-${usdcTxKey}`}
                     chainId={base.id}
                     calls={prepareOnchainKitCalls(approveUsdcCall)}
                     capabilities={txCaps}
@@ -1837,21 +1882,20 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   >
                     <TransactionButton
                       className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
-                      text="Approve"
+                      text={`Approve ${exactDepositLabel}`}
                     />
                   </Transaction>
                   <p className="text-[10px] text-slate-500 text-center">
-                    After approval, tap Deposit to create your cards.
+                    Approve exactly {exactDepositLabel}, then tap Deposit in step 2.
                   </p>
                 </div>
               ) : usdcReadyToFund ? (
                 <div className="space-y-3">
-                  {usdcApproveCompleted && (
-                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest text-center">
-                      Step 2 of 2 · Deposit
-                    </p>
-                  )}
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest text-center">
+                    Step 2 of 2 · Deposit {exactDepositLabel}
+                  </p>
                   <Transaction
+                    key={`usdc-fund-${pendingCards.batchId}-${usdcTxKey}`}
                     chainId={base.id}
                     calls={prepareOnchainKitCalls(createUsdcCall)}
                     capabilities={txCaps}
@@ -1859,7 +1903,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   >
                     <TransactionButton
                       className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
-                      text="Deposit"
+                      text={`Deposit ${exactDepositLabel}`}
                     />
                   </Transaction>
                 </div>
@@ -1930,7 +1974,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               )}
 
               <div className="space-y-4">
-                {readyBatchOnCreate.cards.map((c, i) => (
+                {displayCardsForBatch(readyBatchOnCreate).map((c, i) => (
                   <VoucherCredentialCard
                     key={c.cardId}
                     cardId={c.cardId}
@@ -2039,15 +2083,6 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
               calls={prepareOnchainKitCalls(redeemCall)}
               capabilities={txCaps}
               onStatus={handleRedeemTx}
-              onSuccess={(r) => {
-                const hash =
-                  r.transactionReceipts[r.transactionReceipts.length - 1]?.transactionHash;
-                notifyVoucherTx(
-                  "Card redeemed to your wallet!",
-                  hash,
-                  redeemNotifiedRef
-                );
-              }}
             >
               <TransactionButton
                 className="w-full py-3.5 rounded-xl font-black btn-primary text-white"

@@ -50,13 +50,16 @@ export function mergeServerSecrets(
   const server = serverBatches.find((b) => b.batchId === batch.batchId);
   if (!server) return batch;
 
+  const serverSecret = (cardIndex: number) =>
+    server.cards.find((c) => c.cardIndex === cardIndex)?.secret?.trim() || "";
+
   return {
     ...batch,
     txHash: batch.txHash ?? server.txHash,
-    cards: batch.cards.map((c, i) => ({
+    cards: batch.cards.map((c) => ({
       ...c,
-      secret: c.secret?.trim() || server.cards[i]?.secret || "",
-      cardId: c.cardId || server.cards[i]?.cardId || c.cardId,
+      secret: c.secret?.trim() || serverSecret(c.cardIndex),
+      cardId: c.cardId || server.cards.find((x) => x.cardIndex === c.cardIndex)?.cardId || c.cardId,
     })),
   };
 }

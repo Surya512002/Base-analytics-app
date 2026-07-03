@@ -5,15 +5,12 @@ import {
   type StoredVoucherBatch,
 } from "@/lib/utils/voucher";
 import { readOnchainBatch } from "@/lib/voucher/batch-read";
-import {
-  recoverBatchFromTx,
-  type VoucherChainReader,
-} from "@/lib/voucher/tx-recovery";
+import { readNextBatchId } from "@/lib/voucher/agent-api";
 import { createPublicClient, http, type Address } from "viem";
 import { base } from "viem/chains";
 import { BASE_RPC } from "@/lib/constants/env";
 
-function getClient(): VoucherChainReader | null {
+function getClient() {
   if (!VOUCHER_CONTRACT || !BASE_RPC) return null;
   return createPublicClient({ chain: base, transport: http(BASE_RPC) });
 }
@@ -23,38 +20,30 @@ export async function verifyBatchCredentials(
   batch: StoredVoucherBatch,
   creator: string
 ): Promise<boolean> {
+  if (batch.creator?.toLowerCase() !== creator.toLowerCase()) return false;
+
   const cardsWithSecrets = batch.cards.filter((c) => c.secret?.trim());
   if (cardsWithSecrets.length === 0) return true;
 
   const live = await readOnchainBatch(batch.batchId);
   if (!live) {
-    // Pending batch — allow save before deposit confirms.
-    return true;
+    try {
+      const nextId = await readNextBatchId();
+      return batch.batchId === nextId;
+    } catch {
+      return false;
+    }
   }
 
   const client = getClient();
   if (!client || !VOUCHER_CONTRACT) return false;
 
-  const normalized = creator.toLowerCase();
-  const creatorOk =
-    live.creator === normalized ||
-    Boolean(
-      batch.txHash &&
-        (await recoverBatchFromTx(
-          client,
-          batch.txHash as `0x${string}`,
-          normalized
-        ))
-    );
-
-  if (!creatorOk) return false;
+  if (live.creator !== creator.toLowerCase()) return false;
 
   try {
     const checks = await Promise.all(
       cardsWithSecrets.map(async (card) => {
-        const onChainHash = await (
-          client as ReturnType<typeof createPublicClient>
-        ).readContract({
+        const onChainHash = await client.readContract({
           address: VOUCHER_CONTRACT as Address,
           abi: VOUCHER_ABI,
           functionName: "cardSecretHashes",

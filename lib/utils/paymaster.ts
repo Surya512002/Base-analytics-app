@@ -34,7 +34,8 @@ export function getOnchainKitCapabilities(
   if (connType === "coinbase" || connType === "farcaster") {
     return { ...BUILDER_DATA_SUFFIX_CAP };
   }
-  return getCapabilities();
+  // EOAs / injected wallets: builder suffix is appended in calldata — no paymaster.
+  return { ...BUILDER_DATA_SUFFIX_CAP };
 }
 
 export function usesWalletSendCallsAttribution(

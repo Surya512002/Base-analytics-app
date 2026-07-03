@@ -73,8 +73,14 @@ export interface PrepareCreateResult {
   contract: string;
   expectedBatchId: number;
   asset: VoucherAsset;
+  /** Human input, e.g. "1" for $1 USDC */
+  totalInput: string;
+  /** Base units string — USDC 6 decimals, ETH wei */
+  totalAmount: string;
+  /** @deprecated Prefer totalInput (display) and totalAmount (contracts) */
   total: string;
   cardCount: number;
+  /** Per-card amount in base units */
   perCard: string;
   perCardFormatted: string;
   message: string;
@@ -87,6 +93,7 @@ export interface PrepareCreateResult {
     secret: string;
     shareText: string;
   }>;
+  credentialsSaved?: boolean;
 }
 
 export async function prepareCreateBatch(
@@ -102,6 +109,8 @@ export async function prepareCreateBatch(
       contract: VOUCHER_CONTRACT,
       expectedBatchId: 0,
       asset,
+      totalInput: total,
+      totalAmount: "0",
       total,
       cardCount: cards,
       perCard: "0",
@@ -123,6 +132,8 @@ export async function prepareCreateBatch(
       contract: VOUCHER_CONTRACT,
       expectedBatchId: 0,
       asset,
+      totalInput: total,
+      totalAmount: "0",
       total,
       cardCount: cards,
       perCard: "0",
@@ -142,6 +153,8 @@ export async function prepareCreateBatch(
       contract: VOUCHER_CONTRACT,
       expectedBatchId: 0,
       asset,
+      totalInput: total,
+      totalAmount: split.total.toString(),
       total,
       cardCount: cards,
       perCard: split.perCard.toString(),
@@ -192,6 +205,7 @@ export async function prepareCreateBatch(
   }
 
   // Server-first: persist secrets by wallet address BEFORE user signs deposit (Base App / web / Farcaster).
+  let credentialsSaved = false;
   if (creator) {
     const stored: StoredVoucherBatch = {
       batchId: expectedBatchId,
@@ -204,10 +218,9 @@ export async function prepareCreateBatch(
       createdAt: Date.now(),
       cards: voucherCards,
     };
-    try {
-      await upsertCreatorBatch(creator, stored);
-    } catch (err) {
-      console.error("[prepareCreateBatch] failed to persist credentials:", err);
+    credentialsSaved = await upsertCreatorBatch(creator, stored);
+    if (!credentialsSaved) {
+      console.error("[prepareCreateBatch] failed to persist credentials for", creator);
     }
   }
 
@@ -217,6 +230,8 @@ export async function prepareCreateBatch(
     contract: VOUCHER_CONTRACT,
     expectedBatchId,
     asset,
+    totalInput: total,
+    totalAmount: split.total.toString(),
     total,
     cardCount: cards,
     perCard: split.perCard.toString(),
@@ -234,6 +249,7 @@ export async function prepareCreateBatch(
         message: trimmedMessage,
       }),
     })),
+    credentialsSaved,
   };
 }
 

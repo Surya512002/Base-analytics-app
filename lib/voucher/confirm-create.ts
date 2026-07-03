@@ -7,7 +7,6 @@ import {
 } from "@/lib/utils/voucher";
 import {
   batchCreatedInTx,
-  walletParticipatedInBatchTx,
   type VoucherChainReader,
 } from "@/lib/voucher/tx-recovery";
 
@@ -136,8 +135,8 @@ export async function findBatchIdBySecrets(
 async function verifyBatchOnChain(
   publicClient: ConfirmClient,
   batch: StoredVoucherBatch,
-  creator: string,
-  txHash?: string
+  _creator: string,
+  _txHash?: string
 ): Promise<boolean> {
   try {
     const onChain = (await publicClient.readContract({
@@ -146,24 +145,10 @@ async function verifyBatchOnChain(
       functionName: "getBatch",
       args: [BigInt(batch.batchId)],
     })) as readonly [string, string, bigint, bigint, bigint, string];
-    const [batchCreator, , , cardCount] = onChain;
+    const [, , , cardCount] = onChain;
     if (Number(cardCount) < batch.cardCount) return false;
 
-    if (await secretsMatchOnChain(publicClient, batch)) return true;
-    if (batchCreator.toLowerCase() === creator.toLowerCase()) return true;
-
-    if (
-      txHash &&
-      (await walletParticipatedInBatchTx(
-        publicClient,
-        txHash as `0x${string}`,
-        creator
-      ))
-    ) {
-      return true;
-    }
-
-    return false;
+    return secretsMatchOnChain(publicClient, batch);
   } catch {
     return false;
   }
@@ -180,30 +165,36 @@ export async function finalizePendingBatchFromTx(
 ): Promise<StoredVoucherBatch | null> {
   if (!VOUCHER_CONTRACT || !pending.cards.some((c) => c.secret)) return null;
 
+  let receiptReady = false;
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
-    try {
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: txHash as `0x${string}`,
-        timeout: RECEIPT_TIMEOUT_MS,
-      });
-      if (receipt.status !== "success") return null;
-
-      const fromReceipt = await batchCreatedInTx(
-        publicClient,
-        txHash as `0x${string}`
-      );
-
-      const matched = await findBatchIdBySecrets(
-        publicClient,
-        pending,
-        fromReceipt?.batchId
-      );
-      if (matched) {
-        return preservePendingSecrets(pending, { ...matched, txHash });
+    if (!receiptReady) {
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: txHash as `0x${string}`,
+          timeout: RECEIPT_TIMEOUT_MS,
+        });
+        if (receipt.status !== "success") return null;
+        receiptReady = true;
+      } catch {
+        await new Promise((r) => setTimeout(r, POLL_BASE_MS * (attempt + 1)));
+        continue;
       }
-    } catch {
-      /* receipt not ready yet */
     }
+
+    const fromReceipt = await batchCreatedInTx(
+      publicClient,
+      txHash as `0x${string}`
+    );
+
+    const matched = await findBatchIdBySecrets(
+      publicClient,
+      pending,
+      fromReceipt?.batchId
+    );
+    if (matched) {
+      return preservePendingSecrets(pending, { ...matched, txHash });
+    }
+
     await new Promise((r) => setTimeout(r, POLL_BASE_MS * (attempt + 1)));
   }
 

@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ...result,
-        credentialsSaved: Boolean(creator && result.valid),
+        credentialsSaved: Boolean(result.credentialsSaved),
       },
       { headers: { "Cache-Control": "no-store" } }
     );
