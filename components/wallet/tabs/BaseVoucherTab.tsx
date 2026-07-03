@@ -892,7 +892,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       if (!confirmed || createHandledRef.current) return;
       createHandledRef.current = true;
       await finalizeCreatedBatch(confirmed);
-      showToast("✅ Your voucher cards are ready!");
+      showToast("✅ Your voucher cards are ready!", "");
     })();
   }, [address, publicClient, contractReady, createdCards, finalizeCreatedBatch, showToast]);
 
