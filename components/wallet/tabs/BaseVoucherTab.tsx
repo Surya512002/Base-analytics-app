@@ -58,6 +58,12 @@ import {
   mergeServerSecrets,
 } from "@/lib/voucher/credentials-client";
 import {
+  saveCreateSession,
+  loadCreateSession,
+  clearCreateSession,
+  setSessionFundTx,
+} from "@/lib/voucher/create-session";
+import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
 } from "@/lib/utils/paymaster";
@@ -244,6 +250,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const redeemPreviewRef = useRef<RedeemPreview | null>(null);
   const createHandledRef = useRef(false);
   const confirmingCreateRef = useRef(false);
+  const fundTxRef = useRef<string | undefined>(undefined);
 
   const [redeemCardId, setRedeemCardId] = useState("");
   const [redeemSecret, setRedeemSecret] = useState("");
@@ -731,7 +738,6 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         secret: c.secret,
         cardId: c.cardId,
       }));
-      const hashes = cards.map((c) => hashVoucherSecret(c.secret));
 
       const batch: StoredVoucherBatch = {
         batchId: result.expectedBatchId,
@@ -748,11 +754,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       setPendingCards(batch);
       pendingBatchRef.current = batch;
       savePendingBatch(address, batch);
+      saveCreateSession(address, { batchId: batch.batchId, startedAt: Date.now() });
+      fundTxRef.current = undefined;
       createHandledRef.current = false;
       setUsdcApproveCompleted(false);
       notifiedTxRef.current = "";
-      setPendingHashes(hashes);
-      setPendingTotal(total);
     } catch (e) {
       console.error(e);
       alert("Could not prepare voucher batch. Check contract connection.");
@@ -761,11 +767,33 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     }
   };
 
-  const [pendingHashes, setPendingHashes] = useState<`0x${string}`[]>([]);
-  const [pendingTotal, setPendingTotal] = useState<bigint>(BigInt(0));
+  const pendingHashes = useMemo((): `0x${string}`[] => {
+    if (!pendingCards?.cards.length) return [];
+    return pendingCards.cards.map((c) => hashVoucherSecret(c.secret));
+  }, [pendingCards]);
+
+  const pendingTotal = useMemo(() => {
+    if (!pendingCards) return BigInt(0);
+    return BigInt(pendingCards.totalAmount);
+  }, [pendingCards]);
+
+  /** Only show completed batch on Create tab — never while a new deposit is in progress. */
+  const readyBatchOnCreate = pendingCards ? null : createdCards;
   const [usdcAllowance, setUsdcAllowance] = useState<bigint | null>(null);
   const [checkingAllowance, setCheckingAllowance] = useState(false);
   const [usdcApproveCompleted, setUsdcApproveCompleted] = useState(false);
+
+  const cancelPendingCreate = useCallback(() => {
+    if (!address) return;
+    setPendingCards(null);
+    pendingBatchRef.current = null;
+    clearPendingBatch(address);
+    clearCreateSession(address);
+    fundTxRef.current = undefined;
+    createHandledRef.current = false;
+    setUsdcApproveCompleted(false);
+    setConfirmingDeposit(false);
+  }, [address]);
 
   const notifyVoucherTx = useCallback(
     (msg: string, hash?: string, dedupeRef: MutableRefObject<string> = notifiedTxRef) => {
@@ -814,11 +842,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         VOUCHER_CONTRACT as `0x${string}`,
         VOUCHER_ABI,
         "createEthBatch",
-        [BigInt(cardCount), pendingHashes, message.trim()],
+        [BigInt(pendingCards.cardCount), pendingHashes, pendingCards.message.trim()],
         pendingTotal
       ),
     ];
-  }, [pendingCards, contractReady, asset, cardCount, pendingHashes, message, pendingTotal]);
+  }, [pendingCards, contractReady, asset, pendingHashes, pendingTotal]);
 
   const approveUsdcCall = useMemo(() => {
     if (!pendingCards || !contractReady || asset !== "USDC") return [];
@@ -834,13 +862,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
     if (!pendingCards || !contractReady || asset !== "USDC") return [];
     return [
       encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createUsdcBatch", [
-        BigInt(cardCount),
+        BigInt(pendingCards.cardCount),
         pendingHashes,
-        message.trim(),
+        pendingCards.message.trim(),
         pendingTotal,
       ]),
     ];
-  }, [pendingCards, contractReady, asset, cardCount, pendingHashes, message, pendingTotal]);
+  }, [pendingCards, contractReady, asset, pendingHashes, pendingTotal]);
 
   const needsUsdcApproval =
     usdcAllowance === null ? true : usdcAllowance < pendingTotal;
@@ -1021,6 +1049,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       saveLocalBatch(address, saved);
       void saveWalletCredentials(address, saved);
       clearPendingBatch(address, txHash);
+      clearCreateSession(address);
+      fundTxRef.current = undefined;
       if (txHash) saveLastVoucherTx(address, txHash);
       setCreatedCards(saved);
       setPendingCards(null);
@@ -1072,6 +1102,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       const pending = resolvePendingBatch(txHash);
       if (!pending) return false;
 
+      const session = address ? loadCreateSession(address) : null;
+      if (session && pending.batchId !== session.batchId) return false;
+
       confirmingCreateRef.current = true;
       setConfirmingDeposit(true);
       try {
@@ -1114,40 +1147,17 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   );
 
   useEffect(() => {
-    if (!address) return;
-    const local = loadLocalBatches(address);
-    const withSecrets = local.find((b) => b.cards.some((c) => c.secret.length > 0));
-    if (withSecrets && !createdCards) {
-      setCreatedCards(withSecrets);
-      setView("create");
-    }
-  }, [address, createdCards]);
+    if (!address || !publicClient || !contractReady || pendingCards) return;
 
-  useEffect(() => {
-    if (!address || !publicClient || !contractReady || createdCards) return;
-    const stored = resolvePendingBatch();
+    const session = loadCreateSession(address);
+    const stored = loadPendingBatch(address) ?? loadAnyPendingBatch(session?.fundTxHash);
     if (!stored) return;
+    if (session && stored.batchId !== session.batchId) return;
 
     pendingBatchRef.current = stored;
+    fundTxRef.current = session?.fundTxHash;
     setPendingCards(stored);
-
-    const lastTx = loadLastVoucherTx(address);
-
-    void (async () => {
-      const ok = await tryShowCardsWithSecrets(lastTx ?? undefined);
-      if (ok) {
-        showToast("✅ Your voucher cards are ready!", lastTx ?? "");
-      }
-    })();
-  }, [
-    address,
-    publicClient,
-    contractReady,
-    createdCards,
-    resolvePendingBatch,
-    tryShowCardsWithSecrets,
-    showToast,
-  ]);
+  }, [address, publicClient, contractReady, pendingCards]);
 
   const recoverBatchByTx = useCallback(
     async (txHash: string) => {
@@ -1314,22 +1324,22 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   );
 
   useEffect(() => {
-    if (!pendingCards || !address || !publicClient || createdCards || createHandledRef.current) {
+    if (!pendingCards || !address || !publicClient || createHandledRef.current) {
       return;
     }
 
-    const lastTx = loadLastVoucherTx(address);
     let attempts = 0;
     const maxAttempts = 30;
+    const fundTx = fundTxRef.current ?? loadCreateSession(address)?.fundTxHash;
 
     const interval = window.setInterval(() => {
       if (createHandledRef.current || attempts >= maxAttempts) return;
       attempts += 1;
-      void onCreateSuccess(lastTx ?? undefined);
+      void onCreateSuccess(fundTx);
     }, 4_000);
 
     return () => window.clearInterval(interval);
-  }, [pendingCards, address, publicClient, createdCards, onCreateSuccess]);
+  }, [pendingCards, address, publicClient, onCreateSuccess]);
 
   useEffect(() => {
     const hasPendingSecrets =
@@ -1358,14 +1368,21 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       const pending = resolvePendingBatch();
       if (hash && pending) {
         savePendingBatchForTx(hash, pending);
-        if (address) void saveWalletCredentials(address, pending);
+        if (address) {
+          void saveWalletCredentials(address, pending);
+          setSessionFundTx(address, hash);
+        }
+        fundTxRef.current = hash;
       }
       if (hash && address) saveLastVoucherTx(address, hash);
       setConfirmingDeposit(true);
       void (async () => {
         const ok = await onCreateSuccess(hash || undefined);
         if (ok) {
-          notifyVoucherTx(`✅ ${cardCount} voucher cards ready!`, hash);
+          notifyVoucherTx(
+            `✅ ${pending?.cardCount ?? cardCount} voucher cards ready!`,
+            hash
+          );
         } else if (hash) {
           const recovered = await recoverBatchByTx(hash);
           if (!recovered) {
@@ -1740,6 +1757,26 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             </button>
           ) : (
             <div className="space-y-3">
+              <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-black text-cyan-200">
+                      Batch #{pendingCards.batchId} · ready to fund
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {formatVoucherAmount(pendingCards.asset, BigInt(pendingCards.totalAmount))} ·{" "}
+                      {pendingCards.cardCount} card{pendingCards.cardCount === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={cancelPendingCreate}
+                    className="text-[10px] font-black text-slate-500 hover:text-red-400 uppercase shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
               <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/8 px-4 py-3">
                 <p className="text-sm font-black text-cyan-200">Confirm in your wallet to create cards</p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
@@ -1838,16 +1875,16 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             </div>
           )}
 
-          {createdCards && (
+          {readyBatchOnCreate && (
             <div
               ref={createdSectionRef}
               className="border-2 border-emerald-400/40 bg-emerald-500/10 rounded-2xl p-4 sm:p-5 space-y-4 mt-4 scroll-mt-24"
             >
-              {!createdCards.cards.some((c) => c.secret) && (
+              {!readyBatchOnCreate.cards.some((c) => c.secret) && (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
                   <p className="text-sm font-black text-amber-200">Card ID only — secret not stored</p>
                   <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
-                    Your deposit is on Base (Batch #{createdCards.batchId}). The app failed to
+                    Your deposit is on Base (Batch #{readyBatchOnCreate.batchId}). The app failed to
                     save the secret when your deposit confirmed — this is not from clearing history.
                     If you still have the secret from a screenshot or copy, you can redeem manually.
                   </p>
@@ -1858,11 +1895,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                   <div className="flex items-center gap-2 text-emerald-400 font-black text-base sm:text-lg">
                     <CheckCircle size={20} /> Your cards are ready!
                   </div>
-                  <p className="text-sm text-white font-bold mt-1">Batch #{createdCards.batchId}</p>
+                  <p className="text-sm text-white font-bold mt-1">Batch #{readyBatchOnCreate.batchId}</p>
                   <p className="text-xs text-cyan-300 font-bold mt-1">
-                    {createdCards.cardCount} cards
-                    {batchCardStatuses[createdCards.batchId]
-                      ? ` · ${batchCardStatuses[createdCards.batchId].filter((c) => !c.redeemed).length} not redeemed yet`
+                    {readyBatchOnCreate.cardCount} cards
+                    {batchCardStatuses[readyBatchOnCreate.batchId]
+                      ? ` · ${batchCardStatuses[readyBatchOnCreate.batchId].filter((c) => !c.redeemed).length} not redeemed yet`
                       : " · syncing redemption status…"}
                   </p>
                   <p className="text-xs text-amber-200 font-bold mt-2">
@@ -1872,15 +1909,15 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => copyText(formatBatchShareText(createdCards), `batch-${createdCards.batchId}`)}
+                    onClick={() => copyText(formatBatchShareText(readyBatchOnCreate), `batch-${readyBatchOnCreate.batchId}`)}
                     className="flex items-center justify-center gap-2 text-sm font-black px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15"
                   >
-                    {copied === `batch-${createdCards.batchId}` ? <CheckCircle size={16} /> : <Copy size={16} />}
+                    {copied === `batch-${readyBatchOnCreate.batchId}` ? <CheckCircle size={16} /> : <Copy size={16} />}
                     Copy all cards
                   </button>
                   <button
                     type="button"
-                    onClick={() => shareText(formatBatchShareText(createdCards), `share-batch-${createdCards.batchId}`)}
+                    onClick={() => shareText(formatBatchShareText(readyBatchOnCreate), `share-batch-${readyBatchOnCreate.batchId}`)}
                     className="flex items-center justify-center gap-2 text-sm font-black px-4 py-3 rounded-xl btn-primary"
                   >
                     <Share2 size={16} /> Share all
@@ -1888,34 +1925,34 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
                 </div>
               </div>
 
-              {createdCards.message && (
-                <p className="text-sm text-slate-300 italic px-1">&quot;{createdCards.message}&quot;</p>
+              {readyBatchOnCreate.message && (
+                <p className="text-sm text-slate-300 italic px-1">&quot;{readyBatchOnCreate.message}&quot;</p>
               )}
 
               <div className="space-y-4">
-                {createdCards.cards.map((c, i) => (
+                {readyBatchOnCreate.cards.map((c, i) => (
                   <VoucherCredentialCard
                     key={c.cardId}
                     cardId={c.cardId}
                     secret={c.secret}
-                    asset={createdCards.asset}
-                    amountPerCard={BigInt(createdCards.amountPerCard)}
+                    asset={readyBatchOnCreate.asset}
+                    amountPerCard={BigInt(readyBatchOnCreate.amountPerCard)}
                     index={i}
-                    total={createdCards.cardCount}
+                    total={readyBatchOnCreate.cardCount}
                     copied={copied}
                     onCopy={copyText}
                     onShare={shareText}
-                    shareText={formatCardShareText(c, createdCards)}
+                    shareText={formatCardShareText(c, readyBatchOnCreate)}
                     redeemed={isCardRedeemed(c.cardId)}
                     statusLoading={
                       !isCardStatusKnown(c.cardId) &&
-                      (mineStatusesLoading || loadingBatchDetail === createdCards.batchId)
+                      (mineStatusesLoading || loadingBatchDetail === readyBatchOnCreate.batchId)
                     }
                   />
                 ))}
               </div>
 
-              <VoucherSharePanel batch={createdCards} />
+              <VoucherSharePanel batch={readyBatchOnCreate} />
             </div>
           )}
           </div>
