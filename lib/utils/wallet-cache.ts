@@ -1,7 +1,7 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 
 /** Bump when cache shape or activity logic changes — clears stale local snapshots. */
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface StoredWalletCache {

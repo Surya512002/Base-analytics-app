@@ -30,7 +30,7 @@ function mapBasescanTx(tx: BlockscoutTx): AlchemyTransfer {
 export async function fetchBasescanTxs(
   address: string,
   apiKey: string,
-  maxPages = 10
+  maxPages = 25
 ): Promise<AlchemyTransfer[]> {
   if (!apiKey) return [];
 

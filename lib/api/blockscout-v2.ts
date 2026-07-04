@@ -11,8 +11,8 @@ interface Paginated<T> {
 
 async function fetchBlockscoutPages<T>(
   basePath: string,
-  maxPages = 6,
-  deadlineMs = 20_000
+  maxPages = 40,
+  deadlineMs = 45_000
 ): Promise<T[]> {
   const all: T[] = [];
   let path = basePath;
@@ -131,18 +131,18 @@ export async function fetchBlockscoutV2Activity(
     const [tokens, internals, externals] = await Promise.all([
       fetchBlockscoutPages<Parameters<typeof mapTokenTransfer>[0]>(
         `${base}/token-transfers`,
-        15,
-        18_000
+        40,
+        45_000
       ),
       fetchBlockscoutPages<Parameters<typeof mapInternalTx>[0]>(
         `${base}/internal-transactions`,
-        15,
-        18_000
+        40,
+        45_000
       ),
       fetchBlockscoutPages<Parameters<typeof mapExternalTx>[0]>(
         `${base}/transactions`,
-        8,
-        12_000
+        30,
+        45_000
       ),
     ]);
 

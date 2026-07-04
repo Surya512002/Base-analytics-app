@@ -850,7 +850,7 @@ export function useWalletApp() {
 
         try {
           const [result, ci] = await Promise.all([
-            fetchWalletAnalysis(address, false),
+            fetchWalletAnalysis(address, true),
             fetchCheckInStatus(address),
           ]);
           if (result) mergeAndApply(result, ci);

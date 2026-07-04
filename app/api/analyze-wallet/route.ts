@@ -4,7 +4,7 @@ import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const CACHE_TTL = 600;
 
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
-  const cacheKey = `analyze-wallet:v3:${address}`;
+  const cacheKey = `analyze-wallet:v4:${address}`;
 
   if (!refresh) {
     const cached = await cacheGet<

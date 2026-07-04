@@ -30,8 +30,8 @@ async function fetchUserOpLogs(
   const blockTimestampCache = new Map<bigint, string>();
   const transfers: AlchemyTransfer[] = [];
   const seenHashes = new Set<string>();
-  const maxChunks = options.maxChunks ?? 8;
-  const deadline = Date.now() + (options.timeoutMs ?? 12_000);
+  const maxChunks = options.maxChunks ?? 20;
+  const deadline = Date.now() + (options.timeoutMs ?? 35_000);
 
   let latest: bigint;
   try {
@@ -116,11 +116,8 @@ export async function fetchUserOperationActivity(
   address: string,
   options: UserOpFetchOptions = {}
 ): Promise<AlchemyTransfer[]> {
-  const timeoutMs = options.timeoutMs ?? 12_000;
-  return Promise.race([
-    fetchUserOpLogs(address, options),
-    new Promise<AlchemyTransfer[]>((resolve) =>
-      setTimeout(() => resolve([]), timeoutMs)
-    ),
-  ]);
+  return fetchUserOpLogs(address, {
+    timeoutMs: options.timeoutMs ?? 35_000,
+    maxChunks: options.maxChunks ?? 20,
+  });
 }

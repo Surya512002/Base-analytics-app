@@ -4,6 +4,7 @@ import {
 } from "@/lib/api/alchemy";
 import {
   fetchBlockscoutInternalTxs,
+  fetchBlockscoutTokenTxs,
   fetchBlockscoutTxs,
 } from "@/lib/api/blockscout";
 import { fetchBlockscoutV2Activity } from "@/lib/api/blockscout-v2";
@@ -17,15 +18,14 @@ export interface WalletTxSources {
   alchemyIn: number;
   blockscoutV1: number;
   blockscoutInternalV1: number;
+  blockscoutTokenV1: number;
   blockscoutV2: number;
   userOperations: number;
   basescan: number;
   merged: number;
 }
 
-const ALCHEMY_PAGES = 20;
-
-/** All sources merged — matches pre-change pipeline + v2 smart wallet + paymaster user ops. */
+/** All sources merged — paginates until exhausted (within safety caps). */
 export async function fetchWalletTransfersMerged(
   address: string,
   basescanKey = ""
@@ -35,16 +35,18 @@ export async function fetchWalletTransfersMerged(
     alchemyIn,
     blockscoutTxs,
     internalTxs,
+    tokenTxs,
     blockscoutV2,
     userOps,
     basescanTxs,
   ] = await Promise.all([
-    fetchAlchemyTxsFast(address, ALCHEMY_PAGES).catch(() => []),
-    fetchAlchemyTxsIncoming(address, ALCHEMY_PAGES).catch(() => []),
-    fetchBlockscoutTxs(address, 10).catch(() => []),
-    fetchBlockscoutInternalTxs(address, 10).catch(() => []),
+    fetchAlchemyTxsFast(address).catch(() => []),
+    fetchAlchemyTxsIncoming(address).catch(() => []),
+    fetchBlockscoutTxs(address).catch(() => []),
+    fetchBlockscoutInternalTxs(address).catch(() => []),
+    fetchBlockscoutTokenTxs(address).catch(() => []),
     fetchBlockscoutV2Activity(address).catch(() => []),
-    fetchUserOperationActivity(address, { timeoutMs: 12_000 }).catch(() => []),
+    fetchUserOperationActivity(address).catch(() => []),
     fetchBasescanTxs(address, basescanKey).catch(() => []),
   ]);
 
@@ -53,6 +55,7 @@ export async function fetchWalletTransfersMerged(
     alchemyIn,
     blockscoutTxs,
     internalTxs,
+    tokenTxs,
     basescanTxs,
     blockscoutV2,
     userOps,
@@ -65,6 +68,7 @@ export async function fetchWalletTransfersMerged(
       alchemyIn: alchemyIn.length,
       blockscoutV1: blockscoutTxs.length,
       blockscoutInternalV1: internalTxs.length,
+      blockscoutTokenV1: tokenTxs.length,
       blockscoutV2: blockscoutV2.length,
       userOperations: userOps.length,
       basescan: basescanTxs.length,
