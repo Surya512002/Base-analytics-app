@@ -27,12 +27,32 @@ function isShellWallet(w: WalletData): boolean {
   );
 }
 
-/** Merge metrics — keep best counts; prefer the richer analyze snapshot for score. */
+/** Reject partial quick snapshots that would crush swap/volume score for active wallets. */
+function isDegradedMetricsSnapshot(prior: WalletData, next: WalletData): boolean {
+  if (isShellWallet(prior)) return false;
+  const priorEth = parseFloat(prior.ethVolume) || 0;
+  const nextEth = parseFloat(next.ethVolume) || 0;
+  const priorSwap = prior.dexVolumeUSD ?? 0;
+  const nextSwap = next.dexVolumeUSD ?? 0;
+  if (next.score < prior.score - 5) return true;
+  if (priorEth > 1 && nextEth < priorEth * 0.4) return true;
+  if (priorSwap > 1000 && nextSwap < priorSwap * 0.4) return true;
+  return false;
+}
+
+/** Merge metrics — keep best counts; never let a thin resync replace a rich snapshot. */
 export function mergeWalletMetricsMax(
   prior: WalletData,
   next: WalletData
 ): WalletData {
   if (isShellWallet(prior)) return next;
+  if (isDegradedMetricsSnapshot(prior, next)) {
+    return {
+      ...prior,
+      basename: next.basename || prior.basename,
+      checkInCount: Math.max(prior.checkInCount, next.checkInCount),
+    };
+  }
 
   const usePriorHeatmap = prior.uniqueDays > next.uniqueDays;
   const scoreComponents = maxScoreComponents(

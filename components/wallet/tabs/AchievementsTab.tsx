@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Activity, ArrowRightLeft, BadgeCheck, BarChart3, BrainCircuit, Calendar,
   CheckCircle, ChevronDown, ChevronUp, Clock, Coins, Copy, CreditCard,
@@ -23,6 +24,7 @@ import { DEX_ROUTERS } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { XP_PER_BADGE_MINT } from "@/lib/utils/badge-mint-xp";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
+import { fetchAlchemyNftTotalCount } from "@/lib/utils/nft-stats";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import AchievementsHero from "@/components/wallet/AchievementsHero";
 import StaggerIn from "@/components/ui/StaggerIn";
@@ -39,16 +41,35 @@ export default function AchievementsTab({ app }: { app: WalletAppState }) {
     shareAll, leaderboard, lbLoading, doneQuests,
   } = app;
 
-const getCatValue = (id: string, wallet: NonNullable<WalletAppState["wallet"]>, boosts: number) => {
-  const m: Record<string, number> = {
-    score: wallet.score, age: wallet.daysOnBase, name: wallet.basename ? 1 : 0,
-    days: wallet.uniqueDays, contract: wallet.contractInteractions,
-    volume: parseFloat(wallet.ethVolume), txs: wallet.txCount, swaps: wallet.swapCount,
-    nfts: wallet.nftCount, streak: wallet.longestStreak, boosts,
-  };
-  return m[id] ?? 0;
-};
+  const [heldNftCount, setHeldNftCount] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (!wallet) return;
+    void fetchAlchemyNftTotalCount(wallet.address)
+      .then((n) => setHeldNftCount(n > 0 ? n : null))
+      .catch(() => setHeldNftCount(null));
+  }, [wallet?.address]);
+
+  const getCatValue = (
+    id: string,
+    w: NonNullable<WalletAppState["wallet"]>,
+    boostCount: number
+  ) => {
+    const m: Record<string, number> = {
+      score: w.score,
+      age: w.daysOnBase,
+      name: w.basename ? 1 : 0,
+      days: w.uniqueDays,
+      contract: w.contractInteractions,
+      volume: parseFloat(w.ethVolume),
+      txs: w.txCount,
+      swaps: w.swapCount,
+      nfts: Math.max(w.nftCount, heldNftCount ?? 0),
+      streak: w.longestStreak,
+      boosts: boostCount,
+    };
+    return m[id] ?? 0;
+  };
 
 if (!wallet) return null;
 

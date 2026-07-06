@@ -4,6 +4,9 @@ import { cacheGet, cacheSet } from "@/lib/redis-cache";
 /** Shared analyze snapshot — works across Vercel serverless instances (unlike in-memory). */
 export const ANALYZE_CACHE_TTL_SECONDS = 3600;
 
+/** Bump when analyze output shape changes — drops stale low-quality snapshots. */
+export const ANALYZE_CACHE_VERSION = "v18";
+
 /** In-process fallback when Redis is slow/unavailable — instant reconnect in dev. */
 const memAnalyze = new Map<
   string,
@@ -11,7 +14,7 @@ const memAnalyze = new Map<
 >();
 
 export function analyzeCacheKey(address: string): string {
-  return `analyze-wallet:v17:${address.toLowerCase()}`;
+  return `analyze-wallet:${ANALYZE_CACHE_VERSION}:${address.toLowerCase()}`;
 }
 
 export async function getCachedAnalyze(
@@ -39,6 +42,7 @@ export async function setCachedAnalyze(
   result: AnalyzeWalletResult & { historyComplete?: boolean },
   ttlSeconds = ANALYZE_CACHE_TTL_SECONDS
 ): Promise<void> {
+  if (!isUsableAnalyzeCache(result)) return;
   const key = analyzeCacheKey(address);
   memAnalyze.set(key, {
     data: result,
@@ -55,5 +59,13 @@ export function isUsableAnalyzeCache(
   if (!w?.address) return false;
   if (w.recommendation === "Fetching onchain data…") return false;
   if ((w.score ?? 0) <= 0) return false;
-  return (w.uniqueDays ?? 0) > 0 || (w.txCount ?? 0) >= 10;
+  if ((w.uniqueDays ?? 0) === 0 && (w.txCount ?? 0) < 10) return false;
+  const txs = w.txCount ?? 0;
+  const days = w.uniqueDays ?? 0;
+  if (txs > 200 && days > 100) {
+    const eth = parseFloat(w.ethVolume || "0");
+    const swap = w.dexVolumeUSD ?? 0;
+    if (eth < 0.5 && swap < 500) return false;
+  }
+  return true;
 }

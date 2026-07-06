@@ -22,7 +22,7 @@ import {
 import { PAYMASTER_URL } from "@/lib/constants/env";
 import { SEASON_NAME } from "@/lib/constants/season";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
-import { isInsideBaseMiniApp } from "@/lib/utils/mini-app-connect";
+import { isInsideBaseMiniApp, detectMiniAppHost, type MiniAppHost } from "@/lib/utils/mini-app-connect";
 import type { ConnectionType } from "@/lib/types/wallet";
 
 interface ConnectScreenProps {
@@ -163,30 +163,50 @@ export default function ConnectScreen({
   onConnect,
 }: ConnectScreenProps) {
   const [inMiniApp, setInMiniApp] = useState(false);
+  const [miniAppHost, setMiniAppHost] = useState<MiniAppHost | null>(null);
 
   useEffect(() => {
-    void isInsideBaseMiniApp().then(setInMiniApp);
+    void (async () => {
+      const inside = await isInsideBaseMiniApp();
+      setInMiniApp(inside);
+      if (inside) {
+        setMiniAppHost(await detectMiniAppHost());
+        try {
+          const { sdk } = await import("@farcaster/miniapp-sdk");
+          await sdk.actions.ready?.();
+        } catch {
+          /* optional */
+        }
+      } else {
+        setMiniAppHost(null);
+      }
+    })();
   }, []);
 
   const walletOptions = useMemo(() => {
     if (!inMiniApp) return WALLET_OPTIONS;
-    return [
-      {
-        type: "farcaster" as const,
-        label: "Base App Smart Wallet",
-        sub: "Passkey smart wallet — use this inside Base App",
-        icon: <BaseAppWalletIcon size={30} />,
-        accent:
-          "bg-[#0052FF] border-[#0052FF]/60 shadow-[0_0_20px_rgba(0,82,255,0.25)]",
-      },
-      ...WALLET_OPTIONS.filter(
-        (w) =>
-          w.type !== "baseAccount" &&
-          w.type !== "coinbase" &&
-          w.type !== "farcaster"
-      ),
-    ];
-  }, [inMiniApp]);
+
+    const embedded: WalletOption =
+      miniAppHost === "warpcast"
+        ? {
+            type: "farcaster",
+            label: "Farcaster Wallet",
+            sub: "Your Warpcast smart wallet on Base",
+            icon: <FarcasterWalletIcon size={30} />,
+            accent: "bg-[#855DCD]/20 border-[#855DCD]/50",
+          }
+        : {
+            type: "farcaster",
+            label: "Base App Smart Wallet",
+            sub: "Passkey smart wallet inside Base App",
+            icon: <BaseAppWalletIcon size={30} />,
+            accent:
+              "bg-[#0052FF] border-[#0052FF]/60 shadow-[0_0_20px_rgba(0,82,255,0.25)]",
+          };
+
+    // In mini-app iframes only the embedded SDK wallet works — hide extension wallets.
+    return [embedded];
+  }, [inMiniApp, miniAppHost]);
 
   return (
     <div className="min-h-screen bg-[#020508] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
@@ -325,11 +345,19 @@ export default function ConnectScreen({
             <div className="mb-4 rounded-xl bg-blue-500/10 border border-blue-400/25 px-3.5 py-2.5">
               <p className="text-[11px] font-bold text-blue-200 leading-relaxed">
                 {inMiniApp ? (
-                  <>
-                    You&apos;re in <span className="text-white font-black">Base App</span> — connect
-                    with <span className="text-white font-black">Base App Smart Wallet</span>. Score
-                    and stats load in ~10s; heatmap refines quietly after.
-                  </>
+                  miniAppHost === "warpcast" ? (
+                    <>
+                      You&apos;re in <span className="text-white font-black">Warpcast</span> — connect
+                      with your <span className="text-white font-black">Farcaster Wallet</span>.
+                      Score loads in ~20s; heatmap refines in the background.
+                    </>
+                  ) : (
+                    <>
+                      You&apos;re in <span className="text-white font-black">Base App</span> — connect
+                      with <span className="text-white font-black">Base App Smart Wallet</span>. Score
+                      and stats load in ~20s; heatmap refines quietly after.
+                    </>
+                  )
                 ) : (
                   <>
                     This app runs on <span className="text-white font-black">Base mainnet</span> only.

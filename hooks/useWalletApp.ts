@@ -16,6 +16,8 @@ import {
 } from "@/lib/utils/check-in-status";
 import { clearWalletCache } from "@/lib/utils/wallet-cache";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
+import { fetchMintedLevelsFromChain } from "@/lib/wallet/minted-badges";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
 import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
@@ -45,8 +47,11 @@ import {
 } from "@/lib/utils/season";
 import {
   getBadgeMintXpTotal,
+  mergeMintedLevelsMax,
+  readPersistedMintedLevels,
   recordBadgeMints,
   syncBadgeMintCountFromLevels,
+  writePersistedMintedLevels,
 } from "@/lib/utils/badge-mint-xp";
 import {
   buildBadgeShareText,
@@ -272,6 +277,33 @@ export function useWalletApp() {
           scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
       }, 100);
   }, [wallet, tab]);
+
+  /** Refresh on-chain badge mint tiers only (Achievements tab — does not touch score). */
+  useEffect(() => {
+    if (!wallet || tab !== "achievements") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const pub = createBasePublicClient();
+        const chain = await fetchMintedLevelsFromChain(pub, wallet.address);
+        if (cancelled) return;
+        setMintedLevels((prev) => {
+          const merged = mergeMintedLevelsMax(
+            mergeMintedLevelsMax(prev, readPersistedMintedLevels(wallet.address)),
+            chain
+          );
+          writePersistedMintedLevels(wallet.address, merged);
+          syncBadgeMintCountFromLevels(wallet.address, merged);
+          return merged;
+        });
+      } catch {
+        /* RPC optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [wallet?.address, tab]);
 
   useEffect(() => {
     if (!wallet) return;
@@ -714,7 +746,6 @@ export function useWalletApp() {
             checkInCount: result.wallet.checkInCount,
             txKeys: deriveTxKeysFromAnalysis(result),
           };
-    setMintedLevels(result.mintedLevels);
     setStreak(result.streak);
     setCheckedToday(
       result.checkedToday || readLocalCheckInToday(address)
@@ -1097,7 +1128,16 @@ export function useWalletApp() {
           const w = r.wallet;
           if (w.recommendation === "Fetching onchain data…") return false;
           if ((w.score ?? 0) <= 0) return false;
-          return (w.uniqueDays ?? 0) > 0 || (w.txCount ?? 0) >= 10;
+          if ((w.uniqueDays ?? 0) === 0 && (w.txCount ?? 0) < 10) return false;
+          // Reject thin partial snapshots for active wallets (bad cache / quick collect).
+          const txs = w.txCount ?? 0;
+          const days = w.uniqueDays ?? 0;
+          if (txs > 200 && days > 100) {
+            const eth = parseFloat(w.ethVolume || "0");
+            const swap = w.dexVolumeUSD ?? 0;
+            if (eth < 0.5 && swap < 500) return false;
+          }
+          return true;
         };
 
         // Try cache first (<1s on repeat connect), then one live fetch if needed.
@@ -1105,8 +1145,6 @@ export function useWalletApp() {
           fetchWalletAnalysisQuick(address, false),
           ciP,
         ]);
-
-        const servedFromCache = Boolean(result?.cached);
 
         if (!isUsableAnalysis(result)) {
           setScanProgress("Fetching onchain data…");
@@ -1130,16 +1168,6 @@ export function useWalletApp() {
         setLoading(false);
         setScanProgress("");
         maybeStartHistorySync(result);
-
-        if (servedFromCache) {
-          void fetchWalletAnalysisQuick(address, true).then((fresh) => {
-            if (!fresh || !isUsableAnalysis(fresh) || fresh.cached) return;
-            void fetchCheckInStatus(address).then((freshCi) => {
-              mergeAndApply(fresh, freshCi);
-              maybeStartHistorySync(fresh);
-            });
-          });
-        }
       } catch (e) {
         console.error(e);
         failScan("❌ Wallet scan failed — check connection and retry");
@@ -1171,6 +1199,7 @@ export function useWalletApp() {
       persistConnType(resolvedType);
       clearWalletCache(addr);
       loadX402PremiumState(addr);
+      setMintedLevels(readPersistedMintedLevels(addr));
       setScanProgress("Fetching onchain data…");
       await analyzeWallet(addr);
     } catch (e) {
@@ -1368,10 +1397,15 @@ export function useWalletApp() {
       }
 
       const hash = await sendAppTransaction(activeConn, wallet.address, call);
-      setMintedLevels((p) => ({
-        ...p,
-        [catId]: Math.max(...targetLevels),
-      }));
+      setMintedLevels((p) => {
+        const next = {
+          ...p,
+          [catId]: Math.max(...targetLevels),
+        };
+        writePersistedMintedLevels(wallet.address, next);
+        syncBadgeMintCountFromLevels(wallet.address, next);
+        return next;
+      });
       const minted = tokenIds.length;
       const badgeXp = recordBadgeMints(wallet.address, minted);
       setTxKeys((p) => {

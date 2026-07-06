@@ -19,16 +19,13 @@ import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
 import { enrichTransferLegs } from "@/lib/utils/wallet-activity";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import {
-  ACHIEVEMENTS_ABI,
-  ACHIEVEMENTS_CONTRACT,
   CHECKIN_ABI,
   CHECKIN_CONTRACT,
   ENTRYPOINT_V06,
   ENTRYPOINT_V07,
 } from "@/lib/constants/contracts";
 import { BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
-import { ACHIEVEMENTS, MONTH_NAMES } from "@/lib/constants/season";
-import { getTargetTokenId } from "@/lib/utils/achievements";
+import { MONTH_NAMES } from "@/lib/constants/season";
 import { resolveBasename } from "@/lib/utils/resolve-basename";
 import {
   countContractInteractions,
@@ -230,29 +227,6 @@ export async function analyzeWalletAddress(
     })
     .catch(() => BigInt(0));
 
-  const calls: {
-    address: `0x${string}`;
-    abi: typeof ACHIEVEMENTS_ABI;
-    functionName: "hasMinted";
-    args: readonly [`0x${string}`, bigint];
-  }[] = [];
-  const callMap: { catId: string; level: number }[] = [];
-  for (const cat of ACHIEVEMENTS) {
-    for (let i = cat.thresholds.length; i >= 1; i--) {
-      const tid = getTargetTokenId(cat.baseId, cat.thresholds.length, i);
-      calls.push({
-        address: ACHIEVEMENTS_CONTRACT as `0x${string}`,
-        abi: ACHIEVEMENTS_ABI,
-        functionName: "hasMinted",
-        args: [address as `0x${string}`, BigInt(tid)],
-      });
-      callMap.push({ catId: cat.id, level: i });
-    }
-  }
-  const mcP = isQuick
-    ? Promise.resolve([] as Awaited<ReturnType<typeof pub.multicall>>)
-    : pub.multicall({ contracts: calls }).catch(() => []);
-
   onProgress?.(
     isQuick
       ? "Calculating wallet score…"
@@ -289,7 +263,6 @@ export async function analyzeWalletAddress(
   const [
     bn,
     balances,
-    mcRes,
     historyBundle,
     dbStreak,
     dbLastCI,
@@ -298,7 +271,6 @@ export async function analyzeWalletAddress(
   ] = await Promise.all([
     bnP,
     balancesP,
-    mcP,
     historyFetchP,
     strkP,
     lastP,
@@ -358,14 +330,6 @@ export async function analyzeWalletAddress(
   }
 
   const ms: Record<string, number> = {};
-  if (Array.isArray(mcRes)) {
-    (mcRes as { status: string; result?: unknown }[]).forEach((r, i) => {
-      const { catId, level } = callMap[i];
-      if (r.status === "success" && r.result === true) {
-        if (!ms[catId] || ms[catId] < level) ms[catId] = level;
-      }
-    });
-  }
 
   const bridgeTxHashes = new Set<string>();
   const paymasterTxHashes = new Set<string>();

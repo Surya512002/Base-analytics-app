@@ -3,6 +3,18 @@ import type { ConnectionType } from "@/lib/types/wallet";
 const CONN_TYPE_KEY = "base_conn_type";
 const BASE_CHAIN_HEX = "0x2105" as const;
 
+/** Warpcast Farcaster client */
+const WARPCAST_CLIENT_FID = 9152;
+/** Base App mini-app client */
+const BASE_APP_CLIENT_FID = 309857;
+
+export type MiniAppHost = "warpcast" | "base" | "other";
+
+function inMiniAppShell(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(window.ReactNativeWebView) || window !== window.parent;
+}
+
 export function persistConnType(type: ConnectionType): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(CONN_TYPE_KEY, type);
@@ -20,19 +32,50 @@ export function clearConnType(): void {
   localStorage.removeItem(CONN_TYPE_KEY);
 }
 
-/** True when running inside Base App / Farcaster mini app with an embedded wallet. */
+/** True when running inside Warpcast / Base App / Farcaster mini app with embedded wallet. */
 export async function detectMiniAppConnType(): Promise<ConnectionType | null> {
   if (typeof window === "undefined") return null;
+  const shell = inMiniAppShell();
   try {
     const { sdk } = await import("@farcaster/miniapp-sdk");
-    const inMiniApp = await sdk.isInMiniApp();
-    if (!inMiniApp) return null;
-    const provider = await sdk.wallet.getEthereumProvider();
+    const inMiniApp = await Promise.race([
+      sdk.isInMiniApp(),
+      new Promise<boolean>((resolve) =>
+        setTimeout(() => resolve(shell), 4_000)
+      ),
+    ]);
+    if (!inMiniApp && !shell) return null;
+    const provider = await Promise.race([
+      sdk.wallet.getEthereumProvider(),
+      new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), 5_000)
+      ),
+    ]);
     if (provider) return "farcaster";
   } catch {
     // not in mini app
   }
   return null;
+}
+
+/** Distinguish Warpcast vs Base App inside the mini-app shell. */
+export async function detectMiniAppHost(): Promise<MiniAppHost | null> {
+  if (!(await detectMiniAppConnType())) return null;
+  try {
+    const { sdk } = await import("@farcaster/miniapp-sdk");
+    const ctx = await Promise.race([
+      sdk.context,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 4_000)),
+    ]);
+    const clientFid = (
+      ctx as { client?: { clientFid?: number } } | null
+    )?.client?.clientFid;
+    if (clientFid === WARPCAST_CLIENT_FID) return "warpcast";
+    if (clientFid === BASE_APP_CLIENT_FID) return "base";
+    return "other";
+  } catch {
+    return "other";
+  }
 }
 
 /** Best-effort recovery when React state lost connType but wallet is still connected. */

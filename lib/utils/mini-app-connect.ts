@@ -1,6 +1,7 @@
 import type { ConnectionType } from "@/lib/types/wallet";
 import {
   detectMiniAppConnType,
+  detectMiniAppHost,
   ensureBaseNetwork,
 } from "@/lib/utils/wallet-connection";
 import { connectWallet, getEip1193Provider } from "@/app/connection";
@@ -41,14 +42,16 @@ export async function connectAppWallet(
     const { sdk } = await import("@farcaster/miniapp-sdk");
     if (sdk?.actions?.ready) {
       try {
-        sdk.actions.ready();
+        await sdk.actions.ready();
       } catch {
         // ignore
       }
     }
     const provider = await sdk.wallet.getEthereumProvider();
     if (!provider) {
-      throw new Error("Base App wallet not available — open inside Base App");
+      throw new Error(
+        "Mini-app wallet not available — open inside Warpcast or Base App"
+      );
     }
     const accounts = (await withTimeout(
       provider.request({ method: "eth_requestAccounts" }) as Promise<string[]>,
@@ -84,3 +87,5 @@ export async function connectAppWallet(
 export async function isInsideBaseMiniApp(): Promise<boolean> {
   return Boolean(await detectMiniAppConnType());
 }
+
+export { detectMiniAppHost, type MiniAppHost } from "@/lib/utils/wallet-connection";
