@@ -273,8 +273,8 @@ export function syncActivityPointsFromSession(
   txKeys: Record<string, number>,
   _streak: number,
   checkedToday: boolean,
-  x402PayCount = 0,
-  voucherBatchCount = 0,
+  _x402PayCount = 0,
+  _voucherBatchCount = 0,
   didChallenge = false
 ): boolean {
   if (!address) return false;
@@ -286,14 +286,19 @@ export function syncActivityPointsFromSession(
     if (ci.credited > 0) changed = true;
   }
 
+  const challengeCount = Math.max(
+    txKeys.challenge ?? 0,
+    didChallenge ? 1 : 0
+  );
+
   const actions: Array<[ActivityAction, number]> = [
     ["boost", txKeys.boost ?? 0],
     ["gm", txKeys.gm ?? 0],
     ["gn", txKeys.gn ?? 0],
     ["redeem", txKeys.redeem ?? 0],
-    ["voucher", voucherBatchCount],
-    ["x402", x402PayCount],
-    ["challenge", didChallenge ? 1 : 0],
+    ["voucher", txKeys.voucher ?? 0],
+    ["x402", txKeys.x402 ?? 0],
+    ["challenge", challengeCount],
     ["prediction", txKeys.prediction ?? 0],
   ];
 

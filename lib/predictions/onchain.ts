@@ -5,9 +5,14 @@ import type { MarketTrack } from "@/lib/constants/predictions";
 import { roundBounds } from "@/lib/predictions/market-engine";
 import { encodeTrackId } from "@/lib/predictions/track-id";
 import type { MarketPhase } from "@/lib/predictions/types";
+import {
+  createBasePublicClient,
+  withRpcRetry,
+} from "@/lib/utils/base-rpc";
 
 const USDC_DECIMALS = 1_000_000;
 const CHAINLINK_PRICE_SCALE = 1e8;
+const MULTICALL_BATCH = 36;
 
 export type OnChainMarket = {
   marketId: number;
@@ -39,67 +44,100 @@ function phaseFromUint(n: number): MarketPhase {
   }
 }
 
-export function getPredictionsPublicClient(rpcUrl: string) {
-  return createPublicClient({
-    chain: base,
-    transport: http(rpcUrl),
-  });
+/** Fallback RPC transport — avoids Alchemy 429 when key is shared with wallet scan. */
+export function getPredictionsPublicClient(rpcUrl?: string) {
+  if (rpcUrl) {
+    return createPublicClient({
+      chain: base,
+      transport: http(rpcUrl, { retryCount: 2, retryDelay: 400, timeout: 20_000 }),
+    });
+  }
+  return createBasePublicClient();
 }
 
 type ChainReader = ReturnType<typeof getPredictionsPublicClient>;
 
+function mapMarketRow(
+  marketId: number,
+  m: readonly [
+    `0x${string}`,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    number,
+    boolean,
+  ]
+): OnChainMarket {
+  const phase = phaseFromUint(Number(m[9]));
+  return {
+    marketId,
+    trackId: m[0],
+    openTime: Number(m[2]),
+    closeTime: Number(m[3]),
+    resolveTime: Number(m[4]),
+    openPrice: Number(m[5]) / CHAINLINK_PRICE_SCALE,
+    resolvePrice:
+      phase === "resolved" || phase === "void"
+        ? Number(m[6]) / CHAINLINK_PRICE_SCALE
+        : null,
+    yesReserve: Number(m[7]) / USDC_DECIMALS,
+    noReserve: Number(m[8]) / USDC_DECIMALS,
+    phase,
+    yesWins: phase === "resolved" ? Boolean(m[10]) : null,
+    oneSided: phase === "void",
+  };
+}
+
 export async function fetchOnChainMarkets(
   client: ChainReader,
   contract: `0x${string}`,
-  scanLimit = 400
+  scanLimit = 72
 ): Promise<OnChainMarket[]> {
   const nextId = Number(
-    await client.readContract({
-      address: contract,
-      abi: PREDICTIONS_ABI,
-      functionName: "nextMarketId",
-    })
+    await withRpcRetry(() =>
+      client.readContract({
+        address: contract,
+        abi: PREDICTIONS_ABI,
+        functionName: "nextMarketId",
+      })
+    )
   );
 
   if (nextId <= 1) return [];
 
   const start = Math.max(1, nextId - scanLimit);
   const ids = Array.from({ length: nextId - start }, (_, i) => start + i);
+  const rows: OnChainMarket[] = [];
 
-  const rows = await Promise.all(
-    ids.map(async (marketId) => {
+  for (let i = 0; i < ids.length; i += MULTICALL_BATCH) {
+    const slice = ids.slice(i, i + MULTICALL_BATCH);
+    const contracts = slice.map((marketId) => ({
+      address: contract,
+      abi: PREDICTIONS_ABI,
+      functionName: "markets" as const,
+      args: [BigInt(marketId)] as const,
+    }));
+
+    const batch = await withRpcRetry(() =>
+      client.multicall({ contracts, allowFailure: true })
+    );
+
+    batch.forEach((res, idx) => {
+      if (res.status !== "success" || !res.result) return;
       try {
-        const m = await client.readContract({
-          address: contract,
-          abi: PREDICTIONS_ABI,
-          functionName: "markets",
-          args: [BigInt(marketId)],
-        });
-        const phase = phaseFromUint(Number(m[9]));
-        return {
-          marketId,
-          trackId: m[0] as `0x${string}`,
-          openTime: Number(m[2]),
-          closeTime: Number(m[3]),
-          resolveTime: Number(m[4]),
-          openPrice: Number(m[5]) / CHAINLINK_PRICE_SCALE,
-          resolvePrice:
-            phase === "resolved" || phase === "void"
-              ? Number(m[6]) / CHAINLINK_PRICE_SCALE
-              : null,
-          yesReserve: Number(m[7]) / USDC_DECIMALS,
-          noReserve: Number(m[8]) / USDC_DECIMALS,
-          phase,
-          yesWins: phase === "resolved" ? Boolean(m[10]) : null,
-          oneSided: phase === "void",
-        } satisfies OnChainMarket;
+        rows.push(mapMarketRow(slice[idx]!, res.result as Parameters<typeof mapMarketRow>[1]));
       } catch {
-        return null;
+        // skip malformed row
       }
-    })
-  );
+    });
+  }
 
-  return rows.filter((r): r is OnChainMarket => r !== null);
+  return rows;
 }
 
 /** Find the on-chain market for a track's current epoch round. */

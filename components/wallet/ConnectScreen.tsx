@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   BarChart3,
   ChevronRight,
@@ -20,6 +22,7 @@ import {
 import { PAYMASTER_URL } from "@/lib/constants/env";
 import { SEASON_NAME } from "@/lib/constants/season";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
+import { isInsideBaseMiniApp } from "@/lib/utils/mini-app-connect";
 import type { ConnectionType } from "@/lib/types/wallet";
 
 interface ConnectScreenProps {
@@ -159,6 +162,32 @@ export default function ConnectScreen({
   onCloseModal,
   onConnect,
 }: ConnectScreenProps) {
+  const [inMiniApp, setInMiniApp] = useState(false);
+
+  useEffect(() => {
+    void isInsideBaseMiniApp().then(setInMiniApp);
+  }, []);
+
+  const walletOptions = useMemo(() => {
+    if (!inMiniApp) return WALLET_OPTIONS;
+    return [
+      {
+        type: "farcaster" as const,
+        label: "Base App Smart Wallet",
+        sub: "Passkey smart wallet — use this inside Base App",
+        icon: <BaseAppWalletIcon size={30} />,
+        accent:
+          "bg-[#0052FF] border-[#0052FF]/60 shadow-[0_0_20px_rgba(0,82,255,0.25)]",
+      },
+      ...WALLET_OPTIONS.filter(
+        (w) =>
+          w.type !== "baseAccount" &&
+          w.type !== "coinbase" &&
+          w.type !== "farcaster"
+      ),
+    ];
+  }, [inMiniApp]);
+
   return (
     <div className="min-h-screen bg-[#020508] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-aurora pointer-events-none" />
@@ -233,7 +262,7 @@ export default function ConnectScreen({
                 <>
                   <div className="flex items-center gap-2">
                     <RefreshCcw className="animate-spin" size={18} />
-                    <span>Scanning wallet...</span>
+                    <span>{scanProgress || "Calculating score…"}</span>
                   </div>
                   {scanProgress && (
                     <span className="text-[10px] text-violet-200/50 font-normal">{scanProgress}</span>
@@ -295,13 +324,23 @@ export default function ConnectScreen({
 
             <div className="mb-4 rounded-xl bg-blue-500/10 border border-blue-400/25 px-3.5 py-2.5">
               <p className="text-[11px] font-bold text-blue-200 leading-relaxed">
-                This app runs on <span className="text-white font-black">Base mainnet</span> only.
-                Your wallet must be connected to Base — we&apos;ll prompt you to switch networks if needed.
+                {inMiniApp ? (
+                  <>
+                    You&apos;re in <span className="text-white font-black">Base App</span> — connect
+                    with <span className="text-white font-black">Base App Smart Wallet</span>. Score
+                    and stats load in ~10s; heatmap refines quietly after.
+                  </>
+                ) : (
+                  <>
+                    This app runs on <span className="text-white font-black">Base mainnet</span> only.
+                    Your wallet must be connected to Base — we&apos;ll prompt you to switch networks if needed.
+                  </>
+                )}
               </p>
             </div>
 
             <div className="space-y-2.5">
-              {WALLET_OPTIONS.map((w) => (
+              {walletOptions.map((w) => (
                 <button
                   key={w.type}
                   onClick={() => onConnect(w.type)}

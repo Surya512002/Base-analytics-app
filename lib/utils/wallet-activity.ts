@@ -13,6 +13,25 @@ export function walletInvolved(tx: AlchemyTransfer, wallet: string): boolean {
   return normalizeAddr(tx.from) === w || normalizeAddr(tx.to) === w;
 }
 
+/** Count toward heatmap / active days — includes address-indexed & gasless activity. */
+export function countsTowardActivity(
+  tx: AlchemyTransfer,
+  wallet: string
+): boolean {
+  if (!tx.metadata?.blockTimestamp) return false;
+  if (tx.metadata.walletParticipated) return true;
+  if (walletInvolved(tx, wallet)) return true;
+  if (tx.category === "useroperation" || tx.metadata?.isUserOperation) return true;
+  if (tx.category === "contractcall") return true;
+  if (
+    tx.metadata?.isSponsored &&
+    (walletInvolved(tx, wallet) || normalizeAddr(tx.from) === normalizeAddr(wallet))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function mergeTransfers(
   sources: AlchemyTransfer[][]
 ): AlchemyTransfer[] {
@@ -21,10 +40,92 @@ export function mergeTransfers(
     for (const tx of list) {
       if (!tx.hash) continue;
       const key = `${tx.hash}-${tx.category}-${tx.asset || "ETH"}-${normalizeAddr(tx.from)}-${normalizeAddr(tx.to)}-${tx.value ?? 0}-${tx.metadata?.isUserOperation ? "uop" : ""}-${tx.metadata?.isSponsored ? "pm" : ""}`;
-      if (!map.has(key)) map.set(key, tx);
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, tx);
+        continue;
+      }
+      if (tx.metadata?.walletParticipated && !existing.metadata?.walletParticipated) {
+        map.set(key, {
+          ...existing,
+          metadata: { ...existing.metadata, walletParticipated: true },
+        });
+      }
     }
   }
   return Array.from(map.values());
+}
+
+/**
+ * Tag paymaster / smart-wallet legs and add synthetic per-hash activity
+ * so mints, gasless Base App txs, and contract calls are never dropped.
+ */
+export function enrichTransferLegs(
+  transfers: AlchemyTransfer[],
+  wallet: string
+): AlchemyTransfer[] {
+  const w = normalizeAddr(wallet);
+  const enriched = transfers.map((tx) => {
+    const to = normalizeAddr(tx.to);
+    const from = normalizeAddr(tx.from);
+    const meta = { ...tx.metadata };
+    const paymaster =
+      tx.category === "useroperation" ||
+      meta.isUserOperation ||
+      meta.isSponsored ||
+      (tx.category === "internal" && to === w && from !== w) ||
+      (tx.category === "internal" && ethZero(tx) && (from === w || to === w));
+
+    if (paymaster) {
+      meta.isSponsored = true;
+      meta.walletParticipated = true;
+    } else if (meta.walletParticipated || from === w || to === w) {
+      meta.walletParticipated = true;
+    }
+
+    return meta !== tx.metadata ? { ...tx, metadata: meta } : tx;
+  });
+
+  const hashWalletLeg = new Set<string>();
+  for (const tx of enriched) {
+    if (!tx.hash) continue;
+    if (normalizeAddr(tx.from) === w || normalizeAddr(tx.to) === w) {
+      hashWalletLeg.add(tx.hash);
+    }
+  }
+
+  const extras: AlchemyTransfer[] = [];
+  const seenSynth = new Set<string>();
+
+  for (const tx of enriched) {
+    if (!tx.hash || !tx.metadata?.blockTimestamp) continue;
+    if (!tx.metadata.walletParticipated && !hashWalletLeg.has(tx.hash)) continue;
+    if (hashWalletLeg.has(tx.hash)) continue;
+
+    const key = `${tx.hash}-${tx.metadata.blockTimestamp.slice(0, 10)}`;
+    if (seenSynth.has(key)) continue;
+    seenSynth.add(key);
+
+    extras.push({
+      hash: tx.hash,
+      category: "contractcall",
+      value: 0,
+      asset: "ETH",
+      from: w,
+      to: tx.to,
+      metadata: {
+        blockTimestamp: tx.metadata.blockTimestamp,
+        walletParticipated: true,
+      },
+    });
+    hashWalletLeg.add(tx.hash);
+  }
+
+  return extras.length ? [...enriched, ...extras] : enriched;
+}
+
+function ethZero(tx: AlchemyTransfer): boolean {
+  return !tx.value || tx.value === 0;
 }
 
 export interface ActivityRollup {
@@ -52,7 +153,7 @@ export function rollupWalletActivity(
   const dayHashSeen = new Set<string>();
 
   for (const tx of txs) {
-    if (!tx.metadata?.blockTimestamp || !walletInvolved(tx, w)) continue;
+    if (!countsTowardActivity(tx, w)) continue;
 
     const fromAddr = normalizeAddr(tx.from);
     const dk = getDayKey(tx.metadata.blockTimestamp);
@@ -112,7 +213,7 @@ export function countContractInteractions(
   let hasGm = false;
 
   for (const tx of txs) {
-    if (!walletInvolved(tx, w)) continue;
+    if (!countsTowardActivity(tx, w)) continue;
 
     const fromAddr = normalizeAddr(tx.from);
     const toAddr = normalizeAddr(tx.to);

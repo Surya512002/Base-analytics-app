@@ -1,96 +1,230 @@
-import { ALCHEMY_KEY, BASE_RPC } from "@/lib/constants/env";
+import {
+  alchemyRpcForKey,
+  getAlchemyKeys,
+} from "@/lib/constants/env";
+import { fetchNftHoldingsCount } from "@/lib/utils/nft-stats";
+import { mergeTransfers } from "@/lib/utils/wallet-activity";
 import type { AlchemyResponse, AlchemyTransfer } from "@/lib/types/wallet";
 
-const PAGE_SIZE = "0x3e8"; // 1000 — Alchemy max per page
-const DEFAULT_MAX_PAGES = 80;
-const PAGE_RETRIES = 3;
+const ALL_CATEGORIES = [
+  "external",
+  "internal",
+  "erc20",
+  "erc721",
+  "erc1155",
+] as const;
 
-async function fetchAssetTransferPage(
-  addressField: "fromAddress" | "toAddress",
-  address: string,
-  pageKey?: string
-): Promise<{ transfers: AlchemyTransfer[]; pageKey?: string }> {
-  for (let attempt = 0; attempt < PAGE_RETRIES; attempt++) {
-    try {
-      const params: Record<string, unknown> = {
-        fromBlock: "0x0",
-        toBlock: "latest",
-        [addressField]: address,
-        category: ["external", "internal", "erc20", "erc721", "erc1155"],
-        maxCount: PAGE_SIZE,
-        withMetadata: true,
-        excludeZeroValue: false,
-      };
-      if (pageKey) params.pageKey = pageKey;
-      const r = await fetch(BASE_RPC, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "alchemy_getAssetTransfers",
-          params: [params],
-        }),
-      });
-      if (!r.ok) continue;
-      const d = (await r.json()) as AlchemyResponse & { error?: unknown };
-      if (d.error) continue;
-      return { transfers: d.result?.transfers || [], pageKey: d.result?.pageKey };
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
-    }
-  }
-  return { transfers: [] };
+type AddressField = "fromAddress" | "toAddress";
+
+interface TransferShard {
+  addressField: AddressField;
+  categories: readonly string[];
+  keyIndex: number;
 }
 
-/** Paginate until exhausted (or safety cap) — keeps oldest→newest via order asc. */
-async function fetchAllAssetTransfers(
-  addressField: "fromAddress" | "toAddress",
+async function fetchAssetTransferPage(
+  rpcUrl: string,
+  addressField: AddressField,
   address: string,
-  maxPages = DEFAULT_MAX_PAGES
+  categories: readonly string[],
+  pageKey?: string,
+  timeoutMs = 6_000
+): Promise<{
+  transfers: AlchemyTransfer[];
+  pageKey?: string;
+  quotaExceeded: boolean;
+}> {
+  try {
+    const params: Record<string, unknown> = {
+      fromBlock: "0x0",
+      toBlock: "latest",
+      [addressField]: address,
+      category: [...categories],
+      maxCount: "0x3e8",
+      withMetadata: true,
+      excludeZeroValue: false,
+    };
+    if (pageKey) params.pageKey = pageKey;
+    const r = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(timeoutMs),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [params],
+      }),
+    });
+    const d = (await r.json()) as AlchemyResponse & {
+      error?: { message?: string; code?: number };
+    };
+    const quotaExceeded =
+      Boolean(d.error) &&
+      /rate|limit|quota|exceeded|429/i.test(d.error?.message || "");
+    const transfers = (d.result?.transfers || []).map((tx) => ({
+      ...tx,
+      metadata: {
+        ...tx.metadata,
+        walletParticipated: true,
+      },
+    }));
+    return { transfers, pageKey: d.result?.pageKey, quotaExceeded };
+  } catch {
+    return { transfers: [], quotaExceeded: false };
+  }
+}
+
+async function fetchShardTransfers(
+  shard: TransferShard,
+  address: string,
+  keys: string[],
+  maxPages: number,
+  timeoutMs: number
 ): Promise<AlchemyTransfer[]> {
-  const first = await fetchAssetTransferPage(addressField, address);
+  const rpc = alchemyRpcForKey(keys[shard.keyIndex % keys.length]);
+  const first = await fetchAssetTransferPage(
+    rpc,
+    shard.addressField,
+    address,
+    shard.categories,
+    undefined,
+    timeoutMs
+  );
+  if (first.quotaExceeded) return first.transfers;
+
   const all = [...first.transfers];
   let nextKey = first.pageKey;
   let page = 2;
-
   while (nextKey && page <= maxPages) {
-    const res = await fetchAssetTransferPage(addressField, address, nextKey);
-    if (res.transfers.length === 0 && res.pageKey) {
-      // Stuck pagination — stop to avoid infinite loop
-      break;
-    }
+    const res = await fetchAssetTransferPage(
+      rpc,
+      shard.addressField,
+      address,
+      shard.categories,
+      nextKey,
+      timeoutMs
+    );
+    if (res.quotaExceeded) break;
     all.push(...res.transfers);
     nextKey = res.pageKey;
     page++;
   }
-
   return all;
+}
+
+/** Assign each API key its own parallel pagination stream. */
+function buildTransferShards(keyCount: number): TransferShard[] {
+  if (keyCount >= 3) {
+    return [
+      {
+        addressField: "fromAddress",
+        categories: ["external", "internal"],
+        keyIndex: 0,
+      },
+      {
+        addressField: "fromAddress",
+        categories: ["erc20", "erc721", "erc1155"],
+        keyIndex: 1,
+      },
+      {
+        addressField: "toAddress",
+        categories: ALL_CATEGORIES,
+        keyIndex: 2,
+      },
+    ];
+  }
+  if (keyCount === 2) {
+    return [
+      {
+        addressField: "fromAddress",
+        categories: ALL_CATEGORIES,
+        keyIndex: 0,
+      },
+      {
+        addressField: "toAddress",
+        categories: ALL_CATEGORIES,
+        keyIndex: 1,
+      },
+    ];
+  }
+  return [
+    {
+      addressField: "fromAddress",
+      categories: ALL_CATEGORIES,
+      keyIndex: 0,
+    },
+    {
+      addressField: "toAddress",
+      categories: ALL_CATEGORIES,
+      keyIndex: 0,
+    },
+  ];
+}
+
+/**
+ * Fetch wallet transfers using every Alchemy key in parallel.
+ * With 3+ keys: outgoing ETH/internal, outgoing tokens/NFTs, and incoming each
+ * run on a dedicated key at the same time.
+ */
+export async function fetchAlchemyTxsMultiKey(
+  address: string,
+  options: { maxPagesPerShard?: number; timeoutMs?: number } = {}
+): Promise<AlchemyTransfer[]> {
+  const keys = getAlchemyKeys();
+  if (!keys.length) return [];
+
+  const shards = buildTransferShards(keys.length);
+  const maxPages =
+    options.maxPagesPerShard ??
+    (keys.length >= 3 ? 3 : keys.length >= 2 ? 3 : 2);
+  const timeoutMs = options.timeoutMs ?? 5_000;
+
+  const results = await Promise.all(
+    shards.map((shard) =>
+      fetchShardTransfers(shard, address, keys, maxPages, timeoutMs).catch(
+        () => [] as AlchemyTransfer[]
+      )
+    )
+  );
+  return mergeTransfers(results);
 }
 
 export async function fetchAlchemyTxsFast(
   address: string,
-  maxPages = DEFAULT_MAX_PAGES
+  maxPages = 6
 ): Promise<AlchemyTransfer[]> {
-  return fetchAllAssetTransfers("fromAddress", address, maxPages);
+  const keys = getAlchemyKeys();
+  if (keys.length >= 2) {
+    return fetchAlchemyTxsMultiKey(address, { maxPagesPerShard: maxPages });
+  }
+  return fetchShardTransfers(
+    { addressField: "fromAddress", categories: ALL_CATEGORIES, keyIndex: 0 },
+    address,
+    keys,
+    maxPages,
+    5_000
+  );
 }
 
 export async function fetchAlchemyTxsIncoming(
   address: string,
-  maxPages = DEFAULT_MAX_PAGES
+  maxPages = 6
 ): Promise<AlchemyTransfer[]> {
-  return fetchAllAssetTransfers("toAddress", address, maxPages);
+  const keys = getAlchemyKeys();
+  return fetchShardTransfers(
+    {
+      addressField: "toAddress",
+      categories: ALL_CATEGORIES,
+      keyIndex: keys.length > 1 ? 1 : 0,
+    },
+    address,
+    keys,
+    maxPages,
+    5_000
+  );
 }
 
 export async function fetchNftCount(address: string): Promise<number> {
-  try {
-    if (!ALCHEMY_KEY) return 0;
-    const r = await fetch(
-      `https://base-mainnet.g.alchemy.com/nft/v3/${ALCHEMY_KEY}/getNFTsForOwner?owner=${address}&withMetadata=false`
-    );
-    const d = await r.json();
-    return d.totalCount || 0;
-  } catch {
-    return 0;
-  }
+  return fetchNftHoldingsCount(address);
 }

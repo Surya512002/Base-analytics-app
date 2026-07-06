@@ -68,6 +68,7 @@ import {
   usesWalletSendCallsAttribution,
 } from "@/lib/utils/paymaster";
 import { writePersistedTxKeys } from "@/lib/utils/wallet-session";
+import { creditActivityFromCount } from "@/lib/utils/daily-points";
 import SectionCard from "@/components/ui/SectionCard";
 import VoucherHero from "@/components/wallet/VoucherHero";
 import VoucherGiftCard3D from "@/components/wallet/VoucherGiftCard3D";
@@ -1083,6 +1084,13 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       };
       saveLocalBatch(address, saved);
       void saveWalletCredentials(address, saved);
+      setTxKeys((k) => {
+        const nextCount = (k.voucher || 0) + 1;
+        const next = { ...k, voucher: nextCount };
+        writePersistedTxKeys(address, next);
+        creditActivityFromCount(address, "voucher", nextCount);
+        return next;
+      });
       clearPendingBatch(address, txHash);
       clearCreateSession(address);
       fundTxRef.current = undefined;
@@ -1127,7 +1135,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       }
       return hasSecrets;
     },
-    [address, refreshMyBatches, resolvePendingBatch, showToast]
+    [address, refreshMyBatches, resolvePendingBatch, setTxKeys, showToast]
   );
 
   const tryShowCardsWithSecrets = useCallback(

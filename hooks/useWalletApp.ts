@@ -2,22 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import sdk from "@farcaster/miniapp-sdk";
-import { connectWallet, getEip1193Provider } from "@/app/connection";
-import { fetchWalletAnalysis } from "@/lib/api/wallet-analysis-client";
+import { connectAppWallet } from "@/lib/utils/mini-app-connect";
+import { getEip1193Provider } from "@/app/connection";
+import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
-import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
-import {
-  readWalletCache,
-  writeWalletCache,
-  purgeLegacyWalletCaches,
-} from "@/lib/utils/wallet-cache";
+import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import {
   fetchCheckInStatus,
   patchCheckInInWalletCache,
   readLocalCheckInToday,
   recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
+import { clearWalletCache } from "@/lib/utils/wallet-cache";
+import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
+import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
+import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import {
   ACHIEVEMENTS_ABI,
@@ -31,6 +31,10 @@ import {
 } from "@/lib/constants/contracts";
 import { getCatValue, sumMintedBadges } from "@/lib/utils/achievements";
 import { getISOWeekNumber } from "@/lib/utils/dates";
+import {
+  getCalendarKeys,
+  msUntilNextUtcDay,
+} from "@/lib/utils/calendar-rollover";
 import { computeChallengeScore, computeWalletRank } from "@/lib/utils/score";
 import { getCapabilities } from "@/lib/utils/paymaster";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
@@ -59,7 +63,6 @@ import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
 import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
 import {
   clearConnType,
-  ensureBaseNetwork,
   inferConnType,
   persistConnType,
   readConnType,
@@ -76,10 +79,13 @@ import { loadLocalBatches } from "@/lib/utils/voucher";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
   bumpBoostCount,
+  bumpWeeklyTxKey,
+  currentWeekKey,
   DEFAULT_TX_KEYS,
   deriveTxKeysFromAnalysis,
   ensureSessionStorageVersion,
   mergeTxKeyCounters,
+  readPersistedTxKeys,
   readReferralBonusXpForAddress,
   setReferralBonusXpForAddress,
   syncSessionFromAnalysis,
@@ -156,8 +162,11 @@ export function useWalletApp() {
   const sharingRef = useRef(false);
   const pendingTx = useRef<Set<string>>(new Set());
   const connectingRef = useRef(false);
+  const historySyncGen = useRef(0);
+  const latestDaysRef = useRef(0);
   const x402Paying = useRef(false);
   const handledActionTxs = useRef<Set<string>>(new Set());
+  const calendarRef = useRef(getCalendarKeys());
   const [boosts, setBoosts] = useState(0);
   const [sponsored, setSponsored] = useState(0);
   const [txKeys, setTxKeys] = useState<Record<string, number>>({
@@ -392,6 +401,16 @@ export function useWalletApp() {
         const next = prev + 1;
         localStorage.setItem(keys.count, next.toString());
         setX402PayCount(next);
+        setTxKeys((k) => {
+          const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
+          return { ...k, ...nextKeys };
+        });
+        creditActivityFromCount(
+          wallet.address,
+          "x402",
+          readPersistedTxKeys(wallet.address).x402 ?? next
+        );
+        setPointsRevision((n) => n + 1);
         const txHash = data.transaction
           ? normalizeTxHash(data.transaction)
           : null;
@@ -462,6 +481,16 @@ export function useWalletApp() {
         const next = prev + 1;
         localStorage.setItem(keys.count, next.toString());
         setX402PayCount(next);
+        setTxKeys((k) => {
+          const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
+          return { ...k, ...nextKeys };
+        });
+        creditActivityFromCount(
+          wallet.address,
+          "x402",
+          readPersistedTxKeys(wallet.address).x402 ?? next
+        );
+        setPointsRevision((n) => n + 1);
         const txHash = data.transaction
           ? normalizeTxHash(data.transaction)
           : null;
@@ -542,9 +571,6 @@ export function useWalletApp() {
         };
 
         if (!contract) {
-          const key = `base_pred_trades_${wallet.address.toLowerCase()}`;
-          const prev = parseInt(localStorage.getItem(key) || "0", 10);
-          localStorage.setItem(key, String(prev + 1));
           creditPredictionSuccess();
           showToast(
             `✅ ${args.side.toUpperCase()} on ${args.asset} ${args.duration} (demo — set NEXT_PUBLIC_PREDICTIONS_CONTRACT)`,
@@ -663,6 +689,11 @@ export function useWalletApp() {
         txs: txCount,
       });
       if (wallet) {
+        setTxKeys((k) => {
+          const next = { ...k, challenge: 1 };
+          writePersistedTxKeys(wallet.address, next);
+          return next;
+        });
         const { credited } = creditActivityFromCount(wallet.address, "challenge", 1);
         if (credited > 0) setPointsRevision((n) => n + 1);
       }
@@ -689,12 +720,27 @@ export function useWalletApp() {
       result.checkedToday || readLocalCheckInToday(address)
     );
     setBoosts((prev) => Math.max(prev, session.boosts));
-    setWallet((prev) => ({
-      ...result.wallet,
-      checkInCount: Math.max(prev?.checkInCount ?? 0, session.checkInCount),
-    }));
+    setWallet((prev) => {
+      const base: WalletData = {
+        ...result.wallet,
+        basename: result.wallet.basename || prev?.basename || null,
+        checkInCount: Math.max(
+          prev?.checkInCount ?? 0,
+          session.checkInCount
+        ),
+      };
+      if (!prev) return base;
+      return mergeWalletMetricsMax(prev, base);
+    });
     setReferralBonusXp(readReferralBonusXpForAddress(address));
-    setTxKeys((prev) => mergeTxKeyCounters(session.txKeys, prev));
+    const week = currentWeekKey();
+    const weekChanged = calendarRef.current.week !== week;
+    calendarRef.current = getCalendarKeys();
+    setTxKeys((prev) =>
+      weekChanged
+        ? session.txKeys
+        : mergeTxKeyCounters(session.txKeys, prev)
+    );
     void fetchReferralStats(address);
     if (typeof window !== "undefined") {
       localStorage.setItem("base_has_connected", "1");
@@ -708,6 +754,52 @@ export function useWalletApp() {
     patchCheckInInWalletCache(address, status.checkedToday, status.streak);
     return status;
   }, []);
+
+  /** Refresh daily check-in state and weekly quest counters at UTC day/week boundaries. */
+  useEffect(() => {
+    if (!wallet) return;
+
+    const applyRollover = (next: ReturnType<typeof getCalendarKeys>) => {
+      const prev = calendarRef.current;
+      if (next.day === prev.day && next.week === prev.week) return;
+
+      calendarRef.current = next;
+
+      if (next.day !== prev.day) {
+        setCheckedToday(readLocalCheckInToday(wallet.address));
+        void syncCheckInStatus(wallet.address);
+      }
+
+      if (next.week !== prev.week) {
+        setTxKeys(readPersistedTxKeys(wallet.address));
+        setChallengeResult(null);
+      }
+
+      setPointsRevision((n) => n + 1);
+    };
+
+    const tick = () => applyRollover(getCalendarKeys());
+
+    let midnightTimer: number | undefined;
+    const scheduleMidnight = () => {
+      midnightTimer = window.setTimeout(() => {
+        tick();
+        scheduleMidnight();
+      }, msUntilNextUtcDay());
+    };
+    scheduleMidnight();
+    const intervalId = window.setInterval(tick, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      if (midnightTimer !== undefined) window.clearTimeout(midnightTimer);
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [wallet, syncCheckInStatus]);
 
   const handleCheckInSuccess = useCallback(
     async (address: string, txHash?: string) => {
@@ -804,9 +896,7 @@ export function useWalletApp() {
         return;
       }
       loadX402PremiumState(address);
-      purgeLegacyWalletCaches(address);
 
-      const cached = readWalletCache(address);
       let referralRegistered = false;
       const registerReferralOnce = () => {
         if (referralRegistered) return;
@@ -821,70 +911,244 @@ export function useWalletApp() {
         });
       };
 
+      let bgSyncStarted = false;
+
       const mergeAndApply = (
         result: AnalyzeWalletResult,
-        ci: { checkedToday: boolean; streak: number }
+        ci: { checkedToday: boolean; streak: number },
+        priorBasename?: string | null
       ) => {
-        const merged = {
-          ...result,
-          checkedToday: ci.checkedToday || result.checkedToday,
-          streak: ci.streak || result.streak,
-        };
+        const basename =
+          result.wallet.basename || priorBasename || null;
         applyAnalysis({
-          ...merged,
+          ...result,
+          wallet: { ...result.wallet, basename },
           checkedToday:
-            merged.checkedToday || readLocalCheckInToday(address),
+            ci.checkedToday ||
+            result.checkedToday ||
+            readLocalCheckInToday(address),
+          streak: ci.streak || result.streak,
         });
-        writeWalletCache(address, merged, true);
+        latestDaysRef.current = result.wallet.uniqueDays;
         registerReferralOnce();
+
+        if (!basename) {
+          void resolveBasenameClient(address).then((name) => {
+            if (!name) return;
+            setWallet((prev) => {
+              if (prev?.address.toLowerCase() !== address.toLowerCase()) {
+                return prev;
+              }
+              return applyBasenameScore(prev, name);
+            });
+          });
+        }
+
+        return result;
       };
 
-      if (cached) {
-        applyAnalysis({
-          ...cached,
-          checkedToday: cached.checkedToday || readLocalCheckInToday(address),
-        });
-        setLoading(false);
+      const startBackgroundHistorySync = (priorBasename?: string | null) => {
+        bgSyncStarted = true;
+        const gen = ++historySyncGen.current;
         setWalletRefreshing(true);
-        registerReferralOnce();
 
-        try {
-          const [result, ci] = await Promise.all([
-            fetchWalletAnalysis(address, true),
-            fetchCheckInStatus(address),
-          ]);
-          if (result) mergeAndApply(result, ci);
-        } catch (e) {
-          console.error(e);
-        } finally {
+        const runSync = () => {
+          if (historySyncGen.current !== gen) return;
+          void pollWalletHistorySync(
+          address,
+          {
+          reset: false,
+          onProgress: (msg) => setScanProgress(msg),
+          shouldCancel: () => historySyncGen.current !== gen,
+          onUpdate: (syncResult: AnalyzeWalletResult & {
+            historyComplete?: boolean;
+            partial?: boolean;
+            wallet?: Partial<AnalyzeWalletResult["wallet"]>;
+          }) => {
+            if (historySyncGen.current !== gen) return;
+            if (syncResult.partial && syncResult.wallet) {
+              const p = syncResult.wallet;
+              const nextDays = Math.max(
+                latestDaysRef.current,
+                p.uniqueDays ?? 0
+              );
+              setScanProgress(
+                `Syncing full history… ${nextDays} active days`
+              );
+              setWallet((prev) =>
+                prev?.address.toLowerCase() === address.toLowerCase()
+                  ? {
+                      ...prev,
+                      uniqueDays: Math.max(prev.uniqueDays, p.uniqueDays ?? 0),
+                      txCount: Math.max(prev.txCount, p.txCount ?? 0),
+                      activeWeeks: Math.max(
+                        prev.activeWeeks,
+                        p.activeWeeks ?? 0
+                      ),
+                      activeMonths: Math.max(
+                        prev.activeMonths,
+                        p.activeMonths ?? 0
+                      ),
+                      dailyStats:
+                        (p.uniqueDays ?? 0) >= prev.uniqueDays
+                          ? (p.dailyStats ?? prev.dailyStats)
+                          : prev.dailyStats,
+                      historyDays: Math.max(
+                        prev.historyDays,
+                        p.dailyStats?.length ?? 0
+                      ),
+                      tokensSwapped: Math.max(
+                        prev.tokensSwapped,
+                        p.tokensSwapped ?? 0
+                      ),
+                      erc20Txs: Math.max(prev.erc20Txs, p.erc20Txs ?? 0),
+                      nftCount: Math.max(prev.nftCount, p.nftCount ?? 0),
+                      erc721Txs: Math.max(prev.erc721Txs, p.erc721Txs ?? 0),
+                      swapCount: Math.max(prev.swapCount, p.swapCount ?? 0),
+                      dexTradeCount: Math.max(
+                        prev.dexTradeCount,
+                        p.dexTradeCount ?? 0
+                      ),
+                      dexVolumeUSD: Math.max(
+                        prev.dexVolumeUSD,
+                        p.dexVolumeUSD ?? 0
+                      ),
+                      dexVolumeETH: Math.max(
+                        prev.dexVolumeETH,
+                        p.dexVolumeETH ?? 0
+                      ),
+                      dexTradeCount30d: Math.max(
+                        prev.dexTradeCount30d,
+                        p.dexTradeCount30d ?? 0
+                      ),
+                      dexVolumeUSD30d: Math.max(
+                        prev.dexVolumeUSD30d,
+                        p.dexVolumeUSD30d ?? 0
+                      ),
+                      ethSwapVolumeUSD: Math.max(
+                        prev.ethSwapVolumeUSD ?? 0,
+                        p.ethSwapVolumeUSD ?? 0
+                      ),
+                      ethVolume:
+                        p.ethVolume && parseFloat(p.ethVolume) > parseFloat(prev.ethVolume)
+                          ? p.ethVolume
+                          : prev.ethVolume,
+                      activityScore: Math.max(
+                        prev.activityScore,
+                        p.activityScore ?? 0
+                      ),
+                    }
+                  : prev
+              );
+              latestDaysRef.current = Math.max(
+                latestDaysRef.current,
+                p.uniqueDays ?? 0
+              );
+              if (syncResult.historyComplete !== true) return;
+            }
+            void fetchCheckInStatus(address).then((ci) => {
+              mergeAndApply(syncResult, ci, priorBasename);
+            });
+          },
+        }
+        )
+          .catch((e) => console.error(e))
+          .finally(() => {
+            if (historySyncGen.current === gen) {
+              setWalletRefreshing(false);
+              setScanProgress("");
+            }
+          });
+        };
+
+        runSync();
+      };
+
+      const failScan = (message: string) => {
+        showToast(message, "");
+        setLoading(false);
+        setScanProgress("");
+      };
+
+      setScanProgress("Calculating wallet score…");
+
+      const maybeStartHistorySync = (
+        result: AnalyzeWalletResult,
+        priorBasename?: string | null
+      ) => {
+        if (result.historyComplete === true) return;
+        setWalletRefreshing(true);
+        startBackgroundHistorySync(priorBasename ?? result.wallet.basename);
+      };
+
+      try {
+        const ciP = fetchCheckInStatus(address).catch(() => ({
+          checkedToday: false,
+          streak: 0,
+        }));
+
+        setLoading(true);
+        setScanProgress("Calculating wallet score…");
+
+        const isUsableAnalysis = (
+          r: (AnalyzeWalletResult & { cached?: boolean }) | null | undefined
+        ): boolean => {
+          if (!r?.wallet?.address) return false;
+          const w = r.wallet;
+          if (w.recommendation === "Fetching onchain data…") return false;
+          if ((w.score ?? 0) <= 0) return false;
+          return (w.uniqueDays ?? 0) > 0 || (w.txCount ?? 0) >= 10;
+        };
+
+        // Try cache first (<1s on repeat connect), then one live fetch if needed.
+        let [result, ci] = await Promise.all([
+          fetchWalletAnalysisQuick(address, false),
+          ciP,
+        ]);
+
+        const servedFromCache = Boolean(result?.cached);
+
+        if (!isUsableAnalysis(result)) {
+          setScanProgress("Fetching onchain data…");
+          result = await fetchWalletAnalysisQuick(address, true);
+        }
+
+        if (!result) {
+          setScanProgress("Retrying wallet scan…");
+          await new Promise((r) => setTimeout(r, 600));
+          result = await fetchWalletAnalysisQuick(address, true);
+        }
+
+        if (!result) {
+          failScan(
+            "❌ Could not load wallet data — check connection and retry"
+          );
+          return;
+        }
+
+        mergeAndApply(result, ci);
+        setLoading(false);
+        setScanProgress("");
+        maybeStartHistorySync(result);
+
+        if (servedFromCache) {
+          void fetchWalletAnalysisQuick(address, true).then((fresh) => {
+            if (!fresh || !isUsableAnalysis(fresh) || fresh.cached) return;
+            void fetchCheckInStatus(address).then((freshCi) => {
+              mergeAndApply(fresh, freshCi);
+              maybeStartHistorySync(fresh);
+            });
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        failScan("❌ Wallet scan failed — check connection and retry");
+      } finally {
+        setLoading(false);
+        if (!bgSyncStarted) {
           setWalletRefreshing(false);
           setScanProgress("");
         }
-        return;
-      }
-
-      setLoading(true);
-      setScanProgress("Loading onchain score & profile…");
-
-      try {
-        const [result, ci] = await Promise.all([
-          fetchWalletAnalysis(address, true),
-          fetchCheckInStatus(address),
-        ]);
-        if (!result) {
-          showToast("❌ Could not load wallet data — try again", "");
-          setWallet(null);
-          return;
-        }
-        mergeAndApply(result, ci);
-      } catch (e) {
-        console.error(e);
-        showToast("❌ Wallet scan failed — check connection and retry", "");
-        setWallet(null);
-      } finally {
-        setLoading(false);
-        setWalletRefreshing(false);
-        setScanProgress("");
       }
     },
     [applyAnalysis, loadX402PremiumState, showToast, syncCheckInStatus]
@@ -896,40 +1160,37 @@ export function useWalletApp() {
     try {
       setShowModal(false);
       setLoading(true);
-      let addr = "";
+      setScanProgress("Connecting wallet…");
+
       if (type === "farcaster") {
-        showToast("⏳ Connecting Farcaster...", "");
-        const provider = await sdk.wallet.getEthereumProvider();
-        if (!provider) throw new Error("Farcaster wallet not available");
-        const accs = (await provider.request({
-          method: "eth_requestAccounts",
-        })) as string[];
-        const evm = accs.find((a) => a && a.startsWith("0x"));
-        if (!evm) throw new Error("No EVM wallet");
-        addr = evm;
-        await ensureBaseNetwork(provider);
-      } else if (type === "baseAccount") {
-        const { connectBaseAccount } = await import("@/lib/base-account");
-        const connected = await connectBaseAccount();
-        addr = connected.address;
-      } else {
-        const { address } = await connectWallet(type);
-        addr = address;
-        const provider = await getEip1193Provider(type);
-        await ensureBaseNetwork(provider);
+        showToast("⏳ Connecting Base App wallet...", "");
       }
-      setConnType(type);
-      persistConnType(type);
+
+      const { address: addr, connType: resolvedType } = await connectAppWallet(type);
+      setConnType(resolvedType);
+      persistConnType(resolvedType);
+      clearWalletCache(addr);
+      loadX402PremiumState(addr);
+      setScanProgress("Fetching onchain data…");
       await analyzeWallet(addr);
-    } catch {
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message.split("\n")[0] : "Connection failed";
+      showToast(
+        msg.includes("timed out")
+          ? `❌ ${msg}`
+          : "❌ Connection failed. Switch to Base network and try again.",
+        ""
+      );
       setLoading(false);
-      showToast("❌ Connection failed. Switch to Base network and try again.", "");
+      setScanProgress("");
     } finally {
       connectingRef.current = false;
     }
   };
 
   const resetSessionState = useCallback(() => {
+    historySyncGen.current += 1;
     setWallet(null);
     setConnType(null);
     clearConnType();
@@ -955,6 +1216,7 @@ export function useWalletApp() {
     pendingTx.current.clear();
     x402Paying.current = false;
     handledActionTxs.current.clear();
+    calendarRef.current = getCalendarKeys();
   }, []);
 
   const handleDisconnect = () => {
@@ -1248,6 +1510,15 @@ export function useWalletApp() {
     ? WEEKLY_QUESTS.filter((q) => q.check(questContext)).length
     : 0;
 
+  const walletScanComplete = Boolean(
+    wallet &&
+      !loading &&
+      !walletRefreshing &&
+      wallet.score > 0 &&
+      wallet.recommendation !== "Fetching onchain data…" &&
+      ((wallet.uniqueDays ?? 0) > 0 || (wallet.txCount ?? 0) >= 30)
+  );
+
   return {
     wallet,
     connType,
@@ -1286,6 +1557,7 @@ export function useWalletApp() {
     weeklyXP,
     scanProgress,
     walletRefreshing,
+    walletScanComplete,
     premiumUnlocked,
     premiumLoading,
     premiumData,

@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/analyze-wallet/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/wallet-sync/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/wallet-bootstrap/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

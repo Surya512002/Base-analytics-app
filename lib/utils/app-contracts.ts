@@ -27,7 +27,12 @@ export function isWalletCallTo(
 ): boolean {
   const w = wallet.toLowerCase();
   const c = contract.toLowerCase();
-  return (tx.from || "").toLowerCase() === w && (tx.to || "").toLowerCase() === c;
+  const to = (tx.to || "").toLowerCase();
+  if (to !== c) return false;
+  const from = (tx.from || "").toLowerCase();
+  if (from === w) return true;
+  if (tx.category === "contractcall" && from === w) return true;
+  return false;
 }
 
 export function getAppContractHit(

@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:collector && next build",
+    "build:collector": "cd collector && go build -o collector .",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev --turbopack",
+    "dev:clean": "rm -rf .next && next dev --webpack",
     "start": "next start",
     "lint": "eslint",
     "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh"

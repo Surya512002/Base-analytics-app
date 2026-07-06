@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { runPredictionKeeper } from "@/lib/predictions/keeper";
 
+import { getBaseRpcUrls } from "@/lib/utils/base-rpc";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const PREDICTIONS_CONTRACT = process.env.NEXT_PUBLIC_PREDICTIONS_CONTRACT as
   | `0x${string}`
   | undefined;
-const BASE_RPC =
-  process.env.BASE_RPC_URL ||
-  (process.env.NEXT_PUBLIC_ALCHEMY_KEY
-    ? `https://base-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_KEY}`
-    : "");
 const KEEPER_KEY = process.env.PREDICTIONS_KEEPER_PRIVATE_KEY as
   | `0x${string}`
   | undefined;
@@ -24,18 +21,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!PREDICTIONS_CONTRACT || !BASE_RPC || !KEEPER_KEY) {
+  const rpcUrl = getBaseRpcUrls()[0];
+  if (!PREDICTIONS_CONTRACT || !rpcUrl || !KEEPER_KEY) {
     return NextResponse.json(
       {
         error:
-          "Set NEXT_PUBLIC_PREDICTIONS_CONTRACT, NEXT_PUBLIC_ALCHEMY_KEY, and PREDICTIONS_KEEPER_PRIVATE_KEY",
+          "Set NEXT_PUBLIC_PREDICTIONS_CONTRACT, BASE_RPC_URL or ALCHEMY key, and PREDICTIONS_KEEPER_PRIVATE_KEY",
       },
       { status: 503 }
     );
   }
 
   const result = await runPredictionKeeper({
-    rpcUrl: BASE_RPC,
+    rpcUrl,
     contract: PREDICTIONS_CONTRACT,
     privateKey: KEEPER_KEY,
     initialLiquidityUsdc: Number(

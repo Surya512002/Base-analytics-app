@@ -8,6 +8,8 @@ export interface WalletData {
   address: string;
   basename: string | null;
   balance: string;
+  /** USDC on Base (6 decimals). */
+  usdcBalance: string;
   ethVolume: string;
   txCount: number;
   uniqueDays: number;
@@ -51,6 +53,8 @@ export interface WalletData {
   dexTradeCount: number;
   dexVolumeUSD30d: number;
   dexTradeCount30d: number;
+  /** Native ETH/WETH swap leg volume (USD) — included in dexVolumeUSD. */
+  ethSwapVolumeUSD?: number;
   paymasterTxCount: number;
   bridgeTxCount: number;
   netETHFlow: number;
@@ -76,6 +80,8 @@ export interface AlchemyTransfer {
     blockTimestamp: string;
     isSponsored?: boolean;
     isUserOperation?: boolean;
+    /** Set for address-indexed indexer rows (Blockscout/Basescan/user-ops). */
+    walletParticipated?: boolean;
   };
 }
 
@@ -114,4 +120,11 @@ export interface AnalyzeWalletResult {
   boosts: number;
   streak: number;
   checkedToday: boolean;
+  /** False when v2 pagination was truncated — background sync should continue. */
+  historyComplete?: boolean;
+  /** Per-stream v2 pagination state for background sync resume. */
+  v2StreamStates?: Record<
+    string,
+    { complete: boolean; cursor: string | null }
+  >;
 }

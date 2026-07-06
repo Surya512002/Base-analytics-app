@@ -12,12 +12,16 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const refresh = searchParams.get("refresh") === "1";
+  const depthParam = searchParams.get("depth");
+  const depth =
+    depthParam === "complete" ? "complete" : ("connect" as const);
+  const skipV2 = searchParams.get("skipV2") === "1";
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
-  const cacheKey = `wallet-txs:v4:${address}`;
+  const cacheKey = `wallet-txs:v9:${address}`;
 
   if (!refresh) {
     const cached = await cacheGet<{
@@ -35,12 +39,24 @@ export async function GET(req: Request) {
     "";
 
   try {
-    const { transfers, sources } = await fetchWalletTransfersMerged(
-      address,
-      basescanKey
+    const { transfers, sources, historyComplete, v2StreamStates } =
+      await fetchWalletTransfersMerged(address, {
+        depth,
+        skipV2,
+        basescanKey,
+      });
+    const payload = {
+      transfers,
+      sources,
+      historyComplete,
+      v2StreamStates,
+      cached: false,
+    };
+    await cacheSet(
+      cacheKey,
+      { transfers, sources, historyComplete, v2StreamStates },
+      CACHE_TTL
     );
-    const payload = { transfers, sources, cached: false };
-    await cacheSet(cacheKey, { transfers, sources }, CACHE_TTL);
     return NextResponse.json(payload);
   } catch (err) {
     console.error("[wallet-txs]", err);

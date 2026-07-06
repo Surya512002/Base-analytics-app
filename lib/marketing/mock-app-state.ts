@@ -43,6 +43,7 @@ export function createMockWallet(): WalletData {
   return {
     address: "0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F",
     basename: "surya.base.eth",
+    usdcBalance: "1240.50",
     balance: "0.842",
     ethVolume: "12.4",
     txCount: 1248,

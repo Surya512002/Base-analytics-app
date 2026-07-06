@@ -19,32 +19,35 @@ const STEPS: {
     tab: "predictions",
   },
   {
-    icon: <Trophy size={20} className="text-amber-400" />,
-    title: "Earn XP by trading",
-    body: "Every prediction trade earns activity points toward your daily cap and weekly quests. The more you trade, the higher you climb the leaderboard.",
-    tab: "predictions",
+    icon: <BarChart3 size={20} className="text-cyan-400" />,
+    title: "Your onchain score is ready",
+    body: "Dashboard shows your Base score, swap volume, heatmap, and wallet health — all from live indexed history.",
+    tab: "dashboard",
   },
   {
-    icon: <BarChart3 size={20} className="text-cyan-400" />,
-    title: "Plus wallet analytics & rewards",
-    body: "Check in daily, complete quests, mint badges, and use vouchers — all from the same app. Predictions are the core; everything else supports your onchain journey.",
+    icon: <Trophy size={20} className="text-amber-400" />,
+    title: "Earn XP & climb the leaderboard",
+    body: "Daily check-ins, quests, badges, and prediction trades all earn activity points toward your weekly rank.",
     tab: "checkin",
   },
 ];
 
 interface OnboardingTourProps {
   onNavigate: (tab: AppTab) => void;
+  /** Wait until real wallet metrics are loaded before showing the tour. */
+  ready?: boolean;
 }
 
-export default function OnboardingTour({ onNavigate }: OnboardingTourProps) {
+export default function OnboardingTour({ onNavigate, ready = false }: OnboardingTourProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
+    if (!ready) return;
     if (typeof window !== "undefined" && !localStorage.getItem(TOUR_KEY)) {
       setOpen(true);
     }
-  }, []);
+  }, [ready]);
 
   useEffect(() => {
     if (open) onNavigate(STEPS[step].tab ?? "predictions");

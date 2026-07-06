@@ -1,40 +1,45 @@
 import { NextResponse } from "next/server";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
-import { cacheGet, cacheSet } from "@/lib/redis-cache";
+import { logEnvAuditOnce } from "@/lib/env-audit";
+import {
+  getCachedAnalyze,
+  isUsableAnalyzeCache,
+  setCachedAnalyze,
+} from "@/lib/wallet/analyze-cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const CACHE_TTL = 600;
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
+  const quick = searchParams.get("quick") === "1";
   const refresh = searchParams.get("refresh") === "1";
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
-  const cacheKey = `analyze-wallet:v4:${address}`;
-
-  if (!refresh) {
-    const cached = await cacheGet<
-      Awaited<ReturnType<typeof analyzeWalletAddress>>
-    >(cacheKey);
-    if (cached) {
-      return NextResponse.json({ ...cached, cached: true });
-    }
-  }
-
   try {
-    const result = await analyzeWalletAddress(address);
+    logEnvAuditOnce();
+
+    if (!refresh) {
+      const cached = await getCachedAnalyze(address);
+      if (cached && isUsableAnalyzeCache(cached)) {
+        return NextResponse.json({ ...cached, cached: true });
+      }
+    }
+
+    const result = await analyzeWalletAddress(address, {
+      fetchDepth: quick ? "quick" : "connect",
+    });
     if (!result) {
       return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
     }
 
-    await cacheSet(cacheKey, result, CACHE_TTL);
+    await setCachedAnalyze(address, result);
+
     return NextResponse.json({ ...result, cached: false });
   } catch (err) {
     console.error("[analyze-wallet]", err);

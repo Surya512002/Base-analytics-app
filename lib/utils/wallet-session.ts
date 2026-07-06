@@ -1,7 +1,8 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
+import { getWeekKey } from "@/lib/utils/dates";
 
 /** Bump to reset stale per-wallet session keys after storage logic changes. */
-export const SESSION_STORAGE_VERSION = 7;
+export const SESSION_STORAGE_VERSION = 8;
 
 export const DEFAULT_TX_KEYS: Record<string, number> = {
   boost: 0,
@@ -10,14 +11,22 @@ export const DEFAULT_TX_KEYS: Record<string, number> = {
   checkin: 0,
   redeem: 0,
   prediction: 0,
+  x402: 0,
+  voucher: 0,
+  challenge: 0,
 };
+
+export function currentWeekKey(): string {
+  return getWeekKey(new Date().toISOString());
+}
 
 function addrKey(address: string): string {
   return address.toLowerCase();
 }
 
 function txKeysKey(address: string): string {
-  return `base_txkeys_${addrKey(address)}`;
+  const week = currentWeekKey();
+  return `base_txkeys_v4_${addrKey(address)}_${week}`;
 }
 
 function checkInCountKey(address: string): string {
@@ -167,12 +176,25 @@ export function mergeTxKeyCounters(
   derived: Record<string, number>,
   current: Record<string, number>
 ): Record<string, number> {
-  return {
-    boost: Math.max(derived.boost || 0, current.boost || 0),
-    gm: Math.max(derived.gm || 0, current.gm || 0),
-    gn: Math.max(derived.gn || 0, current.gn || 0),
-    checkin: Math.max(derived.checkin || 0, current.checkin || 0),
+  const merged = { ...DEFAULT_TX_KEYS };
+  for (const key of Object.keys(DEFAULT_TX_KEYS)) {
+    merged[key] = Math.max(derived[key] || 0, current[key] || 0);
+  }
+  return merged;
+}
+
+/** Increment a weekly in-app action counter (quests + daily point sync). */
+export function bumpWeeklyTxKey(
+  address: string,
+  field: keyof typeof DEFAULT_TX_KEYS
+): Record<string, number> {
+  const current = readPersistedTxKeys(address);
+  const next = {
+    ...current,
+    [field]: (current[field] || 0) + 1,
   };
+  writePersistedTxKeys(address, next);
+  return next;
 }
 
 export function syncSessionFromAnalysis(

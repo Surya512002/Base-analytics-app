@@ -6,6 +6,7 @@ interface AppHeaderProps {
   weeklyXP: number;
   sponsored: number;
   walletRefreshing?: boolean;
+  scanProgress?: string;
   onDisconnect: () => void;
 }
 
@@ -13,6 +14,7 @@ export default function AppHeader({
   weeklyXP,
   sponsored,
   walletRefreshing = false,
+  scanProgress = "",
   onDisconnect,
 }: AppHeaderProps) {
   return (
@@ -39,10 +41,10 @@ export default function AppHeader({
             <span className="text-[9px] text-slate-400 hidden sm:inline">XP</span>
           </div>
           {walletRefreshing && (
-            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5 border border-cyan-500/20">
-              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-              <span className="text-[9px] font-bold text-cyan-300 uppercase tracking-wide">
-                Syncing
+            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5 border border-cyan-500/20 max-w-[220px]">
+              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shrink-0" />
+              <span className="text-[9px] font-bold text-cyan-300 uppercase tracking-wide truncate">
+                {scanProgress || "Syncing history"}
               </span>
             </div>
           )}

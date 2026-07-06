@@ -57,7 +57,7 @@ export async function runPredictionKeeper(args: {
   });
 
   const result: KeeperResult = { opened: [], closed: [], resolved: [], errors: [] };
-  const onChain = await fetchOnChainMarkets(publicClient, contract);
+  const onChain = await fetchOnChainMarkets(publicClient, contract, 48);
 
   for (const track of MARKET_TRACKS) {
     if (track.onChainEnabled === false) continue;
@@ -83,7 +83,7 @@ export async function runPredictionKeeper(args: {
           ],
         });
         await publicClient.waitForTransactionReceipt({ hash });
-        const refreshed = await fetchOnChainMarkets(publicClient, contract, 40);
+        const refreshed = await fetchOnChainMarkets(publicClient, contract, 32);
         const opened = matchOnChainMarket(refreshed, track, now);
         if (opened) result.opened.push(opened.marketId);
       } catch (e) {
@@ -94,7 +94,7 @@ export async function runPredictionKeeper(args: {
     }
   }
 
-  const latest = await fetchOnChainMarkets(publicClient, contract);
+  const latest = await fetchOnChainMarkets(publicClient, contract, 48);
   const nowSec = Math.floor(now / 1000);
 
   for (const m of latest) {
@@ -116,7 +116,7 @@ export async function runPredictionKeeper(args: {
     }
   }
 
-  const afterClose = await fetchOnChainMarkets(publicClient, contract);
+  const afterClose = await fetchOnChainMarkets(publicClient, contract, 48);
   for (const m of afterClose) {
     const closable =
       m.phase === "closed" || (m.phase === "open" && nowSec >= m.resolveTime);

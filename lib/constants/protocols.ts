@@ -23,6 +23,12 @@ export const DEX_ROUTERS = new Set([
   "0x9008d19f58aabd9e3d60971565aa8510560ab410", // CoW Protocol
   "0x327df1e6de05895d2ab08513e4e192b45d9c8f88", // BaseSwap Router v2
   "0x678aa4bf4e210f68689df86a67cbdb72b1305a083", // PancakeSwap Universal
+  "0x6ff5693b99212da76ad316178a18420340152a83", // Uniswap Universal Router V2 (Base)
+  "0x771426ca807cb7b2d30c20a2cf626aad5746954", // LI.FI aggregator
+  "0x420dd381b31aef6680dbc96c8f9022858274bd0", // Aerodrome Pool Factory
+  "0x827922686190790b37229fd06084350e74485b72", // Aerodrome Slipstream Position Manager
+  "0xdef171fe48cf0115b1d80b9dc6e3e0ea167704d", // ParaSwap Augustus Swapper
+  "0x82564927a6d5ccb774b3077c0bf6d4c4d8d6b6e8", // Aerodrome Universal Router
 ]);
 
 /** Bridge / cross-chain contracts on Base (deposit or withdraw). */

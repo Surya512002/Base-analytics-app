@@ -65,6 +65,7 @@ export default function Page() {
     sponsored,
     handleDisconnect,
     doneQuests,
+    walletScanComplete,
   } = app;
 
   if (!ready) return <LoadingScreen />;
@@ -98,13 +99,14 @@ export default function Page() {
         weeklyXP={weeklyXP}
         sponsored={sponsored}
         walletRefreshing={walletRefreshing}
+        scanProgress={scanProgress}
         onDisconnect={handleDisconnect}
       />
 
       <div className="relative z-10 w-full max-w-[min(100%,88rem)] mx-auto px-3 sm:px-6 pt-4 pb-24">
         <TabBar tab={tab} doneQuests={doneQuests} onTabChange={setTab} />
 
-        <OnboardingTour onNavigate={setTab} />
+        <OnboardingTour onNavigate={setTab} ready={walletScanComplete} />
 
         <AppFeatureStrip onNavigate={setTab} />
 

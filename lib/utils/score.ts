@@ -47,8 +47,12 @@ export interface ScoreInput {
   defiInteractions: number;
   uniqueContracts: number;
   nftCount: number;
+  /** Unique tx hashes with NFT mint / transfer / receive activity. */
+  nftTxCount: number;
   dexTradeCount: number;
   dexVolumeUSD: number;
+  /** Native ETH/WETH notional from detected swap legs (USD). */
+  ethSwapVolumeUSD?: number;
   bridgeTxCount: number;
   hasBasename: boolean;
   gmCount: number;
@@ -72,8 +76,10 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
     defiInteractions,
     uniqueContracts,
     nftCount,
+    nftTxCount,
     dexTradeCount,
     dexVolumeUSD,
+    ethSwapVolumeUSD = 0,
     bridgeTxCount,
     hasBasename,
     gmCount,
@@ -99,13 +105,19 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
     defiUsage: Math.min(SCORE_MAX.defiUsage, defiInteractions / 10),
     // ~200 unique contracts to max
     contracts: Math.min(SCORE_MAX.contracts, uniqueContracts / 25),
-    // ~20 NFTs held to max
-    nftHolder: Math.min(SCORE_MAX.nftHolder, nftCount / 5),
-    // Trades + volume — ~$50k swap volume for full volume half
+    // Holdings + mint/transfer activity (~20 assets or ~24 NFT txs to max)
+    nftHolder: Math.min(
+      SCORE_MAX.nftHolder,
+      Math.min(2.5, nftCount / 4) + Math.min(1.5, nftTxCount / 8)
+    ),
+    // Trades + volume (ETH swap legs included in dexVolumeUSD / ethSwapVolumeUSD)
     dexTrading: Math.min(
       SCORE_MAX.dexTrading,
       Math.min(3.5, dexTradeCount / 35) +
-        Math.min(3.5, Math.sqrt(dexVolumeUSD + 1) / 10)
+        Math.min(
+          3.5,
+          Math.sqrt(Math.max(dexVolumeUSD, ethSwapVolumeUSD) + 1) / 10
+        )
     ),
     // 1 bridge = 1 pt min · ~24 bridges to max
     bridge:
@@ -156,8 +168,10 @@ export function computeChallengeScore(
       defiInteractions: 0,
       uniqueContracts: 0,
       nftCount: 0,
+      nftTxCount: 0,
       dexTradeCount: 0,
       dexVolumeUSD: 0,
+      ethSwapVolumeUSD: 0,
       bridgeTxCount: 0,
       hasBasename: false,
       gmCount: 0,

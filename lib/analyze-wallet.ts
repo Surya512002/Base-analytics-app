@@ -1,10 +1,23 @@
-import { JsonRpcProvider, formatEther } from "ethers";
+import { type WalletFetchDepth } from "@/lib/api/fetch-wallet-transfers";
 import {
-  fetchNftCount,
-} from "@/lib/api/alchemy";
-import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
-import { createBasePublicClient, getBaseRpcUrls } from "@/lib/utils/base-rpc";
-import { BASE_PUBLIC_RPC } from "@/lib/constants/env";
+  countNftActivityFromTransfers,
+  countNftTxHashesFromTransfers,
+  estimateNftHoldingsFromTransfers,
+} from "@/lib/utils/nft-stats";
+import { fetchNftSnapshot } from "@/lib/api/nft-snapshot";
+import { collectWalletConnect, collectWalletComplete, collectWalletQuick } from "@/lib/wallet/collect";
+import { fetchWalletBalances } from "@/lib/wallet/balances";
+import {
+  saveWalletHistory,
+  loadOrEmptyHistory,
+  mergeActivityIntoState,
+  emptyHistoryState,
+  type StoredWalletHistory,
+} from "@/lib/wallet/history-store";
+import { buildDailyStatsFromState } from "@/lib/wallet/sync-engine";
+import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
+import { enrichTransferLegs } from "@/lib/utils/wallet-activity";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import {
   ACHIEVEMENTS_ABI,
   ACHIEVEMENTS_CONTRACT,
@@ -16,87 +29,190 @@ import {
 import { BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
 import { ACHIEVEMENTS, MONTH_NAMES } from "@/lib/constants/season";
 import { getTargetTokenId } from "@/lib/utils/achievements";
+import { resolveBasename } from "@/lib/utils/resolve-basename";
 import {
   countContractInteractions,
+  mergeTransfers,
   rollupWalletActivity,
-  walletInvolved,
+  countsTowardActivity,
 } from "@/lib/utils/wallet-activity";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
-import { computeSwapVolume } from "@/lib/utils/swap-volume";
-import {
-  computeScoreComponents,
-  computeTotalScore,
-  computeWalletRank,
-} from "@/lib/utils/score";
+import { computeSwapVolume, computeEthFlowVolumes } from "@/lib/utils/swap-volume";
+import { buildOnchainScore } from "@/lib/analytics/onchain-score";
 import type {
   AnalyzeWalletResult,
+  AlchemyTransfer,
   DayStats,
   WalletData,
 } from "@/lib/types/wallet";
 
-const BASE_REVERSE_REGISTRAR =
-  "0x79EA96012eEa67A83431F1701B3dFf7e37F9E282" as `0x${string}`;
-const BASE_L2_RESOLVER =
-  "0xC6d566A56A1aFf6508b41f6c90ff131615583BCD" as `0x${string}`;
+export interface AnalyzeWalletOptions {
+  onProgress?: (msg: string) => void;
+  transfers?: AlchemyTransfer[];
+  fetchDepth?: WalletFetchDepth;
+  historyComplete?: boolean;
+  v2StreamStates?: Record<string, { complete: boolean; cursor: string | null }>;
+}
 
-const REVERSE_REGISTRAR_ABI = [
-  {
-    name: "node",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "addr", type: "address" }],
-    outputs: [{ name: "", type: "bytes32" }],
-  },
-] as const;
+function mergeRollupWithHistory(
+  rollup: ReturnType<typeof rollupWalletActivity>,
+  history: StoredWalletHistory,
+  _addrLow: string
+): {
+  participatingHashes: Set<string>;
+  uDays: Set<string>;
+  uWeeks: Set<string>;
+  uMonths: Set<string>;
+  tpd: Map<string, number>;
+  monthActivity: Map<string, number>;
+  mergedState: StoredWalletHistory;
+} {
+  const participatingHashes = new Set(rollup.participatingHashes);
+  const uDays = new Set(rollup.uDays);
+  const tpd = new Map(rollup.tpd);
 
-const NAME_RESOLVER_ABI = [
-  {
-    name: "name",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "node", type: "bytes32" }],
-    outputs: [{ name: "", type: "string" }],
-  },
-] as const;
+  for (const [day, count] of Object.entries(history.tpd)) {
+    if (count <= 0) continue;
+    uDays.add(day);
+    tpd.set(day, Math.max(tpd.get(day) ?? 0, count));
+  }
+  for (const day of history.activityDays) {
+    if ((history.tpd[day] ?? 0) > 0) uDays.add(day);
+  }
+  for (const h of history.txHashes) {
+    participatingHashes.add(h);
+  }
+
+  const uWeeks = new Set(
+    [...uDays].map((d) => getWeekKey(`${d}T12:00:00Z`))
+  );
+  const uMonths = new Set(
+    [...uDays].map((d) => getMonthKey(`${d}T12:00:00Z`))
+  );
+  const monthActivity = new Map<string, number>();
+  for (const d of uDays) {
+    const mk = getMonthKey(`${d}T12:00:00Z`);
+    monthActivity.set(mk, (monthActivity.get(mk) || 0) + (tpd.get(d) || 0));
+  }
+
+  const heatmapState: StoredWalletHistory = {
+    ...history,
+    tpd: Object.fromEntries(tpd),
+    activityDays: [...uDays].sort(),
+    txHashes: [...participatingHashes],
+  };
+
+  return {
+    participatingHashes,
+    uDays,
+    uWeeks,
+    uMonths,
+    tpd,
+    monthActivity,
+    mergedState: heatmapState,
+  };
+}
+
+function heatmapSpanDays(state: StoredWalletHistory, minDays = 364): number {
+  const dated = Object.entries(state.tpd)
+    .filter(([, c]) => c > 0)
+    .map(([d]) => d);
+  if (!dated.length && state.activityDays.length) {
+    dated.push(...state.activityDays);
+  }
+  if (!dated.length) return minDays;
+  const oldest = dated.reduce((a, b) => (a < b ? a : b));
+  const oldestTs = new Date(`${oldest}T12:00:00Z`).getTime();
+  const span = Math.ceil((Date.now() - oldestTs) / 86400000) + 14;
+  return Math.max(minDays, span);
+}
+
+async function fetchConnectHistory(
+  address: string,
+  opts: {
+    isQuick: boolean;
+    isComplete: boolean;
+    onProgress?: (msg: string) => void;
+  }
+): Promise<{
+  transfers: AlchemyTransfer[];
+  mergedHistory: StoredWalletHistory;
+  historyComplete: boolean;
+  v2StreamStates: Record<string, { complete: boolean; cursor: string | null }> | undefined;
+}> {
+  const stored = await loadOrEmptyHistory(address);
+
+  if (opts.isQuick && !opts.isComplete) {
+    opts.onProgress?.("Fetching onchain data…");
+    const [stored, collected] = await Promise.all([
+      loadOrEmptyHistory(address),
+      collectWalletQuick(address),
+    ]);
+    const merged = mergeActivityIntoState(stored, collected.transfers, address);
+    const next = {
+      ...merged,
+      v2StreamStates: collected.v2StreamStates,
+      historyComplete: stored.historyComplete || collected.historyComplete,
+    };
+    void saveWalletHistory(address, next).catch(() => {});
+    return {
+      transfers: collected.transfers,
+      mergedHistory: next,
+      historyComplete: next.historyComplete,
+      v2StreamStates: collected.v2StreamStates,
+    };
+  }
+
+  const r = opts.isComplete
+    ? await collectWalletComplete(address)
+    : opts.isQuick
+      ? await collectWalletQuick(address)
+      : await collectWalletConnect(address);
+
+  const merged = mergeActivityIntoState(stored, r.transfers, address);
+  const next = {
+    ...merged,
+    v2StreamStates: r.v2StreamStates,
+    historyComplete: r.historyComplete,
+  };
+  await saveWalletHistory(address, next).catch(() => {});
+  return {
+    transfers: r.transfers,
+    mergedHistory: next,
+    historyComplete: r.historyComplete,
+    v2StreamStates: r.v2StreamStates,
+  };
+}
 
 export async function analyzeWalletAddress(
   address: string,
-  onProgress?: (msg: string) => void
-): Promise<AnalyzeWalletResult | null> {
+  options: AnalyzeWalletOptions = {}
+): Promise<(AnalyzeWalletResult & { historyComplete?: boolean }) | null> {
+  const onProgress = options.onProgress;
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return null;
   }
 
   onProgress?.("Firing all data sources in parallel...");
 
-  const rpcUrl = getBaseRpcUrls()[0] ?? BASE_PUBLIC_RPC;
-  const provider = new JsonRpcProvider(rpcUrl);
   const pub = createBasePublicClient();
   const addrLow = address.toLowerCase();
+  const isQuick = options.fetchDepth === "quick";
 
-  const bnP = pub
-    .readContract({
-      address: BASE_REVERSE_REGISTRAR,
-      abi: REVERSE_REGISTRAR_ABI,
-      functionName: "node",
-      args: [address as `0x${string}`],
-    })
-    .then(async (rn) => {
-      if (!rn) return null;
-      const n = await pub
-        .readContract({
-          address: BASE_L2_RESOLVER,
-          abi: NAME_RESOLVER_ABI,
-          functionName: "name",
-          args: [rn],
-        })
-        .catch(() => null);
-      return n && typeof n === "string" && n.trim() !== "" ? n : null;
-    })
-    .catch(() => null);
+  const bnP = resolveBasename(address, { quick: isQuick });
 
-  const balP = provider.getBalance(address).catch(() => BigInt(0));
-  const nftP = fetchNftCount(address);
+  const ethPriceP = fetch(
+    "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+    { signal: AbortSignal.timeout(1200) }
+  )
+    .then((r) => r.json())
+    .catch(() => ({ ethereum: { usd: 3200 } }));
+
+  const balancesP = ethPriceP.then((d) =>
+    fetchWalletBalances(address, d?.ethereum?.usd || 3200)
+  );
+
+  const nftSnapshotP = fetchNftSnapshot(address, [], { quick: isQuick });
   const strkP = pub
     .readContract({
       address: CHECKIN_CONTRACT as `0x${string}`,
@@ -113,11 +229,6 @@ export async function analyzeWalletAddress(
       args: [address as `0x${string}`],
     })
     .catch(() => BigInt(0));
-  const ethPriceP = fetch(
-    "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-  )
-    .then((r) => r.json())
-    .catch(() => ({ ethereum: { usd: 3200 } }));
 
   const calls: {
     address: `0x${string}`;
@@ -138,35 +249,89 @@ export async function analyzeWalletAddress(
       callMap.push({ catId: cat.id, level: i });
     }
   }
-  const mcP = pub.multicall({ contracts: calls }).catch(() => []);
+  const mcP = isQuick
+    ? Promise.resolve([] as Awaited<ReturnType<typeof pub.multicall>>)
+    : pub.multicall({ contracts: calls }).catch(() => []);
 
-  onProgress?.("Fetching onchain history (Alchemy + Blockscout + paymaster)...");
+  onProgress?.(
+    isQuick
+      ? "Calculating wallet score…"
+      : "Fetching onchain history (Blockscout + Alchemy + paymaster)..."
+  );
+
+  const historyFetchP =
+    options.transfers != null
+      ? loadOrEmptyHistory(address).then(async (base) => {
+          const merged = mergeActivityIntoState(
+            base,
+            options.transfers!,
+            address
+          );
+          await saveWalletHistory(address, merged).catch(() => {});
+          return {
+            transfers: options.transfers!,
+            mergedHistory: merged,
+            historyComplete: options.historyComplete ?? false,
+            v2StreamStates: options.v2StreamStates,
+          };
+        })
+      : fetchConnectHistory(address, {
+          isQuick,
+          isComplete: options.fetchDepth === "complete",
+          onProgress,
+        }).catch(() => ({
+            transfers: [] as AlchemyTransfer[],
+            mergedHistory: emptyHistoryState(),
+            historyComplete: false,
+            v2StreamStates: undefined,
+          }));
 
   const [
     bn,
-    balWei,
-    nftCount,
+    balances,
     mcRes,
-    allTxs,
+    historyBundle,
     dbStreak,
     dbLastCI,
     ethPriceData,
+    nftSnapshot,
   ] = await Promise.all([
     bnP,
-    balP,
-    nftP,
+    balancesP,
     mcP,
-    fetchWalletTransfersMerged(address)
-      .then((r) => r.transfers)
-      .catch(() => []),
+    historyFetchP,
     strkP,
     lastP,
     ethPriceP,
+    nftSnapshotP,
   ]);
+
+  const allTxs = enrichTransferLegs(
+    mergeTransfers([historyBundle.transfers, nftSnapshot.transfers]),
+    addrLow
+  );
+  const nftCount = Math.max(
+    nftSnapshot.nftCount,
+    countNftActivityFromTransfers(allTxs, addrLow),
+    estimateNftHoldingsFromTransfers(allTxs, addrLow)
+  );
+  const historyComplete = historyBundle.historyComplete;
+  const v2StreamStates = historyBundle.v2StreamStates;
 
   onProgress?.(`Computing stats from ${allTxs.length} transfer legs...`);
 
+  const fullHeatmapState = mergeActivityIntoState(
+    historyBundle.mergedHistory ?? emptyHistoryState(),
+    nftSnapshot.transfers,
+    addrLow
+  );
+
   const activity = rollupWalletActivity(allTxs, addrLow);
+  const mergedActivity = mergeRollupWithHistory(
+    activity,
+    fullHeatmapState,
+    addrLow
+  );
   const {
     participatingHashes,
     uDays,
@@ -174,7 +339,8 @@ export async function analyzeWalletAddress(
     uMonths,
     tpd,
     monthActivity,
-  } = activity;
+    mergedState: heatmapState,
+  } = mergedActivity;
 
   const actualTxCount = participatingHashes.size;
 
@@ -207,9 +373,9 @@ export async function analyzeWalletAddress(
   const ep07 = ENTRYPOINT_V07.toLowerCase();
 
   for (const tx of allTxs) {
+    if (!countsTowardActivity(tx, addrLow)) continue;
     const toAddr = (tx.to || "").toLowerCase();
     const fromAddr = (tx.from || "").toLowerCase();
-    if (!walletInvolved(tx, addrLow)) continue;
     if (
       (BRIDGE_CONTRACTS.has(toAddr) || BRIDGE_CONTRACTS.has(fromAddr)) &&
       (fromAddr === addrLow || toAddr === addrLow)
@@ -221,6 +387,7 @@ export async function analyzeWalletAddress(
     }
     if (tx.category === "internal" && toAddr === addrLow)
       paymasterTxHashes.add(tx.hash);
+    if (tx.category === "useroperation") paymasterTxHashes.add(tx.hash);
     if (fromAddr === ep06 || fromAddr === ep07) paymasterTxHashes.add(tx.hash);
   }
 
@@ -234,7 +401,23 @@ export async function analyzeWalletAddress(
     dexVolumeETH,
     dexTradeCount30d,
     dexVolumeUSD30d,
-  } = await computeSwapVolume(allTxs, addrLow, ethUSD);
+    ethSwapVolumeUSD,
+    totalSwapVolumeUSD,
+  } = await computeSwapVolume(allTxs, addrLow, ethUSD, { quick: isQuick });
+
+  const ethFlow = computeEthFlowVolumes(allTxs, addrLow, countsTowardActivity);
+  const ethVol = ethFlow.ethSent;
+  const ethReceived = ethFlow.ethReceived;
+
+  const { uniqueHashes: erc721TxsFromTxs } = countNftTxHashesFromTransfers(
+    allTxs,
+    addrLow
+  );
+  const erc721Txs = Math.max(
+    erc721TxsFromTxs,
+    nftSnapshot.nftTxCount,
+    nftSnapshot.mintCount > 0 ? nftSnapshot.mintCount : 0
+  );
 
   const contractStats = countContractInteractions(
     allTxs,
@@ -253,37 +436,25 @@ export async function analyzeWalletAddress(
 
   const uTokens = new Set<string>();
   const tokFreq = new Map<string, number>();
+  for (const a of fullHeatmapState.tokenAssets) {
+    uTokens.add(a);
+  }
 
-  let ethVol = 0;
-  let ethReceived = 0;
   let swapCount = 0;
   let erc20Txs = 0;
-  let erc721Txs = 0;
   const processedHashes = new Set<string>();
 
   for (const tx of allTxs) {
-    if (!tx.metadata?.blockTimestamp || !walletInvolved(tx, addrLow)) continue;
+    if (!tx.metadata?.blockTimestamp || !countsTowardActivity(tx, addrLow)) continue;
     const fromAddr = (tx.from || "").toLowerCase();
-    const toAddr = (tx.to || "").toLowerCase();
     const isOutgoing = fromAddr === addrLow;
-    const isIncoming = toAddr === addrLow;
     const isNewHash = !processedHashes.has(tx.hash);
     processedHashes.add(tx.hash);
-
-    if (
-      tx.value &&
-      tx.value > 0 &&
-      (tx.asset === "ETH" || tx.asset === "WETH")
-    ) {
-      if (isOutgoing && isNewHash) ethVol += tx.value;
-      if (isIncoming && isNewHash) ethReceived += tx.value;
-    }
 
     if (tx.category === "erc20") {
       erc20Txs++;
       if (isNewHash && isOutgoing) swapCount++;
     }
-    if (tx.category === "erc721") erc721Txs++;
 
     if (["erc20", "erc721", "erc1155"].includes(tx.category) && tx.asset) {
       uTokens.add(tx.asset);
@@ -336,7 +507,7 @@ export async function analyzeWalletAddress(
     daysOnBase = 0;
   if (actualTxCount > 0) {
     const stamps = allTxs
-      .filter((tx) => walletInvolved(tx, addrLow))
+      .filter((tx) => countsTowardActivity(tx, addrLow))
       .map((tx) => new Date(tx.metadata.blockTimestamp).getTime())
       .filter((t) => !isNaN(t));
     firstTs = Math.min(...stamps);
@@ -392,7 +563,12 @@ export async function analyzeWalletAddress(
     Math.round(recentDays * 3 + Math.min(10, uMonths.size))
   );
 
-  const scoreComponents = computeScoreComponents({
+  const uniqueTokenCount = Math.max(
+    uTokens.size,
+    fullHeatmapState.tokenAssets.length
+  );
+
+  const { scoreComponents, score, walletRank } = buildOnchainScore({
     txCount: actualTxCount,
     uniqueDays: uDays.size,
     activeMonths: uMonths.size,
@@ -400,22 +576,23 @@ export async function analyzeWalletAddress(
     currentStreak: curStreak,
     longestStreak: longest,
     ethVol,
-    uniqueTokens: uTokens.size,
+    uniqueTokens: uniqueTokenCount,
     defiInteractions: defi,
     uniqueContracts: uContracts.size,
     nftCount,
+    nftTxCount: erc721Txs,
     dexTradeCount,
-    dexVolumeUSD,
+    dexVolumeUSD: totalSwapVolumeUSD,
+    ethSwapVolumeUSD,
     bridgeTxCount,
     hasBasename: !!bn,
     gmCount,
     checkInCount,
   });
-  const score = computeTotalScore(scoreComponents);
-  const walletRank = computeWalletRank(score);
 
-  const ethBalNum = parseFloat(formatEther(balWei));
-  const portfolioValueUSD = parseFloat((ethBalNum * ethUSD).toFixed(2));
+  const ethBalNum = balances.eth;
+  const usdcBalNum = balances.usdc;
+  const portfolioValueUSD = balances.portfolioValueUSD;
   const health = calcWalletHealth({
     uniqueDays: uDays.size,
     activeMonths: uMonths.size,
@@ -445,23 +622,13 @@ export async function analyzeWalletAddress(
     recommendation =
       "👋 Welcome to Base! Try minting an NFT or boosting your score.";
 
-  const histDays =
+  const histDays = heatmapSpanDays(
+    heatmapState,
     actualTxCount > 0
       ? Math.max(364, Math.ceil((now.getTime() - firstTs) / 86400000) + 14)
-      : 364;
-  const dStats: DayStats[] = [];
-  const hPtr = new Date(now);
-  for (let i = 0; i < histDays; i++) {
-    const ds = hPtr.toISOString().slice(0, 10);
-    const c = tpd.get(ds) || 0;
-    let intensity = 0;
-    if (c > 0) intensity = 1;
-    if (c > 2) intensity = 2;
-    if (c > 5) intensity = 3;
-    if (c > 10) intensity = 4;
-    dStats.unshift({ date: ds, count: c, intensity });
-    hPtr.setUTCDate(hPtr.getUTCDate() - 1);
-  }
+      : 364
+  );
+  const dStats: DayStats[] = buildDailyStatsFromState(heatmapState, histDays);
   const tCols = Math.ceil(histDays / 7);
   const wLabels: string[] = [];
   let lastML = "";
@@ -481,25 +648,38 @@ export async function analyzeWalletAddress(
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map((e) => e[0]);
-  const seenHash = new Set<string>();
-  const recentTxs = [...allTxs]
-    .filter((tx) => walletInvolved(tx, addrLow))
+
+  function recentTxRank(tx: AlchemyTransfer): number {
+    if (tx.category === "erc721" || tx.category === "erc1155") return 0;
+    if (tx.category === "useroperation" || tx.metadata?.isUserOperation) return 1;
+    if (tx.category === "external" && (tx.value ?? 0) > 0) return 2;
+    if (tx.category === "erc20") return 3;
+    if (tx.category === "internal") return 4;
+    return 5;
+  }
+
+  const bestLegByHash = new Map<string, AlchemyTransfer>();
+  for (const tx of allTxs) {
+    if (!countsTowardActivity(tx, addrLow)) continue;
+    const prev = bestLegByHash.get(tx.hash);
+    if (!prev || recentTxRank(tx) < recentTxRank(prev)) {
+      bestLegByHash.set(tx.hash, tx);
+    }
+  }
+
+  const recentTxs = Array.from(bestLegByHash.values())
     .sort(
       (a, b) =>
         new Date(b.metadata.blockTimestamp).getTime() -
         new Date(a.metadata.blockTimestamp).getTime()
     )
-    .filter((tx) => {
-      if (seenHash.has(tx.hash)) return false;
-      seenHash.add(tx.hash);
-      return true;
-    })
     .slice(0, 10);
 
   const wallet: WalletData = {
     address,
     basename: bn,
     balance: ethBalNum.toFixed(4),
+    usdcBalance: usdcBalNum.toFixed(2),
     ethVolume: ethVol.toFixed(4),
     txCount: actualTxCount,
     uniqueDays: uDays.size,
@@ -510,7 +690,7 @@ export async function analyzeWalletAddress(
     firstTx,
     lastTx,
     daysSinceActive,
-    tokensSwapped: uTokens.size,
+    tokensSwapped: uniqueTokenCount,
     swapCount,
     contractInteractions: cxInteract,
     nftCount,
@@ -539,10 +719,11 @@ export async function analyzeWalletAddress(
     scoreComponents,
     portfolioValueUSD,
     dexVolumeETH,
-    dexVolumeUSD,
+    dexVolumeUSD: totalSwapVolumeUSD,
     dexTradeCount,
     dexVolumeUSD30d,
     dexTradeCount30d,
+    ethSwapVolumeUSD,
     paymasterTxCount,
     bridgeTxCount,
     netETHFlow: parseFloat((ethReceived - ethVol).toFixed(4)),
@@ -560,11 +741,33 @@ export async function analyzeWalletAddress(
     peakDayDate,
   };
 
+  const priorHistory = historyBundle.mergedHistory ?? emptyHistoryState();
+  const mergedHistory = mergeActivityIntoState(heatmapState, allTxs, address);
+  const finalHistoryComplete =
+    historyComplete ||
+    options.historyComplete === true ||
+    priorHistory.historyComplete;
+  await saveWalletHistory(address, {
+    ...mergedHistory,
+    historyComplete: finalHistoryComplete,
+    v2StreamStates: v2StreamStates ?? mergedHistory.v2StreamStates,
+    userOpsFetched:
+      mergedHistory.userOpsFetched ||
+      priorHistory.userOpsFetched ||
+      finalHistoryComplete,
+    v1SupplementFetched:
+      mergedHistory.v1SupplementFetched ||
+      priorHistory.v1SupplementFetched ||
+      finalHistoryComplete,
+  });
+
   return {
     wallet,
     mintedLevels: ms,
     boosts: fBoosts,
     streak,
     checkedToday,
+    historyComplete: finalHistoryComplete,
+    v2StreamStates: v2StreamStates ?? historyBundle.v2StreamStates,
   };
 }

@@ -141,7 +141,7 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     desc: "Create a Base Voucher batch in-app",
     xp: 35,
     tab: "basehub",
-    check: (c) => c.voucherBatchCount >= 1,
+    check: (c) => (c.txKeys.voucher ?? 0) >= 1,
   },
   {
     id: "q_redeem",
@@ -159,7 +159,7 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     desc: "Pay for Deep Scan, Export, or Compare once",
     xp: 30,
     tab: "dashboard",
-    check: (c) => c.x402PayCount >= 1,
+    check: (c) => (c.txKeys.x402 ?? 0) >= 1,
   },
   {
     id: "q_challenge",
@@ -168,7 +168,7 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
     desc: "Challenge another wallet on Analytics",
     xp: 20,
     tab: "dashboard",
-    check: (c) => c.didChallenge,
+    check: (c) => (c.txKeys.challenge ?? 0) >= 1 || c.didChallenge,
   },
   {
     id: "q_referral",

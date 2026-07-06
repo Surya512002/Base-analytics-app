@@ -5,18 +5,20 @@ import {
   type Transport,
 } from "viem";
 import { base } from "viem/chains";
-import { ALCHEMY_KEY, BASE_PUBLIC_RPC } from "@/lib/constants/env";
+import { getAlchemyKeys, BASE_PUBLIC_RPC, alchemyRpcForKey } from "@/lib/constants/env";
 
-/** Ordered RPC URLs — server `BASE_RPC_URL` first, then Alchemy, then public Base. */
+/** Ordered RPC URLs — Alchemy keys first (avoid public RPC rate limits), then public Base. */
 export function getBaseRpcUrls(): string[] {
   const urls: string[] = [];
   const serverUrl = process.env.BASE_RPC_URL?.trim();
   if (serverUrl) urls.push(serverUrl);
 
-  const key = ALCHEMY_KEY.replace(/^["']|["']$/g, "");
-  if (key) urls.push(`https://base-mainnet.g.alchemy.com/v2/${key}`);
+  for (const key of getAlchemyKeys()) {
+    urls.push(alchemyRpcForKey(key));
+  }
 
   urls.push(BASE_PUBLIC_RPC);
+
   return [...new Set(urls)];
 }
 
@@ -38,7 +40,7 @@ export function createBasePublicClient() {
 
 export function isRpcRateLimitError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
-  return /compute units|rate limit|429|capacity|too many requests|throughput/i.test(
+  return /compute units|rate limit|429|capacity|too many requests|throughput|monthly capacity/i.test(
     msg
   );
 }

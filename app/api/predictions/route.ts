@@ -6,6 +6,7 @@ import {
   getPredictionsPublicClient,
   matchOnChainMarket,
 } from "@/lib/predictions/onchain";
+import { getBaseRpcUrls } from "@/lib/utils/base-rpc";
 import { MARKET_TRACKS, PROTOCOL_FEE_BPS, PROTOCOL_FEE_LABEL } from "@/lib/constants/predictions";
 import { APP_TREASURY } from "@/lib/constants/treasury";
 
@@ -15,14 +16,15 @@ export const runtime = "nodejs";
 const PREDICTIONS_CONTRACT = process.env.NEXT_PUBLIC_PREDICTIONS_CONTRACT as
   | `0x${string}`
   | undefined;
-const BASE_RPC =
-  process.env.BASE_RPC_URL ||
-  (process.env.NEXT_PUBLIC_ALCHEMY_KEY
-    ? `https://base-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_KEY}`
-    : "");
 const KEEPER_KEY = process.env.PREDICTIONS_KEEPER_PRIVATE_KEY as
   | `0x${string}`
   | undefined;
+
+const KEEPER_MIN_INTERVAL_MS = 60_000;
+const RESPONSE_CACHE_MS = 20_000;
+
+let lastKeeperRun = 0;
+let responseCache: { body: Record<string, unknown>; at: number } | null = null;
 
 async function fetchSpotPrices(): Promise<Record<string, number>> {
   try {
@@ -47,10 +49,16 @@ async function fetchSpotPrices(): Promise<Record<string, number>> {
 }
 
 async function maybeRunKeeper(): Promise<void> {
-  if (!PREDICTIONS_CONTRACT || !BASE_RPC || !KEEPER_KEY) return;
+  const rpcUrl =
+    getBaseRpcUrls().find((u) => !u.includes("alchemy.com")) ??
+    getBaseRpcUrls()[0];
+  if (!PREDICTIONS_CONTRACT || !rpcUrl || !KEEPER_KEY) return;
+  const now = Date.now();
+  if (now - lastKeeperRun < KEEPER_MIN_INTERVAL_MS) return;
+  lastKeeperRun = now;
   try {
     await runPredictionKeeper({
-      rpcUrl: BASE_RPC,
+      rpcUrl,
       contract: PREDICTIONS_CONTRACT,
       privateKey: KEEPER_KEY,
       initialLiquidityUsdc: Number(
@@ -63,20 +71,28 @@ async function maybeRunKeeper(): Promise<void> {
 }
 
 export async function GET() {
-  const prices = await fetchSpotPrices();
   const now = Date.now();
+  if (responseCache && now - responseCache.at < RESPONSE_CACHE_MS) {
+    return NextResponse.json(responseCache.body);
+  }
+
+  const prices = await fetchSpotPrices();
   const demoMarkets = buildAllMarkets(prices, now);
 
   let onChain = false;
   let keeperRan = false;
 
-  if (PREDICTIONS_CONTRACT && BASE_RPC) {
+  if (PREDICTIONS_CONTRACT) {
     await maybeRunKeeper();
     keeperRan = Boolean(KEEPER_KEY);
 
     try {
-      const client = getPredictionsPublicClient(BASE_RPC);
-      const chainMarkets = await fetchOnChainMarkets(client, PREDICTIONS_CONTRACT);
+      const client = getPredictionsPublicClient();
+      const chainMarkets = await fetchOnChainMarkets(
+        client,
+        PREDICTIONS_CONTRACT,
+        72
+      );
       const markets = demoMarkets.map((demo) => {
         const track = MARKET_TRACKS.find((t) => t.id === demo.trackId);
         if (!track) return demo;
@@ -84,7 +100,7 @@ export async function GET() {
         return mergeMarketWithChain(demo, chain);
       });
       onChain = true;
-      return NextResponse.json({
+      const body = {
         markets,
         prices,
         protocolFeeBps: PROTOCOL_FEE_BPS,
@@ -94,7 +110,9 @@ export async function GET() {
         onChain: true,
         keeperRan,
         updatedAt: new Date().toISOString(),
-      });
+      };
+      responseCache = { body, at: Date.now() };
+      return NextResponse.json(body);
     } catch (e) {
       console.error("[predictions on-chain read]", e);
     }

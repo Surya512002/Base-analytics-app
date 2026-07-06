@@ -1,11 +1,10 @@
-import { createPublicClient, http, parseAbiItem, type Address } from "viem";
-import { base } from "viem/chains";
+import { parseAbiItem, type Address } from "viem";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { ENTRYPOINT_V06, ENTRYPOINT_V07 } from "@/lib/constants/contracts";
-import { BASE_RPC } from "@/lib/constants/env";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
-const CHUNK_SIZE = BigInt(3_000_000);
+const CHUNK_SIZE = BigInt(1_500_000);
 
 const USER_OP_EVENT = parseAbiItem(
   "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)"
@@ -16,33 +15,48 @@ export interface UserOpFetchOptions {
   timeoutMs?: number;
   /** How many block chunks to scan per EntryPoint (newest first). */
   maxChunks?: number;
+  /** Resume from this chunk index (0 = latest). */
+  startChunk?: number;
+}
+
+export interface UserOpFetchResult {
+  transfers: AlchemyTransfer[];
+  chunksScanned: number;
+  complete: boolean;
 }
 
 async function fetchUserOpLogs(
   address: string,
   options: UserOpFetchOptions
-): Promise<AlchemyTransfer[]> {
-  if (!BASE_RPC) return [];
-
+): Promise<UserOpFetchResult> {
   const wallet = address.toLowerCase() as Address;
-  const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+  const client = createBasePublicClient();
   const entryPoints = [ENTRYPOINT_V06, ENTRYPOINT_V07] as Address[];
-  const blockTimestampCache = new Map<bigint, string>();
   const transfers: AlchemyTransfer[] = [];
   const seenHashes = new Set<string>();
-  const maxChunks = options.maxChunks ?? 20;
-  const deadline = Date.now() + (options.timeoutMs ?? 35_000);
+  const maxChunks = options.maxChunks ?? 8;
+  const startChunk = options.startChunk ?? 0;
+  const deadline = Date.now() + (options.timeoutMs ?? 12_000);
 
   let latest: bigint;
   try {
     latest = await client.getBlockNumber();
   } catch {
-    return [];
+    return { transfers: [], chunksScanned: 0, complete: false };
   }
 
+  let chunksScanned = 0;
+  let hitGenesis = false;
+
   for (const entryPoint of entryPoints) {
-    for (let i = 0; i < maxChunks; i++) {
-      if (Date.now() > deadline) return transfers;
+    for (let i = startChunk; i < startChunk + maxChunks; i++) {
+      if (Date.now() > deadline) {
+        return {
+          transfers,
+          chunksScanned: startChunk + chunksScanned,
+          complete: false,
+        };
+      }
 
       const toBlock =
         latest - BigInt(i) * CHUNK_SIZE > BigInt(0)
@@ -65,26 +79,26 @@ async function fetchUserOpLogs(
         continue;
       }
 
+      chunksScanned++;
+
+      let chunkTimestamp = new Date().toISOString();
+      if (logs.length > 0) {
+        try {
+          const block = await client.getBlock({ blockNumber: toBlock });
+          chunkTimestamp = new Date(
+            Number(block.timestamp) * 1000
+          ).toISOString();
+        } catch {
+          /* use fallback */
+        }
+      }
+
       for (const log of logs) {
         const txHash = log.transactionHash;
         if (!txHash || seenHashes.has(txHash)) continue;
         seenHashes.add(txHash);
 
-        const blockNumber = log.blockNumber;
-        if (blockNumber == null) continue;
-
-        let blockTimestamp = blockTimestampCache.get(blockNumber);
-        if (!blockTimestamp) {
-          try {
-            const block = await client.getBlock({ blockNumber });
-            blockTimestamp = new Date(
-              Number(block.timestamp) * 1000
-            ).toISOString();
-            blockTimestampCache.set(blockNumber, blockTimestamp);
-          } catch {
-            blockTimestamp = new Date().toISOString();
-          }
-        }
+        const blockTimestamp = chunkTimestamp;
 
         const paymaster = (log.args.paymaster as string | undefined)?.toLowerCase();
         const sponsored = Boolean(paymaster && paymaster !== ZERO);
@@ -100,24 +114,46 @@ async function fetchUserOpLogs(
             blockTimestamp,
             isUserOperation: true,
             isSponsored: sponsored,
+            walletParticipated: true,
           },
         });
       }
 
-      if (fromBlock === BigInt(0)) break;
+      if (fromBlock === BigInt(0)) {
+        hitGenesis = true;
+        break;
+      }
     }
   }
 
-  return transfers;
+  return {
+    transfers,
+    chunksScanned: startChunk + chunksScanned,
+    complete: hitGenesis,
+  };
 }
 
-/** ERC-4337 UserOperations — Base App / Coinbase Paymaster gasless txs. */
 export async function fetchUserOperationActivity(
   address: string,
   options: UserOpFetchOptions = {}
 ): Promise<AlchemyTransfer[]> {
-  return fetchUserOpLogs(address, {
-    timeoutMs: options.timeoutMs ?? 35_000,
-    maxChunks: options.maxChunks ?? 20,
+  const result = await fetchUserOpLogs(address, options);
+  return result.transfers;
+}
+
+export async function fetchUserOperationActivityWithProgress(
+  address: string,
+  options: UserOpFetchOptions = {}
+): Promise<UserOpFetchResult> {
+  return fetchUserOpLogs(address, options);
+}
+
+/** Scan all EntryPoint history back to genesis (Base App / paymaster txs). */
+export async function fetchUserOperationActivityFull(
+  address: string
+): Promise<AlchemyTransfer[]> {
+  return fetchUserOperationActivity(address, {
+    timeoutMs: 120_000,
+    maxChunks: 100,
   });
 }

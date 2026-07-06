@@ -1,0 +1,82 @@
+import type { WalletData } from "@/lib/types/wallet";
+import {
+  computeTotalScore,
+  computeWalletRank,
+} from "@/lib/utils/score";
+
+export function maxScoreComponents(
+  a: Record<string, number>,
+  b: Record<string, number>
+): Record<string, number> {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  const out: Record<string, number> = {};
+  for (const k of keys) {
+    out[k] = Math.max(a[k] ?? 0, b[k] ?? 0);
+  }
+  return out;
+}
+
+function isShellWallet(w: WalletData): boolean {
+  return (
+    w.recommendation === "Fetching onchain data…" ||
+    (w.txCount === 0 && w.uniqueDays === 0 && w.score === 0)
+  );
+}
+
+/** Merge metrics — keep best counts; prefer the richer analyze snapshot for score. */
+export function mergeWalletMetricsMax(
+  prior: WalletData,
+  next: WalletData
+): WalletData {
+  if (isShellWallet(prior)) return next;
+
+  const usePriorHeatmap = prior.uniqueDays > next.uniqueDays;
+  const scoreComponents = maxScoreComponents(
+    prior.scoreComponents,
+    next.scoreComponents
+  ) as WalletData["scoreComponents"];
+  const score = Math.max(
+    prior.score,
+    next.score,
+    computeTotalScore(scoreComponents)
+  );
+
+  return {
+    ...next,
+    basename: next.basename || prior.basename,
+    uniqueDays: Math.max(prior.uniqueDays, next.uniqueDays),
+    txCount: Math.max(prior.txCount, next.txCount),
+    activeWeeks: Math.max(prior.activeWeeks, next.activeWeeks),
+    activeMonths: Math.max(prior.activeMonths, next.activeMonths),
+    dailyStats: usePriorHeatmap ? prior.dailyStats : next.dailyStats,
+    tokensSwapped: Math.max(prior.tokensSwapped, next.tokensSwapped),
+    erc20Txs: Math.max(prior.erc20Txs, next.erc20Txs),
+    swapCount: Math.max(prior.swapCount, next.swapCount),
+    dexTradeCount: Math.max(prior.dexTradeCount, next.dexTradeCount),
+    dexVolumeUSD: Math.max(prior.dexVolumeUSD, next.dexVolumeUSD),
+    dexVolumeETH: Math.max(prior.dexVolumeETH, next.dexVolumeETH),
+    ethSwapVolumeUSD: Math.max(
+      prior.ethSwapVolumeUSD ?? 0,
+      next.ethSwapVolumeUSD ?? 0
+    ),
+    dexTradeCount30d: Math.max(prior.dexTradeCount30d, next.dexTradeCount30d),
+    dexVolumeUSD30d: Math.max(prior.dexVolumeUSD30d, next.dexVolumeUSD30d),
+    nftCount: Math.max(prior.nftCount, next.nftCount),
+    erc721Txs: Math.max(prior.erc721Txs, next.erc721Txs),
+    ethVolume:
+      parseFloat(prior.ethVolume) > parseFloat(next.ethVolume)
+        ? prior.ethVolume
+        : next.ethVolume,
+    scoreComponents,
+    score,
+    walletRank: computeWalletRank(score),
+    activityScore: Math.max(prior.activityScore, next.activityScore),
+    currentStreak: Math.max(prior.currentStreak, next.currentStreak),
+    longestStreak: Math.max(prior.longestStreak, next.longestStreak),
+    checkInCount: Math.max(prior.checkInCount, next.checkInCount),
+    gmCount: Math.max(prior.gmCount, next.gmCount),
+    defiInteractions: Math.max(prior.defiInteractions, next.defiInteractions),
+    uniqueContracts: Math.max(prior.uniqueContracts, next.uniqueContracts),
+    bridgeTxCount: Math.max(prior.bridgeTxCount, next.bridgeTxCount),
+  };
+}

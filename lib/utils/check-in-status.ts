@@ -45,7 +45,10 @@ export async function fetchCheckInStatus(
   }
 
   try {
-    const pub = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+    const pub = createPublicClient({
+      chain: base,
+      transport: http(BASE_RPC, { timeout: 12_000 }),
+    });
     const [streakRaw, lastCheckIn] = await Promise.all([
       pub.readContract({
         address: CHECKIN_CONTRACT as `0x${string}`,
