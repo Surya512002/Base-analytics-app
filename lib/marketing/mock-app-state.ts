@@ -177,6 +177,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     weeklyXP: 120,
     scanProgress: "",
     walletRefreshing: false,
+    walletScanComplete: true,
     premiumUnlocked: false,
     premiumLoading: false,
     premiumData: null,
