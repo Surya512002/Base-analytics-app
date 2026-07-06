@@ -2,14 +2,18 @@ import type { WalletData } from "@/lib/types/wallet";
 import {
   computeTotalScore,
   computeWalletRank,
+  type ScoreComponents,
 } from "@/lib/utils/score";
 
 export function maxScoreComponents(
-  a: Record<string, number>,
-  b: Record<string, number>
-): Record<string, number> {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-  const out: Record<string, number> = {};
+  a: ScoreComponents,
+  b: ScoreComponents
+): ScoreComponents {
+  const keys = new Set([
+    ...Object.keys(a),
+    ...Object.keys(b),
+  ]) as Set<keyof ScoreComponents>;
+  const out = { ...a };
   for (const k of keys) {
     out[k] = Math.max(a[k] ?? 0, b[k] ?? 0);
   }
@@ -34,7 +38,7 @@ export function mergeWalletMetricsMax(
   const scoreComponents = maxScoreComponents(
     prior.scoreComponents,
     next.scoreComponents
-  ) as WalletData["scoreComponents"];
+  );
   const score = Math.max(
     prior.score,
     next.score,

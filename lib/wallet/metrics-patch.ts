@@ -304,8 +304,8 @@ export async function buildWalletMetricsPatch(
   });
 
   const scoreComponents: ScoreComponents =
-    partial && prior
-      ? (maxScoreComponents(freshScore, prior.scoreComponents) as ScoreComponents)
+    partial && prior?.scoreComponents
+      ? maxScoreComponents(freshScore, prior.scoreComponents)
       : freshScore;
 
   return {

@@ -1,7 +1,7 @@
-const path = require("path");
+import type { NextConfig } from "next";
+import path from "path";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
@@ -19,10 +19,11 @@ const nextConfig = {
     ],
   },
   webpack: (config) => {
+    config.resolve ??= {};
     config.resolve.alias = {
       ...config.resolve.alias,
       "@react-native-async-storage/async-storage": path.resolve(
-        __dirname,
+        process.cwd(),
         "lib/stubs/async-storage.ts"
       ),
     };
@@ -43,4 +44,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

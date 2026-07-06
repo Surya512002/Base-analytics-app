@@ -37,10 +37,9 @@ export function reconcileWalletScore(wallet: WalletData): WalletData {
     checkInCount: wallet.checkInCount,
   });
 
-  const scoreComponents = maxScoreComponents(
-    wallet.scoreComponents ?? {},
-    fresh
-  ) as ScoreComponents;
+  const scoreComponents = wallet.scoreComponents
+    ? maxScoreComponents(wallet.scoreComponents, fresh)
+    : fresh;
 
   const score = Math.max(wallet.score, computeTotalScore(scoreComponents));
 

@@ -1,3 +1,5 @@
+import type { ScoreComponents } from "@/lib/utils/score";
+
 export interface DayStats {
   date: string;
   count: number;
@@ -46,7 +48,7 @@ export interface WalletData {
   checkInCount: number;
   walletHealthScore: number;
   walletHealthLabel: string;
-  scoreComponents: Record<string, number>;
+  scoreComponents: ScoreComponents;
   portfolioValueUSD: number;
   dexVolumeETH: number;
   dexVolumeUSD: number;

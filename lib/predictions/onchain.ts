@@ -1,4 +1,4 @@
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, type ContractFunctionReturnType } from "viem";
 import { base } from "viem/chains";
 import { PREDICTIONS_ABI } from "@/lib/constants/contracts";
 import type { MarketTrack } from "@/lib/constants/predictions";
@@ -57,22 +57,13 @@ export function getPredictionsPublicClient(rpcUrl?: string) {
 
 type ChainReader = ReturnType<typeof getPredictionsPublicClient>;
 
-function mapMarketRow(
-  marketId: number,
-  m: readonly [
-    `0x${string}`,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    number,
-    boolean,
-  ]
-): OnChainMarket {
+type MarketsReturn = ContractFunctionReturnType<
+  typeof PREDICTIONS_ABI,
+  "view",
+  "markets"
+>;
+
+function mapMarketRow(marketId: number, m: MarketsReturn): OnChainMarket {
   const phase = phaseFromUint(Number(m[9]));
   return {
     marketId,
@@ -130,7 +121,7 @@ export async function fetchOnChainMarkets(
     batch.forEach((res, idx) => {
       if (res.status !== "success" || !res.result) return;
       try {
-        rows.push(mapMarketRow(slice[idx]!, res.result as Parameters<typeof mapMarketRow>[1]));
+        rows.push(mapMarketRow(slice[idx]!, res.result));
       } catch {
         // skip malformed row
       }
