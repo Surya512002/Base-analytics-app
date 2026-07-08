@@ -15,7 +15,7 @@ const STEPS: {
   {
     icon: <TrendingUp size={20} className="text-emerald-400" />,
     title: "Welcome to the prediction market",
-    body: "Trade BTC, ETH & SOL on hourly, 4h & daily rounds. Live YES/NO odds from a real AMM — like Polymarket, built on Base.",
+    body: "Trade BTC, ETH & SOL on 4h & daily rounds. Live YES/NO odds from a real AMM — like Polymarket, built on Base.",
     tab: "predictions",
   },
   {

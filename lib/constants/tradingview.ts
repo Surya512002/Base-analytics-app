@@ -24,15 +24,11 @@ export const TV_SYMBOLS: Record<PredictionAsset, string> = {
 /** Sensible default candle size per prediction round duration. */
 export function defaultIntervalForDuration(duration: PredictionDuration): TvInterval {
   switch (duration) {
-    case "15m":
-      return "1";
-    case "1h":
-      return "5";
     case "4h":
       return "15";
     case "1d":
       return "60";
     default:
-      return "5";
+      return "15";
   }
 }

@@ -93,7 +93,9 @@ export async function GET() {
         PREDICTIONS_CONTRACT,
         72
       );
-      const markets = demoMarkets.map((demo) => {
+      const markets = demoMarkets
+        .filter((demo) => MARKET_TRACKS.some((t) => t.id === demo.trackId))
+        .map((demo) => {
         const track = MARKET_TRACKS.find((t) => t.id === demo.trackId);
         if (!track) return demo;
         const chain = matchOnChainMarket(chainMarkets, track, now);
@@ -119,7 +121,9 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    markets: demoMarkets,
+    markets: demoMarkets.filter((demo) =>
+      MARKET_TRACKS.some((t) => t.id === demo.trackId)
+    ),
     prices,
     protocolFeeBps: PROTOCOL_FEE_BPS,
     protocolFeeLabel: PROTOCOL_FEE_LABEL,

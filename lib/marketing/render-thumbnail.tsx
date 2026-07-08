@@ -33,7 +33,7 @@ const MARKETS = [
 ] as const;
 
 const FEATURES = [
-  { n: "01", title: "Crypto Prediction Market", desc: "BTC · ETH · SOL — 15m, hourly, 4h & daily rounds" },
+  { n: "01", title: "Crypto Prediction Market", desc: "BTC · ETH · SOL — 4h & daily rounds" },
   { n: "02", title: "Trade & earn XP", desc: "Every trade counts toward quests & leaderboard" },
   { n: "03", title: "Vouchers & analytics", desc: "Gift cards, wallet scan & check-in rewards" },
 ] as const;

@@ -39,7 +39,7 @@ const LANDING_FEATURES = [
     n: "01",
     icon: <TrendingUp size={16} className="text-emerald-400" />,
     title: "Crypto Prediction Market",
-    desc: "BTC · ETH · SOL — 15m, hourly, 4h & daily rounds with live YES/NO odds on Base.",
+    desc: "BTC · ETH · SOL — 4h & daily rounds with live YES/NO odds on Base.",
   },
   {
     n: "02",

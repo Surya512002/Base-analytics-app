@@ -8,7 +8,7 @@ const OG_IMAGE = `${APP_URL}/opengraph-image?v=5`;
 export const metadata: Metadata = {
   title: "Base Analytics — Crypto Prediction Market on Base",
   description:
-    "Trade BTC, ETH & SOL prediction markets on Base. 15m, hourly, 4h & daily rounds with live YES/NO odds, quests & wallet analytics.",
+    "Trade BTC, ETH & SOL prediction markets on Base. 4h & daily rounds with live YES/NO odds, quests & wallet analytics.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",

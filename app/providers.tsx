@@ -22,7 +22,8 @@ export function Providers({ children }: { children: ReactNode }) {
             appearance: {
               theme: 'dark',
             },
-            paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined,
+            // Paymaster is passed per-tx via getOnchainKitCapabilities — not globally,
+            // so MetaMask/injected wallets are not pulled into sponsor fee math on load.
           }}
         >
           <ScrollPerf />

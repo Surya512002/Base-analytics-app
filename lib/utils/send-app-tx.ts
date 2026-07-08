@@ -4,6 +4,10 @@ import {
   getSendCallsCapabilities,
   supportsPaymaster,
 } from "@/lib/utils/paymaster";
+import {
+  isMetaMaskFeeDisplayError,
+  METAMASK_FEE_DISPLAY_HINT,
+} from "@/lib/utils/metamask-errors";
 import type { ContractCall } from "@/lib/utils/tx";
 import {
   prepareCallsForWalletSendCalls,
@@ -14,6 +18,12 @@ import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 const BASE_CHAIN_HEX = "0x2105" as const;
 const WALLET_PROMPT_MS = 120_000;
 const CALLS_POLL_MS = 120_000;
+/** Safe fallback when eth_estimateGas is unavailable (app contract calls). */
+const DEFAULT_GAS_HEX = "0x7a120" as const;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 type Eip1193 = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -71,7 +81,7 @@ async function ensureActiveAccount(
   }
 }
 
-function buildLegacyTxParams(
+function buildLegacyTxBase(
   from: string,
   call: ContractCall
 ): Record<string, string> {
@@ -85,6 +95,41 @@ function buildLegacyTxParams(
     params.value = `0x${call.value.toString(16)}`;
   }
   return params;
+}
+
+/** Pre-set gas as hex so MetaMask skips broken float fee math on fresh sessions. */
+async function buildLegacyTxParams(
+  provider: Eip1193,
+  from: string,
+  call: ContractCall
+): Promise<Record<string, string>> {
+  const params = buildLegacyTxBase(from, call);
+  try {
+    const estimated = await provider.request({
+      method: "eth_estimateGas",
+      params: [params],
+    });
+    const gas = BigInt(String(estimated));
+    const buffered = (gas * 130n) / 100n;
+    params.gas = `0x${buffered.toString(16)}`;
+  } catch {
+    params.gas = DEFAULT_GAS_HEX;
+  }
+  return params;
+}
+
+async function waitForBaseChain(
+  provider: Eip1193,
+  attempts = 24
+): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    const chainId = (await provider.request({ method: "eth_chainId" })) as string;
+    if (chainId.toLowerCase() === BASE_CHAIN_HEX) return;
+    await sleep(125);
+  }
+  throw new Error(
+    "Could not switch to Base — select Base network in your wallet and retry"
+  );
 }
 
 function isSendCallsUnsupported(err: unknown): boolean {
@@ -193,21 +238,34 @@ async function sendViaWalletSendCalls(
 async function sendViaEthSendTransaction(
   provider: Eip1193,
   from: string,
-  call: ContractCall
+  call: ContractCall,
+  attempt = 0
 ): Promise<string> {
-  const hash = await withTimeout(
-    provider.request({
-      method: "eth_sendTransaction",
-      params: [buildLegacyTxParams(from, call)],
-    }),
-    WALLET_PROMPT_MS,
-    "Wallet confirmation"
-  );
+  try {
+    const params = await buildLegacyTxParams(provider, from, call);
+    const hash = await withTimeout(
+      provider.request({
+        method: "eth_sendTransaction",
+        params: [params],
+      }),
+      WALLET_PROMPT_MS,
+      "Wallet confirmation"
+    );
 
-  if (!hash || typeof hash !== "string") {
-    throw new Error("Transaction was not submitted");
+    if (!hash || typeof hash !== "string") {
+      throw new Error("Transaction was not submitted");
+    }
+    return hash;
+  } catch (e) {
+    if (attempt < 1 && isMetaMaskFeeDisplayError(e)) {
+      await sleep(500);
+      return sendViaEthSendTransaction(provider, from, call, attempt + 1);
+    }
+    if (isMetaMaskFeeDisplayError(e)) {
+      throw new Error(METAMASK_FEE_DISPLAY_HINT);
+    }
+    throw e;
   }
-  return hash;
 }
 
 /** Sends one or more app contract calls — sponsored via paymaster in Base App / Coinbase Wallet. */

@@ -67,7 +67,7 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
   } = app;
 
   const [asset, setAsset] = useState<PredictionAsset>("BTC");
-  const [duration, setDuration] = useState<PredictionDuration>("15m");
+  const [duration, setDuration] = useState<PredictionDuration>("4h");
   const [markets, setMarkets] = useState<LiveMarket[]>([]);
   const [onChainMode, setOnChainMode] = useState(false);
   const [contractAddress, setContractAddress] = useState<string | null>(null);
@@ -101,10 +101,9 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
 
   useEffect(() => {
     void loadMarkets();
-    const pollMs = duration === "15m" ? 30_000 : 60_000;
-    const id = setInterval(() => void loadMarkets(), pollMs);
+    const id = setInterval(() => void loadMarkets(), 60_000);
     return () => clearInterval(id);
-  }, [loadMarkets, duration]);
+  }, [loadMarkets]);
 
   const market = useMemo(() => {
     const track = trackFor(asset, duration);
@@ -202,13 +201,13 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
               Predictions <span className="text-trade-yes">Market</span>
             </h1>
             <p className="text-xs text-slate-500 mt-1.5 max-w-xl">
-              BTC · ETH · SOL — 15m, hourly, 4h & daily rounds. CPMM YES/NO pricing on Base.
+              BTC · ETH · SOL — 4h & daily rounds. CPMM YES/NO pricing on Base.
               Each trade +{POINTS_PER_PREDICTION} activity PP.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px]">
             <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-bold">
-              12 live tracks
+              6 live tracks
             </span>
             {onChainMode && (
               <span className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-bold">
@@ -463,7 +462,7 @@ export default function PredictionsTab({ app }: { app: WalletAppState }) {
 
       {/* All 9 tracks grid */}
       <div className="glass-panel rounded-2xl border border-white/8 p-4 sm:p-5">
-        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">All 9 concurrent markets</p>
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">All 6 concurrent markets</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {markets.map((m) => (
             <button
