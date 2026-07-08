@@ -68,7 +68,6 @@ import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
 import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
 import {
   clearConnType,
-  ensureBaseNetwork,
   inferConnType,
   persistConnType,
   readConnType,
@@ -83,11 +82,6 @@ import {
 } from "@/lib/utils/referral";
 import { loadLocalBatches } from "@/lib/utils/voucher";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
-import { formatX402PaymentError } from "@/lib/utils/x402-errors";
-import {
-  isMetaMaskFeeDisplayError,
-  METAMASK_FEE_DISPLAY_HINT,
-} from "@/lib/utils/metamask-errors";
 import {
   bumpBoostCount,
   bumpWeeklyTxKey,
@@ -411,7 +405,6 @@ export function useWalletApp() {
     setPremiumLoading(true);
     try {
       const provider = await getEip1193Provider(activeConn);
-      await ensureBaseNetwork(provider);
       const { getX402Fetch } = await import("@/lib/x402-client");
       const x402Fetch = await getX402Fetch(provider);
 
@@ -464,7 +457,7 @@ export function useWalletApp() {
         const text = await res.text().catch(() => "");
         try {
           const err = JSON.parse(text) as { error?: string; detail?: string };
-          errMsg = formatX402PaymentError(err.error, err.detail);
+          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
         } catch {
           if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
         }
@@ -500,14 +493,13 @@ export function useWalletApp() {
     setFarcasterUnlockLoading(true);
     try {
       const provider = await getEip1193Provider(activeConn);
-      await ensureBaseNetwork(provider);
       const { getX402Fetch } = await import("@/lib/x402-client");
       const x402Fetch = await getX402Fetch(provider);
 
-      const res = await x402Fetch("/api/farcaster-unlock", {
+      const res = await x402Fetch("/api/premium-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: wallet.address }),
+        body: JSON.stringify({ address: wallet.address, product: "farcaster" }),
       });
 
       if (res.ok) {
@@ -545,7 +537,7 @@ export function useWalletApp() {
         const text = await res.text().catch(() => "");
         try {
           const err = JSON.parse(text) as { error?: string; detail?: string };
-          errMsg = formatX402PaymentError(err.error, err.detail);
+          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
         } catch {
           if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
         }
@@ -1360,11 +1352,7 @@ export function useWalletApp() {
       const m =
         e instanceof Error ? e.message.split("\n")[0] : "Transaction failed.";
       const rejected = m.toLowerCase().includes("reject");
-      if (isMetaMaskFeeDisplayError(e) || m.includes(METAMASK_FEE_DISPLAY_HINT)) {
-        showToast(`⚠️ ${METAMASK_FEE_DISPLAY_HINT}`, "");
-      } else {
-        showToast(rejected ? "Transaction cancelled" : `❌ ${m}`, "");
-      }
+      showToast(rejected ? "Transaction cancelled" : `❌ ${m}`, "");
     } finally {
       pendingTx.current.delete(type);
       setMinting(null);
@@ -1441,11 +1429,7 @@ export function useWalletApp() {
     } catch (e: unknown) {
       const m =
         e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
-      if (isMetaMaskFeeDisplayError(e) || m.includes(METAMASK_FEE_DISPLAY_HINT)) {
-        showToast(`⚠️ ${METAMASK_FEE_DISPLAY_HINT}`, "");
-      } else if (!m.toLowerCase().includes("reject")) {
-        showToast(`❌ ${m}`, "");
-      }
+      if (!m.toLowerCase().includes("reject")) showToast(`❌ ${m}`, "");
     } finally {
       pendingTx.current.delete(pendingKey);
       setMinting(null);

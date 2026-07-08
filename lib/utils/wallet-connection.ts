@@ -152,24 +152,6 @@ type Eip1193 = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForBaseChain(
-  provider: Eip1193,
-  attempts = 24
-): Promise<void> {
-  for (let i = 0; i < attempts; i++) {
-    const chainId = (await provider.request({ method: "eth_chainId" })) as string;
-    if (chainId.toLowerCase() === BASE_CHAIN_HEX) return;
-    await sleep(125);
-  }
-  throw new Error(
-    "Could not switch to Base — select Base network in your wallet and retry"
-  );
-}
-
 export async function ensureBaseNetwork(provider: Eip1193): Promise<void> {
   const chainId = (await provider.request({ method: "eth_chainId" })) as string;
   const normalized = chainId.toLowerCase();
@@ -180,7 +162,6 @@ export async function ensureBaseNetwork(provider: Eip1193): Promise<void> {
       method: "wallet_switchEthereumChain",
       params: [{ chainId: BASE_CHAIN_HEX }],
     });
-    await waitForBaseChain(provider);
   } catch {
     await provider.request({
       method: "wallet_addEthereumChain",
@@ -194,6 +175,5 @@ export async function ensureBaseNetwork(provider: Eip1193): Promise<void> {
         },
       ],
     });
-    await waitForBaseChain(provider);
   }
 }
