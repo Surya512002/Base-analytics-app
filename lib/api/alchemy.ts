@@ -1,5 +1,6 @@
 import {
   alchemyRpcForKey,
+  getAlchemyKey,
   getAlchemyKeys,
 } from "@/lib/constants/env";
 import { fetchNftHoldingsCount } from "@/lib/utils/nft-stats";
@@ -190,18 +191,60 @@ export async function fetchAlchemyTxsMultiKey(
   return mergeTransfers(results);
 }
 
+/** 56ca030-style unified pagination — one chronological stream across all categories. */
+const LEGACY_CONNECT_CATEGORIES = [
+  "external",
+  "erc20",
+  "erc721",
+  "erc1155",
+] as const;
+
+export async function fetchAlchemyTxsUnified(
+  address: string,
+  options: {
+    addressField?: AddressField;
+    categories?: readonly string[];
+    maxPages?: number;
+    timeoutMs?: number;
+  } = {}
+): Promise<AlchemyTransfer[]> {
+  const key = getAlchemyKey();
+  if (!key) return [];
+
+  const rpc = alchemyRpcForKey(key);
+  const addressField = options.addressField ?? "fromAddress";
+  const categories = options.categories ?? LEGACY_CONNECT_CATEGORIES;
+  const maxPages = options.maxPages ?? 20;
+  const timeoutMs = options.timeoutMs ?? 12_000;
+
+  const all: AlchemyTransfer[] = [];
+  let pageKey: string | undefined;
+  for (let page = 1; page <= maxPages; page++) {
+    const res = await fetchAssetTransferPage(
+      rpc,
+      addressField,
+      address,
+      categories,
+      pageKey,
+      timeoutMs
+    );
+    all.push(...res.transfers);
+    if (res.quotaExceeded || !res.pageKey) break;
+    pageKey = res.pageKey;
+  }
+  return all;
+}
+
 export async function fetchAlchemyTxsFast(
   address: string,
   maxPages = 6
 ): Promise<AlchemyTransfer[]> {
-  const keys = getAlchemyKeys();
-  if (keys.length >= 2) {
-    return fetchAlchemyTxsMultiKey(address, { maxPagesPerShard: maxPages });
-  }
+  const key = getAlchemyKey();
+  if (!key) return [];
   return fetchShardTransfers(
     { addressField: "fromAddress", categories: ALL_CATEGORIES, keyIndex: 0 },
     address,
-    keys,
+    [key],
     maxPages,
     5_000
   );
@@ -211,15 +254,16 @@ export async function fetchAlchemyTxsIncoming(
   address: string,
   maxPages = 6
 ): Promise<AlchemyTransfer[]> {
-  const keys = getAlchemyKeys();
+  const key = getAlchemyKey();
+  if (!key) return [];
   return fetchShardTransfers(
     {
       addressField: "toAddress",
       categories: ALL_CATEGORIES,
-      keyIndex: keys.length > 1 ? 1 : 0,
+      keyIndex: 0,
     },
     address,
-    keys,
+    [key],
     maxPages,
     5_000
   );

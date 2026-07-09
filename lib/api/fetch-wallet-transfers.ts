@@ -5,6 +5,12 @@ import {
   fetchBlockscoutTxs,
 } from "@/lib/api/blockscout";
 import {
+  fetchAlchemyTxsFast,
+  fetchAlchemyTxsIncoming,
+  fetchAlchemyTxsUnified,
+} from "@/lib/api/alchemy";
+import { fetchBasescanAllFast } from "@/lib/api/basescan";
+import {
   fetchBlockscoutV2Activity,
   type V2StreamState,
 } from "@/lib/api/blockscout-v2";
@@ -232,4 +238,122 @@ export function mergeWalletTransferSets(
 ): AlchemyTransfer[] {
   if (!supplemental.length) return base;
   return mergeTransfers([base, supplemental]);
+}
+
+const EMPTY_V2_STATES: Record<string, V2StreamState> = {
+  "token-transfers": { complete: false, cursor: null },
+  "internal-transactions": { complete: false, cursor: null },
+  transactions: { complete: false, cursor: null },
+};
+
+/**
+ * Rich connect fetch — Alchemy (20 pages) + Blockscout + paymaster, like pre-refactor analytics.
+ * Accurate active days / tx counts on first connect (not quick partial snapshot).
+ */
+export async function fetchWalletTransfersConnectRich(
+  address: string
+): Promise<{
+  transfers: AlchemyTransfer[];
+  sources: WalletTxSources;
+  historyComplete: boolean;
+  v2StreamStates: Record<string, V2StreamState>;
+}> {
+  const addr = address.toLowerCase();
+  const ALCHEMY_PAGES = 20;
+  const BLOCKSCOUT_PAGES = 30;
+  const BLOCKSCOUT_DEADLINE_MS = 28_000;
+
+  const [
+    alchemyOut,
+    alchemyIn,
+    blockscoutTxs,
+    internalTxs,
+    tokenTxs,
+    nftTxs,
+    blockscoutV2,
+    userOps,
+    basescanTxs,
+  ] = await Promise.all([
+    // 56ca030: single-stream 20-page outbound (not per-category shards) → ~550 active days
+    fetchAlchemyTxsUnified(addr, {
+      addressField: "fromAddress",
+      maxPages: ALCHEMY_PAGES,
+      timeoutMs: 12_000,
+    }).catch(() => []),
+    fetchAlchemyTxsUnified(addr, {
+      addressField: "toAddress",
+      categories: ["external", "erc20"],
+      maxPages: ALCHEMY_PAGES,
+      timeoutMs: 12_000,
+    }).catch(() => []),
+    fetchBlockscoutTxs(addr, {
+      deadlineMs: BLOCKSCOUT_DEADLINE_MS,
+      maxPages: BLOCKSCOUT_PAGES,
+    }).catch(() => []),
+    fetchBlockscoutInternalTxs(addr, {
+      deadlineMs: BLOCKSCOUT_DEADLINE_MS,
+      maxPages: BLOCKSCOUT_PAGES,
+    }).catch(() => []),
+    fetchBlockscoutTokenTxs(addr, {
+      deadlineMs: BLOCKSCOUT_DEADLINE_MS,
+      maxPages: BLOCKSCOUT_PAGES,
+    }).catch(() => []),
+    fetchBlockscoutNftTxs(addr, { deadlineMs: 20_000, maxPages: 12 }).catch(
+      () => []
+    ),
+    fetchBlockscoutV2Activity(addr, {
+      tokenPages: 60,
+      internalPages: 50,
+      externalPages: 40,
+      deadlineMs: 55_000,
+    }).catch(() => ({
+      transfers: [] as AlchemyTransfer[],
+      complete: false,
+      streamStates: EMPTY_V2_STATES,
+    })),
+    fetchUserOperationActivityWithProgress(addr, {
+      timeoutMs: 18_000,
+      maxChunks: 20,
+    })
+      .then((r) => r.transfers)
+      .catch(() => []),
+    fetchBasescanAllFast(addr, 22_000, 12).catch(() => []),
+  ]);
+
+  const alchemyThin = alchemyOut.length + alchemyIn.length < 100;
+  let supplemental: AlchemyTransfer[] = [];
+  if (alchemyThin) {
+    const deep = await fetchWalletTransfersMerged(addr, { depth: "complete" }).catch(
+      () => null
+    );
+    if (deep?.transfers?.length) supplemental = deep.transfers;
+  }
+
+  return buildResult(
+    addr,
+    [
+      alchemyOut,
+      alchemyIn,
+      supplemental,
+      blockscoutTxs,
+      tokenTxs,
+      nftTxs,
+      internalTxs,
+      blockscoutV2.transfers,
+      userOps,
+      basescanTxs,
+    ],
+    {
+      alchemyOut: alchemyOut.length,
+      alchemyIn: alchemyIn.length,
+      blockscoutV1: blockscoutTxs.length,
+      blockscoutInternalV1: internalTxs.length,
+      blockscoutTokenV1: tokenTxs.length,
+      blockscoutV2: blockscoutV2.transfers.length,
+      userOperations: userOps.length,
+      basescan: basescanTxs.length,
+    },
+    blockscoutV2.complete,
+    blockscoutV2.streamStates
+  );
 }

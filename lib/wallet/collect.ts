@@ -22,14 +22,17 @@ import {
   type V2Stream,
   type V2StreamState,
 } from "@/lib/api/blockscout-v2";
-import { getAlchemyKeys } from "@/lib/constants/env";
+import { getAlchemyKey } from "@/lib/constants/env";
 import {
   enrichTransferLegs,
   mergeTransfers,
   rollupWalletActivity,
 } from "@/lib/utils/wallet-activity";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
-import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
+import {
+  fetchWalletTransfersConnectRich,
+  fetchWalletTransfersMerged,
+} from "@/lib/api/fetch-wallet-transfers";
 import { collectWalletSupplements } from "@/lib/wallet/collect-supplements";
 
 export interface CollectResult {
@@ -64,15 +67,8 @@ async function collectWalletFastParallelInner(
 ): Promise<CollectResult> {
   const addr = address.toLowerCase();
   const profile = QUICK_SMART_PROFILE;
-  const alchemyKeys = getAlchemyKeys();
-  const hasAlchemy = alchemyKeys.length > 0;
-  const alchemyPages = hasAlchemy
-    ? alchemyKeys.length >= 3
-      ? 4
-      : alchemyKeys.length >= 2
-        ? 3
-        : 2
-    : 0;
+  const hasAlchemy = Boolean(getAlchemyKey());
+  const alchemyPages = hasAlchemy ? 6 : 0;
 
   const [
     v2,
@@ -232,7 +228,15 @@ export async function collectWalletFastAll(
 export async function collectWalletConnect(
   address: string
 ): Promise<CollectResult> {
-  return collectWalletFastAll(address);
+  const result = await fetchWalletTransfersConnectRich(address);
+  const transfers = enrichTransferLegs(result.transfers, address.toLowerCase());
+  return {
+    transfers,
+    v2StreamStates: result.v2StreamStates,
+    historyComplete: result.historyComplete,
+    userOpsFetched: true,
+    v1SupplementFetched: true,
+  };
 }
 
 export async function collectWalletPreview(

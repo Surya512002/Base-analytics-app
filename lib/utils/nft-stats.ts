@@ -1,4 +1,4 @@
-import { ALCHEMY_KEY, getAlchemyKeys } from "@/lib/constants/env";
+import { ALCHEMY_KEY, getAlchemyKey } from "@/lib/constants/env";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import {
   countsTowardActivity,
@@ -101,7 +101,7 @@ export async function resolveNftCount(
 export async function fetchAlchemyNftTotalCount(
   address: string
 ): Promise<number> {
-  const key = getAlchemyKeys()[0] || ALCHEMY_KEY;
+  const key = getAlchemyKey() || ALCHEMY_KEY;
   if (!key) return 0;
 
   try {

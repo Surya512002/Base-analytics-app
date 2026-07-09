@@ -95,6 +95,28 @@ async function advanceUserOpScan(
   return { state: next, legs: result.transfers };
 }
 
+/** Heatmap cells from live rollup tpd — keeps active days in sync with the grid (d731448). */
+export function buildDailyStatsFromTpd(
+  tpd: Map<string, number>,
+  histDays: number
+): DayStats[] {
+  const now = new Date();
+  const dStats: DayStats[] = [];
+  const hPtr = new Date(now);
+  for (let i = 0; i < histDays; i++) {
+    const ds = hPtr.toISOString().slice(0, 10);
+    const c = tpd.get(ds) || 0;
+    let intensity = 0;
+    if (c > 0) intensity = 1;
+    if (c > 2) intensity = 2;
+    if (c > 5) intensity = 3;
+    if (c > 10) intensity = 4;
+    dStats.unshift({ date: ds, count: c, intensity });
+    hPtr.setUTCDate(hPtr.getUTCDate() - 1);
+  }
+  return dStats;
+}
+
 export function buildDailyStatsFromState(
   state: StoredWalletHistory,
   minDays = 364

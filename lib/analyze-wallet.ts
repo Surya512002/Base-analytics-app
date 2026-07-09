@@ -1,11 +1,14 @@
-import { type WalletFetchDepth } from "@/lib/api/fetch-wallet-transfers";
+import {
+  fetchWalletTransfersConnectRich,
+  type WalletFetchDepth,
+} from "@/lib/api/fetch-wallet-transfers";
 import {
   countNftActivityFromTransfers,
   countNftTxHashesFromTransfers,
   estimateNftHoldingsFromTransfers,
 } from "@/lib/utils/nft-stats";
 import { fetchNftSnapshot } from "@/lib/api/nft-snapshot";
-import { collectWalletConnect, collectWalletComplete, collectWalletQuick } from "@/lib/wallet/collect";
+import { collectWalletComplete, collectWalletQuick } from "@/lib/wallet/collect";
 import { fetchWalletBalances } from "@/lib/wallet/balances";
 import {
   saveWalletHistory,
@@ -14,7 +17,7 @@ import {
   emptyHistoryState,
   type StoredWalletHistory,
 } from "@/lib/wallet/history-store";
-import { buildDailyStatsFromState } from "@/lib/wallet/sync-engine";
+import { buildDailyStatsFromTpd } from "@/lib/wallet/sync-engine";
 import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
 import { enrichTransferLegs } from "@/lib/utils/wallet-activity";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
@@ -31,6 +34,7 @@ import {
   countContractInteractions,
   mergeTransfers,
   rollupWalletActivity,
+  rollupAnalyticsActivity,
   countsTowardActivity,
 } from "@/lib/utils/wallet-activity";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
@@ -110,20 +114,6 @@ function mergeRollupWithHistory(
   };
 }
 
-function heatmapSpanDays(state: StoredWalletHistory, minDays = 364): number {
-  const dated = Object.entries(state.tpd)
-    .filter(([, c]) => c > 0)
-    .map(([d]) => d);
-  if (!dated.length && state.activityDays.length) {
-    dated.push(...state.activityDays);
-  }
-  if (!dated.length) return minDays;
-  const oldest = dated.reduce((a, b) => (a < b ? a : b));
-  const oldestTs = new Date(`${oldest}T12:00:00Z`).getTime();
-  const span = Math.ceil((Date.now() - oldestTs) / 86400000) + 14;
-  return Math.max(minDays, span);
-}
-
 async function fetchConnectHistory(
   address: string,
   opts: {
@@ -138,6 +128,26 @@ async function fetchConnectHistory(
   v2StreamStates: Record<string, { complete: boolean; cursor: string | null }> | undefined;
 }> {
   const stored = await loadOrEmptyHistory(address);
+
+  // Connect analyze — rich single-shot fetch (d731448) for accurate heatmap / active days.
+  if (!opts.isQuick && !opts.isComplete) {
+    opts.onProgress?.("Fetching onchain history (Alchemy + Blockscout + paymaster)...");
+    const rich = await fetchWalletTransfersConnectRich(address);
+    const transfers = enrichTransferLegs(rich.transfers, address.toLowerCase());
+    const merged = mergeActivityIntoState(stored, transfers, address);
+    const next = {
+      ...merged,
+      v2StreamStates: rich.v2StreamStates,
+      historyComplete: stored.historyComplete || rich.historyComplete,
+    };
+    void saveWalletHistory(address, next).catch(() => {});
+    return {
+      transfers,
+      mergedHistory: next,
+      historyComplete: next.historyComplete,
+      v2StreamStates: rich.v2StreamStates,
+    };
+  }
 
   if (opts.isQuick && !opts.isComplete) {
     opts.onProgress?.("Fetching onchain data…");
@@ -162,9 +172,7 @@ async function fetchConnectHistory(
 
   const r = opts.isComplete
     ? await collectWalletComplete(address)
-    : opts.isQuick
-      ? await collectWalletQuick(address)
-      : await collectWalletConnect(address);
+    : await collectWalletQuick(address);
 
   const merged = mergeActivityIntoState(stored, r.transfers, address);
   const next = {
@@ -298,12 +306,16 @@ export async function analyzeWalletAddress(
     addrLow
   );
 
-  const activity = rollupWalletActivity(allTxs, addrLow);
-  const mergedActivity = mergeRollupWithHistory(
-    activity,
-    fullHeatmapState,
-    addrLow
-  );
+  const activity = isQuick
+    ? rollupWalletActivity(allTxs, addrLow)
+    : rollupAnalyticsActivity(allTxs, addrLow);
+  // Connect/full analyze: live rollup only (d731448) — history merge inflated days without heatmap cells.
+  const mergedActivity = isQuick
+    ? mergeRollupWithHistory(activity, fullHeatmapState, addrLow)
+    : {
+        ...activity,
+        mergedState: mergeActivityIntoState(fullHeatmapState, allTxs, addrLow),
+      };
   const {
     participatingHashes,
     uDays,
@@ -532,9 +544,39 @@ export async function analyzeWalletAddress(
     fullHeatmapState.tokenAssets.length
   );
 
+  const displayTpd = new Map(tpd);
+  for (const [day, count] of Object.entries(fullHeatmapState.tpd)) {
+    if (count <= 0) continue;
+    displayTpd.set(day, Math.max(displayTpd.get(day) ?? 0, count));
+  }
+  // 56ca030: active days = unique calendar days with any activity (not hash-deduped rollup only)
+  for (const day of uDays) {
+    if (!displayTpd.has(day) || (displayTpd.get(day) ?? 0) <= 0) {
+      displayTpd.set(day, Math.max(displayTpd.get(day) ?? 0, 1));
+    }
+  }
+  let histDays =
+    actualTxCount > 0
+      ? Math.max(364, Math.ceil((now.getTime() - firstTs) / 86400000) + 14)
+      : 364;
+  const oldestHeatmapDay = [...displayTpd.entries()]
+    .filter(([, c]) => c > 0)
+    .map(([d]) => d)
+    .sort()[0];
+  if (oldestHeatmapDay) {
+    const oldestTs = new Date(`${oldestHeatmapDay}T12:00:00Z`).getTime();
+    histDays = Math.max(
+      histDays,
+      Math.ceil((now.getTime() - oldestTs) / 86400000) + 14
+    );
+  }
+  const dStats: DayStats[] = buildDailyStatsFromTpd(displayTpd, histDays);
+  const heatmapActiveDays = dStats.filter((d) => d.count > 0).length;
+  const displayUniqueDays = heatmapActiveDays;
+
   const { scoreComponents, score, walletRank } = buildOnchainScore({
     txCount: actualTxCount,
-    uniqueDays: uDays.size,
+    uniqueDays: displayUniqueDays,
     activeMonths: uMonths.size,
     activeWeeks: uWeeks.size,
     currentStreak: curStreak,
@@ -558,7 +600,7 @@ export async function analyzeWalletAddress(
   const usdcBalNum = balances.usdc;
   const portfolioValueUSD = balances.portfolioValueUSD;
   const health = calcWalletHealth({
-    uniqueDays: uDays.size,
+    uniqueDays: displayUniqueDays,
     activeMonths: uMonths.size,
     currentStreak: curStreak,
     defiInteractions: defi,
@@ -586,13 +628,6 @@ export async function analyzeWalletAddress(
     recommendation =
       "👋 Welcome to Base! Try minting an NFT or boosting your score.";
 
-  const histDays = heatmapSpanDays(
-    heatmapState,
-    actualTxCount > 0
-      ? Math.max(364, Math.ceil((now.getTime() - firstTs) / 86400000) + 14)
-      : 364
-  );
-  const dStats: DayStats[] = buildDailyStatsFromState(heatmapState, histDays);
   const tCols = Math.ceil(histDays / 7);
   const wLabels: string[] = [];
   let lastML = "";
@@ -646,7 +681,7 @@ export async function analyzeWalletAddress(
     usdcBalance: usdcBalNum.toFixed(2),
     ethVolume: ethVol.toFixed(4),
     txCount: actualTxCount,
-    uniqueDays: uDays.size,
+    uniqueDays: displayUniqueDays,
     activeWeeks: uWeeks.size,
     activeMonths: uMonths.size,
     currentStreak: curStreak,

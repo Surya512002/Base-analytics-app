@@ -40,6 +40,10 @@ function isDegradedMetricsSnapshot(prior: WalletData, next: WalletData): boolean
   return false;
 }
 
+function activeDaysInStats(stats: WalletData["dailyStats"]): number {
+  return stats?.filter((d) => d.count > 0).length ?? 0;
+}
+
 /** Merge metrics — keep best counts; never let a thin resync replace a rich snapshot. */
 export function mergeWalletMetricsMax(
   prior: WalletData,
@@ -54,7 +58,11 @@ export function mergeWalletMetricsMax(
     };
   }
 
-  const usePriorHeatmap = prior.uniqueDays > next.uniqueDays;
+  const priorHeatmapDays = activeDaysInStats(prior.dailyStats);
+  const nextHeatmapDays = activeDaysInStats(next.dailyStats);
+  const usePriorHeatmap =
+    priorHeatmapDays > nextHeatmapDays ||
+    (priorHeatmapDays === nextHeatmapDays && prior.uniqueDays > next.uniqueDays);
   const scoreComponents = maxScoreComponents(
     prior.scoreComponents,
     next.scoreComponents
@@ -68,7 +76,11 @@ export function mergeWalletMetricsMax(
   return {
     ...next,
     basename: next.basename || prior.basename,
-    uniqueDays: Math.max(prior.uniqueDays, next.uniqueDays),
+    uniqueDays: Math.max(
+      prior.uniqueDays,
+      next.uniqueDays,
+      usePriorHeatmap ? priorHeatmapDays : nextHeatmapDays
+    ),
     txCount: Math.max(prior.txCount, next.txCount),
     activeWeeks: Math.max(prior.activeWeeks, next.activeWeeks),
     activeMonths: Math.max(prior.activeMonths, next.activeMonths),

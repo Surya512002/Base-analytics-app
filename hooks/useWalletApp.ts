@@ -1140,21 +1140,21 @@ export function useWalletApp() {
           return true;
         };
 
-        // Try cache first (<1s on repeat connect), then one live fetch if needed.
+        // Full connect analyze (not quick=1) — rich Alchemy + Blockscout like a520a71.
         let [result, ci] = await Promise.all([
-          fetchWalletAnalysisQuick(address, false),
+          fetchWalletAnalysis(address, false),
           ciP,
         ]);
 
         if (!isUsableAnalysis(result)) {
           setScanProgress("Fetching onchain data…");
-          result = await fetchWalletAnalysisQuick(address, true);
+          result = await fetchWalletAnalysis(address, true);
         }
 
         if (!result) {
           setScanProgress("Retrying wallet scan…");
           await new Promise((r) => setTimeout(r, 600));
-          result = await fetchWalletAnalysisQuick(address, true);
+          result = await fetchWalletAnalysis(address, true);
         }
 
         if (!result) {

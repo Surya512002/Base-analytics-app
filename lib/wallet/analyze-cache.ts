@@ -5,7 +5,7 @@ import { cacheGet, cacheSet } from "@/lib/redis-cache";
 export const ANALYZE_CACHE_TTL_SECONDS = 3600;
 
 /** Bump when analyze output shape changes — drops stale low-quality snapshots. */
-export const ANALYZE_CACHE_VERSION = "v18";
+export const ANALYZE_CACHE_VERSION = "v22";
 
 /** In-process fallback when Redis is slow/unavailable — instant reconnect in dev. */
 const memAnalyze = new Map<

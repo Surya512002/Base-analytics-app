@@ -5,7 +5,7 @@ import {
   type Transport,
 } from "viem";
 import { base } from "viem/chains";
-import { getAlchemyKeys, BASE_PUBLIC_RPC, alchemyRpcForKey } from "@/lib/constants/env";
+import { getAlchemyKey, BASE_PUBLIC_RPC, alchemyRpcForKey } from "@/lib/constants/env";
 
 /** Ordered RPC URLs — Alchemy keys first (avoid public RPC rate limits), then public Base. */
 export function getBaseRpcUrls(): string[] {
@@ -13,9 +13,8 @@ export function getBaseRpcUrls(): string[] {
   const serverUrl = process.env.BASE_RPC_URL?.trim();
   if (serverUrl) urls.push(serverUrl);
 
-  for (const key of getAlchemyKeys()) {
-    urls.push(alchemyRpcForKey(key));
-  }
+  const key = getAlchemyKey();
+  if (key) urls.push(alchemyRpcForKey(key));
 
   urls.push(BASE_PUBLIC_RPC);
 

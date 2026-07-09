@@ -1,4 +1,4 @@
-import { getAlchemyKeys } from "@/lib/constants/env";
+import { getAlchemyKey } from "@/lib/constants/env";
 
 export interface EnvAuditItem {
   key: string;
@@ -10,14 +10,11 @@ export interface EnvAuditItem {
 export function auditServerEnv(): EnvAuditItem[] {
   const items: EnvAuditItem[] = [];
 
-  const alchemyKeys = getAlchemyKeys();
+  const alchemyKey = getAlchemyKey();
   items.push({
-    key: "ALCHEMY_API_KEYS / ALCHEMY_API_KEY / NEXT_PUBLIC_ALCHEMY_KEY",
-    ok: alchemyKeys.length > 0,
-    detail:
-      alchemyKeys.length > 0
-        ? `${alchemyKeys.length} key(s) loaded for parallel fetch`
-        : "Missing — add ALCHEMY_API_KEYS=comma,separated,keys",
+    key: "ALCHEMY_API_KEY / NEXT_PUBLIC_ALCHEMY_KEY",
+    ok: Boolean(alchemyKey),
+    detail: alchemyKey ? "Set" : "Missing — add ALCHEMY_API_KEY and NEXT_PUBLIC_ALCHEMY_KEY",
   });
 
   const basescan =

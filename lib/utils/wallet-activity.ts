@@ -186,6 +186,51 @@ export function rollupWalletActivity(
   };
 }
 
+/** 56ca030 analytics rollup — every timestamped leg counts; no per-hash day dedup. */
+export function rollupAnalyticsActivity(
+  txs: AlchemyTransfer[],
+  wallet: string
+): ActivityRollup {
+  const w = normalizeAddr(wallet);
+  const participatingHashes = new Set<string>();
+  const outgoingHashes = new Set<string>();
+  const uDays = new Set<string>();
+  const uWeeks = new Set<string>();
+  const uMonths = new Set<string>();
+  const tpd = new Map<string, number>();
+  const monthActivity = new Map<string, number>();
+
+  for (const tx of txs) {
+    const ts = tx.metadata?.blockTimestamp;
+    if (!ts) continue;
+    if (!walletInvolved(tx, w) && !tx.metadata?.walletParticipated) continue;
+
+    const fromAddr = normalizeAddr(tx.from);
+    const dk = getDayKey(ts);
+    const wk = getWeekKey(ts);
+    const mk = getMonthKey(ts);
+
+    if (tx.hash) participatingHashes.add(tx.hash);
+    if (fromAddr === w && tx.hash) outgoingHashes.add(tx.hash);
+
+    uDays.add(dk);
+    uWeeks.add(wk);
+    uMonths.add(mk);
+    tpd.set(dk, (tpd.get(dk) || 0) + 1);
+    monthActivity.set(mk, (monthActivity.get(mk) || 0) + 1);
+  }
+
+  return {
+    participatingHashes,
+    outgoingHashes,
+    uDays,
+    uWeeks,
+    uMonths,
+    tpd,
+    monthActivity,
+  };
+}
+
 export function countContractInteractions(
   txs: AlchemyTransfer[],
   wallet: string,
