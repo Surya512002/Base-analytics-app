@@ -186,6 +186,40 @@ export function rollupWalletActivity(
   };
 }
 
+/** Best-effort recent activity feed for partial history sync UI updates. */
+export function buildRecentTxPreview(
+  txs: AlchemyTransfer[],
+  wallet: string,
+  limit = 10
+): AlchemyTransfer[] {
+  const w = normalizeAddr(wallet);
+  const bestLegByHash = new Map<string, AlchemyTransfer>();
+
+  for (const tx of txs) {
+    if (!tx.hash || !countsTowardActivity(tx, w)) continue;
+    const prev = bestLegByHash.get(tx.hash);
+    if (!prev) {
+      bestLegByHash.set(tx.hash, tx);
+      continue;
+    }
+    const prevTs = prev.metadata?.blockTimestamp
+      ? new Date(prev.metadata.blockTimestamp).getTime()
+      : 0;
+    const nextTs = tx.metadata?.blockTimestamp
+      ? new Date(tx.metadata.blockTimestamp).getTime()
+      : 0;
+    if (nextTs >= prevTs) bestLegByHash.set(tx.hash, tx);
+  }
+
+  return Array.from(bestLegByHash.values())
+    .sort(
+      (a, b) =>
+        new Date(b.metadata?.blockTimestamp ?? 0).getTime() -
+        new Date(a.metadata?.blockTimestamp ?? 0).getTime()
+    )
+    .slice(0, limit);
+}
+
 /** 56ca030 analytics rollup — every timestamped leg counts; no per-hash day dedup. */
 export function rollupAnalyticsActivity(
   txs: AlchemyTransfer[],

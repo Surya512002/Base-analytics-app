@@ -45,5 +45,14 @@ export function applyPartialSyncPatch(
       prev.recommendation.includes("Fetching") || prev.recommendation.includes("Syncing")
         ? (patch.recommendation ?? prev.recommendation)
         : prev.recommendation,
+    recentTxs:
+      patch.recentTxs && patch.recentTxs.length > 0
+        ? patch.recentTxs
+        : prev.recentTxs,
+    topTokens:
+      patch.topTokens && patch.topTokens.length > 0 ? patch.topTokens : prev.topTokens,
+    firstTx:
+      patch.firstTx && patch.firstTx !== "Syncing…" ? patch.firstTx : prev.firstTx,
+    lastTx: patch.lastTx && patch.lastTx !== "Syncing…" ? patch.lastTx : prev.lastTx,
   };
 }

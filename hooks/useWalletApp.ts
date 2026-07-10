@@ -217,6 +217,18 @@ function resolveInitialTab(): AppTab {
   return "launchpad";
 }
 
+function analysisNeedsActivityRefresh(
+  result: AnalyzeWalletResult & { historyComplete?: boolean }
+): boolean {
+  const w = result.wallet;
+  if (!w?.address) return true;
+  if (result.historyComplete !== true) return true;
+  if (w.recommendation === "Fetching onchain data…") return true;
+  if ((w.txCount ?? 0) > 0 && (w.recentTxs?.length ?? 0) === 0) return true;
+  if (w.firstTx === "Syncing…" || w.lastTx === "Syncing…") return true;
+  return false;
+}
+
 export function useWalletApp() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [connType, setConnType] = useState<ConnectionType | null>(() =>
@@ -277,6 +289,8 @@ export function useWalletApp() {
   const balancesLockedRef = useRef<string | null>(null);
   const pendingHistorySyncRef = useRef<string | null>(null);
   const historyCompleteRef = useRef(false);
+  const historySyncRunningRef = useRef(false);
+  const walletOpGenRef = useRef(0);
   const syncCompleteToastRef = useRef(false);
   const startHistorySyncRef = useRef<((basename?: string | null) => void) | null>(null);
   const leaderboardSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -420,9 +434,7 @@ export function useWalletApp() {
 
   useEffect(() => {
     if (tab !== "dashboard" || !wallet?.address) return;
-    const addr = wallet.address.toLowerCase();
-    if (historyCompleteRef.current || pendingHistorySyncRef.current !== addr) return;
-    pendingHistorySyncRef.current = null;
+    if (historyCompleteRef.current || historySyncRunningRef.current) return;
     startHistorySyncRef.current?.(wallet.basename);
   }, [tab, wallet?.address, wallet?.basename]);
 
@@ -1238,7 +1250,9 @@ export function useWalletApp() {
           session.checkInCount
         ),
       };
-      if (!prev) return base;
+      if (!prev || prev.address.toLowerCase() !== base.address.toLowerCase()) {
+        return base;
+      }
       return mergeWalletMetricsMax(prev, base);
     });
     setReferralBonusXp(readReferralBonusXpForAddress(address));
@@ -1409,6 +1423,8 @@ export function useWalletApp() {
   const analyzeWallet = useCallback(
     async (address: string, opts?: { background?: boolean }) => {
       const background = opts?.background === true;
+      const opGen = walletOpGenRef.current;
+      const stale = () => walletOpGenRef.current !== opGen;
       if (
         !address ||
         !address.startsWith("0x") ||
@@ -1471,12 +1487,14 @@ export function useWalletApp() {
       };
 
       const startBackgroundHistorySync = (priorBasename?: string | null) => {
+        if (historySyncRunningRef.current) return;
         bgSyncStarted = true;
+        historySyncRunningRef.current = true;
         const gen = ++historySyncGen.current;
         setAnalyticsSyncing(true);
 
         const runSync = () => {
-          if (historySyncGen.current !== gen) return;
+          if (historySyncGen.current !== gen || stale()) return;
           void pollWalletHistorySync(
           address,
           {
@@ -1519,6 +1537,7 @@ export function useWalletApp() {
           .catch((e) => console.error(e))
           .finally(() => {
             if (historySyncGen.current === gen) {
+              historySyncRunningRef.current = false;
               setAnalyticsSyncing(false);
               if (tabRef.current === "dashboard") setScanProgress("");
             }
@@ -1609,6 +1628,7 @@ export function useWalletApp() {
           skipBootstrap ? Promise.resolve(null) : fetchWalletBootstrap(address),
           fetchWalletAnalysisQuick(address, false),
         ]);
+        if (stale()) return;
         let result = cached;
 
         const isUsableAnalysis = (
@@ -1650,7 +1670,8 @@ export function useWalletApp() {
           return hasFastScore(a) ? a : hasFastScore(b) ? b : null;
         };
 
-        if (isUsableAnalysis(result)) {
+        if (isUsableAnalysis(result) && !analysisNeedsActivityRefresh(result!)) {
+          if (stale()) return;
           mergeAndApply(result!, ci);
           if (background) lockWalletCore(result!.wallet);
           if (!background) {
@@ -1756,6 +1777,10 @@ export function useWalletApp() {
       historyCompleteRef.current = false;
       syncCompleteToastRef.current = false;
       pendingHistorySyncRef.current = null;
+      historySyncRunningRef.current = false;
+      walletOpGenRef.current += 1;
+      historySyncGen.current += 1;
+      const connectGen = walletOpGenRef.current;
       balancesLockedRef.current = null;
       setWalletCore(null);
       setWallet(shell);
@@ -1781,6 +1806,7 @@ export function useWalletApp() {
           fetchWalletBootstrap(addr).catch(() => null),
           fetchWalletAnalysisQuick(addr, false).catch(() => null),
         ]);
+        if (walletOpGenRef.current !== connectGen) return;
         const fastWallet = quick?.wallet ?? bootstrap?.wallet;
         if (!fastWallet) {
           setWalletRefreshing(false);
@@ -1825,9 +1851,11 @@ export function useWalletApp() {
 
   const resetSessionState = useCallback(() => {
     historySyncGen.current += 1;
+    walletOpGenRef.current += 1;
     balancesLockedRef.current = null;
     pendingHistorySyncRef.current = null;
     historyCompleteRef.current = false;
+    historySyncRunningRef.current = false;
     syncCompleteToastRef.current = false;
     startHistorySyncRef.current = null;
     setWalletCore(null);

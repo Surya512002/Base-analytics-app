@@ -417,7 +417,13 @@ if (!wallet) return null;
                       </a>
                     </div>
                   );
-                }):<p className="text-slate-600 text-sm text-center py-8">No recent transactions found.</p>}
+                }):(
+                  <p className="text-slate-600 text-sm text-center py-8">
+                    {analyticsSyncing || scoreSyncing
+                      ? "Syncing your onchain activity…"
+                      : "No recent transactions found."}
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -13,6 +13,7 @@ import {
 import { runWalletSyncBurst } from "@/lib/wallet/sync-engine";
 import { buildWalletMetricsPatch } from "@/lib/wallet/metrics-patch";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
+import { buildRecentTxPreview } from "@/lib/utils/wallet-activity";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -56,11 +57,23 @@ export async function GET(req: Request) {
         defiInteractions: prior?.defiInteractions,
         uniqueContracts: prior?.uniqueContracts,
       });
+      const recentTxs = buildRecentTxPreview(transfers, address, 10);
+      const sortedTs = transfers
+        .map((t) => t.metadata?.blockTimestamp)
+        .filter(Boolean)
+        .sort();
+      const firstTx = sortedTs[0]?.slice(0, 10) ?? prior?.firstTx;
+      const lastTx = sortedTs[sortedTs.length - 1]?.slice(0, 10) ?? prior?.lastTx;
 
       return NextResponse.json({
         historyComplete: false,
         partial: true,
-        wallet: patch,
+        wallet: {
+          ...patch,
+          recentTxs,
+          firstTx,
+          lastTx,
+        },
         sync: {
           complete: false,
           transferLegs: transfers.length,
