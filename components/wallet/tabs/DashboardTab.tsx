@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowRightLeft, BadgeCheck, BarChart3, BrainCircuit, Calendar,
   ChevronDown, ChevronUp, Clock, Coins, CreditCard,
@@ -10,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import AnalyticsLoadingPanel from "@/components/wallet/AnalyticsLoadingPanel";
 import OnchainScorePanel from "@/components/wallet/OnchainScorePanel";
 import PremiumBanner from "@/components/wallet/PremiumBanner";
 import PremiumInsightsPanel from "@/components/wallet/PremiumInsightsPanel";
@@ -33,6 +35,15 @@ import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { getAppContractHit, isPaymasterActivity } from "@/lib/utils/app-contracts";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import type { WalletAppState } from "@/hooks/useWalletApp";
+import LaunchpadDashboardWidget from "@/components/launchpad/LaunchpadDashboardWidget";
+import type { LaunchedToken } from "@/lib/launchpad/types";
+import WalletStatsSections from "@/components/wallet/WalletStatsSections";
+import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
+import ScoreImprovementTips from "@/components/wallet/ScoreImprovementTips";
+import ChallengePromoCard from "@/components/wallet/ChallengePromoCard";
+import WeeklyRecapBanner from "@/components/wallet/WeeklyRecapBanner";
+import { buildQuestDeepLink, syncTabUrl } from "@/lib/utils/app-url";
+import type { AppTab } from "@/hooks/useWalletApp";
 
 const FarcasterAnalytics = dynamic(
   () => import("@/components/wallet/FarcasterAnalytics"),
@@ -51,12 +62,92 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     premiumUnlocked, premiumLoading, premiumData, premiumInsights, handlePremiumScan,
     x402Product, setX402Product,
     farcasterUnlocked, farcasterUnlockLoading, handleFarcasterUnlock,
+    walletRefreshing, scanProgress, analyticsSyncing,
+    setTab,
   } = app;
+
+  const [displayBasename, setDisplayBasename] = useState<string | null>(null);
+  const [resolvingIdentity, setResolvingIdentity] = useState(false);
+
+  useEffect(() => {
+    if (!wallet?.address) return;
+    if (wallet.basename) {
+      setDisplayBasename(wallet.basename);
+      return;
+    }
+    let alive = true;
+    setResolvingIdentity(true);
+    void resolveBasenameClient(wallet.address)
+      .then((name) => {
+        if (alive && name) setDisplayBasename(name);
+      })
+      .finally(() => {
+        if (alive) setResolvingIdentity(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [wallet?.address, wallet?.basename]);
+
+  const openLaunchpad = (token?: LaunchedToken) => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "launchpad");
+      if (token) url.searchParams.set("token", token.address);
+      else url.searchParams.delete("token");
+      window.history.replaceState({}, "", url);
+    }
+    setTab("launchpad");
+  };
+
+  const navigateFromTip = (nextTab: AppTab, questId?: string) => {
+    if (questId && typeof window !== "undefined") {
+      window.location.href = buildQuestDeepLink(questId);
+      return;
+    }
+    setTab(nextTab);
+    syncTabUrl(nextTab);
+  };
+
+  const rankLabel = useMemo(() => {
+    if (!wallet?.address) return undefined;
+    const entry = leaderboard.find(
+      (e) => e.address.toLowerCase() === wallet.address.toLowerCase()
+    );
+    return entry?.rank != null ? `Rank #${entry.rank}` : undefined;
+  }, [leaderboard, wallet]);
 
 if (!wallet) return null;
 
+  const scoreSyncing =
+    wallet.score <= 0 &&
+    (walletRefreshing || analyticsSyncing) &&
+    (wallet.recommendation.includes("Fetching") ||
+      wallet.recommendation.includes("Syncing") ||
+      wallet.recommendation.includes("Refining"));
+
   return (
           <div className="space-y-4">
+            {scoreSyncing && (
+              <AnalyticsLoadingPanel
+                scanProgress={scanProgress}
+                walletRefreshing={walletRefreshing}
+              />
+            )}
+
+            <LaunchpadDashboardWidget
+              wallet={wallet.address}
+              onOpenLaunchpad={openLaunchpad}
+            />
+
+            <WeeklyRecapBanner
+              weeklyXP={weeklyXP}
+              doneQuests={doneQuests}
+              totalQuests={WEEKLY_QUESTS.length}
+              streak={streak}
+              rankLabel={rankLabel}
+            />
+
             <PremiumBanner
               premiumLoading={premiumLoading}
               premiumUnlocked={premiumUnlocked}
@@ -81,17 +172,55 @@ if (!wallet) return null;
               onGoCheckIn={() => app.setTab("checkin")}
               onGoQuests={() => app.setTab("checkin")}
               shareScore={shareScore}
+              syncing={scoreSyncing || analyticsSyncing}
+              scanProgress={scanProgress}
             />
+
+            <ScoreImprovementTips wallet={wallet} onNavigate={navigateFromTip} />
+
+            <ChallengePromoCard
+              wallet={wallet}
+              onChallenge={() => {
+                const el = document.getElementById("wallet-challenge-input");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                el?.focus();
+              }}
+            />
+
+            {wallet.topTokens.length > 0 && (
+              <div className="glass-panel rounded-2xl p-5">
+                <p className="section-eyebrow mb-3">Tokens you&apos;ve traded</p>
+                <div className="flex flex-wrap gap-2">
+                  {wallet.topTokens.slice(0, 8).map((sym) => (
+                    <button
+                      key={sym}
+                      type="button"
+                      onClick={() => openLaunchpad()}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-white/10 text-slate-300 hover:border-[#0052FF]/40 hover:text-[#6BA3FF]"
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openLaunchpad()}
+                  className="mt-3 text-[11px] font-bold text-[#6BA3FF]"
+                >
+                  Find them in Explore →
+                </button>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {[
-                {label:'Age Percentile',value:`Top ${100-wallet.onchainAgePercentile}%`,sub:`vs Base median`,icon:<GitBranch size={16} className="text-cyan-400"/>,active:true},
-                {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="text-cyan-300"/>,active:true},
-                {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="text-cyan-400"/>,active:wallet.bridgeTxCount>0},
+                {label:'Age Percentile',value:wallet.onchainAgePercentile>0?`Top ${Math.min(99,Math.max(1,100-wallet.onchainAgePercentile))}%`:'—',sub:`vs Base median`,icon:<GitBranch size={16} className="analytics-tile-icon"/>,active:wallet.onchainAgePercentile>0},
+                {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="analytics-tile-icon"/>,active:true},
+                {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="analytics-tile-icon"/>,active:wallet.bridgeTxCount>0},
                 {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
               ].map((s,i)=>(
-                <div key={i} className={`bg-white/[0.04] border rounded-2xl p-4 shadow-sm ${s.active?'border-cyan-500/20':'border-cyan-500/12'}`}>
-                  <div className="mb-2">{s.icon}</div>
+                <div key={i} className={`analytics-tile p-4 ${s.active?'':'opacity-60'}`}>
+                  <div className="mb-2 analytics-tile-icon">{s.icon}</div>
                   <p className={`font-black text-lg leading-tight ${s.active?'text-white':'text-slate-600'}`}>{s.value}</p>
                   <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5">{s.label}</p>
                   <p className="text-[9px] text-slate-600 mt-0.5">{s.sub}</p>
@@ -99,110 +228,85 @@ if (!wallet) return null;
               ))}
             </div>
 
-            <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><BarChart3 size={12}/>Wallet Intelligence</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
-                <div className="glass-panel-accent rounded-2xl p-4 col-span-2 flex items-center gap-3 overflow-hidden shadow-lg shadow-black/25">
-                  <div className="w-12 h-12 bg-cyan-500/15 border border-cyan-500/30 rounded-2xl flex items-center justify-center shrink-0"><User size={22} className="text-cyan-400"/></div>
-                  <div className="min-w-0">
-                    <p className="font-black text-white text-base sm:text-lg truncate">{wallet.basename||`${wallet.address.slice(0,8)}...${wallet.address.slice(-4)}`}</p>
-                    <p className="text-[10px] text-cyan-400/50 uppercase font-bold truncate mt-0.5">{wallet.walletRank}</p>
-                    {wallet.basename&&<span className="inline-flex items-center gap-1 text-[9px] font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-2 py-0.5 rounded-full mt-1.5"><BadgeCheck size={9}/>Verified Basename</span>}
-                  </div>
+            <div className="page-hero mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-center shrink-0">
+                  <User size={22} className="analytics-tile-icon"/>
                 </div>
-                <div className="bg-linear-to-br from-rose-500/20 to-[#071220]/10 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 col-span-2 sm:col-span-1 shadow-lg shadow-black/25">
-                  <div className="mb-2"><DollarSign size={15} className="text-cyan-400"/></div>
-                  <p className="font-black text-white text-lg sm:text-xl">${wallet.portfolioValueUSD.toLocaleString('en-US',{maximumFractionDigits:0})}</p>
-                  <p className="text-[9px] text-cyan-400/50 uppercase font-bold tracking-wide mt-0.5">Portfolio Value</p>
+                <div className="min-w-0">
+                  <p className="font-display page-hero-title truncate">
+                    {displayBasename ||
+                      wallet.basename ||
+                      (resolvingIdentity
+                        ? "Resolving identity…"
+                        : `${wallet.address.slice(0, 8)}…${wallet.address.slice(-4)}`)}
+                  </p>
+                  {(displayBasename || wallet.basename) && (
+                    <p className="text-[11px] text-slate-500 font-mono truncate mt-0.5">
+                      {wallet.address.slice(0, 8)}…{wallet.address.slice(-4)}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-[var(--ink-muted)] font-semibold mt-1">{wallet.walletRank}</p>
                 </div>
-
-                {([
-                  {l:'x402 Payments', v: x402PayCount.toString(), i:<Zap size={15} className="text-yellow-400"/>},
-                  {l:'ETH Balance',      v:`${wallet.balance} Ξ`,                        i:<CreditCard size={15} className="text-cyan-400"/>},
-                  {l:'USDC Balance',     v:`$${wallet.usdcBalance ?? "0.00"}`,           i:<DollarSign size={15} className="text-emerald-400"/>},
-                  {l:'Days on Base',     v:wallet.daysOnBase.toLocaleString(),            i:<Calendar size={15} className="text-cyan-300"/>},
-                  {l:'Active Days ✅',   v:wallet.uniqueDays.toString(),                  i:<Sun size={15} className="text-cyan-400"/>},
-                  {l:'Active Weeks ✅',  v:wallet.activeWeeks.toString(),                 i:<Calendar size={15} className="text-cyan-300"/>},
-                  {l:'Active Months ✅', v:wallet.activeMonths.toString(),                i:<Calendar size={15} className="text-cyan-400"/>},
-                  {l:'Current Streak ✅',v:`${wallet.currentStreak}d`,                    i:<Flame size={15} className="text-cyan-300"/>},
-                  {l:'Longest Streak ✅',v:`${wallet.longestStreak}d`,                    i:<Trophy size={15} className="text-cyan-400"/>},
-                  {l:'Longest Gap',      v:`${wallet.longestInactiveDays}d`,              i:<Clock size={15} className="text-cyan-300"/>},
-                  {l:'Peak Day Txs',     v:wallet.peakDayTxCount.toString(),              i:<Gauge size={15} className="text-cyan-400"/>},
-                  {l:'Peak Active Day',  v:wallet.peakDayDate,                            i:<Star size={15} className="text-cyan-300"/>},
-                  {l:'Total Txs',        v:wallet.txCount.toLocaleString(),               i:<Layers size={15} className="text-cyan-300"/>},
-                  {l:'Avg Tx / Day',     v:wallet.avgTxPerDay.toString(),                 i:<BarChart3 size={15} className="text-cyan-400"/>},
-                  {l:'Avg Tx / Week',    v:wallet.weeklyTxAvg.toString(),                 i:<Activity size={15} className="text-cyan-300"/>},
-                  {l:'Avg Tx Value',     v:`${wallet.avgTxValueETH} Ξ`,                   i:<Coins size={15} className="text-cyan-400"/>},
-                  {l:'Contract Txs',     v:wallet.contractInteractions.toLocaleString(),  i:<FileCode size={15} className="text-cyan-300"/>},
-                  {l:'Unique Contracts', v:wallet.uniqueContracts.toLocaleString(),       i:<Database size={15} className="text-cyan-400"/>},
-                  {l:'ERC-20 Txs',       v:wallet.erc20Txs.toLocaleString(),              i:<Coins size={15} className="text-cyan-300"/>},
-                  {l:'NFT Txs',          v:wallet.erc721Txs.toLocaleString(),             i:<Palette size={15} className="text-cyan-400"/>},
-                  {l:'ETH Sent',         v:`${wallet.ethVolume} Ξ`,                       i:<ArrowRightLeft size={15} className="text-cyan-300"/>},
-                  {l:'ETH Received',     v:`${wallet.ethReceived} Ξ`,                     i:<Gift size={15} className="text-cyan-400"/>},
-                  {l:'Net ETH Flow',     v:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,i:<TrendingUp size={15} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>},
-                  {l:'Swap Volume',      v:formatDexVolumeUsd(wallet.dexVolumeUSD),       i:<TrendingUp size={15} className="text-cyan-300"/>},
-                  {l:'ETH Swap Volume',  v:formatDexVolumeUsd(wallet.ethSwapVolumeUSD ?? 0), i:<Coins size={15} className="text-violet-300"/>},
-                  {l:'Swap Count',       v:wallet.dexTradeCount.toLocaleString(),         i:<Repeat2 size={15} className="text-cyan-400"/>},
-                  {l:'Token Swaps',      v:wallet.swapCount.toLocaleString(),             i:<ArrowRightLeft size={15} className="text-cyan-300"/>},
-                  {l:'Unique Tokens',    v:wallet.tokensSwapped.toString(),               i:<Coins size={15} className="text-cyan-300"/>},
-                  {l:'DeFi Interactions',v:wallet.defiInteractions.toLocaleString(),      i:<TrendingUp size={15} className="text-cyan-400"/>},
-                  {l:'Unique Protocols', v:wallet.uniqueProtocols.toString(),             i:<Landmark size={15} className="text-cyan-300"/>},
-                  {l:'Fav Protocol',     v:wallet.mostUsedProtocol,                       i:<Star size={15} className="text-cyan-400"/>},
-                  {l:'Bridge Txs',       v:wallet.bridgeTxCount.toString(),               i:<Globe size={15} className="text-cyan-300"/>},
-                  {l:'NFTs Held',        v:wallet.nftCount.toLocaleString(),              i:<Sparkles size={15} className="text-cyan-400"/>},
-                  {l:'Most Active Month',v:wallet.mostActiveMonth,                        i:<Clock size={15} className="text-cyan-300"/>},
-                  {l:'First Transaction',v:wallet.firstTx,                                i:<Star size={15} className="text-cyan-400"/>},
-                  {l:'Last Transaction', v:wallet.lastTx,                                 i:<Clock size={15} className="text-cyan-300"/>},
-                  {l:'Onchain Streak',   v:`${streak}d`,                                  i:<Zap size={15} className="text-cyan-400"/>},
-                  {l:'Check-In Count',   v:wallet.checkInCount.toLocaleString(),          i:<Flame size={15} className="text-orange-400"/>},
-                  {l:'GM / GN Count',    v:wallet.gmCount.toLocaleString(),               i:<Star size={15} className="text-yellow-400"/>},
-                  {l:'XP Boosts',        v:boosts.toString(),                             i:<Rocket size={15} className="text-cyan-300"/>},
-                  {l:'Minted Badges',    v:mintedCount.toString(),                        i:<Trophy size={15} className="text-cyan-400"/>},
-                  {l:'Weekly XP',        v:weeklyXP.toString(),                           i:<Zap size={15} className="text-cyan-300"/>},
-                  {l:'Activity Score',   v:`${wallet.activityScore}/100`,                 i:<Activity size={15} className="text-cyan-400"/>},
-                  {l:'Wallet Health',    v:`${wallet.walletHealthScore}/100`,             i:<ShieldCheck size={15} className="text-cyan-300"/>},
-                ] as {l:string;v:string|number;i:React.ReactNode}[]).map((s,i)=>(
-                  <div key={i} className="glass-panel-accent rounded-2xl p-3 sm:p-4 hover:border-cyan-500/30 transition-all group shadow-sm shadow-black/20">
-                    <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{s.i}</div>
-                    <p className="font-black text-white text-sm sm:text-base truncate leading-tight">{s.v}</p>
-                    <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5 truncate">{s.l}</p>
-                  </div>
-                ))}
               </div>
             </div>
 
-            <WatchlistPanel myAddress={wallet.address} />
-
-            <div className="glass-panel-accent rounded-2xl p-5 shadow-lg shadow-black/25">
-              <div className="flex items-center gap-2 mb-3"><Swords size={18} className="text-cyan-400"/><span className="font-black text-white">Wallet Challenge</span></div>
-              <p className="text-xs text-cyan-300/50 mb-4">Enter any wallet to compare real onchain scores.</p>
-              <div className="flex gap-2 mb-3">
-                <input value={challenge} onChange={e=>setChallenge(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleChallenge()}
-                  placeholder="0x..." className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 outline-none focus:border-cyan-500/50 transition-all"/>
-                <button onClick={handleChallenge} disabled={challengeLoading}
-                  className="shrink-0 btn-primary hover:opacity-90 disabled:bg-white/10 text-white px-5 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 flex items-center gap-1">
-                  {challengeLoading?<RefreshCcw size={12} className="animate-spin"/>:'Go'}
-                </button>
-              </div>
-              {challengeResult&&(
-                <div className="grid grid-cols-2 gap-2">
-                  <div className={`rounded-xl p-3 text-center border ${wallet.score>=challengeResult.score?'bg-cyan-500/10 border-cyan-500/20':'bg-white/[0.04] border-white/8'}`}>
-                    <p className="text-[10px] text-cyan-400/50 uppercase font-bold">You</p>
-                    <p className="text-3xl font-black text-cyan-400 my-1">{wallet.score}</p>
-                    <p className="text-[9px] text-cyan-300/50">{wallet.uniqueDays} days</p>
-                    {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
-                  </div>
-                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-cyan-500/10 border-cyan-500/25':'bg-white/[0.04] border-white/8'}`}>
-                    <p className="text-[10px] text-cyan-400/50 uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
-                    <p className="text-3xl font-black text-cyan-200 my-1">{challengeResult.score}</p>
-                    <p className="text-[9px] text-cyan-300/50">{challengeResult.days} days</p>
-                    {challengeResult.score>wallet.score&&<p className="text-[10px] font-black text-cyan-300 mt-1">WINNER 🏆</p>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <ReferralPanel address={wallet.address} />
+            <WalletStatsSections
+              overview={[
+                { label: "Portfolio", value: `$${wallet.portfolioValueUSD.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
+                { label: "Total Txs", value: wallet.txCount.toLocaleString(), icon: <Layers size={15} className="analytics-tile-icon" /> },
+                { label: "Age percentile", value: wallet.onchainAgePercentile > 0 ? `Top ${Math.min(99, Math.max(1, 100 - wallet.onchainAgePercentile))}%` : "—", icon: <GitBranch size={15} className="analytics-tile-icon" />, dim: wallet.onchainAgePercentile <= 0 },
+                { label: "Net ETH flow", value: `${wallet.netETHFlow >= 0 ? "+" : ""}${wallet.netETHFlow} Ξ`, icon: <TrendingUp size={15} className={wallet.netETHFlow >= 0 ? "text-green-400" : "text-red-400"} /> },
+                { label: "Bridge txs", value: wallet.bridgeTxCount, icon: <Globe size={15} className="analytics-tile-icon" />, dim: wallet.bridgeTxCount <= 0 },
+              ]}
+              balances={[
+                { label: "ETH balance", value: `${wallet.balance} Ξ`, icon: <CreditCard size={15} className="analytics-tile-icon" /> },
+                { label: "USDC balance", value: `$${wallet.usdcBalance ?? "0.00"}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
+                { label: "x402 payments", value: x402PayCount, icon: <Zap size={15} className="analytics-tile-icon" /> },
+                { label: "Days on Base", value: wallet.daysOnBase.toLocaleString(), icon: <Calendar size={15} className="analytics-tile-icon" /> },
+              ]}
+              activity={[
+                { label: "Active days", value: wallet.uniqueDays, icon: <Sun size={15} className="analytics-tile-icon" /> },
+                { label: "Active weeks", value: wallet.activeWeeks, icon: <Calendar size={15} className="analytics-tile-icon" /> },
+                { label: "Active months", value: wallet.activeMonths, icon: <Calendar size={15} className="analytics-tile-icon" /> },
+                { label: "Current streak", value: `${wallet.currentStreak}d`, icon: <Flame size={15} className="analytics-tile-icon" /> },
+                { label: "Longest streak", value: `${wallet.longestStreak}d`, icon: <Trophy size={15} className="analytics-tile-icon" /> },
+                { label: "Longest gap", value: `${wallet.longestInactiveDays}d`, icon: <Clock size={15} className="analytics-tile-icon" /> },
+                { label: "Peak day txs", value: wallet.peakDayTxCount, icon: <Gauge size={15} className="analytics-tile-icon" /> },
+                { label: "Peak active day", value: wallet.peakDayDate, icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "Avg tx / day", value: wallet.avgTxPerDay, icon: <BarChart3 size={15} className="analytics-tile-icon" /> },
+                { label: "Avg tx / week", value: wallet.weeklyTxAvg, icon: <Activity size={15} className="analytics-tile-icon" /> },
+                { label: "First tx", value: wallet.firstTx, icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "Last tx", value: wallet.lastTx, icon: <Clock size={15} className="analytics-tile-icon" /> },
+                { label: "Most active month", value: wallet.mostActiveMonth, icon: <Clock size={15} className="analytics-tile-icon" /> },
+              ]}
+              trading={[
+                { label: "Swap volume", value: formatDexVolumeUsd(wallet.dexVolumeUSD), icon: <TrendingUp size={15} className="analytics-tile-icon" /> },
+                { label: "ETH swap vol", value: formatDexVolumeUsd(wallet.ethSwapVolumeUSD ?? 0), icon: <Coins size={15} className="analytics-tile-icon" /> },
+                { label: "Swap count", value: wallet.dexTradeCount.toLocaleString(), icon: <Repeat2 size={15} className="analytics-tile-icon" /> },
+                { label: "Token swaps", value: wallet.swapCount.toLocaleString(), icon: <ArrowRightLeft size={15} className="analytics-tile-icon" /> },
+                { label: "Unique tokens", value: wallet.tokensSwapped, icon: <Coins size={15} className="analytics-tile-icon" /> },
+                { label: "DeFi interactions", value: wallet.defiInteractions.toLocaleString(), icon: <TrendingUp size={15} className="analytics-tile-icon" /> },
+                { label: "Unique protocols", value: wallet.uniqueProtocols, icon: <Landmark size={15} className="analytics-tile-icon" /> },
+                { label: "Fav protocol", value: wallet.mostUsedProtocol, icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "ETH sent", value: `${wallet.ethVolume} Ξ`, icon: <ArrowRightLeft size={15} className="analytics-tile-icon" /> },
+                { label: "ETH received", value: `${wallet.ethReceived} Ξ`, icon: <Gift size={15} className="analytics-tile-icon" /> },
+                { label: "Contract txs", value: wallet.contractInteractions.toLocaleString(), icon: <FileCode size={15} className="analytics-tile-icon" /> },
+                { label: "ERC-20 txs", value: wallet.erc20Txs.toLocaleString(), icon: <Coins size={15} className="analytics-tile-icon" /> },
+                { label: "NFT txs", value: wallet.erc721Txs.toLocaleString(), icon: <Palette size={15} className="analytics-tile-icon" /> },
+                { label: "NFTs held", value: wallet.nftCount.toLocaleString(), icon: <Sparkles size={15} className="analytics-tile-icon" /> },
+              ]}
+              engagement={[
+                { label: "Onchain streak", value: `${streak}d`, icon: <Zap size={15} className="analytics-tile-icon" /> },
+                { label: "Check-ins", value: wallet.checkInCount.toLocaleString(), icon: <Flame size={15} className="analytics-tile-icon" /> },
+                { label: "GM / GN", value: wallet.gmCount.toLocaleString(), icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "XP boosts", value: boosts, icon: <Rocket size={15} className="analytics-tile-icon" /> },
+                { label: "Minted badges", value: mintedCount, icon: <Trophy size={15} className="analytics-tile-icon" /> },
+                { label: "Weekly XP", value: weeklyXP, icon: <Zap size={15} className="analytics-tile-icon" /> },
+                { label: "Activity score", value: `${wallet.activityScore}/100`, icon: <Activity size={15} className="analytics-tile-icon" /> },
+                { label: "Wallet health", value: `${wallet.walletHealthScore}/100`, icon: <ShieldCheck size={15} className="analytics-tile-icon" /> },
+              ]}
+            />
 
             <FarcasterAnalytics
               address={wallet.address}
@@ -210,6 +314,57 @@ if (!wallet) return null;
               unlockLoading={farcasterUnlockLoading}
               onUnlock={handleFarcasterUnlock}
             />
+
+            <WatchlistPanel myAddress={wallet.address} />
+
+            <div className="glass-panel rounded-2xl p-5" id="wallet-challenge-section">
+              <div className="flex items-center gap-2 mb-3"><Swords size={18} className="analytics-tile-icon"/><span className="font-black text-white">Wallet Challenge</span></div>
+              <p className="text-xs text-slate-500 mb-4">Enter any wallet to compare real onchain scores.</p>
+              <div className="flex gap-2 mb-3">
+                <input id="wallet-challenge-input" value={challenge} onChange={e=>setChallenge(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleChallenge()}
+                  placeholder="0x..." className="flex-1 min-w-0 input-ink rounded-xl px-3 py-2.5 text-xs font-mono placeholder-slate-600"/>
+                <button onClick={handleChallenge} disabled={challengeLoading}
+                  className="shrink-0 btn-primary disabled:opacity-50 px-5 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 flex items-center gap-1">
+                  {challengeLoading?<RefreshCcw size={12} className="animate-spin"/>:'Go'}
+                </button>
+              </div>
+              {challengeResult&&(
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`rounded-xl p-3 text-center border ${wallet.score>=challengeResult.score?'bg-white/[0.05] border-white/15':'bg-white/[0.02] border-white/8'}`}>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">You</p>
+                    <p className="text-3xl font-black text-white my-1">{wallet.score}</p>
+                    <p className="text-[9px] text-slate-500">{wallet.uniqueDays} days</p>
+                    {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-slate-300 mt-1">WINNER 🏆</p>}
+                  </div>
+                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-white/[0.05] border-white/15':'bg-white/[0.02] border-white/8'}`}>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
+                    <p className="text-3xl font-black text-white my-1">{challengeResult.score}</p>
+                    <p className="text-[9px] text-slate-500">{challengeResult.days} days</p>
+                    {challengeResult.score>wallet.score&&<p className="text-[10px] font-black text-slate-300 mt-1">WINNER 🏆</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <ReferralPanel address={wallet.address} />
+
+            <div className="glass-panel rounded-2xl p-5 border border-white/[0.06]">
+              <p className="section-eyebrow mb-2">Quick help</p>
+              <ul className="space-y-2 text-xs text-slate-400">
+                <li>
+                  <span className="text-slate-300 font-bold">Explore</span> — search tokens, swap,
+                  and earn quest XP.
+                </li>
+                <li>
+                  <span className="text-slate-300 font-bold">Analytics</span> — score, heatmap, and
+                  improvement tips update as history syncs.
+                </li>
+                <li>
+                  <span className="text-slate-300 font-bold">⌘K</span> — jump to any tab, token, or
+                  voucher from anywhere.
+                </li>
+              </ul>
+            </div>
 
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
@@ -222,27 +377,27 @@ if (!wallet) return null;
                   const isBoost=appHit==='booster';
                   const isCI=appHit==='checkin';
                   const isBadge=appHit==='achievements';
-                  const isPredict=appHit==='predictions';
+                  const isLaunch=appHit==='launchpad';
                   const isDEX=DEX_ROUTERS.has(toAddr);
                   const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
                   const isPaymaster=isPaymasterActivity(tx,wAddr)||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
                   let label='Contract Call',badge:string|null=null;
-                  let icon=<ArrowRightLeft size={13} className="text-cyan-400"/>;
-                  if(isGM){label='GM / GN';icon=<Star size={13} className="text-yellow-400"/>;badge='☀️ Vibes';}
-                  else if(isBoost){label='XP Boost';icon=<Rocket size={13} className="text-cyan-300"/>;badge='🚀 Boost';}
-                  else if(isCI){label='Check-In';icon=<Flame size={13} className="text-orange-400"/>;badge='🔥 Streak';}
+                  let icon=<ArrowRightLeft size={13} className="analytics-tile-icon"/>;
+                  if(isGM){label='GM / GN';icon=<Star size={13} className="analytics-tile-icon"/>;badge='☀️ Vibes';}
+                  else if(isBoost){label='XP Boost';icon=<Rocket size={13} className="analytics-tile-icon"/>;badge='🚀 Boost';}
+                  else if(isCI){label='Check-In';icon=<Flame size={13} className="analytics-tile-icon"/>;badge='🔥 Streak';}
                   else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>;badge='🏅 Badge';}
-                  else if(isPredict){label='Prediction Trade';icon=<TrendingUp size={13} className="text-emerald-400"/>;badge='📈 Predict';}
-                  else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="text-cyan-400"/>;badge='🔄 Swap';}
-                  else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="text-cyan-300"/>;badge='🌉 Bridge';}
-                  else if(isPaymaster){label=tx.category==='useroperation'?'Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="text-cyan-400"/>;badge='⛽ Sponsored';}
+                  else if(isLaunch){label='Launchpad';icon=<TrendingUp size={13} className="analytics-tile-icon"/>;badge='🚀 Launch';}
+                  else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="analytics-tile-icon"/>;badge='🔄 Swap';}
+                  else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="analytics-tile-icon"/>;badge='🌉 Bridge';}
+                  else if(isPaymaster){label=tx.category==='useroperation'?'Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge='⛽ Sponsored';}
                   else if(tx.category==='erc721'||tx.category==='erc1155'){
                     const isMint=(tx.from||'').toLowerCase()==='0x0000000000000000000000000000000000000000';
                     label=isMint?'NFT Mint':'NFT Transfer';
-                    icon=<Sparkles size={13} className="text-cyan-300"/>;
+                    icon=<Sparkles size={13} className="analytics-tile-icon"/>;
                   }
-                  else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="text-cyan-400"/>;}
-                  else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="text-cyan-300"/>;}
+                  else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="analytics-tile-icon"/>;}
+                  else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="analytics-tile-icon"/>;}
                   return(
                     <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-white/[0.03] transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-white/8':''}`}>
                       <div className="flex items-center gap-3 min-w-0">

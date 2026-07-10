@@ -12,7 +12,7 @@ interface AppLogoProps {
   className?: string;
 }
 
-/** Variation D — geometric bars + hex outline on Base blue (#0052FF). */
+/** Geometric bars + hex on Base blue — sharp mark for ink market UI. */
 function LogoMark({ size }: { size: number }) {
   return (
     <svg
@@ -25,18 +25,17 @@ function LogoMark({ size }: { size: number }) {
       aria-label="Base Analytics"
       className="shrink-0"
     >
-      <rect width="64" height="64" rx="14" fill="#0052FF" />
-      <circle cx="51" cy="13" r="3.5" fill="#FFFFFF" />
+      <rect width="64" height="64" rx="12" fill="#0052FF" />
       <path
-        d="M32 15.5 45.5 24.5V43.5L32 52.5 18.5 43.5V24.5L32 15.5Z"
+        d="M32 14 46 23.5V42.5L32 52 18 42.5V23.5L32 14Z"
         stroke="#FFFFFF"
-        strokeWidth="2.75"
+        strokeWidth="2.5"
         strokeLinejoin="round"
         fill="none"
       />
-      <rect x="23.25" y="33.25" width="3.75" height="8.75" rx="0.5" fill="#FFFFFF" />
-      <rect x="28.625" y="28" width="3.75" height="14" rx="0.5" fill="#FFFFFF" />
-      <rect x="34" y="22.5" width="3.75" height="19.5" rx="0.5" fill="#FFFFFF" />
+      <rect x="23.5" y="33" width="3.5" height="9" rx="0.5" fill="#FFFFFF" />
+      <rect x="29" y="27.5" width="3.5" height="14.5" rx="0.5" fill="#FFFFFF" />
+      <rect x="34.5" y="22" width="3.5" height="20" rx="0.5" fill="#FFFFFF" />
     </svg>
   );
 }

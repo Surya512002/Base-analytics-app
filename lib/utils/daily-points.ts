@@ -28,6 +28,9 @@ export const POINTS_PER_VOUCHER = 20;
 export const POINTS_PER_X402 = 22;
 export const POINTS_PER_CHALLENGE = 15;
 export const POINTS_PER_PREDICTION = 28;
+export const POINTS_PER_LAUNCH = 35;
+export const POINTS_PER_TOKEN_SWAP = 25;
+export const POINTS_PER_STAKE = 15;
 
 type DayEntry = {
   activity: number;
@@ -47,7 +50,10 @@ type ActivityAction =
   | "voucher"
   | "x402"
   | "challenge"
-  | "prediction";
+  | "prediction"
+  | "launch"
+  | "swap"
+  | "stake";
 
 const ACTIVITY_POINTS: Record<ActivityAction, number> = {
   boost: POINTS_PER_BOOST,
@@ -58,6 +64,9 @@ const ACTIVITY_POINTS: Record<ActivityAction, number> = {
   x402: POINTS_PER_X402,
   challenge: POINTS_PER_CHALLENGE,
   prediction: POINTS_PER_PREDICTION,
+  launch: POINTS_PER_LAUNCH,
+  swap: POINTS_PER_TOKEN_SWAP,
+  stake: POINTS_PER_STAKE,
 };
 
 function ledgerKey(address: string): string {
@@ -300,6 +309,9 @@ export function syncActivityPointsFromSession(
     ["x402", txKeys.x402 ?? 0],
     ["challenge", challengeCount],
     ["prediction", txKeys.prediction ?? 0],
+    ["launch", txKeys.launch ?? 0],
+    ["swap", txKeys.swap ?? 0],
+    ["stake", txKeys.stake ?? 0],
   ];
 
   for (const [action, count] of actions) {

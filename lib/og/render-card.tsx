@@ -2,11 +2,11 @@ import type { OgCardData } from "./types";
 import { shortenAddress } from "./types";
 
 const TABS = [
-  { icon: "▊", label: "Dashboard", active: true },
-  { icon: "🎁", label: "Voucher", active: false },
+  { icon: "◎", label: "Explore", active: true },
+  { icon: "📊", label: "Analytics", active: false },
+  { icon: "🎁", label: "Rewards", active: false },
+  { icon: "🚀", label: "B20", active: false },
   { icon: "🏆", label: "Badges", active: false },
-  { icon: "🎯", label: "Quests · 10", active: false },
-  { icon: "👥", label: "Rankings", active: false },
 ] as const;
 
 function formatTxs(n: number): string {
@@ -210,8 +210,8 @@ export function renderOgCard(data: OgCardData = {}) {
               Your <span style={{ color: "#60a5fa" }}>Base Profile</span>
             </span>
           </div>
-          <span style={{ color: "#64748b", fontSize: 11, fontWeight: 600, maxWidth: 260 }}>
-            Wallet scan, badges, XP quests, and rankings — all on Base.
+          <span style={{ color: "#64748b", fontSize: 11, fontWeight: 600, maxWidth: 280 }}>
+            B20 explore · in-app swaps · wallet scan · quests on Base.
           </span>
         </div>
 
@@ -678,7 +678,7 @@ export function renderOgCard(data: OgCardData = {}) {
                 {days} days left · {xp} XP
               </span>
               <span style={{ color: "#64748b", fontSize: 10, fontWeight: 600 }}>
-                Quests · Rankings · Base Voucher
+                Quests · B20 · In-app DEX · Voucher
               </span>
             </div>
           </div>
@@ -701,7 +701,7 @@ export function renderOgCard(data: OgCardData = {}) {
               {ctaText}
             </span>
             <span style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600 }}>
-              base-analytics-app.vercel.app
+              Explore · Swap · Launch B20 on Base
             </span>
           </div>
           <div

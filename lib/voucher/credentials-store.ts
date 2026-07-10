@@ -4,9 +4,9 @@ import type { StoredVoucherBatch } from "@/lib/utils/voucher";
 const credentialsKey = (creator: string) =>
   `base_voucher_credentials_${creator.toLowerCase()}`;
 
-function createRedis(): Redis {
-  const url = process.env.KV_REDIS_URL;
-  if (!url) throw new Error("KV_REDIS_URL not set");
+function createRedis(): Redis | null {
+  const url = process.env.KV_REDIS_URL?.trim();
+  if (!url) return null;
   const client = new Redis(url, {
     tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
     lazyConnect: true,
@@ -25,6 +25,7 @@ export async function readCreatorCredentials(
   let redis: Redis | null = null;
   try {
     redis = createRedis();
+    if (!redis) return [];
     await redis.connect();
     const raw = await redis.get(credentialsKey(creator));
     return raw ? (JSON.parse(raw) as StoredVoucherBatch[]) : [];
@@ -43,6 +44,7 @@ export async function upsertCreatorBatch(
   let redis: Redis | null = null;
   try {
     redis = createRedis();
+    if (!redis) return false;
     await redis.connect();
     const key = credentialsKey(creator);
     const raw = await redis.get(key);

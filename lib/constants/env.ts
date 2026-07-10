@@ -25,9 +25,11 @@ export function alchemyRpcForKey(key: string): string {
 
 export const BASE_PUBLIC_RPC = "https://mainnet.base.org";
 
+/** Client-safe Base RPC — prefer public Base when Alchemy is capped. */
 export const BASE_RPC =
-  process.env.BASE_RPC_URL ||
-  (getAlchemyKey() ? alchemyRpcForKey(getAlchemyKey()) : BASE_PUBLIC_RPC);
+  process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() ||
+  process.env.BASE_RPC_URL?.trim() ||
+  BASE_PUBLIC_RPC;
 
 export const MINIAPP_URL =
   "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
@@ -39,3 +41,7 @@ export const VOUCHER_CONTRACT =
   process.env.NEXT_PUBLIC_VOUCHER_CONTRACT || "";
 export const PREDICTIONS_CONTRACT =
   process.env.NEXT_PUBLIC_PREDICTIONS_CONTRACT || "";
+export const XP_STAKE_CONTRACT =
+  process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT || "";
+export const BADGE_MARKETPLACE_CONTRACT =
+  process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT || "";

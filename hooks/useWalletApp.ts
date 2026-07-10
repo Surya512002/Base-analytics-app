@@ -15,7 +15,9 @@ import {
   recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
 import { clearWalletCache } from "@/lib/utils/wallet-cache";
+import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
+import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
 import { fetchMintedLevelsFromChain } from "@/lib/wallet/minted-badges";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
@@ -64,8 +66,13 @@ import {
   twitterShare,
   warpcast,
 } from "@/lib/utils/share";
-import { encodeContractCall, normalizeTxHash } from "@/lib/utils/tx";
-import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
+import {
+  buildB20Call,
+  buildContractCall,
+  buildNativeTransferCall,
+  encodeContractCall,
+  normalizeTxHash,
+} from "@/lib/utils/tx";
 import {
   clearConnType,
   inferConnType,
@@ -83,6 +90,11 @@ import {
 import { loadLocalBatches } from "@/lib/utils/voucher";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
+  readFarcasterUnlocked,
+  writeFarcasterUnlocked,
+  clearFarcasterUnlocked,
+} from "@/lib/utils/farcaster-unlock";
+import {
   bumpBoostCount,
   bumpWeeklyTxKey,
   currentWeekKey,
@@ -96,59 +108,113 @@ import {
   syncSessionFromAnalysis,
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
-import {
-  creditActivityFromCount,
+import { creditActivityFromCount,
   recordCheckInPointsOnce,
   syncActivityPointsFromSession,
   tryAwardSevenDayAllTasksBonus,
 } from "@/lib/utils/daily-points";
-import { PREDICTIONS_CONTRACT, BASE_RPC } from "@/lib/constants/env";
+import { BASE_RPC } from "@/lib/constants/env";
 import {
   ERC20_ABI,
-  PREDICTIONS_ABI,
-  USDC_BASE,
 } from "@/lib/constants/contracts";
-import type { PredictionAsset, PredictionDuration } from "@/lib/constants/predictions";
-import type { StreakEntry } from "@/lib/predictions/types";
-import { parseUnits, createPublicClient, http, maxUint256 } from "viem";
+import { parseUnits, parseEther, createPublicClient, http, maxUint256 } from "viem";
 import { base } from "viem/chains";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
+import type { PredictionAsset, PredictionDuration } from "@/lib/constants/predictions";
+import type { StreakEntry } from "@/lib/predictions/types";
+import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
+import {
+  encodeCreateB20Calldata,
+  encodeB20ApproveCalldata,
+  predictB20Address,
+  type MintAllocation,
+} from "@/lib/b20/encode";
+import {
+  encodeExactInputSingle,
+  SWAP_ROUTER_02,
+  WETH_BASE,
+} from "@/lib/launchpad/uniswap";
+import {
+  encodeAerodromeBuy,
+  encodeAerodromeSell,
+  AERODROME_ROUTER,
+} from "@/lib/launchpad/aerodrome";
+import { dexLabel } from "@/lib/launchpad/dex";
+import type { LaunchDex } from "@/lib/launchpad/dex";
+import {
+  buildSeedLiquidityCalls,
+  computeLiquiditySeedAmounts,
+} from "@/lib/launchpad/seed-liquidity";
+import { registerLaunchedToken, fetchSwapQuote, fetchB20ActivationStatus } from "@/lib/api/launchpad-client";
+import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
+import { preflightB20Launch } from "@/lib/b20/preflight";
+import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
+import { splitGrossAmount } from "@/lib/launchpad/fees";
+import { splitPlatformFee } from "@/lib/launchpad/fee-split";
+import { fetchOnchainStake, tierToReferrerBoostBps } from "@/lib/wallet/onchain-stake";
+import { encodeErc20TransferCalldata } from "@/lib/b20/encode";
+import { syncTabUrl, resolveTabFromUrl } from "@/lib/utils/app-url";
+import {
+  readGuestResume,
+  clearGuestResume,
+} from "@/lib/utils/guest-resume";
+
+function pushFeeSplitCalls(
+  calls: ReturnType<typeof buildContractCall>[],
+  fee: bigint,
+  opts: {
+    native: boolean;
+    token: `0x${string}`;
+    creator?: `0x${string}` | null;
+    referrer?: `0x${string}` | null;
+    referrerBoostBps?: number;
+  }
+) {
+  if (fee <= BigInt(0)) return;
+
+  if (!opts.creator) {
+    if (opts.native) {
+      calls.push(buildNativeTransferCall(LAUNCHPAD_TREASURY, fee));
+    } else {
+      calls.push(
+        buildContractCall(opts.token, encodeErc20TransferCalldata(LAUNCHPAD_TREASURY, fee))
+      );
+    }
+    return;
+  }
+
+  const split = splitPlatformFee(fee, {
+    creator: opts.creator,
+    referrer: opts.referrer ?? null,
+    referrerBoostBps: opts.referrerBoostBps,
+  });
+  for (const t of split.transfers) {
+    if (opts.native) {
+      calls.push(buildNativeTransferCall(t.to, t.amount));
+    } else {
+      calls.push(buildContractCall(opts.token, encodeErc20TransferCalldata(t.to, t.amount)));
+    }
+  }
+}
 
 export type WalletAppState = ReturnType<typeof useWalletApp>;
 
 export type AppTab =
-  | "predictions"
+  | "launchpad"
   | "dashboard"
   | "checkin"
   | "achievements"
   | "leaderboard"
-  | "basehub";
-
-function resolveTabFromUrl(): AppTab | null {
-  if (typeof window === "undefined") return null;
-  const t = new URLSearchParams(window.location.search).get("tab");
-  const map: Record<string, AppTab> = {
-    predictions: "predictions",
-    predict: "predictions",
-    markets: "predictions",
-    dashboard: "dashboard",
-    checkin: "checkin",
-    "check-in": "checkin",
-    quests: "checkin",
-    rankings: "checkin",
-    leaderboard: "checkin",
-    voucher: "basehub",
-    basehub: "basehub",
-    badges: "achievements",
-    achievements: "achievements",
-  };
-  return t && map[t] ? map[t] : null;
-}
+  | "basehub"
+  | "rewards";
 
 function resolveInitialTab(): AppTab {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/explore")) {
+    return "launchpad";
+  }
   const fromUrl = resolveTabFromUrl();
   if (fromUrl) return fromUrl;
-  return "predictions";
+  return "launchpad";
 }
 
 export function useWalletApp() {
@@ -157,7 +223,7 @@ export function useWalletApp() {
     typeof window !== "undefined" ? readConnType() : null
   );
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<AppTab>("predictions");
+  const [tab, setTab] = useState<AppTab>("launchpad");
   const [minting, setMinting] = useState<string | null>(null);
   const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
@@ -168,6 +234,7 @@ export function useWalletApp() {
   const pendingTx = useRef<Set<string>>(new Set());
   const connectingRef = useRef(false);
   const historySyncGen = useRef(0);
+  const pendingChallengeRef = useRef<string | null>(null);
   const latestDaysRef = useRef(0);
   const x402Paying = useRef(false);
   const handledActionTxs = useRef<Set<string>>(new Set());
@@ -198,12 +265,28 @@ export function useWalletApp() {
   const [pointsRevision, setPointsRevision] = useState(0);
   const [scanProgress, setScanProgress] = useState("");
   const [walletRefreshing, setWalletRefreshing] = useState(false);
+  const [analyticsSyncing, setAnalyticsSyncing] = useState(false);
+  const [walletCore, setWalletCore] = useState<{
+    address: string;
+    balance: string;
+    usdcBalance?: string;
+    portfolioValueUSD: number;
+    basename: string | null;
+  } | null>(null);
+  const tabRef = useRef<AppTab>("launchpad");
+  const balancesLockedRef = useRef<string | null>(null);
+  const pendingHistorySyncRef = useRef<string | null>(null);
+  const historyCompleteRef = useRef(false);
+  const syncCompleteToastRef = useRef(false);
+  const startHistorySyncRef = useRef<((basename?: string | null) => void) | null>(null);
+  const leaderboardSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [premiumUnlocked, setPremiumUnlocked] = useState(false);
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [farcasterUnlocked, setFarcasterUnlocked] = useState(false);
   const [farcasterUnlockLoading, setFarcasterUnlockLoading] = useState(false);
-  const [predictionLoading, setPredictionLoading] = useState(false);
-  const [predictionStreak, setPredictionStreak] = useState<StreakEntry[]>([]);
+  const [launchLoading, setLaunchLoading] = useState(false);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [b20Activated, setB20Activated] = useState<boolean | null>(null);
   const [premiumData, setPremiumData] = useState<{
     message: string;
     transaction?: string;
@@ -236,6 +319,7 @@ export function useWalletApp() {
     setPremiumUnlocked(false);
     setPremiumData(null);
     setPremiumInsights(null);
+    setFarcasterUnlocked(readFarcasterUnlocked(address));
     setReferralBonusXp(readReferralBonusXpForAddress(address));
     void fetchReferralStats(address).then((s) => {
       const local = readReferralBonusXpForAddress(address);
@@ -247,6 +331,8 @@ export function useWalletApp() {
   }, []);
 
   useEffect(() => {
+    let onPopState: (() => void) | undefined;
+
     if (typeof window !== "undefined") {
       if (sdk?.actions?.ready) {
         try {
@@ -263,11 +349,34 @@ export function useWalletApp() {
       if (r) localStorage.setItem("base_referrer", r);
       const card = p.get("card");
       if (card) localStorage.setItem("base_redeem_card", card);
+      const challengeAddr = p.get("challenge")?.trim().toLowerCase();
+      if (
+        challengeAddr?.startsWith("0x") &&
+        challengeAddr.length === 42
+      ) {
+        pendingChallengeRef.current = challengeAddr;
+        setChallenge(challengeAddr);
+        p.delete("challenge");
+        const qs = p.toString();
+        const nextUrl = qs
+          ? `${window.location.pathname}?${qs}`
+          : window.location.pathname;
+        window.history.replaceState({}, "", nextUrl);
+      }
+
+      onPopState = () => {
+        const next = resolveTabFromUrl();
+        if (next) setTab(next);
+      };
+      window.addEventListener("popstate", onPopState);
     }
     fetchLeaderboard().then((d) => {
       setLeaderboard(d);
       setLbLoading(false);
     });
+    return () => {
+      if (onPopState) window.removeEventListener("popstate", onPopState);
+    };
   }, []);
 
   useEffect(() => {
@@ -306,6 +415,18 @@ export function useWalletApp() {
   }, [wallet?.address, tab]);
 
   useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "dashboard" || !wallet?.address) return;
+    const addr = wallet.address.toLowerCase();
+    if (historyCompleteRef.current || pendingHistorySyncRef.current !== addr) return;
+    pendingHistorySyncRef.current = null;
+    startHistorySyncRef.current?.(wallet.basename);
+  }, [tab, wallet?.address, wallet?.basename]);
+
+  useEffect(() => {
     if (!wallet) return;
     syncBadgeMintCountFromLevels(wallet.address, mintedLevels);
     const activitySynced = syncActivityPointsFromSession(
@@ -332,19 +453,28 @@ export function useWalletApp() {
     const xp = questXp + referralBonusXp;
     setWeeklyXP(xp);
     const mintedCount = sumMintedBadges(mintedLevels);
-    saveLeaderboard({
-      address: wallet.address,
-      basename: wallet.basename,
-      score: wallet.score,
-      rank: wallet.walletRank,
-      boosts,
-      badges: mintedCount,
-      weeklyXP: questXp,
-      badgeMintXp,
-      weekNumber: getISOWeekNumber(),
-    }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
+    if (leaderboardSaveRef.current) clearTimeout(leaderboardSaveRef.current);
+    leaderboardSaveRef.current = setTimeout(() => {
+      void saveLeaderboard({
+        address: wallet.address,
+        basename: wallet.basename,
+        score: wallet.score,
+        rank: wallet.walletRank,
+        boosts,
+        badges: mintedCount,
+        weeklyXP: questXp,
+        badgeMintXp,
+        weekNumber: getISOWeekNumber(),
+      }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
+    }, 4000);
+    return () => {
+      if (leaderboardSaveRef.current) clearTimeout(leaderboardSaveRef.current);
+    };
   }, [
-    wallet,
+    wallet?.address,
+    wallet?.score,
+    wallet?.walletRank,
+    wallet?.basename,
     boosts,
     mintedLevels,
     streak,
@@ -496,18 +626,19 @@ export function useWalletApp() {
       const { getX402Fetch } = await import("@/lib/x402-client");
       const x402Fetch = await getX402Fetch(provider);
 
-      const res = await x402Fetch("/api/premium-scan", {
+      const res = await x402Fetch("/api/farcaster-unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: wallet.address, product: "farcaster" }),
+        body: JSON.stringify({ address: wallet.address }),
       });
 
       if (res.ok) {
         const data = (await res.json()) as {
-          message: string;
+          message?: string;
           transaction?: string;
         };
         setFarcasterUnlocked(true);
+        writeFarcasterUnlocked(wallet.address);
         const keys = x402StorageKeys(wallet.address);
         const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
         const next = prev + 1;
@@ -556,63 +687,269 @@ export function useWalletApp() {
     }
   };
 
-  const handlePredictionTrade = useCallback(
+  useEffect(() => {
+    void fetchB20ActivationStatus().then(setB20Activated);
+  }, []);
+
+  const handleLaunchB20 = useCallback(
     async (args: {
-      asset: PredictionAsset;
-      duration: PredictionDuration;
-      side: "yes" | "no";
-      usdcAmount: number;
-      marketId: number;
-    }): Promise<boolean> => {
-      if (!wallet) return false;
+      name: string;
+      symbol: string;
+      decimals: number;
+      supplyCap: string;
+      salt: `0x${string}`;
+      imageUrl?: string;
+      description?: string;
+      website?: string;
+      twitter?: string;
+      telegram?: string;
+      discord?: string;
+      metadataEditable?: boolean;
+      mints: MintAllocation[];
+      poolSeedPct?: number;
+      quoteToken?: string;
+      startPriceUsd?: string;
+      launchPreset?: string;
+      vestingSchedule?: Array<{
+        address: string;
+        pct: number;
+        cliffMonths: number;
+        vestMonths: number;
+      }>;
+      antiSnipeBlocks?: number;
+      seedLiquidityEth?: string;
+      autoSeedLiquidity?: boolean;
+      ethUsd?: number;
+    }): Promise<{
+      ok: boolean;
+      address?: string;
+      symbol?: string;
+      name?: string;
+      imageUrl?: string;
+      txHash?: string;
+    }> => {
+      if (!wallet) return { ok: false };
 
-      setPredictionLoading(true);
+      setLaunchLoading(true);
       try {
-        const usdcRaw = parseUnits(args.usdcAmount.toFixed(6), 6);
-        const contract = PREDICTIONS_CONTRACT as `0x${string}`;
+        const activated = await fetchB20ActivationStatus();
+        setB20Activated(activated);
+        if (!activated) {
+          showToast("B20 is not activated on Base mainnet yet", "");
+          return { ok: false };
+        }
 
-        const creditPredictionSuccess = (txHash?: string) => {
-          let nextCount = 0;
-          setTxKeys((k) => {
-            nextCount = (k.prediction || 0) + 1;
-            const next = { ...k, prediction: nextCount };
-            writePersistedTxKeys(wallet.address, next);
-            return next;
-          });
-          const { credited, hitCap } = creditActivityFromCount(
-            wallet.address,
-            "prediction",
-            nextCount
+        const activeConn = await resolveActiveConnType(connType, wallet.address);
+        if (activeConn && activeConn !== connType) {
+          setConnType(activeConn);
+          persistConnType(activeConn);
+        }
+        if (!activeConn) {
+          showToast("❌ Reconnect wallet to launch", "");
+          return { ok: false };
+        }
+
+        const creator = wallet.address as `0x${string}`;
+        const preflight = await preflightB20Launch(creator);
+        if (!preflight.hasMinGas) {
+          const bal = Number(preflight.balanceEth);
+          showToast(
+            `Need ETH on Base for gas (≥${preflight.minEth}). Balance: ${bal.toFixed(6)} ETH — bridge to Base first`,
+            ""
           );
-          setPointsRevision((n) => n + 1);
-          if (txHash) {
-            if (hitCap && credited === 0) {
-              showToast("Trade recorded — daily point cap reached", txHash);
-            } else if (credited > 0) {
+          return { ok: false };
+        }
+
+        const supplyCap = parseUnits(args.supplyCap, args.decimals);
+        const mintTotal = args.mints.reduce((s, m) => s + m.amount, BigInt(0));
+        if (mintTotal > supplyCap) {
+          showToast("Allocations exceed fixed 1B supply", "");
+          return { ok: false };
+        }
+
+        const salt = args.salt;
+
+        const createData = encodeCreateB20Calldata({
+          name: args.name,
+          symbol: args.symbol,
+          creator,
+          decimals: args.decimals,
+          supplyCap,
+          salt,
+          adminless: true,
+          metadataEditable: args.metadataEditable,
+          description: args.description,
+          website: args.website,
+          twitter: args.twitter,
+          telegram: args.telegram,
+          mints: args.mints,
+        });
+
+        const tokenAddr =
+          (await predictB20Address(creator, salt)) ??
+          (`0xB2000000000000000000000000000000000000` as `0x${string}`);
+
+        const createCall = buildB20Call(B20_FACTORY_ADDRESS, createData);
+        const hash = await sendAppTransactions(activeConn, wallet.address, [createCall], {
+          skipBuilderCompanion: true,
+        });
+        setSponsored((s) => s + 1);
+
+        let launchBlock: number | undefined;
+        try {
+          const pub = createBasePublicClient();
+          const receipt = await pub.waitForTransactionReceipt({
+            hash: hash as `0x${string}`,
+            timeout: 120_000,
+          });
+          if (receipt.status !== "success") {
+            throw new Error("Token launch reverted onchain — check allocations and try a new salt");
+          }
+          launchBlock = Number(receipt.blockNumber);
+        } catch (receiptErr) {
+          const msg =
+            receiptErr instanceof Error ? receiptErr.message : "Launch not confirmed on Base";
+          throw new Error(msg);
+        }
+
+        await registerLaunchedToken({
+          address: tokenAddr,
+          name: args.name,
+          symbol: args.symbol,
+          decimals: args.decimals,
+          creator: wallet.address,
+          txHash: hash,
+          imageUrl: args.imageUrl,
+          description: args.description,
+          website: args.website,
+          twitter: args.twitter,
+          telegram: args.telegram,
+          discord: args.discord,
+          supplyCap: args.supplyCap,
+          launchPreset: args.launchPreset,
+          vestingSchedule: args.vestingSchedule,
+          launchBlock,
+          antiSnipeBlocks: args.antiSnipeBlocks ?? 8,
+          startPriceUsd: args.startPriceUsd,
+        });
+
+        if (
+          args.autoSeedLiquidity !== false &&
+          args.seedLiquidityEth &&
+          args.startPriceUsd
+        ) {
+          const seed = computeLiquiditySeedAmounts({
+            seedEth: args.seedLiquidityEth,
+            startPriceUsd: args.startPriceUsd,
+            ethUsd: args.ethUsd ?? 2500,
+            decimals: args.decimals,
+          });
+          if (seed) {
+            try {
+              const seedCalls = buildSeedLiquidityCalls({
+                token: tokenAddr,
+                creator,
+                tokenAmount: seed.tokenWei,
+                ethAmount: seed.ethWei,
+              });
+              await sendAppTransactions(activeConn, wallet.address, seedCalls);
               showToast(
-                `${args.side.toUpperCase()} on ${args.asset} · +${credited} pts`,
-                txHash
+                `💧 Liquidity pool seeded — ${args.symbol} is tradable in-app`,
+                ""
               );
-            } else {
+            } catch (seedErr) {
+              const seedMsg =
+                seedErr instanceof Error ? seedErr.message.split("\n")[0] : "LP seed failed";
               showToast(
-                `✅ ${args.side.toUpperCase()} shares · ${args.asset} ${args.duration}`,
-                txHash
+                `Token live — add liquidity manually to enable swaps (${seedMsg})`,
+                ""
               );
             }
           }
-        };
-
-        if (!contract) {
-          creditPredictionSuccess();
-          showToast(
-            `✅ ${args.side.toUpperCase()} on ${args.asset} ${args.duration} (demo — set NEXT_PUBLIC_PREDICTIONS_CONTRACT)`,
-            ""
-          );
-          return true;
         }
 
-        if (!args.marketId) {
-          showToast("❌ On-chain market not open yet — wait for keeper sync", "");
+        let nextCount = 0;
+        setTxKeys((k) => {
+          nextCount = (k.launch || 0) + 1;
+          const next = { ...k, launch: nextCount };
+          writePersistedTxKeys(wallet.address, next);
+          return next;
+        });
+        const { credited, hitCap } = creditActivityFromCount(
+          wallet.address,
+          "launch",
+          nextCount
+        );
+        setPointsRevision((n) => n + 1);
+        if (hitCap && credited === 0) {
+          showToast(`${args.symbol} launched — daily point cap reached`, hash);
+        } else if (credited > 0) {
+          showToast(`🚀 ${args.symbol} launched · +${credited} pts`, hash);
+        } else {
+          showToast(`🚀 ${args.symbol} launched on Base`, hash);
+        }
+        return {
+          ok: true,
+          address: tokenAddr,
+          symbol: args.symbol,
+          name: args.name,
+          imageUrl: args.imageUrl,
+          txHash: hash,
+        };
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message.split("\n")[0] : "Launch failed";
+        const friendly =
+          msg.includes("Number") || msg.includes("underflow") || msg.includes("overflow")
+            ? "Invalid supply or mint amount"
+            : msg.includes("TokenAlreadyExists")
+              ? "Token already exists — change name/symbol and retry"
+              : msg.includes("FeatureNotActivated")
+                ? "B20 is not activated on Base mainnet yet"
+                : msg;
+        if (!friendly.toLowerCase().includes("reject")) {
+          showToast(`❌ ${friendly}`, "");
+        }
+        return { ok: false };
+      } finally {
+        setLaunchLoading(false);
+      }
+    },
+    [connType, showToast, wallet]
+  );
+
+  const handleTokenSwap = useCallback(
+    async (args: {
+      token: string;
+      symbol: string;
+      decimals: number;
+      direction: "buy" | "sell";
+      amount: string;
+      slippageBps: number;
+      dex?: LaunchDex;
+      referrer?: string | null;
+    }): Promise<boolean> => {
+      if (!wallet) return false;
+
+      setSwapLoading(true);
+      try {
+        const quote = await fetchSwapQuote({
+          token: args.token,
+          direction: args.direction,
+          amount: args.amount,
+          decimals: args.decimals,
+          slippageBps: args.slippageBps,
+          dex: args.dex ?? "auto",
+          referrer: args.referrer ?? null,
+        });
+
+        if (!quote.hasLiquidity) {
+          showToast(
+            quote.error ||
+              quote.antiSnipe?.message ||
+              "No pool on Uniswap or Aerodrome — add liquidity first",
+            ""
+          );
           return false;
         }
 
@@ -622,75 +959,207 @@ export function useWalletApp() {
           persistConnType(activeConn);
         }
         if (!activeConn) {
-          showToast("❌ Reconnect wallet to trade", "");
+          showToast("❌ Reconnect wallet to swap", "");
           return false;
         }
 
-        const calls = [];
-        if (BASE_RPC) {
-          const pub = createPublicClient({
-            chain: base,
-            transport: http(BASE_RPC),
-          });
-          const allowance = await pub.readContract({
-            address: USDC_BASE as `0x${string}`,
-            abi: ERC20_ABI,
-            functionName: "allowance",
-            args: [wallet.address as `0x${string}`, contract],
-          });
-          if (allowance < usdcRaw) {
-            calls.push(
-              encodeContractCall(USDC_BASE as `0x${string}`, ERC20_ABI, "approve", [
-                contract,
-                maxUint256,
-              ])
-            );
+        const token = args.token as `0x${string}`;
+        const recipient = wallet.address as `0x${string}`;
+        const swapDex = quote.dex ?? "uniswap";
+        const router = (quote.router ??
+          (swapDex === "aerodrome" ? AERODROME_ROUTER : SWAP_ROUTER_02)) as `0x${string}`;
+        const weth = WETH_BASE as `0x${string}`;
+        const minOut = BigInt(quote.amountOutMinimum);
+        const uniFee = quote.uniswapFeeTier ?? 3000;
+        const aeroStable = quote.aerodromeStable ?? false;
+        const creator = quote.creator as `0x${string}` | undefined;
+        const referrer = (quote.referrer || args.referrer) as `0x${string}` | null;
+        let referrerBoostBps = 0;
+        if (referrer) {
+          const stake = await fetchOnchainStake(referrer);
+          if (stake && Date.now() < stake.unlockAt) {
+            referrerBoostBps = tierToReferrerBoostBps(stake.tier);
           }
         }
+        const calls = [];
 
-        const fn = args.side === "yes" ? "buyYes" : "buyNo";
-        calls.push(
-          encodeContractCall(contract, PREDICTIONS_ABI, fn, [
-            BigInt(args.marketId),
-            usdcRaw,
-          ])
-        );
+        if (args.direction === "buy") {
+          const gross = parseUnits(args.amount, 18);
+          const { net, fee } = splitGrossAmount(gross);
+          if (net <= BigInt(0)) {
+            showToast("Amount too small after platform fee", "");
+            return false;
+          }
+          const swapData =
+            swapDex === "aerodrome"
+              ? encodeAerodromeBuy({
+                  tokenOut: token,
+                  recipient,
+                  amountOutMinimum: minOut,
+                  stable: aeroStable,
+                })
+              : encodeExactInputSingle({
+                  tokenIn: weth,
+                  tokenOut: token,
+                  recipient,
+                  amountIn: net,
+                  amountOutMinimum: minOut,
+                  fee: uniFee,
+                });
+          calls.push(buildContractCall(router, swapData, net));
+          pushFeeSplitCalls(calls, fee, { native: true, token, creator, referrer, referrerBoostBps });
+        } else {
+          const gross = parseUnits(args.amount, args.decimals);
+          const { net, fee } = splitGrossAmount(gross);
+          if (net <= BigInt(0)) {
+            showToast("Amount too small after platform fee", "");
+            return false;
+          }
+          if (BASE_RPC) {
+            const pub = createBasePublicClient();
+            const allowance = await pub.readContract({
+              address: token,
+              abi: ERC20_ABI,
+              functionName: "allowance",
+              args: [recipient, router],
+            });
+            if (allowance < gross) {
+              calls.push(
+                buildContractCall(
+                  token,
+                  encodeB20ApproveCalldata(router, maxUint256)
+                )
+              );
+            }
+          }
+          pushFeeSplitCalls(calls, fee, { native: false, token, creator, referrer, referrerBoostBps });
+          const swapData =
+            swapDex === "aerodrome"
+              ? encodeAerodromeSell({
+                  tokenIn: token,
+                  recipient,
+                  amountIn: net,
+                  amountOutMinimum: minOut,
+                  stable: aeroStable,
+                })
+              : encodeExactInputSingle({
+                  tokenIn: token,
+                  tokenOut: weth,
+                  recipient,
+                  amountIn: net,
+                  amountOutMinimum: minOut,
+                  fee: uniFee,
+                });
+          calls.push(buildContractCall(router, swapData));
+        }
 
-        const hash = await sendAppTransactions(
-          activeConn,
-          wallet.address,
-          calls
-        );
+        const hash = await sendAppTransactions(activeConn, wallet.address, calls);
         setSponsored((s) => s + 1);
-        creditPredictionSuccess(hash);
+
+        let nextCount = 0;
+        setTxKeys((k) => {
+          nextCount = (k.swap || 0) + 1;
+          const next = { ...k, swap: nextCount };
+          writePersistedTxKeys(wallet.address, next);
+          return next;
+        });
+        const { credited, hitCap } = creditActivityFromCount(
+          wallet.address,
+          "swap",
+          nextCount
+        );
+        setPointsRevision((n) => n + 1);
+        const label = args.direction === "buy" ? "Buy" : "Sell";
+        const via = dexLabel(swapDex);
+        if (hitCap && credited === 0) {
+          showToast(`${label} ${args.symbol} via ${via} — daily point cap reached`, hash);
+        } else if (credited > 0) {
+          showToast(`${label} ${args.symbol} via ${via} · +${credited} pts`, hash);
+        } else {
+          showToast(`✅ ${label} ${args.symbol} via ${via}`, hash);
+        }
         return true;
       } catch (e) {
         const msg =
-          e instanceof Error ? e.message.split("\n")[0] : "Trade failed";
+          e instanceof Error ? e.message.split("\n")[0] : "Swap failed";
         if (!msg.toLowerCase().includes("reject")) {
           showToast(`❌ ${msg}`, "");
         }
         return false;
       } finally {
-        setPredictionLoading(false);
+        setSwapLoading(false);
       }
     },
     [connType, showToast, wallet]
   );
 
-  useEffect(() => {
-    if (!wallet || !leaderboard.length) {
-      setPredictionStreak([]);
-      return;
-    }
-    const rows: StreakEntry[] = leaderboard.slice(0, 10).map((e) => ({
-      address: e.address.toLowerCase(),
-      basename: e.basename,
-      wins: Math.max(1, Math.floor((e.weeklyXP ?? 0) / 50)),
-      streak: Math.min(14, Math.max(1, Math.floor((e.weeklyXP ?? 0) / 80))),
-    }));
-    setPredictionStreak(rows);
-  }, [wallet, leaderboard]);
+  const handleSeedLiquidity = useCallback(
+    async (args: {
+      token: string;
+      symbol: string;
+      decimals: number;
+      tokenAmount: string;
+      seedEth: string;
+      startPriceUsd?: string;
+    }): Promise<boolean> => {
+      if (!wallet) return false;
+
+      setSwapLoading(true);
+      try {
+        const activeConn = await resolveActiveConnType(connType, wallet.address);
+        if (activeConn && activeConn !== connType) {
+          setConnType(activeConn);
+          persistConnType(activeConn);
+        }
+        if (!activeConn) {
+          showToast("❌ Reconnect wallet to seed liquidity", "");
+          return false;
+        }
+
+        const token = args.token as `0x${string}`;
+        const creator = wallet.address as `0x${string}`;
+        let tokenWei = parseUnits(args.tokenAmount, args.decimals);
+        let ethWei = parseEther(args.seedEth);
+
+        if (args.startPriceUsd) {
+          const computed = computeLiquiditySeedAmounts({
+            seedEth: args.seedEth,
+            startPriceUsd: args.startPriceUsd,
+            ethUsd: 2500,
+            decimals: args.decimals,
+          });
+          if (computed) {
+            tokenWei = computed.tokenWei;
+            ethWei = computed.ethWei;
+          }
+        }
+
+        if (tokenWei <= BigInt(0) || ethWei <= BigInt(0)) {
+          showToast("Invalid liquidity amounts", "");
+          return false;
+        }
+
+        const calls = buildSeedLiquidityCalls({
+          token,
+          creator,
+          tokenAmount: tokenWei,
+          ethAmount: ethWei,
+        });
+        const hash = await sendAppTransactions(activeConn, wallet.address, calls);
+        showToast(`💧 ${args.symbol} pool seeded on Aerodrome`, hash);
+        return true;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message.split("\n")[0] : "Seed failed";
+        if (!msg.toLowerCase().includes("reject")) {
+          showToast(`❌ ${msg}`, "");
+        }
+        return false;
+      } finally {
+        setSwapLoading(false);
+      }
+    },
+    [connType, showToast, wallet]
+  );
 
   const handleChallenge = useCallback(async () => {
     const addr = challenge.trim().toLowerCase();
@@ -735,6 +1204,15 @@ export function useWalletApp() {
       setChallengeLoading(false);
     }
   }, [challenge, showToast, wallet]);
+
+  useEffect(() => {
+    const addr = pendingChallengeRef.current;
+    if (!addr) return;
+    pendingChallengeRef.current = null;
+    if (challengeResult?.address === addr) return;
+    setChallenge(addr);
+    void handleChallenge();
+  }, [wallet?.address, challengeResult, handleChallenge]);
 
   const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
     const address = result.wallet.address;
@@ -915,8 +1393,22 @@ export function useWalletApp() {
     [showToast]
   );
 
+  const lockWalletCore = useCallback((w: WalletData) => {
+    balancesLockedRef.current = w.address.toLowerCase();
+    setWalletCore({
+      address: w.address,
+      balance: w.balance,
+      usdcBalance: w.usdcBalance,
+      portfolioValueUSD: w.portfolioValueUSD,
+      basename: w.basename,
+    });
+    setWalletRefreshing(false);
+    setScanProgress("");
+  }, []);
+
   const analyzeWallet = useCallback(
-    async (address: string) => {
+    async (address: string, opts?: { background?: boolean }) => {
+      const background = opts?.background === true;
       if (
         !address ||
         !address.startsWith("0x") ||
@@ -981,7 +1473,7 @@ export function useWalletApp() {
       const startBackgroundHistorySync = (priorBasename?: string | null) => {
         bgSyncStarted = true;
         const gen = ++historySyncGen.current;
-        setWalletRefreshing(true);
+        setAnalyticsSyncing(true);
 
         const runSync = () => {
           if (historySyncGen.current !== gen) return;
@@ -989,7 +1481,9 @@ export function useWalletApp() {
           address,
           {
           reset: false,
-          onProgress: (msg) => setScanProgress(msg),
+          onProgress: (msg) => {
+            if (tabRef.current === "dashboard") setScanProgress(msg);
+          },
           shouldCancel: () => historySyncGen.current !== gen,
           onUpdate: (syncResult: AnalyzeWalletResult & {
             historyComplete?: boolean;
@@ -999,83 +1493,22 @@ export function useWalletApp() {
             if (historySyncGen.current !== gen) return;
             if (syncResult.partial && syncResult.wallet) {
               const p = syncResult.wallet;
-              const nextDays = Math.max(
-                latestDaysRef.current,
-                p.uniqueDays ?? 0
-              );
-              setScanProgress(
-                `Syncing full history… ${nextDays} active days`
-              );
+              const nextDays = Math.max(latestDaysRef.current, p.uniqueDays ?? 0);
+              if (tabRef.current === "dashboard") {
+                setScanProgress(`Syncing full history… ${nextDays} active days`);
+              }
               setWallet((prev) =>
                 prev?.address.toLowerCase() === address.toLowerCase()
-                  ? {
-                      ...prev,
-                      uniqueDays: Math.max(prev.uniqueDays, p.uniqueDays ?? 0),
-                      txCount: Math.max(prev.txCount, p.txCount ?? 0),
-                      activeWeeks: Math.max(
-                        prev.activeWeeks,
-                        p.activeWeeks ?? 0
-                      ),
-                      activeMonths: Math.max(
-                        prev.activeMonths,
-                        p.activeMonths ?? 0
-                      ),
-                      dailyStats:
-                        (p.uniqueDays ?? 0) >= prev.uniqueDays
-                          ? (p.dailyStats ?? prev.dailyStats)
-                          : prev.dailyStats,
-                      historyDays: Math.max(
-                        prev.historyDays,
-                        p.dailyStats?.length ?? 0
-                      ),
-                      tokensSwapped: Math.max(
-                        prev.tokensSwapped,
-                        p.tokensSwapped ?? 0
-                      ),
-                      erc20Txs: Math.max(prev.erc20Txs, p.erc20Txs ?? 0),
-                      nftCount: Math.max(prev.nftCount, p.nftCount ?? 0),
-                      erc721Txs: Math.max(prev.erc721Txs, p.erc721Txs ?? 0),
-                      swapCount: Math.max(prev.swapCount, p.swapCount ?? 0),
-                      dexTradeCount: Math.max(
-                        prev.dexTradeCount,
-                        p.dexTradeCount ?? 0
-                      ),
-                      dexVolumeUSD: Math.max(
-                        prev.dexVolumeUSD,
-                        p.dexVolumeUSD ?? 0
-                      ),
-                      dexVolumeETH: Math.max(
-                        prev.dexVolumeETH,
-                        p.dexVolumeETH ?? 0
-                      ),
-                      dexTradeCount30d: Math.max(
-                        prev.dexTradeCount30d,
-                        p.dexTradeCount30d ?? 0
-                      ),
-                      dexVolumeUSD30d: Math.max(
-                        prev.dexVolumeUSD30d,
-                        p.dexVolumeUSD30d ?? 0
-                      ),
-                      ethSwapVolumeUSD: Math.max(
-                        prev.ethSwapVolumeUSD ?? 0,
-                        p.ethSwapVolumeUSD ?? 0
-                      ),
-                      ethVolume:
-                        p.ethVolume && parseFloat(p.ethVolume) > parseFloat(prev.ethVolume)
-                          ? p.ethVolume
-                          : prev.ethVolume,
-                      activityScore: Math.max(
-                        prev.activityScore,
-                        p.activityScore ?? 0
-                      ),
-                    }
+                  ? applyPartialSyncPatch(prev, address, p)
                   : prev
               );
-              latestDaysRef.current = Math.max(
-                latestDaysRef.current,
-                p.uniqueDays ?? 0
-              );
+              latestDaysRef.current = nextDays;
               if (syncResult.historyComplete !== true) return;
+            }
+            historyCompleteRef.current = true;
+            if (!syncCompleteToastRef.current) {
+              syncCompleteToastRef.current = true;
+              showToast("✓ Full history synced — heatmap is up to date", "");
             }
             void fetchCheckInStatus(address).then((ci) => {
               mergeAndApply(syncResult, ci, priorBasename);
@@ -1086,8 +1519,8 @@ export function useWalletApp() {
           .catch((e) => console.error(e))
           .finally(() => {
             if (historySyncGen.current === gen) {
-              setWalletRefreshing(false);
-              setScanProgress("");
+              setAnalyticsSyncing(false);
+              if (tabRef.current === "dashboard") setScanProgress("");
             }
           });
         };
@@ -1095,10 +1528,26 @@ export function useWalletApp() {
         runSync();
       };
 
+      startHistorySyncRef.current = startBackgroundHistorySync;
+
       const failScan = (message: string) => {
-        showToast(message, "");
-        setLoading(false);
+        if (!background) showToast(message, "");
+        else showToast(message.replace(/^❌\s*/, ""), "");
+        setWallet((prev) =>
+          prev?.address.toLowerCase() === address.toLowerCase()
+            ? {
+                ...prev,
+                recommendation:
+                  prev.recommendation === "Fetching onchain data…"
+                    ? "Analytics sync incomplete — open Analytics to retry"
+                    : prev.recommendation,
+              }
+            : prev
+        );
+        if (!background) setLoading(false);
         setScanProgress("");
+        setWalletRefreshing(false);
+        setAnalyticsSyncing(false);
       };
 
       setScanProgress("Calculating wallet score…");
@@ -1107,9 +1556,19 @@ export function useWalletApp() {
         result: AnalyzeWalletResult,
         priorBasename?: string | null
       ) => {
-        if (result.historyComplete === true) return;
-        setWalletRefreshing(true);
-        startBackgroundHistorySync(priorBasename ?? result.wallet.basename);
+        if (result.historyComplete === true) {
+          historyCompleteRef.current = true;
+          pendingHistorySyncRef.current = null;
+          if (!syncCompleteToastRef.current) {
+            syncCompleteToastRef.current = true;
+            showToast("✓ Full history synced — heatmap is up to date", "");
+          }
+          return;
+        }
+        historyCompleteRef.current = false;
+        const basename = priorBasename ?? result.wallet.basename;
+        pendingHistorySyncRef.current = null;
+        startBackgroundHistorySync(basename);
       };
 
       try {
@@ -1118,8 +1577,39 @@ export function useWalletApp() {
           streak: 0,
         }));
 
-        setLoading(true);
-        setScanProgress("Calculating wallet score…");
+        if (!background) {
+          setLoading(true);
+        } else {
+          setAnalyticsSyncing(true);
+          setScanProgress("Syncing wallet analytics…");
+        }
+        setScanProgress(background ? "Syncing wallet analytics…" : "Calculating wallet score…");
+
+        const ci = await ciP;
+
+        const balancesReady =
+          balancesLockedRef.current === address.toLowerCase();
+
+        if (background && !balancesReady) {
+          const bootstrap = await fetchWalletBootstrap(address).catch(() => null);
+          if (bootstrap) {
+            mergeAndApply(bootstrap, ci);
+            lockWalletCore(bootstrap.wallet);
+            setScanProgress("Refining analytics…");
+          }
+        }
+
+        const skipBootstrap =
+          balancesLockedRef.current === address.toLowerCase();
+
+        // 1) Cache + bootstrap + quick score — all in parallel for fastest first paint
+        setScanProgress(background ? "Loading score…" : "Calculating wallet score…");
+        const [cached, bootstrap, quick] = await Promise.all([
+          fetchWalletAnalysis(address, false),
+          skipBootstrap ? Promise.resolve(null) : fetchWalletBootstrap(address),
+          fetchWalletAnalysisQuick(address, false),
+        ]);
+        let result = cached;
 
         const isUsableAnalysis = (
           r: (AnalyzeWalletResult & { cached?: boolean }) | null | undefined
@@ -1129,7 +1619,6 @@ export function useWalletApp() {
           if (w.recommendation === "Fetching onchain data…") return false;
           if ((w.score ?? 0) <= 0) return false;
           if ((w.uniqueDays ?? 0) === 0 && (w.txCount ?? 0) < 10) return false;
-          // Reject thin partial snapshots for active wallets (bad cache / quick collect).
           const txs = w.txCount ?? 0;
           const days = w.uniqueDays ?? 0;
           if (txs > 200 && days > 100) {
@@ -1140,46 +1629,107 @@ export function useWalletApp() {
           return true;
         };
 
-        // Full connect analyze (not quick=1) — rich Alchemy + Blockscout like a520a71.
-        let [result, ci] = await Promise.all([
-          fetchWalletAnalysis(address, false),
-          ciP,
-        ]);
+        const hasFastScore = (
+          r: (AnalyzeWalletResult & { cached?: boolean }) | null | undefined
+        ): boolean =>
+          Boolean(
+            r?.wallet?.address &&
+              (r.wallet.score ?? 0) > 0 &&
+              r.wallet.recommendation !== "Fetching onchain data…"
+          );
 
-        if (!isUsableAnalysis(result)) {
+        const pickBestFast = (
+          a: (AnalyzeWalletResult & { cached?: boolean }) | null,
+          b: (AnalyzeWalletResult & { cached?: boolean }) | null
+        ) => {
+          if (isUsableAnalysis(a)) return a;
+          if (isUsableAnalysis(b)) return b;
+          if (hasFastScore(a) && hasFastScore(b)) {
+            return (a!.wallet.score ?? 0) >= (b!.wallet.score ?? 0) ? a : b;
+          }
+          return hasFastScore(a) ? a : hasFastScore(b) ? b : null;
+        };
+
+        if (isUsableAnalysis(result)) {
+          mergeAndApply(result!, ci);
+          if (background) lockWalletCore(result!.wallet);
+          if (!background) {
+            setLoading(false);
+            setScanProgress("");
+          } else {
+            setAnalyticsSyncing(false);
+            setScanProgress("");
+          }
+          maybeStartHistorySync(result!);
+          return;
+        }
+
+        // 2) Best fast score from parallel fetch
+        setScanProgress("Calculating score…");
+        const fast = pickBestFast(pickBestFast(quick, bootstrap), cached);
+        if (fast) {
+          mergeAndApply(fast, ci);
+          if (background) lockWalletCore(fast.wallet);
+          setScanProgress("Refining analytics…");
+        }
+
+        // 3) Full analyze — skip heavy refresh in background when fast score exists
+        if (!isUsableAnalysis(result) && !background) {
+          setScanProgress("Fetching onchain data…");
+          result = await fetchWalletAnalysis(address, true);
+        } else if (!isUsableAnalysis(result) && background && !fast) {
           setScanProgress("Fetching onchain data…");
           result = await fetchWalletAnalysis(address, true);
         }
 
-        if (!result) {
+        if (!result && !fast) {
           setScanProgress("Retrying wallet scan…");
-          await new Promise((r) => setTimeout(r, 600));
+          await new Promise((r) => setTimeout(r, 400));
           result = await fetchWalletAnalysis(address, true);
         }
 
-        if (!result) {
+        if (!result && !fast) {
           failScan(
-            "❌ Could not load wallet data — check connection and retry"
+            background
+              ? "Wallet analytics sync failed — open Analytics to retry"
+              : "❌ Could not load wallet data — check connection and retry"
           );
           return;
         }
 
-        mergeAndApply(result, ci);
-        setLoading(false);
-        setScanProgress("");
-        maybeStartHistorySync(result);
+        if (result && (isUsableAnalysis(result) || hasFastScore(result))) {
+          mergeAndApply(result, ci);
+          if (background) lockWalletCore(result.wallet);
+        }
+
+        if (!background) {
+          setLoading(false);
+          setScanProgress("");
+        } else {
+          setAnalyticsSyncing(false);
+          setScanProgress("");
+        }
+
+        maybeStartHistorySync((result ?? fast)!);
       } catch (e) {
         console.error(e);
-        failScan("❌ Wallet scan failed — check connection and retry");
+        failScan(
+          background
+            ? "Wallet analytics sync failed — open Analytics to retry"
+            : "❌ Wallet scan failed — check connection and retry"
+        );
       } finally {
-        setLoading(false);
-        if (!bgSyncStarted) {
+        if (!background) setLoading(false);
+        if (!bgSyncStarted && background) {
+          setAnalyticsSyncing(false);
+          setScanProgress("");
+        } else if (!bgSyncStarted && !background) {
           setWalletRefreshing(false);
           setScanProgress("");
         }
       }
     },
-    [applyAnalysis, loadX402PremiumState, showToast, syncCheckInStatus]
+    [applyAnalysis, loadX402PremiumState, lockWalletCore, showToast, syncCheckInStatus]
   );
 
   const handleConnect = async (type: ConnectionType) => {
@@ -1200,8 +1750,63 @@ export function useWalletApp() {
       clearWalletCache(addr);
       loadX402PremiumState(addr);
       setMintedLevels(readPersistedMintedLevels(addr));
-      setScanProgress("Fetching onchain data…");
-      await analyzeWallet(addr);
+
+      // Enter app immediately — analytics continues in background.
+      const shell = buildPendingWalletShell(addr);
+      historyCompleteRef.current = false;
+      syncCompleteToastRef.current = false;
+      pendingHistorySyncRef.current = null;
+      balancesLockedRef.current = null;
+      setWalletCore(null);
+      setWallet(shell);
+      const resume = readGuestResume() ?? {};
+      const resumeTab =
+        (resume.tab && resolveTabFromUrl(`?tab=${resume.tab}`)) || "launchpad";
+      setTab(resumeTab);
+      syncTabUrl(resumeTab, { token: resume.token ?? null });
+      if (resume.card) localStorage.setItem("base_redeem_card", resume.card);
+      if (resume.challenge) {
+        pendingChallengeRef.current = resume.challenge;
+        setChallenge(resume.challenge);
+      }
+      clearGuestResume();
+      setLoading(false);
+      setScanProgress("Loading balance…");
+      setWalletRefreshing(true);
+      setAnalyticsSyncing(false);
+
+      void (async () => {
+        const [basename, bootstrap, quick] = await Promise.all([
+          resolveBasenameClient(addr).catch(() => null),
+          fetchWalletBootstrap(addr).catch(() => null),
+          fetchWalletAnalysisQuick(addr, false).catch(() => null),
+        ]);
+        const fastWallet = quick?.wallet ?? bootstrap?.wallet;
+        if (!fastWallet) {
+          setWalletRefreshing(false);
+          setScanProgress("");
+          if (basename) {
+            setWallet((prev) =>
+              prev?.address.toLowerCase() === addr.toLowerCase()
+                ? applyBasenameScore(prev, basename)
+                : prev
+            );
+          }
+          return;
+        }
+        const withBasename = {
+          ...fastWallet,
+          basename: basename ?? fastWallet.basename ?? bootstrap?.wallet?.basename ?? null,
+        };
+        setWallet((prev) => {
+          if (prev?.address.toLowerCase() !== addr.toLowerCase()) return prev;
+          return mergeWalletMetricsMax(prev, withBasename);
+        });
+        const merged = mergeWalletMetricsMax(shell, withBasename);
+        lockWalletCore(merged);
+      })();
+
+      void analyzeWallet(addr, { background: true });
     } catch (e) {
       const msg =
         e instanceof Error ? e.message.split("\n")[0] : "Connection failed";
@@ -1220,6 +1825,12 @@ export function useWalletApp() {
 
   const resetSessionState = useCallback(() => {
     historySyncGen.current += 1;
+    balancesLockedRef.current = null;
+    pendingHistorySyncRef.current = null;
+    historyCompleteRef.current = false;
+    syncCompleteToastRef.current = false;
+    startHistorySyncRef.current = null;
+    setWalletCore(null);
     setWallet(null);
     setConnType(null);
     clearConnType();
@@ -1240,8 +1851,12 @@ export function useWalletApp() {
     setX402PayCount(0);
     setX402Product("scan");
     setSponsored(0);
-    setPredictionLoading(false);
-    setPredictionStreak([]);
+    setLaunchLoading(false);
+    setSwapLoading(false);
+    setB20Activated(false);
+    setAnalyticsSyncing(false);
+    setWalletRefreshing(false);
+    setScanProgress("");
     pendingTx.current.clear();
     x402Paying.current = false;
     handledActionTxs.current.clear();
@@ -1252,6 +1867,7 @@ export function useWalletApp() {
     const address = wallet?.address;
     if (address) {
       lockX402PremiumSession(address);
+      clearFarcasterUnlocked(address);
     }
     resetSessionState();
   };
@@ -1547,14 +2163,14 @@ export function useWalletApp() {
   const walletScanComplete = Boolean(
     wallet &&
       !loading &&
-      !walletRefreshing &&
+      !analyticsSyncing &&
       wallet.score > 0 &&
-      wallet.recommendation !== "Fetching onchain data…" &&
-      ((wallet.uniqueDays ?? 0) > 0 || (wallet.txCount ?? 0) >= 30)
+      wallet.recommendation !== "Fetching onchain data…"
   );
 
   return {
     wallet,
+    walletCore,
     connType,
     loading,
     tab,
@@ -1591,6 +2207,7 @@ export function useWalletApp() {
     weeklyXP,
     scanProgress,
     walletRefreshing,
+    analyticsSyncing,
     walletScanComplete,
     premiumUnlocked,
     premiumLoading,
@@ -1599,9 +2216,22 @@ export function useWalletApp() {
     farcasterUnlocked,
     farcasterUnlockLoading,
     handleFarcasterUnlock,
-    predictionLoading,
-    predictionStreak,
-    handlePredictionTrade,
+    launchLoading,
+    swapLoading,
+    b20Activated,
+    handleLaunchB20,
+    handleTokenSwap,
+    handleSeedLiquidity,
+    /** @deprecated Predictions retired from UI — stubs for legacy PredictionsTab */
+    predictionLoading: false,
+    predictionStreak: [] as StreakEntry[],
+    handlePredictionTrade: async (_args: {
+      asset: PredictionAsset;
+      duration: PredictionDuration;
+      side: "yes" | "no";
+      usdcAmount: number;
+      marketId: number;
+    }) => false,
     x402Product,
     setX402Product,
     referralBonusXp,
@@ -1630,5 +2260,6 @@ export function useWalletApp() {
     getAchievementValue,
     doneQuests,
     pointsRevision,
+    setPointsRevision,
   };
 }

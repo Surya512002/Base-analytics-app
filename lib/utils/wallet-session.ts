@@ -11,6 +11,8 @@ export const DEFAULT_TX_KEYS: Record<string, number> = {
   checkin: 0,
   redeem: 0,
   prediction: 0,
+  launch: 0,
+  swap: 0,
   x402: 0,
   voucher: 0,
   challenge: 0,

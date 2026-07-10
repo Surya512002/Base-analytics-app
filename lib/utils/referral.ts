@@ -71,3 +71,28 @@ export async function fetchReferralStats(address: string) {
     return { invites: 0, bonusXp: readReferralBonusXp(address) };
   }
 }
+
+const TOKEN_REF_PREFIX = "launchpad_ref_";
+
+export function storeTokenReferrer(token: string, ref: string) {
+  if (typeof window === "undefined" || !ref) return;
+  const t = token.trim().toLowerCase();
+  const r = ref.trim().toLowerCase();
+  if (!t.startsWith("0x") || t.length !== 42) return;
+  if (!r.startsWith("0x") || r.length !== 42) return;
+  sessionStorage.setItem(`${TOKEN_REF_PREFIX}${t}`, r);
+}
+
+export function readTokenReferrer(token: string): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(`${TOKEN_REF_PREFIX}${token.trim().toLowerCase()}`);
+}
+
+export function captureTokenReferrerFromUrl(token: string) {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get("ref");
+  if (ref?.startsWith("0x") && ref.length === 42) {
+    storeTokenReferrer(token, ref);
+  }
+}

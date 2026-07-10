@@ -7,8 +7,13 @@ export interface OgCardData {
   streak?: number;
   title?: string;
   subtitle?: string;
-  variant?: "default" | "score" | "badge" | "referral";
+  variant?: "default" | "score" | "badge" | "referral" | "token";
   address?: string;
+  tokenSymbol?: string;
+  tokenName?: string;
+  tokenPrice?: string;
+  tokenChange24h?: number;
+  tokenMcap?: string;
   activeDays?: number;
   txs?: number;
   healthScore?: number;
@@ -39,12 +44,19 @@ export function getOgQueryString(data: OgCardData): string {
   if (data.txs != null) params.set("txs", String(data.txs));
   if (data.healthScore != null) params.set("health", String(data.healthScore));
   if (data.boosts != null) params.set("boosts", String(data.boosts));
+  if (data.tokenSymbol) params.set("sym", data.tokenSymbol);
+  if (data.tokenName) params.set("tname", data.tokenName);
+  if (data.tokenPrice) params.set("tprice", data.tokenPrice);
+  if (data.tokenChange24h != null) params.set("tchg", String(data.tokenChange24h));
+  if (data.tokenMcap) params.set("tmcap", data.tokenMcap);
   return params.toString();
 }
 
 export function getOgImageUrl(baseUrl: string, data: OgCardData = {}): string {
   const qs = getOgQueryString(data);
-  return qs ? `${baseUrl}/api/og?${qs}` : `${baseUrl}/opengraph-image`;
+  const bust = "v=8";
+  if (!qs) return `${baseUrl}/opengraph-image?${bust}`;
+  return `${baseUrl}/api/og?${qs}&${bust}`;
 }
 
 export function parseOgParams(searchParams: URLSearchParams): OgCardData & {

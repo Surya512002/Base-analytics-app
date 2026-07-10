@@ -1,8 +1,8 @@
-import { BarChart3, Gift, TrendingUp, Zap } from "lucide-react";
+import { BarChart3, Gift, Rocket, Zap } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 const STRIP: { icon: React.ReactNode; label: string; tab?: AppTab; core?: boolean }[] = [
-  { icon: <TrendingUp size={13} className="text-emerald-400" />, label: "Predictions", tab: "predictions", core: true },
+  { icon: <Rocket size={13} className="text-emerald-400" />, label: "Launchpad", tab: "launchpad", core: true },
   { icon: <Zap size={13} className="text-amber-400" />, label: "Quests & XP", tab: "checkin" },
   { icon: <Gift size={13} className="text-cyan-400" />, label: "Base Voucher", tab: "basehub" },
   { icon: <BarChart3 size={13} className="text-rose-400" />, label: "Wallet Analytics", tab: "dashboard" },
@@ -17,7 +17,7 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
     <div className="mb-4 flex flex-wrap gap-2 items-center">
       <div className="inline-flex items-center gap-2 badge-live rounded-full px-3 py-1.5">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow shadow-[0_0_6px_#10b981]" />
-        <span className="text-[9px] font-black uppercase tracking-widest">12 markets live</span>
+        <span className="text-[9px] font-black uppercase tracking-widest">B20 launchpad live</span>
       </div>
       {STRIP.map((s) => (
         <button

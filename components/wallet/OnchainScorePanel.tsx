@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Coins, Flame, MousePointerClick, Send, Share2, TrendingUp, Twitter } from "lucide-react";
+import { BadgeCheck, Coins, Flame, MousePointerClick, RefreshCcw, Send, Share2, TrendingUp, Twitter } from "lucide-react";
 import { ActivityHeatmap } from "@/components/wallet/ActivityHeatmap";
 import PaymasterInsightTile from "@/components/wallet/PaymasterInsightTile";
 import QuestProgressBanner from "@/components/wallet/QuestProgressBanner";
@@ -23,6 +23,8 @@ interface OnchainScorePanelProps {
   onGoCheckIn: () => void;
   onGoQuests: () => void;
   shareScore: (platform: "w" | "t" | "n") => void;
+  syncing?: boolean;
+  scanProgress?: string;
 }
 
 export default function OnchainScorePanel({
@@ -35,6 +37,8 @@ export default function OnchainScorePanel({
   onGoCheckIn,
   onGoQuests,
   shareScore,
+  syncing = false,
+  scanProgress = "",
 }: OnchainScorePanelProps) {
   const ethPrice =
     wallet.dexVolumeETH > 0
@@ -63,30 +67,36 @@ export default function OnchainScorePanel({
 
   return (
     <div className="space-y-4">
-      <div className="elegant-panel rounded-3xl overflow-hidden border border-violet-500/20">
-        <div className="h-0.5 bg-linear-to-r from-champagne via-violet-500 to-cyan-400" />
+      {syncing && (
+        <div className="glass-panel rounded-2xl px-4 py-3 flex items-center gap-3">
+          <RefreshCcw size={16} className="text-white/50 animate-spin shrink-0" />
+          <p className="text-xs text-slate-400 font-semibold">
+            {scanProgress || "Syncing onchain score & heatmap…"}
+          </p>
+        </div>
+      )}
+      <div className="elegant-panel rounded-3xl overflow-hidden">
+        <div className="accent-bar" />
         <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/8">
           <div>
-            <p className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.35em]">
-              Onchain Analysis
-            </p>
+            <p className="section-eyebrow">Onchain Analysis</p>
             <h2 className="text-lg sm:text-xl font-black text-white mt-1">
-              Your <span className="text-gradient-blue">Base Profile</span>
+              Your Base Profile
             </h2>
           </div>
-          <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+          <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
             Wallet score, heatmap & swap volume from indexed Base history.
           </p>
           <button
             type="button"
             onClick={onGoCheckIn}
-            className="mt-3 text-xs font-black text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            className="mt-3 text-xs font-black text-slate-400 hover:text-white flex items-center gap-1"
           >
             <Flame size={12} /> Open Check-In →
           </button>
         </div>
 
-        <div className="mx-4 sm:mx-5 mb-4 glass-panel-accent rounded-2xl overflow-hidden">
+        <div className="mx-4 sm:mx-5 mb-4 glass-panel rounded-2xl overflow-hidden">
           <div className="p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
               <div className="flex items-center gap-4">
@@ -97,7 +107,7 @@ export default function OnchainScorePanel({
                       cy="32"
                       r="26"
                       fill="none"
-                      stroke="rgba(0,229,255,0.1)"
+                      stroke="rgba(255,255,255,0.08)"
                       strokeWidth="6"
                     />
                     <circle
@@ -105,14 +115,14 @@ export default function OnchainScorePanel({
                       cy="32"
                       r="26"
                       fill="none"
-                      stroke="#00E5FF"
+                      stroke="#f5f5f4"
                       strokeWidth="6"
                       strokeLinecap="round"
                       strokeDasharray={`${2 * Math.PI * 26}`}
                       strokeDashoffset={`${2 * Math.PI * 26 * (1 - wallet.walletHealthScore / 100)}`}
                       transform="rotate(-90 32 32)"
                       style={{
-                        filter: "drop-shadow(0 0 4px rgba(0,229,255,0.6))",
+                        filter: "none",
                         transition: "stroke-dashoffset 1s ease",
                       }}
                     />
@@ -120,7 +130,7 @@ export default function OnchainScorePanel({
                       x="32"
                       y="36"
                       textAnchor="middle"
-                      fill="#60a5fa"
+                      fill="#f8fafc"
                       fontSize="12"
                       fontWeight="800"
                       fontFamily="monospace"
@@ -131,10 +141,10 @@ export default function OnchainScorePanel({
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-black text-cyan-400/60 uppercase tracking-widest">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
                       Wallet Health
                     </span>
-                    <span className="text-xs font-black text-white bg-cyan-500/12 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-black text-white bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded-full">
                       {wallet.walletHealthLabel}
                     </span>
                   </div>
@@ -145,9 +155,9 @@ export default function OnchainScorePanel({
               </div>
               <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
                 {[
-                  { l: "Active Days", v: wallet.uniqueDays, c: "text-cyan-400" },
-                  { l: "Months", v: wallet.activeMonths, c: "text-cyan-300" },
-                  { l: "Streak", v: `${wallet.currentStreak}d`, c: "text-cyan-400" },
+                  { l: "Active Days", v: wallet.uniqueDays, c: "text-white" },
+                  { l: "Months", v: wallet.activeMonths, c: "text-white" },
+                  { l: "Streak", v: `${wallet.currentStreak}d`, c: "text-white" },
                 ].map((s, i) => (
                   <div
                     key={i}
@@ -168,13 +178,13 @@ export default function OnchainScorePanel({
       <QuestProgressBanner doneQuests={doneQuests} onGoQuests={onGoQuests} />
       <PaymasterInsightTile wallet={wallet} />
 
-      <div className="glass-panel rounded-3xl overflow-hidden shadow-xl shadow-black/25">
-        <div className="h-0.5 bg-linear-to-r from-rose-500 via-cyan-400 to-blue-600" />
+      <div className="glass-panel rounded-3xl overflow-hidden">
+        <div className="accent-bar" />
         <div className="p-5 sm:p-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-6">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-[10px] font-black text-cyan-400/60 uppercase tracking-widest">
+                <span className="section-eyebrow">
                   Onchain Score
                 </span>
                 <div className="flex gap-1">

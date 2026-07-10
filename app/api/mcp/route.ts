@@ -10,6 +10,20 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const MCP_API_KEY = process.env.MCP_API_KEY?.trim();
+
+function assertMcpAuth(req: Request): Response | null {
+  if (!MCP_API_KEY) return null;
+  const auth = req.headers.get("authorization");
+  const bearer = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : null;
+  const apiKey = req.headers.get("x-api-key")?.trim();
+  if (bearer === MCP_API_KEY || apiKey === MCP_API_KEY) return null;
+  return new Response(JSON.stringify({ error: "Unauthorized MCP request" }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 const handler = createMcpHandler(
   (server) => {
     server.registerTool(
@@ -104,4 +118,19 @@ const handler = createMcpHandler(
   }
 );
 
-export { handler as GET, handler as POST };
+async function withAuth(
+  req: Request,
+  run: (req: Request) => Promise<Response>
+): Promise<Response> {
+  const denied = assertMcpAuth(req);
+  if (denied) return denied;
+  return run(req);
+}
+
+export async function GET(req: Request) {
+  return withAuth(req, handler as (req: Request) => Promise<Response>);
+}
+
+export async function POST(req: Request) {
+  return withAuth(req, handler as (req: Request) => Promise<Response>);
+}

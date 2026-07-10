@@ -1,8 +1,14 @@
 import { toUtf8Bytes } from "ethers";
 import { encodeFunctionData, type Abi, type Hex } from "viem";
 import { BUILDER_CODE } from "@/lib/constants/env";
+import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 
 const SUFFIX_TAIL = "0080218021802180218021802180218021";
+
+/** B20 factory + token precompiles reject non-canonical calldata (no builder suffix). */
+export function isB20PrecompileAddress(to: string): boolean {
+  return to.toLowerCase().startsWith("0xb20");
+}
 
 /** Raw hex suffix (no 0x) appended to contract calldata for Base builder attribution. */
 export function getBuilderSuffix(): string {
@@ -39,20 +45,83 @@ export function stripBuilderSuffix(data: Hex): Hex {
   return (`0x${data.slice(2).slice(0, -suffix.length)}`) as Hex;
 }
 
-/** Strip calldata suffix before wallet_sendCalls / OnchainKit (wallet appends via capability). */
+/** Strip calldata suffix before wallet_sendCalls when wallet appends via capability. */
 export function prepareCallsForWalletSendCalls(
   calls: ContractCall[]
 ): ContractCall[] {
+  const hasB20 = calls.some((c) => isB20PrecompileAddress(c.to));
+  if (hasB20) {
+    // B20 rejects suffix — keep attribution in calldata for every other call.
+    return calls.map((call) => {
+      if (isB20PrecompileAddress(call.to)) return call;
+      if (!hasBuilderSuffix(call.data)) {
+        return { ...call, data: withBuilderSuffix(call.data) };
+      }
+      return call;
+    });
+  }
   return calls.map((call) => ({
     ...call,
     data: stripBuilderSuffix(call.data),
   }));
 }
 
+/** ETH transfer with builder attribution in calldata. */
+export function buildAttributedNativeTransfer(
+  to: `0x${string}`,
+  value: bigint
+): ContractCall {
+  return buildContractCall(to, "0x", value);
+}
+
+/**
+ * Zero-value companion tx so B20-only batches still earn builder attribution
+ * (B20 precompile calldata cannot include the suffix).
+ */
+export function buildBuilderAttributionCall(
+  to: `0x${string}` = LAUNCHPAD_TREASURY
+): ContractCall {
+  return buildContractCall(to, "0x");
+}
+
+/** Normalize a batch so every non-B20 call carries builder attribution. */
+export function finalizeAppTransactionBatch(
+  calls: ContractCall[],
+  opts?: { skipCompanion?: boolean }
+): ContractCall[] {
+  if (calls.length === 0) return calls;
+
+  const normalized = calls.map((call) => {
+    if (isB20PrecompileAddress(call.to)) return call;
+    if (call.data === "0x" && call.value && call.value > BigInt(0)) {
+      return buildAttributedNativeTransfer(call.to, call.value);
+    }
+    if (!hasBuilderSuffix(call.data)) {
+      return { ...call, data: withBuilderSuffix(call.data) };
+    }
+    return call;
+  });
+
+  if (opts?.skipCompanion) return normalized;
+
+  const hasB20 = normalized.some((c) => isB20PrecompileAddress(c.to));
+  const hasAttributedNonB20 = normalized.some(
+    (c) => !isB20PrecompileAddress(c.to) && hasBuilderSuffix(c.data)
+  );
+
+  if (hasB20 && !hasAttributedNonB20) {
+    return [...normalized, buildBuilderAttributionCall()];
+  }
+
+  return normalized;
+}
+
 export type ContractCall = {
   to: `0x${string}`;
   data: Hex;
   value?: bigint;
+  /** Explicit gas for B20 precompiles when wallets cannot estimate. */
+  gas?: bigint;
 };
 
 export function buildContractCall(
@@ -60,11 +129,35 @@ export function buildContractCall(
   data: Hex,
   value?: bigint
 ): ContractCall {
+  if (isB20PrecompileAddress(to)) {
+    return buildB20Call(to, data, value);
+  }
   return {
     to,
     data: withBuilderSuffix(data),
     ...(value !== undefined ? { value } : {}),
   };
+}
+
+/** B20 precompile call — canonical calldata only, no builder suffix. */
+export function buildB20Call(
+  to: `0x${string}`,
+  data: Hex,
+  value?: bigint
+): ContractCall {
+  return {
+    to,
+    data,
+    ...(value !== undefined ? { value } : {}),
+  };
+}
+
+/** Plain ETH transfer — includes builder attribution via calldata suffix. */
+export function buildNativeTransferCall(
+  to: `0x${string}`,
+  value: bigint
+): ContractCall {
+  return buildAttributedNativeTransfer(to, value);
 }
 
 export function encodeContractCall(

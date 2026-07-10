@@ -43,7 +43,7 @@ export async function fetchWalletAnalysis(
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    90_000
+    refresh ? 90_000 : 25_000
   );
 }
 
@@ -58,16 +58,16 @@ export async function fetchWalletBootstrap(
   );
 }
 
-/** Real score + metrics — quick analyze path (~15–40s). */
+/** Real score + metrics — quick analyze path; uses server cache when warm. */
 export async function fetchWalletAnalysisQuick(
   address: string,
-  refresh = true
+  refresh = false
 ): Promise<(AnalyzeWalletResult & { cached?: boolean }) | null> {
   const qs = new URLSearchParams({ address, quick: "1" });
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    90_000
+    45_000
   );
 }
 

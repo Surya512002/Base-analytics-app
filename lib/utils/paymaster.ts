@@ -1,5 +1,5 @@
 import { PAYMASTER_URL } from "@/lib/constants/env";
-import { getBuilderDataSuffix } from "@/lib/utils/tx";
+import { getBuilderDataSuffix, isB20PrecompileAddress } from "@/lib/utils/tx";
 import type { ConnectionType } from "@/lib/types/wallet";
 
 const BUILDER_DATA_SUFFIX_CAP = {
@@ -10,12 +10,22 @@ const BUILDER_DATA_SUFFIX_CAP = {
 };
 
 /** EIP-5792 capabilities for wallet_sendCalls (paymaster + builder attribution). */
-export function getSendCallsCapabilities(): Record<string, unknown> {
-  const caps: Record<string, unknown> = { ...BUILDER_DATA_SUFFIX_CAP };
+export function getSendCallsCapabilities(
+  skipBuilderSuffix = false
+): Record<string, unknown> {
+  const caps: Record<string, unknown> = skipBuilderSuffix
+    ? {}
+    : { ...BUILDER_DATA_SUFFIX_CAP };
   if (PAYMASTER_URL) {
     caps.paymasterService = { url: PAYMASTER_URL };
   }
   return caps;
+}
+
+export function batchUsesB20Precompile(
+  calls: { to: string }[]
+): boolean {
+  return calls.some((c) => isB20PrecompileAddress(c.to));
 }
 
 /** Wallet capabilities for OnchainKit Transaction (paymaster when configured). */

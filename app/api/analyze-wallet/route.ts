@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import { logEnvAuditOnce } from "@/lib/env-audit";
 import {
   getCachedAnalyze,
@@ -13,9 +14,14 @@ export const maxDuration = 120;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+  const ip = getClientIp(req);
+  const refresh = searchParams.get("refresh") === "1";
+  const limit = refresh ? 6 : 30;
+  const rl = checkRateLimit(`analyze:${ip}`, limit, 60_000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
   const address = searchParams.get("address")?.trim().toLowerCase();
   const quick = searchParams.get("quick") === "1";
-  const refresh = searchParams.get("refresh") === "1";
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });

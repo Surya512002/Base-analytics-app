@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import { getOgImageUrl } from "@/lib/og/types";
+import { SHARE_HASHTAGS, SHARE_TAGLINE } from "@/lib/utils/share";
 
 const APP_URL = APP_URL_WEB;
 
@@ -42,7 +43,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const title = pick(params, "title") || `${rank} — ${score}/100 on Base Analytics`;
   const description =
     pick(params, "subtitle") ||
-    `Onchain score ${score}/100 · ${badges} badges · Season 1: Genesis on Base`;
+    `Onchain score ${score}/100 · ${badges} badges · ${SHARE_TAGLINE}`;
 
   const sharePath = `/share?${new URLSearchParams(
     Object.fromEntries(
@@ -74,37 +75,60 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function SharePage({ searchParams }: Props) {
   const params = await searchParams;
   const score = pick(params, "score") || "88";
-  const rank = pick(params, "rank") || "Base God 👑";
+  const rank = pick(params, "rank") || "Base God";
+  const badges = pick(params, "badges") || "0";
   const ref = pick(params, "ref");
 
   return (
-    <main className="min-h-screen bg-[#071220] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-aurora pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] btn-primary/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="relative z-10 max-w-md w-full text-center space-y-8">
-        <div>
-          <p className="text-[10px] font-black text-cyan-400/60 uppercase tracking-[0.35em] mb-3">
-            Base Analytics
+    <main className="share-challenge-page text-white flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+      <div className="absolute inset-0 bg-noise opacity-30 pointer-events-none" />
+      <div className="relative z-10 w-full max-w-lg">
+        <div className="text-center mb-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--ink-dim)] mb-4">
+            Base Analytics · On Base
           </p>
-          <h1 className="text-4xl font-black tracking-tight">
-            <span className="text-cyan-400 text-sm font-extrabold tracking-[0.25em] uppercase block mb-2">
-              Onchain Score
-            </span>
-            <span className="text-gradient-blue">{score}</span>
-            <span className="text-white/25">/100</span>
-          </h1>
-          <p className="text-white font-bold mt-2 text-lg">{rank}</p>
+          <div className="inline-flex items-center gap-2 spotlight-badge mb-6">
+            <span className="live-dot" style={{ width: 6, height: 6 }} />
+            Challenge card
+          </div>
         </div>
-        <p className="text-slate-400 text-sm leading-relaxed">
-          Can you beat this score? Free wallet scan — mint gasless badges and climb
-          the Season 1 leaderboard on Base.
+
+        <div className="rounded-2xl border border-white/12 bg-[var(--bg-raised)]/90 backdrop-blur-sm overflow-hidden shadow-2xl">
+          <div className="h-1 bg-linear-to-r from-[#0052FF] via-[#6BA3FF] to-emerald-500" />
+          <div className="p-8 sm:p-10 text-center">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)] mb-3">
+              Onchain Score
+            </p>
+            <p className="share-score-ring text-white">
+              {score}
+              <span className="text-2xl sm:text-3xl text-white/30 font-bold">/100</span>
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-white mt-3">{rank}</p>
+            {badges !== "0" && (
+              <p className="text-[13px] text-[var(--ink-muted)] mt-2">
+                {badges} badges minted on Base
+              </p>
+            )}
+          </div>
+          <div className="px-8 pb-8 sm:px-10 sm:pb-10 space-y-4">
+            <p className="readable-body text-center text-[14px]">
+              Explore B20 tokens, swap Uniswap &amp; Aerodrome in-app with USD quotes, and scan your
+              wallet — all without leaving Base Analytics.
+            </p>
+            <p className="text-[11px] text-center text-[var(--ink-dim)]">{SHARE_TAGLINE}</p>
+            <p className="text-[11px] text-center text-[#6BA3FF] font-semibold">{SHARE_HASHTAGS}</p>
+            <Link
+              href={ref ? `/?ref=${ref}` : "/"}
+              className="flex items-center justify-center w-full min-h-[52px] py-4 rounded-xl font-bold text-[15px] text-[#080808] bg-white hover:bg-[#6BA3FF] transition-colors"
+            >
+              Accept challenge — get my score →
+            </Link>
+          </div>
+        </div>
+
+        <p className="text-center text-[12px] text-[var(--ink-dim)] mt-6">
+          B20 launchpad · in-app DEX · quests &amp; badges on Base
         </p>
-        <Link
-          href={ref ? `/?ref=${ref}` : "/"}
-          className="inline-flex items-center justify-center w-full py-4 rounded-2xl font-black text-base text-white btn-primary"
-        >
-          Challenge Me — Get My Score →
-        </Link>
       </div>
     </main>
   );

@@ -3,11 +3,15 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowRight, Gift, Trophy, Zap } from "lucide-react";
+import { ArrowRight, Gift, Share2, Trophy, Twitter, Zap } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import PrismScene from "@/components/ui/PrismScene";
+import QuickGiftCta from "@/components/voucher/QuickGiftCta";
 import { APP_URL_WEB } from "@/lib/constants/env";
+import { getAppUrl } from "@/lib/constants/app-url";
 import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
+import { twitterShare, warpcast } from "@/lib/utils/share";
+import { fetchOwnedBadges, type OwnedBadge } from "@/lib/wallet/owned-badges";
 
 interface ProfileData {
   wallet: {
@@ -29,15 +33,23 @@ function WalletProfileContent() {
   const raw = (params.address as string) || "";
   const address = raw.startsWith("0x") && raw.length === 42 ? raw.toLowerCase() : null;
   const [data, setData] = useState<ProfileData | null>(null);
+  const [badges, setBadges] = useState<OwnedBadge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!address) return;
     setLoading(true);
-    fetch(`/api/analyze-wallet?address=${encodeURIComponent(address)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setData({ wallet: d.wallet }))
+    Promise.all([
+      fetch(`/api/analyze-wallet?address=${encodeURIComponent(address)}`).then((r) =>
+        r.ok ? r.json() : Promise.reject()
+      ),
+      fetchOwnedBadges(address).catch(() => [] as OwnedBadge[]),
+    ])
+      .then(([d, owned]) => {
+        setData({ wallet: d.wallet });
+        setBadges(owned.slice(0, 6));
+      })
       .catch(() => setError("Could not load wallet profile."))
       .finally(() => setLoading(false));
   }, [address]);
@@ -47,6 +59,10 @@ function WalletProfileContent() {
   }
 
   const w = data?.wallet;
+  const shareUrl = `${getAppUrl()}/wallet/${address}`;
+  const shareText = w
+    ? `Onchain score ${w.score} (${w.walletRank}) on Base — ${shareUrl}`
+    : shareUrl;
 
   return (
     <div className="min-h-screen bg-[#03080f] text-white relative overflow-hidden">
@@ -88,9 +104,46 @@ function WalletProfileContent() {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 mt-8">
+                {badges.length > 0 && (
+                  <div className="mt-6">
+                    <p className="section-eyebrow mb-2 flex items-center gap-1">
+                      <Trophy size={12} /> Badges
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {badges.map((b) => (
+                        <span
+                          key={b.tokenId}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/10 text-[11px] font-bold text-slate-200"
+                        >
+                          <span>{b.tierIcon}</span> {b.tierName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <QuickGiftCta recipientAddress={w.address} compact />
+
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => warpcast(shareText)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-[11px] font-bold text-slate-300"
+                  >
+                    <Share2 size={12} /> Farcaster
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => twitterShare(shareText)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-[11px] font-bold text-slate-300"
+                  >
+                    <Twitter size={12} /> Share score
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <Link
-                    href={`${APP_URL_WEB}/?tab=voucher`}
+                    href={`${APP_URL_WEB}/?tab=basehub&create=1&asset=USDC&total=5&cards=1`}
                     className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl btn-primary font-black text-sm"
                   >
                     <Gift size={16} /> Send a voucher

@@ -31,7 +31,7 @@ export type AppQuestContext = {
   didChallenge: boolean;
 };
 
-export type AppQuestTab = "predictions" | "checkin" | "achievements" | "basehub" | "dashboard";
+export type AppQuestTab = "launchpad" | "checkin" | "achievements" | "basehub" | "dashboard";
 
 export type WeeklyQuest = {
   id: string;
@@ -45,40 +45,40 @@ export type WeeklyQuest = {
 
 export const WEEKLY_QUESTS: WeeklyQuest[] = [
   {
-    id: "q_pred_first",
-    icon: "📈",
-    title: "First prediction",
-    desc: "Place your first YES or NO trade on any crypto market",
+    id: "q_launch_first",
+    icon: "🚀",
+    title: "First launch",
+    desc: "Create your first B20 token on Base",
     xp: 55,
-    tab: "predictions",
-    check: (c) => (c.txKeys.prediction ?? 0) >= 1,
+    tab: "launchpad",
+    check: (c) => (c.txKeys.launch ?? 0) >= 1,
   },
   {
-    id: "q_pred_3",
+    id: "q_swap_first",
+    icon: "📈",
+    title: "First swap",
+    desc: "Buy or sell a launched token via Uniswap",
+    xp: 50,
+    tab: "launchpad",
+    check: (c) => (c.txKeys.swap ?? 0) >= 1,
+  },
+  {
+    id: "q_swap_3",
     icon: "🎯",
     title: "Active trader",
-    desc: "Complete 3 prediction trades this week",
+    desc: "Complete 3 token swaps this week",
     xp: 50,
-    tab: "predictions",
-    check: (c) => (c.txKeys.prediction ?? 0) >= 3,
+    tab: "launchpad",
+    check: (c) => (c.txKeys.swap ?? 0) >= 3,
   },
   {
-    id: "q_pred_5",
+    id: "q_swap_5",
     icon: "🔥",
-    title: "Market regular",
-    desc: "Complete 5 prediction trades — top weekly XP",
+    title: "Terminal regular",
+    desc: "Complete 5 swaps — top weekly XP",
     xp: 65,
-    tab: "predictions",
-    check: (c) => (c.txKeys.prediction ?? 0) >= 5,
-  },
-  {
-    id: "q_pred_10",
-    icon: "👑",
-    title: "Prediction pro",
-    desc: "Hit 10 prediction trades in one week",
-    xp: 80,
-    tab: "predictions",
-    check: (c) => (c.txKeys.prediction ?? 0) >= 10,
+    tab: "launchpad",
+    check: (c) => (c.txKeys.swap ?? 0) >= 5,
   },
   {
     id: "q_checkin",
@@ -183,7 +183,7 @@ export const WEEKLY_QUESTS: WeeklyQuest[] = [
 
 export const SEASON_START = new Date("2026-04-20T00:00:00Z");
 export const SEASON_END = new Date("2026-10-20T23:59:59Z");
-export const SEASON_NAME = "Season 1: Predictions";
+export const SEASON_NAME = "Season 1: Launchpad";
 export const TIER_GRADIENTS = [
   "from-slate-500 to-slate-600",
   "from-amber-500 to-orange-600",

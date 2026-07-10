@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Droplets, Flame, RefreshCcw, Rocket, Target, Trophy } from "lucide-react";
 import CheckInRankings from "@/components/wallet/CheckInRankings";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
+import { resolveQuestHighlightFromUrl } from "@/lib/utils/app-url";
 import {
   CHECK_IN_TRACK_DAYS,
   capStreakProgressLabel,
@@ -17,7 +19,8 @@ import {
   POINTS_PER_CHECKIN,
   POINTS_PER_GM,
   POINTS_PER_GN,
-  POINTS_PER_PREDICTION,
+  POINTS_PER_LAUNCH,
+  POINTS_PER_TOKEN_SWAP,
   SEVEN_DAY_ALL_TASKS_BONUS,
   TARGET_TXS_IDEAL,
   TARGET_TXS_MIN,
@@ -26,14 +29,20 @@ import { computeXPBreakdown } from "@/lib/utils/season";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 const TAB_LABELS: Record<string, string> = {
-  predictions: "Predictions",
+  launchpad: "Launchpad",
   checkin: "Check-In",
   achievements: "Badges",
   basehub: "Vouchers",
   dashboard: "Analytics",
 };
 
-export default function CheckInTab({ app }: { app: WalletAppState }) {
+export default function CheckInTab({
+  app,
+  embedded = false,
+}: {
+  app: WalletAppState;
+  embedded?: boolean;
+}) {
   const {
     wallet,
     streak,
@@ -47,6 +56,17 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
     setTab,
     weeklyXP,
   } = app;
+
+  const [highlightQuest] = useState<string | null>(() => resolveQuestHighlightFromUrl());
+  const questRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!highlightQuest) return;
+    const t = setTimeout(() => {
+      questRefs.current[highlightQuest]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [highlightQuest]);
 
   if (!wallet || !questContext) return null;
 
@@ -71,8 +91,8 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
   const questPct = Math.round((doneQuests / WEEKLY_QUESTS.length) * 100);
 
   return (
-    <div className="w-full space-y-4 tab-content-enter">
-      {/* Page header */}
+    <div className={`w-full space-y-4 ${embedded ? "" : "tab-content-enter"}`}>
+      {!embedded && (
       <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
         <div className="h-0.5 bg-linear-to-r from-emerald-500 via-amber-400 to-cyan-400" />
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -85,7 +105,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
               Check-In <span className="text-cyan-400">&</span> Rankings
             </h2>
             <p className="text-xs text-slate-500 mt-1.5">
-              Prediction trades earn the most XP — then check in, quest & rank.
+              Launches and swaps earn the most XP — then check in, quest & rank.
             </p>
           </div>
           <div className="shrink-0 sm:text-right bg-white/[0.04] border border-white/8 rounded-xl px-4 py-3">
@@ -98,6 +118,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Daily actions — top */}
       <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
@@ -106,7 +127,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
             Daily actions
           </p>
           <p className="text-[10px] text-slate-500 mt-1">
-            Predictions +{POINTS_PER_PREDICTION} PP each · check-in, boost, GM &amp; GN fill the daily cap
+            Launch +{POINTS_PER_LAUNCH} PP · Swap +{POINTS_PER_TOKEN_SWAP} PP each · check-in, boost, GM &amp; GN fill the daily cap
           </p>
         </div>
         <div className="p-4 sm:p-5 space-y-3">
@@ -134,8 +155,8 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                 disabled={checkedToday || minting === "checkin"}
                 className={`w-full py-3 rounded-xl font-black text-sm transition-colors active:scale-[0.99] mt-auto ${
                   checkedToday
-                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 cursor-default"
-                    : "bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:opacity-95"
+                    ? "bg-white/[0.04] text-slate-400 border border-white/10 cursor-default"
+                    : "btn-primary"
                 }`}
               >
                 {minting === "checkin" ? (
@@ -153,7 +174,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                 type="button"
                 onClick={() => doNativeTx("boost")}
                 disabled={minting === "boost"}
-                className="flex flex-col items-center justify-center gap-1.5 min-h-[6.75rem] rounded-xl font-black text-sm btn-primary text-white active:scale-95 disabled:opacity-50"
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[6.75rem] rounded-xl font-black text-sm btn-primary active:scale-95 disabled:opacity-50"
               >
                 {minting === "boost" ? (
                   <RefreshCcw className="animate-spin" size={18} />
@@ -171,7 +192,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                   type="button"
                   onClick={() => doNativeTx(type)}
                   disabled={minting === type}
-                  className="flex flex-col items-center justify-center gap-1.5 min-h-[6.75rem] rounded-xl font-black text-sm btn-primary text-white active:scale-95 disabled:opacity-50"
+                  className="flex flex-col items-center justify-center gap-1.5 min-h-[6.75rem] rounded-xl font-black text-sm btn-primary active:scale-95 disabled:opacity-50"
                 >
                   {minting === type ? (
                     <RefreshCcw className="animate-spin" size={18} />
@@ -312,23 +333,21 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
       </div>
 
       {/* Weekly quests */}
-      <div className="glass-panel rounded-2xl border border-violet-500/20 overflow-hidden flex flex-col">
+      <div className="glass-panel rounded-2xl overflow-hidden flex flex-col">
           <div className="px-5 sm:px-6 py-3.5 border-b border-white/8 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Target size={16} className="text-cyan-400" />
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                Weekly quests
-              </p>
-              <p className="text-[10px] text-slate-600 mt-0.5">Prediction quests at the top — highest XP</p>
+              <Target size={16} className="text-white/60" />
+              <p className="section-eyebrow">Weekly quests</p>
+              <p className="text-[10px] text-slate-600 hidden sm:inline">· Launch & swap quests</p>
             </div>
             <div className="flex items-center gap-3 min-w-[150px]">
-              <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden min-w-[88px]">
+              <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden min-w-[88px]">
                 <div
-                  className="h-full bg-linear-to-r from-violet-500 to-cyan-400 rounded-full transition-[width] duration-500"
+                  className="progress-ink"
                   style={{ width: `${questPct}%` }}
                 />
               </div>
-              <span className="text-sm font-black text-cyan-400 tabular-nums shrink-0">
+              <span className="text-sm font-black text-white tabular-nums shrink-0">
                 {doneQuests}/{WEEKLY_QUESTS.length}
               </span>
             </div>
@@ -340,10 +359,15 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                 return (
                   <div
                     key={q.id}
-                    className={`rounded-xl p-3.5 border flex flex-col gap-2.5 min-h-[6.5rem] ${
-                      done
-                        ? "bg-cyan-500/10 border-cyan-500/25"
-                        : "bg-white/[0.04] border-white/10 hover:border-cyan-500/25"
+                    ref={(el) => {
+                      questRefs.current[q.id] = el;
+                    }}
+                    className={`rounded-xl p-3.5 flex flex-col gap-2.5 min-h-[6.5rem] transition-shadow ${
+                      done ? "quest-card quest-card-done" : "quest-card"
+                    } ${
+                      highlightQuest === q.id
+                        ? "ring-2 ring-cyan-400/70 shadow-lg shadow-cyan-500/20"
+                        : ""
                     }`}
                   >
                     <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -353,7 +377,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                       <div className="min-w-0 flex-1">
                         <p
                           className={`text-sm font-black leading-snug ${
-                            done ? "text-slate-400 line-through" : "text-white"
+                            done ? "text-slate-500 line-through" : "text-white"
                           }`}
                         >
                           {q.title}
@@ -362,7 +386,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                       </div>
                       <span
                         className={`text-xs font-black shrink-0 tabular-nums ${
-                          done ? "text-cyan-400" : "text-slate-500"
+                          done ? "text-slate-500" : "text-white/70"
                         }`}
                       >
                         +{q.xp}
@@ -372,7 +396,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
                       <button
                         type="button"
                         onClick={() => setTab(q.tab!)}
-                        className="flex items-center justify-between w-full text-[11px] font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/8 border border-cyan-500/15 rounded-lg px-3 py-2 transition-colors"
+                        className="flex items-center justify-between w-full text-[11px] font-bold text-[#080808] bg-[#f5f5f4] hover:bg-white rounded-lg px-3 py-2 transition-colors"
                       >
                         <span>Go to {TAB_LABELS[q.tab] ?? q.tab}</span>
                         <ChevronRight size={13} />
@@ -384,7 +408,7 @@ export default function CheckInTab({ app }: { app: WalletAppState }) {
             </div>
             {streak >= CHECK_IN_TRACK_DAYS &&
               doneQuests === WEEKLY_QUESTS.length && (
-                <p className="text-[11px] font-bold text-amber-300 mt-3 text-center">
+                <p className="text-[11px] font-semibold text-slate-400 mt-3 text-center">
                   7-day streak + all quests — +{SEVEN_DAY_ALL_TASKS_BONUS} weekly bonus PP
                 </p>
               )}

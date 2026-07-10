@@ -1,0 +1,62 @@
+"use client";
+
+import { Rocket } from "lucide-react";
+import type { LaunchedToken } from "@/lib/launchpad/types";
+import { createdAgo, shortAddr } from "@/lib/launchpad/format";
+import TokenMarketBadge from "@/components/launchpad/TokenMarketBadge";
+
+export default function MyLaunchedTokens({
+  tokens,
+  wallet,
+  onOpen,
+}: {
+  tokens: LaunchedToken[];
+  wallet: string;
+  onOpen: (token: LaunchedToken) => void;
+}) {
+  const mine = tokens
+    .filter((t) => t.creator.toLowerCase() === wallet.toLowerCase())
+    .slice(0, 6);
+
+  if (mine.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-[#0052FF]/25 bg-linear-to-br from-[#0052FF]/10 to-transparent p-4 sm:p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Rocket size={16} className="text-[#6BA3FF]" />
+        <p className="text-sm font-black text-white">Your launched tokens</p>
+        <span className="text-[10px] text-slate-500 ml-auto">{mine.length} live</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {mine.map((t) => (
+          <button
+            key={t.address}
+            type="button"
+            onClick={() => onOpen(t)}
+            className="text-left rounded-xl border border-white/10 bg-black/20 hover:border-[#0052FF]/40 hover:bg-[#0052FF]/10 px-3 py-2.5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {t.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={t.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-[#0052FF]/20 flex items-center justify-center text-[10px] font-black text-[#6BA3FF]">
+                  {t.symbol.slice(0, 2)}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black text-white truncate">{t.name}</p>
+                <p className="text-[10px] text-[#6BA3FF] font-bold">${t.symbol}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mt-2 text-[10px]">
+              <span className="text-slate-500 font-mono">{shortAddr(t.address)}</span>
+              <TokenMarketBadge address={t.address} />
+            </div>
+            <p className="text-[9px] text-slate-600 mt-1">{createdAgo(t.createdAt)}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

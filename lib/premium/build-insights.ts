@@ -1,4 +1,5 @@
 import type { WalletData } from "@/lib/types/wallet";
+import { buildPremiumGapHighlights } from "@/lib/wallet/score-tips";
 
 export interface PremiumInsights {
   generatedAt: string;
@@ -59,6 +60,10 @@ export function buildPremiumInsights(
   }
   if (wallet.basename) {
     highlights.push(`Basename verified: ${wallet.basename}`);
+  }
+  const gapHighlights = buildPremiumGapHighlights(wallet);
+  if (gapHighlights.length > 0) {
+    highlights.unshift(...gapHighlights.slice(0, 3));
   }
   if (highlights.length === 0) {
     highlights.push(wallet.recommendation || "Keep building on Base — more activity unlocks deeper insights.");

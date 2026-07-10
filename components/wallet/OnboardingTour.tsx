@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Sparkles, TrendingUp, Trophy, X } from "lucide-react";
+import { BarChart3, Rocket, Sparkles, Trophy, X } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
-const TOUR_KEY = "base_onboarding_done_v4";
+const TOUR_KEY = "base_onboarding_done_v6";
 
 const STEPS: {
   icon: React.ReactNode;
@@ -13,22 +13,28 @@ const STEPS: {
   tab?: AppTab;
 }[] = [
   {
-    icon: <TrendingUp size={20} className="text-emerald-400" />,
-    title: "Welcome to the prediction market",
-    body: "Trade BTC, ETH & SOL on 4h & daily rounds. Live YES/NO odds from a real AMM — like Polymarket, built on Base.",
-    tab: "predictions",
+    icon: <Rocket size={20} className="text-emerald-400" />,
+    title: "Explore & trade on Base",
+    body: "Search tokens, compare Uniswap vs Aerodrome routes, and swap without leaving the app.",
+    tab: "launchpad",
   },
   {
     icon: <BarChart3 size={20} className="text-cyan-400" />,
-    title: "Your onchain score is ready",
-    body: "Dashboard shows your Base score, swap volume, heatmap, and wallet health — all from live indexed history.",
+    title: "Your onchain score",
+    body: "Analytics shows your score, heatmap, improvement tips, and shareable challenge links.",
     tab: "dashboard",
   },
   {
     icon: <Trophy size={20} className="text-amber-400" />,
-    title: "Earn XP & climb the leaderboard",
-    body: "Daily check-ins, quests, badges, and prediction trades all earn activity points toward your weekly rank.",
+    title: "Quests & weekly XP",
+    body: "Check in daily, complete weekly quests from swaps and launches, and climb rankings.",
     tab: "checkin",
+  },
+  {
+    icon: <Sparkles size={20} className="text-violet-400" />,
+    title: "Gift crypto with vouchers",
+    body: "Create USDC or ETH gift cards on Base — share a link and recipients redeem in one tap.",
+    tab: "basehub",
   },
 ];
 
@@ -50,13 +56,13 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
   }, [ready]);
 
   useEffect(() => {
-    if (open) onNavigate(STEPS[step].tab ?? "predictions");
+    if (open) onNavigate(STEPS[step].tab ?? "launchpad");
   }, [open, step, onNavigate]);
 
   const close = () => {
     localStorage.setItem(TOUR_KEY, "1");
     setOpen(false);
-    onNavigate("predictions");
+    onNavigate("launchpad");
   };
 
   const next = () => {
@@ -88,7 +94,7 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
         </button>
         <div className="p-6 pt-8">
           <p className="section-eyebrow flex items-center gap-2">
-            <Sparkles size={11} /> Predictions · Step {step + 1}/{STEPS.length}
+            <Sparkles size={11} /> Launchpad · Step {step + 1}/{STEPS.length}
           </p>
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mt-4 mb-4">
             {current.icon}
@@ -100,7 +106,7 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
               Skip
             </button>
             <button type="button" onClick={next} className="flex-1 py-3 rounded-xl text-sm font-black btn-primary">
-              {step >= STEPS.length - 1 ? "Start trading →" : "Next →"}
+              {step >= STEPS.length - 1 ? "Start launching →" : "Next →"}
             </button>
           </div>
         </div>

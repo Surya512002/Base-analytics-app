@@ -63,6 +63,9 @@ export function mergeWalletMetricsMax(
   const usePriorHeatmap =
     priorHeatmapDays > nextHeatmapDays ||
     (priorHeatmapDays === nextHeatmapDays && prior.uniqueDays > next.uniqueDays);
+  const priorBal = parseFloat(prior.balance || "0");
+  const nextBal = parseFloat(next.balance || "0");
+
   const scoreComponents = maxScoreComponents(
     prior.scoreComponents,
     next.scoreComponents
@@ -76,6 +79,21 @@ export function mergeWalletMetricsMax(
   return {
     ...next,
     basename: next.basename || prior.basename,
+    balance:
+      priorBal > 0 && (nextBal <= 0 || nextBal < priorBal * 0.45)
+        ? prior.balance
+        : nextBal > priorBal
+          ? next.balance
+          : prior.balance || next.balance,
+    usdcBalance:
+      parseFloat(prior.usdcBalance || "0") >
+      parseFloat(next.usdcBalance || "0")
+        ? prior.usdcBalance
+        : next.usdcBalance ?? prior.usdcBalance,
+    portfolioValueUSD:
+      prior.portfolioValueUSD > 0 && next.portfolioValueUSD <= 0
+        ? prior.portfolioValueUSD
+        : Math.max(prior.portfolioValueUSD, next.portfolioValueUSD),
     uniqueDays: Math.max(
       prior.uniqueDays,
       next.uniqueDays,

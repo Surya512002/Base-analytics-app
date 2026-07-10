@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Calendar,
   Globe,
@@ -40,25 +40,25 @@ function LeaderboardTable({
 
   if (entries.length === 0) {
     return (
-      <div className="bg-white/[0.04] border-2 border-dashed border-white/10 rounded-2xl p-10 text-center">
-        <Users size={24} className="text-slate-700 mx-auto mb-2" />
-        <p className="font-black text-slate-600 text-sm">No rankings yet</p>
-        <p className="text-xs text-slate-700 mt-1">Trade predictions and complete quests to climb the board.</p>
+      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
+        <Users size={24} className="text-slate-600 mx-auto mb-2" />
+        <p className="font-black text-slate-500 text-sm">No rankings yet</p>
+        <p className="text-xs text-slate-600 mt-1">Launch tokens, swap, and complete quests to climb the board.</p>
       </div>
     );
   }
 
   return (
-    <div className="glass-panel-accent rounded-2xl overflow-hidden border border-white/8">
-      <div className="px-4 py-2.5 border-b border-white/8 bg-white/[0.03] flex flex-wrap items-center justify-between gap-2">
+    <div className="glass-panel rounded-2xl overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-white/8 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] font-bold text-slate-500">
           Top{" "}
-          <span className="text-cyan-400 font-black">{Math.min(TOP_N, entries.length)}</span> of{" "}
+          <span className="text-white font-black">{Math.min(TOP_N, entries.length)}</span> of{" "}
           <span className="text-white font-black">{totalParticipants.toLocaleString()}</span>{" "}
           {mode === "weekly" ? "this week" : "season"}
         </p>
       </div>
-      <div className="px-3 sm:px-4 py-2 border-b border-white/8 bg-white/[0.03]">
+      <div className="px-3 sm:px-4 py-2 border-b border-white/8">
         <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem] gap-x-2 sm:gap-x-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">
           <span>Rank</span>
           <span>Wallet</span>
@@ -75,7 +75,7 @@ function LeaderboardTable({
           <div
             key={`${mode}-${e.address}`}
             className={`grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem] gap-x-2 sm:gap-x-3 items-center px-3 sm:px-4 py-2.5 border-b border-white/6 last:border-0 ${
-              isMe ? "bg-cyan-500/8 border-l-2 border-l-cyan-400" : "hover:bg-white/[0.03]"
+              isMe ? "rank-you" : "hover:bg-white/[0.03]"
             }`}
           >
             <div className="shrink-0">
@@ -88,20 +88,20 @@ function LeaderboardTable({
             <div className="min-w-0">
               <p
                 className={`font-black text-[11px] sm:text-sm truncate ${
-                  isMe ? "text-cyan-400" : "text-white"
+                  isMe ? "text-white" : "text-slate-200"
                 }`}
               >
                 {e.basename || `${e.address.slice(0, 8)}...${e.address.slice(-4)}`}
                 {isMe && (
-                  <span className="text-[8px] text-cyan-300 ml-1 font-bold">you</span>
+                  <span className="text-[8px] text-slate-400 ml-1 font-bold">you</span>
                 )}
               </p>
             </div>
-            <div className="hidden sm:block text-right text-xs font-black text-cyan-300/60">
+            <div className="hidden sm:block text-right text-xs font-black text-slate-500">
               {e.badges}
             </div>
             <div className="text-right shrink-0 tabular-nums">
-              <p className={`text-xs sm:text-sm font-black ${isMe ? "text-cyan-400" : "text-white"}`}>
+              <p className={`text-xs sm:text-sm font-black ${isMe ? "text-white" : "text-slate-300"}`}>
                 {xp.toLocaleString()}
               </p>
             </div>
@@ -138,10 +138,7 @@ export default function CheckInRankings({
   const globalCount = participationCount(leaderboard, "global", currentWeek);
   const activeCount = mode === "weekly" ? weeklyCount : globalCount;
 
-  const activeTop = useMemo(
-    () => topEntries(leaderboard, mode, TOP_N, currentWeek),
-    [leaderboard, mode, currentWeek]
-  );
+  const activeTop = topEntries(leaderboard, mode, TOP_N, currentWeek);
 
   const myRank = wallet ? findRank(leaderboard, wallet.address, mode, currentWeek) : -1;
   const inTop50 = myRank >= 0 && myRank < TOP_N;
@@ -154,14 +151,8 @@ export default function CheckInRankings({
   if (!wallet) return null;
 
   return (
-    <div
-      className={
-        embedded
-          ? "space-y-4"
-          : "glass-panel rounded-2xl border border-white/8 overflow-hidden"
-      }
-    >
-      {!embedded && <div className="h-0.5 bg-linear-to-r from-amber-400 via-violet-500 to-cyan-400" />}
+    <div className={embedded ? "space-y-4" : "glass-panel rounded-2xl overflow-hidden"}>
+      {!embedded && <div className="accent-bar" />}
       <div
         className={
           embedded
@@ -172,8 +163,8 @@ export default function CheckInRankings({
         <div>
           {embedded ? (
             <>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                <Trophy size={12} className="text-amber-400" />
+              <p className="section-eyebrow flex items-center gap-1.5">
+                <Trophy size={12} />
                 Rankings
               </p>
               <h3 className="text-lg sm:text-xl font-black text-white mt-1">
@@ -182,8 +173,8 @@ export default function CheckInRankings({
             </>
           ) : (
             <>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                <Trophy size={12} className="text-amber-400" />
+              <p className="section-eyebrow flex items-center gap-1.5">
+                <Trophy size={12} />
                 Rankings
               </p>
               <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
@@ -191,7 +182,7 @@ export default function CheckInRankings({
               </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-xl">
                 {mode === "weekly"
-                  ? "Ranked by weekly XP — prediction trades, quests, check-in streak, and daily activity."
+                  ? "Ranked by weekly XP — launches, swaps, quests, check-in streak, and daily activity."
                   : "Season standings include all weekly XP plus badge mint rewards (+25 XP per badge)."}
               </p>
             </>
@@ -222,7 +213,7 @@ export default function CheckInRankings({
       <div
         className={
           embedded
-            ? "glass-panel rounded-2xl border border-white/8 overflow-hidden p-4 sm:p-5 space-y-4"
+            ? "glass-panel rounded-2xl overflow-hidden p-4 sm:p-5 space-y-4"
             : "p-4 sm:p-5 space-y-4"
         }
       >
@@ -237,17 +228,17 @@ export default function CheckInRankings({
                 : "Total season participants"}
             </p>
           </div>
-          <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/18 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+          <span className="editorial-badge">
             <Wifi size={9} />
             Live · {getDaysLeft()}d left
           </span>
         </div>
 
         {myRank >= 0 && (
-          <div className="glass-panel-accent rounded-2xl border border-cyan-500/20 p-5 sm:p-6">
+          <div className="glass-panel rounded-2xl p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0">
-                <div className="w-12 h-12 sm:w-[3.3rem] sm:h-[3.3rem] rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center font-black text-cyan-400 text-base sm:text-lg shrink-0">
+                <div className="w-12 h-12 sm:w-[3.3rem] sm:h-[3.3rem] rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center font-black text-white text-base sm:text-lg shrink-0">
                   #{myRank + 1}
                 </div>
                 <div className="min-w-0">
@@ -256,7 +247,7 @@ export default function CheckInRankings({
                       `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`}
                   </p>
                   {!inTop50 && (
-                    <p className="text-xs text-amber-400/90 font-bold mt-1">
+                    <p className="text-xs text-slate-500 font-semibold mt-1">
                       Outside top {TOP_N} — keep completing quests!
                     </p>
                   )}
@@ -291,11 +282,8 @@ export default function CheckInRankings({
                     ? [{ l: "Referral", v: referralBonusXp }]
                     : []),
                 ].map((s) => (
-                  <div
-                    key={s.l}
-                    className="bg-white/[0.04] border border-white/8 rounded-xl py-2.5 sm:py-3 text-center"
-                  >
-                    <p className="text-sm sm:text-base font-black text-cyan-300 tabular-nums">{s.v}</p>
+                  <div key={s.l} className="editorial-stat text-center py-2.5">
+                    <p className="text-sm sm:text-base font-black text-white tabular-nums">{s.v}</p>
                     <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold mt-1">{s.l}</p>
                   </div>
                 ))}
@@ -307,10 +295,7 @@ export default function CheckInRankings({
                 { l: "Badges", v: String(mintedCount) },
                 { l: "Streak", v: `${streak}d` },
               ].map((s) => (
-                <div
-                  key={s.l}
-                  className="bg-white/[0.04] border border-white/8 rounded-xl py-2.5 sm:py-3 text-center"
-                >
+                <div key={s.l} className="editorial-stat text-center py-2.5">
                   <p className="text-sm sm:text-base font-black text-white">{s.v}</p>
                   <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold mt-1">{s.l}</p>
                 </div>
@@ -321,7 +306,7 @@ export default function CheckInRankings({
 
         {lbLoading ? (
           <div className="py-12 text-center">
-            <RefreshCcw className="animate-spin text-cyan-400 mx-auto mb-2" size={22} />
+            <RefreshCcw className="animate-spin text-white/50 mx-auto mb-2" size={22} />
             <p className="text-xs text-slate-500 font-bold">Loading rankings…</p>
           </div>
         ) : (

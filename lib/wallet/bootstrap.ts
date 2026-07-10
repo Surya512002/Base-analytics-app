@@ -18,16 +18,12 @@ export async function bootstrapWalletAnalysis(
 
   const addr = address.toLowerCase();
   const pub = createBasePublicClient();
+  const balancesP = fetchWalletBalances(address, 3200);
 
   const [smart, bn, balances, streakRaw, lastCheckIn] = await Promise.all([
     detectSmartAccount(addr),
     resolveBasename(address).catch(() => null),
-    fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-    )
-      .then((r) => r.json())
-      .then((d) => fetchWalletBalances(address, d?.ethereum?.usd || 3200))
-      .catch(() => fetchWalletBalances(address, 3200)),
+    balancesP,
     pub
       .readContract({
         address: CHECKIN_CONTRACT as `0x${string}`,

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import { fetchNeynar } from "@/lib/api/neynar";
+import { APP_URL_WEB, MINIAPP_URL } from "@/lib/constants/env";
+import { SHARE_HASHTAGS, SHARE_TAGLINE, twitterShare, warpcast } from "@/lib/utils/share";
 import {
   MessageCircle,
   RefreshCcw, Send, Twitter, Lock,
@@ -59,7 +61,7 @@ function getPeriodDayTrack(
 
 const RECENT_CAST_WINDOW_MS = 30 * 86400000;
 const CAST_PAGE_LIMIT = 150;
-const CAST_MAX_PAGES = 400;
+const CAST_MAX_PAGES = 20;
 
 type CastHistoryFetch = {
   recentCasts: RawCast[];
@@ -426,12 +428,15 @@ export default function FarcasterAnalytics({
   const scoreColor=neynarScore>=8?'text-yellow-400':neynarScore>=6?'text-cyan-400':neynarScore>=4?'text-purple-400':'text-slate-400';
   const scoreBg=neynarScore>=8?'bg-yellow-500/10 border-yellow-500/25':neynarScore>=6?'bg-cyan-500/10 border-cyan-500/20':neynarScore>=4?'bg-purple-500/10 border-purple-500/25':'bg-white/5 border-white/8';
 
-  const APP_WEBSITE_URL='https://base-analytics-app.vercel.app';
-  const FARCASTER_MINI_APP_URL='https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics';
-  const shareMsg=fcResult?`I scored ${fcResult.reputation}/10 Neynar Score on Base Analytics! 🔵🚀`:'';
-  const sharePageUrl=fcResult?`${APP_WEBSITE_URL}/share?score=${Math.round(Number(fcResult.reputation)*10)}&rank=Neynar+${fcResult.reputation}%2F10&title=Neynar+Score+${fcResult.reputation}%2F10&v=score`:'';
-  const xLink=`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}&url=${encodeURIComponent(sharePageUrl||APP_WEBSITE_URL)}`;
-  const fcLink=`https://warpcast.com/~/compose?text=${encodeURIComponent(shareMsg)}&embeds[]=${encodeURIComponent(sharePageUrl||FARCASTER_MINI_APP_URL)}`;
+  const APP_WEBSITE_URL = APP_URL_WEB;
+  const shareMsg = fcResult
+    ? `Neynar Score ${fcResult.reputation}/10 on Base Analytics.\n\nExplore B20 tokens, swap Uniswap & Aerodrome in-app, scan your wallet free.\n\n${SHARE_TAGLINE}\n${SHARE_HASHTAGS}`
+    : "";
+  const sharePageUrl = fcResult
+    ? `${APP_WEBSITE_URL}/share?score=${Math.round(Number(fcResult.reputation) * 10)}&rank=Neynar+${fcResult.reputation}%2F10&title=Neynar+Score+${fcResult.reputation}%2F10&v=score`
+    : "";
+  const xLink = twitterShare(shareMsg, sharePageUrl || APP_WEBSITE_URL);
+  const fcLink = warpcast(shareMsg, sharePageUrl || MINIAPP_URL);
 
   return(
     <div className="space-y-4 w-full relative">

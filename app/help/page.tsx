@@ -5,6 +5,14 @@ import { APP_URL_WEB } from "@/lib/constants/env";
 
 const FAQ = [
   {
+    q: "How do I explore tokens without connecting?",
+    a: "Open /explore to browse the B20 launchpad marketplace — live prices, volume, and token pages work without a wallet. Connect only to swap or launch.",
+  },
+  {
+    q: "What is the B20 Launchpad?",
+    a: "Create native B20 tokens on Base with $0 launch fee, vanity 0xB200… addresses, dual-DEX swaps (Uniswap + Aerodrome), creator announcements, referral fee splits, and optional anti-snipe windows.",
+  },
+  {
     q: "What is Base Voucher?",
     a: "Base Voucher lets you create onchain crypto gift cards on Base. Fund a batch in ETH or USDC, split into up to 50 cards, and share Card ID + secret with recipients.",
   },
@@ -19,6 +27,14 @@ const FAQ = [
   {
     q: "How do referrals work?",
     a: "Share your referral link from the dashboard. Friends get +50 XP when they connect; you earn +25 XP per invite.",
+  },
+  {
+    q: "How do I launch a token with liquidity?",
+    a: "Open Explore → Launch. Enable “Auto-seed Aerodrome pool” — default is 0.001 ETH (~$2–3). Presets show USD value. Tokens become swappable in-app right after launch.",
+  },
+  {
+    q: "What keyboard shortcuts exist?",
+    a: "Press ⌘K (Mac) or Ctrl+K to open the command palette — jump to Explore, Analytics, Vouchers, quests, or search tokens.",
   },
   {
     q: "Are badge mints gasless?",
@@ -56,6 +72,8 @@ export default function HelpPage() {
           <p className="section-eyebrow text-violet-300">API & integrations</p>
           <h2 className="text-xl font-black text-white mt-2">Public endpoints</h2>
           <ul className="mt-4 space-y-3 text-sm font-mono text-slate-300">
+            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/launchpad/market — live volume & mcap</li>
+            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/launchpad/activity — global feed</li>
             <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/analyze-wallet?address=0x…</li>
             <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/voucher/card-preview?card=12-3</li>
             <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">POST /api/premium-scan (x402)</li>
@@ -67,7 +85,10 @@ export default function HelpPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href={`${APP_URL_WEB}/?tab=voucher`} className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl btn-primary font-black text-sm">
+          <Link href="/explore" className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl btn-primary font-black text-sm">
+            Explore tokens
+          </Link>
+          <Link href={`${APP_URL_WEB}/?tab=voucher`} className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 border border-white/15 font-black text-sm">
             <Gift size={16} /> Create voucher
           </Link>
           <Link href="/redeem" className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 border border-white/15 font-black text-sm">

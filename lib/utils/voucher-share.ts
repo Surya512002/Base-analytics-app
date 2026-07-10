@@ -10,7 +10,7 @@ export function buildVoucherShareMessage(batch: StoredVoucherBatch): string {
 }
 
 export function buildBatchFarcasterUrl(batch: StoredVoucherBatch): string {
-  const text = `🎁 I just created ${batch.cardCount} crypto gift cards on Base!\n\nSend ETH/USDC vouchers to anyone — fully onchain.\n\nTry Base Analytics ↓`;
+  const text = `🎁 I just created ${batch.cardCount} crypto gift cards on Base!\n\nETH/USDC vouchers anyone can redeem — plus B20 explore & in-app swaps on Base Analytics.`;
   return warpcast(text, `${APP_URL_WEB}/?tab=voucher`);
 }
 
@@ -24,7 +24,7 @@ export function buildPayLinkUrl(address: string): string {
 }
 
 export function buildVoucherCastText(batch: StoredVoucherBatch): string {
-  return `🎁 ${batch.cardCount} Base Voucher cards funded on Base (${batch.asset})!\n\nCrypto gift cards anyone can redeem — Card ID + secret.\n\n${APP_URL_WEB}/?tab=voucher`;
+  return `🎁 ${batch.cardCount} Base Voucher cards funded on Base (${batch.asset})!\n\nCrypto gift cards + B20 launchpad & in-app DEX swaps — all on Base Analytics.\n\n${APP_URL_WEB}/?tab=voucher`;
 }
 
 export function buildRedeemFarcasterUrl(cardId?: string): string {

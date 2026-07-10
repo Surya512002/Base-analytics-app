@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import {
   getCachedAnalyze,
   setCachedAnalyze,
   ANALYZE_CACHE_TTL_SECONDS,
 } from "@/lib/wallet/analyze-cache";
 import {
-  loadOrEmptyHistory,
   saveWalletHistory,
   emptyHistoryState,
 } from "@/lib/wallet/history-store";
@@ -21,6 +21,10 @@ export const maxDuration = 120;
 const ANALYZE_CACHE_TTL = ANALYZE_CACHE_TTL_SECONDS;
 
 export async function GET(req: Request) {
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`sync:${ip}`, 20, 60_000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const reset = searchParams.get("reset") === "1";

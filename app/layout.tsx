@@ -1,31 +1,38 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
 
-const APP_URL = "https://base-analytics-app.vercel.app";
-const OG_IMAGE = `${APP_URL}/opengraph-image?v=5`;
+const APP_URL = getAppUrl();
+const OG_IMAGE = appOgImage();
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
-  title: "Base Analytics — Crypto Prediction Market on Base",
+  title: "Base Analytics — B20 Launchpad & In-App Swaps on Base",
   description:
-    "Trade BTC, ETH & SOL prediction markets on Base. 4h & daily rounds with live YES/NO odds, quests & wallet analytics.",
+    "Explore B20 tokens, swap via Uniswap & Aerodrome in-app with USD quotes, launch vanity tokens, and scan your wallet — quests, badges & vouchers on Base.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",
   openGraph: {
-    title: "Base Analytics — Crypto Prediction Market on Base",
+    title: "Base Analytics — Explore · Trade · Earn on Base",
     description:
-      "Polymarket-style crypto predictions on Base. Hourly, 4h & daily rounds for BTC, ETH, SOL with CPMM pricing.",
+      "B20 launchpad + in-app DEX swaps. Browse liquid tokens, trade without leaving the app, earn quest XP.",
     url: APP_URL,
     siteName: "Base Analytics",
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics prediction market" }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics — B20 launchpad & swaps" }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics — Crypto Prediction Market on Base",
+    title: "Base Analytics — B20 Launchpad on Base",
     description:
-      "Trade BTC/ETH/SOL predictions on Base. Earn XP, climb the leaderboard, win USDC on resolve.",
+      "Explore tokens, swap Uniswap/Aerodrome in-app, launch B20, earn XP. Wallet analytics & Basename identity.",
     images: [OG_IMAGE],
   },
   other: {

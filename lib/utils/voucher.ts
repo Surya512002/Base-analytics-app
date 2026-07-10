@@ -431,7 +431,11 @@ export function formatCardShareText(
     `Amount: ${amount}`,
   ];
   if (batch.message) lines.push(`Message: "${batch.message}"`);
-  lines.push("", `Redeem: ${appUrl}`);
+  const redeemUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/?tab=basehub&card=${encodeURIComponent(card.cardId)}`
+      : `${appUrl}/?tab=basehub&card=${encodeURIComponent(card.cardId)}`;
+  lines.push("", `Redeem: ${redeemUrl}`);
   return lines.join("\n");
 }
 

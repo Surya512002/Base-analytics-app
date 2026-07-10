@@ -129,6 +129,12 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
 
   return {
     wallet,
+    walletCore: {
+      address: wallet.address,
+      balance: wallet.balance,
+      portfolioValueUSD: wallet.portfolioValueUSD,
+      basename: wallet.basename,
+    },
     connType: "coinbase",
     loading: false,
     tab,
@@ -177,6 +183,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     weeklyXP: 120,
     scanProgress: "",
     walletRefreshing: false,
+    analyticsSyncing: false,
     walletScanComplete: true,
     premiumUnlocked: false,
     premiumLoading: false,
@@ -205,16 +212,15 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     handleDisconnect: noop,
     handleCheckInSuccess: noopAsync,
     handleBoostSuccess: noop,
+    launchLoading: false,
+    swapLoading: false,
+    b20Activated: true,
+    handleLaunchB20: async () => ({ ok: true }),
+    handleTokenSwap: async () => true,
+    handleSeedLiquidity: async () => true,
     predictionLoading: false,
-    predictionStreak: [
-      {
-        address: wallet.address.toLowerCase(),
-        basename: wallet.basename,
-        wins: 8,
-        streak: 5,
-      },
-    ],
-    handlePredictionTrade: async () => true,
+    predictionStreak: [],
+    handlePredictionTrade: async () => false,
     doNativeTx: noopAsync,
     doNativeMint: noopAsync,
     shareScore: noop,
@@ -223,5 +229,6 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     getAchievementValue: () => 0,
     doneQuests: 6,
     pointsRevision: 0,
+    setPointsRevision: () => {},
   };
 }

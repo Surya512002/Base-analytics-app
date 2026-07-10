@@ -10,7 +10,11 @@
     "dev:clean": "rm -rf .next && next dev --webpack",
     "start": "next start",
     "lint": "eslint",
-    "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh"
+    "test": "vitest run",
+    "test:e2e": "playwright test e2e",
+    "typecheck": "tsc --noEmit",
+    "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh",
+    "stake:deploy": "bash scripts/deploy-stake-market.sh"
   },
   "dependencies": {
     "@base-org/account": "^2.5.4",
@@ -53,6 +57,7 @@
     "eslint-config-next": "16.1.6",
     "playwright": "^1.61.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

@@ -1,18 +1,21 @@
-import { BarChart3, Flame, Gift, TrendingUp, Trophy } from "lucide-react";
+import { BarChart3, Flame, Gift, Rocket, Trophy } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
+import type { RewardsHubView } from "@/lib/utils/app-url";
+import { isRewardsHubTab } from "@/lib/utils/app-url";
 
 interface TabBarProps {
   tab: AppTab;
   doneQuests: number;
-  onTabChange: (tab: AppTab) => void;
+  onTabChange: (tab: AppTab, opts?: { rewardsView?: RewardsHubView }) => void;
+  guest?: boolean;
 }
 
-export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
+export default function TabBar({ tab, doneQuests, onTabChange, guest }: TabBarProps) {
   const tabs = [
     {
-      id: "predictions" as const,
-      icon: <TrendingUp size={14} />,
-      label: "Predictions",
+      id: "launchpad" as const,
+      icon: <Rocket size={14} />,
+      label: "Explore",
       featured: true,
     },
     { id: "basehub" as const, icon: <Gift size={14} />, label: "Vouchers" },
@@ -20,7 +23,7 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
     {
       id: "checkin" as const,
       icon: <Flame size={14} />,
-      label: `Check-In & Rank${doneQuests > 0 ? ` · ${doneQuests}` : ""}`,
+      label: `Quests & Rewards${doneQuests > 0 ? ` · ${doneQuests}` : ""}`,
     },
     { id: "achievements" as const, icon: <Trophy size={13} />, label: "Badges" },
   ];
@@ -32,9 +35,11 @@ export default function TabBar({ tab, doneQuests, onTabChange }: TabBarProps) {
           key={t.id}
           onClick={() => onTabChange(t.id)}
           className={`relative flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 rounded-xl font-bold text-[11px] sm:text-xs whitespace-nowrap flex-1 transition-colors duration-200 ${
-            tab === t.id
+            tab === t.id || (t.id === "checkin" && isRewardsHubTab(tab))
               ? "tab-active shadow-lg"
-              : "text-slate-400 hover:text-cyan-200 hover:bg-white/8"
+              : guest && t.id !== "launchpad"
+                ? "text-slate-500 hover:text-slate-300 hover:bg-white/5 opacity-70"
+                : "text-slate-400 hover:text-cyan-200 hover:bg-white/8"
           } ${t.featured && tab !== t.id ? "tab-featured" : ""}`}
         >
           {t.icon}

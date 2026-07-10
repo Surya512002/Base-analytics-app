@@ -3,13 +3,17 @@ import type { ConnectionType } from "@/lib/types/wallet";
 import {
   getSendCallsCapabilities,
   supportsPaymaster,
+  batchUsesB20Precompile,
 } from "@/lib/utils/paymaster";
 import type { ContractCall } from "@/lib/utils/tx";
 import {
   prepareCallsForWalletSendCalls,
   withBuilderSuffix,
+  isB20PrecompileAddress,
+  finalizeAppTransactionBatch,
 } from "@/lib/utils/tx";
 import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
+import { gasLimitForB20Target } from "@/lib/b20/preflight";
 
 const BASE_CHAIN_HEX = "0x2105" as const;
 const WALLET_PROMPT_MS = 120_000;
@@ -75,14 +79,21 @@ function buildLegacyTxParams(
   from: string,
   call: ContractCall
 ): Record<string, string> {
+  const data = isB20PrecompileAddress(call.to)
+    ? call.data
+    : withBuilderSuffix(call.data);
   const params: Record<string, string> = {
     from,
     to: call.to,
-    data: withBuilderSuffix(call.data),
+    data,
     chainId: BASE_CHAIN_HEX,
   };
   if (call.value && call.value > BigInt(0)) {
     params.value = `0x${call.value.toString(16)}`;
+  }
+  if (isB20PrecompileAddress(call.to)) {
+    const gas = call.gas ?? gasLimitForB20Target(call.to);
+    params.gas = `0x${gas.toString(16)}`;
   }
   return params;
 }
@@ -153,7 +164,9 @@ async function sendViaWalletSendCalls(
     };
   });
 
-  const capabilities = getSendCallsCapabilities();
+  const capabilities = getSendCallsCapabilities(
+    batchUsesB20Precompile(calls)
+  );
   let lastErr: unknown;
 
   for (const version of ["1.0", "2.0.0"] as const) {
@@ -210,15 +223,37 @@ async function sendViaEthSendTransaction(
   return hash;
 }
 
+async function sendViaEthSendTransactionBatch(
+  provider: Eip1193,
+  from: string,
+  calls: ContractCall[]
+): Promise<string> {
+  let lastHash = "";
+  for (const call of calls) {
+    lastHash = await sendViaEthSendTransaction(provider, from, call);
+  }
+  return lastHash;
+}
+
+export type SendAppTxOptions = {
+  /** B20 factory calls must not be paired with a companion attribution tx (breaks paymaster batches). */
+  skipBuilderCompanion?: boolean;
+};
+
 /** Sends one or more app contract calls — sponsored via paymaster in Base App / Coinbase Wallet. */
 export async function sendAppTransactions(
   connType: ConnectionType,
   from: string,
-  calls: ContractCall[]
+  calls: ContractCall[],
+  options?: SendAppTxOptions
 ): Promise<string> {
   if (calls.length === 0) {
     throw new Error("No transactions to send");
   }
+
+  const batch = finalizeAppTransactionBatch(calls, {
+    skipCompanion: options?.skipBuilderCompanion,
+  });
 
   const provider = (await getEip1193Provider(connType)) as unknown as Eip1193;
 
@@ -226,24 +261,29 @@ export async function sendAppTransactions(
   await ensureActiveAccount(provider, from);
 
   const trySponsored = supportsPaymaster(connType);
+  const b20Only =
+    batch.length === 1 && isB20PrecompileAddress(batch[0]!.to);
 
-  if (trySponsored) {
+  // B20 precompiles need explicit gas — legacy eth_sendTransaction is most reliable.
+  if (b20Only) {
     try {
-      return await sendViaWalletSendCalls(provider, from, calls);
+      return await sendViaEthSendTransaction(provider, from, batch[0]!);
     } catch (e) {
       if (isUserRejection(e)) throw e;
-      if (calls.length === 1) {
-        return sendViaEthSendTransaction(provider, from, calls[0]);
-      }
-      throw e;
+      if (!trySponsored) throw e;
     }
   }
 
-  let lastHash = "";
-  for (const call of calls) {
-    lastHash = await sendViaEthSendTransaction(provider, from, call);
+  if (trySponsored) {
+    try {
+      return await sendViaWalletSendCalls(provider, from, batch);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+      return sendViaEthSendTransactionBatch(provider, from, batch);
+    }
   }
-  return lastHash;
+
+  return sendViaEthSendTransactionBatch(provider, from, batch);
 }
 
 /** Sends an app contract call — sponsored via paymaster in Base App / Coinbase Wallet. */
