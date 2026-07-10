@@ -16,7 +16,7 @@ function ForYouCard({
     <button
       type="button"
       onClick={onOpen}
-      className="shrink-0 w-[188px] sm:w-[200px] rounded-xl border border-violet-500/25 bg-violet-500/[0.06] p-3.5 text-left hover:border-violet-400/40 transition-colors"
+      className="shrink-0 snap-start w-[188px] sm:w-[200px] rounded-xl border border-violet-500/25 bg-violet-500/[0.06] p-3.5 text-left hover:border-violet-400/40 transition-colors"
     >
       <p className="text-[10px] font-bold uppercase tracking-wider text-violet-300 mb-2">
         For you
@@ -54,7 +54,7 @@ export default function ForYouRail({
           Based on your swap history and activity on Base.
         </p>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar touch-scroll-x">
+      <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
         {tokens.map((t) => (
           <ForYouCard
             key={`foryou-${t.address}`}

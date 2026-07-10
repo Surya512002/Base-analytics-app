@@ -42,7 +42,7 @@ function TokenRailCard({
     <button
       type="button"
       onClick={onOpen}
-      className="group shrink-0 w-[188px] sm:w-[200px] rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-3.5 text-left hover:border-white/20 transition-colors"
+      className="group shrink-0 snap-start w-[188px] sm:w-[200px] rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-3.5 text-left hover:border-white/20 transition-colors"
     >
       <div className="flex items-center gap-2.5 mb-3">
         {token.imageUrl ? (
@@ -106,11 +106,13 @@ export default function LaunchpadExploreSections({
   markets,
   onOpen,
   activities = [],
+  syncing = false,
 }: {
   tokens: LaunchedToken[];
   markets: Record<string, TokenMarketSummary>;
   onOpen: (token: LaunchedToken) => void;
   activities?: GlobalActivityItem[];
+  syncing?: boolean;
 }) {
   const tradable = useMemo(
     () => tokens.filter((t) => isTradableListing(t, markets)),
@@ -154,7 +156,14 @@ export default function LaunchpadExploreSections({
     [activities, tradable, markets]
   );
 
-  if (tradable.length === 0) return null;
+  if (tradable.length === 0) {
+    if (syncing) {
+      return (
+        <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)]/40 h-28 animate-pulse" />
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="space-y-8">
@@ -169,7 +178,7 @@ export default function LaunchpadExploreSections({
               Tokens with the most recent swaps and launches — updated live.
             </p>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar touch-scroll-x">
+          <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
             {hotNow.map((t) => (
               <TokenRailCard
                 key={`hot-${t.address}`}
@@ -228,7 +237,7 @@ export default function LaunchpadExploreSections({
                   by 24h volume
                 </span>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar touch-scroll-x">
+              <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
                 {b20Trending.map((t) => (
                   <TokenRailCard
                     key={`b20-trend-${t.address}`}
@@ -253,7 +262,7 @@ export default function LaunchpadExploreSections({
                   24h price change · top movers
                 </span>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar touch-scroll-x">
+              <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
                 {b20Gainers.map((t) => {
                   const market = markets[t.address.toLowerCase()];
                   return (
@@ -283,7 +292,7 @@ export default function LaunchpadExploreSections({
               {justLaunched.length} recent
             </span>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar touch-scroll-x">
+          <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
             {justLaunched.map((t) => (
               <TokenRailCard
                 key={`new-${t.address}`}

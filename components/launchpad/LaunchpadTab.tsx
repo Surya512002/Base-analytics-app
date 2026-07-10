@@ -47,7 +47,6 @@ import TokenWatchlistRail from "@/components/launchpad/TokenWatchlistRail";
 import GlobalActivityTicker from "@/components/shell/GlobalActivityTicker";
 import LiveMarketStrip from "@/components/shell/LiveMarketStrip";
 import ExploreServicesRail from "@/components/shell/ExploreServicesRail";
-import ScrollReveal from "@/components/ui/ScrollReveal";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
@@ -66,6 +65,23 @@ type Filter =
   | "gainers"
   | "losers"
   | "watchlist";
+
+type ExploreCatalog = {
+  tokens: LaunchedToken[];
+  markets: Record<string, TokenMarketSummary>;
+  marketStats: { totalVolume24h: number; totalLiquidity: number };
+  b20Activated: boolean | null;
+};
+
+function catalogFromCache(): ExploreCatalog {
+  const cached = readExploreCache();
+  return {
+    tokens: cached?.tokens ?? [],
+    markets: cached?.markets ?? {},
+    marketStats: cached?.marketStats ?? { totalVolume24h: 0, totalLiquidity: 0 },
+    b20Activated: cached?.b20Activated ?? null,
+  };
+}
 
 export type LaunchpadShellBridge = {
   tokens: LaunchedToken[];
@@ -118,22 +134,29 @@ export default function LaunchpadTab({
     "all" | "trending" | "newest" | "gainers" | "volume" | "mine" | "watchlist"
   >("all");
   const cachedExplore = readExploreCache();
-  const [tokens, setTokens] = useState<LaunchedToken[]>(cachedExplore?.tokens ?? []);
-  const [markets, setMarkets] = useState<Record<string, TokenMarketSummary>>(
-    cachedExplore?.markets ?? {}
+  const [catalog, setCatalog] = useState<ExploreCatalog>(() =>
+    cachedExplore
+      ? {
+          tokens: cachedExplore.tokens,
+          markets: cachedExplore.markets,
+          marketStats: cachedExplore.marketStats,
+          b20Activated: cachedExplore.b20Activated,
+        }
+      : catalogFromCache()
   );
+  const { tokens, markets, marketStats, b20Activated } = catalog;
   const [selected, setSelected] = useState<LaunchedToken | null>(null);
-  const [loading, setLoading] = useState(!hasExploreCache());
-  const [b20Activated, setB20Activated] = useState<boolean | null>(
-    cachedExplore?.b20Activated ?? null
-  );
-  const [marketStats, setMarketStats] = useState({
-    totalVolume24h: cachedExplore?.marketStats.totalVolume24h ?? 0,
-    totalLiquidity: cachedExplore?.marketStats.totalLiquidity ?? 0,
-  });
+  const [initialLoading, setInitialLoading] = useState(!hasExploreCache());
+  const [syncing, setSyncing] = useState(false);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [activities, setActivities] = useState<GlobalActivityItem[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
+  const refreshGenRef = useRef(0);
+  const refreshInFlightRef = useRef(false);
+  const hasCatalogRef = useRef(catalog.tokens.length > 0);
+  const appRef = useRef(app);
+  appRef.current = app;
+  hasCatalogRef.current = catalog.tokens.length > 0;
   const launchEnabled = b20Activated === true || appB20Activated === true;
 
   const scrollToGrid = useCallback(() => {
@@ -165,8 +188,12 @@ export default function LaunchpadTab({
   }, []);
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
-    const silent = opts?.silent === true || tokens.length > 0;
-    if (!silent) setLoading(true);
+    if (refreshInFlightRef.current) return null;
+    refreshInFlightRef.current = true;
+    const gen = ++refreshGenRef.current;
+    const silent = opts?.silent === true || hasCatalogRef.current;
+    if (!silent) setInitialLoading(true);
+    else setSyncing(true);
     try {
       const [data, discover, marketData] = await Promise.all([
         fetchLaunchpadTokens(),
@@ -174,42 +201,47 @@ export default function LaunchpadTab({
         fetchMarketData(),
       ]);
       const merged = mergeExploreTokens(data.tokens, discover.tokens);
-      let markets = mergeMarketSummaries(discover.markets, marketData.markets);
+      let nextMarkets = mergeMarketSummaries(discover.markets, marketData.markets);
 
       const missingPool = merged
         .map((t) => t.address.toLowerCase())
         .filter((a) => {
-          const m = markets[a];
+          const m = nextMarkets[a];
           return !m?.hasPool || (m.liquidityUsd ?? 0) < 1_000;
         });
       if (missingPool.length > 0) {
         const dexMarkets = await fetchMarketBatch(missingPool.slice(0, 60));
-        markets = mergeMarketSummaries(markets, dexMarkets);
+        nextMarkets = mergeMarketSummaries(nextMarkets, dexMarkets);
       }
 
       const b20Addrs = merged
         .filter(isB20ExploreToken)
         .map((t) => t.address.toLowerCase());
       const needsDex = b20Addrs.filter((a) => {
-        const m = markets[a];
+        const m = nextMarkets[a];
         return !m || m.priceChange24h == null || m.volume24h == null;
       });
       if (needsDex.length > 0) {
         const dexMarkets = await fetchMarketBatch(needsDex);
-        markets = mergeMarketSummaries(markets, dexMarkets);
+        nextMarkets = mergeMarketSummaries(nextMarkets, dexMarkets);
       }
 
-      setTokens(merged);
-      setB20Activated(data.b20Activated);
-      setMarkets(markets);
+      if (gen !== refreshGenRef.current) return null;
+
       const stats = {
         totalVolume24h: marketData.stats.totalVolume24h,
         totalLiquidity: marketData.stats.totalLiquidity,
       };
-      setMarketStats(stats);
+      const nextCatalog: ExploreCatalog = {
+        tokens: merged,
+        markets: nextMarkets,
+        marketStats: stats,
+        b20Activated: data.b20Activated,
+      };
+      setCatalog(nextCatalog);
       writeExploreCache({
         tokens: merged,
-        markets,
+        markets: nextMarkets,
         b20Activated: data.b20Activated,
         marketStats: stats,
       });
@@ -217,13 +249,17 @@ export default function LaunchpadTab({
     } catch (e) {
       console.error("[LaunchpadTab] refresh failed", e);
       if (!silent) {
-        app.showToast("Could not refresh markets — will retry shortly", "");
+        appRef.current.showToast("Could not refresh markets — will retry shortly", "");
       }
       return null;
     } finally {
-      setLoading(false);
+      if (gen === refreshGenRef.current) {
+        refreshInFlightRef.current = false;
+        setInitialLoading(false);
+        setSyncing(false);
+      }
     }
-  }, [app, tokens.length]);
+  }, []);
 
   useEffect(() => {
     if (!isActive) return;
@@ -233,7 +269,7 @@ export default function LaunchpadTab({
       void refresh({ silent: true });
     }, 60_000);
     return () => clearInterval(id);
-  }, [refresh, isActive]);
+  }, [isActive, refresh]);
 
   const openTrade = useCallback((token: LaunchedToken) => {
     setSelected(token);
@@ -253,14 +289,17 @@ export default function LaunchpadTab({
         app.showToast("Token not found or no liquidity on Base", "");
         return;
       }
-      setTokens((prev) => {
-        const launched = prev.filter(isAppLaunched);
-        const external = prev.filter((t) => !isAppLaunched(t));
-        return mergeExploreTokens(launched, [token, ...external]);
+      setCatalog((prev) => {
+        const launched = prev.tokens.filter(isAppLaunched);
+        const external = prev.tokens.filter((t) => !isAppLaunched(t));
+        const nextTokens = mergeExploreTokens(launched, [token, ...external]);
+        const key = token.address.toLowerCase();
+        return {
+          ...prev,
+          tokens: nextTokens,
+          markets: market ? { ...prev.markets, [key]: market } : prev.markets,
+        };
       });
-      if (market) {
-        setMarkets((m) => ({ ...m, [token.address.toLowerCase()]: market }));
-      }
       openTrade(token);
     },
     [tokens, openTrade, app]
@@ -446,7 +485,7 @@ export default function LaunchpadTab({
         tokens={tradableTokens}
         b20Tokens={tradableB20}
         markets={markets}
-        marketLoading={loading}
+        marketLoading={initialLoading && tradableTokens.length === 0}
         guestMode={guestMode}
         onLaunch={requestCreate}
         onOpenToken={openTrade}
@@ -463,7 +502,8 @@ export default function LaunchpadTab({
         liquidity={marketStats.totalLiquidity}
         launchesWeek={countRecentLaunches(activities, 7)}
         swaps24h={countRecentSwaps(activities, 24)}
-        loading={loading}
+        loading={initialLoading}
+        syncing={syncing}
       />
 
       <ExploreSearchBar
@@ -476,17 +516,16 @@ export default function LaunchpadTab({
         tokenCount={tradableTokens.length}
         b20Live={b20Activated !== false}
         volume24h={marketStats.totalVolume24h}
+        syncing={syncing}
       />
 
       <GlobalActivityTicker onOpenToken={handleActivityToken} />
 
-      <ScrollReveal>
-        <ExploreServicesRail
-          onNavigate={onNavigate ?? ((t) => app.setTab(t))}
-          guest={guestMode}
-          onConnect={onRequestConnect}
-        />
-      </ScrollReveal>
+      <ExploreServicesRail
+        onNavigate={onNavigate ?? ((t) => app.setTab(t))}
+        guest={guestMode}
+        onConnect={onRequestConnect}
+      />
 
       {!guestMode && wallet && (
         <ExploreQuestBanner
@@ -502,40 +541,33 @@ export default function LaunchpadTab({
       )}
 
       {!guestMode && forYouTokens.length > 0 && (
-        <ScrollReveal>
-          <ForYouRail tokens={forYouTokens} markets={markets} onOpen={openTrade} />
-        </ScrollReveal>
+        <ForYouRail tokens={forYouTokens} markets={markets} onOpen={openTrade} />
       )}
 
-      <ScrollReveal>
-        <LaunchpadExploreSections
-          tokens={tradableTokens}
-          markets={markets}
-          onOpen={openTrade}
-          activities={activities}
-        />
-      </ScrollReveal>
+      <LaunchpadExploreSections
+        tokens={tradableTokens}
+        markets={markets}
+        onOpen={openTrade}
+        activities={activities}
+        syncing={syncing}
+      />
 
-      <ScrollReveal>
-        <ImportTokenBar
-          onResolved={(token) => openTrade(token)}
-          onError={(msg) => app.showToast(msg, "")}
-        />
-      </ScrollReveal>
+      <ImportTokenBar
+        onResolved={(token) => openTrade(token)}
+        onError={(msg) => app.showToast(msg, "")}
+      />
 
       {watchlist.length > 0 && (
         <>
-          <ScrollReveal delay={40}>
-            <TokenWatchlistRail
-              tokens={tradableTokens}
-              markets={markets}
-              watchlist={watchlist}
-              onOpen={openTrade}
+          <TokenWatchlistRail
+            tokens={tradableTokens}
+            markets={markets}
+            watchlist={watchlist}
+            onOpen={openTrade}
             onToggleWatch={handleToggleWatch}
             pinned
             holdings={holdings}
           />
-          </ScrollReveal>
           <WatchlistAlertsPanel
             watchlist={watchlist}
             tokens={tradableTokens}
@@ -578,7 +610,7 @@ export default function LaunchpadTab({
               ))}
             </div>
 
-            {loading ? (
+            {initialLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
@@ -608,7 +640,7 @@ export default function LaunchpadTab({
               </div>
             )}
 
-            {!loading && filtered.length === 0 && filter !== "all" && (
+            {!initialLoading && filtered.length === 0 && filter !== "all" && (
               <p className="text-center text-sm text-slate-500 py-8">
                 No tokens match this filter yet. Launch the first one on Base.
               </p>
@@ -619,7 +651,7 @@ export default function LaunchpadTab({
             tokens={tradableB20}
             allTokens={allB20Tokens}
             markets={markets}
-            loading={loading}
+            loading={initialLoading}
             filter={b20Filter}
             onFilterChange={setB20Filter}
             onOpen={openTrade}
@@ -632,9 +664,7 @@ export default function LaunchpadTab({
         )}
       </div>
 
-      <ScrollReveal delay={120}>
-        <LaunchCalendar onOpenToken={handleActivityToken} />
-      </ScrollReveal>
+      <LaunchCalendar onOpenToken={handleActivityToken} />
 
       {wallet && (
         <MyLaunchedTokens
