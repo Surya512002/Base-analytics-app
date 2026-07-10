@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listLaunchedTokens } from "@/lib/launchpad/token-store";
 import { fetchMarketSummaries } from "@/lib/launchpad/dexscreener";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import { type Address } from "viem";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,10 @@ async function fetchEthUsd(): Promise<number> {
 }
 
 export async function GET(req: Request) {
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`launchpad-activity:${ip}`, 40, 60_000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
   const { searchParams } = new URL(req.url);
   const limit = Math.min(40, Math.max(5, parseInt(searchParams.get("limit") || "20", 10) || 20));
 
@@ -90,12 +95,13 @@ export async function GET(req: Request) {
       .map((t) => ({ token: t, market: markets[t.address.toLowerCase()] }))
       .filter((x) => x.market?.hasPool && x.market.pairAddress)
       .sort((a, b) => (b.market?.volume24h ?? 0) - (a.market?.volume24h ?? 0))
-      .slice(0, 6);
+      .slice(0, 4);
 
     const ethUsd = await fetchEthUsd();
     const pub = createBasePublicClient();
     const head = await pub.getBlockNumber();
-    const fromBlock = head > BigInt(4000) ? head - BigInt(4000) : BigInt(0);
+    const fromBlock = head > BigInt(2500) ? head - BigInt(2500) : BigInt(0);
+    const blockTsCache = new Map<string, number>();
 
     await Promise.all(
       pooled.map(async ({ token, market }) => {
@@ -111,9 +117,16 @@ export async function GET(req: Request) {
             fromBlock,
             toBlock: "latest",
           });
-          const recent = logs.slice(-3);
+          const recent = logs.slice(-2);
           for (const log of recent) {
-            const block = await pub.getBlock({ blockNumber: log.blockNumber! });
+            const blockKey = log.blockNumber?.toString() ?? "";
+            let timestamp = blockTsCache.get(blockKey);
+            if (timestamp === undefined && log.blockNumber) {
+              const block = await pub.getBlock({ blockNumber: log.blockNumber });
+              timestamp = Number(block.timestamp) * 1000;
+              blockTsCache.set(blockKey, timestamp);
+            }
+            if (!timestamp) continue;
             activities.push({
               type: "swap",
               token: token.address,
@@ -122,7 +135,7 @@ export async function GET(req: Request) {
               side: "buy",
               valueUsd: (market.volume24h ?? 0) / Math.max(market.txns24h ?? 1, 1),
               txHash: log.transactionHash,
-              timestamp: Number(block.timestamp) * 1000,
+              timestamp,
               label: `${token.symbol} swap on ${market.dexId ?? "DEX"}`,
             });
           }

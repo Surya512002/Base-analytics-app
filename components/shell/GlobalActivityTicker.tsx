@@ -25,7 +25,7 @@ export default function GlobalActivityTicker({
         })
         .catch(() => {});
     load();
-    const id = setInterval(load, 45_000);
+    const id = setInterval(load, 90_000);
     return () => {
       alive = false;
       clearInterval(id);

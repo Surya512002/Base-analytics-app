@@ -14,7 +14,6 @@ import {
 import { isTradableListing } from "@/lib/launchpad/tradable";
 import { sortByMarketVolume } from "@/lib/launchpad/merge-tokens";
 import { buildB20GainersRail } from "@/lib/launchpad/b20-gainers";
-import TokenMarketBadge from "@/components/launchpad/TokenMarketBadge";
 import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
 import { buildHotTokens } from "@/lib/launchpad/explore-rankings";
 
@@ -93,9 +92,15 @@ function TokenRailCard({
           <span className="text-[10px] font-bold text-emerald-300/90">
             MC {formatUsd(market.marketCap)}
           </span>
-        ) : (
-          <TokenMarketBadge address={token.address} />
-        )}
+        ) : market?.fdv ? (
+          <span className="text-[10px] font-bold text-emerald-300/90">
+            FDV {formatUsd(market.fdv)}
+          </span>
+        ) : market?.liquidityUsd && market.liquidityUsd > 0 ? (
+          <span className="text-[10px] font-bold text-[var(--ink-dim)]">
+            Liq {formatUsd(market.liquidityUsd)}
+          </span>
+        ) : null}
       </div>
     </button>
   );
