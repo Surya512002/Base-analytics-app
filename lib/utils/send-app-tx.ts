@@ -317,20 +317,45 @@ async function waitForTxMined(hash: string): Promise<void> {
   await waitForOnchainHash(hash);
 }
 
-async function sendViaEthSendTransactionBatch(
+async function sendSequentialAppCalls(
   provider: Eip1193,
   from: string,
-  calls: ContractCall[]
+  calls: ContractCall[],
+  opts: { preferSendCalls: boolean }
 ): Promise<string> {
   let lastHash = "";
   for (let i = 0; i < calls.length; i++) {
-    lastHash = await sendViaEthSendTransaction(provider, from, calls[i]!);
-    // Approve → addLiquidity / approve → swap must mine before the next popup.
-    if (i < calls.length - 1) {
-      await waitForTxMined(lastHash);
+    const call = calls[i]!;
+    const caps = getSendCallsCapabilities(isB20PrecompileAddress(call.to), {
+      skipPaymaster: isB20PrecompileAddress(call.to),
+    });
+
+    if (opts.preferSendCalls) {
+      try {
+        lastHash = await sendViaWalletSendCalls(provider, from, [call], caps);
+        if (i < calls.length - 1) await waitForTxMined(lastHash);
+        continue;
+      } catch (e) {
+        if (isUserRejection(e)) throw e;
+      }
     }
+
+    lastHash = await sendViaEthSendTransaction(provider, from, call);
+    if (i < calls.length - 1) await waitForTxMined(lastHash);
   }
   return lastHash;
+}
+
+function prefersWalletSendCalls(
+  connType: ConnectionType,
+  inMiniApp: boolean
+): boolean {
+  return (
+    inMiniApp &&
+    (connType === "farcaster" ||
+      connType === "baseAccount" ||
+      connType === "coinbase")
+  );
 }
 
 /** B20 precompiles cannot use paymaster — user wallet pays gas. */
@@ -400,12 +425,20 @@ export async function sendAppTransactions(
   await ensureActiveAccount(provider, from);
 
   const trySponsored = supportsPaymaster(connType);
+  const inMiniApp = Boolean(await detectMiniAppConnType());
   const b20Only =
     batch.length === 1 && isB20PrecompileAddress(batch[0]!.to);
 
   if (b20Only) {
-    const inMiniApp = Boolean(await detectMiniAppConnType());
     return sendB20Launch(provider, from, batch[0]!, connType, inMiniApp);
+  }
+
+  // Approve → addLiquidity / approve → swap: never batch in one wallet_sendCalls.
+  // Base App and MetaMask must confirm each step before the next prompt.
+  if (batch.length > 1) {
+    return sendSequentialAppCalls(provider, from, batch, {
+      preferSendCalls: prefersWalletSendCalls(connType, inMiniApp),
+    });
   }
 
   const b20InBatch = batchUsesB20Precompile(batch);
@@ -413,16 +446,16 @@ export async function sendAppTransactions(
     skipPaymaster: b20InBatch,
   });
 
-  if (trySponsored) {
+  if (trySponsored || prefersWalletSendCalls(connType, inMiniApp)) {
     try {
       return await sendViaWalletSendCalls(provider, from, batch, sendCallsCaps);
     } catch (e) {
       if (isUserRejection(e)) throw e;
-      return sendViaEthSendTransactionBatch(provider, from, batch);
+      return sendViaEthSendTransaction(provider, from, batch[0]!);
     }
   }
 
-  return sendViaEthSendTransactionBatch(provider, from, batch);
+  return sendViaEthSendTransaction(provider, from, batch[0]!);
 }
 
 /** Sends an app contract call — sponsored via paymaster in Base App / Coinbase Wallet. */
