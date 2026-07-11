@@ -860,24 +860,14 @@ export function useWalletApp() {
         const hash = await sendAppTransactions(activeConn, wallet.address, [createCall], {
           skipBuilderCompanion: true,
         });
-        setSponsored((s) => s + 1);
 
         let launchBlock: number | undefined;
         try {
           const pub = createBasePublicClient();
-          const pending = await pub.getTransaction({ hash: hash as `0x${string}` });
-          if (!pending) {
+          const receipt = await pub.getTransactionReceipt({ hash: hash as `0x${string}` });
+          if (!receipt || receipt.status !== "success") {
             throw new Error(
-              "Launch was not broadcast on Base — reconnect wallet and retry with a new vanity salt"
-            );
-          }
-          const receipt = await pub.waitForTransactionReceipt({
-            hash: hash as `0x${string}`,
-            timeout: 120_000,
-          });
-          if (receipt.status !== "success") {
-            throw new Error(
-              "Token launch reverted — check allocations (duplicate mints are merged automatically) and try a new salt"
+              "Token launch reverted — check allocations and retry with a new salt"
             );
           }
           launchBlock = Number(receipt.blockNumber);
@@ -982,8 +972,8 @@ export function useWalletApp() {
               ? "Token already exists — change name/symbol and retry"
               : msg.includes("FeatureNotActivated")
                 ? "B20 is not activated on Base mainnet yet"
-                : msg.includes("not broadcast")
-                  ? "Wallet returned a fake/pending hash — reconnect in Base App and retry with a new salt"
+                : msg.includes("not confirmed") || msg.includes("not broadcast")
+                  ? "Launch not confirmed — keep Base App open, ensure ≥0.0001 ETH for gas, reconnect wallet, and retry with a new salt"
                   : msg;
         if (!friendly.toLowerCase().includes("reject")) {
           showToast(`❌ ${friendly}`, "");

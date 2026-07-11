@@ -11,12 +11,13 @@ const BUILDER_DATA_SUFFIX_CAP = {
 
 /** EIP-5792 capabilities for wallet_sendCalls (paymaster + builder attribution). */
 export function getSendCallsCapabilities(
-  skipBuilderSuffix = false
+  skipBuilderSuffix = false,
+  opts?: { skipPaymaster?: boolean }
 ): Record<string, unknown> {
   const caps: Record<string, unknown> = skipBuilderSuffix
     ? {}
     : { ...BUILDER_DATA_SUFFIX_CAP };
-  if (PAYMASTER_URL) {
+  if (PAYMASTER_URL && !opts?.skipPaymaster) {
     caps.paymasterService = { url: PAYMASTER_URL };
   }
   return caps;
