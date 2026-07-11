@@ -272,6 +272,16 @@ export default function LaunchpadTab({
   }, [isActive, refresh]);
 
   const openTrade = useCallback((token: LaunchedToken) => {
+    setCatalog((prev) => {
+      const key = token.address.toLowerCase();
+      if (prev.tokens.some((t) => t.address.toLowerCase() === key)) return prev;
+      const launched = prev.tokens.filter(isAppLaunched);
+      const external = prev.tokens.filter((t) => !isAppLaunched(t));
+      return {
+        ...prev,
+        tokens: mergeExploreTokens(launched, [token, ...external]),
+      };
+    });
     setSelected(token);
     setView("trade");
     syncTokenUrl(token);
@@ -286,7 +296,12 @@ export default function LaunchpadTab({
       }
       const { token, market } = await resolveTokenByAddress(addr);
       if (!token) {
-        app.showToast("Token not found or no liquidity on Base", "");
+        app.showToast(
+          addr.startsWith("0xb20")
+            ? "B20 token not found on Base — check the deploy tx on BaseScan or wait a minute and retry"
+            : "Token not found or no liquidity on Base",
+          ""
+        );
         return;
       }
       setCatalog((prev) => {

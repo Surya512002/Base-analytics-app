@@ -4,8 +4,45 @@ import {
   summarizePair,
   type TokenMarketSummary,
 } from "@/lib/launchpad/dexscreener";
+import { isB20TokenAddress } from "@/lib/launchpad/token-meta";
+import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import { getLaunchedToken } from "@/lib/launchpad/token-store";
 import type { LaunchedToken } from "@/lib/launchpad/types";
+import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
+
+const B20_FACTORY_ABI = [
+  {
+    name: "isB20Initialized",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "token", type: "address" }],
+    outputs: [{ type: "bool" }],
+  },
+] as const;
+
+const ERC20_META_ABI = [
+  {
+    name: "name",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "string" }],
+  },
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "string" }],
+  },
+  {
+    name: "decimals",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint8" }],
+  },
+] as const;
 
 function isAddressLike(a: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(a);
@@ -29,6 +66,47 @@ function extractMeta(pair: { info?: PairInfo } | null) {
   };
 }
 
+/** B20 exists on-chain but DexScreener may lag minutes after LP seed. */
+async function resolveB20OnChain(addr: `0x${string}`): Promise<LaunchedToken | null> {
+  if (!isB20TokenAddress(addr)) return null;
+  const pub = createPublicOnlyBaseClient();
+  try {
+    const initialized = await pub.readContract({
+      address: B20_FACTORY_ADDRESS,
+      abi: B20_FACTORY_ABI,
+      functionName: "isB20Initialized",
+      args: [addr],
+    });
+    if (!initialized) return null;
+
+    const [name, symbol, decimals] = await Promise.all([
+      pub
+        .readContract({ address: addr, abi: ERC20_META_ABI, functionName: "name" })
+        .catch(() => "B20 Token"),
+      pub
+        .readContract({ address: addr, abi: ERC20_META_ABI, functionName: "symbol" })
+        .catch(() => "B20"),
+      pub
+        .readContract({ address: addr, abi: ERC20_META_ABI, functionName: "decimals" })
+        .catch(() => 18),
+    ]);
+
+    return {
+      address: addr.toLowerCase(),
+      name: String(name).trim() || "B20 Token",
+      symbol: String(symbol).trim().toUpperCase() || "B20",
+      decimals: Number(decimals) || 18,
+      creator: "",
+      txHash: "",
+      createdAt: Date.now(),
+      source: "b20",
+      description: "B20 token on Base",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Resolve registry token or build tradeable external token from DexScreener. */
 export async function resolveTradeableToken(
   address: string
@@ -37,21 +115,28 @@ export async function resolveTradeableToken(
   if (!isAddressLike(addr)) return { token: null, market: null };
 
   const registered = await getLaunchedToken(addr);
-  if (registered) {
-    const batch = await fetchDexScreenerBatch([addr]);
-    const best = pickBestPair(batch.get(addr) ?? []);
-    const market = summarizePair(addr, best);
-    return { token: { ...registered, source: "launched" }, market };
-  }
-
   const batch = await fetchDexScreenerBatch([addr]);
   const pairs = batch.get(addr) ?? [];
   const best = pickBestPair(pairs);
+  const market =
+    best && (best.liquidity?.usd ?? 0) > 0 ? summarizePair(addr, best) : null;
+
+  if (registered) {
+    return { token: { ...registered, source: "launched" }, market };
+  }
+
+  const b20OnChain = await resolveB20OnChain(addr as `0x${string}`);
+  if (b20OnChain) {
+    const meta = extractMeta(best as { info?: PairInfo } | null);
+    return {
+      token: { ...b20OnChain, ...meta },
+      market,
+    };
+  }
+
   if (!best || (best.liquidity?.usd ?? 0) <= 0) {
     return { token: null, market: null };
   }
-
-  const market = summarizePair(addr, best);
   const meta = extractMeta(best as { info?: PairInfo });
 
   const isB20 = addr.startsWith("0xb20");
@@ -67,5 +152,5 @@ export async function resolveTradeableToken(
     ...meta,
   };
 
-  return { token, market };
+  return { token, market: summarizePair(addr, best) };
 }

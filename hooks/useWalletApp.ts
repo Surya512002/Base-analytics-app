@@ -891,7 +891,7 @@ export function useWalletApp() {
           }
         }
 
-        await registerLaunchedToken({
+        const saved = await registerLaunchedToken({
           address: tokenAddr,
           name: args.name,
           symbol: args.symbol,
@@ -910,7 +910,14 @@ export function useWalletApp() {
           launchBlock,
           antiSnipeBlocks: args.antiSnipeBlocks ?? 8,
           startPriceUsd: args.startPriceUsd,
+          source: "launched",
         });
+        if (!saved) {
+          showToast(
+            "Token is live on Base — app catalog save failed; paste your address to trade",
+            hash
+          );
+        }
 
         if (
           args.autoSeedLiquidity !== false &&
