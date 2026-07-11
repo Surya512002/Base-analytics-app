@@ -966,7 +966,7 @@ export function useWalletApp() {
               const seedMsg =
                 seedErr instanceof Error ? seedErr.message.split("\n")[0] : "LP seed failed";
               showToast(
-                `Token live — add liquidity manually to enable swaps (${seedMsg})`,
+                `Token live — add liquidity manually to enable swaps (${seedMsg}). If approve failed first, retry seed from the token page.`,
                 ""
               );
             }

@@ -313,14 +313,22 @@ async function sendViaEthSendTransaction(
   return hash;
 }
 
+async function waitForTxMined(hash: string): Promise<void> {
+  await waitForOnchainHash(hash);
+}
+
 async function sendViaEthSendTransactionBatch(
   provider: Eip1193,
   from: string,
   calls: ContractCall[]
 ): Promise<string> {
   let lastHash = "";
-  for (const call of calls) {
-    lastHash = await sendViaEthSendTransaction(provider, from, call);
+  for (let i = 0; i < calls.length; i++) {
+    lastHash = await sendViaEthSendTransaction(provider, from, calls[i]!);
+    // Approve → addLiquidity / approve → swap must mine before the next popup.
+    if (i < calls.length - 1) {
+      await waitForTxMined(lastHash);
+    }
   }
   return lastHash;
 }
