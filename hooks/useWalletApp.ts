@@ -973,7 +973,7 @@ export function useWalletApp() {
               : msg.includes("FeatureNotActivated")
                 ? "B20 is not activated on Base mainnet yet"
                 : msg.includes("not confirmed") || msg.includes("not broadcast")
-                  ? "Launch not confirmed — keep Base App open, ensure ≥0.0001 ETH for gas, reconnect wallet, and retry with a new salt"
+                  ? "Launch not confirmed — approve the tx in your wallet, keep the tab open, ensure ≥0.0001 ETH on Base, and retry with a new salt"
                   : msg;
         if (!friendly.toLowerCase().includes("reject")) {
           showToast(`❌ ${friendly}`, "");

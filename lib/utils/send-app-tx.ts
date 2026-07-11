@@ -12,7 +12,10 @@ import {
   isB20PrecompileAddress,
   finalizeAppTransactionBatch,
 } from "@/lib/utils/tx";
-import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
+import {
+  detectMiniAppConnType,
+  ensureBaseNetwork,
+} from "@/lib/utils/wallet-connection";
 import { gasLimitForB20Target } from "@/lib/b20/preflight";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
@@ -324,23 +327,25 @@ async function sendB20Launch(
   provider: Eip1193,
   from: string,
   call: ContractCall,
-  connType: ConnectionType
+  connType: ConnectionType,
+  inMiniApp: boolean
 ): Promise<string> {
   const errors: string[] = [];
-  const smartWallet =
-    connType === "farcaster" ||
-    connType === "baseAccount" ||
-    connType === "coinbase";
 
-  const attempts: Array<() => Promise<string>> = smartWallet
+  // Desktop browser wallets (MetaMask, Rabby, Coinbase extension) must use
+  // eth_sendTransaction — wallet_sendCalls often returns ghost hashes outside Base App.
+  const useSendCallsFirst =
+    inMiniApp &&
+    (connType === "farcaster" ||
+      connType === "baseAccount" ||
+      connType === "coinbase");
+
+  const attempts: Array<() => Promise<string>> = useSendCallsFirst
     ? [
         () => sendViaWalletSendCalls(provider, from, [call], {}),
         () => sendViaEthSendTransaction(provider, from, call),
       ]
-    : [
-        () => sendViaEthSendTransaction(provider, from, call),
-        () => sendViaWalletSendCalls(provider, from, [call], {}),
-      ];
+    : [() => sendViaEthSendTransaction(provider, from, call)];
 
   for (const attempt of attempts) {
     try {
@@ -354,7 +359,7 @@ async function sendB20Launch(
 
   throw new Error(
     errors[0] ||
-      "B20 launch failed — reconnect wallet in Base App and retry with a new salt"
+      "B20 launch failed — reconnect wallet, ensure ≥0.0001 ETH on Base, and retry with a new salt"
   );
 }
 
@@ -388,7 +393,8 @@ export async function sendAppTransactions(
     batch.length === 1 && isB20PrecompileAddress(batch[0]!.to);
 
   if (b20Only) {
-    return sendB20Launch(provider, from, batch[0]!, connType);
+    const inMiniApp = Boolean(await detectMiniAppConnType());
+    return sendB20Launch(provider, from, batch[0]!, connType, inMiniApp);
   }
 
   const b20InBatch = batchUsesB20Precompile(batch);
