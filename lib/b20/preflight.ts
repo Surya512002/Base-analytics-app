@@ -1,7 +1,10 @@
 import { formatEther, parseEther, type Hex } from "viem";
 import { isB20AssetActivated } from "@/lib/b20/activation";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import {
+  createBasePublicClient,
+  isRpcRateLimitError,
+} from "@/lib/utils/base-rpc";
 
 /** Rabby / public RPC often cannot estimate B20 precompile gas — set explicitly. */
 export const B20_CREATE_GAS_LIMIT = BigInt(1_200_000);
@@ -16,7 +19,27 @@ export function gasLimitForB20Target(to: string): bigint {
     : B20_MINT_GAS_LIMIT;
 }
 
-/** Dry-run createB20 before opening the wallet — surfaces revert reasons early. */
+/** True only for genuine contract execution reverts (not RPC/network failures). */
+function isExecutionRevert(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return (
+    m.includes("revert") ||
+    m.includes("execution reverted") ||
+    m.includes("tokenalreadyexists") ||
+    m.includes("featurenotactivated") ||
+    m.includes("invaliddecimals") ||
+    m.includes("supplycap") ||
+    m.includes("initcallfailed") ||
+    m.includes("abidecodefailed") ||
+    m.includes("missingrequiredfield")
+  );
+}
+
+/**
+ * Dry-run createB20 before opening the wallet — surfaces revert reasons early.
+ * Only blocks the launch on a genuine execution revert; RPC/rate-limit/timeout
+ * failures return ok so the user can still submit (wallet re-simulates anyway).
+ */
 export async function simulateB20Create(
   creator: `0x${string}`,
   data: Hex
@@ -32,6 +55,13 @@ export async function simulateB20Create(
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+
+    // RPC capped / rate-limited / network hiccup — can't determine, don't block.
+    if (isRpcRateLimitError(e) || !isExecutionRevert(msg)) {
+      console.warn("[b20] simulate skipped (non-revert RPC error)", msg);
+      return { ok: true };
+    }
+
     if (msg.includes("TokenAlreadyExists")) {
       return { ok: false, reason: "Token already exists at this address — grind a new vanity salt" };
     }
@@ -43,6 +73,9 @@ export async function simulateB20Create(
     }
     if (msg.includes("SupplyCapExceeded") || msg.includes("InvalidSupplyCap")) {
       return { ok: false, reason: "Invalid supply cap or mint allocations" };
+    }
+    if (msg.includes("AbiDecodeFailed")) {
+      return { ok: false, reason: "Invalid launch parameters — refresh and try again" };
     }
     return {
       ok: false,
