@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseUnits } from "viem";
+import { encodeAbiParameters, parseAbiParameters, parseUnits } from "viem";
 import {
+  encodeAssetCreateParams,
   encodeCreateB20Calldata,
   mergeMintAllocations,
   predictB20Address,
@@ -40,6 +41,21 @@ describe("B20 launch encoding", () => {
     });
     expect(data.startsWith("0x")).toBe(true);
     expect(data.length).toBeGreaterThan(10);
+  });
+
+  it("encodeAssetCreateParams uses canonical B20 tuple encoding", () => {
+    const admin = "0x0000000000000000000000000000000000000000" as const;
+    const encoded = encodeAssetCreateParams("Test", "TST", admin, 18);
+    const flat = encodeAbiParameters(
+      parseAbiParameters("uint8,string,string,address,uint8"),
+      [1, "Test", "TST", admin, 18]
+    );
+    const tuple = encodeAbiParameters(
+      parseAbiParameters("(uint8,string,string,address,uint8)"),
+      [[1, "Test", "TST", admin, 18]]
+    );
+    expect(encoded).toBe(tuple);
+    expect(encoded).not.toBe(flat);
   });
 
   it("buildB20Call sets factory gas and no builder suffix on data", () => {

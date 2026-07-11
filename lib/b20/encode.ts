@@ -168,11 +168,20 @@ export function encodeAssetCreateParams(
   initialAdmin: `0x${string}`,
   decimals: number
 ): Hex {
+  // Factory expects abi.encode(B20AssetCreateParams) — a single tuple, not flat head args.
   return encodeAbiParameters(
     parseAbiParameters(
-      "uint8 version, string name, string symbol, address initialAdmin, uint8 decimals"
+      "(uint8 version, string name, string symbol, address initialAdmin, uint8 decimals)"
     ),
-    [B20_ASSET_CREATE_PARAMS_VERSION, name, symbol, initialAdmin, decimals]
+    [
+      {
+        version: B20_ASSET_CREATE_PARAMS_VERSION,
+        name,
+        symbol,
+        initialAdmin,
+        decimals,
+      },
+    ]
   );
 }
 

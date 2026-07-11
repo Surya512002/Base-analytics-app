@@ -162,7 +162,7 @@ import {
 import { USDC_BASE, USDC_DECIMALS, type SwapAsset } from "@/lib/launchpad/tokens-base";
 import { registerLaunchedToken, fetchSwapQuote, fetchB20ActivationStatus } from "@/lib/api/launchpad-client";
 import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
-import { preflightB20Launch } from "@/lib/b20/preflight";
+import { preflightB20Launch, simulateB20Create } from "@/lib/b20/preflight";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
 import { splitPlatformFee } from "@/lib/launchpad/fee-split";
@@ -857,6 +857,13 @@ export function useWalletApp() {
           (`0xB2000000000000000000000000000000000000` as `0x${string}`);
 
         const createCall = buildB20Call(B20_FACTORY_ADDRESS, createData);
+
+        const simulation = await simulateB20Create(creator, createData);
+        if (!simulation.ok) {
+          showToast(simulation.reason, "");
+          return { ok: false };
+        }
+
         const hash = await sendAppTransactions(activeConn, wallet.address, [createCall], {
           skipBuilderCompanion: true,
         });
