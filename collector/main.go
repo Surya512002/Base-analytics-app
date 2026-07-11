@@ -60,6 +60,13 @@ type apiResp struct {
 	Result  interface{} `json:"result"`
 }
 
+type fetchJob struct {
+	host   string
+	action string
+	page   int
+	key    string
+}
+
 var client = &http.Client{Timeout: 14 * time.Second}
 
 func main() {
@@ -101,33 +108,27 @@ func collect(addr string, pages int) Output {
 		basescanKey = strings.TrimSpace(os.Getenv("NEXT_PUBLIC_BASESCAN_API_KEY"))
 	}
 
-	type job struct {
-		host   string
-		action string
-		page   int
-		key    string
-	}
-	var jobs []job
+	var jobs []fetchJob
 
 	for p := 1; p <= pages; p++ {
-		jobs = append(jobs, job{host: "blockscout", action: "tokennfttx", page: p})
+		jobs = append(jobs, fetchJob{host: "blockscout", action: "tokennfttx", page: p})
 	}
 	for p := 1; p <= min(pages, 3); p++ {
-		jobs = append(jobs, job{host: "blockscout", action: "tokentx", page: p})
-		jobs = append(jobs, job{host: "blockscout", action: "txlistinternal", page: p})
+		jobs = append(jobs, fetchJob{host: "blockscout", action: "tokentx", page: p})
+		jobs = append(jobs, fetchJob{host: "blockscout", action: "txlistinternal", page: p})
 	}
-	jobs = append(jobs, job{host: "blockscout", action: "txlist", page: 1})
+	jobs = append(jobs, fetchJob{host: "blockscout", action: "txlist", page: 1})
 
 	if basescanKey != "" {
 		for p := 1; p <= min(pages, 2); p++ {
-			jobs = append(jobs, job{host: "basescan", action: "tokennfttx", page: p, key: basescanKey})
+			jobs = append(jobs, fetchJob{host: "basescan", action: "tokennfttx", page: p, key: basescanKey})
 		}
 	}
 
 	sem := make(chan struct{}, 12)
 	for _, j := range jobs {
 		wg.Add(1)
-		go func(j job) {
+		go func(j fetchJob) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
@@ -157,7 +158,7 @@ func collect(addr string, pages int) Output {
 	}
 }
 
-func fetchPage(j job, addr string) []rawTx {
+func fetchPage(j fetchJob, addr string) []rawTx {
 	var url string
 	switch j.host {
 	case "blockscout":
