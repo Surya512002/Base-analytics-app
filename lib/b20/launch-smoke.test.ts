@@ -85,7 +85,8 @@ describe("B20 on-chain preflight", () => {
   it("predictB20Address returns a 0xB20 address", async () => {
     const salt = computeLaunchSalt("Smoke", "SMK", CREATOR, String(Date.now()));
     const addr = await predictB20Address(CREATOR, salt);
-    expect(addr).toMatch(/^0xB20/i);
+    expect(addr).toBeTruthy();
+    expect(String(addr)).toMatch(/^0xB20/i);
   }, 30_000);
 
   it("preflight returns balance info for treasury wallet", async () => {

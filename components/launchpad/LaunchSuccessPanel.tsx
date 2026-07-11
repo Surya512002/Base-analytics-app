@@ -1,22 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import { CheckCircle2, Copy, ExternalLink, Rocket } from "lucide-react";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { aerodromeDepositUrl, uniswapPoolUrl } from "@/lib/launchpad/dex";
 import { basescanTxUrl } from "@/lib/utils/tx";
+import { copyToClipboard } from "@/lib/utils/clipboard";
+import { isInvalidLaunchTokenAddress } from "@/lib/b20/launch-receipt";
 
 export default function LaunchSuccessPanel({
   token,
   onTrade,
   onExplore,
+  onCopied,
 }: {
   token: LaunchedToken;
   onTrade: () => void;
   onExplore: () => void;
+  onCopied?: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const txUrl = basescanTxUrl(token.txHash);
-  const copyAddr = () => {
-    void navigator.clipboard.writeText(token.address);
+  const tokenUrl = `https://basescan.org/address/${token.address}`;
+  const addressLooksWrong = isInvalidLaunchTokenAddress(token.address);
+
+  const copyAddr = async () => {
+    const ok = await copyToClipboard(token.address);
+    if (ok) {
+      setCopied(true);
+      onCopied?.();
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   return (
@@ -46,25 +60,47 @@ export default function LaunchSuccessPanel({
             {token.description && (
               <p className="text-sm text-slate-400 mt-2">{token.description}</p>
             )}
-            <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
-              <button
-                type="button"
-                onClick={copyAddr}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-300 hover:text-white"
+            <div className="mt-3 space-y-2">
+              {addressLooksWrong && (
+                <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                  Address preview unavailable — open your launch tx on BaseScan and copy the new
+                  token address from the <span className="font-semibold">B20Created</span> event.
+                </p>
+              )}
+              <p
+                className="font-mono text-xs sm:text-sm text-white break-all select-all leading-relaxed rounded-xl border border-white/10 bg-black/30 px-3 py-2.5"
+                title={token.address}
               >
-                <Copy size={12} />
-                {token.address.slice(0, 10)}…{token.address.slice(-8)}
-              </button>
-              {txUrl && (
+                {token.address}
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                <button
+                  type="button"
+                  onClick={() => void copyAddr()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-300 hover:text-white"
+                >
+                  <Copy size={12} />
+                  {copied ? "Copied!" : "Copy contract address"}
+                </button>
                 <a
-                  href={txUrl}
+                  href={tokenUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-[#6BA3FF] hover:text-white"
                 >
-                  BaseScan <ExternalLink size={12} />
+                  Token on BaseScan <ExternalLink size={12} />
                 </a>
-              )}
+                {txUrl && (
+                  <a
+                    href={txUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-400 hover:text-white"
+                  >
+                    Launch tx <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>

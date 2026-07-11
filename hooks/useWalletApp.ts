@@ -131,6 +131,10 @@ import type { PredictionAsset, PredictionDuration } from "@/lib/constants/predic
 import type { StreakEntry } from "@/lib/predictions/types";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import {
+  extractB20TokenFromReceipt,
+  isInvalidLaunchTokenAddress,
+} from "@/lib/b20/launch-receipt";
+import {
   encodeCreateB20Calldata,
   encodeB20ApproveCalldata,
   mergeMintAllocations,
@@ -756,6 +760,8 @@ export function useWalletApp() {
       telegram?: string;
       discord?: string;
       metadataEditable?: boolean;
+      /** Vanity grind preview — fallback if RPC address prediction fails */
+      predictedAddress?: string;
       mints: MintAllocation[];
       poolSeedPct?: number;
       quoteToken?: string;
@@ -836,6 +842,12 @@ export function useWalletApp() {
 
         const salt = args.salt;
 
+        let tokenAddr: `0x${string}` =
+          (await predictB20Address(creator, salt)) ??
+          (args.predictedAddress?.startsWith("0x")
+            ? (args.predictedAddress as `0x${string}`)
+            : (`0xB2000000000000000000000000000000000000` as `0x${string}`));
+
         const createData = encodeCreateB20Calldata({
           name: args.name,
           symbol: args.symbol,
@@ -852,10 +864,6 @@ export function useWalletApp() {
           mints: mergedMints,
         });
 
-        const tokenAddr =
-          (await predictB20Address(creator, salt)) ??
-          (`0xB2000000000000000000000000000000000000` as `0x${string}`);
-
         const createCall = buildB20Call(B20_FACTORY_ADDRESS, createData);
 
         const simulation = await simulateB20Create(creator, createData);
@@ -869,9 +877,10 @@ export function useWalletApp() {
         });
 
         let launchBlock: number | undefined;
+        let receipt: import("viem").TransactionReceipt | null = null;
         try {
           const pub = createPublicOnlyBaseClient();
-          const receipt = await withRpcRetry(() =>
+          receipt = await withRpcRetry(() =>
             pub.getTransactionReceipt({ hash: hash as `0x${string}` })
           );
           if (!receipt || receipt.status !== "success") {
@@ -880,6 +889,15 @@ export function useWalletApp() {
             );
           }
           launchBlock = Number(receipt.blockNumber);
+          const fromEvent = extractB20TokenFromReceipt(receipt);
+          if (fromEvent) {
+            tokenAddr = fromEvent;
+          } else if (isInvalidLaunchTokenAddress(tokenAddr)) {
+            const retryPredict = await predictB20Address(creator, salt);
+            if (retryPredict && !isInvalidLaunchTokenAddress(retryPredict)) {
+              tokenAddr = retryPredict;
+            }
+          }
         } catch (receiptErr) {
           if (isRpcInfrastructureError(receiptErr)) {
             console.warn("[launch] receipt fetch skipped (RPC error)", receiptErr);

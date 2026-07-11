@@ -293,11 +293,10 @@ export async function predictB20Address(
   try {
     const { createPublicClient, http } = await import("viem");
     const { base } = await import("viem/chains");
-    const { createBaseHttpTransport } = await import("@/lib/utils/base-rpc");
-    const pub = createPublicClient({
-      chain: base,
-      transport: rpcUrl ? http(rpcUrl) : createBaseHttpTransport(),
-    });
+    const { createPublicOnlyBaseClient } = await import("@/lib/utils/base-rpc");
+    const pub = rpcUrl
+      ? createPublicClient({ chain: base, transport: http(rpcUrl) })
+      : createPublicOnlyBaseClient();
     return await pub.readContract({
       address: B20_FACTORY_ADDRESS,
       abi: B20_FACTORY_ABI,

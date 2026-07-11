@@ -317,6 +317,7 @@ export default function TokenLaunchForm({
       decimals,
       supplyCap: FIXED_LAUNCH_SUPPLY,
       salt: vanitySalt,
+      predictedAddress: vanityAddress ?? undefined,
       imageUrl: finalImageUrl,
       description: description.trim() || undefined,
       website: website.trim() || undefined,
@@ -368,6 +369,7 @@ export default function TokenLaunchForm({
         token={launchedToken}
         onTrade={() => onTrade?.(launchedToken)}
         onExplore={() => onExplore?.()}
+        onCopied={() => showToast("Contract address copied", "")}
       />
     );
   }
@@ -665,7 +667,9 @@ export default function TokenLaunchForm({
             {vestedPct}%) and pool seed ({poolPct}%) stay unminted. Gas ~$0.05–$0.15 on Base.
             Every transaction includes builder code{" "}
             <span className="font-mono text-cyan-400/80">{BUILDER_CODE}</span>. Rabby may warn
-            &quot;not a contract&quot; on 0xB20f — normal for B20 precompiles.
+            &quot;not a contract&quot; on the B20 factory (
+            <span className="font-mono text-slate-400">0xB20f…</span>) — that is not your token;
+            your token address starts with <span className="font-mono text-emerald-400/90">0xB200…</span>.
           </p>
         </div>
 
