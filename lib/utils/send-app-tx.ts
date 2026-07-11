@@ -17,7 +17,7 @@ import {
   ensureBaseNetwork,
 } from "@/lib/utils/wallet-connection";
 import { gasLimitForB20Target } from "@/lib/b20/preflight";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { createPublicOnlyBaseClient, withRpcRetry } from "@/lib/utils/base-rpc";
 
 const BASE_CHAIN_HEX = "0x2105" as const;
 const WALLET_PROMPT_MS = 120_000;
@@ -157,14 +157,16 @@ function normalizeCallsStatus(
 
 /** Fail fast when the wallet returns a hash that never hits the mempool (common in Base App). */
 async function assertTxVisibleOnBase(hash: string): Promise<void> {
-  const pub = createBasePublicClient();
+  const pub = createPublicOnlyBaseClient();
   const deadline = Date.now() + BROADCAST_DETECT_MS;
   while (Date.now() < deadline) {
     try {
-      const pending = await pub.getTransaction({ hash: hash as `0x${string}` });
+      const pending = await withRpcRetry(() =>
+        pub.getTransaction({ hash: hash as `0x${string}` })
+      );
       if (pending) return;
     } catch {
-      /* not indexed yet */
+      /* not indexed yet or RPC hiccup */
     }
     await new Promise((r) => setTimeout(r, 1_500));
   }
@@ -179,13 +181,15 @@ async function waitForOnchainHash(hash: string): Promise<string> {
     throw new Error("Wallet returned an invalid transaction hash");
   }
   await assertTxVisibleOnBase(hash);
-  const pub = createBasePublicClient();
+  const pub = createPublicOnlyBaseClient();
   try {
-    const receipt = await pub.waitForTransactionReceipt({
-      hash: hash as `0x${string}`,
-      timeout: ONCHAIN_WAIT_MS,
-      pollingInterval: 2_000,
-    });
+    const receipt = await withRpcRetry(() =>
+      pub.waitForTransactionReceipt({
+        hash: hash as `0x${string}`,
+        timeout: ONCHAIN_WAIT_MS,
+        pollingInterval: 2_000,
+      })
+    );
     if (receipt.status !== "success") {
       throw new Error("Transaction reverted on Base");
     }
@@ -194,9 +198,8 @@ async function waitForOnchainHash(hash: string): Promise<string> {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.toLowerCase().includes("revert")) throw e;
     if (msg.includes("not broadcast")) throw e;
-    throw new Error(
-      "Launch was not confirmed on Base — ensure you have enough ETH for gas, reconnect wallet, and retry with a new salt"
-    );
+    // Tx was submitted — RPC may be flaky while confirming; return hash for downstream retry.
+    return hash;
   }
 }
 

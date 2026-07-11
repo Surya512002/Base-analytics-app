@@ -26,7 +26,7 @@ import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
 import { fetchMintedLevelsFromChain } from "@/lib/wallet/minted-badges";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
 import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
 import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
@@ -870,8 +870,10 @@ export function useWalletApp() {
 
         let launchBlock: number | undefined;
         try {
-          const pub = createBasePublicClient();
-          const receipt = await pub.getTransactionReceipt({ hash: hash as `0x${string}` });
+          const pub = createPublicOnlyBaseClient();
+          const receipt = await withRpcRetry(() =>
+            pub.getTransactionReceipt({ hash: hash as `0x${string}` })
+          );
           if (!receipt || receipt.status !== "success") {
             throw new Error(
               "Token launch reverted — check allocations and retry with a new salt"
@@ -879,9 +881,14 @@ export function useWalletApp() {
           }
           launchBlock = Number(receipt.blockNumber);
         } catch (receiptErr) {
-          const msg =
-            receiptErr instanceof Error ? receiptErr.message : "Launch not confirmed on Base";
-          throw new Error(msg);
+          if (isRpcInfrastructureError(receiptErr)) {
+            console.warn("[launch] receipt fetch skipped (RPC error)", receiptErr);
+            // Tx hash is valid — register token; block will backfill from explorer later.
+          } else {
+            const msg =
+              receiptErr instanceof Error ? receiptErr.message : "Launch not confirmed on Base";
+            throw new Error(msg);
+          }
         }
 
         await registerLaunchedToken({
@@ -973,7 +980,10 @@ export function useWalletApp() {
         const msg =
           e instanceof Error ? e.message.split("\n")[0] : "Launch failed";
         const friendly =
-          msg.includes("Number") || msg.includes("underflow") || msg.includes("overflow")
+          isRpcInfrastructureError(e) ||
+          /rpc request failed|fetch failed|429|capacity|rate limit/i.test(msg)
+            ? "Base RPC is busy — if you approved the tx, check BaseScan in 30s or retry"
+            : msg.includes("Number") || msg.includes("underflow") || msg.includes("overflow")
             ? "Invalid supply or mint amount"
             : msg.includes("TokenAlreadyExists")
               ? "Token already exists — change name/symbol and retry"

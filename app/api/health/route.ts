@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAlchemyKey, alchemyRpcForKey } from "@/lib/constants/env";
+import { BASE_PUBLIC_RPC } from "@/lib/constants/env";
 import { pingRedis } from "@/lib/redis-cache";
 import { zeroXConfigured } from "@/lib/launchpad/zerox";
 
@@ -10,8 +10,7 @@ async function pingRpc(): Promise<{
   latencyMs?: number;
   error?: string;
 }> {
-  const key = getAlchemyKey();
-  const url = key ? alchemyRpcForKey(key) : "https://mainnet.base.org";
+  const url = BASE_PUBLIC_RPC;
   const start = Date.now();
   try {
     const res = await fetch(url, {
@@ -50,7 +49,7 @@ export async function GET() {
   const [redis, rpc] = await Promise.all([pingRedis(), pingRpc()]);
 
   const checks = {
-    alchemy: Boolean(getAlchemyKey()),
+    alchemy: Boolean(process.env.NEXT_PUBLIC_ALCHEMY_KEY?.trim() || process.env.ALCHEMY_API_KEY?.trim()),
     redisConfigured: Boolean(process.env.KV_REDIS_URL?.trim()),
     redis,
     rpc,

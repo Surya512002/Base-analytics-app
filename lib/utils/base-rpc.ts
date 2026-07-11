@@ -7,18 +7,38 @@ import {
 import { base } from "viem/chains";
 import { getAlchemyKey, BASE_PUBLIC_RPC, alchemyRpcForKey } from "@/lib/constants/env";
 
-/** Ordered RPC URLs — Alchemy keys first (avoid public RPC rate limits), then public Base. */
+/** Ordered RPC URLs — public Base first (Alchemy free tier often hits monthly caps). */
 export function getBaseRpcUrls(): string[] {
   const urls: string[] = [];
-  const serverUrl = process.env.BASE_RPC_URL?.trim();
-  if (serverUrl) urls.push(serverUrl);
-
+  const explicit =
+    process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() ||
+    process.env.BASE_RPC_URL?.trim();
   const key = getAlchemyKey();
-  if (key) urls.push(alchemyRpcForKey(key));
+  const alchemy = key ? alchemyRpcForKey(key) : null;
 
+  if (explicit && !explicit.includes("alchemy.com")) {
+    urls.push(explicit);
+  }
   urls.push(BASE_PUBLIC_RPC);
+  if (explicit?.includes("alchemy.com")) {
+    urls.push(explicit);
+  } else if (alchemy) {
+    urls.push(alchemy);
+  }
 
   return [...new Set(urls)];
+}
+
+/** Public Base RPC only — use for launch / tx confirmation to avoid capped Alchemy keys. */
+export function createPublicOnlyBaseClient() {
+  return createPublicClient({
+    chain: base,
+    transport: http(BASE_PUBLIC_RPC, {
+      retryCount: 3,
+      retryDelay: 400,
+      timeout: 25_000,
+    }),
+  });
 }
 
 export function createBaseHttpTransport(): Transport {
@@ -38,9 +58,16 @@ export function createBasePublicClient() {
 }
 
 export function isRpcRateLimitError(err: unknown): boolean {
+  return isRpcInfrastructureError(err);
+}
+
+export function isRpcInfrastructureError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
-  return /compute units|rate limit|429|capacity|too many requests|throughput|monthly capacity/i.test(
-    msg
+  const cause =
+    err instanceof Error && err.cause != null ? String(err.cause) : "";
+  const combined = `${msg} ${cause}`.toLowerCase();
+  return /compute units|rate limit|429|capacity|too many requests|throughput|monthly capacity|rpc request failed|fetch failed|eai_again|network|timeout|503|502|504/i.test(
+    combined
   );
 }
 

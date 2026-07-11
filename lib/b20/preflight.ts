@@ -2,8 +2,8 @@ import { formatEther, parseEther, type Hex } from "viem";
 import { isB20AssetActivated } from "@/lib/b20/activation";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import {
-  createBasePublicClient,
-  isRpcRateLimitError,
+  createPublicOnlyBaseClient,
+  isRpcInfrastructureError,
 } from "@/lib/utils/base-rpc";
 
 /** Rabby / public RPC often cannot estimate B20 precompile gas — set explicitly. */
@@ -44,7 +44,7 @@ export async function simulateB20Create(
   creator: `0x${string}`,
   data: Hex
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const pub = createBasePublicClient();
+  const pub = createPublicOnlyBaseClient();
   try {
     await pub.call({
       account: creator,
@@ -57,7 +57,7 @@ export async function simulateB20Create(
     const msg = e instanceof Error ? e.message : String(e);
 
     // RPC capped / rate-limited / network hiccup — can't determine, don't block.
-    if (isRpcRateLimitError(e) || !isExecutionRevert(msg)) {
+    if (isRpcInfrastructureError(e) || !isExecutionRevert(msg)) {
       console.warn("[b20] simulate skipped (non-revert RPC error)", msg);
       return { ok: true };
     }
@@ -93,17 +93,26 @@ export async function preflightB20Launch(
   hasMinGas: boolean;
   minEth: string;
 }> {
-  const pub = createBasePublicClient();
   const seedWei = opts?.seedEthWei ?? BigInt(0);
   const minRequired = MIN_LAUNCH_GAS_ETH + seedWei;
-  const [balance, activated] = await Promise.all([
-    pub.getBalance({ address }),
-    isB20AssetActivated(),
-  ]);
+  let balanceEth = "0";
+  let hasMinGas = true;
+  try {
+    const pub = createPublicOnlyBaseClient();
+    const balance = await pub.getBalance({ address });
+    balanceEth = formatEther(balance);
+    hasMinGas = balance >= minRequired;
+  } catch (e) {
+    console.warn("[b20/preflight] balance check skipped (RPC error)", e);
+    // Don't block launch when RPC is flaky — wallet will reject if insufficient funds.
+  }
+
+  const activated = await isB20AssetActivated();
+
   return {
     activated,
-    balanceEth: formatEther(balance),
-    hasMinGas: balance >= minRequired,
+    balanceEth,
+    hasMinGas,
     minEth: formatEther(minRequired),
   };
 }
