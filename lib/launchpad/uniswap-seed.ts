@@ -72,7 +72,7 @@ function liquidityDeadline(): bigint {
 
 function bigintSqrt(value: bigint): bigint {
   if (value <= BigInt(0)) return BigInt(0);
-  let x = value;
+  const x = value;
   let z = (x + BigInt(1)) / BigInt(2);
   let y = x;
   while (z < y) {
