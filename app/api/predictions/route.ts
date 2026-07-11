@@ -103,6 +103,7 @@ export async function GET() {
       });
       onChain = true;
       const body = {
+        retired: true,
         markets,
         prices,
         protocolFeeBps: PROTOCOL_FEE_BPS,
@@ -121,6 +122,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    retired: true,
     markets: demoMarkets.filter((demo) =>
       MARKET_TRACKS.some((t) => t.id === demo.trackId)
     ),

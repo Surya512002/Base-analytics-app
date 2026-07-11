@@ -7,7 +7,8 @@ import { createBasePublicClient } from "@/lib/utils/base-rpc";
 export const B20_CREATE_GAS_LIMIT = BigInt(1_200_000);
 export const B20_MINT_GAS_LIMIT = BigInt(200_000);
 
-const MIN_LAUNCH_BALANCE = parseEther("0.0001");
+/** Minimum ETH reserved for B20 factory gas (create + optional seed tx). */
+export const MIN_LAUNCH_GAS_ETH = parseEther("0.00003");
 
 export function gasLimitForB20Target(to: string): bigint {
   return to.toLowerCase() === B20_FACTORY_ADDRESS.toLowerCase()
@@ -15,13 +16,18 @@ export function gasLimitForB20Target(to: string): bigint {
     : B20_MINT_GAS_LIMIT;
 }
 
-export async function preflightB20Launch(address: `0x${string}`): Promise<{
+export async function preflightB20Launch(
+  address: `0x${string}`,
+  opts?: { seedEthWei?: bigint }
+): Promise<{
   activated: boolean;
   balanceEth: string;
   hasMinGas: boolean;
   minEth: string;
 }> {
   const pub = createBasePublicClient();
+  const seedWei = opts?.seedEthWei ?? BigInt(0);
+  const minRequired = MIN_LAUNCH_GAS_ETH + seedWei;
   const [balance, activated] = await Promise.all([
     pub.getBalance({ address }),
     isB20AssetActivated(),
@@ -29,7 +35,7 @@ export async function preflightB20Launch(address: `0x${string}`): Promise<{
   return {
     activated,
     balanceEth: formatEther(balance),
-    hasMinGas: balance >= MIN_LAUNCH_BALANCE,
-    minEth: formatEther(MIN_LAUNCH_BALANCE),
+    hasMinGas: balance >= minRequired,
+    minEth: formatEther(minRequired),
   };
 }

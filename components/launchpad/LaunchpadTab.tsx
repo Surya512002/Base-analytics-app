@@ -572,6 +572,7 @@ export default function LaunchpadTab({
             watchlist={watchlist}
             tokens={tradableTokens}
             markets={markets}
+            walletAddress={app.wallet?.address}
           />
         </>
       )}

@@ -1,3 +1,5 @@
+import { OG_VERSION } from "@/lib/og/brand-kit";
+
 /** Canonical public app URL for OG, share links, and metadata. */
 export function getAppUrl(): string {
   return (
@@ -7,8 +9,8 @@ export function getAppUrl(): string {
   );
 }
 
-export function appOgImage(bust = "8"): string {
-  return `${getAppUrl()}/opengraph-image?v=${bust}`;
+export function appOgImage(bust = OG_VERSION): string {
+  return `${getAppUrl()}/opengraph-image?ogv=${bust}`;
 }
 
 export function appOgWalletImage(wallet: {
@@ -21,6 +23,7 @@ export function appOgWalletImage(wallet: {
 }): string {
   const p = new URLSearchParams({
     v: "score",
+    ogv: OG_VERSION,
     score: String(wallet.score),
     rank: wallet.walletRank ?? "Base",
     address: wallet.address,

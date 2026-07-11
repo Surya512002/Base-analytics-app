@@ -14,8 +14,25 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
       - run: npm run lint
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: E2E and swap route smoke tests
+        run: |
+          npm start &
+          DEV_PID=$!
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/api/launchpad/status >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          PLAYWRIGHT_SKIP_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
+          SWAP_ROUTES_URL=http://127.0.0.1:3000 npm run test:swap-routes:local
+          kill $DEV_PID || true

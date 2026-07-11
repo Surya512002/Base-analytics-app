@@ -99,3 +99,32 @@ export async function cacheSet(
     handleCacheError(err);
   }
 }
+
+/** Expose Redis client for rate limiting and atomic ops. */
+export function getRedisClient(): Redis | null {
+  return getRedis();
+}
+
+export async function pingRedis(): Promise<{
+  ok: boolean;
+  latencyMs?: number;
+  error?: string;
+}> {
+  const redis = getRedis();
+  if (!redis) return { ok: false, error: "KV_REDIS_URL not set" };
+  const start = Date.now();
+  try {
+    if (redis.status !== "ready") await redis.connect();
+    const pong = await redis.ping();
+    return {
+      ok: pong === "PONG",
+      latencyMs: Date.now() - start,
+    };
+  } catch (err) {
+    handleCacheError(err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}

@@ -383,7 +383,7 @@ export const APP_BADGE_SECTIONS: {
   {
     id: "explorer",
     title: "Explorer",
-    subtitle: "Premium tools, battles, referrals, and predictions.",
+    subtitle: "Premium tools, battles, referrals, and quests.",
     categories: APP_EXPLORER_BADGES,
   },
   {

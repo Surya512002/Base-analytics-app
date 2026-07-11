@@ -11,17 +11,39 @@ import {
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 
+async function syncServerAlert(input: {
+  wallet: string;
+  address: string;
+  symbol: string;
+  direction: "above" | "below";
+  priceUsd: number;
+}) {
+  await fetch("/api/price-alerts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+async function removeServerAlert(wallet: string, address: string) {
+  const qs = new URLSearchParams({ wallet, address });
+  await fetch(`/api/price-alerts?${qs}`, { method: "DELETE" });
+}
+
 export default function WatchlistAlertsPanel({
   watchlist,
   tokens,
   markets,
+  walletAddress,
 }: {
   watchlist: string[];
   tokens: LaunchedToken[];
   markets: Record<string, TokenMarketSummary>;
+  walletAddress?: string | null;
 }) {
   const [alerts, setAlerts] = useState<PriceAlert[]>(() => readPriceAlerts());
   const watched = tokens.filter((t) => watchlist.includes(t.address.toLowerCase()));
+  const pushEnabled = Boolean(walletAddress?.match(/^0x[a-f0-9]{40}$/i));
 
   if (!watched.length) return null;
 
@@ -33,7 +55,9 @@ export default function WatchlistAlertsPanel({
         <Bell size={12} /> Price alerts
       </p>
       <p className="readable-body text-xs mt-1 mb-3">
-        Get a browser notification when price crosses your target (while app is open).
+        {pushEnabled
+          ? "Browser alert while the app is open, plus Base App push when price crosses your target."
+          : "Get a browser notification when price crosses your target (while app is open). Connect wallet for push alerts."}
       </p>
       <div className="space-y-2">
         {watched.map((t) => {
@@ -58,6 +82,9 @@ export default function WatchlistAlertsPanel({
                     type="button"
                     onClick={() => {
                       removePriceAlert(t.address);
+                      if (walletAddress) {
+                        void removeServerAlert(walletAddress, t.address);
+                      }
                       refresh();
                     }}
                     className="ml-auto p-1 text-slate-500 hover:text-rose-400"
@@ -75,12 +102,22 @@ export default function WatchlistAlertsPanel({
                     if (typeof Notification !== "undefined" && Notification.permission === "default") {
                       void Notification.requestPermission();
                     }
+                    const target = price * 1.05;
                     addPriceAlert({
                       address: t.address.toLowerCase(),
                       symbol: t.symbol,
                       direction: "above",
-                      priceUsd: price * 1.05,
+                      priceUsd: target,
                     });
+                    if (walletAddress) {
+                      void syncServerAlert({
+                        wallet: walletAddress,
+                        address: t.address.toLowerCase(),
+                        symbol: t.symbol,
+                        direction: "above",
+                        priceUsd: target,
+                      });
+                    }
                     refresh();
                   }}
                   className="ml-auto text-[10px] font-bold text-cyan-300 flex items-center gap-1 disabled:opacity-40"

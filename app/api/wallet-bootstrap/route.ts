@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { bootstrapWalletAnalysis } from "@/lib/wallet/bootstrap";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
+import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -8,7 +8,7 @@ export const maxDuration = 30;
 
 export async function GET(req: Request) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`bootstrap:${ip}`, 40, 60_000);
+  const rl = await checkRateLimitAsync(`bootstrap:${ip}`, 40, 60_000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
   const { searchParams } = new URL(req.url);

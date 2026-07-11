@@ -118,6 +118,20 @@ export interface MintAllocation {
   amount: bigint;
 }
 
+/** Sum duplicate recipients — batchMint reverts if the same address appears twice. */
+export function mergeMintAllocations(mints: MintAllocation[]): MintAllocation[] {
+  const byAddr = new Map<string, bigint>();
+  for (const m of mints) {
+    if (m.amount <= BigInt(0)) continue;
+    const key = m.to.toLowerCase();
+    byAddr.set(key, (byAddr.get(key) ?? BigInt(0)) + m.amount);
+  }
+  return Array.from(byAddr.entries()).map(([to, amount]) => ({
+    to: to as `0x${string}`,
+    amount,
+  }));
+}
+
 export interface LaunchB20Params {
   name: string;
   symbol: string;

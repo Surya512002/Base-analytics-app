@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { listLaunchedTokens } from "@/lib/launchpad/token-store";
 import { fetchMarketSummaries } from "@/lib/launchpad/dexscreener";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
+import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import { type Address } from "viem";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +68,7 @@ async function fetchEthUsd(): Promise<number> {
 
 export async function GET(req: Request) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`launchpad-activity:${ip}`, 40, 60_000);
+  const rl = await checkRateLimitAsync(`launchpad-activity:${ip}`, 40, 60_000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
   const { searchParams } = new URL(req.url);

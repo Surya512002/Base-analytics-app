@@ -14,17 +14,19 @@ import {
 } from "@/lib/utils/tx";
 import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 import { gasLimitForB20Target } from "@/lib/b20/preflight";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
 const BASE_CHAIN_HEX = "0x2105" as const;
 const WALLET_PROMPT_MS = 120_000;
 const CALLS_POLL_MS = 120_000;
+const BROADCAST_VERIFY_MS = 45_000;
 
 type Eip1193 = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
 type CallsStatus = {
-  status?: string;
+  status?: string | number;
   receipts?: Array<{ transactionHash?: string; status?: string }>;
 };
 
@@ -120,9 +122,54 @@ function extractCallsId(result: unknown): string | null {
 
 function extractTxHashFromStatus(status: CallsStatus): string | null {
   for (const receipt of status.receipts ?? []) {
-    if (receipt.transactionHash) return receipt.transactionHash;
+    if (receipt.transactionHash?.startsWith("0x")) {
+      return receipt.transactionHash;
+    }
   }
   return null;
+}
+
+/** EIP-5792 uses numeric codes (100/200/500); some wallets still send strings. */
+function normalizeCallsStatus(
+  status: CallsStatus["status"]
+): "pending" | "confirmed" | "failed" | "unknown" {
+  if (status == null) return "unknown";
+  if (typeof status === "number") {
+    if (status >= 100 && status < 200) return "pending";
+    if (status >= 200 && status < 300) return "confirmed";
+    if (status >= 400) return "failed";
+    return "unknown";
+  }
+  const s = String(status).toUpperCase();
+  if (s === "PENDING" || s === "100") return "pending";
+  if (s === "CONFIRMED" || s === "200") return "confirmed";
+  if (s === "FAILED" || s === "REVERTED" || s === "500") return "failed";
+  return "unknown";
+}
+
+/**
+ * Base App / smart wallets sometimes return a hash that never lands on Base
+ * (ghost hash). Wait until the tx is visible on an RPC node before treating
+ * launch as submitted.
+ */
+async function assertTxBroadcastOnBase(hash: string): Promise<string> {
+  if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+    throw new Error("Wallet returned an invalid transaction hash");
+  }
+  const pub = createBasePublicClient();
+  const deadline = Date.now() + BROADCAST_VERIFY_MS;
+  while (Date.now() < deadline) {
+    try {
+      const pending = await pub.getTransaction({ hash: hash as `0x${string}` });
+      if (pending) return hash;
+    } catch {
+      /* not found yet */
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  throw new Error(
+    "Launch was not broadcast on Base — reconnect wallet and retry with a new vanity salt"
+  );
 }
 
 async function pollCallsStatus(provider: Eip1193, id: string): Promise<string> {
@@ -131,14 +178,14 @@ async function pollCallsStatus(provider: Eip1193, id: string): Promise<string> {
     const raw = (await provider.request({
       method: "wallet_getCallsStatus",
       params: [id],
-    })) as CallsStatus;
+    })) as CallsStatus & { status?: string | number };
 
-    const normalized = raw?.status?.toUpperCase();
-    if (normalized === "CONFIRMED") {
+    const state = normalizeCallsStatus(raw?.status);
+    if (state === "confirmed") {
       const hash = extractTxHashFromStatus(raw);
       if (hash) return hash;
     }
-    if (normalized === "FAILED" || normalized === "REVERTED") {
+    if (state === "failed") {
       throw new Error("Sponsored transaction failed onchain");
     }
 
@@ -157,11 +204,15 @@ async function sendViaWalletSendCalls(
       call.value && call.value > BigInt(0)
         ? `0x${call.value.toString(16)}`
         : "0x0";
-    return {
+    const entry: Record<string, string> = {
       to: call.to,
       data: call.data,
       value: valueHex,
     };
+    if (call.gas && call.gas > BigInt(0)) {
+      entry.gas = `0x${call.gas.toString(16)}`;
+    }
+    return entry;
   });
 
   const capabilities = getSendCallsCapabilities(
@@ -264,10 +315,22 @@ export async function sendAppTransactions(
   const b20Only =
     batch.length === 1 && isB20PrecompileAddress(batch[0]!.to);
 
-  // B20 precompiles need explicit gas — legacy eth_sendTransaction is most reliable.
+  // Smart wallets (Base App / Coinbase) handle B20 precompiles best via wallet_sendCalls + explicit gas.
+  if (b20Only && trySponsored) {
+    try {
+      const hash = await sendViaWalletSendCalls(provider, from, batch);
+      return await assertTxBroadcastOnBase(hash);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+      // Fall through to eth_sendTransaction — ghost hashes / sendCalls flakes are common on Base App.
+    }
+  }
+
+  // B20 precompiles need explicit gas — legacy eth_sendTransaction is most reliable for EOAs.
   if (b20Only) {
     try {
-      return await sendViaEthSendTransaction(provider, from, batch[0]!);
+      const hash = await sendViaEthSendTransaction(provider, from, batch[0]!);
+      return await assertTxBroadcastOnBase(hash);
     } catch (e) {
       if (isUserRejection(e)) throw e;
       if (!trySponsored) throw e;
@@ -276,7 +339,11 @@ export async function sendAppTransactions(
 
   if (trySponsored) {
     try {
-      return await sendViaWalletSendCalls(provider, from, batch);
+      const hash = await sendViaWalletSendCalls(provider, from, batch);
+      if (batchUsesB20Precompile(batch)) {
+        return await assertTxBroadcastOnBase(hash);
+      }
+      return hash;
     } catch (e) {
       if (isUserRejection(e)) throw e;
       return sendViaEthSendTransactionBatch(provider, from, batch);

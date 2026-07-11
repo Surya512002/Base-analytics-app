@@ -166,11 +166,16 @@ export function setReferralBonusXpForAddress(address: string, xp: number): void 
   localStorage.setItem(referralBonusKey(address), String(Math.max(0, xp)));
 }
 
-/** App session counters only — quests must be completed in-app, not from chain history. */
+/** Merge on-chain app-action counts with persisted in-app session counters. */
 export function deriveTxKeysFromAnalysis(
-  _result: AnalyzeWalletResult
+  result: AnalyzeWalletResult
 ): Record<string, number> {
-  return { ...DEFAULT_TX_KEYS };
+  return {
+    ...DEFAULT_TX_KEYS,
+    boost: Math.max(0, result.boosts ?? 0),
+    gm: Math.max(0, result.wallet.gmCount ?? 0),
+    checkin: Math.max(0, result.wallet.checkInCount ?? 0),
+  };
 }
 
 /** Keep Transaction remount counters when re-syncing from on-chain analysis. */

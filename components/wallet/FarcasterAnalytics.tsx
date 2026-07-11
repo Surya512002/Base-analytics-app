@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import { fetchNeynar } from "@/lib/api/neynar";
+import { parseNeynarUsersByAddress } from "@/lib/api/neynar-users";
 import { APP_URL_WEB, MINIAPP_URL } from "@/lib/constants/env";
 import { SHARE_HASHTAGS, SHARE_TAGLINE, twitterShare, warpcast } from "@/lib/utils/share";
 import {
@@ -276,9 +277,8 @@ export default function FarcasterAnalytics({
         const { ok, data, unavailable }=await fetchNeynar("v2/farcaster/user/bulk-by-address",{addresses:address});
         if(unavailable){setNeynarUnavailable(true);setFcError('Farcaster analytics need NEYNAR_API_KEY in .env.local (server).');return;}
         if(!ok)return;
-        const lower=address.toLowerCase();
-        const users=(data[lower] as Record<string,unknown>[]|undefined);
-        if(users&&users.length>0){setFcResult(await buildFcResult(users[0]));}
+        const users=parseNeynarUsersByAddress(data,address);
+        if(users.length>0){setFcResult(await buildFcResult(users[0]));}
       }catch(e){console.error(e);}finally{setIsScanningFc(false);}
     };
     auto();

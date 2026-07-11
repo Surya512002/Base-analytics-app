@@ -46,6 +46,64 @@ export function getAppContractHit(
   return null;
 }
 
+const APP_CONTRACT_ADDRS = new Set(Object.values(APP_CONTRACTS));
+
+function appKeyForTarget(to: string | null | undefined): AppContractKey | null {
+  const target = (to || "").toLowerCase();
+  if (!APP_CONTRACT_ADDRS.has(target)) return null;
+  for (const [key, addr] of Object.entries(APP_CONTRACTS) as [
+    AppContractKey,
+    string,
+  ][]) {
+    if (addr === target) return key;
+  }
+  return null;
+}
+
+/**
+ * Smart-wallet / paymaster txs often index as wallet → EntryPoint.
+ * Scan every leg in a hash where the wallet participated to find inner app calls.
+ */
+export function buildAppActionHitsByHash(
+  txs: AlchemyTransfer[],
+  wallet: string
+): Map<string, AppContractKey> {
+  const w = wallet.toLowerCase();
+  const walletHashes = new Set<string>();
+
+  for (const tx of txs) {
+    if (!tx.hash) continue;
+    const from = (tx.from || "").toLowerCase();
+    const to = (tx.to || "").toLowerCase();
+    if (
+      from === w ||
+      to === w ||
+      tx.metadata?.walletParticipated ||
+      tx.category === "useroperation"
+    ) {
+      walletHashes.add(tx.hash.toLowerCase());
+    }
+  }
+
+  const hits = new Map<string, AppContractKey>();
+  for (const tx of txs) {
+    if (!tx.hash) continue;
+    const h = tx.hash.toLowerCase();
+    if (!walletHashes.has(h)) continue;
+
+    const direct = getAppContractHit(tx, w);
+    if (direct) {
+      hits.set(h, direct);
+      continue;
+    }
+
+    const inner = appKeyForTarget(tx.to);
+    if (inner) hits.set(h, inner);
+  }
+
+  return hits;
+}
+
 /** True for gasless / paymaster / ERC-4337 activity. */
 export function isPaymasterActivity(tx: AlchemyTransfer, wallet: string): boolean {
   const w = wallet.toLowerCase();

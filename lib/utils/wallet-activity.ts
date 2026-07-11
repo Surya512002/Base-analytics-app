@@ -1,6 +1,9 @@
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import { getDayKey, getMonthKey, getWeekKey } from "@/lib/utils/dates";
-import { getAppContractHit } from "@/lib/utils/app-contracts";
+import {
+  buildAppActionHitsByHash,
+  getAppContractHit,
+} from "@/lib/utils/app-contracts";
 import { DEFI_PROTOCOLS } from "@/lib/constants/protocols";
 
 export function normalizeAddr(addr: string | null | undefined): string {
@@ -291,6 +294,8 @@ export function countContractInteractions(
   let defi = 0;
   let hasGm = false;
 
+  const appHitsByHash = buildAppActionHitsByHash(txs, w);
+
   for (const tx of txs) {
     if (!countsTowardActivity(tx, w)) continue;
 
@@ -304,7 +309,10 @@ export function countContractInteractions(
       tx.metadata?.isSponsored === true ||
       (tx.category === "internal" && isIncoming);
 
-    const appHit = getAppContractHit(tx, w);
+    const hashHit = tx.hash
+      ? appHitsByHash.get(tx.hash.toLowerCase()) ?? null
+      : null;
+    const appHit = hashHit ?? getAppContractHit(tx, w);
     if (appHit === "gm") {
       hasGm = true;
       if (tx.hash) gmHashes.add(tx.hash.toLowerCase());
@@ -319,6 +327,37 @@ export function countContractInteractions(
     if (!(isOutgoing || isSponsored || isUserOp || appHit)) continue;
 
     interactHashes.add(tx.hash);
+  }
+
+  for (const [hash, hit] of appHitsByHash) {
+    interactHashes.add(hash);
+    if (hit === "gm") {
+      hasGm = true;
+      gmHashes.add(hash);
+    }
+    if (hit === "checkin") checkInHashes.add(hash);
+    if (hit === "booster") boostHashes.add(hash);
+  }
+
+  for (const tx of txs) {
+    if (!countsTowardActivity(tx, w)) continue;
+
+    const fromAddr = normalizeAddr(tx.from);
+    const toAddr = normalizeAddr(tx.to);
+    const isOutgoing = fromAddr === w;
+    const hashHit = tx.hash
+      ? appHitsByHash.get(tx.hash.toLowerCase()) ?? null
+      : null;
+    const appHit = hashHit ?? getAppContractHit(tx, w);
+    const isIncoming = toAddr === w;
+    const isUserOp = tx.category === "useroperation" && isOutgoing;
+    const isSponsored =
+      paymasterTxHashes.has(tx.hash) ||
+      tx.metadata?.isSponsored === true ||
+      (tx.category === "internal" && isIncoming);
+
+    if (!(isOutgoing || isSponsored || isUserOp || appHit)) continue;
+    if (!interactHashes.has(tx.hash)) continue;
 
     const counterparty = isOutgoing ? toAddr : fromAddr;
     if (counterparty && counterparty !== w) uniqueContracts.add(counterparty);

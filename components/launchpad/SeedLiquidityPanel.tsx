@@ -6,8 +6,10 @@ import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import {
   DEFAULT_SEED_LIQUIDITY_ETH,
+  MIN_SEED_LIQUIDITY_ETH,
   SEED_LIQUIDITY_PRESETS,
   seedEthUsdValue,
+  type SeedDex,
 } from "@/lib/launchpad/seed-liquidity";
 import { formatCompact, formatUsd } from "@/lib/launchpad/format";
 
@@ -24,6 +26,7 @@ export default function SeedLiquidityPanel({
 }) {
   const { wallet, showToast, handleSeedLiquidity, swapLoading } = app;
   const [seedEth, setSeedEth] = useState(DEFAULT_SEED_LIQUIDITY_ETH);
+  const [seedDex, setSeedDex] = useState<SeedDex>("aerodrome");
   const [tokenPct, setTokenPct] = useState(25);
   const [ethUsd, setEthUsd] = useState(2500);
 
@@ -70,6 +73,7 @@ export default function SeedLiquidityPanel({
       decimals: token.decimals,
       tokenAmount: String(tokenAmount),
       seedEth,
+      seedDex,
     });
     if (ok) {
       showToast(`Pool seeded — ${token.symbol} is tradable`, "");
@@ -83,9 +87,34 @@ export default function SeedLiquidityPanel({
         <Droplets size={16} /> Enable in-app trading
       </p>
       <p className="text-[11px] text-cyan-200/70 leading-relaxed">
-        Swaps need a WETH pool on Aerodrome. Seed liquidity once — then anyone can trade here
-        without visiting an external DEX.
+        Swaps need a WETH pool on Aerodrome or Uniswap V3. Seed once — then anyone can trade
+        in-app without visiting an external DEX.
       </p>
+      <label className="block">
+        <span className="text-[10px] font-bold text-slate-500 uppercase">Pool venue</span>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {(
+            [
+              ["aerodrome", "Aerodrome"],
+              ["uniswap", "Uniswap V3"],
+              ["both", "Both (50/50)"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSeedDex(id)}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                seedDex === id
+                  ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                  : "border-white/10 text-slate-500"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <div className="flex items-center justify-between gap-2">
@@ -98,8 +127,8 @@ export default function SeedLiquidityPanel({
           </div>
           <input
             type="number"
-            min="0.0001"
-            step="0.001"
+            min={MIN_SEED_LIQUIDITY_ETH}
+            step="0.00001"
             value={seedEth}
             onChange={(e) => setSeedEth(e.target.value)}
             className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-cyan-500/40"

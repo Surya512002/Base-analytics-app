@@ -137,7 +137,7 @@ export default function ConnectWalletModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-3 sm:p-6 overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-label="Connect wallet"
@@ -149,7 +149,14 @@ export default function ConnectWalletModal({
         aria-label="Close"
       />
 
-      <div className="relative w-full max-w-[340px] rounded-xl border border-white/[0.1] bg-[var(--bg-raised)] overflow-hidden tab-content-enter">
+      <div
+        className="relative w-full max-w-[340px] rounded-xl border border-white/[0.1] bg-[var(--bg-raised)] overflow-hidden tab-content-enter my-auto"
+        style={{
+          marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
+          maxHeight:
+            "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+        }}
+      >
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.08]">
           <div>
             <p className="text-[14px] font-semibold text-[var(--ink)]">Connect wallet</p>
@@ -164,7 +171,13 @@ export default function ConnectWalletModal({
           </button>
         </div>
 
-        <div className="px-4 py-3">
+        <div
+          className="px-4 py-3 overflow-y-auto overscroll-contain"
+          style={{
+            maxHeight:
+              "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 9rem)",
+          }}
+        >
           <p className="text-[12px] text-[var(--ink-muted)] leading-relaxed mb-3">{hint}</p>
 
           {inMiniApp ? (

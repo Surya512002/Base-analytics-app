@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
 
 test.describe("guest browse flow", () => {
   test("explore page loads and shows search", async ({ page }) => {

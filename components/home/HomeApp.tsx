@@ -11,6 +11,7 @@ import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import AppShell from "@/components/shell/AppShell";
+import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import type { LaunchpadShellBridge } from "@/components/launchpad/LaunchpadTab";
 import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView } from "@/lib/utils/app-url";
@@ -173,6 +174,11 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
             </button>
           </div>
         )}
+
+        <BaseAppPinBanner
+          walletAddress={wallet?.address}
+          onToast={(msg) => setToast({ msg, hash: "" })}
+        />
 
         {!guest && (
           <>

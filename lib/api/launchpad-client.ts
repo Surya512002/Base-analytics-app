@@ -2,6 +2,7 @@ import type { LaunchedToken, TokenAnnouncement } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { LaunchDex } from "@/lib/launchpad/dex";
 import type { AntiSnipeStatus } from "@/lib/launchpad/anti-snipe";
+import type { SwapAsset } from "@/lib/launchpad/tokens-base";
 
 export type { LaunchDex };
 
@@ -74,18 +75,32 @@ export type SwapQuoteResponse = {
   hasLiquidity: boolean;
   tokenIn: string;
   tokenOut: string;
-  dex?: "uniswap" | "aerodrome";
-  router?: string;
+  payAsset?: SwapAsset;
+  receiveAsset?: SwapAsset;
+  payToken?: string | null;
+  receiveToken?: string | null;
+  outDecimals?: number;
+  dex?: "uniswap" | "aerodrome" | "slipstream" | "aggregator";
+  router?: string | null;
   uniswapHasLiquidity?: boolean;
   aerodromeHasLiquidity?: boolean;
+  slipstreamHasLiquidity?: boolean;
   uniswapFeeTier?: number;
   aerodromeStable?: boolean;
+  slipstreamTickSpacing?: number;
   platformFee?: string;
   grossAmount?: string;
   creator?: string;
   referrer?: string | null;
   feeShares?: { creator: string; platform: string; referrer: string };
   antiSnipe?: AntiSnipeStatus;
+  aggregator?: boolean;
+  aggregatorConfigured?: boolean;
+  aggregatorHasLiquidity?: boolean;
+  aggregatorAmountOut?: string;
+  aggregatorAmountOutMinimum?: string;
+  tx?: { to: string; data: string; value: string } | null;
+  allowanceSpender?: string | null;
   error?: string;
 };
 
@@ -97,6 +112,13 @@ export async function fetchSwapQuote(params: {
   slippageBps: number;
   dex?: LaunchDex;
   referrer?: string | null;
+  taker?: string | null;
+  payAsset?: SwapAsset;
+  receiveAsset?: SwapAsset;
+  payToken?: string | null;
+  receiveToken?: string | null;
+  counterDecimals?: number;
+  includeAggregator?: boolean;
 }): Promise<SwapQuoteResponse> {
   const qs = new URLSearchParams({
     token: params.token,
@@ -107,6 +129,13 @@ export async function fetchSwapQuote(params: {
     dex: params.dex ?? "auto",
   });
   if (params.referrer) qs.set("referrer", params.referrer);
+  if (params.taker) qs.set("taker", params.taker);
+  if (params.payAsset) qs.set("payAsset", params.payAsset);
+  if (params.receiveAsset) qs.set("receiveAsset", params.receiveAsset);
+  if (params.payToken) qs.set("payToken", params.payToken);
+  if (params.receiveToken) qs.set("receiveToken", params.receiveToken);
+  if (params.counterDecimals != null) qs.set("counterDecimals", String(params.counterDecimals));
+  if (params.includeAggregator) qs.set("includeAggregator", "1");
   const r = await fetch(`/api/launchpad/quote?${qs}`, { cache: "no-store" });
   if (!r.ok) {
     return {

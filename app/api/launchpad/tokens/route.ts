@@ -5,6 +5,7 @@ import {
 } from "@/lib/launchpad/token-store";
 import { isB20AssetActivated } from "@/lib/b20/activation";
 import type { LaunchedToken } from "@/lib/launchpad/types";
+import { scheduleLaunchNotification } from "@/lib/launchpad/launch-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,8 @@ export async function POST(req: Request) {
       poolOpenBlock:
         typeof body.poolOpenBlock === "number" ? body.poolOpenBlock : undefined,
     });
+
+    scheduleLaunchNotification({ symbol, name, address });
 
     return NextResponse.json({ ok: true, tokens });
   } catch (err) {

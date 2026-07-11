@@ -80,9 +80,16 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
   const current = STEPS[step];
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
       <div className="absolute inset-0 bg-[#020608]/80 backdrop-blur-md" onClick={close} />
-      <div className="relative w-full max-w-md elegant-panel rounded-3xl border border-emerald-500/30 overflow-hidden tab-content-enter">
+      <div
+        className="relative w-full max-w-md elegant-panel rounded-3xl border border-emerald-500/30 overflow-hidden tab-content-enter my-auto"
+        style={{
+          marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
+          maxHeight:
+            "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+        }}
+      >
         <div className="h-0.5 bg-linear-to-r from-emerald-500 via-cyan-400 to-violet-400" />
         <button
           type="button"
@@ -92,7 +99,7 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
         >
           <X size={16} />
         </button>
-        <div className="p-6 pt-8">
+        <div className="p-5 pt-8 sm:p-6 sm:pt-8 overflow-y-auto overscroll-contain max-h-[inherit]">
           <p className="section-eyebrow flex items-center gap-2">
             <Sparkles size={11} /> Launchpad · Step {step + 1}/{STEPS.length}
           </p>

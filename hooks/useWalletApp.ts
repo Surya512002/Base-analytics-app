@@ -7,6 +7,13 @@ import { getEip1193Provider } from "@/app/connection";
 import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
+import {
+  formatWalletDisplayLabel,
+  persistMiniAppIdentity,
+  readPersistedMiniAppIdentity,
+  resolveMiniAppIdentity,
+  type MiniAppIdentity,
+} from "@/lib/utils/mini-app-identity";
 import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import {
   fetchCheckInStatus,
@@ -126,6 +133,7 @@ import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import {
   encodeCreateB20Calldata,
   encodeB20ApproveCalldata,
+  mergeMintAllocations,
   predictB20Address,
   type MintAllocation,
 } from "@/lib/b20/encode";
@@ -139,12 +147,19 @@ import {
   encodeAerodromeSell,
   AERODROME_ROUTER,
 } from "@/lib/launchpad/aerodrome";
+import {
+  encodeSlipstreamBuy,
+  encodeSlipstreamSell,
+} from "@/lib/launchpad/slipstream";
 import { dexLabel } from "@/lib/launchpad/dex";
 import type { LaunchDex } from "@/lib/launchpad/dex";
 import {
   buildSeedLiquidityCalls,
   computeLiquiditySeedAmounts,
+  seedDexLabel,
+  type SeedDex,
 } from "@/lib/launchpad/seed-liquidity";
+import { USDC_BASE, USDC_DECIMALS, type SwapAsset } from "@/lib/launchpad/tokens-base";
 import { registerLaunchedToken, fetchSwapQuote, fetchB20ActivationStatus } from "@/lib/api/launchpad-client";
 import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { preflightB20Launch } from "@/lib/b20/preflight";
@@ -252,6 +267,9 @@ export function useWalletApp() {
   const handledActionTxs = useRef<Set<string>>(new Set());
   const calendarRef = useRef(getCalendarKeys());
   const [boosts, setBoosts] = useState(0);
+  const [miniAppIdentity, setMiniAppIdentity] = useState<MiniAppIdentity | null>(
+    null
+  );
   const [sponsored, setSponsored] = useState(0);
   const [txKeys, setTxKeys] = useState<Record<string, number>>({
     ...DEFAULT_TX_KEYS,
@@ -400,6 +418,27 @@ export function useWalletApp() {
           scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
       }, 100);
   }, [wallet, tab]);
+
+  useEffect(() => {
+    if (!wallet?.address) {
+      setMiniAppIdentity(null);
+      return;
+    }
+    const cached = readPersistedMiniAppIdentity(wallet.address);
+    if (cached) {
+      setMiniAppIdentity(cached);
+      return;
+    }
+    let alive = true;
+    void resolveMiniAppIdentity().then((identity) => {
+      if (!alive || !identity) return;
+      persistMiniAppIdentity(wallet.address, identity);
+      setMiniAppIdentity(identity);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [wallet?.address]);
 
   /** Refresh on-chain badge mint tiers only (Achievements tab — does not touch score). */
   useEffect(() => {
@@ -731,6 +770,7 @@ export function useWalletApp() {
       antiSnipeBlocks?: number;
       seedLiquidityEth?: string;
       autoSeedLiquidity?: boolean;
+      seedDex?: SeedDex;
       ethUsd?: number;
     }): Promise<{
       ok: boolean;
@@ -762,18 +802,33 @@ export function useWalletApp() {
         }
 
         const creator = wallet.address as `0x${string}`;
-        const preflight = await preflightB20Launch(creator);
+
+        let seedEthWei = BigInt(0);
+        if (
+          args.autoSeedLiquidity !== false &&
+          args.seedLiquidityEth &&
+          args.startPriceUsd
+        ) {
+          try {
+            seedEthWei = parseEther(args.seedLiquidityEth);
+          } catch {
+            seedEthWei = BigInt(0);
+          }
+        }
+
+        const preflight = await preflightB20Launch(creator, { seedEthWei });
         if (!preflight.hasMinGas) {
           const bal = Number(preflight.balanceEth);
           showToast(
-            `Need ETH on Base for gas (≥${preflight.minEth}). Balance: ${bal.toFixed(6)} ETH — bridge to Base first`,
+            `Need ≥${preflight.minEth} ETH on Base (gas${seedEthWei > BigInt(0) ? " + liquidity seed" : ""}). Balance: ${bal.toFixed(6)} ETH`,
             ""
           );
           return { ok: false };
         }
 
         const supplyCap = parseUnits(args.supplyCap, args.decimals);
-        const mintTotal = args.mints.reduce((s, m) => s + m.amount, BigInt(0));
+        const mergedMints = mergeMintAllocations(args.mints);
+        const mintTotal = mergedMints.reduce((s, m) => s + m.amount, BigInt(0));
         if (mintTotal > supplyCap) {
           showToast("Allocations exceed fixed 1B supply", "");
           return { ok: false };
@@ -794,7 +849,7 @@ export function useWalletApp() {
           website: args.website,
           twitter: args.twitter,
           telegram: args.telegram,
-          mints: args.mints,
+          mints: mergedMints,
         });
 
         const tokenAddr =
@@ -810,12 +865,20 @@ export function useWalletApp() {
         let launchBlock: number | undefined;
         try {
           const pub = createBasePublicClient();
+          const pending = await pub.getTransaction({ hash: hash as `0x${string}` });
+          if (!pending) {
+            throw new Error(
+              "Launch was not broadcast on Base — reconnect wallet and retry with a new vanity salt"
+            );
+          }
           const receipt = await pub.waitForTransactionReceipt({
             hash: hash as `0x${string}`,
             timeout: 120_000,
           });
           if (receipt.status !== "success") {
-            throw new Error("Token launch reverted onchain — check allocations and try a new salt");
+            throw new Error(
+              "Token launch reverted — check allocations (duplicate mints are merged automatically) and try a new salt"
+            );
           }
           launchBlock = Number(receipt.blockNumber);
         } catch (receiptErr) {
@@ -863,10 +926,11 @@ export function useWalletApp() {
                 creator,
                 tokenAmount: seed.tokenWei,
                 ethAmount: seed.ethWei,
+                dex: args.seedDex ?? "aerodrome",
               });
               await sendAppTransactions(activeConn, wallet.address, seedCalls);
               showToast(
-                `💧 Liquidity pool seeded — ${args.symbol} is tradable in-app`,
+                `💧 Liquidity seeded on ${seedDexLabel(args.seedDex ?? "aerodrome")} — ${args.symbol} is tradable in-app`,
                 ""
               );
             } catch (seedErr) {
@@ -918,7 +982,9 @@ export function useWalletApp() {
               ? "Token already exists — change name/symbol and retry"
               : msg.includes("FeatureNotActivated")
                 ? "B20 is not activated on Base mainnet yet"
-                : msg;
+                : msg.includes("not broadcast")
+                  ? "Wallet returned a fake/pending hash — reconnect in Base App and retry with a new salt"
+                  : msg;
         if (!friendly.toLowerCase().includes("reject")) {
           showToast(`❌ ${friendly}`, "");
         }
@@ -940,8 +1006,22 @@ export function useWalletApp() {
       slippageBps: number;
       dex?: LaunchDex;
       referrer?: string | null;
+      payAsset?: SwapAsset;
+      receiveAsset?: SwapAsset;
+      payToken?: string | null;
+      receiveToken?: string | null;
+      counterDecimals?: number;
     }): Promise<boolean> => {
       if (!wallet) return false;
+
+      const payAsset = args.payAsset ?? "eth";
+      const receiveAsset = args.receiveAsset ?? "eth";
+      const payDecimals =
+        payAsset === "usdc"
+          ? USDC_DECIMALS
+          : payAsset === "token"
+            ? (args.counterDecimals ?? 18)
+            : 18;
 
       setSwapLoading(true);
       try {
@@ -953,13 +1033,19 @@ export function useWalletApp() {
           slippageBps: args.slippageBps,
           dex: args.dex ?? "auto",
           referrer: args.referrer ?? null,
+          taker: wallet.address,
+          payAsset,
+          receiveAsset,
+          payToken: args.payToken,
+          receiveToken: args.receiveToken,
+          counterDecimals: args.counterDecimals,
         });
 
         if (!quote.hasLiquidity) {
           showToast(
             quote.error ||
               quote.antiSnipe?.message ||
-              "No pool on Uniswap or Aerodrome — add liquidity first",
+              "No swap route found — trade on Aerodrome or add a WETH pool",
             ""
           );
           return false;
@@ -978,14 +1064,22 @@ export function useWalletApp() {
         const token = args.token as `0x${string}`;
         const recipient = wallet.address as `0x${string}`;
         const swapDex = quote.dex ?? "uniswap";
+        const isAggregator = swapDex === "aggregator";
         const router = (quote.router ??
           (swapDex === "aerodrome" ? AERODROME_ROUTER : SWAP_ROUTER_02)) as `0x${string}`;
         const weth = WETH_BASE as `0x${string}`;
         const minOut = BigInt(quote.amountOutMinimum);
         const uniFee = quote.uniswapFeeTier ?? 3000;
         const aeroStable = quote.aerodromeStable ?? false;
+        const slipTick = quote.slipstreamTickSpacing ?? 200;
         const creator = quote.creator as `0x${string}` | undefined;
         const referrer = (quote.referrer || args.referrer) as `0x${string}` | null;
+
+        if (isAggregator && (!quote.tx?.to || !quote.tx.data)) {
+          showToast("Aggregator route unavailable — try again", "");
+          return false;
+        }
+
         let referrerBoostBps = 0;
         if (referrer) {
           const stake = await fetchOnchainStake(referrer);
@@ -996,30 +1090,97 @@ export function useWalletApp() {
         const calls = [];
 
         if (args.direction === "buy") {
-          const gross = parseUnits(args.amount, 18);
+          const gross = parseUnits(args.amount, payDecimals);
           const { net, fee } = splitGrossAmount(gross);
           if (net <= BigInt(0)) {
             showToast("Amount too small after platform fee", "");
             return false;
           }
-          const swapData =
-            swapDex === "aerodrome"
-              ? encodeAerodromeBuy({
-                  tokenOut: token,
-                  recipient,
-                  amountOutMinimum: minOut,
-                  stable: aeroStable,
-                })
-              : encodeExactInputSingle({
-                  tokenIn: weth,
-                  tokenOut: token,
-                  recipient,
-                  amountIn: net,
-                  amountOutMinimum: minOut,
-                  fee: uniFee,
-                });
-          calls.push(buildContractCall(router, swapData, net));
-          pushFeeSplitCalls(calls, fee, { native: true, token, creator, referrer, referrerBoostBps });
+          const payIsNative = payAsset === "eth";
+          const payTokenAddr = (
+            payAsset === "usdc"
+              ? USDC_BASE
+              : payAsset === "token" && args.payToken
+                ? args.payToken
+                : token
+          ) as `0x${string}`;
+          const spender = (
+            isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
+          ) as `0x${string}` | undefined;
+
+          if (!payIsNative && BASE_RPC && spender) {
+            const pub = createBasePublicClient();
+            const allowance = await pub.readContract({
+              address: payTokenAddr,
+              abi: ERC20_ABI,
+              functionName: "allowance",
+              args: [recipient, spender],
+            });
+            if (allowance < gross) {
+              calls.push(
+                buildContractCall(
+                  payTokenAddr,
+                  encodeB20ApproveCalldata(spender, maxUint256)
+                )
+              );
+            }
+          }
+
+          if (!payIsNative) {
+            pushFeeSplitCalls(calls, fee, {
+              native: false,
+              token: payTokenAddr,
+              creator,
+              referrer,
+              referrerBoostBps,
+            });
+          }
+
+          if (isAggregator && quote.tx) {
+            calls.push(
+              buildContractCall(
+                quote.tx.to as `0x${string}`,
+                quote.tx.data as `0x${string}`,
+                BigInt(quote.tx.value || "0")
+              )
+            );
+          } else if (!isAggregator) {
+            const swapData =
+              swapDex === "aerodrome"
+                ? encodeAerodromeBuy({
+                    tokenOut: token,
+                    recipient,
+                    amountOutMinimum: minOut,
+                    stable: aeroStable,
+                  })
+                : swapDex === "slipstream"
+                  ? encodeSlipstreamBuy({
+                      tokenOut: token,
+                      recipient,
+                      amountIn: net,
+                      amountOutMinimum: minOut,
+                      tickSpacing: slipTick,
+                    })
+                  : encodeExactInputSingle({
+                      tokenIn: weth,
+                      tokenOut: token,
+                      recipient,
+                      amountIn: net,
+                      amountOutMinimum: minOut,
+                      fee: uniFee,
+                    });
+            calls.push(buildContractCall(router, swapData, net));
+          }
+
+          if (payIsNative) {
+            pushFeeSplitCalls(calls, fee, {
+              native: true,
+              token,
+              creator,
+              referrer,
+              referrerBoostBps,
+            });
+          }
         } else {
           const gross = parseUnits(args.amount, args.decimals);
           const { net, fee } = splitGrossAmount(gross);
@@ -1027,42 +1188,63 @@ export function useWalletApp() {
             showToast("Amount too small after platform fee", "");
             return false;
           }
-          if (BASE_RPC) {
+          const spender = (
+            isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
+          ) as `0x${string}` | undefined;
+          if (BASE_RPC && spender) {
             const pub = createBasePublicClient();
             const allowance = await pub.readContract({
               address: token,
               abi: ERC20_ABI,
               functionName: "allowance",
-              args: [recipient, router],
+              args: [recipient, spender],
             });
             if (allowance < gross) {
               calls.push(
                 buildContractCall(
                   token,
-                  encodeB20ApproveCalldata(router, maxUint256)
+                  encodeB20ApproveCalldata(spender, maxUint256)
                 )
               );
             }
           }
           pushFeeSplitCalls(calls, fee, { native: false, token, creator, referrer, referrerBoostBps });
-          const swapData =
-            swapDex === "aerodrome"
-              ? encodeAerodromeSell({
-                  tokenIn: token,
-                  recipient,
-                  amountIn: net,
-                  amountOutMinimum: minOut,
-                  stable: aeroStable,
-                })
-              : encodeExactInputSingle({
-                  tokenIn: token,
-                  tokenOut: weth,
-                  recipient,
-                  amountIn: net,
-                  amountOutMinimum: minOut,
-                  fee: uniFee,
-                });
-          calls.push(buildContractCall(router, swapData));
+          if (isAggregator && quote.tx) {
+            calls.push(
+              buildContractCall(
+                quote.tx.to as `0x${string}`,
+                quote.tx.data as `0x${string}`,
+                BigInt(quote.tx.value || "0")
+              )
+            );
+          } else {
+            const swapData =
+              swapDex === "aerodrome"
+                ? encodeAerodromeSell({
+                    tokenIn: token,
+                    recipient,
+                    amountIn: net,
+                    amountOutMinimum: minOut,
+                    stable: aeroStable,
+                  })
+                : swapDex === "slipstream"
+                  ? encodeSlipstreamSell({
+                      tokenIn: token,
+                      recipient,
+                      amountIn: net,
+                      amountOutMinimum: minOut,
+                      tickSpacing: slipTick,
+                    })
+                  : encodeExactInputSingle({
+                      tokenIn: token,
+                      tokenOut: weth,
+                      recipient,
+                      amountIn: net,
+                      amountOutMinimum: minOut,
+                      fee: uniFee,
+                    });
+            calls.push(buildContractCall(router, swapData));
+          }
         }
 
         const hash = await sendAppTransactions(activeConn, wallet.address, calls);
@@ -1113,6 +1295,7 @@ export function useWalletApp() {
       tokenAmount: string;
       seedEth: string;
       startPriceUsd?: string;
+      seedDex?: SeedDex;
     }): Promise<boolean> => {
       if (!wallet) return false;
 
@@ -1156,9 +1339,10 @@ export function useWalletApp() {
           creator,
           tokenAmount: tokenWei,
           ethAmount: ethWei,
+          dex: args.seedDex ?? "aerodrome",
         });
         const hash = await sendAppTransactions(activeConn, wallet.address, calls);
-        showToast(`💧 ${args.symbol} pool seeded on Aerodrome`, hash);
+        showToast(`💧 ${args.symbol} pool seeded on ${seedDexLabel(args.seedDex ?? "aerodrome")}`, hash);
         return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message.split("\n")[0] : "Seed failed";
@@ -1801,12 +1985,17 @@ export function useWalletApp() {
       setAnalyticsSyncing(false);
 
       void (async () => {
-        const [basename, bootstrap, quick] = await Promise.all([
+        const [basename, bootstrap, quick, miniIdentity] = await Promise.all([
           resolveBasenameClient(addr).catch(() => null),
           fetchWalletBootstrap(addr).catch(() => null),
           fetchWalletAnalysisQuick(addr, false).catch(() => null),
+          resolveMiniAppIdentity().catch(() => null),
         ]);
         if (walletOpGenRef.current !== connectGen) return;
+        if (miniIdentity) {
+          persistMiniAppIdentity(addr, miniIdentity);
+          setMiniAppIdentity(miniIdentity);
+        }
         const fastWallet = quick?.wallet ?? bootstrap?.wallet;
         if (!fastWallet) {
           setWalletRefreshing(false);
@@ -1876,6 +2065,7 @@ export function useWalletApp() {
     setPremiumInsights(null);
     setFarcasterUnlocked(false);
     setFarcasterUnlockLoading(false);
+    setMiniAppIdentity(null);
     setX402PayCount(0);
     setX402Product("scan");
     setSponsored(0);
@@ -2237,6 +2427,13 @@ export function useWalletApp() {
     walletRefreshing,
     analyticsSyncing,
     walletScanComplete,
+    miniAppIdentity,
+    walletDisplayLabel: wallet
+      ? formatWalletDisplayLabel(wallet.address, {
+          basename: wallet.basename,
+          miniApp: miniAppIdentity,
+        })
+      : "",
     premiumUnlocked,
     premiumLoading,
     premiumData,

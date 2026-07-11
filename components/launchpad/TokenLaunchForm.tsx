@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Loader2, Upload, X } from "lucide-react";
 import { parseUnits } from "viem";
 import type { WalletAppState } from "@/hooks/useWalletApp";
-import { computeLaunchSalt, predictB20Address } from "@/lib/b20/encode";
+import { computeLaunchSalt, mergeMintAllocations, predictB20Address } from "@/lib/b20/encode";
 import { uploadLaunchpadImage } from "@/lib/api/launchpad-client";
 import {
   prepareTokenImage,
@@ -23,8 +23,10 @@ import { applyLaunchPreset, getLaunchPreset, type LaunchPresetId } from "@/lib/l
 import {
   computeLiquiditySeedAmounts,
   DEFAULT_SEED_LIQUIDITY_ETH,
+  MIN_SEED_LIQUIDITY_ETH,
   SEED_LIQUIDITY_PRESETS,
   seedEthUsdValue,
+  type SeedDex,
 } from "@/lib/launchpad/seed-liquidity";
 import { formatUsd } from "@/lib/launchpad/format";
 import LaunchAdvantageStrip from "@/components/launchpad/LaunchAdvantageStrip";
@@ -87,6 +89,7 @@ export default function TokenLaunchForm({
   const [launchedToken, setLaunchedToken] = useState<LaunchedToken | null>(null);
   const [seedLiquidityEth, setSeedLiquidityEth] = useState(DEFAULT_SEED_LIQUIDITY_ETH);
   const [autoSeedLiquidity, setAutoSeedLiquidity] = useState(true);
+  const [seedDex, setSeedDex] = useState<SeedDex>("aerodrome");
 
   const decimals = 18;
   const poolPct = poolSeedPct({ creatorPct, insiderAllocations: insiders, vestedAllocations: vested });
@@ -256,18 +259,32 @@ export default function TokenLaunchForm({
     }
 
     if (autoSeedLiquidity && seedLiquidityEth) {
+      const seedEth = parseFloat(seedLiquidityEth);
+      const minSeed = parseFloat(MIN_SEED_LIQUIDITY_ETH);
+      if (!Number.isFinite(seedEth) || seedEth < minSeed) {
+        showToast(`Minimum liquidity seed is ${MIN_SEED_LIQUIDITY_ETH} ETH`, "");
+        return;
+      }
       const seed = computeLiquiditySeedAmounts({
         seedEth: seedLiquidityEth,
         startPriceUsd,
         ethUsd,
         decimals,
       });
-      if (seed && seed.tokenWei > BigInt(0)) {
-        mints.push({
-          to: wallet.address as `0x${string}`,
-          amount: seed.tokenWei,
-        });
+      if (!seed || seed.tokenWei <= BigInt(0)) {
+        showToast("Increase seed ETH or lower start price — not enough tokens for the pool", "");
+        return;
       }
+      mints.push({
+        to: wallet.address as `0x${string}`,
+        amount: seed.tokenWei,
+      });
+    }
+
+    const mergedMints = mergeMintAllocations(mints);
+    if (mergedMints.length === 0) {
+      showToast("Add at least one allocation or enable liquidity seeding", "");
+      return;
     }
 
     let finalImageUrl = imageUrl;
@@ -307,7 +324,7 @@ export default function TokenLaunchForm({
       telegram: telegram.trim() || undefined,
       discord: discord.trim() || undefined,
       metadataEditable,
-      mints,
+      mints: mergedMints,
       poolSeedPct: poolPct,
       quoteToken,
       startPriceUsd,
@@ -316,6 +333,7 @@ export default function TokenLaunchForm({
       antiSnipeBlocks,
       seedLiquidityEth: autoSeedLiquidity ? seedLiquidityEth : undefined,
       autoSeedLiquidity,
+      seedDex: autoSeedLiquidity ? seedDex : undefined,
       ethUsd,
     });
 
@@ -537,6 +555,34 @@ export default function TokenLaunchForm({
               </span>
             </label>
             {autoSeedLiquidity && (
+              <>
+              <label className="block">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">
+                  Seed pool on
+                </span>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {(
+                    [
+                      ["aerodrome", "Aerodrome"],
+                      ["uniswap", "Uniswap V3"],
+                      ["both", "Both (50/50 split)"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setSeedDex(id)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                        seedDex === id
+                          ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                          : "border-white/10 text-slate-500 hover:text-slate-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </label>
               <label className="block">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold text-slate-500 uppercase">
@@ -550,8 +596,8 @@ export default function TokenLaunchForm({
                 </div>
                 <input
                   type="number"
-                  min="0.0001"
-                  step="0.001"
+                  min={MIN_SEED_LIQUIDITY_ETH}
+                  step="0.00001"
                   value={seedLiquidityEth}
                   onChange={(e) => setSeedLiquidityEth(e.target.value)}
                   className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-cyan-500/40"
@@ -585,6 +631,7 @@ export default function TokenLaunchForm({
                   </p>
                 )}
               </label>
+              </>
             )}
           </div>
 

@@ -47,14 +47,21 @@ export default function ExploreOnboarding() {
   const current = STEPS[step];
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center p-4 pointer-events-none">
+    <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center p-3 sm:p-4 pointer-events-none overflow-y-auto overscroll-contain">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
         onClick={close}
       />
-      <div className="relative w-full max-w-md rounded-2xl border border-[#0052FF]/30 bg-[#080808] shadow-2xl pointer-events-auto tab-content-enter overflow-hidden">
+      <div
+        className="relative w-full max-w-md rounded-2xl border border-[#0052FF]/30 bg-[#080808] shadow-2xl pointer-events-auto tab-content-enter overflow-hidden my-auto"
+        style={{
+          marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
+          maxHeight:
+            "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
+        }}
+      >
         <div className="h-0.5 bg-linear-to-r from-[#0052FF] via-emerald-400 to-violet-400" />
-        <div className="p-5 sm:p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain max-h-[inherit]">
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
               {current.icon}

@@ -1,22 +1,86 @@
 import { NextResponse } from "next/server";
-import { getAlchemyKey } from "@/lib/constants/env";
+import { getAlchemyKey, alchemyRpcForKey } from "@/lib/constants/env";
+import { pingRedis } from "@/lib/redis-cache";
+import { zeroXConfigured } from "@/lib/launchpad/zerox";
 
 export const dynamic = "force-dynamic";
 
-/** Lightweight deploy health — missing optional env vars only. */
+async function pingRpc(): Promise<{
+  ok: boolean;
+  latencyMs?: number;
+  error?: string;
+}> {
+  const key = getAlchemyKey();
+  const url = key ? alchemyRpcForKey(key) : "https://mainnet.base.org";
+  const start = Date.now();
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_blockNumber",
+        params: [],
+      }),
+      signal: AbortSignal.timeout(8000),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return { ok: false, error: `RPC HTTP ${res.status}` };
+    }
+    const data = (await res.json()) as { result?: string; error?: { message?: string } };
+    if (data.error?.message) {
+      return { ok: false, error: data.error.message };
+    }
+    return {
+      ok: Boolean(data.result),
+      latencyMs: Date.now() - start,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "RPC unreachable",
+    };
+  }
+}
+
+/** Deploy health — env flags plus live Redis/RPC pings. */
 export async function GET() {
+  const [redis, rpc] = await Promise.all([pingRedis(), pingRpc()]);
+
   const checks = {
     alchemy: Boolean(getAlchemyKey()),
-    redis: Boolean(process.env.KV_REDIS_URL?.trim()),
+    redisConfigured: Boolean(process.env.KV_REDIS_URL?.trim()),
+    redis,
+    rpc,
     voucherContract: Boolean(process.env.NEXT_PUBLIC_VOUCHER_CONTRACT?.trim()),
+    zeroxAggregator: zeroXConfigured(),
+    badgeMarketplace: Boolean(
+      process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT?.trim()
+    ),
+    xpStake: Boolean(process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT?.trim()),
+    baseNotifications: Boolean(
+      process.env.BASE_DASHBOARD_API_KEY?.trim() ||
+        process.env.BASE_NOTIFICATIONS_API_KEY?.trim()
+    ),
     appUrl: Boolean(
       process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.APP_URL?.trim()
     ),
   };
 
-  return NextResponse.json({
-    ok: true,
-    checks,
-    timestamp: new Date().toISOString(),
-  });
+  const ok =
+    checks.alchemy &&
+    checks.appUrl &&
+    checks.rpc.ok &&
+    (!checks.redisConfigured || checks.redis.ok);
+
+  return NextResponse.json(
+    {
+      ok,
+      checks,
+      timestamp: new Date().toISOString(),
+    },
+    { status: ok ? 200 : 503 }
+  );
 }

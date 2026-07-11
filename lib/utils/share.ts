@@ -3,6 +3,7 @@ import { SEASON_NAME } from "@/lib/constants/season";
 import { getDaysLeft } from "@/lib/utils/season";
 import type { WalletData } from "@/lib/types/wallet";
 import { getOgImageUrl, type OgCardData } from "@/lib/og/types";
+import { OG_VERSION } from "@/lib/og/brand-kit";
 import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
 
 export const SHARE_TAGLINE =
@@ -114,7 +115,7 @@ export function buildTokenSharePageUrl(
     v: "token",
     sym: symbol,
     tname: name,
-    bust: "8",
+    ogv: OG_VERSION,
   });
   if (opts?.price) params.set("tprice", opts.price);
   if (opts?.change24h != null) params.set("tchg", String(opts.change24h));

@@ -20,7 +20,12 @@ export async function GET(request: Request) {
         tokenChange24h: parseFloat(searchParams.get("tchg") ?? "0") || 0,
         tokenMcap: searchParams.get("tmcap") ?? undefined,
       }),
-      { ...OG_SIZE }
+      {
+        ...OG_SIZE,
+        headers: {
+          "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
     );
   }
 
@@ -41,6 +46,11 @@ export async function GET(request: Request) {
       healthScore: data.healthScore,
       boosts: data.boosts,
     }),
-    { ...OG_SIZE }
+    {
+      ...OG_SIZE,
+      headers: {
+        "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    }
   );
 }

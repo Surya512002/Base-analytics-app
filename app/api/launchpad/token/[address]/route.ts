@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
+import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export async function GET(
   ctx: { params: Promise<{ address: string }> }
 ) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`launchpad-token:${ip}`, 120, 60_000);
+  const rl = await checkRateLimitAsync(`launchpad-token:${ip}`, 120, 60_000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
   const { address } = await ctx.params;

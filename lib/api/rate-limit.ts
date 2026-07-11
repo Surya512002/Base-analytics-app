@@ -1,4 +1,7 @@
+import { getRedisClient } from "@/lib/redis-cache";
+
 type Bucket = { count: number; resetAt: number };
+type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number };
 
 const buckets = new Map<string, Bucket>();
 
@@ -17,12 +20,12 @@ export function getClientIp(req: Request): string {
   return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
-/** Simple in-memory sliding window rate limit (per server instance). */
+/** In-memory sliding window (per server instance fallback). */
 export function checkRateLimit(
   key: string,
   limit: number,
   windowMs: number
-): { ok: true } | { ok: false; retryAfterSec: number } {
+): RateLimitResult {
   const now = Date.now();
   requestsSinceCleanup += 1;
   if (requestsSinceCleanup >= CLEANUP_EVERY) {
@@ -45,6 +48,47 @@ export function checkRateLimit(
 
   bucket.count += 1;
   return { ok: true };
+}
+
+async function checkRateLimitRedis(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult | null> {
+  const redis = getRedisClient();
+  if (!redis) return null;
+
+  const redisKey = `rl:${key}`;
+  const windowSec = Math.max(1, Math.ceil(windowMs / 1000));
+
+  try {
+    if (redis.status !== "ready") await redis.connect();
+    const count = await redis.incr(redisKey);
+    if (count === 1) {
+      await redis.expire(redisKey, windowSec);
+    }
+    if (count > limit) {
+      const ttl = await redis.ttl(redisKey);
+      return {
+        ok: false,
+        retryAfterSec: Math.max(1, ttl > 0 ? ttl : windowSec),
+      };
+    }
+    return { ok: true };
+  } catch {
+    return null;
+  }
+}
+
+/** Redis-backed rate limit with in-memory fallback. */
+export async function checkRateLimitAsync(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const redisResult = await checkRateLimitRedis(key, limit, windowMs);
+  if (redisResult) return redisResult;
+  return checkRateLimit(key, limit, windowMs);
 }
 
 export function rateLimitResponse(retryAfterSec: number): Response {

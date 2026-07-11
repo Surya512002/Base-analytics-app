@@ -38,6 +38,11 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import LaunchpadDashboardWidget from "@/components/launchpad/LaunchpadDashboardWidget";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import WalletStatsSections from "@/components/wallet/WalletStatsSections";
+import {
+  formatWalletDisplayLabel,
+  resolveMiniAppIdentityForAddress,
+  type MiniAppIdentity,
+} from "@/lib/utils/mini-app-identity";
 import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import ScoreImprovementTips from "@/components/wallet/ScoreImprovementTips";
 import ChallengePromoCard from "@/components/wallet/ChallengePromoCard";
@@ -63,10 +68,14 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     x402Product, setX402Product,
     farcasterUnlocked, farcasterUnlockLoading, handleFarcasterUnlock,
     walletRefreshing, scanProgress, analyticsSyncing,
+    miniAppIdentity, walletDisplayLabel,
     setTab,
   } = app;
 
   const [displayBasename, setDisplayBasename] = useState<string | null>(null);
+  const [resolvedMiniApp, setResolvedMiniApp] = useState<MiniAppIdentity | null>(
+    null
+  );
   const [resolvingIdentity, setResolvingIdentity] = useState(false);
 
   useEffect(() => {
@@ -77,9 +86,16 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     }
     let alive = true;
     setResolvingIdentity(true);
-    void resolveBasenameClient(wallet.address)
-      .then((name) => {
-        if (alive && name) setDisplayBasename(name);
+    void Promise.all([
+      resolveBasenameClient(wallet.address),
+      miniAppIdentity
+        ? Promise.resolve(miniAppIdentity)
+        : resolveMiniAppIdentityForAddress(wallet.address),
+    ])
+      .then(([basename, mini]) => {
+        if (!alive) return;
+        if (basename) setDisplayBasename(basename);
+        if (mini) setResolvedMiniApp(mini);
       })
       .finally(() => {
         if (alive) setResolvingIdentity(false);
@@ -87,7 +103,20 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     return () => {
       alive = false;
     };
-  }, [wallet?.address, wallet?.basename]);
+  }, [wallet?.address, wallet?.basename, miniAppIdentity]);
+
+  const identityLabel = (() => {
+    if (!wallet) return "";
+    if (displayBasename || wallet.basename) {
+      return displayBasename || wallet.basename || walletDisplayLabel;
+    }
+    const mini = miniAppIdentity ?? resolvedMiniApp;
+    if (mini?.displayName || mini?.username) {
+      return formatWalletDisplayLabel(wallet.address, { miniApp: mini });
+    }
+    if (resolvingIdentity) return "Loading profile…";
+    return walletDisplayLabel;
+  })();
 
   const openLaunchpad = (token?: LaunchedToken) => {
     if (typeof window !== "undefined") {
@@ -235,13 +264,9 @@ if (!wallet) return null;
                 </div>
                 <div className="min-w-0">
                   <p className="font-display page-hero-title truncate">
-                    {displayBasename ||
-                      wallet.basename ||
-                      (resolvingIdentity
-                        ? "Resolving identity…"
-                        : `${wallet.address.slice(0, 8)}…${wallet.address.slice(-4)}`)}
+                    {identityLabel}
                   </p>
-                  {(displayBasename || wallet.basename) && (
+                  {(displayBasename || wallet.basename || miniAppIdentity || resolvedMiniApp) && (
                     <p className="text-[11px] text-slate-500 font-mono truncate mt-0.5">
                       {wallet.address.slice(0, 8)}…{wallet.address.slice(-4)}
                     </p>

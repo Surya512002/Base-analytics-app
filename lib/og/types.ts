@@ -1,3 +1,5 @@
+import { OG_VERSION } from "./brand-kit";
+
 export interface OgCardData {
   score?: number;
   rank?: string;
@@ -54,7 +56,7 @@ export function getOgQueryString(data: OgCardData): string {
 
 export function getOgImageUrl(baseUrl: string, data: OgCardData = {}): string {
   const qs = getOgQueryString(data);
-  const bust = "v=8";
+  const bust = `ogv=${OG_VERSION}`;
   if (!qs) return `${baseUrl}/opengraph-image?${bust}`;
   return `${baseUrl}/api/og?${qs}&${bust}`;
 }

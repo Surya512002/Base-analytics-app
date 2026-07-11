@@ -13,26 +13,26 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Base Analytics — B20 Launchpad & In-App Swaps on Base",
+  title: "Base Analytics — Launch Tokens. Trade on Base.",
   description:
-    "Explore B20 tokens, swap via Uniswap & Aerodrome in-app with USD quotes, launch vanity tokens, and scan your wallet — quests, badges & vouchers on Base.",
+    "Discover liquid assets, route smart swaps across Base, launch B20 tokens, and analyze your onchain activity.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",
   openGraph: {
-    title: "Base Analytics — Explore · Trade · Earn on Base",
+    title: "Base Analytics — Launch Tokens. Trade on Base.",
     description:
-      "B20 launchpad + in-app DEX swaps. Browse liquid tokens, trade without leaving the app, earn quest XP.",
+      "The Base trading terminal: B20 launchpad, smart multi-DEX swaps, wallet analytics, quests and vouchers.",
     url: APP_URL,
     siteName: "Base Analytics",
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics — B20 launchpad & swaps" }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics — Launch tokens and trade on Base" }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics — B20 Launchpad on Base",
+    title: "Base Analytics — Launch Tokens. Trade on Base.",
     description:
-      "Explore tokens, swap Uniswap/Aerodrome in-app, launch B20, earn XP. Wallet analytics & Basename identity.",
+      "Discover assets, route swaps across Uniswap, Aerodrome, Slipstream and 0x, launch B20, and analyze your wallet.",
     images: [OG_IMAGE],
   },
   other: {

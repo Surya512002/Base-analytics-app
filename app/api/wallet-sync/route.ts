@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
+import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import {
   getCachedAnalyze,
   setCachedAnalyze,
@@ -23,7 +23,7 @@ const ANALYZE_CACHE_TTL = ANALYZE_CACHE_TTL_SECONDS;
 
 export async function GET(req: Request) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`sync:${ip}`, 20, 60_000);
+  const rl = await checkRateLimitAsync(`sync:${ip}`, 20, 60_000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
   const { searchParams } = new URL(req.url);

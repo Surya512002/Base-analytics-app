@@ -282,11 +282,16 @@ export default function RewardsTab({
             >
               Stake {ethTier} ETH for 7 days
             </button>
-            {!XP_STAKE_CONTRACT && (
+            {!XP_STAKE_CONTRACT && process.env.NODE_ENV === "development" && (
               <p className="text-[10px] text-slate-600">
                 Deploy <code className="text-slate-400">XpStake.sol</code> and set{" "}
                 <code className="text-slate-400">NEXT_PUBLIC_XP_STAKE_CONTRACT</code> in{" "}
                 <code className="text-slate-400">.env.local</code>.
+              </p>
+            )}
+            {!XP_STAKE_CONTRACT && process.env.NODE_ENV !== "development" && (
+              <p className="text-[10px] text-slate-500">
+                On-chain ETH stake is not live yet — local XP stake below still works.
               </p>
             )}
           </div>

@@ -12,7 +12,13 @@ export function marketFor(
   return markets[token.address.toLowerCase()];
 }
 
-/** Token has a live WETH pool on Base with enough liquidity to swap in-app. */
+/**
+ * Token has a live pool on Base with enough liquidity to swap in-app.
+ * Routing covers Uniswap V3, Aerodrome classic, Slipstream, and the 0x
+ * aggregator fallback (USDC pairs / multi-hop), so any DexScreener pool
+ * above the threshold is genuinely swappable. Tokens that still fail to
+ * route get an external "Trade on Aerodrome" fallback in the swap panel.
+ */
 export function isTradableListing(
   token: LaunchedToken,
   markets: Record<string, TokenMarketSummary>

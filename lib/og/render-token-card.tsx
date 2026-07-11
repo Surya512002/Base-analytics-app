@@ -1,5 +1,10 @@
-import { BrandLogoMark, INK } from "@/lib/brand/logo-mark";
 import type { OgCardData } from "./types";
+import {
+  OgBackground,
+  OgFooter,
+  OgHeader,
+  OG_COLORS,
+} from "./brand-kit";
 
 export function renderOgTokenCard(data: OgCardData) {
   const symbol = data.tokenSymbol ?? "TOKEN";
@@ -17,78 +22,153 @@ export function renderOgTokenCard(data: OgCardData) {
         display: "flex",
         flexDirection: "column",
         fontFamily: "system-ui, sans-serif",
-        background: INK.deep,
-        padding: 48,
+        background: OG_COLORS.bg,
         position: "relative",
         overflow: "hidden",
       }}
     >
+      <OgBackground />
       <div
         style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(ellipse 70% 45% at 50% -10%, rgba(255,255,255,0.04), transparent), #080808",
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          padding: "30px 40px 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 22,
         }}
-      />
-      <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <BrandLogoMark size={28} />
-          <p
+      >
+        <OgHeader label="LIVE MARKET" />
+        <div style={{ display: "flex", flex: 1, gap: 34, minHeight: 0 }}>
+          <div
             style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: INK.dim,
-              letterSpacing: "0.14em",
-              margin: 0,
+              display: "flex",
+              flex: 1,
+              flexDirection: "column",
+              justifyContent: "center",
             }}
           >
-            BASE ANALYTICS
-          </p>
-        </div>
-        <h1
-          style={{
-            fontSize: 56,
-            fontWeight: 800,
-            color: INK.ink,
-            margin: "12px 0 4px",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          ${symbol}
-        </h1>
-        <p style={{ fontSize: 26, color: INK.muted, margin: 0 }}>{name}</p>
-        <div style={{ display: "flex", gap: 32, marginTop: 40 }}>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <p style={{ fontSize: 13, color: INK.dim, margin: 0 }}>PRICE</p>
-            <p style={{ fontSize: 34, fontWeight: 800, color: INK.ink, margin: "4px 0 0" }}>
-              {price}
-            </p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <p style={{ fontSize: 13, color: INK.dim, margin: 0 }}>24H</p>
-            <p
+            <span
               style={{
-                fontSize: 34,
-                fontWeight: 800,
-                color: up ? "#4ade80" : "#fb7185",
-                margin: "4px 0 0",
+                color: OG_COLORS.cyan,
+                fontSize: 13,
+                fontWeight: 900,
+                letterSpacing: "0.18em",
               }}
             >
-              {up ? "+" : ""}
-              {change.toFixed(1)}%
-            </p>
+              TRADE ON BASE
+            </span>
+            <span
+              style={{
+                fontSize: 76,
+                fontWeight: 950,
+                color: OG_COLORS.text,
+                marginTop: 12,
+                lineHeight: 0.95,
+                letterSpacing: "-0.055em",
+              }}
+            >
+              ${symbol}
+            </span>
+            <span style={{ fontSize: 24, color: OG_COLORS.muted, marginTop: 12 }}>
+              {name}
+            </span>
+            <div style={{ display: "flex", gap: 9, marginTop: 26 }}>
+              {["Smart routing", "USD quotes", "In-app swaps"].map((tag) => (
+                <span
+                  key={tag}
+                  style={{
+                    color: OG_COLORS.text,
+                    border: `1px solid ${OG_COLORS.border}`,
+                    background: OG_COLORS.panel,
+                    borderRadius: 999,
+                    padding: "8px 12px",
+                    fontSize: 11,
+                    fontWeight: 800,
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <p style={{ fontSize: 13, color: INK.dim, margin: 0 }}>MCAP</p>
-            <p style={{ fontSize: 34, fontWeight: 800, color: INK.ink, margin: "4px 0 0" }}>
-              {mcap}
-            </p>
+          <div
+            style={{
+              display: "flex",
+              flex: 0.86,
+              flexDirection: "column",
+              justifyContent: "center",
+              border: "1px solid rgba(107,163,255,0.30)",
+              background: "rgba(255,255,255,0.055)",
+              borderRadius: 24,
+              padding: 26,
+            }}
+          >
+            <span style={{ color: OG_COLORS.dim, fontSize: 11, fontWeight: 900 }}>
+              CURRENT PRICE
+            </span>
+            <span
+              style={{
+                color: OG_COLORS.text,
+                fontSize: 47,
+                fontWeight: 950,
+                letterSpacing: "-0.04em",
+                marginTop: 6,
+              }}
+            >
+              {price}
+            </span>
+            <div style={{ display: "flex", gap: 12, marginTop: 22 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flex: 1,
+                  flexDirection: "column",
+                  border: `1px solid ${OG_COLORS.border}`,
+                  borderRadius: 14,
+                  padding: 14,
+                }}
+              >
+                <span style={{ color: OG_COLORS.dim, fontSize: 10 }}>24H</span>
+                <span
+                  style={{
+                    color: up ? OG_COLORS.green : "#FB7185",
+                    fontSize: 27,
+                    fontWeight: 950,
+                    marginTop: 4,
+                  }}
+                >
+                  {up ? "+" : ""}
+                  {change.toFixed(1)}%
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flex: 1,
+                  flexDirection: "column",
+                  border: `1px solid ${OG_COLORS.border}`,
+                  borderRadius: 14,
+                  padding: 14,
+                }}
+              >
+                <span style={{ color: OG_COLORS.dim, fontSize: 10 }}>MARKET CAP</span>
+                <span
+                  style={{
+                    color: OG_COLORS.cyan,
+                    fontSize: 27,
+                    fontWeight: 950,
+                    marginTop: 4,
+                  }}
+                >
+                  {mcap}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <p style={{ marginTop: "auto", fontSize: 16, color: INK.dim }}>
-          Swap in-app · Uniswap + Aerodrome · USD quotes · B20 Launchpad
-        </p>
+        <OgFooter cta={`TRADE $${symbol}`} />
       </div>
     </div>
   );

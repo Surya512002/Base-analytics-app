@@ -4,22 +4,27 @@
   "private": true,
   "scripts": {
     "build": "npm run build:collector && next build",
-    "build:collector": "command -v go >/dev/null 2>&1 && cd collector && go build -o collector . || echo 'Skipping Go collector (go not installed)'",
+    "build:collector": "if command -v go >/dev/null 2>&1; then cd collector && go build -o collector .; else echo 'Skipping Go collector (go not installed — wallet sync uses JS fallback)'; fi",
     "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbopack",
     "dev:clean": "rm -rf .next && next dev --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:e2e": "playwright test e2e",
+    "test:e2e": "playwright test",
+    "test:swap-routes": "node scripts/test-swap-routes.mjs",
+    "test:swap-routes:local": "node scripts/test-swap-routes.mjs --local",
     "typecheck": "tsc --noEmit",
     "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh",
-    "stake:deploy": "bash scripts/deploy-stake-market.sh"
+    "stake:deploy": "bash scripts/deploy-stake-market.sh",
+    "notify:list": "node scripts/send-base-notification.mjs list",
+    "notify:b20": "node scripts/send-base-notification.mjs broadcast --preset b20_launch"
   },
   "dependencies": {
     "@base-org/account": "^2.5.4",
     "@coinbase/cdp-sdk": "^1.44.1",
     "@coinbase/onchainkit": "^1.1.2",
+    "@farcaster/miniapp-node": "^0.2.0",
     "@farcaster/miniapp-sdk": "^0.3.0",
     "@farcaster/miniapp-wagmi-connector": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
@@ -45,6 +50,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/connect": "^3.4.38",
     "@types/estree": "^1.0.8",

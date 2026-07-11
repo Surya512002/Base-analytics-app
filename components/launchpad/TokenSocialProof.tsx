@@ -6,6 +6,7 @@ import type { EnrichedHolder } from "@/lib/api/launchpad-token-client";
 import type { RecentSwapRow } from "@/lib/api/launchpad-token-client";
 import { shortAddr } from "@/lib/launchpad/format";
 import { fetchNeynar } from "@/lib/api/neynar";
+import { parseNeynarUsersByAddress } from "@/lib/api/neynar-users";
 import Link from "next/link";
 
 type FarcasterProfile = {
@@ -32,8 +33,8 @@ export default function TokenSocialProof({
     void fetchNeynar("v2/farcaster/user/bulk-by-address", { addresses: creator })
       .then(({ ok, data }) => {
         if (!alive || !ok) return;
-        const users = (data as { users?: Array<Record<string, unknown>> }).users;
-        const user = users?.[0];
+        const users = parseNeynarUsersByAddress(data, creator);
+        const user = users[0];
         if (!user) return;
         setFc({
           username: user.username as string | undefined,

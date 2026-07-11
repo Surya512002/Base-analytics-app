@@ -2,6 +2,7 @@ import { toUtf8Bytes } from "ethers";
 import { encodeFunctionData, type Abi, type Hex } from "viem";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
+import { gasLimitForB20Target } from "@/lib/b20/preflight";
 
 const SUFFIX_TAIL = "0080218021802180218021802180218021";
 
@@ -148,6 +149,7 @@ export function buildB20Call(
   return {
     to,
     data,
+    gas: gasLimitForB20Target(to),
     ...(value !== undefined ? { value } : {}),
   };
 }

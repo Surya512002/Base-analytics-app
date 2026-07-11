@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import HomeApp from "@/components/home/HomeApp";
+import { getAppUrl } from "@/lib/constants/app-url";
+import { OG_VERSION } from "@/lib/og/brand-kit";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://base-analytics.app";
+const BASE = getAppUrl();
 
 export async function generateMetadata({
   params,
@@ -45,7 +47,7 @@ export async function generateMetadata({
       tprice: price,
       tchg: String(chg),
       tmcap: mcap,
-      bust: "8",
+      ogv: OG_VERSION,
     });
 
     return {

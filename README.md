@@ -45,7 +45,9 @@ npm run build        # production build
 npm run start        # production server
 npm run typecheck    # TypeScript
 npm run test         # Vitest unit tests
-npm run test:e2e     # Playwright smoke tests (needs dev server)
+npm run test:e2e     # Playwright smoke + mobile flows
+npm run test:swap-routes        # Quote API smoke (production URL)
+npm run test:swap-routes:local  # Quote API against localhost:3000
 npm run lint         # ESLint
 ```
 
@@ -62,7 +64,9 @@ Copy `.env.example` → `.env.local`. **Never commit secrets.**
 | `NEXT_PUBLIC_VOUCHER_CONTRACT` | Vouchers | Deployed BaseVoucher on Base |
 | `NEXT_PUBLIC_PAYMASTER_URL` | Optional | Gasless badge mints |
 | `BASESCAN_API_KEY` | Optional | Extra tx history |
-| `NEYNAR_API_KEY` | Optional | Farcaster profiles |
+| `ZEROX_API_KEY` | Prod | 0x aggregator fallback for USDC / multi-hop swaps |
+| `BASE_DASHBOARD_API_KEY` | Optional | Base App push notifications |
+| `CRON_SECRET` | Prod cron | Auth for `/api/cron/price-alerts` |
 | `MCP_API_KEY` | Optional | Auth for `/api/mcp` agent tools |
 | `X402_FACILITATOR_PRIVATE_KEY` | x402 | Premium scan settlement |
 | `NEXT_PUBLIC_XP_STAKE_CONTRACT` | Optional | On-chain XP stake |

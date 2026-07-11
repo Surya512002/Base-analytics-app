@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { getAppUrl } from "@/lib/constants/app-url";
+import { OG_VERSION } from "@/lib/og/brand-kit";
 
-const APP_URL = "https://base-analytics-app.vercel.app";
-const REDEEM_OG = `${APP_URL}/redeem/opengraph-image`;
+const APP_URL = getAppUrl();
+const REDEEM_OG = `${APP_URL}/redeem/opengraph-image?ogv=${OG_VERSION}`;
 
 export const metadata: Metadata = {
   title: "Redeem Base Voucher — Crypto Gift Card on Base",
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
           name: "Redeem Base Voucher",
           url: `${APP_URL}/redeem`,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#040a14",
+          splashBackgroundColor: "#020508",
         },
       },
     }),
