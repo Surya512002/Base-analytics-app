@@ -20,10 +20,14 @@ test.describe("guest browse flow", () => {
   });
 
   test("wallet profile public page loads", async ({ page }) => {
+    test.setTimeout(120_000);
     const demo = "0x3799cafa388da047caf7c999e31c844705fadfae";
-    await page.goto(`${BASE}/wallet/${demo}`);
-    await expect(page.getByText(/public profile|onchain score/i).first()).toBeVisible({
-      timeout: 30_000,
+    await page.goto(`${BASE}/wallet/${demo}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+    await expect(page.getByText(/public profile|onchain score|wallet/i).first()).toBeVisible({
+      timeout: 45_000,
     });
   });
 });

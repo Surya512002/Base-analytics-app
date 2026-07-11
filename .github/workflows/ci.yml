@@ -8,6 +8,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,7 +30,7 @@ jobs:
         run: |
           npm start &
           DEV_PID=$!
-          for i in $(seq 1 60); do
+          for i in $(seq 1 90); do
             if curl -sf http://127.0.0.1:3000/api/launchpad/status >/dev/null; then
               break
             fi
