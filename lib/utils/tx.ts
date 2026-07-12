@@ -1,5 +1,5 @@
 import { toUtf8Bytes } from "ethers";
-import { encodeFunctionData, type Abi, type Hex } from "viem";
+import { encodeFunctionData, parseAbi, type Abi, type Hex } from "viem";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 import { gasLimitForB20Target } from "@/lib/b20/preflight";
@@ -206,6 +206,52 @@ export function normalizeTxHash(tx: string): string | null {
 export function basescanTxUrl(tx: string): string | null {
   const hash = normalizeTxHash(tx);
   return hash ? `https://basescan.org/tx/${hash}` : null;
+}
+
+/** Canonical Multicall3 on Base — bundles swap + fee into one EOA transaction. */
+export const MULTICALL3_ADDRESS =
+  "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
+
+const MULTICALL3_ABI = parseAbi([
+  "function aggregate3Value((address target, bool allowFailure, uint256 value, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
+]);
+
+/** True when calls can be wrapped in one Multicall3 aggregate3Value tx. */
+export function canBundleViaMulticall3(calls: ContractCall[]): boolean {
+  if (calls.length < 2) return false;
+  if (calls.some((c) => isB20PrecompileAddress(c.to))) return false;
+  const preserved = calls.filter(isPreservedCalldataCall);
+  return preserved.length <= 1;
+}
+
+/** Pack multiple app calls into a single Multicall3 transaction (EOA fallback). */
+export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
+  let totalValue = BigInt(0);
+  const inner = calls.map((call) => {
+    const value = call.value ?? BigInt(0);
+    totalValue += value;
+    let callData: Hex = call.data;
+    if (isPreservedCalldataCall(call)) {
+      callData = call.data;
+    } else if (hasBuilderSuffix(call.data)) {
+      callData = stripBuilderSuffix(call.data);
+    }
+    if (!callData || callData === "0x") {
+      callData = "0x";
+    }
+    return {
+      target: call.to,
+      allowFailure: false,
+      value,
+      callData,
+    };
+  });
+  const data = encodeFunctionData({
+    abi: MULTICALL3_ABI,
+    functionName: "aggregate3Value",
+    args: [inner],
+  });
+  return buildContractCall(MULTICALL3_ADDRESS, data, totalValue);
 }
 
 /** Active builder code — every app tx must include this attribution. */

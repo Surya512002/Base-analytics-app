@@ -524,12 +524,17 @@ export default function TokenDetailPanel({
               guestMode={guestMode}
               onRequestConnect={onRequestConnect}
             />
-            <TokenChartPanel
-              pairAddress={best?.pairAddress}
-              tokenAddress={token.address}
-              swaps={swaps}
-              swapsLoading={swaps.length === 0 && !swapsErr}
-            />
+            <div className="hidden md:block">
+              <TokenChartPanel
+                pairAddress={best?.pairAddress}
+                tokenAddress={token.address}
+                swaps={swaps}
+                swapsLoading={swaps.length === 0 && !swapsErr}
+              />
+            </div>
+            <p className="md:hidden text-center text-[11px] text-slate-500">
+              Open the <button type="button" className="text-[#6BA3FF] font-bold" onClick={() => setTab("chart")}>Chart</button> tab for live price action.
+            </p>
           </div>
         ) : (
         <div className="lg:col-span-12 space-y-5">

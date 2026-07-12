@@ -131,8 +131,7 @@ import { BASE_RPC } from "@/lib/constants/env";
 import {
   ERC20_ABI,
 } from "@/lib/constants/contracts";
-import { parseUnits, parseEther, createPublicClient, http, maxUint256 } from "viem";
-import { base } from "viem/chains";
+import { parseUnits, parseEther, maxUint256 } from "viem";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 import type { PredictionAsset, PredictionDuration } from "@/lib/constants/predictions";
 import type { StreakEntry } from "@/lib/predictions/types";
@@ -179,6 +178,7 @@ import { splitGrossAmount } from "@/lib/launchpad/fees";
 import { splitPlatformFee } from "@/lib/launchpad/fee-split";
 import { fetchOnchainStake, tierToReferrerBoostBps } from "@/lib/wallet/onchain-stake";
 import { encodeErc20TransferCalldata } from "@/lib/b20/encode";
+import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { syncTabUrl, resolveTabFromUrl } from "@/lib/utils/app-url";
 import {
   readGuestResume,
@@ -489,6 +489,20 @@ export function useWalletApp() {
   useEffect(() => {
     tabRef.current = tab;
   }, [tab]);
+
+  useEffect(() => {
+    const onPoints = (e: Event) => {
+      const detail = (e as CustomEvent<{ address?: string }>).detail;
+      if (
+        wallet?.address &&
+        detail?.address?.toLowerCase() === wallet.address.toLowerCase()
+      ) {
+        setPointsRevision((n) => n + 1);
+      }
+    };
+    window.addEventListener("base-points-updated", onPoints);
+    return () => window.removeEventListener("base-points-updated", onPoints);
+  }, [wallet?.address]);
 
   useEffect(() => {
     if (tab !== "dashboard" || !wallet?.address) return;
@@ -1063,11 +1077,17 @@ export function useWalletApp() {
 
       setSwapLoading(true);
       try {
+        const tokenAddr = args.token as `0x${string}`;
+        const tokenDecimals =
+          args.direction === "sell" || payAsset === "token"
+            ? await fetchErc20Decimals(tokenAddr, args.decimals)
+            : args.decimals;
+
         const quote = await fetchSwapQuote({
           token: args.token,
           direction: args.direction,
           amount: args.amount,
-          decimals: args.decimals,
+          decimals: tokenDecimals,
           slippageBps: args.slippageBps,
           dex: args.dex ?? "auto",
           referrer: args.referrer ?? null,
@@ -1175,6 +1195,17 @@ export function useWalletApp() {
             });
           }
 
+          if (payIsNative) {
+            pushFeeSplitCalls(calls, fee, {
+              native: true,
+              token,
+              creator,
+              referrer,
+              referrerBoostBps,
+              payer: recipient,
+            });
+          }
+
           if (isAggregator && quote.tx) {
             calls.push(
               buildExternalSwapCall(
@@ -1210,19 +1241,8 @@ export function useWalletApp() {
                     });
             calls.push(buildContractCall(router, swapData, net));
           }
-
-          if (payIsNative) {
-            pushFeeSplitCalls(calls, fee, {
-              native: true,
-              token,
-              creator,
-              referrer,
-              referrerBoostBps,
-              payer: recipient,
-            });
-          }
         } else {
-          const gross = parseUnits(args.amount, args.decimals);
+          const gross = parseUnits(args.amount, tokenDecimals);
           const { net, fee } = splitGrossAmount(gross);
           if (net <= BigInt(0)) {
             showToast("Amount too small after platform fee", "");
@@ -1239,7 +1259,7 @@ export function useWalletApp() {
               functionName: "allowance",
               args: [recipient, spender],
             });
-            if (allowance < gross) {
+            if (allowance < net) {
               calls.push(
                 buildContractCall(
                   token,
@@ -1248,14 +1268,6 @@ export function useWalletApp() {
               );
             }
           }
-          pushFeeSplitCalls(calls, fee, {
-            native: false,
-            token,
-            creator,
-            referrer,
-            referrerBoostBps,
-            payer: recipient,
-          });
           if (isAggregator && quote.tx) {
             calls.push(
               buildExternalSwapCall(
@@ -1292,9 +1304,25 @@ export function useWalletApp() {
                     });
             calls.push(buildContractCall(router, swapData));
           }
+
+          const amountOut = BigInt(quote.amountOut ?? 0);
+          const feeEth =
+            net > BigInt(0) && amountOut > BigInt(0)
+              ? (amountOut * fee) / net
+              : BigInt(0);
+          pushFeeSplitCalls(calls, feeEth, {
+            native: true,
+            token,
+            creator,
+            referrer,
+            referrerBoostBps,
+            payer: recipient,
+          });
         }
 
-        const hash = await sendAppTransactions(activeConn, wallet.address, calls);
+        const hash = await sendAppTransactions(activeConn, wallet.address, calls, {
+          atomicBatch: true,
+        });
         setSponsored((s) => s + 1);
 
         const nextKeys = bumpWeeklyTxKey(wallet.address, "swap");
@@ -1383,7 +1411,11 @@ export function useWalletApp() {
           ethAmount: ethWei,
           dex: args.seedDex ?? "aerodrome",
         });
-        const hash = await sendAppTransactions(activeConn, wallet.address, calls);
+        const hash = await sendAppTransactions(activeConn, wallet.address, calls, {
+          atomicBatch: true,
+        });
+        recordInAppTransaction(wallet.address);
+        setPointsRevision((n) => n + 1);
         showToast(`💧 ${args.symbol} pool seeded on ${seedDexLabel(args.seedDex ?? "aerodrome")}`, hash);
         return true;
       } catch (e) {

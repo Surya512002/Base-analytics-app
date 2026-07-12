@@ -81,7 +81,7 @@ export function OgHeader({ label = "LIVE ON BASE" }: { label?: string }) {
             BASE ANALYTICS
           </span>
           <span style={{ color: OG_COLORS.dim, fontSize: 11, fontWeight: 700 }}>
-            Launch · Trade · Analyze
+            Launch · Trade · Score · Gift
           </span>
         </div>
       </div>

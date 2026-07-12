@@ -71,9 +71,9 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
                 letterSpacing: "-0.045em",
               }}
             >
-              <span>Launch tokens.</span>
+              <span>Launch. Trade.</span>
               <span>
-                Trade on{" "}
+                Score on{" "}
                 <span style={{ color: OG_COLORS.cyan }}>Base.</span>
               </span>
             </div>
@@ -87,11 +87,11 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
                 marginTop: 20,
               }}
             >
-              Discover liquid assets, route swaps across four venues, launch B20
-              tokens, and measure your onchain activity.
+              B20 launchpad, in-app swaps with USD quotes, weekly quest XP,
+              on-chain badges, ETH stake, and crypto gift cards.
             </span>
-            <div style={{ display: "flex", gap: 9, marginTop: 24 }}>
-              {["B20 Launchpad", "Smart swaps", "Wallet analytics"].map((tag) => (
+            <div style={{ display: "flex", gap: 9, marginTop: 24, flexWrap: "wrap" }}>
+              {["B20 Launchpad", "In-app swaps", "Quests & badges", "Vouchers"].map((tag) => (
                 <span
                   key={tag}
                   style={{

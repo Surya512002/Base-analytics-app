@@ -9,6 +9,7 @@ import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import { getLaunchedToken } from "@/lib/launchpad/token-store";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
+import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 
 const B20_FACTORY_ABI = [
   {
@@ -64,6 +65,10 @@ function extractMeta(pair: { info?: PairInfo } | null) {
     twitter: info?.socials?.find((s) => s.type === "twitter")?.url,
     telegram: info?.socials?.find((s) => s.type === "telegram")?.url,
   };
+}
+
+async function readErc20Decimals(addr: `0x${string}`): Promise<number> {
+  return fetchErc20Decimals(addr, 18);
 }
 
 /** B20 exists on-chain but DexScreener may lag minutes after LP seed. */
@@ -140,11 +145,12 @@ export async function resolveTradeableToken(
   const meta = extractMeta(best as { info?: PairInfo });
 
   const isB20 = addr.startsWith("0xb20");
+  const onChainDecimals = await readErc20Decimals(addr as `0x${string}`);
   const token: LaunchedToken = {
     address: addr,
     name: best.baseToken?.name?.trim() || "Base Token",
     symbol: (best.baseToken?.symbol?.trim() || "TOKEN").toUpperCase(),
-    decimals: 18,
+    decimals: onChainDecimals,
     creator: "",
     txHash: "",
     createdAt: 0,

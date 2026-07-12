@@ -12,6 +12,8 @@ import {
   isB20PrecompileAddress,
   isPreservedCalldataCall,
   finalizeAppTransactionBatch,
+  canBundleViaMulticall3,
+  bundleCallsViaMulticall3,
 } from "@/lib/utils/tx";
 import {
   detectMiniAppConnType,
@@ -324,8 +326,13 @@ function isErc20ApproveCall(call: ContractCall): boolean {
   return hex.startsWith("0x095ea7b3");
 }
 
-/** Approve is isolated; swap + fee transfers can share one wallet batch. */
-function groupCallsForExecution(calls: ContractCall[]): ContractCall[][] {
+/** Approve is isolated for legacy sequential wallets; atomic batches keep one on-chain tx. */
+function groupCallsForExecution(
+  calls: ContractCall[],
+  atomic: boolean
+): ContractCall[][] {
+  if (atomic) return [calls];
+
   const groups: ContractCall[][] = [];
   let i = 0;
   while (i < calls.length) {
@@ -370,7 +377,7 @@ async function sendCallGroup(
   provider: Eip1193,
   from: string,
   group: ContractCall[],
-  opts: { preferSendCalls: boolean }
+  opts: { preferSendCalls: boolean; atomicBatch: boolean }
 ): Promise<string> {
   if (group.length === 0) {
     throw new Error("No calls in group");
@@ -385,10 +392,26 @@ async function sendCallGroup(
     skipPaymaster: b20InBatch || hasValue,
   });
 
-  try {
-    return await sendViaWalletSendCalls(provider, from, group, caps);
-  } catch (e) {
-    if (isUserRejection(e)) throw e;
+  if (opts.preferSendCalls || opts.atomicBatch) {
+    try {
+      return await sendViaWalletSendCalls(provider, from, group, caps);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+    }
+  }
+
+  if (opts.atomicBatch && canBundleViaMulticall3(group)) {
+    try {
+      const bundled = bundleCallsViaMulticall3(group);
+      const hash = await sendViaEthSendTransaction(provider, from, bundled);
+      return waitForOnchainHash(hash);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+    }
+  }
+
+  if (opts.atomicBatch) {
+    throw new Error("Swap could not be batched — reconnect wallet and retry");
   }
 
   let lastHash = "";
@@ -402,13 +425,14 @@ async function sendGroupedAppCalls(
   provider: Eip1193,
   from: string,
   calls: ContractCall[],
-  opts: { preferSendCalls: boolean }
+  opts: { preferSendCalls: boolean; atomicBatch: boolean }
 ): Promise<string> {
-  const groups = groupCallsForExecution(calls);
+  const useAtomic = opts.atomicBatch;
+  const groups = groupCallsForExecution(calls, useAtomic);
   let lastHash = "";
   for (let g = 0; g < groups.length; g++) {
     lastHash = await sendCallGroup(provider, from, groups[g]!, opts);
-    if (g < groups.length - 1) {
+    if (!useAtomic && g < groups.length - 1) {
       await waitForTxMined(lastHash);
     }
   }
@@ -419,11 +443,11 @@ function prefersWalletSendCalls(
   connType: ConnectionType,
   inMiniApp: boolean
 ): boolean {
+  if (inMiniApp) return true;
   return (
-    inMiniApp &&
-    (connType === "farcaster" ||
-      connType === "baseAccount" ||
-      connType === "coinbase")
+    connType === "farcaster" ||
+    connType === "baseAccount" ||
+    connType === "coinbase"
   );
 }
 
@@ -471,6 +495,8 @@ async function sendB20Launch(
 export type SendAppTxOptions = {
   /** B20 factory calls must not be paired with a companion attribution tx (breaks paymaster batches). */
   skipBuilderCompanion?: boolean;
+  /** When true (default), approve + swap + fee transfers run in one wallet_sendCalls batch. */
+  atomicBatch?: boolean;
 };
 
 /** Sends one or more app contract calls — sponsored via paymaster in Base App / Coinbase Wallet. */
@@ -495,6 +521,8 @@ export async function sendAppTransactions(
 
   const trySponsored = supportsPaymaster(connType);
   const inMiniApp = Boolean(await detectMiniAppConnType());
+  const preferSendCalls = prefersWalletSendCalls(connType, inMiniApp);
+  const atomicBatch = options?.atomicBatch !== false;
   const b20Only =
     batch.length === 1 && isB20PrecompileAddress(batch[0]!.to);
 
@@ -502,10 +530,10 @@ export async function sendAppTransactions(
     return sendB20Launch(provider, from, batch[0]!, connType, inMiniApp);
   }
 
-  // Approve must mine first; swap + platform fee can batch in one wallet prompt.
   if (batch.length > 1) {
     return sendGroupedAppCalls(provider, from, batch, {
-      preferSendCalls: prefersWalletSendCalls(connType, inMiniApp),
+      preferSendCalls,
+      atomicBatch,
     });
   }
 
@@ -514,7 +542,7 @@ export async function sendAppTransactions(
     skipPaymaster: b20InBatch,
   });
 
-  if (trySponsored || prefersWalletSendCalls(connType, inMiniApp)) {
+  if (trySponsored || preferSendCalls) {
     try {
       return await sendViaWalletSendCalls(provider, from, batch, sendCallsCaps);
     } catch (e) {

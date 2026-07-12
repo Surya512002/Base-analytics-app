@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseUnits, type Address } from "viem";
 import { WETH_BASE, applySlippage } from "@/lib/launchpad/uniswap";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
+import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { quoteLaunchSwap, type LaunchDex } from "@/lib/launchpad/dex";
 import {
   fetchZeroXPrice,
@@ -115,6 +116,7 @@ export async function GET(req: Request) {
   try {
     const tokenAddr = token as Address;
     const weth = WETH_BASE as Address;
+    const pageDecimals = await fetchErc20Decimals(tokenAddr, decimals);
     const registered = await getLaunchedToken(token);
     const pub = createBasePublicClient();
     const currentBlock = Number(await pub.getBlockNumber());
@@ -141,7 +143,7 @@ export async function GET(req: Request) {
       receiveAsset,
       payToken,
       receiveToken,
-      pageDecimals: decimals,
+      pageDecimals,
       counterDecimals,
     });
     if (!legs) {

@@ -193,6 +193,19 @@ function readTodayTxCounter(address: string): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function notifyPointsUpdated(address: string): void {
+  if (typeof window === "undefined" || !address) return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent("base-points-updated", {
+        detail: { address: address.toLowerCase() },
+      })
+    );
+  } catch {
+    // ignore
+  }
+}
+
 /** Count a confirmed in-app transaction toward today's activity tally (independent of PP cap). */
 export function recordInAppTransaction(address: string): number {
   if (!address || typeof window === "undefined") return 0;
@@ -212,6 +225,7 @@ export function recordInAppTransaction(address: string): number {
   ledger[today] = day;
   writeWeekLedger(address, ledger);
 
+  notifyPointsUpdated(address);
   return next;
 }
 

@@ -23,6 +23,7 @@ import {
   dexscreenerTokenUrl,
   type SwapVenue,
 } from "@/lib/launchpad/dex";
+import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
 import {
@@ -36,8 +37,16 @@ import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
 import { WETH_BASE } from "@/lib/launchpad/uniswap";
 import { USDC_BASE, USDC_DECIMALS } from "@/lib/launchpad/tokens-base";
 import SeedLiquidityPanel from "@/components/launchpad/SeedLiquidityPanel";
+import {
+  amountFromBalanceFraction,
+  formatTokenBalanceDisplay,
+  formatTokenInputAmount,
+} from "@/lib/launchpad/token-amount";
 
-const ERC20_ABI = parseAbi(["function balanceOf(address) view returns (uint256)"]);
+const ERC20_ABI = parseAbi([
+  "function balanceOf(address) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+]);
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -55,6 +64,10 @@ const PCT_PRESETS = [
 
 /** Leave native ETH for gas when user picks MAX on buy. */
 const MAX_ETH_FRACTION = 0.97;
+/** Sell MAX — leave dust to avoid rounding reverts. */
+const MAX_TOKEN_FRACTION = 0.995;
+/** Only warn on meaningful price impact (not pool size alone). */
+const HIGH_IMPACT_PCT = 5;
 
 function formatQuoteOut(amountOut: string, decimals: number): string {
   const n = Number(amountOut) / 10 ** decimals;
@@ -150,6 +163,27 @@ export default function TokenSwapPanel({
   const [highImpactAck, setHighImpactAck] = useState(false);
   const [balanceTick, setBalanceTick] = useState(0);
   const [activePct, setActivePct] = useState<string | null>(null);
+  const [tokenDecimals, setTokenDecimals] = useState(18);
+
+  useEffect(() => {
+    if (!token) return;
+    setTokenDecimals(token.decimals);
+    let alive = true;
+    void (async () => {
+      try {
+        const n = await fetchErc20Decimals(
+          token.address as `0x${string}`,
+          token.decimals
+        );
+        if (alive) setTokenDecimals(n);
+      } catch {
+        /* keep token.decimals */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [token]);
 
   useEffect(() => {
     if (!token) return;
@@ -197,7 +231,7 @@ export default function TokenSwapPanel({
     let alive = true;
     void (async () => {
       const [tok, weth, usdc] = await Promise.all([
-        readErc20Balance(token.address as `0x${string}`, token.decimals),
+        readErc20Balance(token.address as `0x${string}`, tokenDecimals),
         readErc20Balance(WETH_BASE, 18),
         readErc20Balance(USDC_BASE, USDC_DECIMALS),
       ]);
@@ -209,7 +243,13 @@ export default function TokenSwapPanel({
     return () => {
       alive = false;
     };
-  }, [token, wallet, balanceTick, readErc20Balance]);
+  }, [token, wallet, balanceTick, readErc20Balance, tokenDecimals]);
+
+  useEffect(() => {
+    if (!token || !wallet) return;
+    const id = window.setInterval(() => refreshBalances(), 20_000);
+    return () => window.clearInterval(id);
+  }, [token, wallet, refreshBalances]);
 
   useEffect(() => {
     const onFocus = () => refreshBalances();
@@ -280,7 +320,7 @@ export default function TokenSwapPanel({
         token: token.address,
         direction,
         amount,
-        decimals: token.decimals,
+        decimals: tokenDecimals,
         slippageBps: parseSlippageBps(slippage),
         dex,
         referrer,
@@ -291,13 +331,13 @@ export default function TokenSwapPanel({
       if (!alive) return;
       setQuoteLoading(false);
       setHasLiquidity(q.hasLiquidity);
-      setQuoteError(q.error ?? null);
+      setQuoteError(q.hasLiquidity ? null : (q.error ?? null));
       setActiveDex(q.dex ?? null);
       if (q.antiSnipe?.active) {
         setAntiSnipeActive(true);
         setAntiSnipeMsg(q.antiSnipe.message ?? null);
       }
-      const outDec = q.outDecimals ?? (direction === "buy" ? token.decimals : 18);
+      const outDec = q.outDecimals ?? (direction === "buy" ? tokenDecimals : 18);
       setQuoteReceiveAsset(
         q.receiveAsset ?? (direction === "buy" ? "token" : "eth")
       );
@@ -315,7 +355,7 @@ export default function TokenSwapPanel({
       alive = false;
       clearTimeout(t);
     };
-  }, [token, direction, amount, slippage, dex, referrer, wallet?.address]);
+  }, [token, direction, amount, slippage, dex, referrer, wallet?.address, tokenDecimals]);
 
   const isUsdcToken = token ? isUsdcAddress(token.address) : false;
   const isWethToken = token ? isWethAddress(token.address) : false;
@@ -388,8 +428,10 @@ export default function TokenSwapPanel({
   }, [quoteOutNum, priceUsd, payAmountNum, direction, ethUsd]);
 
   const needsImpactAck =
-    (priceImpactPct != null && priceImpactPct >= 3) ||
-    (poolLiquidityUsd != null && poolLiquidityUsd < 2500);
+    hasLiquidity === true &&
+    payAmountNum > 0 &&
+    priceImpactPct != null &&
+    priceImpactPct >= HIGH_IMPACT_PCT;
 
   useEffect(() => {
     setHighImpactAck(false);
@@ -406,10 +448,13 @@ export default function TokenSwapPanel({
       rows.push({ label: "USDC", value: usdcBalance.toFixed(2) });
     }
     if (!isWethPage && token) {
-      rows.push({ label: token.symbol, value: tokenBalance.toFixed(isUsdcToken ? 2 : 4) });
+      rows.push({
+        label: token.symbol,
+        value: formatTokenBalanceDisplay(tokenBalance, tokenDecimals),
+      });
     }
     return rows;
-  }, [ethBalance, wethBalance, usdcBalance, tokenBalance, token, isWethPage, isUsdcToken]);
+  }, [ethBalance, wethBalance, usdcBalance, tokenBalance, token, isWethPage, tokenDecimals]);
 
   const setDirectionSafe = (d: "buy" | "sell") => {
     setDirection(d);
@@ -428,11 +473,10 @@ export default function TokenSwapPanel({
     if (direction === "buy") {
       const fraction = pct < 0 ? MAX_ETH_FRACTION : pct;
       const v = ethBalance * fraction;
-      setAmount(v > 0 ? v.toFixed(6) : "0");
+      setAmount(v > 0 ? formatTokenInputAmount(v, 18) : "0");
     } else {
-      const fraction = pct < 0 ? 0.99 : pct;
-      const v = tokenBalance * fraction;
-      setAmount(v > 0 ? v.toFixed(4) : "0");
+      const fraction = pct < 0 ? MAX_TOKEN_FRACTION : pct;
+      setAmount(amountFromBalanceFraction(tokenBalance, tokenDecimals, fraction));
     }
   };
 
@@ -461,7 +505,7 @@ export default function TokenSwapPanel({
     const ok = await handleTokenSwap({
       token: token.address,
       symbol: token.symbol,
-      decimals: token.decimals,
+      decimals: tokenDecimals,
       direction,
       amount,
       slippageBps: parseSlippageBps(slippage),
@@ -474,6 +518,8 @@ export default function TokenSwapPanel({
       setAmount(direction === "buy" ? "0.01" : "");
       setActivePct(null);
       refreshBalances();
+      window.setTimeout(refreshBalances, 2500);
+      window.setTimeout(refreshBalances, 8000);
     }
   };
 
@@ -535,7 +581,7 @@ export default function TokenSwapPanel({
   })();
 
   return (
-    <div className="swap-panel swap-panel-lg overflow-hidden">
+    <div className="swap-panel swap-panel-lg">
       <div className="swap-panel-inner">
         <div className="swap-mode-tabs">
           {(["buy", "sell"] as const).map((d) => (
@@ -648,8 +694,8 @@ export default function TokenSwapPanel({
                 <span className="swap-balance-hint">
                   Balance{" "}
                   {direction === "buy"
-                    ? `${ethBalance.toFixed(4)} ETH`
-                    : `${tokenBalance.toFixed(2)} ${token.symbol}`}
+                    ? `${formatTokenBalanceDisplay(ethBalance, 18)} ETH`
+                    : `${formatTokenBalanceDisplay(tokenBalance, tokenDecimals)} ${token.symbol}`}
                 </span>
               </div>
               <div className="swap-amount-row">
@@ -725,7 +771,7 @@ export default function TokenSwapPanel({
                   Route <strong>{dexLabel(activeDex)}</strong>
                 </span>
                 <span className="swap-summary-dot">·</span>
-                <span>{formatPlatformFeeLabel()} fee (batched with swap)</span>
+                <span>{formatPlatformFeeLabel()} platform fee</span>
                 {payUsd != null && receiveUsd != null && payUsd > 0 && (
                   <>
                     <span className="swap-summary-dot">·</span>
@@ -737,7 +783,7 @@ export default function TokenSwapPanel({
                 {priceImpactPct != null && (
                   <>
                     <span className="swap-summary-dot">·</span>
-                    <span className={priceImpactPct >= 3 ? "text-rose-300 font-semibold" : ""}>
+                    <span className={priceImpactPct >= HIGH_IMPACT_PCT ? "text-rose-300 font-semibold" : ""}>
                       {priceImpactPct.toFixed(1)}% impact
                     </span>
                   </>
@@ -762,12 +808,15 @@ export default function TokenSwapPanel({
             {direction === "buy" && activePct === "MAX" && (
               <p className="swap-gas-hint">MAX keeps a small ETH buffer for network fees.</p>
             )}
+            {direction === "sell" && activePct === "MAX" && tokenBalance > 0 && (
+              <p className="swap-gas-hint">MAX uses your full {token.symbol} balance (minus rounding dust).</p>
+            )}
 
             {antiSnipeActive && direction === "buy" && antiSnipeMsg && (
               <div className="swap-alert swap-alert-warn">{antiSnipeMsg}</div>
             )}
 
-            {(quoteError || hasLiquidity === false) && !quoteLoading && (
+            {hasLiquidity === false && !quoteLoading && (
               <div className="swap-alert swap-alert-warn">
                 {quoteError ?? "No in-app route yet."}{" "}
                 <a
