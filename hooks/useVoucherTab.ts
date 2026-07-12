@@ -935,7 +935,7 @@ export function useVoucherTab(app: WalletAppState) {
         const nextCount = (k.voucher || 0) + 1;
         const next = { ...k, voucher: nextCount };
         writePersistedTxKeys(address, next);
-        creditActivityFromCount(address, "voucher", nextCount);
+        creditActivityFromCount(address, "voucher", nextCount, { recordTxs: true });
         return next;
       });
       clearPendingBatch(address, txHash);
@@ -1345,7 +1345,9 @@ export function useVoucherTab(app: WalletAppState) {
           writePersistedTxKeys(wallet.address, next);
           return next;
         });
-        const { credited } = creditActivityFromCount(wallet.address, "redeem", nextCount);
+        const { credited } = creditActivityFromCount(wallet.address, "redeem", nextCount, {
+          recordTxs: true,
+        });
         if (credited > 0) setPointsRevision((n) => n + 1);
       }
 

@@ -214,10 +214,18 @@ export default function CheckInTab({
             <span className="font-black text-cyan-400 tabular-nums">+{boostPct}% quest boost</span>
             <span className="flex items-center gap-1.5">
               <Droplets size={9} className="text-cyan-400" />
-              {xp.dailyRemaining} PP to cap
-              {!capStreak.capBonusAwardedToday && capStreak.hitCapToday === false && (
+              {xp.dailyRemaining > 0 ? (
+                <>
+                  {xp.dailyRemaining} PP to cap
+                  {!capStreak.capBonusAwardedToday && (
+                    <span className="text-amber-300/90">
+                      · +{capStreak.nextBonusPP} weekly at cap
+                    </span>
+                  )}
+                </>
+              ) : (
                 <span className="text-amber-300/90">
-                  · +{capStreak.nextBonusPP} weekly at cap
+                  Daily cap reached — txs still count; PP resume tomorrow UTC
                 </span>
               )}
               {capStreak.capBonusAwardedToday && (

@@ -318,32 +318,99 @@ async function waitForTxMined(hash: string): Promise<void> {
   await waitForOnchainHash(hash);
 }
 
-async function sendSequentialAppCalls(
+function isErc20ApproveCall(call: ContractCall): boolean {
+  if (isB20PrecompileAddress(call.to)) return false;
+  const hex = call.data.toLowerCase();
+  return hex.startsWith("0x095ea7b3");
+}
+
+/** Approve is isolated; swap + fee transfers can share one wallet batch. */
+function groupCallsForExecution(calls: ContractCall[]): ContractCall[][] {
+  const groups: ContractCall[][] = [];
+  let i = 0;
+  while (i < calls.length) {
+    if (isErc20ApproveCall(calls[i]!)) {
+      groups.push([calls[i]!]);
+      i++;
+      continue;
+    }
+    const batch: ContractCall[] = [];
+    while (i < calls.length && !isErc20ApproveCall(calls[i]!)) {
+      batch.push(calls[i]!);
+      i++;
+    }
+    if (batch.length) groups.push(batch);
+  }
+  return groups;
+}
+
+async function sendSingleCall(
+  provider: Eip1193,
+  from: string,
+  call: ContractCall,
+  opts: { preferSendCalls: boolean }
+): Promise<string> {
+  const skipSuffix = isPreservedCalldataCall(call);
+  const caps = getSendCallsCapabilities(skipSuffix, {
+    skipPaymaster: skipSuffix || isB20PrecompileAddress(call.to),
+  });
+
+  if (opts.preferSendCalls) {
+    try {
+      return await sendViaWalletSendCalls(provider, from, [call], caps);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+    }
+  }
+
+  return sendViaEthSendTransaction(provider, from, call);
+}
+
+async function sendCallGroup(
+  provider: Eip1193,
+  from: string,
+  group: ContractCall[],
+  opts: { preferSendCalls: boolean }
+): Promise<string> {
+  if (group.length === 0) {
+    throw new Error("No calls in group");
+  }
+  if (group.length === 1) {
+    return sendSingleCall(provider, from, group[0]!, opts);
+  }
+
+  const b20InBatch = batchUsesB20Precompile(group);
+  const hasValue = group.some((c) => c.value && c.value > BigInt(0));
+  const caps = getSendCallsCapabilities(false, {
+    skipPaymaster: b20InBatch || hasValue,
+  });
+
+  try {
+    return await sendViaWalletSendCalls(provider, from, group, caps);
+  } catch (e) {
+    if (isUserRejection(e)) throw e;
+  }
+
+  let lastHash = "";
+  for (const call of group) {
+    lastHash = await sendSingleCall(provider, from, call, opts);
+  }
+  return lastHash;
+}
+
+async function sendGroupedAppCalls(
   provider: Eip1193,
   from: string,
   calls: ContractCall[],
   opts: { preferSendCalls: boolean }
 ): Promise<string> {
+  const groups = groupCallsForExecution(calls);
   let lastHash = "";
-  for (let i = 0; i < calls.length; i++) {
-    const call = calls[i]!;
-    const skipSuffix = isPreservedCalldataCall(call);
-    const caps = getSendCallsCapabilities(skipSuffix, {
-      skipPaymaster: skipSuffix || isB20PrecompileAddress(call.to),
-    });
-
-    if (opts.preferSendCalls) {
-      try {
-        lastHash = await sendViaWalletSendCalls(provider, from, [call], caps);
-        if (i < calls.length - 1) await waitForTxMined(lastHash);
-        continue;
-      } catch (e) {
-        if (isUserRejection(e)) throw e;
-      }
+  for (let g = 0; g < groups.length; g++) {
+    lastHash = await sendCallGroup(provider, from, groups[g]!, opts);
+    if (g < groups.length - 1) {
+      await waitForTxMined(lastHash);
     }
-
-    lastHash = await sendViaEthSendTransaction(provider, from, call);
-    if (i < calls.length - 1) await waitForTxMined(lastHash);
   }
   return lastHash;
 }
@@ -435,10 +502,9 @@ export async function sendAppTransactions(
     return sendB20Launch(provider, from, batch[0]!, connType, inMiniApp);
   }
 
-  // Approve → addLiquidity / approve → swap: never batch in one wallet_sendCalls.
-  // Base App and MetaMask must confirm each step before the next prompt.
+  // Approve must mine first; swap + platform fee can batch in one wallet prompt.
   if (batch.length > 1) {
-    return sendSequentialAppCalls(provider, from, batch, {
+    return sendGroupedAppCalls(provider, from, batch, {
       preferSendCalls: prefersWalletSendCalls(connType, inMiniApp),
     });
   }

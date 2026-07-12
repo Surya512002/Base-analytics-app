@@ -103,7 +103,9 @@ export default function RewardsTab({
       writePersistedTxKeys(wallet.address, next);
       return next;
     });
-    const { credited } = creditActivityFromCount(wallet.address, "stake", nextCount);
+    const { credited } = creditActivityFromCount(wallet.address, "stake", nextCount, {
+      recordTxs: true,
+    });
     if (credited > 0) setPointsRevision((n) => n + 1);
   };
 

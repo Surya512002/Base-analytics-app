@@ -25,7 +25,16 @@ import {
 } from "@/lib/launchpad/dex";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
+import {
+  expectedReceiveAmount,
+  isUsdcAddress,
+  isWethAddress,
+  swapPayUsd,
+  swapReceiveUsd,
+} from "@/lib/launchpad/swap-display";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
+import { WETH_BASE } from "@/lib/launchpad/uniswap";
+import { USDC_BASE, USDC_DECIMALS } from "@/lib/launchpad/tokens-base";
 import SeedLiquidityPanel from "@/components/launchpad/SeedLiquidityPanel";
 
 const ERC20_ABI = parseAbi(["function balanceOf(address) view returns (uint256)"]);
@@ -123,12 +132,16 @@ export default function TokenSwapPanel({
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  const [quoteOutDecimals, setQuoteOutDecimals] = useState<number>(18);
+  const [quoteReceiveAsset, setQuoteReceiveAsset] = useState<"eth" | "usdc" | "token">("eth");
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
   const [hasPool, setHasPool] = useState<boolean | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [activeDex, setActiveDex] = useState<SwapVenue | null>(null);
   const [tokenBalance, setTokenBalance] = useState(0);
+  const [wethBalance, setWethBalance] = useState(0);
+  const [usdcBalance, setUsdcBalance] = useState(0);
   const [priceUsd, setPriceUsd] = useState<number | null>(null);
   const [ethUsd, setEthUsd] = useState(2500);
   const [antiSnipeActive, setAntiSnipeActive] = useState(false);
@@ -156,6 +169,55 @@ export default function TokenSwapPanel({
     setBalanceTick((n) => n + 1);
   }, []);
 
+  const readErc20Balance = useCallback(
+    async (tokenAddr: `0x${string}`, decimals: number): Promise<number> => {
+      if (!wallet) return 0;
+      try {
+        const pub = createBasePublicClient();
+        const raw = await pub.readContract({
+          address: tokenAddr,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [wallet.address as `0x${string}`],
+        });
+        return parseFloat(formatUnits(raw, decimals));
+      } catch {
+        return 0;
+      }
+    },
+    [wallet]
+  );
+
+  useEffect(() => {
+    if (!token || !wallet) {
+      setTokenBalance(0);
+      setWethBalance(0);
+      setUsdcBalance(0);
+      return;
+    }
+    let alive = true;
+    void (async () => {
+      const [tok, weth, usdc] = await Promise.all([
+        readErc20Balance(token.address as `0x${string}`, token.decimals),
+        readErc20Balance(WETH_BASE, 18),
+        readErc20Balance(USDC_BASE, USDC_DECIMALS),
+      ]);
+      if (!alive) return;
+      setTokenBalance(tok);
+      setWethBalance(weth);
+      setUsdcBalance(usdc);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [token, wallet, balanceTick, readErc20Balance]);
+
+  useEffect(() => {
+    const onFocus = () => refreshBalances();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshBalances]);
+
   useEffect(() => {
     let alive = true;
     void fetch("/api/launchpad/eth-price", { cache: "no-store" })
@@ -169,33 +231,6 @@ export default function TokenSwapPanel({
       alive = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!token || !wallet) {
-      setTokenBalance(0);
-      return;
-    }
-    let alive = true;
-    const pub = createBasePublicClient();
-    void pub
-      .readContract({
-        address: token.address as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: "balanceOf",
-        args: [wallet.address as `0x${string}`],
-      })
-      .then((raw) => {
-        if (!alive) return;
-        setTokenBalance(parseFloat(formatUnits(raw, token.decimals)));
-      })
-      .catch(() => {
-        if (!alive) return;
-        setTokenBalance(0);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [token, wallet, balanceTick]);
 
   useEffect(() => {
     if (!token) return;
@@ -264,6 +299,10 @@ export default function TokenSwapPanel({
         setAntiSnipeMsg(q.antiSnipe.message ?? null);
       }
       const outDec = q.outDecimals ?? (direction === "buy" ? token.decimals : 18);
+      setQuoteOutDecimals(outDec);
+      setQuoteReceiveAsset(
+        q.receiveAsset ?? (direction === "buy" ? "token" : "eth")
+      );
       if (q.hasLiquidity && q.amountOut) {
         setQuoteOut(formatQuoteOut(q.amountOut, outDec));
         setMinReceive(
@@ -280,45 +319,71 @@ export default function TokenSwapPanel({
     };
   }, [token, direction, amount, slippage, dex, referrer, wallet?.address]);
 
+  const isUsdcToken = token ? isUsdcAddress(token.address) : false;
+  const isWethToken = token ? isWethAddress(token.address) : false;
+
   const payUsd = useMemo(() => {
     const n = parseFloat(amount);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    if (direction === "buy") return n * ethUsd;
-    if (priceUsd) return n * priceUsd;
-    return null;
-  }, [amount, direction, ethUsd, priceUsd]);
+    if (!token || !Number.isFinite(n) || n <= 0) return null;
+    return swapPayUsd({
+      direction,
+      amount: n,
+      tokenAddress: token.address,
+      tokenPriceUsd: priceUsd,
+      ethUsd,
+      payAsset: "eth",
+    });
+  }, [amount, direction, ethUsd, priceUsd, token]);
 
   const receiveUsd = useMemo(() => {
-    if (!quoteOut) return null;
+    if (!token || !quoteOut) return null;
     const n = parseFloat(quoteOut);
     if (!Number.isFinite(n) || n <= 0) return null;
-    if (direction === "buy" && priceUsd) return n * priceUsd;
-    if (direction === "sell") return n * ethUsd;
-    return null;
-  }, [quoteOut, direction, priceUsd, ethUsd]);
+    return swapReceiveUsd({
+      direction,
+      quoteOut: n,
+      tokenAddress: token.address,
+      tokenPriceUsd: priceUsd,
+      ethUsd,
+      receiveAsset: quoteReceiveAsset,
+    });
+  }, [quoteOut, direction, priceUsd, ethUsd, token, quoteReceiveAsset]);
 
   const exchangeRate = useMemo(() => {
     const pay = parseFloat(amount);
     const out = parseFloat(quoteOut ?? "0");
     if (!Number.isFinite(pay) || pay <= 0 || !Number.isFinite(out) || out <= 0) return null;
     if (direction === "buy") {
+      if (isUsdcToken) {
+        return `1 ETH = ${(out / pay).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC`;
+      }
       return `1 ETH = ${(out / pay).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${token?.symbol ?? ""}`;
     }
+    if (isUsdcToken) {
+      return `1 USDC = ${(out / pay).toFixed(8)} ETH`;
+    }
     return `1 ${token?.symbol ?? ""} = ${(out / pay).toFixed(8)} ETH`;
-  }, [amount, quoteOut, direction, token?.symbol]);
+  }, [amount, quoteOut, direction, token?.symbol, isUsdcToken]);
 
   const priceImpactPct = useMemo(() => {
-    if (!quoteOut || !priceUsd) return null;
+    if (!token || !quoteOut) return null;
     const quoted = parseFloat(quoteOut);
     const amt = parseFloat(amount);
     if (!Number.isFinite(quoted) || quoted <= 0 || !Number.isFinite(amt) || amt <= 0) {
       return null;
     }
-    const expected =
-      direction === "buy" ? (amt * ethUsd) / priceUsd : (amt * priceUsd) / ethUsd;
-    if (expected <= 0) return null;
+    const expected = expectedReceiveAmount({
+      direction,
+      payAmount: amt,
+      tokenAddress: token.address,
+      tokenPriceUsd: priceUsd,
+      ethUsd,
+      payAsset: "eth",
+      receiveAsset: quoteReceiveAsset,
+    });
+    if (expected == null || expected <= 0) return null;
     return Math.abs(1 - quoted / expected) * 100;
-  }, [quoteOut, priceUsd, amount, direction, ethUsd]);
+  }, [quoteOut, priceUsd, amount, direction, ethUsd, token, quoteReceiveAsset]);
 
   const needsImpactAck =
     (priceImpactPct != null && priceImpactPct >= 3) ||
@@ -405,7 +470,12 @@ export default function TokenSwapPanel({
   const swapReady = hasPool !== false || hasLiquidity === true;
   const slippageValid = parseSlippageBps(slippage) > 0;
   const paySymbol = direction === "buy" ? "ETH" : token.symbol;
-  const receiveSymbol = direction === "buy" ? token.symbol : "ETH";
+  const receiveSymbol =
+    direction === "buy"
+      ? token.symbol
+      : quoteReceiveAsset === "usdc"
+        ? "USDC"
+        : "ETH";
   const canSwap =
     Boolean(amount) &&
     parseFloat(amount) > 0 &&
@@ -446,6 +516,22 @@ export default function TokenSwapPanel({
     return direction === "buy" ? `Buy ${token.symbol}` : `Sell ${token.symbol}`;
   })();
 
+  const isWethPage = isWethToken;
+
+  const walletBalances = useMemo(() => {
+    const rows: { label: string; value: string }[] = [
+      { label: "ETH", value: ethBalance.toFixed(4) },
+      { label: "WETH", value: wethBalance.toFixed(4) },
+    ];
+    if (usdcBalance > 0) {
+      rows.push({ label: "USDC", value: usdcBalance.toFixed(2) });
+    }
+    if (!isWethPage) {
+      rows.push({ label: token.symbol, value: tokenBalance.toFixed(isUsdcToken ? 2 : 4) });
+    }
+    return rows;
+  }, [ethBalance, wethBalance, usdcBalance, tokenBalance, token.symbol, isWethPage, isUsdcToken]);
+
   return (
     <div className="swap-panel swap-panel-lg overflow-hidden">
       <div className="swap-panel-inner">
@@ -485,14 +571,27 @@ export default function TokenSwapPanel({
         </div>
 
         {wallet && !guestMode && (
-          <div className="swap-wallet-row">
+          <div className="swap-wallet-row swap-wallet-row-multi">
             <Wallet size={14} className="text-slate-500 shrink-0" />
-            <span>{ethBalance.toFixed(4)} ETH</span>
-            <span className="text-slate-600">·</span>
-            <span>
-              {tokenBalance.toFixed(2)} {token.symbol}
-            </span>
+            {walletBalances.map((b, i) => (
+              <span key={b.label} className="inline-flex items-center gap-1.5">
+                {i > 0 && <span className="text-slate-600">·</span>}
+                <span>
+                  <span className="text-slate-300 font-semibold">{b.value}</span>{" "}
+                  <span className="text-slate-500">{b.label}</span>
+                </span>
+              </span>
+            ))}
           </div>
+        )}
+
+        {wethBalance > 0 && !isWethPage && (
+          <p className="swap-weth-hint">
+            You have {wethBalance.toFixed(4)} WETH —{" "}
+            <a href={`/explore/token/${WETH_BASE}`} className="text-[#6BA3FF] underline">
+              open WETH to swap back to ETH
+            </a>
+          </p>
         )}
 
         {showSettings && (
@@ -624,7 +723,15 @@ export default function TokenSwapPanel({
                   Route <strong>{dexLabel(activeDex)}</strong>
                 </span>
                 <span className="swap-summary-dot">·</span>
-                <span>{formatPlatformFeeLabel()} fee</span>
+                <span>{formatPlatformFeeLabel()} fee (batched with swap)</span>
+                {payUsd != null && receiveUsd != null && payUsd > 0 && (
+                  <>
+                    <span className="swap-summary-dot">·</span>
+                    <span>
+                      Est. receive {formatUsd(receiveUsd)} after fee
+                    </span>
+                  </>
+                )}
                 {priceImpactPct != null && (
                   <>
                     <span className="swap-summary-dot">·</span>
@@ -636,9 +743,13 @@ export default function TokenSwapPanel({
               </div>
             )}
 
-            {priceUsd && (
+            {(isUsdcToken || priceUsd) && (
               <p className="swap-meta-line">
-                1 {token.symbol} = {formatSubscriptPrice(priceUsd)}
+                {isUsdcToken ? (
+                  <>1 USDC ≈ $1.00</>
+                ) : (
+                  <>1 {token.symbol} = {formatSubscriptPrice(priceUsd ?? 0)}</>
+                )}
                 {poolLiquidityUsd != null && poolLiquidityUsd > 0 && (
                   <> · {formatUsd(poolLiquidityUsd)} pool liquidity</>
                 )}

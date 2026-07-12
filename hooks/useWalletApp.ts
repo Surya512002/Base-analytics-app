@@ -117,6 +117,7 @@ import {
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
 import { creditActivityFromCount,
+  recordInAppTransaction,
   recordCheckInPointsOnce,
   syncActivityPointsFromSession,
   tryAwardSevenDayAllTasksBonus,
@@ -188,13 +189,20 @@ function pushFeeSplitCalls(
     creator?: `0x${string}` | null;
     referrer?: `0x${string}` | null;
     referrerBoostBps?: number;
+    /** Skip fee transfers back to the payer (avoids a useless self-send popup). */
+    payer?: `0x${string}`;
   }
 ) {
   if (fee <= BigInt(0)) return;
 
+  const skipSelf = (to: string) =>
+    Boolean(opts.payer && to.toLowerCase() === opts.payer.toLowerCase());
+
   if (!opts.creator) {
     if (opts.native) {
-      calls.push(buildNativeTransferCall(LAUNCHPAD_TREASURY, fee));
+      if (!skipSelf(LAUNCHPAD_TREASURY)) {
+        calls.push(buildNativeTransferCall(LAUNCHPAD_TREASURY, fee));
+      }
     } else {
       calls.push(
         buildContractCall(opts.token, encodeErc20TransferCalldata(LAUNCHPAD_TREASURY, fee))
@@ -209,6 +217,7 @@ function pushFeeSplitCalls(
     referrerBoostBps: opts.referrerBoostBps,
   });
   for (const t of split.transfers) {
+    if (skipSelf(t.to)) continue;
     if (opts.native) {
       calls.push(buildNativeTransferCall(t.to, t.amount));
     } else {
@@ -626,7 +635,8 @@ export function useWalletApp() {
         creditActivityFromCount(
           wallet.address,
           "x402",
-          readPersistedTxKeys(wallet.address).x402 ?? next
+          readPersistedTxKeys(wallet.address).x402 ?? next,
+          { recordTxs: true }
         );
         setPointsRevision((n) => n + 1);
         const txHash = data.transaction
@@ -707,7 +717,8 @@ export function useWalletApp() {
         creditActivityFromCount(
           wallet.address,
           "x402",
-          readPersistedTxKeys(wallet.address).x402 ?? next
+          readPersistedTxKeys(wallet.address).x402 ?? next,
+          { recordTxs: true }
         );
         setPointsRevision((n) => n + 1);
         const txHash = data.transaction
@@ -984,7 +995,8 @@ export function useWalletApp() {
         const { credited, hitCap } = creditActivityFromCount(
           wallet.address,
           "launch",
-          nextCount
+          nextCount,
+          { recordTxs: true }
         );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {
@@ -1166,6 +1178,7 @@ export function useWalletApp() {
               creator,
               referrer,
               referrerBoostBps,
+              payer: recipient,
             });
           }
 
@@ -1212,6 +1225,7 @@ export function useWalletApp() {
               creator,
               referrer,
               referrerBoostBps,
+              payer: recipient,
             });
           }
         } else {
@@ -1241,7 +1255,14 @@ export function useWalletApp() {
               );
             }
           }
-          pushFeeSplitCalls(calls, fee, { native: false, token, creator, referrer, referrerBoostBps });
+          pushFeeSplitCalls(calls, fee, {
+            native: false,
+            token,
+            creator,
+            referrer,
+            referrerBoostBps,
+            payer: recipient,
+          });
           if (isAggregator && quote.tx) {
             calls.push(
               buildExternalSwapCall(
@@ -1293,7 +1314,8 @@ export function useWalletApp() {
         const { credited, hitCap } = creditActivityFromCount(
           wallet.address,
           "swap",
-          nextCount
+          nextCount,
+          { recordTxs: true }
         );
         setPointsRevision((n) => n + 1);
         const label = args.direction === "buy" ? "Buy" : "Sell";
@@ -1424,7 +1446,9 @@ export function useWalletApp() {
           writePersistedTxKeys(wallet.address, next);
           return next;
         });
-        const { credited } = creditActivityFromCount(wallet.address, "challenge", 1);
+        const { credited } = creditActivityFromCount(wallet.address, "challenge", 1, {
+          recordTxs: true,
+        });
         if (credited > 0) setPointsRevision((n) => n + 1);
       }
     } catch {
@@ -1576,6 +1600,7 @@ export function useWalletApp() {
         status.streak,
         true
       );
+      recordInAppTransaction(address);
       const { credited } = recordCheckInPointsOnce(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
@@ -1608,7 +1633,8 @@ export function useWalletApp() {
       const { credited, hitCap } = creditActivityFromCount(
         address,
         "boost",
-        nextCount
+        nextCount,
+        { recordTxs: true }
       );
       setPointsRevision((n) => n + 1);
       if (txHash) {
@@ -2183,7 +2209,8 @@ export function useWalletApp() {
         const { credited, hitCap } = creditActivityFromCount(
           wallet.address,
           "gm",
-          nextCount
+          nextCount,
+          { recordTxs: true }
         );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {
@@ -2204,7 +2231,8 @@ export function useWalletApp() {
         const { credited, hitCap } = creditActivityFromCount(
           wallet.address,
           "gn",
-          nextCount
+          nextCount,
+          { recordTxs: true }
         );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {

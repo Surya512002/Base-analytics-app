@@ -183,6 +183,18 @@ function tryAwardCapStreakBonus(address: string): number {
   return points;
 }
 
+/** Count a confirmed in-app transaction toward today's activity tally (independent of PP cap). */
+export function recordInAppTransaction(address: string): void {
+  if (!address || typeof window === "undefined") return;
+
+  const today = todayUtcKey();
+  const ledger = readWeekLedger(address);
+  const day = getDayEntry(ledger, today);
+  day.txs += 1;
+  ledger[today] = day;
+  writeWeekLedger(address, ledger);
+}
+
 /** Credit activity points toward today's cap. Returns how much was actually added. */
 export function addActivityPoints(
   address: string,
@@ -196,7 +208,6 @@ export function addActivityPoints(
   const room = Math.max(0, DAILY_POINTS_CAP - day.activity);
   const credited = Math.min(points, room);
   day.activity += credited;
-  if (credited > 0) day.txs += 1;
   ledger[today] = day;
   writeWeekLedger(address, ledger);
 
@@ -249,7 +260,8 @@ function checkInPointsFlag(address: string): string {
 export function creditActivityFromCount(
   address: string,
   action: ActivityAction,
-  totalCount: number
+  totalCount: number,
+  opts?: { recordTxs?: boolean }
 ): { credited: number; hitCap: boolean; changed: boolean } {
   const synced = readSyncedCount(address, action);
   const delta = Math.max(0, totalCount - synced);
@@ -260,13 +272,23 @@ export function creditActivityFromCount(
   const pointsEach = ACTIVITY_POINTS[action];
   let credited = 0;
   let hitCap = false;
+  let syncedDelta = 0;
   for (let i = 0; i < delta; i++) {
+    if (opts?.recordTxs) recordInAppTransaction(address);
     const result = addActivityPoints(address, pointsEach);
     credited += result.credited;
     hitCap = hitCap || result.hitCap;
+    if (result.credited > 0) {
+      syncedDelta += 1;
+    } else {
+      break;
+    }
   }
-  writeSyncedCount(address, action, totalCount);
-  return { credited, hitCap, changed: true };
+  if (syncedDelta > 0) {
+    writeSyncedCount(address, action, synced + syncedDelta);
+    return { credited, hitCap, changed: true };
+  }
+  return { credited, hitCap, changed: false };
 }
 
 function creditActionDelta(
