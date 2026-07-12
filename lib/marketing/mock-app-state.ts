@@ -225,6 +225,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     handlePredictionTrade: async () => false,
     doNativeTx: noopAsync,
     doNativeMint: noopAsync,
+    doAppBadgeMint: async () => false,
     shareScore: noop,
     shareAch: noop,
     shareAll: noop,

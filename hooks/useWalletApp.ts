@@ -55,6 +55,11 @@ import {
   countDoneQuests,
 } from "@/lib/utils/season";
 import {
+  readAppBadgeLevels,
+  recordAppBadgeClaims,
+  writeAppBadgeLevels,
+} from "@/lib/utils/app-badge-levels";
+import {
   getBadgeMintXpTotal,
   mergeMintedLevelsMax,
   readPersistedMintedLevels,
@@ -2254,6 +2259,7 @@ export function useWalletApp() {
       }
 
       const hash = await sendAppTransaction(activeConn, wallet.address, call);
+      recordInAppTransaction(wallet.address);
       setMintedLevels((p) => {
         const next = {
           ...p,
@@ -2274,9 +2280,7 @@ export function useWalletApp() {
         return next;
       });
       setSponsored((s) => s + 1);
-      if (badgeXp > 0) {
-        setPointsRevision((n) => n + 1);
-      }
+      setPointsRevision((n) => n + 1);
       showToast(
         isBatch
           ? `✅ Claimed ${tokenIds.length} ${catName} badges! +${badgeXp} season XP`
@@ -2287,6 +2291,74 @@ export function useWalletApp() {
       const m =
         e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
       if (!m.toLowerCase().includes("reject")) showToast(`❌ ${m}`, "");
+    } finally {
+      pendingTx.current.delete(pendingKey);
+      setMinting(null);
+    }
+  };
+
+  const doAppBadgeMint = async (
+    catId: string,
+    targetLevels: number[],
+    tokenIds: number[],
+    catName: string
+  ) => {
+    if (!wallet) return false;
+    const pendingKey = `app-mint-${catId}`;
+    if (pendingTx.current.has(pendingKey)) return false;
+    pendingTx.current.add(pendingKey);
+    setMinting(pendingKey);
+    try {
+      const isBatch = tokenIds.length > 1;
+      const call = isBatch
+        ? encodeContractCall(
+            ACHIEVEMENTS_CONTRACT as `0x${string}`,
+            ACHIEVEMENTS_ABI,
+            "mintBatchAchievements",
+            [tokenIds.map((id) => BigInt(id))]
+          )
+        : encodeContractCall(
+            ACHIEVEMENTS_CONTRACT as `0x${string}`,
+            ACHIEVEMENTS_ABI,
+            "mintAchievement",
+            [BigInt(tokenIds[0])]
+          );
+
+      const activeConn = await resolveActiveConnType(connType, wallet.address);
+      if (activeConn && activeConn !== connType) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
+      }
+      if (!activeConn) {
+        showToast("❌ Reconnect wallet to mint", "");
+        return false;
+      }
+
+      const hash = await sendAppTransaction(activeConn, wallet.address, call);
+      recordInAppTransaction(wallet.address);
+
+      const prev = readAppBadgeLevels(wallet.address);
+      const next = {
+        ...prev,
+        [catId]: Math.max(...targetLevels),
+      };
+      writeAppBadgeLevels(wallet.address, next);
+
+      const badgeXp = recordAppBadgeClaims(wallet.address, tokenIds.length);
+      setSponsored((s) => s + 1);
+      setPointsRevision((n) => n + 1);
+      showToast(
+        isBatch
+          ? `✅ Minted ${tokenIds.length} ${catName} badges on-chain · +${badgeXp} season XP`
+          : `✅ ${catName} badge minted on-chain · +${badgeXp} season XP`,
+        hash
+      );
+      return true;
+    } catch (e: unknown) {
+      const m =
+        e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
+      if (!m.toLowerCase().includes("reject")) showToast(`❌ ${m}`, "");
+      return false;
     } finally {
       pendingTx.current.delete(pendingKey);
       setMinting(null);
@@ -2502,6 +2574,7 @@ export function useWalletApp() {
     handleBoostSuccess,
     doNativeTx,
     doNativeMint,
+    doAppBadgeMint,
     shareScore,
     shareAch,
     shareAll,

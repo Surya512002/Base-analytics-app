@@ -110,7 +110,10 @@ export function buildAppBadgeMetrics(input: {
     trade_actions: swap + launch,
     social_ping: (input.txKeys.gm ?? 0) + (input.txKeys.gn ?? 0),
     voucher_actions: (input.txKeys.voucher ?? 0) + (input.txKeys.redeem ?? 0),
-    activity_total: 0,
+    activity_total: Object.values(input.txKeys).reduce(
+      (sum, n) => sum + (typeof n === "number" && n > 0 ? n : 0),
+      0
+    ),
   };
 }
 

@@ -12,14 +12,6 @@ import {
   tierToMultiplier,
   type OnchainStake,
 } from "@/lib/wallet/onchain-stake";
-import {
-  readXpStake,
-  stakeXp,
-  stakeDaysRemaining,
-  stakeMultiplier,
-  unstakeXp,
-  type XpStakeRecord,
-} from "@/lib/utils/stake-rewards";
 import { sendAppTransaction } from "@/lib/utils/send-app-tx";
 import { buildContractCall } from "@/lib/utils/tx";
 import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
@@ -52,9 +44,7 @@ export default function RewardsTab({
 }) {
   const { wallet, weeklyXP, doneQuests, streak, showToast, connType, setTxKeys, setPointsRevision } =
     app;
-  const [localStake, setLocalStake] = useState<XpStakeRecord | null>(null);
   const [onchainStake, setOnchainStake] = useState<OnchainStake | null>(null);
-  const [stakeAmount, setStakeAmount] = useState("100");
   const [ethTier, setEthTier] = useState("0.0001");
   const [busy, setBusy] = useState(false);
   const [onchainLoading, setOnchainLoading] = useState(false);
@@ -72,7 +62,6 @@ export default function RewardsTab({
   }, [wallet]);
 
   useEffect(() => {
-    setLocalStake(readXpStake());
     void refreshOnchain();
   }, [refreshOnchain]);
 
@@ -89,37 +78,15 @@ export default function RewardsTab({
 
   const hasOnchainStake = Boolean(onchainStake?.active && onchainStake.amount > BigInt(0));
   const onchainLocked = hasOnchainStake && Date.now() < onchainStake!.unlockAt;
-  const localMult = stakeMultiplier(localStake);
   const onchainMult = onchainStake ? tierToMultiplier(onchainStake.tier) : 1;
-  const canUnstakeLocal = localStake && Date.now() >= localStake.unlockAt;
   const canUnstakeOnchain = hasOnchainStake && Date.now() >= onchainStake!.unlockAt;
 
   const recordStake = () => {
     if (!wallet) return;
     const nextKeys = bumpWeeklyTxKey(wallet.address, "stake");
     setTxKeys((k) => ({ ...k, ...nextKeys }));
-    const { credited } = recordConfirmedInAppAction(
-      wallet.address,
-      "stake",
-      nextKeys.stake ?? 0
-    );
+    recordConfirmedInAppAction(wallet.address, "stake", nextKeys.stake ?? 0);
     setPointsRevision((n) => n + 1);
-    void credited;
-  };
-
-  const handleLocalStake = () => {
-    const amt = parseInt(stakeAmount, 10);
-    if (!Number.isFinite(amt) || amt < 50) {
-      showToast("Minimum stake is 50 XP", "");
-      return;
-    }
-    if (amt > weeklyXP) {
-      showToast("Not enough XP to stake", "");
-      return;
-    }
-    setLocalStake(stakeXp(amt, 7));
-    recordStake();
-    showToast(`Staked ${amt} XP for 7 days`, "");
   };
 
   const handleOnchainStake = async () => {
@@ -177,7 +144,7 @@ export default function RewardsTab({
         <p className="section-eyebrow mb-2">Rewards hub</p>
         <h1 className="text-2xl font-black text-white">Stake & earn</h1>
         <p className="text-sm text-slate-500 mt-2 max-w-xl">
-          On-chain ETH stake boosts your referral fee share on swaps. XP stake is tracked locally.
+          Stake ETH on-chain to boost your referral fee share on swaps.
         </p>
         </div>
       </div>
@@ -291,7 +258,8 @@ export default function RewardsTab({
             )}
             {!XP_STAKE_CONTRACT && process.env.NODE_ENV !== "development" && (
               <p className="text-[10px] text-slate-500">
-                On-chain ETH stake is not live yet — local XP stake below still works.
+                Set <code className="text-slate-400">NEXT_PUBLIC_XP_STAKE_CONTRACT</code> on Vercel
+                to enable on-chain staking.
               </p>
             )}
           </div>
@@ -300,61 +268,6 @@ export default function RewardsTab({
           On-chain stake shifts extra fee share from platform → you when you&apos;re the referrer on
           swaps (live in app swaps).
         </p>
-      </section>
-
-      <section className="glass-panel rounded-3xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Lock size={16} className="text-white/60" />
-          <h2 className="text-lg font-black text-white">XP stake (local)</h2>
-          {localMult > 1 && (
-            <span className="editorial-badge">{localMult}× tracked</span>
-          )}
-        </div>
-
-        {localStake ? (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-300">
-              <span className="font-black text-white">{localStake.amount} XP</span> staked
-              {canUnstakeLocal ? (
-                <span className="text-emerald-400"> · ready to unstake</span>
-              ) : (
-                <span> · {stakeDaysRemaining(localStake)} days left</span>
-              )}
-            </p>
-            <button
-              type="button"
-              disabled={!canUnstakeLocal}
-              onClick={() => {
-                unstakeXp();
-                setLocalStake(null);
-                showToast("XP unstaked", "");
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black btn-secondary disabled:opacity-40"
-            >
-              <Unlock size={14} /> Unstake XP
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Amount (XP)</label>
-              <input
-                type="number"
-                min={50}
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
-                className="mt-1 block w-32 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm font-mono text-white"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleLocalStake}
-              className="px-4 py-2.5 rounded-xl text-sm font-black btn-primary"
-            >
-              Stake 7 days
-            </button>
-          </div>
-        )}
       </section>
 
       {!embedded && (

@@ -7,16 +7,17 @@ import {
   XP_PER_APP_BADGE_CLAIM,
   type AppBadgeCategory,
 } from "@/lib/constants/app-badges";
-import { getLevelStyle } from "@/lib/utils/achievements";
+import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import {
   buildAppBadgeMetrics,
   readAppBadgeLevels,
-  recordAppBadgeClaims,
   sumAppBadges,
   totalAppBadgeTiers,
   writeAppBadgeLevels,
   type AppBadgeMetrics,
 } from "@/lib/utils/app-badge-levels";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { fetchAppMintedLevelsFromChain } from "@/lib/wallet/app-minted-badges";
 import { fetchOnchainStake } from "@/lib/wallet/onchain-stake";
 import StaggerIn from "@/components/ui/StaggerIn";
 import type { WalletAppState } from "@/hooks/useWalletApp";
@@ -27,16 +28,16 @@ function BadgeGroup({
   categories,
   metrics,
   claimedLevels,
-  claiming,
-  onClaim,
+  minting,
+  onMint,
 }: {
   title: string;
   subtitle: string;
   categories: AppBadgeCategory[];
   metrics: AppBadgeMetrics;
   claimedLevels: Record<string, number>;
-  claiming: string | null;
-  onClaim: (cat: AppBadgeCategory, toLevels: number[]) => void;
+  minting: string | null;
+  onMint: (cat: AppBadgeCategory, toLevels: number[]) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -52,7 +53,7 @@ function BadgeGroup({
             if (value >= cat.thresholds[i]) unlocked = i + 1;
           }
           const claimedTier = claimedLevels[cat.id] || 0;
-          const canClaim = unlocked > claimedTier;
+          const canMint = unlocked > claimedTier;
           const toLevels: number[] = [];
           for (let i = claimedTier + 1; i <= unlocked; i++) toLevels.push(i);
           const nextThr =
@@ -64,13 +65,14 @@ function BadgeGroup({
               ? 100
               : Math.min(100, (value / nextThr) * 100);
 
+          const pendingKey = `app-mint-${cat.id}`;
           let btnText = "Locked";
-          if (claimedTier === cat.thresholds.length) btnText = "Complete";
-          else if (canClaim)
+          if (claimedTier === cat.thresholds.length) btnText = "Minted";
+          else if (canMint)
             btnText =
               toLevels.length > 1
-                ? `Claim ${toLevels.length} badges`
-                : `Claim ${cat.tierNames[claimedTier]}`;
+                ? `Mint ${toLevels.length} badges`
+                : `Mint ${cat.tierNames[claimedTier]}`;
 
           return (
             <div
@@ -136,23 +138,23 @@ function BadgeGroup({
 
               <button
                 type="button"
-                disabled={!canClaim || claiming === cat.id}
-                onClick={() => onClaim(cat, toLevels)}
+                disabled={!canMint || minting === pendingKey}
+                onClick={() => onMint(cat, toLevels)}
                 className={`mt-auto w-full py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  canClaim && claiming !== cat.id
+                  canMint && minting !== pendingKey
                     ? "bg-[var(--base-blue)] text-white hover:bg-[#1a63ff]"
                     : "bg-white/[0.04] text-slate-600 cursor-not-allowed border border-white/8"
                 }`}
               >
-                {claiming === cat.id ? (
+                {minting === pendingKey ? (
                   <RefreshCcw className="animate-spin mx-auto" size={16} />
                 ) : (
                   btnText
                 )}
               </button>
-              {canClaim && (
+              {canMint && (
                 <p className="text-[9px] text-slate-600 mt-2 text-center">
-                  +{XP_PER_APP_BADGE_CLAIM} season XP · no gas
+                  +{XP_PER_APP_BADGE_CLAIM} season XP · on-chain mint
                 </p>
               )}
             </div>
@@ -164,23 +166,31 @@ function BadgeGroup({
 }
 
 export default function AppBadgesSection({ app }: { app: WalletAppState }) {
-  const {
-    wallet,
-    txKeys,
-    streak,
-    checkedToday,
-    referralInvites,
-    showToast,
-    setPointsRevision,
-  } = app;
+  const { wallet, txKeys, streak, checkedToday, referralInvites, minting, doAppBadgeMint } =
+    app;
   const [claimedLevels, setClaimedLevels] = useState<Record<string, number>>({});
   const [ethStakeTier, setEthStakeTier] = useState(0);
-  const [claiming, setClaiming] = useState<string | null>(null);
+
+  const syncClaimedLevels = useCallback(async () => {
+    if (!wallet) return;
+    const local = readAppBadgeLevels(wallet.address);
+    try {
+      const pub = createBasePublicClient();
+      const chain = await fetchAppMintedLevelsFromChain(pub, wallet.address);
+      const merged = { ...local };
+      for (const [k, v] of Object.entries(chain)) {
+        merged[k] = Math.max(merged[k] ?? 0, v);
+      }
+      writeAppBadgeLevels(wallet.address, merged);
+      setClaimedLevels(merged);
+    } catch {
+      setClaimedLevels(local);
+    }
+  }, [wallet]);
 
   useEffect(() => {
-    if (!wallet) return;
-    setClaimedLevels(readAppBadgeLevels(wallet.address));
-  }, [wallet?.address]);
+    void syncClaimedLevels();
+  }, [syncClaimedLevels]);
 
   const refreshStakeTier = useCallback(async () => {
     if (!wallet) return;
@@ -213,21 +223,16 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
   const claimedCount = sumAppBadges(claimedLevels);
   const totalTiers = totalAppBadgeTiers();
 
-  const handleClaim = (cat: AppBadgeCategory, toLevels: number[]) => {
+  const handleMint = async (cat: AppBadgeCategory, toLevels: number[]) => {
     if (!wallet || toLevels.length === 0) return;
-    setClaiming(cat.id);
-    try {
-      const next = {
-        ...claimedLevels,
-        [cat.id]: Math.max(...toLevels),
-      };
-      setClaimedLevels(next);
-      writeAppBadgeLevels(wallet.address, next);
-      const xp = recordAppBadgeClaims(wallet.address, toLevels.length);
-      if (xp > 0) setPointsRevision((n) => n + 1);
-      showToast(`✅ ${cat.name} badge claimed · +${xp} season XP`, "");
-    } finally {
-      setClaiming(null);
+    const claimedTier = claimedLevels[cat.id] || 0;
+    const toMint: number[] = [];
+    for (let i = claimedTier + 1; i <= Math.max(...toLevels); i++) {
+      toMint.push(getTargetTokenId(cat.baseId, cat.thresholds.length, i));
+    }
+    const ok = await doAppBadgeMint(cat.id, toLevels, toMint, cat.name);
+    if (ok) {
+      await syncClaimedLevels();
     }
   };
 
@@ -238,11 +243,11 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
       <div className="rounded-2xl border border-[var(--base-blue)]/25 bg-[var(--base-blue)]/[0.06] p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="section-eyebrow text-[#7aa2ff] flex items-center gap-2 mb-1">
-            <Sparkles size={12} /> Priority · in-app only
+            <Sparkles size={12} /> In-app achievements · on-chain
           </p>
           <p className="text-sm text-slate-300 max-w-xl">
-            Claim badges for trading, staking, check-ins, vouchers, and more — earned only by using
-            Base Analytics.
+            Mint soulbound badges for trading, staking, check-ins, vouchers, and more — earned only
+            by using Base Analytics.
           </p>
         </div>
         <div className="text-center sm:text-right shrink-0">
@@ -251,7 +256,7 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
             <span className="text-slate-600 text-lg">/{totalTiers}</span>
           </p>
           <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
-            app badges claimed
+            app badges minted
           </p>
         </div>
       </div>
@@ -264,8 +269,8 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
           categories={section.categories}
           metrics={metrics}
           claimedLevels={claimedLevels}
-          claiming={claiming}
-          onClaim={handleClaim}
+          minting={minting}
+          onMint={handleMint}
         />
       ))}
     </div>

@@ -19,12 +19,27 @@ export type AppBadgeCategory = {
   thresholds: number[];
   tierNames: string[];
   tierIcons: string[];
+  /** On-chain achievement token id base (1000+ range, separate from wallet score badges). */
+  baseId: number;
   /** Display difficulty hint on final tiers */
   elite?: boolean;
 };
 
 /** Steep lifetime thresholds — final tiers are intentionally rare. */
-export const APP_TRADED_BADGES: AppBadgeCategory[] = [
+/** App badge NFT token ids start at 1000 — wallet score badges use 10–110. */
+export const APP_BADGE_TOKEN_BASE = 1000;
+
+function assignAppBadgeBaseIds(
+  categories: Omit<AppBadgeCategory, "baseId">[],
+  startIndex: number
+): AppBadgeCategory[] {
+  return categories.map((cat, i) => ({
+    ...cat,
+    baseId: APP_BADGE_TOKEN_BASE + (startIndex + i) * 10,
+  }));
+}
+
+export const APP_TRADED_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_swap",
     section: "traded",
@@ -73,9 +88,9 @@ export const APP_TRADED_BADGES: AppBadgeCategory[] = [
     tierIcons: ["🎯", "🦈", "⚔️"],
     elite: true,
   },
-];
+], 0);
 
-export const APP_STAKED_BADGES: AppBadgeCategory[] = [
+export const APP_STAKED_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_stake",
     section: "staked",
@@ -111,9 +126,9 @@ export const APP_STAKED_BADGES: AppBadgeCategory[] = [
     tierIcons: ["💠", "💎", "♾️"],
     elite: true,
   },
-];
+], 4);
 
-export const APP_ENGAGED_BADGES: AppBadgeCategory[] = [
+export const APP_ENGAGED_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_checkin",
     section: "engaged",
@@ -162,9 +177,9 @@ export const APP_ENGAGED_BADGES: AppBadgeCategory[] = [
     tierIcons: ["🔧", "⚙️", "🤖", "🦾", "🏗️"],
     elite: true,
   },
-];
+], 7);
 
-export const APP_VOUCHER_BADGES: AppBadgeCategory[] = [
+export const APP_VOUCHER_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_voucher",
     section: "vouchers",
@@ -201,9 +216,9 @@ export const APP_VOUCHER_BADGES: AppBadgeCategory[] = [
     tierIcons: ["💵", "💳", "🏪", "🏦", "🌐"],
     elite: true,
   },
-];
+], 11);
 
-export const APP_SOCIAL_BADGES: AppBadgeCategory[] = [
+export const APP_SOCIAL_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_gm",
     section: "social",
@@ -240,9 +255,9 @@ export const APP_SOCIAL_BADGES: AppBadgeCategory[] = [
     tierIcons: ["💬", "📣", "🎤", "📡", "🌟"],
     elite: true,
   },
-];
+], 14);
 
-export const APP_EXPLORER_BADGES: AppBadgeCategory[] = [
+export const APP_EXPLORER_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_x402",
     section: "explorer",
@@ -291,9 +306,9 @@ export const APP_EXPLORER_BADGES: AppBadgeCategory[] = [
     tierIcons: ["🎲", "🎯", "🔮", "👁️", "⏳"],
     elite: true,
   },
-];
+], 18);
 
-export const APP_LEGEND_BADGES: AppBadgeCategory[] = [
+export const APP_LEGEND_BADGES = assignAppBadgeBaseIds([
   {
     id: "app_legend_terminal",
     section: "legend",
@@ -342,7 +357,7 @@ export const APP_LEGEND_BADGES: AppBadgeCategory[] = [
     tierIcons: ["🌍", "👑", "🌐"],
     elite: true,
   },
-];
+], 22);
 
 export const APP_BADGE_SECTIONS: {
   id: AppBadgeSection;
