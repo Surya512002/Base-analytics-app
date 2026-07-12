@@ -22,8 +22,8 @@ import {
 } from "@/lib/utils/stake-rewards";
 import { sendAppTransaction } from "@/lib/utils/send-app-tx";
 import { buildContractCall } from "@/lib/utils/tx";
-import { creditActivityFromCount } from "@/lib/utils/daily-points";
-import { writePersistedTxKeys } from "@/lib/utils/wallet-session";
+import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
+import { bumpWeeklyTxKey } from "@/lib/utils/wallet-session";
 
 const STAKE_TIERS = [
   { label: "Bronze", eth: "0.0001", mult: "1.1×" },
@@ -96,17 +96,15 @@ export default function RewardsTab({
 
   const recordStake = () => {
     if (!wallet) return;
-    let nextCount = 0;
-    setTxKeys((k) => {
-      nextCount = (k.stake || 0) + 1;
-      const next = { ...k, stake: nextCount };
-      writePersistedTxKeys(wallet.address, next);
-      return next;
-    });
-    const { credited } = creditActivityFromCount(wallet.address, "stake", nextCount, {
-      recordTxs: true,
-    });
-    if (credited > 0) setPointsRevision((n) => n + 1);
+    const nextKeys = bumpWeeklyTxKey(wallet.address, "stake");
+    setTxKeys((k) => ({ ...k, ...nextKeys }));
+    const { credited } = recordConfirmedInAppAction(
+      wallet.address,
+      "stake",
+      nextKeys.stake ?? 0
+    );
+    setPointsRevision((n) => n + 1);
+    void credited;
   };
 
   const handleLocalStake = () => {

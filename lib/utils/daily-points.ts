@@ -183,16 +183,43 @@ function tryAwardCapStreakBonus(address: string): number {
   return points;
 }
 
-/** Count a confirmed in-app transaction toward today's activity tally (independent of PP cap). */
-export function recordInAppTransaction(address: string): void {
-  if (!address || typeof window === "undefined") return;
+function todayTxCounterKey(address: string): string {
+  return `base_inapp_txs_${address.toLowerCase()}_${todayUtcKey()}`;
+}
 
+function readTodayTxCounter(address: string): number {
+  if (typeof window === "undefined") return 0;
+  const n = parseInt(localStorage.getItem(todayTxCounterKey(address)) || "0", 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/** Count a confirmed in-app transaction toward today's activity tally (independent of PP cap). */
+export function recordInAppTransaction(address: string): number {
+  if (!address || typeof window === "undefined") return 0;
+
+  const next = readTodayTxCounter(address) + 1;
+  try {
+    localStorage.setItem(todayTxCounterKey(address), String(next));
+  } catch {
+    // quota / private mode
+  }
+
+  // Mirror into the week ledger so legacy reads stay consistent.
   const today = todayUtcKey();
   const ledger = readWeekLedger(address);
   const day = getDayEntry(ledger, today);
-  day.txs += 1;
+  day.txs = next;
   ledger[today] = day;
   writeWeekLedger(address, ledger);
+
+  return next;
+}
+
+export function getTodayInAppTxCount(address: string): number {
+  if (!address) return 0;
+  const counter = readTodayTxCounter(address);
+  const ledgerTxs = getDayEntry(readWeekLedger(address), todayUtcKey()).txs;
+  return Math.max(counter, ledgerTxs);
 }
 
 /** Credit activity points toward today's cap. Returns how much was actually added. */
@@ -260,8 +287,7 @@ function checkInPointsFlag(address: string): string {
 export function creditActivityFromCount(
   address: string,
   action: ActivityAction,
-  totalCount: number,
-  opts?: { recordTxs?: boolean }
+  totalCount: number
 ): { credited: number; hitCap: boolean; changed: boolean } {
   const synced = readSyncedCount(address, action);
   const delta = Math.max(0, totalCount - synced);
@@ -274,7 +300,6 @@ export function creditActivityFromCount(
   let hitCap = false;
   let syncedDelta = 0;
   for (let i = 0; i < delta; i++) {
-    if (opts?.recordTxs) recordInAppTransaction(address);
     const result = addActivityPoints(address, pointsEach);
     credited += result.credited;
     hitCap = hitCap || result.hitCap;
@@ -289,6 +314,17 @@ export function creditActivityFromCount(
     return { credited, hitCap, changed: true };
   }
   return { credited, hitCap, changed: false };
+}
+
+/** Record one confirmed wallet action: increment today's tx tally, then sync PP. */
+export function recordConfirmedInAppAction(
+  address: string,
+  action: ActivityAction,
+  nextCount: number
+): { credited: number; hitCap: boolean; txsToday: number } {
+  const txsToday = recordInAppTransaction(address);
+  const { credited, hitCap } = creditActivityFromCount(address, action, nextCount);
+  return { credited, hitCap, txsToday };
 }
 
 function creditActionDelta(
@@ -377,7 +413,7 @@ export function getTodayPointsSummary(address: string): {
     total: day.activity + day.streak + day.bonus,
     cap: DAILY_POINTS_CAP,
     remaining,
-    txs: day.txs,
+    txs: getTodayInAppTxCount(address),
     capBonusAwarded: day.capBonusAwarded,
   };
 }

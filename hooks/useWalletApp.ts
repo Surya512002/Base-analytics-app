@@ -116,9 +116,9 @@ import {
   syncSessionFromAnalysis,
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
-import { creditActivityFromCount,
+import { recordCheckInPointsOnce,
+  recordConfirmedInAppAction,
   recordInAppTransaction,
-  recordCheckInPointsOnce,
   syncActivityPointsFromSession,
   tryAwardSevenDayAllTasksBonus,
 } from "@/lib/utils/daily-points";
@@ -628,15 +628,12 @@ export function useWalletApp() {
         const next = prev + 1;
         localStorage.setItem(keys.count, next.toString());
         setX402PayCount(next);
-        setTxKeys((k) => {
-          const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
-          return { ...k, ...nextKeys };
-        });
-        creditActivityFromCount(
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        recordConfirmedInAppAction(
           wallet.address,
           "x402",
-          readPersistedTxKeys(wallet.address).x402 ?? next,
-          { recordTxs: true }
+          nextKeys.x402 ?? next
         );
         setPointsRevision((n) => n + 1);
         const txHash = data.transaction
@@ -710,15 +707,12 @@ export function useWalletApp() {
         const next = prev + 1;
         localStorage.setItem(keys.count, next.toString());
         setX402PayCount(next);
-        setTxKeys((k) => {
-          const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
-          return { ...k, ...nextKeys };
-        });
-        creditActivityFromCount(
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        recordConfirmedInAppAction(
           wallet.address,
           "x402",
-          readPersistedTxKeys(wallet.address).x402 ?? next,
-          { recordTxs: true }
+          nextKeys.x402 ?? next
         );
         setPointsRevision((n) => n + 1);
         const txHash = data.transaction
@@ -985,18 +979,12 @@ export function useWalletApp() {
           }
         }
 
-        let nextCount = 0;
-        setTxKeys((k) => {
-          nextCount = (k.launch || 0) + 1;
-          const next = { ...k, launch: nextCount };
-          writePersistedTxKeys(wallet.address, next);
-          return next;
-        });
-        const { credited, hitCap } = creditActivityFromCount(
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "launch");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        const { credited, hitCap } = recordConfirmedInAppAction(
           wallet.address,
           "launch",
-          nextCount,
-          { recordTxs: true }
+          nextKeys.launch ?? 0
         );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {
@@ -1304,18 +1292,12 @@ export function useWalletApp() {
         const hash = await sendAppTransactions(activeConn, wallet.address, calls);
         setSponsored((s) => s + 1);
 
-        let nextCount = 0;
-        setTxKeys((k) => {
-          nextCount = (k.swap || 0) + 1;
-          const next = { ...k, swap: nextCount };
-          writePersistedTxKeys(wallet.address, next);
-          return next;
-        });
-        const { credited, hitCap } = creditActivityFromCount(
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "swap");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        const { credited, hitCap } = recordConfirmedInAppAction(
           wallet.address,
           "swap",
-          nextCount,
-          { recordTxs: true }
+          nextKeys.swap ?? 0
         );
         setPointsRevision((n) => n + 1);
         const label = args.direction === "buy" ? "Buy" : "Sell";
@@ -1446,10 +1428,8 @@ export function useWalletApp() {
           writePersistedTxKeys(wallet.address, next);
           return next;
         });
-        const { credited } = creditActivityFromCount(wallet.address, "challenge", 1, {
-          recordTxs: true,
-        });
-        if (credited > 0) setPointsRevision((n) => n + 1);
+        recordConfirmedInAppAction(wallet.address, "challenge", 1);
+        setPointsRevision((n) => n + 1);
       }
     } catch {
       showToast("❌ Lookup failed", "");
@@ -1623,18 +1603,12 @@ export function useWalletApp() {
         handledActionTxs.current.add(key);
       }
       setBoosts((current) => bumpBoostCount(address, current));
-      let nextCount = 0;
-      setTxKeys((k) => {
-        nextCount = (k.boost || 0) + 1;
-        const next = { ...k, boost: nextCount };
-        writePersistedTxKeys(address, next);
-        return next;
-      });
-      const { credited, hitCap } = creditActivityFromCount(
+      const nextKeys = bumpWeeklyTxKey(address, "boost");
+      setTxKeys((k) => ({ ...k, ...nextKeys }));
+      const { credited, hitCap } = recordConfirmedInAppAction(
         address,
         "boost",
-        nextCount,
-        { recordTxs: true }
+        nextKeys.boost ?? 0
       );
       setPointsRevision((n) => n + 1);
       if (txHash) {
@@ -2199,18 +2173,12 @@ export function useWalletApp() {
             `base_gm_${wallet.address.toLowerCase()}`,
             "true"
           );
-        let nextCount = 0;
-        setTxKeys((k) => {
-          nextCount = (k.gm || 0) + 1;
-          const next = { ...k, gm: nextCount };
-          writePersistedTxKeys(wallet.address, next);
-          return next;
-        });
-        const { credited, hitCap } = creditActivityFromCount(
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "gm");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        const { credited, hitCap } = recordConfirmedInAppAction(
           wallet.address,
           "gm",
-          nextCount,
-          { recordTxs: true }
+          nextKeys.gm ?? 0
         );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {
@@ -2221,18 +2189,12 @@ export function useWalletApp() {
           showToast(successMsg.gm, hash);
         }
       } else if (type === "gn") {
-        let nextCount = 0;
-        setTxKeys((k) => {
-          nextCount = (k.gn || 0) + 1;
-          const next = { ...k, gn: nextCount };
-          writePersistedTxKeys(wallet.address, next);
-          return next;
-        });
-        const { credited, hitCap } = creditActivityFromCount(
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "gn");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        const { credited, hitCap } = recordConfirmedInAppAction(
           wallet.address,
           "gn",
-          nextCount,
-          { recordTxs: true }
+          nextKeys.gn ?? 0
         );
         setPointsRevision((n) => n + 1);
         if (hitCap && credited === 0) {

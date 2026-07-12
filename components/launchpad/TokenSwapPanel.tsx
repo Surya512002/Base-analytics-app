@@ -26,11 +26,11 @@ import {
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
 import {
-  expectedReceiveAmount,
+  computePriceImpactPct,
+  computeSwapUsd,
+  impliedTokenPriceUsd,
   isUsdcAddress,
   isWethAddress,
-  swapPayUsd,
-  swapReceiveUsd,
 } from "@/lib/launchpad/swap-display";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
 import { WETH_BASE } from "@/lib/launchpad/uniswap";
@@ -322,32 +322,38 @@ export default function TokenSwapPanel({
   const isUsdcToken = token ? isUsdcAddress(token.address) : false;
   const isWethToken = token ? isWethAddress(token.address) : false;
 
-  const payUsd = useMemo(() => {
-    const n = parseFloat(amount);
-    if (!token || !Number.isFinite(n) || n <= 0) return null;
-    return swapPayUsd({
-      direction,
-      amount: n,
-      tokenAddress: token.address,
-      tokenPriceUsd: priceUsd,
-      ethUsd,
-      payAsset: "eth",
-    });
-  }, [amount, direction, ethUsd, priceUsd, token]);
+  const payAmountNum = parseFloat(amount);
+  const quoteOutNum = quoteOut != null ? parseFloat(quoteOut) : null;
 
-  const receiveUsd = useMemo(() => {
-    if (!token || !quoteOut) return null;
-    const n = parseFloat(quoteOut);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return swapReceiveUsd({
-      direction,
-      quoteOut: n,
-      tokenAddress: token.address,
-      tokenPriceUsd: priceUsd,
-      ethUsd,
-      receiveAsset: quoteReceiveAsset,
-    });
-  }, [quoteOut, direction, priceUsd, ethUsd, token, quoteReceiveAsset]);
+  const { payUsd, receiveUsd } = useMemo(
+    () =>
+      computeSwapUsd({
+        direction,
+        payAmount: payAmountNum,
+        quoteOut: quoteOutNum,
+        ethUsd,
+      }),
+    [direction, payAmountNum, quoteOutNum, ethUsd]
+  );
+
+  const liveTokenPriceUsd = useMemo(() => {
+    if (
+      quoteOutNum == null ||
+      !Number.isFinite(payAmountNum) ||
+      payAmountNum <= 0 ||
+      quoteOutNum <= 0
+    ) {
+      return priceUsd;
+    }
+    return (
+      impliedTokenPriceUsd({
+        direction,
+        payAmount: payAmountNum,
+        quoteOut: quoteOutNum,
+        ethUsd,
+      }) ?? priceUsd
+    );
+  }, [direction, payAmountNum, quoteOutNum, ethUsd, priceUsd]);
 
   const exchangeRate = useMemo(() => {
     const pay = parseFloat(amount);
@@ -366,24 +372,22 @@ export default function TokenSwapPanel({
   }, [amount, quoteOut, direction, token?.symbol, isUsdcToken]);
 
   const priceImpactPct = useMemo(() => {
-    if (!token || !quoteOut) return null;
-    const quoted = parseFloat(quoteOut);
-    const amt = parseFloat(amount);
-    if (!Number.isFinite(quoted) || quoted <= 0 || !Number.isFinite(amt) || amt <= 0) {
+    if (
+      quoteOutNum == null ||
+      !Number.isFinite(payAmountNum) ||
+      payAmountNum <= 0 ||
+      quoteOutNum <= 0
+    ) {
       return null;
     }
-    const expected = expectedReceiveAmount({
+    return computePriceImpactPct({
       direction,
-      payAmount: amt,
-      tokenAddress: token.address,
-      tokenPriceUsd: priceUsd,
+      payAmount: payAmountNum,
+      quoteOut: quoteOutNum,
       ethUsd,
-      payAsset: "eth",
-      receiveAsset: quoteReceiveAsset,
+      referencePriceUsd: priceUsd,
     });
-    if (expected == null || expected <= 0) return null;
-    return Math.abs(1 - quoted / expected) * 100;
-  }, [quoteOut, priceUsd, amount, direction, ethUsd, token, quoteReceiveAsset]);
+  }, [quoteOutNum, priceUsd, payAmountNum, direction, ethUsd]);
 
   const needsImpactAck =
     (priceImpactPct != null && priceImpactPct >= 3) ||
@@ -743,15 +747,16 @@ export default function TokenSwapPanel({
               </div>
             )}
 
-            {(isUsdcToken || priceUsd) && (
+            {(liveTokenPriceUsd != null || poolLiquidityUsd != null) && (
               <p className="swap-meta-line">
-                {isUsdcToken ? (
-                  <>1 USDC ≈ $1.00</>
-                ) : (
-                  <>1 {token.symbol} = {formatSubscriptPrice(priceUsd ?? 0)}</>
+                {liveTokenPriceUsd != null && liveTokenPriceUsd > 0 && (
+                  <>1 {token.symbol} ≈ {formatSubscriptPrice(liveTokenPriceUsd)}</>
                 )}
                 {poolLiquidityUsd != null && poolLiquidityUsd > 0 && (
-                  <> · {formatUsd(poolLiquidityUsd)} pool liquidity</>
+                  <>
+                    {liveTokenPriceUsd != null && liveTokenPriceUsd > 0 ? " · " : ""}
+                    {formatUsd(poolLiquidityUsd)} pool liquidity
+                  </>
                 )}
               </p>
             )}

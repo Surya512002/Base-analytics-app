@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Droplets, Flame, RefreshCcw, Rocket, Target, Trophy } from "lucide-react";
 import CheckInRankings from "@/components/wallet/CheckInRankings";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
@@ -78,8 +78,10 @@ export default function CheckInTab({
     capStreak.nextAwardDay,
     capStreak.capBonusAwardedToday
   );
-  const xp = computeXPBreakdown(questContext, boosts);
-  void pointsRevision;
+  const xp = useMemo(
+    () => computeXPBreakdown(questContext, boosts),
+    [questContext, boosts, pointsRevision]
+  );
   const dailyPct = Math.min(
     100,
     Math.round((xp.todayActivityXp / xp.dailyCap) * 100)

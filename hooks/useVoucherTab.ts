@@ -50,8 +50,8 @@ import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
 } from "@/lib/utils/paymaster";
-import { writePersistedTxKeys } from "@/lib/utils/wallet-session";
-import { creditActivityFromCount } from "@/lib/utils/daily-points";
+import { bumpWeeklyTxKey, writePersistedTxKeys } from "@/lib/utils/wallet-session";
+import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
 import { USDC_PRESETS, ETH_PRESETS } from "@/components/voucher/voucher-constants";
 import type {
   VoucherView,
@@ -931,13 +931,9 @@ export function useVoucherTab(app: WalletAppState) {
       };
       saveLocalBatch(address, saved);
       void saveWalletCredentials(address, saved);
-      setTxKeys((k) => {
-        const nextCount = (k.voucher || 0) + 1;
-        const next = { ...k, voucher: nextCount };
-        writePersistedTxKeys(address, next);
-        creditActivityFromCount(address, "voucher", nextCount, { recordTxs: true });
-        return next;
-      });
+      const nextKeys = bumpWeeklyTxKey(address, "voucher");
+      setTxKeys((k) => ({ ...k, ...nextKeys }));
+      recordConfirmedInAppAction(address, "voucher", nextKeys.voucher ?? 0);
       clearPendingBatch(address, txHash);
       clearCreateSession(address);
       fundTxRef.current = undefined;
@@ -1338,17 +1334,15 @@ export function useVoucherTab(app: WalletAppState) {
       }
 
       if (wallet) {
-        let nextCount = 0;
-        setTxKeys((k) => {
-          nextCount = (k.redeem || 0) + 1;
-          const next = { ...k, redeem: nextCount };
-          writePersistedTxKeys(wallet.address, next);
-          return next;
-        });
-        const { credited } = creditActivityFromCount(wallet.address, "redeem", nextCount, {
-          recordTxs: true,
-        });
-        if (credited > 0) setPointsRevision((n) => n + 1);
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "redeem");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        const { credited } = recordConfirmedInAppAction(
+          wallet.address,
+          "redeem",
+          nextKeys.redeem ?? 0
+        );
+        setPointsRevision((n) => n + 1);
+        void credited;
       }
 
       setBatchCardStatuses((prev) => {
