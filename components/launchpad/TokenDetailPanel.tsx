@@ -17,7 +17,6 @@ import type { LaunchedToken } from "@/lib/launchpad/types";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { formatPlatformFeeLabel, LAUNCHPAD_PLATFORM_FEE_BPS } from "@/lib/constants/launchpad";
 import TokenSwapPanel from "@/components/launchpad/TokenSwapPanel";
-import QuickGiftCta from "@/components/voucher/QuickGiftCta";
 import {
   fetchRecentSwaps,
   fetchTokenPairs,
@@ -230,7 +229,40 @@ export default function TokenDetailPanel({
 
   return (
     <div className="space-y-5">
-      {/* Hero */}
+      {tab === "swap" ? (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-sm font-bold text-[#6BA3FF] hover:text-white shrink-0"
+          >
+            ← Back
+          </button>
+          {token.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={token.imageUrl}
+              alt=""
+              className="w-10 h-10 rounded-xl object-cover border border-white/10"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-[#0052FF]/25 border border-[#0052FF]/40 flex items-center justify-center text-sm font-black text-[#6BA3FF]">
+              {token.symbol.slice(0, 2)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-black text-white truncate">
+              {token.name}{" "}
+              <span className="text-[#6BA3FF]">${token.symbol}</span>
+            </h1>
+            <p className="text-[11px] text-slate-500">
+              {priceUsd ? formatSubscriptPrice(priceUsd) : "—"}
+              {best?.liquidity?.usd ? ` · ${formatUsd(best.liquidity.usd)} liq` : ""}
+            </p>
+          </div>
+        </div>
+      ) : (
+      /* Hero */
       <div className="rounded-3xl border border-[#0052FF]/25 bg-linear-to-br from-[#0052FF]/12 via-[#0a1220]/90 to-black/40 overflow-hidden">
         <div className="h-1 bg-linear-to-r from-[#0052FF] via-[#3B7FFF] to-emerald-400" />
         <div className="p-5 sm:p-6">
@@ -454,6 +486,7 @@ export default function TokenDetailPanel({
           {pairsErr && <p className="text-[11px] text-rose-200 mt-3">{pairsErr}</p>}
         </div>
       </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 overflow-x-auto">
@@ -473,65 +506,33 @@ export default function TokenDetailPanel({
         ))}
       </div>
 
-      <TokenSocialProof
-        creator={token.creator}
-        holders={holders}
-        swaps={swaps}
-        holderCount={holders.length}
-      />
+      {tab !== "swap" && (
+        <TokenSocialProof
+          creator={token.creator}
+          holders={holders}
+          swaps={swaps}
+          holderCount={holders.length}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className={`${tab === "swap" ? "lg:col-span-5" : "lg:col-span-12"} space-y-5`}>
-          {tab === "swap" && (
-            <>
-              <QuickGiftCta
-                recipientAddress={token.creator}
-                guest={guestMode}
-                onConnect={onRequestConnect}
-                compact
-              />
-              <TokenSwapPanel
-                app={app}
-                token={token}
-                guestMode={guestMode}
-                onRequestConnect={onRequestConnect}
-              />
-            </>
-          )}
-        </div>
-
-        <div className={`${tab === "swap" ? "lg:col-span-7" : "lg:col-span-12"} space-y-5`}>
-          {tab === "swap" && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-[10px] font-bold text-slate-500 uppercase mb-3">Pool activity (24h)</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { label: "Buys", value: best?.txns?.h24?.buys ?? 0 },
-                  { label: "Sells", value: best?.txns?.h24?.sells ?? 0 },
-                  {
-                    label: "1h change",
-                    value:
-                      best?.priceChange?.h1 !== undefined
-                        ? `${best.priceChange.h1.toFixed(2)}%`
-                        : "—",
-                  },
-                  {
-                    label: "24h change",
-                    value:
-                      best?.priceChange?.h24 !== undefined
-                        ? `${best.priceChange.h24.toFixed(2)}%`
-                        : "—",
-                  },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-[10px] text-slate-500">{s.label}</p>
-                    <p className="text-sm font-black text-white mt-1">{s.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
+        {tab === "swap" ? (
+          <div className="lg:col-span-12 space-y-5">
+            <TokenSwapPanel
+              app={app}
+              token={token}
+              guestMode={guestMode}
+              onRequestConnect={onRequestConnect}
+            />
+            <TokenChartPanel
+              pairAddress={best?.pairAddress}
+              tokenAddress={token.address}
+              swaps={swaps}
+              swapsLoading={swaps.length === 0 && !swapsErr}
+            />
+          </div>
+        ) : (
+        <div className="lg:col-span-12 space-y-5">
           {tab === "chart" && (
             <TokenChartPanel
               pairAddress={best?.pairAddress}
@@ -829,6 +830,7 @@ export default function TokenDetailPanel({
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

@@ -243,6 +243,22 @@ export async function GET(req: Request) {
       }
 
       if (dex === "auto") {
+        // Prefer direct DEX when liquidity exists — 0x calldata is fragile in smart wallets.
+        const aggMuchBetter =
+          aggOut > BigInt(0) &&
+          directOut > BigInt(0) &&
+          aggOut > (directOut * BigInt(103)) / BigInt(100);
+
+        if (directOut > BigInt(0) && directQuote && !aggMuchBetter) {
+          return {
+            kind: "direct" as const,
+            out: directQuote.amountOut,
+            min: directQuote.amountOutMinimum,
+            dex: directQuote.dex,
+            router: directQuote.router,
+          };
+        }
+
         if (aggOut > directOut && aggQuote) {
           return {
             kind: "aggregator" as const,

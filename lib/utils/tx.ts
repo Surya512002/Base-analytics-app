@@ -52,19 +52,19 @@ export function prepareCallsForWalletSendCalls(
 ): ContractCall[] {
   const hasB20 = calls.some((c) => isB20PrecompileAddress(c.to));
   if (hasB20) {
-    // B20 rejects suffix — keep attribution in calldata for every other call.
     return calls.map((call) => {
-      if (isB20PrecompileAddress(call.to)) return call;
+      if (isPreservedCalldataCall(call)) return call;
       if (!hasBuilderSuffix(call.data)) {
         return { ...call, data: withBuilderSuffix(call.data) };
       }
       return call;
     });
   }
-  return calls.map((call) => ({
-    ...call,
-    data: stripBuilderSuffix(call.data),
-  }));
+  return calls.map((call) =>
+    isPreservedCalldataCall(call)
+      ? call
+      : { ...call, data: stripBuilderSuffix(call.data) }
+  );
 }
 
 /** ETH transfer with builder attribution in calldata. */
@@ -93,7 +93,7 @@ export function finalizeAppTransactionBatch(
   if (calls.length === 0) return calls;
 
   const normalized = calls.map((call) => {
-    if (isB20PrecompileAddress(call.to)) return call;
+    if (isPreservedCalldataCall(call)) return call;
     if (call.data === "0x" && call.value && call.value > BigInt(0)) {
       return buildAttributedNativeTransfer(call.to, call.value);
     }
@@ -123,7 +123,14 @@ export type ContractCall = {
   value?: bigint;
   /** Explicit gas for B20 precompiles when wallets cannot estimate. */
   gas?: bigint;
+  /** Third-party swap calldata (0x) — must not append builder suffix. */
+  preserveCalldata?: boolean;
 };
+
+/** Returns true when calldata must be sent exactly as quoted (0x AllowanceHolder, etc.). */
+export function isPreservedCalldataCall(call: ContractCall): boolean {
+  return call.preserveCalldata === true || isB20PrecompileAddress(call.to);
+}
 
 export function buildContractCall(
   to: `0x${string}`,
@@ -136,6 +143,20 @@ export function buildContractCall(
   return {
     to,
     data: withBuilderSuffix(data),
+    ...(value !== undefined ? { value } : {}),
+  };
+}
+
+/** 0x / aggregator swaps — calldata is validated on-chain and cannot carry a builder suffix. */
+export function buildExternalSwapCall(
+  to: `0x${string}`,
+  data: Hex,
+  value?: bigint
+): ContractCall {
+  return {
+    to,
+    data,
+    preserveCalldata: true,
     ...(value !== undefined ? { value } : {}),
   };
 }

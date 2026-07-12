@@ -76,6 +76,7 @@ import {
 import {
   buildB20Call,
   buildContractCall,
+  buildExternalSwapCall,
   buildNativeTransferCall,
   encodeContractCall,
   normalizeTxHash,
@@ -1170,7 +1171,7 @@ export function useWalletApp() {
 
           if (isAggregator && quote.tx) {
             calls.push(
-              buildContractCall(
+              buildExternalSwapCall(
                 quote.tx.to as `0x${string}`,
                 quote.tx.data as `0x${string}`,
                 BigInt(quote.tx.value || "0")
@@ -1243,7 +1244,7 @@ export function useWalletApp() {
           pushFeeSplitCalls(calls, fee, { native: false, token, creator, referrer, referrerBoostBps });
           if (isAggregator && quote.tx) {
             calls.push(
-              buildContractCall(
+              buildExternalSwapCall(
                 quote.tx.to as `0x${string}`,
                 quote.tx.data as `0x${string}`,
                 BigInt(quote.tx.value || "0")

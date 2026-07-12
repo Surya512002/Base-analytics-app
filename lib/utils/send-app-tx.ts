@@ -10,6 +10,7 @@ import {
   prepareCallsForWalletSendCalls,
   withBuilderSuffix,
   isB20PrecompileAddress,
+  isPreservedCalldataCall,
   finalizeAppTransactionBatch,
 } from "@/lib/utils/tx";
 import {
@@ -89,7 +90,7 @@ function buildLegacyTxParams(
   from: string,
   call: ContractCall
 ): Record<string, string> {
-  const data = isB20PrecompileAddress(call.to)
+  const data = isPreservedCalldataCall(call)
     ? call.data
     : withBuilderSuffix(call.data);
   const params: Record<string, string> = {
@@ -326,8 +327,9 @@ async function sendSequentialAppCalls(
   let lastHash = "";
   for (let i = 0; i < calls.length; i++) {
     const call = calls[i]!;
-    const caps = getSendCallsCapabilities(isB20PrecompileAddress(call.to), {
-      skipPaymaster: isB20PrecompileAddress(call.to),
+    const skipSuffix = isPreservedCalldataCall(call);
+    const caps = getSendCallsCapabilities(skipSuffix, {
+      skipPaymaster: skipSuffix || isB20PrecompileAddress(call.to),
     });
 
     if (opts.preferSendCalls) {
