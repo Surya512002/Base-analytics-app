@@ -132,7 +132,6 @@ export default function TokenSwapPanel({
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
-  const [quoteOutDecimals, setQuoteOutDecimals] = useState<number>(18);
   const [quoteReceiveAsset, setQuoteReceiveAsset] = useState<"eth" | "usdc" | "token">("eth");
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
@@ -299,7 +298,6 @@ export default function TokenSwapPanel({
         setAntiSnipeMsg(q.antiSnipe.message ?? null);
       }
       const outDec = q.outDecimals ?? (direction === "buy" ? token.decimals : 18);
-      setQuoteOutDecimals(outDec);
       setQuoteReceiveAsset(
         q.receiveAsset ?? (direction === "buy" ? "token" : "eth")
       );
@@ -396,6 +394,22 @@ export default function TokenSwapPanel({
   useEffect(() => {
     setHighImpactAck(false);
   }, [token?.address, direction, amount, dex]);
+
+  const isWethPage = isWethToken;
+
+  const walletBalances = useMemo(() => {
+    const rows: { label: string; value: string }[] = [
+      { label: "ETH", value: ethBalance.toFixed(4) },
+      { label: "WETH", value: wethBalance.toFixed(4) },
+    ];
+    if (usdcBalance > 0) {
+      rows.push({ label: "USDC", value: usdcBalance.toFixed(2) });
+    }
+    if (!isWethPage && token) {
+      rows.push({ label: token.symbol, value: tokenBalance.toFixed(isUsdcToken ? 2 : 4) });
+    }
+    return rows;
+  }, [ethBalance, wethBalance, usdcBalance, tokenBalance, token, isWethPage, isUsdcToken]);
 
   const setDirectionSafe = (d: "buy" | "sell") => {
     setDirection(d);
@@ -519,22 +533,6 @@ export default function TokenSwapPanel({
     }
     return direction === "buy" ? `Buy ${token.symbol}` : `Sell ${token.symbol}`;
   })();
-
-  const isWethPage = isWethToken;
-
-  const walletBalances = useMemo(() => {
-    const rows: { label: string; value: string }[] = [
-      { label: "ETH", value: ethBalance.toFixed(4) },
-      { label: "WETH", value: wethBalance.toFixed(4) },
-    ];
-    if (usdcBalance > 0) {
-      rows.push({ label: "USDC", value: usdcBalance.toFixed(2) });
-    }
-    if (!isWethPage) {
-      rows.push({ label: token.symbol, value: tokenBalance.toFixed(isUsdcToken ? 2 : 4) });
-    }
-    return rows;
-  }, [ethBalance, wethBalance, usdcBalance, tokenBalance, token.symbol, isWethPage, isUsdcToken]);
 
   return (
     <div className="swap-panel swap-panel-lg overflow-hidden">

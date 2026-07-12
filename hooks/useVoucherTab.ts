@@ -50,7 +50,7 @@ import {
   getOnchainKitCapabilities,
   usesWalletSendCallsAttribution,
 } from "@/lib/utils/paymaster";
-import { bumpWeeklyTxKey, writePersistedTxKeys } from "@/lib/utils/wallet-session";
+import { bumpWeeklyTxKey } from "@/lib/utils/wallet-session";
 import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
 import { USDC_PRESETS, ETH_PRESETS } from "@/components/voucher/voucher-constants";
 import type {

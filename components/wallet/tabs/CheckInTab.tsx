@@ -68,7 +68,12 @@ export default function CheckInTab({
     return () => clearTimeout(t);
   }, [highlightQuest]);
 
-  if (!wallet || !questContext) return null;
+  const xp = useMemo(
+    () => (questContext ? computeXPBreakdown(questContext, boosts) : null),
+    [questContext, boosts, pointsRevision]
+  );
+
+  if (!wallet || !questContext || !xp) return null;
 
   const boostPct = streakBoostPercent(
     Math.min(Math.max(streak, 1), CHECK_IN_TRACK_DAYS)
@@ -77,10 +82,6 @@ export default function CheckInTab({
   const trackDays = getCapStreakTrackStatuses(
     capStreak.nextAwardDay,
     capStreak.capBonusAwardedToday
-  );
-  const xp = useMemo(
-    () => computeXPBreakdown(questContext, boosts),
-    [questContext, boosts, pointsRevision]
   );
   const dailyPct = Math.min(
     100,

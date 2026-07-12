@@ -77,7 +77,6 @@ export default function RewardsTab({
   if (!wallet) return null;
 
   const hasOnchainStake = Boolean(onchainStake?.active && onchainStake.amount > BigInt(0));
-  const onchainLocked = hasOnchainStake && Date.now() < onchainStake!.unlockAt;
   const onchainMult = onchainStake ? tierToMultiplier(onchainStake.tier) : 1;
   const canUnstakeOnchain = hasOnchainStake && Date.now() >= onchainStake!.unlockAt;
 
