@@ -15,7 +15,6 @@ import TokenCard, { CreateTokenCard } from "@/components/launchpad/TokenCard";
 import { fetchLaunchpadTokens, fetchDiscoverTokens, resolveTokenByAddress } from "@/lib/api/launchpad-client";
 import { fetchMarketData, fetchMarketBatch, fetchGlobalActivity } from "@/lib/api/launchpad-market-client";
 import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
-import { countRecentLaunches, countRecentSwaps } from "@/lib/launchpad/explore-rankings";
 import { mergeMarketSummaries } from "@/lib/launchpad/dexscreener";
 import { readExploreCache, writeExploreCache, hasExploreCache } from "@/lib/launchpad/explore-cache";
 import { mergeExploreTokens, sortByMarketVolume } from "@/lib/launchpad/merge-tokens";
@@ -28,18 +27,14 @@ import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
 import MyLaunchedTokens from "@/components/launchpad/MyLaunchedTokens";
 import AgenticMarketplaceRail, { ExploreKnowledgeRail } from "@/components/explore/AgenticMarketplaceRail";
 import ExploreLandingHero from "@/components/explore/ExploreLandingHero";
+import B20MarketHero from "@/components/explore/B20MarketHero";
 import ExploreSegmentTabs, { type TokenCatalogTab } from "@/components/explore/ExploreSegmentTabs";
 import ExploreSearchBar from "@/components/explore/ExploreSearchBar";
-import ExploreSocialProof from "@/components/explore/ExploreSocialProof";
-import ExploreQuestBanner from "@/components/explore/ExploreQuestBanner";
 import ExploreOnboarding from "@/components/explore/ExploreOnboarding";
 import ExploreMobileFab from "@/components/explore/ExploreMobileFab";
-import ForYouRail from "@/components/explore/ForYouRail";
 import WatchlistAlertsPanel from "@/components/explore/WatchlistAlertsPanel";
-import { buildForYouTokens } from "@/lib/launchpad/for-you-tokens";
 import { useTokenHoldings } from "@/hooks/useTokenHoldings";
 import { checkAlerts } from "@/lib/utils/token-price-alerts";
-import { buildQuestDeepLink } from "@/lib/utils/app-url";
 import LaunchpadExploreSections from "@/components/launchpad/LaunchpadExploreSections";
 import B20TokensSection from "@/components/launchpad/B20TokensSection";
 import LaunchCalendar from "@/components/launchpad/LaunchCalendar";
@@ -432,11 +427,6 @@ export default function LaunchpadTab({
     return list;
   }, [catalogTokens, allNonB20Tokens, filter, wallet, markets, watchlist]);
 
-  const forYouTokens = useMemo(
-    () => buildForYouTokens(wallet ?? undefined, tradableTokens, 8),
-    [wallet, tradableTokens]
-  );
-
   const holdingInputs = useMemo(
     () => tradableTokens.map((t) => ({ address: t.address, decimals: t.decimals })),
     [tradableTokens]
@@ -512,16 +502,6 @@ export default function LaunchpadTab({
         totalLiquidity={marketStats.totalLiquidity}
       />
 
-      <ExploreSocialProof
-        tokenCount={tradableTokens.length}
-        volume24h={marketStats.totalVolume24h}
-        liquidity={marketStats.totalLiquidity}
-        launchesWeek={countRecentLaunches(activities, 7)}
-        swaps24h={countRecentSwaps(activities, 24)}
-        loading={initialLoading}
-        syncing={syncing}
-      />
-
       <ExploreSearchBar
         tokens={tradableTokens}
         onOpenToken={openTrade}
@@ -535,30 +515,14 @@ export default function LaunchpadTab({
         syncing={syncing}
       />
 
-      <GlobalActivityTicker onOpenToken={handleActivityToken} />
-
-      <ExploreServicesRail
-        onNavigate={onNavigate ?? ((t) => app.setTab(t))}
-        guest={guestMode}
-        onConnect={onRequestConnect}
+      <B20MarketHero
+        tokens={tradableB20}
+        markets={markets}
+        onOpen={openTrade}
+        onLaunch={guestMode ? undefined : requestCreate}
+        loading={initialLoading && tradableB20.length === 0}
+        guestMode={guestMode}
       />
-
-      {!guestMode && wallet && (
-        <ExploreQuestBanner
-          app={app}
-          onGoQuests={() => {
-            if (typeof window !== "undefined") {
-              window.location.href = buildQuestDeepLink("q_swap_first");
-            } else {
-              (onNavigate ?? ((t) => app.setTab(t)))("checkin");
-            }
-          }}
-        />
-      )}
-
-      {!guestMode && forYouTokens.length > 0 && (
-        <ForYouRail tokens={forYouTokens} markets={markets} onOpen={openTrade} />
-      )}
 
       <LaunchpadExploreSections
         tokens={tradableTokens}
@@ -566,6 +530,14 @@ export default function LaunchpadTab({
         onOpen={openTrade}
         activities={activities}
         syncing={syncing}
+      />
+
+      <GlobalActivityTicker onOpenToken={handleActivityToken} />
+
+      <ExploreServicesRail
+        onNavigate={onNavigate ?? ((t) => app.setTab(t))}
+        guest={guestMode}
+        onConnect={onRequestConnect}
       />
 
       <ImportTokenBar

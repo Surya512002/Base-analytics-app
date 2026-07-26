@@ -1,7 +1,47 @@
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
-import { sortByPriceChange } from "@/lib/launchpad/merge-tokens";
+import { sortByMarketVolume, sortByPriceChange } from "@/lib/launchpad/merge-tokens";
 import { isTradableListing } from "@/lib/launchpad/tradable";
+
+/** Featured B20 grid — trending volume first, then top gainers, deduped. */
+export function buildFeaturedB20Tokens(
+  b20Tokens: LaunchedToken[],
+  markets: Record<string, TokenMarketSummary>,
+  limit = 12
+): LaunchedToken[] {
+  const tradable = b20Tokens.filter((t) => isTradableListing(t, markets));
+  const trending = sortByMarketVolume(
+    tradable.filter((t) => (markets[t.address.toLowerCase()]?.volume24h ?? 0) > 0),
+    markets
+  ).slice(0, Math.max(4, Math.ceil(limit * 0.65)));
+
+  const gainers = buildB20GainersRail(tradable, markets, trending, limit, {
+    excludeTrending: true,
+  });
+
+  const seen = new Set<string>();
+  const out: LaunchedToken[] = [];
+  for (const t of [...trending, ...gainers]) {
+    const key = t.address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+    if (out.length >= limit) break;
+  }
+
+  if (out.length < limit) {
+    const recent = [...tradable].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    for (const t of recent) {
+      const key = t.address.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(t);
+      if (out.length >= limit) break;
+    }
+  }
+
+  return out;
+}
 
 /**
  * B20 top gainers — positive 24h movers first, then fills with next-best price change.

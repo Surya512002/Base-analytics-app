@@ -7,13 +7,11 @@ import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import { createdAgo, formatUsd } from "@/lib/launchpad/format";
 import {
   isAppLaunched,
-  isB20ExploreToken,
   isRecentB20,
   tokenSource,
 } from "@/lib/launchpad/token-meta";
 import { isTradableListing } from "@/lib/launchpad/tradable";
 import { sortByMarketVolume } from "@/lib/launchpad/merge-tokens";
-import { buildB20GainersRail } from "@/lib/launchpad/b20-gainers";
 import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
 import { buildHotTokens } from "@/lib/launchpad/explore-rankings";
 
@@ -140,22 +138,6 @@ export default function LaunchpadExploreSections({
     [tradable, markets]
   );
 
-  const b20Tokens = useMemo(() => tradable.filter(isB20ExploreToken), [tradable]);
-
-  const b20Trending = useMemo(
-    () =>
-      sortByMarketVolume(
-        b20Tokens.filter((t) => (markets[t.address.toLowerCase()]?.volume24h ?? 0) > 0),
-        markets
-      ).slice(0, 10),
-    [b20Tokens, markets]
-  );
-
-  const b20Gainers = useMemo(
-    () => buildB20GainersRail(b20Tokens, markets, b20Trending, 10),
-    [b20Tokens, markets, b20Trending]
-  );
-
   const hotNow = useMemo(
     () => buildHotTokens(activities, tradable, markets, 8),
     [activities, tradable, markets]
@@ -218,74 +200,6 @@ export default function LaunchpadExploreSections({
           ))}
         </div>
       </section>
-
-      {(b20Trending.length > 0 || b20Gainers.length > 0) && (
-        <section className="rounded-2xl border border-[var(--base-blue)]/20 bg-[var(--base-blue)]/[0.04] p-4 sm:p-5 space-y-6">
-          <div>
-            <p className="section-eyebrow mb-1 text-[#7aa2ff]">B20 on Base</p>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-[var(--ink)] tracking-tight">
-              B20 market rails
-            </h2>
-            <p className="text-[12px] text-[var(--ink-dim)] mt-1.5 max-w-xl">
-              Trending and top gainers among B20 vanity tokens — factory launches and app
-              deployments on Base.
-            </p>
-          </div>
-
-          {b20Trending.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-lg font-bold text-[var(--ink)] tracking-tight">
-                  Trending B20
-                </h3>
-                <span className="text-[11px] text-[var(--ink-dim)] font-mono">
-                  by 24h volume
-                </span>
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
-                {b20Trending.map((t) => (
-                  <TokenRailCard
-                    key={`b20-trend-${t.address}`}
-                    token={t}
-                    market={markets[t.address.toLowerCase()]}
-                    onOpen={() => onOpen(t)}
-                    badge={isAppLaunched(t) ? "App · B20" : "B20"}
-                    stat="volume"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {b20Gainers.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-lg font-bold text-[var(--ink)] tracking-tight">
-                  Top gainers · B20
-                </h3>
-                <span className="text-[11px] text-[var(--ink-dim)] font-mono">
-                  24h price change · top movers
-                </span>
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-1 px-1 no-scrollbar touch-scroll-x snap-x snap-mandatory">
-                {b20Gainers.map((t) => {
-                  const market = markets[t.address.toLowerCase()];
-                  return (
-                    <TokenRailCard
-                      key={`b20-gain-${t.address}`}
-                      token={t}
-                      market={market}
-                      onOpen={() => onOpen(t)}
-                      badge={isAppLaunched(t) ? "App · B20" : "B20"}
-                      stat="change"
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
 
       {justLaunched.length > 0 && (
         <section>

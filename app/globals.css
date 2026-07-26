@@ -1097,6 +1097,108 @@ html.is-scrolling .prism-scene {
   flex-shrink: 0;
 }
 
+/* ── B20 market hero (main explore section) ── */
+.b20-market-hero {
+  position: relative;
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-subtle));
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    var(--bg-raised);
+  padding: 1.35rem 1.25rem 1.5rem;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .b20-market-hero {
+    padding: 1.75rem 1.75rem 2rem;
+  }
+}
+
+.b20-market-hero-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 0%, rgba(0, 82, 255, 0.12), transparent 45%);
+  pointer-events: none;
+}
+
+.b20-market-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7aa2ff;
+  margin-bottom: 0.35rem;
+}
+
+.b20-market-stat {
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-subtle));
+  background: var(--bg-elevated);
+  padding: 0.55rem 0.85rem;
+  min-width: 5.5rem;
+}
+
+.b20-market-stat-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.b20-market-stat-value {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.b20-market-spotlight {
+  position: relative;
+  display: block;
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-strong));
+  background: var(--bg-elevated);
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.b20-market-spotlight:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+}
+
+.b20-market-spotlight-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent) 0%, #7aa2ff 50%, rgba(0, 82, 255, 0.2) 100%);
+  pointer-events: none;
+}
+
+.b20-market-spotlight-body {
+  position: relative;
+  z-index: 1;
+  padding: 1.35rem 1.25rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .b20-market-spotlight-body {
+    padding: 1.65rem 1.75rem 1.85rem;
+  }
+}
+
 /* ── B20 Spotlight hero ── */
 .explore-hero {
   border-bottom: 1px solid var(--border-subtle);

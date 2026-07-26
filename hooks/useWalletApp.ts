@@ -1260,10 +1260,10 @@ export function useWalletApp() {
             showToast("Amount too small after platform fee", "");
             return false;
           }
-          // The aggregator signs calldata for `net` server-side, so its input is
-          // fixed. Direct DEX routes sell the whole balance and pay the platform
-          // fee out of the ETH proceeds instead, so a MAX sell leaves no dust.
-          const sellAmount = isAggregator ? net : gross;
+          // Quotes and 0x calldata both use `net` tokens. Collect the platform
+          // fee as tokens before the swap so Multicall3 batches never need
+          // upfront native ETH (swap proceeds land on the EOA, not Multicall3).
+          const sellAmount = net;
           const spender = (
             isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
           ) as `0x${string}` | undefined;
@@ -1284,6 +1284,14 @@ export function useWalletApp() {
               );
             }
           }
+          pushFeeSplitCalls(calls, fee, {
+            native: false,
+            token,
+            creator,
+            referrer,
+            referrerBoostBps,
+            payer: recipient,
+          });
           if (isAggregator && quote.tx) {
             calls.push(
               buildExternalSwapCall(
@@ -1320,20 +1328,6 @@ export function useWalletApp() {
                     });
             calls.push(buildContractCall(router, swapData));
           }
-
-          const amountOut = BigInt(quote.amountOut ?? 0);
-          const feeEth =
-            net > BigInt(0) && amountOut > BigInt(0)
-              ? (amountOut * fee) / net
-              : BigInt(0);
-          pushFeeSplitCalls(calls, feeEth, {
-            native: true,
-            token,
-            creator,
-            referrer,
-            referrerBoostBps,
-            payer: recipient,
-          });
         }
 
         const hash = await sendAppTransactions(activeConn, wallet.address, calls, {
