@@ -29,16 +29,16 @@ export default function LaunchConfigSummary({
         <p className="text-2xl font-black text-white mt-1">1B</p>
         <p className="text-[10px] text-slate-500 mt-1">B20 on Base</p>
       </div>
-      <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.06] p-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
         <p className="text-[10px] font-bold text-slate-500 uppercase">Swap fee</p>
-        <p className="text-lg font-black text-violet-300 mt-1">
+        <p className="text-lg font-black text-[var(--ink)] mt-1">
           {formatPlatformFeeLabel(LAUNCHPAD_PLATFORM_FEE_BPS)}
         </p>
         <p className="text-[10px] text-slate-500 mt-1">Uniswap + Aerodrome</p>
       </div>
-      <div className="rounded-2xl border border-[#0052FF]/25 bg-[#0052FF]/[0.06] p-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-4">
         <p className="text-[10px] font-bold text-slate-500 uppercase">Pool + vest</p>
-        <p className="text-lg font-black text-[#6BA3FF] mt-1">{pool}% pool</p>
+        <p className="text-lg font-black text-[var(--ink-muted)] mt-1">{pool}% pool</p>
         <p className="text-[10px] text-slate-500 mt-1">
           {vested > 0 ? `${vested}% vested lock` : "Locked reserve"}
         </p>

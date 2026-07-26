@@ -29,9 +29,9 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
 
   return (
     <div className="sticky top-4 space-y-4">
-      <div className="rounded-2xl border border-[#0052FF]/30 bg-linear-to-b from-[#0052FF]/10 to-transparent overflow-hidden">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
         <div className="p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6BA3FF] mb-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ink-muted)] mb-3">
             Live preview
           </p>
 
@@ -41,14 +41,14 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={data.imagePreview} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-2xl font-black text-[#0052FF]/50">
+                <span className="text-2xl font-black text-[var(--ink)]">
                   {displaySymbol.slice(0, 2)}
                 </span>
               )}
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="font-black text-white text-xl truncate">{displayName}</h3>
-              <p className="text-[#6BA3FF] font-bold">${displaySymbol}</p>
+              <p className="text-[var(--ink-muted)] font-bold">${displaySymbol}</p>
               <p className="text-[10px] text-slate-500 mt-1">Quote: {data.quoteToken ?? "ETH"}</p>
               {data.description.trim() ? (
                 <p className="text-xs text-slate-400 mt-2 line-clamp-3">{data.description}</p>
@@ -81,7 +81,7 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
         </div>
         <div className="flex justify-between text-slate-400">
           <span>Creator wallet</span>
-          <span className="text-[#6BA3FF] font-mono">
+          <span className="text-[var(--ink-muted)] font-mono">
             {data.walletPct}% · {data.mintAmount}
           </span>
         </div>
@@ -94,7 +94,7 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
         {(data.vestedPct ?? 0) > 0 && (
           <div className="flex justify-between text-slate-400">
             <span>Vested (unminted)</span>
-            <span className="text-violet-300/90 font-mono">{data.vestedPct}%</span>
+            <span className="text-[var(--ink-muted)] font-mono">{data.vestedPct}%</span>
           </div>
         )}
         <div className="flex justify-between text-slate-400">

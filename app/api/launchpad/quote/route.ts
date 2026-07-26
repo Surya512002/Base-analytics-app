@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { parseUnits, type Address } from "viem";
-import { WETH_BASE, applySlippage } from "@/lib/launchpad/uniswap";
+import {
+  WETH_BASE,
+  applySlippage,
+  quoteUniswapFeeTier,
+} from "@/lib/launchpad/uniswap";
+import { quoteAerodromeRoute } from "@/lib/launchpad/aerodrome";
+import { quoteSlipstreamTickSpacing } from "@/lib/launchpad/slipstream";
+import {
+  estimatePriceImpactBps,
+  type MarginalProbe,
+} from "@/lib/launchpad/price-impact";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { quoteLaunchSwap, type LaunchDex } from "@/lib/launchpad/dex";
@@ -309,11 +319,58 @@ export async function GET(req: Request) {
       return null;
     };
 
+    /**
+     * Re-quotes the winning route with a sliver of the order so impact can be
+     * measured against the pool being traded rather than an external price
+     * feed. Reuses the already-chosen fee tier / tick spacing / pool type, so
+     * it costs exactly one extra call.
+     *
+     * Only direct venues can be probed: the aggregator re-plans its route per
+     * request, so a small probe and the real order are frequently priced on
+     * different paths. Measured that way, "impact" came out *falling* as the
+     * order grew — an artifact of route switching, not depth — so aggregator
+     * routes report no impact rather than a confident wrong number.
+     */
+    const probeForRoute = (
+      route: NonNullable<ReturnType<typeof pickBest>>
+    ): MarginalProbe | null => {
+      if (route.kind === "aggregator") return null;
+
+      const dirIn = direction === "buy" ? weth : tokenAddr;
+      const dirOut = direction === "buy" ? tokenAddr : weth;
+
+      if (route.dex === "uniswap" && directQuote?.uniswapFeeTier) {
+        const fee = directQuote.uniswapFeeTier;
+        return (probeIn) => quoteUniswapFeeTier(dirIn, dirOut, probeIn, fee);
+      }
+      if (route.dex === "aerodrome") {
+        const stable = directQuote?.aerodromeStable ?? false;
+        return async (probeIn) =>
+          (await quoteAerodromeRoute(dirIn, dirOut, probeIn, stable)).amountOut;
+      }
+      if (route.dex === "slipstream" && directQuote?.slipstreamTickSpacing) {
+        const spacing = directQuote.slipstreamTickSpacing;
+        return (probeIn) =>
+          quoteSlipstreamTickSpacing(dirIn, dirOut, probeIn, spacing);
+      }
+      return null;
+    };
+
     const best = pickBest();
     if (best && best.out > BigInt(0)) {
       if (registered && !registered.poolOpenBlock) {
         await ensurePoolOpenBlock(token, currentBlock);
       }
+
+      const probe = probeForRoute(best);
+      const priceImpactBps = probe
+        ? await estimatePriceImpactBps({
+            amountIn,
+            amountOut: best.out,
+            probe,
+          })
+        : null;
+
       if (best.kind === "aggregator") {
         return NextResponse.json({
           ...base,
@@ -324,6 +381,7 @@ export async function GET(req: Request) {
           amountOut: best.out.toString(),
           amountOutMinimum: best.min.toString(),
           hasLiquidity: true,
+          priceImpactBps,
           aggregator: true,
           tx: best.tx ?? null,
           allowanceSpender: best.allowanceSpender ?? null,
@@ -338,6 +396,7 @@ export async function GET(req: Request) {
         amountOut: best.out.toString(),
         amountOutMinimum: best.min.toString(),
         hasLiquidity: true,
+        priceImpactBps,
       });
     }
 

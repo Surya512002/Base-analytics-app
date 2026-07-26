@@ -4,7 +4,7 @@ import { resolveTradeableToken } from "@/lib/launchpad/resolve-token";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** Resolve app-launched or external DexScreener token for trading. */
+/** Resolve any Base ERC-20 for trading: registry, DexScreener, then on-chain. */
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ address: string }> }
@@ -14,7 +14,7 @@ export async function GET(
     const { token, market } = await resolveTradeableToken(address);
     if (!token) {
       return NextResponse.json(
-        { error: "No liquidity found for this token on Base" },
+        { error: "That address is not an ERC-20 token on Base" },
         { status: 404 }
       );
     }

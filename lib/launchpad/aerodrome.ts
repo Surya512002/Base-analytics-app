@@ -100,7 +100,13 @@ function swapDeadline(): bigint {
   return BigInt(Math.floor(Date.now() / 1000) + 20 * 60);
 }
 
-async function quoteRoute(
+/**
+ * Quote one specific pool type.
+ *
+ * Exported so price-impact probes can re-quote the already-chosen pool without
+ * paying for both the volatile and stable lookups again.
+ */
+export async function quoteAerodromeRoute(
   tokenIn: Address,
   tokenOut: Address,
   amountIn: bigint,
@@ -131,8 +137,8 @@ export async function quoteAerodromeExactIn(
   }
 
   const [volatile, stablePool] = await Promise.all([
-    quoteRoute(tokenIn, tokenOut, amountIn, false),
-    quoteRoute(tokenIn, tokenOut, amountIn, true),
+    quoteAerodromeRoute(tokenIn, tokenOut, amountIn, false),
+    quoteAerodromeRoute(tokenIn, tokenOut, amountIn, true),
   ]);
 
   if (stablePool.amountOut > volatile.amountOut) return stablePool;

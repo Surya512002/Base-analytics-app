@@ -185,14 +185,14 @@ export default function ConnectWalletModal({
               type="button"
               onClick={() => onConnect(embeddedWallet.type)}
               disabled={loading}
-              className="w-full flex items-center gap-2.5 px-3 py-3 rounded-lg bg-[var(--ink)] hover:bg-white text-[#080808] font-semibold text-[13px] transition-colors disabled:opacity-50"
+              className="btn-primary w-full flex items-center gap-2.5 px-3 py-3 rounded-lg font-semibold text-[13px] transition-colors disabled:opacity-50"
             >
               <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-black/10">
                 {embeddedWallet.icon}
               </span>
               <span className="text-left min-w-0 flex-1">
                 <span className="block">{embeddedWallet.label}</span>
-                <span className="block text-[10px] font-medium text-[#080808]/60">
+                <span className="block text-[10px] font-medium text-white/70">
                   {embeddedWallet.short}
                 </span>
               </span>
@@ -203,14 +203,14 @@ export default function ConnectWalletModal({
                 type="button"
                 onClick={() => onConnect(BASE_WALLET.type)}
                 disabled={loading}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-lg bg-[var(--ink)] hover:bg-white text-[#080808] font-semibold text-[13px] transition-colors disabled:opacity-50"
+                className="btn-primary w-full flex items-center gap-2.5 px-3 py-3 rounded-lg font-semibold text-[13px] transition-colors disabled:opacity-50"
               >
                 <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-black/10">
                   {BASE_WALLET.icon}
                 </span>
                 <span className="text-left min-w-0 flex-1">
                   <span className="block">{BASE_WALLET.label}</span>
-                  <span className="block text-[10px] font-medium text-[#080808]/60">
+                  <span className="block text-[10px] font-medium text-white/70">
                     {BASE_WALLET.short}
                   </span>
                 </span>

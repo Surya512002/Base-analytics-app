@@ -56,7 +56,6 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
 
   return (
     <div className="elegant-panel rounded-3xl overflow-hidden border border-amber-500/25 card-shimmer">
-      <div className="h-0.5 bg-linear-to-r from-amber-400 via-champagne to-violet-500" />
       <div className="p-5 sm:p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -81,7 +80,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
                   <span className="text-slate-400">{b.label}</span>
                   <span className="font-bold text-white text-right">
                     {b.value}
-                    <span className="block text-[9px] text-violet-300 font-medium">{b.vsMedian}</span>
+                    <span className="block text-[9px] text-[var(--ink-muted)] font-medium">{b.vsMedian}</span>
                   </span>
                 </div>
               ))}
@@ -93,7 +92,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
               {insights.portfolio.map((p) => (
                 <div key={p.label} className="flex justify-between gap-2 text-xs">
                   <span className="text-slate-400">{p.label}</span>
-                  <span className="font-bold text-cyan-200">{p.value}</span>
+                  <span className="font-bold text-[var(--ink)]">{p.value}</span>
                 </div>
               ))}
             </div>

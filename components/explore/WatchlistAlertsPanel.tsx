@@ -50,8 +50,8 @@ export default function WatchlistAlertsPanel({
   const refresh = () => setAlerts(readPriceAlerts());
 
   return (
-    <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
-      <p className="section-eyebrow text-cyan-300/90 flex items-center gap-2">
+    <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
+      <p className="section-eyebrow flex items-center gap-2">
         <Bell size={12} /> Price alerts
       </p>
       <p className="readable-body text-xs mt-1 mb-3">
@@ -75,7 +75,7 @@ export default function WatchlistAlertsPanel({
               </span>
               {existing ? (
                 <>
-                  <span className="text-[10px] text-cyan-300">
+                  <span className="text-[10px] text-[var(--ink-muted)]">
                     Alert {existing.direction} ${existing.priceUsd}
                   </span>
                   <button
@@ -120,7 +120,7 @@ export default function WatchlistAlertsPanel({
                     }
                     refresh();
                   }}
-                  className="ml-auto text-[10px] font-bold text-cyan-300 flex items-center gap-1 disabled:opacity-40"
+                  className="ml-auto text-[10px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1 disabled:opacity-40"
                 >
                   <BellOff size={12} /> +5% alert
                 </button>

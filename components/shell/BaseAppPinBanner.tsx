@@ -32,14 +32,14 @@ export default function BaseAppPinBanner({
   };
 
   return (
-    <div className="mb-3 rounded-xl border border-[#0052FF]/35 bg-linear-to-r from-[#0052FF]/12 to-transparent overflow-hidden">
+    <div className="mb-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
       <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-[#0052FF]/20 border border-[#0052FF]/40 flex items-center justify-center shrink-0">
-            <Pin size={18} className="text-[#6BA3FF]" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
+            <Pin size={18} className="text-[var(--ink-muted)]" />
           </div>
           <div className="min-w-0">
-            <p className="section-eyebrow text-[#6BA3FF] mb-1">Base App</p>
+            <p className="section-eyebrow text-[var(--ink-muted)] mb-1">Base App</p>
             <h3 className="text-sm font-bold text-white leading-snug">
               Pin Base Analytics for B20 launch alerts
             </h3>
@@ -64,7 +64,7 @@ export default function BaseAppPinBanner({
             type="button"
             onClick={handlePin}
             disabled={pinning}
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-[#0052FF] text-white text-[12px] font-bold hover:bg-[#0046d9] disabled:opacity-60 transition-colors"
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--accent-ink)] text-[12px] font-bold hover:bg-[var(--accent-hover)] disabled:opacity-60 transition-colors"
           >
             {pinning ? "Opening…" : appPinned ? "Enable alerts" : "Pin app"}
           </button>

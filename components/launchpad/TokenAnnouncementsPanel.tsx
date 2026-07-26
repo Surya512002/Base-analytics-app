@@ -61,7 +61,7 @@ export default function TokenAnnouncementsPanel({
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Megaphone size={16} className="text-[#6BA3FF]" />
+        <Megaphone size={16} className="text-[var(--ink-muted)]" />
         <p className="text-sm font-black text-white">Creator announcements</p>
       </div>
 
@@ -72,7 +72,7 @@ export default function TokenAnnouncementsPanel({
             onChange={(e) => setBody(e.target.value.slice(0, 500))}
             placeholder="Share an update with your community…"
             rows={3}
-            className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50 resize-none"
+            className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)] resize-none"
           />
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-500">{body.length}/500</span>
@@ -80,7 +80,7 @@ export default function TokenAnnouncementsPanel({
               type="button"
               onClick={() => void onPost()}
               disabled={posting || !body.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold bg-[#0052FF] hover:bg-[#1a63ff] text-white disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white disabled:opacity-40"
             >
               <Send size={12} />
               {posting ? "Posting…" : "Post"}

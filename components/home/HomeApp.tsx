@@ -168,7 +168,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
             <button
               type="button"
               onClick={openConnect}
-              className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-[var(--ink)] text-[#080808] hover:bg-white transition-colors"
+              className="btn-primary shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
             >
               Connect
             </button>

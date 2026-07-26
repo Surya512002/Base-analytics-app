@@ -85,7 +85,7 @@ export default function LaunchOptionsPanel({
               onClick={() => onPreset(preset.id)}
               className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
                 activePreset === preset.id
-                  ? "border-[#0052FF]/50 bg-[#0052FF]/15"
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)]"
                   : "border-white/10 bg-white/[0.03] hover:border-white/20"
               }`}
             >
@@ -104,7 +104,7 @@ export default function LaunchOptionsPanel({
             type="checkbox"
             checked={metadataEditable}
             onChange={(e) => onMetadataEditable(e.target.checked)}
-            className="accent-[#0052FF] w-4 h-4"
+            className="accent-[var(--accent)] w-4 h-4"
           />
         </label>
         <p className="text-[10px] text-slate-500 mt-1.5">
@@ -145,7 +145,7 @@ export default function LaunchOptionsPanel({
             <p className="text-sm font-bold text-white">Creator wallet</p>
             <p className="text-[10px] text-slate-500">Liquid at genesis via batch mint</p>
           </div>
-          <span className="text-sm font-black text-[#6BA3FF]">{creatorPct}%</span>
+          <span className="text-sm font-black text-[var(--ink-muted)]">{creatorPct}%</span>
         </div>
         <input
           type="range"
@@ -154,7 +154,7 @@ export default function LaunchOptionsPanel({
           step={1}
           value={creatorPct}
           onChange={(e) => onCreatorPct(parseInt(e.target.value, 10))}
-          className="w-full accent-[#0052FF]"
+          className="w-full accent-[var(--accent)]"
         />
       </div>
 
@@ -174,7 +174,7 @@ export default function LaunchOptionsPanel({
               value={a.address}
               onChange={(e) => updateInsider(a.id, { address: e.target.value })}
               placeholder="0x…"
-              className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[#0052FF]/40"
+              className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[var(--accent)]"
             />
             <input
               type="number"
@@ -205,27 +205,27 @@ export default function LaunchOptionsPanel({
         </button>
       </div>
 
-      <div className="rounded-xl border border-violet-500/25 bg-violet-500/[0.06] p-4 space-y-3">
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-violet-200 flex items-center gap-1.5">
+            <p className="text-sm font-bold text-[var(--ink)] flex items-center gap-1.5">
               <Lock size={14} /> Vested allocations
             </p>
-            <p className="text-[10px] text-violet-200/60">
+            <p className="text-[10px] text-[var(--ink-muted)]">
               Stay unminted — true lock until on-chain vault (better than liquid &quot;vesting&quot;)
             </p>
           </div>
-          <span className="text-[10px] text-violet-200/70">
+          <span className="text-[10px] text-[var(--ink-muted)]">
             {vested.length}/{maxVested}
           </span>
         </div>
         {vested.map((a) => (
-          <div key={a.id} className="space-y-2 rounded-lg border border-violet-500/20 bg-black/20 p-3">
+          <div key={a.id} className="space-y-2 rounded-lg border border-[var(--border-subtle)] bg-black/20 p-3">
             <input
               value={a.address}
               onChange={(e) => updateVested(a.id, { address: e.target.value })}
               placeholder="Beneficiary 0x…"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-violet-400/40"
+              className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[var(--border-focus)]"
             />
             <div className="flex flex-wrap gap-2 items-center">
               <input
@@ -275,15 +275,15 @@ export default function LaunchOptionsPanel({
           type="button"
           onClick={addVested}
           disabled={vested.length >= maxVested}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border border-dashed border-violet-400/30 text-violet-200/80 hover:text-violet-100 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border border-dashed border-[var(--border-strong)] text-[var(--ink-muted)] hover:text-[var(--ink)] disabled:opacity-40"
         >
           <Plus size={14} /> Add vested allocation
         </button>
       </div>
 
-      <div className="rounded-xl border border-[#0052FF]/20 bg-[#0052FF]/[0.05] p-4 text-[11px] text-slate-400 leading-relaxed space-y-2">
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-4 text-[11px] text-slate-400 leading-relaxed space-y-2">
         <p>
-          <span className="text-[#6BA3FF] font-bold">{poolPct}%</span> of supply stays unminted as
+          <span className="text-[var(--ink-muted)] font-bold">{poolPct}%</span> of supply stays unminted as
           pool seed reserve. Add liquidity on Uniswap V3 or Aerodrome after launch — our router
           auto-picks the best price.
         </p>

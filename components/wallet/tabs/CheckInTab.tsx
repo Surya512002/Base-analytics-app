@@ -97,7 +97,6 @@ export default function CheckInTab({
     <div className={`w-full space-y-4 ${embedded ? "" : "tab-content-enter"}`}>
       {!embedded && (
       <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
-        <div className="h-0.5 bg-linear-to-r from-emerald-500 via-amber-400 to-cyan-400" />
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -105,7 +104,7 @@ export default function CheckInTab({
               Daily progress & live standings
             </p>
             <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 leading-tight">
-              Check-In <span className="text-cyan-400">&</span> Rankings
+              Check-In <span className="text-[var(--ink-muted)]">&</span> Rankings
             </h2>
             <p className="text-xs text-slate-500 mt-1.5">
               Launches and swaps earn the most XP — then check in, quest & rank.
@@ -115,7 +114,7 @@ export default function CheckInTab({
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
               Your weekly XP
             </p>
-            <p className="text-3xl font-black text-cyan-300 tabular-nums leading-none mt-0.5">
+            <p className="text-3xl font-black text-[var(--ink)] tabular-nums leading-none mt-0.5">
               {weeklyXP}
             </p>
           </div>
@@ -214,9 +213,9 @@ export default function CheckInTab({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
-            <span className="font-black text-cyan-400 tabular-nums">+{boostPct}% quest boost</span>
+            <span className="font-black text-[var(--ink)] tabular-nums">+{boostPct}% quest boost</span>
             <span className="flex items-center gap-1.5">
-              <Droplets size={9} className="text-cyan-400" />
+              <Droplets size={9} className="text-[var(--ink-muted)]" />
               {xp.dailyRemaining > 0 ? (
                 <>
                   {xp.dailyRemaining} PP to cap
@@ -258,7 +257,7 @@ export default function CheckInTab({
             </p>
             <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
               <div
-                className="h-full bg-linear-to-r from-emerald-500 to-cyan-400 rounded-full transition-[width] duration-500"
+                className="h-full bg-[var(--accent)] rounded-full transition-[width] duration-500"
                 style={{ width: `${dailyPct}%` }}
               />
             </div>
@@ -281,7 +280,7 @@ export default function CheckInTab({
             </p>
             <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
               <div
-                className="h-full bg-linear-to-r from-violet-500 to-cyan-400 rounded-full transition-[width] duration-500"
+                className="h-full bg-[var(--accent)] rounded-full transition-[width] duration-500"
                 style={{ width: `${txPct}%` }}
               />
             </div>
@@ -298,7 +297,7 @@ export default function CheckInTab({
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
               {CHECK_IN_TRACK_DAYS}-day weekly bonus
             </p>
-            <span className="text-[10px] font-black text-cyan-400 tabular-nums">
+            <span className="text-[10px] font-black text-[var(--ink)] tabular-nums">
               {capStreakProgressLabel(
                 capStreak.nextAwardDay,
                 capStreak.capBonusAwardedToday
@@ -316,7 +315,7 @@ export default function CheckInTab({
                   key={day}
                   className={`aspect-square max-h-11 rounded-lg flex flex-col items-center justify-center gap-0.5 border transition-colors ${
                     isToday
-                      ? "border-cyan-400/60 bg-cyan-500/10"
+                      ? "border-[var(--border-focus)] bg-[var(--bg-hover)]"
                       : isDone
                         ? "border-emerald-500/30 bg-emerald-500/8"
                         : "border-white/8 bg-white/[0.03]"
@@ -325,14 +324,14 @@ export default function CheckInTab({
                 >
                   <span
                     className={`text-[8px] font-black uppercase ${
-                      isToday ? "text-cyan-300" : isDone ? "text-emerald-400/80" : "text-slate-600"
+                      isToday ? "text-[var(--ink)]" : isDone ? "text-emerald-400/80" : "text-slate-600"
                     }`}
                   >
                     D{day}
                   </span>
                   <span className="text-[7px] font-bold text-slate-500 tabular-nums">{dayPP}</span>
                   {isDone && <span className="text-[10px] leading-none">✓</span>}
-                  {isToday && <Flame size={11} className="text-cyan-400" />}
+                  {isToday && <Flame size={11} className="text-[var(--ink-muted)]" />}
                 </div>
               );
             })}
@@ -377,7 +376,7 @@ export default function CheckInTab({
                       done ? "quest-card quest-card-done" : "quest-card"
                     } ${
                       highlightQuest === q.id
-                        ? "ring-2 ring-cyan-400/70 shadow-lg shadow-cyan-500/20"
+                        ? "ring-2 ring-[var(--border-focus)]"
                         : ""
                     }`}
                   >
@@ -407,7 +406,7 @@ export default function CheckInTab({
                       <button
                         type="button"
                         onClick={() => setTab(q.tab!)}
-                        className="flex items-center justify-between w-full text-[11px] font-bold text-[#080808] bg-[#f5f5f4] hover:bg-white rounded-lg px-3 py-2 transition-colors"
+                        className="btn-primary flex items-center justify-between w-full text-[11px] font-bold rounded-lg px-3 py-2 transition-colors"
                       >
                         <span>Go to {TAB_LABELS[q.tab] ?? q.tab}</span>
                         <ChevronRight size={13} />

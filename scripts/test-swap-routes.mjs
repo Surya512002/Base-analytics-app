@@ -71,7 +71,9 @@ const BASE = resolveBaseUrl();
 
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 /** Brett on Base — liquid on multiple DEXes. */
-const SAMPLE_TOKEN = "0x532f27101965dd16442E59d40670FaF5Ebb142E4";
+const SAMPLE_TOKEN = "0x532f27101965dd16442E59d40670FaF5eBB142E4";
+/** AERO — the reference token for Aerodrome's Slipstream (CL) pools. */
+const SLIPSTREAM_TOKEN = "0x940181a94A35A4569E4529A3CDfB74e38FD98631";
 
 const CASES = [
   {
@@ -114,15 +116,51 @@ const CASES = [
     },
   },
   {
+    name: "Uniswap V3 direct",
+    params: {
+      token: USDC,
+      direction: "buy",
+      amount: "0.01",
+      decimals: "6",
+      slippageBps: "100",
+      dex: "uniswap",
+      payAsset: "eth",
+    },
+  },
+  {
+    name: "Aerodrome direct",
+    params: {
+      token: SLIPSTREAM_TOKEN,
+      direction: "buy",
+      amount: "0.001",
+      decimals: "18",
+      slippageBps: "100",
+      dex: "aerodrome",
+      payAsset: "eth",
+    },
+  },
+  {
     name: "Slipstream direct",
     params: {
-      token: SAMPLE_TOKEN,
+      token: SLIPSTREAM_TOKEN,
       direction: "buy",
       amount: "0.001",
       decimals: "18",
       slippageBps: "100",
       dex: "slipstream",
       payAsset: "eth",
+    },
+  },
+  {
+    name: "token → ETH sell (direct)",
+    params: {
+      token: SLIPSTREAM_TOKEN,
+      direction: "sell",
+      amount: "10",
+      decimals: "18",
+      slippageBps: "100",
+      dex: "auto",
+      receiveAsset: "eth",
     },
   },
   {

@@ -34,10 +34,10 @@ export function tokenBadgeLabel(token: LaunchedToken): string | null {
 export function tokenBadgeClass(token: LaunchedToken): string {
   const src = tokenSource(token);
   if (src === "launched") {
-    return "bg-[#0052FF]/20 text-[#6BA3FF] border-[#0052FF]/30";
+    return "bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/30";
   }
   if (isB20TokenAddress(token.address)) {
-    return "bg-cyan-500/15 text-cyan-300 border-cyan-500/30";
+    return "bg-[var(--bg-hover)] text-[var(--ink)] border-[var(--border-strong)]";
   }
-  return "bg-white/10 text-slate-300 border-white/15";
+  return "bg-[var(--bg-elevated)] text-[var(--ink-dim)] border-[var(--border-subtle)]";
 }

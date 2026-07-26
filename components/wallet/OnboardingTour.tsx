@@ -19,7 +19,7 @@ const STEPS: {
     tab: "launchpad",
   },
   {
-    icon: <BarChart3 size={20} className="text-cyan-400" />,
+    icon: <BarChart3 size={20} className="text-[var(--ink-muted)]" />,
     title: "Your onchain score",
     body: "Analytics shows your score, heatmap, improvement tips, and shareable challenge links.",
     tab: "dashboard",
@@ -31,7 +31,7 @@ const STEPS: {
     tab: "checkin",
   },
   {
-    icon: <Sparkles size={20} className="text-violet-400" />,
+    icon: <Sparkles size={20} className="text-[var(--ink-muted)]" />,
     title: "Gift crypto with vouchers",
     body: "Create USDC or ETH gift cards on Base — share a link and recipients redeem in one tap.",
     tab: "basehub",
@@ -81,16 +81,15 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
 
   return (
     <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
-      <div className="absolute inset-0 bg-[#020608]/80 backdrop-blur-md" onClick={close} />
+      <div className="absolute inset-0 bg-[var(--bg-deep)]/80 backdrop-blur-md" onClick={close} />
       <div
-        className="relative w-full max-w-md elegant-panel rounded-3xl border border-emerald-500/30 overflow-hidden tab-content-enter my-auto"
+        className="relative w-full max-w-md elegant-panel rounded-3xl border border-[var(--border-strong)] overflow-hidden tab-content-enter my-auto"
         style={{
           marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
           maxHeight:
             "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
         }}
       >
-        <div className="h-0.5 bg-linear-to-r from-emerald-500 via-cyan-400 to-violet-400" />
         <button
           type="button"
           onClick={close}

@@ -37,7 +37,7 @@ export default function TokenTerminal({
                 type="button"
                 onClick={() => onSelect(t)}
                 className={`w-full text-left px-3 py-3 transition-colors ${
-                  active ? "bg-violet-500/15" : "hover:bg-white/[0.04]"
+                  active ? "bg-[var(--bg-hover)]" : "hover:bg-white/[0.04]"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -48,14 +48,14 @@ export default function TokenTerminal({
                       className="w-8 h-8 rounded-full object-cover border border-white/10"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-[10px] font-black text-violet-300">
+                    <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-black text-[var(--ink-muted)]">
                       {t.symbol.slice(0, 2)}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-white truncate">
                       {t.name}{" "}
-                      <span className="text-violet-300">${t.symbol}</span>
+                      <span className="text-[var(--ink-muted)]">${t.symbol}</span>
                     </p>
                     <p className="text-[10px] text-slate-500 font-mono">{shortAddr(t.address)}</p>
                   </div>

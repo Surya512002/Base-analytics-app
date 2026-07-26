@@ -48,7 +48,7 @@ export default function AnalyticsLoadingPanel({
         <div className="mt-5 max-w-md mx-auto">
           <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
             <div
-              className="h-full rounded-full bg-linear-to-r from-[#0052FF] to-emerald-400 transition-all duration-700"
+              className="h-full rounded-full bg-[var(--accent)] transition-all duration-700"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -65,7 +65,7 @@ export default function AnalyticsLoadingPanel({
                   done
                     ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
                     : current
-                      ? "bg-white/[0.05] border-[#0052FF]/40 text-white animate-pulse"
+                      ? "bg-white/[0.05] border-[var(--border-focus)] text-white animate-pulse"
                       : "bg-white/[0.03] border-white/8 text-slate-600"
                 }`}
               >

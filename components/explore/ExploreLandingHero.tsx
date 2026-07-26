@@ -77,7 +77,7 @@ export default function ExploreLandingHero({
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-white/15 shadow-lg shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0052FF]/25 border border-[#0052FF]/40 flex items-center justify-center text-xl sm:text-2xl font-black text-white shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-xl sm:text-2xl font-black text-white shrink-0">
                   {spotlight.token.symbol.slice(0, 2)}
                 </div>
               )}
@@ -89,7 +89,7 @@ export default function ExploreLandingHero({
                 <h2 className="font-display text-2xl sm:text-4xl font-bold text-white tracking-tight truncate">
                   {spotlight.token.name}
                 </h2>
-                <p className="text-[15px] sm:text-lg text-[#6BA3FF] font-mono font-semibold mt-1">
+                <p className="text-[15px] sm:text-lg text-[var(--ink-muted)] font-mono font-semibold mt-1">
                   ${spotlight.token.symbol}
                 </p>
                 {spotlight.market?.priceUsd != null && (
@@ -140,7 +140,7 @@ export default function ExploreLandingHero({
             </div>
 
             <div className="flex items-center gap-2 lg:flex-col lg:items-end shrink-0">
-              <span className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-[#080808] text-[14px] font-bold group-hover:bg-[#6BA3FF] transition-colors">
+              <span className="btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-colors">
                 Trade in-app
                 <ArrowUpRight size={16} />
               </span>
@@ -158,7 +158,7 @@ export default function ExploreLandingHero({
           <h1 className="page-hero-title max-w-2xl">
             Discover tokens.
             <br />
-            <span className="text-[#6BA3FF]">Swap without leaving.</span>
+            <span className="text-[var(--ink-muted)]">Swap without leaving.</span>
           </h1>
           <p className="mt-3 sm:mt-4 readable-body max-w-lg">
             B20 launchpad, live liquidity rails, and in-app DEX routing — trade on Uniswap or
@@ -171,7 +171,7 @@ export default function ExploreLandingHero({
                 <button
                   type="button"
                   onClick={onBrowseTrending}
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--ink)] text-[#080808] text-[14px] font-bold hover:bg-white transition-colors touch-manipulation"
+                  className="btn-primary inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl text-[14px] font-bold transition-colors touch-manipulation"
                 >
                   <TrendingUp size={16} />
                   Browse trending
@@ -179,7 +179,7 @@ export default function ExploreLandingHero({
                 <button
                   type="button"
                   onClick={onConnectToTrade ?? onConnect}
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl border border-[#0052FF]/40 bg-[#0052FF]/15 text-[14px] font-bold text-[#6BA3FF] hover:bg-[#0052FF]/25 transition-colors touch-manipulation"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--bg-active)] transition-colors touch-manipulation"
                 >
                   <Wallet size={16} />
                   Connect to trade
@@ -198,7 +198,7 @@ export default function ExploreLandingHero({
                 <button
                   type="button"
                   onClick={onBrowseTrending}
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--ink)] text-[#080808] text-[14px] font-bold hover:bg-white transition-colors touch-manipulation"
+                  className="btn-primary inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl text-[14px] font-bold transition-colors touch-manipulation"
                 >
                   <TrendingUp size={16} />
                   Browse trending
@@ -206,7 +206,7 @@ export default function ExploreLandingHero({
                 <button
                   type="button"
                   onClick={onLaunch}
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl border border-[#0052FF]/40 bg-[#0052FF]/15 text-[14px] font-bold text-[#6BA3FF] hover:bg-[#0052FF]/25 transition-colors touch-manipulation"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--bg-active)] transition-colors touch-manipulation"
                 >
                   <Plus size={16} />
                   Launch B20 token
@@ -216,7 +216,7 @@ export default function ExploreLandingHero({
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-white/[0.12] text-[14px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[#0052FF]/40 transition-colors touch-manipulation"
+              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-white/[0.12] text-[14px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--border-strong)] transition-colors touch-manipulation"
             >
               <Command size={15} />
               Search

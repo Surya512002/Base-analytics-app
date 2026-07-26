@@ -3,7 +3,7 @@ import SectionCard from "@/components/ui/SectionCard";
 
 const POINTS = [
   {
-    icon: <Globe size={16} className="text-cyan-400" />,
+    icon: <Globe size={16} className="text-[var(--ink-muted)]" />,
     title: "Anyone, anywhere",
     desc: "Send crypto gifts across borders instantly — no bank, no app store, no geographic limits.",
   },
@@ -26,9 +26,9 @@ const POINTS = [
 
 export default function VoucherWhySection() {
   return (
-    <SectionCard className="border border-cyan-500/15">
+    <SectionCard className="border border-[var(--border-subtle)]">
       <div className="flex items-center gap-2 mb-3">
-        <Gift size={18} className="text-cyan-400" />
+        <Gift size={18} className="text-[var(--ink-muted)]" />
         <h3 className="text-lg sm:text-xl font-black text-white">
           Why <span className="text-gradient-blue">Base Voucher</span>?
         </h3>
@@ -36,7 +36,7 @@ export default function VoucherWhySection() {
 
       <p className="text-sm sm:text-base text-slate-300 leading-relaxed mb-2">
         Base Voucher is a fully decentralized crypto gift card protocol on{" "}
-        <span className="text-cyan-400 font-bold">Base</span> — reinventing digital gifting so
+        <span className="text-[var(--ink)] font-bold">Base</span> — reinventing digital gifting so
         anyone, anywhere can create and redeem tangible onchain gift cards in ETH or USDC.
       </p>
       <p className="text-sm text-slate-400 leading-relaxed mb-6">

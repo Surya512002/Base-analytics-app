@@ -18,7 +18,7 @@ export default function ExploreMobileFab({
       <button
         type="button"
         onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-        className="w-12 h-12 rounded-full border border-white/15 bg-[#080808]/95 backdrop-blur shadow-lg flex items-center justify-center text-white"
+        className="w-12 h-12 rounded-full border border-white/15 bg-[#080808]/95 shadow-lg flex items-center justify-center text-white"
         aria-label="Search tokens"
       >
         <Command size={18} />
@@ -26,7 +26,7 @@ export default function ExploreMobileFab({
       <button
         type="button"
         onClick={onBrowse}
-        className="w-12 h-12 rounded-full border border-[#0052FF]/40 bg-[#0052FF]/90 shadow-lg shadow-[#0052FF]/20 flex items-center justify-center text-white"
+        className="w-12 h-12 rounded-full border border-[var(--accent)] bg-[var(--accent)] shadow-lg flex items-center justify-center text-white"
         aria-label="Browse trending"
       >
         <TrendingUp size={18} />

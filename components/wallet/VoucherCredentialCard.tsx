@@ -38,18 +38,18 @@ function CopyField({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest">{label}</p>
         <button
           type="button"
           onClick={() => onCopy(value, copyId)}
-          className="flex items-center gap-1.5 text-[11px] font-black px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25 active:scale-95 transition"
+          className="flex items-center gap-1.5 text-[11px] font-black px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-95 transition"
         >
           {done ? <CheckCircle size={14} /> : <Copy size={14} />}
           {done ? "Copied!" : "Copy"}
         </button>
       </div>
       <div
-        className={`w-full rounded-xl px-4 py-3.5 bg-black/35 border-2 border-cyan-500/25 text-white font-black select-all ${
+        className={`w-full rounded-xl px-4 py-3.5 bg-black/35 border-2 border-[var(--border-subtle)] text-white font-black select-all ${
           mono ? "font-mono text-base sm:text-lg tracking-wider break-all" : "text-base"
         }`}
       >
@@ -88,7 +88,7 @@ export default function VoucherCredentialCard({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-black text-white">
-          Card <span className="text-cyan-400">{index + 1}</span>
+          Card <span className="text-[var(--ink)]">{index + 1}</span>
           <span className="text-slate-500 font-bold"> / {total}</span>
         </p>
         <div className="flex items-center gap-2">
@@ -177,7 +177,7 @@ export default function VoucherCredentialCard({
         <button
           type="button"
           onClick={() => onCopy(cardId, `id-only-${cardId}`)}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25 active:scale-[0.98] transition"
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition"
         >
           {copied === `id-only-${cardId}` ? <CheckCircle size={16} /> : <Copy size={16} />}
           Copy Card ID

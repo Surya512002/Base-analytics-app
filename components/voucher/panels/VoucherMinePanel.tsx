@@ -60,13 +60,13 @@ export default function VoucherMinePanel({
       </div>
 
       {address && (
-        <SectionCard bar={false} className="border border-cyan-500/20">
+        <SectionCard bar={false} className="border border-[var(--border-subtle)]">
           <p className="section-eyebrow">Your pay link</p>
           <p className="readable-body text-xs mt-1">
             Share this link so anyone can send you vouchers or explore x402 on Base.
           </p>
           <div className="mt-3 flex flex-col sm:flex-row gap-2">
-            <code className="flex-1 text-[11px] font-mono text-cyan-300 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 truncate">
+            <code className="flex-1 text-[11px] font-mono text-[var(--ink)] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 truncate">
               {buildPayLinkUrl(address)}
             </code>
             <button
@@ -92,14 +92,14 @@ export default function VoucherMinePanel({
               <RefreshCcw size={12} className="animate-spin" /> Syncing…
             </span>
           )}
-          <button onClick={refreshMyBatches} className="text-slate-500 hover:text-cyan-400 p-1">
+          <button onClick={refreshMyBatches} className="text-[var(--ink-dim)] hover:text-[var(--ink)] p-1">
             <RefreshCcw size={14} />
           </button>
         </div>
       </div>
 
       {(connType === "coinbase" || connType === "baseAccount" || connType === "farcaster") && (
-        <SectionCard bar={false} className="border border-cyan-500/25 bg-cyan-500/5">
+        <SectionCard bar={false} className="border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
           <p className="section-eyebrow">Base App deposit</p>
           <p className="readable-body text-xs mt-2">
             Deposits through Base App use a smart wallet bundle. If your batch
@@ -111,7 +111,7 @@ export default function VoucherMinePanel({
               value={recoverTxInput}
               onChange={(e) => setRecoverTxInput(e.target.value.trim())}
               placeholder="0x… deposit tx hash"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-white font-mono text-xs outline-none focus:border-white/25"
+              className="w-full input-ink rounded-xl px-3 py-2.5 text-white font-mono text-xs outline-none"
             />
             {recoverError && (
               <p className="text-red-400 text-xs font-bold">{recoverError}</p>
@@ -120,7 +120,7 @@ export default function VoucherMinePanel({
               type="button"
               disabled={recoverLoading || !recoverTxInput}
               onClick={() => void recoverBatchByTx(recoverTxInput)}
-              className="w-full py-2.5 rounded-xl text-xs font-black bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25 disabled:opacity-40"
+              className="w-full py-2.5 rounded-xl text-xs font-black bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] disabled:opacity-40"
             >
               {recoverLoading ? "Linking batch…" : "Link deposit to My Cards"}
             </button>
@@ -168,7 +168,7 @@ export default function VoucherMinePanel({
                 value={recoverTxInput}
                 onChange={(e) => setRecoverTxInput(e.target.value.trim())}
                 placeholder="0x…"
-                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-white font-mono text-xs outline-none focus:border-white/25"
+                className="w-full input-ink rounded-xl px-3 py-3 text-white font-mono text-xs outline-none"
               />
               {recoverError && (
                 <p className="text-red-400 text-xs font-bold">{recoverError}</p>
@@ -208,7 +208,7 @@ export default function VoucherMinePanel({
           };
 
           return (
-            <SectionCard key={b.batchId} bar={false} className="border border-cyan-500/20 overflow-hidden">
+            <SectionCard key={b.batchId} bar={false} className="border border-[var(--border-subtle)] overflow-hidden">
               <button
                 type="button"
                 className="w-full text-left"
@@ -237,7 +237,7 @@ export default function VoucherMinePanel({
                   </div>
                   <div className="flex items-start gap-2 shrink-0">
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                         {redeemed}/{b.cardCount} redeemed
                       </span>
                       {unredeemed > 0 && (
@@ -254,7 +254,7 @@ export default function VoucherMinePanel({
                 {!isExpanded && (
                   <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden mt-3">
                     <div
-                      className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all"
+                      className="h-full bg-[var(--accent)] rounded-full transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -269,7 +269,7 @@ export default function VoucherMinePanel({
 
                   <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-full bg-linear-to-r from-rose-500 to-cyan-400 rounded-full transition-all"
+                      className="h-full bg-[var(--accent)] rounded-full transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

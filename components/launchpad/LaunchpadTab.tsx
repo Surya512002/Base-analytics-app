@@ -474,7 +474,7 @@ export default function LaunchpadTab({
         <button
           type="button"
           onClick={goExplore}
-          className="inline-flex items-center gap-2 text-sm font-bold text-[#6BA3FF] hover:text-white"
+          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--ink)] hover:text-white"
         >
           <ArrowLeft size={16} /> Back to explore
         </button>

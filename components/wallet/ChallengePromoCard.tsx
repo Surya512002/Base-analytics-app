@@ -16,8 +16,8 @@ export default function ChallengePromoCard({
   const text = `My Base onchain score is ${wallet.score} (${wallet.walletRank}). Beat me: ${challengeUrl}`;
 
   return (
-    <section className="rounded-2xl border border-violet-500/25 bg-linear-to-br from-violet-500/[0.08] to-transparent p-5">
-      <p className="section-eyebrow text-violet-300 flex items-center gap-2">
+    <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5">
+      <p className="section-eyebrow text-[var(--ink-muted)] flex items-center gap-2">
         <Swords size={12} /> Challenge friends
       </p>
       <h3 className="page-hero-title text-lg mt-1">Compare onchain scores</h3>
@@ -28,7 +28,7 @@ export default function ChallengePromoCard({
         <button
           type="button"
           onClick={onChallenge}
-          className="min-h-[40px] px-4 rounded-xl bg-violet-500/20 border border-violet-500/35 text-[12px] font-bold text-violet-100"
+          className="min-h-[40px] px-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-transparent text-[12px] font-bold text-[var(--accent-ink)] transition-colors"
         >
           Challenge a wallet
         </button>

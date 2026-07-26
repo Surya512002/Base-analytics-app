@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 
 const PAY_TO = APP_TREASURY;
 const NETWORK: Network = "eip155:8453";
-const USDC_ADDRESS = "0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913";
+const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 function buildPaymentRequired(req: NextRequest, productId: X402ProductId): PaymentRequired {
   const product = getX402Product(productId);

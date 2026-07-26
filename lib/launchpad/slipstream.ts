@@ -7,7 +7,7 @@ export const SLIPSTREAM_SWAP_ROUTER =
   "0xBE6D8f0d05cC4be24d5167a3eF062215bE6D18a5" as const;
 
 export const SLIPSTREAM_QUOTER_V2 =
-  "0x254cF9E1E6e233aa1AC962CB9B05b2cFeAAe15b0" as const;
+  "0x254cF9E1E6e233aa1AC962CB9B05b2cfeAaE15b0" as const;
 
 /** Tick spacings Aerodrome deploys Slipstream pools with. */
 export const SLIPSTREAM_TICK_SPACINGS = [1, 50, 100, 200, 2000] as const;
@@ -63,13 +63,43 @@ const SWAP_ROUTER_ABI = [
     ],
     outputs: [{ name: "amountOut", type: "uint256" }],
   },
+  {
+    name: "unwrapWETH9",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "amountMinimum", type: "uint256" },
+      { name: "recipient", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "multicall",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [{ name: "data", type: "bytes[]" }],
+    outputs: [{ name: "results", type: "bytes[]" }],
+  },
 ] as const;
+
+/**
+ * Slipstream forks v3-periphery's SwapRouter, where `address(0)` — not
+ * SwapRouter02's `address(2)` — is the "keep funds in the router" sentinel.
+ */
+const ROUTER_ADDRESS_THIS =
+  "0x0000000000000000000000000000000000000000" as const;
 
 function swapDeadline(): bigint {
   return BigInt(Math.floor(Date.now() / 1000) + 20 * 60);
 }
 
-async function quoteTickSpacing(
+/**
+ * Quote one specific tick spacing.
+ *
+ * Exported so price-impact probes can re-quote the already-chosen pool with a
+ * single `eth_call` instead of scanning every spacing again.
+ */
+export async function quoteSlipstreamTickSpacing(
   tokenIn: Address,
   tokenOut: Address,
   amountIn: bigint,
@@ -113,7 +143,12 @@ export async function quoteSlipstreamExactIn(
   const quotes = await Promise.all(
     SLIPSTREAM_TICK_SPACINGS.map(async (tickSpacing) => ({
       tickSpacing,
-      amountOut: await quoteTickSpacing(tokenIn, tokenOut, amountIn, tickSpacing),
+      amountOut: await quoteSlipstreamTickSpacing(
+        tokenIn,
+        tokenOut,
+        amountIn,
+        tickSpacing
+      ),
     }))
   );
 
@@ -155,7 +190,12 @@ export function encodeSlipstreamBuy(params: {
   });
 }
 
-/** Sell: token → WETH (recipient receives WETH, same as the Uniswap V3 path). */
+/**
+ * Sell: token → native ETH.
+ *
+ * The pool can only pay out WETH, so the swap credits the router and a batched
+ * `unwrapWETH9` forwards real ETH to the recipient in the same transaction.
+ */
 export function encodeSlipstreamSell(params: {
   tokenIn: Address;
   recipient: Address;
@@ -163,7 +203,7 @@ export function encodeSlipstreamSell(params: {
   amountOutMinimum: bigint;
   tickSpacing: number;
 }): Hex {
-  return encodeFunctionData({
+  const swap = encodeFunctionData({
     abi: SWAP_ROUTER_ABI,
     functionName: "exactInputSingle",
     args: [
@@ -171,12 +211,22 @@ export function encodeSlipstreamSell(params: {
         tokenIn: params.tokenIn,
         tokenOut: WETH_BASE as Address,
         tickSpacing: params.tickSpacing,
-        recipient: params.recipient,
+        recipient: ROUTER_ADDRESS_THIS,
         deadline: swapDeadline(),
         amountIn: params.amountIn,
         amountOutMinimum: params.amountOutMinimum,
         sqrtPriceLimitX96: BigInt(0),
       },
     ],
+  });
+  const unwrap = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "unwrapWETH9",
+    args: [params.amountOutMinimum, params.recipient],
+  });
+  return encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "multicall",
+    args: [[swap, unwrap]],
   });
 }

@@ -425,8 +425,8 @@ export default function FarcasterAnalytics({
   const quotientScore=fcResult?Math.min(99.9,40+(Number(fcResult.reputation)*5)).toFixed(1):'0';
   const neynarScore=fcResult?Number(fcResult.reputation):0;
 
-  const scoreColor=neynarScore>=8?'text-yellow-400':neynarScore>=6?'text-cyan-400':neynarScore>=4?'text-purple-400':'text-slate-400';
-  const scoreBg=neynarScore>=8?'bg-yellow-500/10 border-yellow-500/25':neynarScore>=6?'bg-cyan-500/10 border-cyan-500/20':neynarScore>=4?'bg-purple-500/10 border-purple-500/25':'bg-white/5 border-white/8';
+  const scoreColor=neynarScore>=8?'text-yellow-400':neynarScore>=6?'text-[var(--ink)]':neynarScore>=4?'text-[var(--ink-muted)]':'text-slate-400';
+  const scoreBg=neynarScore>=8?'bg-yellow-500/10 border-yellow-500/25':'bg-[var(--bg-elevated)] border-[var(--border-subtle)]';
 
   const APP_WEBSITE_URL = APP_URL_WEB;
   const shareMsg = fcResult
@@ -452,9 +452,9 @@ export default function FarcasterAnalytics({
         <form onSubmit={handleScanFarcaster} className="flex gap-3 mb-5">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span className="text-slate-600 font-bold text-sm">@</span></div>
-            <input type="text" value={fcUsername} onChange={e=>setFcUsername(e.target.value.replace('@',''))} placeholder="Search any Farcaster username..." className="w-full bg-white/4 border border-white/6 text-white text-sm font-bold rounded-2xl focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 pl-8 pr-4 py-3.5 placeholder-slate-600 outline-none transition"/>
+            <input type="text" value={fcUsername} onChange={e=>setFcUsername(e.target.value.replace('@',''))} placeholder="Search any Farcaster username..." className="w-full bg-white/4 border border-white/6 text-white text-sm font-bold rounded-2xl focus:border-[var(--border-focus)] pl-8 pr-4 py-3.5 placeholder-slate-600 outline-none transition"/>
           </div>
-          <button type="submit" disabled={isScanningFc} className="bg-purple-600 hover:bg-purple-500 text-white font-black px-6 py-3.5 rounded-2xl flex items-center gap-2 disabled:opacity-50 transition shrink-0">
+          <button type="submit" disabled={isScanningFc} className="btn-primary font-black px-6 py-3.5 rounded-2xl flex items-center gap-2 disabled:opacity-50 transition shrink-0">
             {isScanningFc?<RefreshCcw size={16} className="animate-spin"/>:<Search size={16}/>} Scan
           </button>
         </form>
@@ -462,7 +462,7 @@ export default function FarcasterAnalytics({
         {neynarUnavailable&&!fcResult&&(
           <p className="text-xs text-slate-500 mb-4 leading-relaxed">
             Get a free key at{" "}
-            <a href="https://dev.neynar.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-bold hover:text-cyan-300">
+            <a href="https://dev.neynar.com" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] font-bold hover:text-[var(--ink-muted)]">
               dev.neynar.com
             </a>
             , add <span className="font-mono text-slate-400">NEYNAR_API_KEY=...</span> to <span className="font-mono text-slate-400">.env.local</span>, then restart <span className="font-mono text-slate-400">npm run dev</span>.
@@ -471,13 +471,13 @@ export default function FarcasterAnalytics({
 
         {fcResult?(
           <div className="space-y-4">
-            <div className="bg-[#13182a] border border-white/6 rounded-3xl p-5 sm:p-6">
+            <div className="bg-[var(--bg-raised)] border border-white/6 rounded-3xl p-5 sm:p-6">
               <div className="flex items-start gap-4 mb-5">
                 {fcResult.pfpUrl?(
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={fcResult.pfpUrl} alt="pfp" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/5 shrink-0 object-cover"/>
                 ):(
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-purple-600/20 flex items-center justify-center shrink-0"><MessageCircle size={28} className="text-purple-400"/></div>
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center shrink-0"><MessageCircle size={28} className="text-[var(--ink-muted)]"/></div>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -486,21 +486,21 @@ export default function FarcasterAnalytics({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black bg-white/5 text-slate-400 border border-white/8 px-2 py-1 rounded-lg">FID #{fcResult.fid}</span>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400 border-yellow-500/20':fcResult.tier==='Active Caster'?'bg-cyan-500/10 text-cyan-400 border-cyan-500/18':fcResult.tier==='Regular'?'bg-purple-500/10 text-purple-400 border-purple-500/20':'bg-white/5 text-slate-500 border-white/8'}`}>{fcResult.tier}</span>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400 border-yellow-500/20':fcResult.tier==='Active Caster'?'bg-[var(--bg-elevated)] text-[var(--ink)] border-[var(--border-subtle)]':fcResult.tier==='Regular'?'bg-[var(--bg-elevated)] text-[var(--ink-muted)] border-[var(--border-subtle)]':'bg-white/5 text-slate-500 border-white/8'}`}>{fcResult.tier}</span>
                     <span className="text-[10px] font-black bg-white/5 text-slate-400 border border-white/8 px-2 py-1 rounded-lg flex items-center gap-1"><Calendar size={9}/>Joined {fcResult.joinedDate}</span>
                   </div>
                   {fcResult.bio&&<p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{fcResult.bio}</p>}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <a href={fcLink} target="_blank" rel="noopener noreferrer" className="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl transition"><Send size={14}/></a>
+                  <a href={fcLink} target="_blank" rel="noopener noreferrer" className="bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-white p-2.5 rounded-xl transition"><Send size={14}/></a>
                   <a href={xLink} target="_blank" rel="noopener noreferrer" className="bg-slate-800 hover:bg-slate-700 text-white p-2.5 rounded-xl transition"><Twitter size={14}/></a>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mb-5">
                 {[
-                  {label:'FOLLOWERS',value:fcResult.followers.toLocaleString(),icon:<Users size={13}/>,color:'text-cyan-400'},
-                  {label:'FOLLOWING',value:fcResult.following.toLocaleString(),icon:<Users size={13}/>,color:'text-purple-400'},
+                  {label:'FOLLOWERS',value:fcResult.followers.toLocaleString(),icon:<Users size={13}/>,color:'text-[var(--ink)]'},
+                  {label:'FOLLOWING',value:fcResult.following.toLocaleString(),icon:<Users size={13}/>,color:'text-[var(--ink)]'},
                   {label:'FID AGE',value:fcResult.fidAgeLabel,icon:<Clock size={13}/>,color:'text-green-400'},
                 ].map((s,i)=>(
                   <div key={i} className="bg-white/4 border border-white/6 rounded-2xl p-3 sm:p-4 text-center">
@@ -517,11 +517,11 @@ export default function FarcasterAnalytics({
 
               <div className="space-y-2">
                 {[
-                  {icon:<Clock size={15} className="text-cyan-400"/>,label:`FID Age: ${fcResult.fidAgeMonths} months`,value:`+${Math.round(fcResult.fidAgeMonths*200)} XP`,color:'text-green-400'},
-                  {icon:<Users size={15} className="text-purple-400"/>,label:`Followers: ${fcResult.followers.toLocaleString()}`,value:fcResult.followers>5000?`+${Math.round(fcResult.followers/50)} XP`:'Grow your audience',color:fcResult.followers>5000?'text-green-400':'text-slate-500'},
-                  {icon:<Hash size={15} className="text-orange-400"/>,label:`FID Number: #${fcResult.fid.toLocaleString()}`,value:fcResult.fid<10000?'OG Early Adopter 🛸':fcResult.fid<100000?'Early Member':'Standard',color:fcResult.fid<10000?'text-yellow-400':fcResult.fid<100000?'text-cyan-400':'text-slate-500'},
+                  {icon:<Clock size={15} className="text-[var(--ink-muted)]"/>,label:`FID Age: ${fcResult.fidAgeMonths} months`,value:`+${Math.round(fcResult.fidAgeMonths*200)} XP`,color:'text-green-400'},
+                  {icon:<Users size={15} className="text-[var(--ink-muted)]"/>,label:`Followers: ${fcResult.followers.toLocaleString()}`,value:fcResult.followers>5000?`+${Math.round(fcResult.followers/50)} XP`:'Grow your audience',color:fcResult.followers>5000?'text-green-400':'text-slate-500'},
+                  {icon:<Hash size={15} className="text-orange-400"/>,label:`FID Number: #${fcResult.fid.toLocaleString()}`,value:fcResult.fid<10000?'OG Early Adopter 🛸':fcResult.fid<100000?'Early Member':'Standard',color:fcResult.fid<10000?'text-yellow-400':fcResult.fid<100000?'text-[var(--ink)]':'text-slate-500'},
                   {icon:<ShieldCheck size={15} className="text-green-400"/>,label:`Verifications: ${fcResult.verifications}`,value:fcResult.verifications>0?'Verified ✓':'Not verified',color:fcResult.verifications>0?'text-green-400':'text-slate-500'},
-                  {icon:<Star size={15} className="text-yellow-400"/>,label:'Most Influential Follower',value:fcResult.topFollower,color:'text-cyan-300'},
+                  {icon:<Star size={15} className="text-yellow-400"/>,label:'Most Influential Follower',value:fcResult.topFollower,color:'text-[var(--ink)]'},
                 ].map((row,i)=>(
                   <div key={i} className="flex items-center justify-between bg-white/3 hover:bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -534,7 +534,7 @@ export default function FarcasterAnalytics({
               </div>
             </div>
 
-            <div className="bg-[#13182a] border border-white/6 rounded-3xl p-5 sm:p-6">
+            <div className="bg-[var(--bg-raised)] border border-white/6 rounded-3xl p-5 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
                 <div>
                   <h4 className="font-black text-white text-base sm:text-lg">Cast Analytics</h4>
@@ -556,18 +556,18 @@ export default function FarcasterAnalytics({
                   </div>
                   <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
                     <button onClick={()=>setFeedTab('stats')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='stats'?'btn-primary text-white':'text-slate-600 hover:text-slate-400'}`}>Stats</button>
-                    <button onClick={()=>setFeedTab('casts')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='casts'?'bg-purple-600 text-white':'text-slate-600 hover:text-slate-400'}`}>Casts</button>
+                    <button onClick={()=>setFeedTab('casts')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='casts'?'btn-primary text-white':'text-slate-600 hover:text-slate-400'}`}>Casts</button>
                   </div>
                 </div>
               </div>
 
               {feedTab==='stats'&&castAnalytics?(
                 <div className="space-y-4">
-                  <div className="bg-linear-to-br from-cyan-500/10 via-[#13182a] to-violet-500/10 border border-cyan-500/20 rounded-2xl p-4 sm:p-5">
+                  <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                       <div>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                          <Calendar size={12} className="text-cyan-400" />
+                          <Calendar size={12} className="text-[var(--ink-muted)]" />
                           Active days
                         </p>
                         <p className="text-xs text-slate-500 mt-1 max-w-md">
@@ -578,7 +578,7 @@ export default function FarcasterAnalytics({
                         <p className="text-4xl sm:text-5xl font-black text-white tabular-nums leading-none">
                           {castAnalytics.activeDays}
                         </p>
-                        <p className="text-[11px] font-bold text-cyan-400 mt-1">
+                        <p className="text-[11px] font-bold text-[var(--ink-muted)] mt-1">
                           of {castAnalytics.periodDays} days ({analyticsTimeframe})
                         </p>
                       </div>
@@ -590,7 +590,7 @@ export default function FarcasterAnalytics({
                         <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">Posting consistency</p>
                       </div>
                       <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center">
-                        <p className="text-xl font-black text-violet-300 tabular-nums">{castAnalytics.allTimeDays}</p>
+                        <p className="text-xl font-black text-[var(--ink)] tabular-nums">{castAnalytics.allTimeDays}</p>
                         <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">All-time active days</p>
                         {castAnalytics.firstCastLabel&&(
                           <p className="text-[9px] text-slate-600 mt-1 leading-snug">
@@ -602,7 +602,7 @@ export default function FarcasterAnalytics({
                         )}
                       </div>
                       <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center col-span-2 sm:col-span-1">
-                        <p className="text-xl font-black text-cyan-300 tabular-nums">{castAnalytics.castsScanned.toLocaleString()}</p>
+                        <p className="text-xl font-black text-[var(--ink)] tabular-nums">{castAnalytics.castsScanned.toLocaleString()}</p>
                         <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">Casts scanned</p>
                         {castAnalytics.profileCastCount>0&&(
                           <p className="text-[9px] text-slate-600 mt-1">
@@ -618,7 +618,7 @@ export default function FarcasterAnalytics({
                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
                           {analyticsTimeframe} activity track
                         </p>
-                        <span className="text-[10px] font-black text-cyan-400 tabular-nums">
+                        <span className="text-[10px] font-black text-[var(--ink)] tabular-nums">
                           {castAnalytics.activeDays}/{castAnalytics.periodDays}
                         </span>
                       </div>
@@ -654,10 +654,10 @@ export default function FarcasterAnalytics({
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                      {icon:<MessageCircle size={18}/>,label:'Total Casts',val:castAnalytics.totalCasts,c:'text-cyan-400',bg:'bg-cyan-500/10'},
+                      {icon:<MessageCircle size={18}/>,label:'Total Casts',val:castAnalytics.totalCasts,c:'text-[var(--ink)]',bg:'bg-[var(--bg-elevated)]'},
                       {icon:<Heart size={18}/>,label:'Total Likes',val:castAnalytics.totalLikes,c:'text-red-400',bg:'bg-red-500/10'},
                       {icon:<Repeat size={18}/>,label:'Recasts',val:castAnalytics.totalRecasts,c:'text-green-400',bg:'bg-green-500/10'},
-                      {icon:<MessageSquare size={18}/>,label:'Replies',val:castAnalytics.totalReplies,c:'text-purple-400',bg:'bg-purple-500/10'},
+                      {icon:<MessageSquare size={18}/>,label:'Replies',val:castAnalytics.totalReplies,c:'text-[var(--ink)]',bg:'bg-[var(--bg-elevated)]'},
                     ].map((s,i)=>(
                       <div key={i} className="bg-white/4 border border-white/6 rounded-2xl p-4 text-center">
                         <div className={`p-2 ${s.bg} ${s.c} rounded-xl mb-2 w-fit mx-auto`}>{s.icon}</div>
@@ -672,8 +672,8 @@ export default function FarcasterAnalytics({
                     {[
                       {icon:<Flame size={15} className="text-orange-400"/>,label:'Longest Streak',value:`${castAnalytics.longestStreak} days`,sub:'consecutive days casting',positive:castAnalytics.longestStreak>3},
                       {icon:<Zap size={15} className="text-yellow-400"/>,label:'Current Streak',value:`${castAnalytics.currentStreak} days`,sub:castAnalytics.currentStreak>0?'keep it going!':'streak broken',positive:castAnalytics.currentStreak>0},
-                      {icon:<BarChart3 size={15} className="text-cyan-400"/>,label:'Avg Casts / Day',value:`${castAnalytics.avgPerDay}`,sub:'over selected period',positive:castAnalytics.avgPerDay>1},
-                      {icon:<Target size={15} className="text-purple-400"/>,label:'Engagement Rate',value:`${castAnalytics.engRate}x`,sub:'avg reactions per cast',positive:castAnalytics.engRate>2},
+                      {icon:<BarChart3 size={15} className="text-[var(--ink-muted)]"/>,label:'Avg Casts / Day',value:`${castAnalytics.avgPerDay}`,sub:'over selected period',positive:castAnalytics.avgPerDay>1},
+                      {icon:<Target size={15} className="text-[var(--ink-muted)]"/>,label:'Engagement Rate',value:`${castAnalytics.engRate}x`,sub:'avg reactions per cast',positive:castAnalytics.engRate>2},
                       {icon:<Star size={15} className="text-yellow-400"/>,label:'Best Day to Cast',value:castAnalytics.bestDay,sub:'most active weekday',positive:true},
                       {icon:<Heart size={15} className="text-red-400"/>,label:'Most Liked Cast',value:`${castAnalytics.mostLiked?.reactions?.likes_count||0} likes`,sub:castAnalytics.mostLiked?.text?.substring(0,40)+'...'||'No casts in period',positive:(castAnalytics.mostLiked?.reactions?.likes_count||0)>5},
                     ].map((row,i)=>(
@@ -694,9 +694,9 @@ export default function FarcasterAnalytics({
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Reputation Scores</p>
                     <div className="space-y-4">
                       {[
-                        {label:'Neynar Score',val:fcResult.reputation,max:10,color:'#8A2BE2',icon:<Cpu size={12} className="text-purple-400"/>,desc:'Farcaster network trust score'},
-                        {label:'Ethos Credential',val:ethosScore,max:1000,color:'#10b981',icon:<ShieldCheck size={12} className="text-emerald-400"/>,desc:'Onchain reputation credential'},
-                        {label:'Social Quotient',val:quotientScore,max:100,color:'#00E5FF',icon:<Zap size={12} className="text-cyan-400"/>,desc:'Overall social influence index'},
+                        {label:'Neynar Score',val:fcResult.reputation,max:10,icon:<Cpu size={12} className="text-[var(--ink-muted)]"/>,desc:'Farcaster network trust score'},
+                        {label:'Ethos Credential',val:ethosScore,max:1000,icon:<ShieldCheck size={12} className="text-[var(--ink-muted)]"/>,desc:'Onchain reputation credential'},
+                        {label:'Social Quotient',val:quotientScore,max:100,icon:<Zap size={12} className="text-[var(--ink-muted)]"/>,desc:'Overall social influence index'},
                       ].map((s,i)=>(
                         <div key={i}>
                           <div className="flex justify-between items-center mb-1.5">
@@ -710,7 +710,7 @@ export default function FarcasterAnalytics({
                             <span className="text-sm font-black text-white">{s.val}<span className="text-[10px] text-slate-700">/{s.max}</span></span>
                           </div>
                           <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-                            <div className="h-full rounded-full transition-all duration-1000" style={{background:s.color,width:`${(Number(s.val)/Number(s.max))*100}%`,boxShadow:`0 0 8px ${s.color}60`}}/>
+                            <div className="h-full rounded-full transition-all duration-1000 bg-[var(--accent)]" style={{width:`${(Number(s.val)/Number(s.max))*100}%`}}/>
                           </div>
                         </div>
                       ))}
@@ -740,7 +740,7 @@ export default function FarcasterAnalytics({
                             <p className="text-xs text-slate-300 leading-relaxed">{cast.text}</p>
                             <div className="flex items-center gap-3 mt-2">
                               <span className="flex items-center gap-1 text-[10px] text-red-400 font-bold"><Heart size={9}/>{cast.likes}</span>
-                              <span className="text-[10px] text-slate-600 group-hover:text-cyan-400 transition">View on Warpcast ↗</span>
+                              <span className="text-[10px] text-slate-600 group-hover:text-[var(--ink)] transition">View on Warpcast ↗</span>
                             </div>
                           </div>
                         </a>
@@ -754,7 +754,7 @@ export default function FarcasterAnalytics({
             </div>
           </div>
         ):(
-          <div className="bg-[#13182a] border border-white/6 rounded-3xl p-6">
+          <div className="bg-[var(--bg-raised)] border border-white/6 rounded-3xl p-6">
             <div className="bg-white/3 border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center justify-center text-center mb-4">
               <Lock size={28} className="text-slate-700 mb-3"/>
               <h4 className="font-black text-slate-400 mb-1">Analytics Locked</h4>
@@ -768,7 +768,7 @@ export default function FarcasterAnalytics({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {globalFeed.map((cast,i)=>(
                     <a key={i} href={`https://warpcast.com/${cast.author?.username}/${cast.hash.substring(0,10)}`} target="_blank" rel="noopener noreferrer"
-                      className="bg-white/3 border border-white/5 p-4 rounded-2xl flex flex-col justify-between group hover:border-purple-500/25 transition">
+                      className="bg-white/3 border border-white/5 p-4 rounded-2xl flex flex-col justify-between group hover:border-[var(--border-strong)] transition">
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           {cast.author?.pfp_url&&<img src={cast.author.pfp_url} alt="pfp" className="w-7 h-7 rounded-xl bg-white/5"/>}
@@ -776,7 +776,7 @@ export default function FarcasterAnalytics({
                         </div>
                         <p className="text-xs text-slate-500 leading-relaxed">&quot;{cast.text}&quot;</p>
                       </div>
-                      <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-purple-400"><Flame size={10}/> {cast.likes}</div>
+                      <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-[var(--ink-muted)]"><Flame size={10}/> {cast.likes}</div>
                     </a>
                   ))}
                 </div>
@@ -787,12 +787,12 @@ export default function FarcasterAnalytics({
       </div>
 
       {!unlocked && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-[#040a14]/75 backdrop-blur-[2px] p-4">
-          <div className="max-w-sm w-full glass-panel border border-violet-500/30 rounded-2xl p-6 text-center shadow-2xl shadow-black/40">
-            <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center mx-auto mb-4">
-              <Lock size={22} className="text-violet-300" />
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-[var(--bg-deep)]/80 backdrop-blur-[2px] p-4">
+          <div className="max-w-sm w-full glass-panel border border-[var(--border-strong)] rounded-2xl p-6 text-center shadow-2xl shadow-black/40">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-4">
+              <Lock size={22} className="text-[var(--ink-muted)]" />
             </div>
-            <p className="text-[10px] font-black text-violet-300 uppercase tracking-widest">
+            <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
               x402 · Base mainnet
             </p>
             <h4 className="text-lg font-black text-white mt-2">Unlock Farcaster Analysis</h4>

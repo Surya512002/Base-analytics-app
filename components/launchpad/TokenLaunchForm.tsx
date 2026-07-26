@@ -381,7 +381,7 @@ export default function TokenLaunchForm({
       <LaunchAdvantageStrip />
 
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6BA3FF] mb-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ink-muted)] mb-1">
           Create a token
         </p>
         <h2 className="text-2xl sm:text-3xl font-black text-white max-w-3xl">
@@ -422,14 +422,14 @@ export default function TokenLaunchForm({
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-[#0052FF]/40 bg-[#0052FF]/[0.06] hover:bg-[#0052FF]/10 flex flex-col items-center justify-center gap-1 overflow-hidden"
+                className="shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] flex flex-col items-center justify-center gap-1 overflow-hidden"
               >
                 {imagePreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={imagePreview} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <>
-                    <ImagePlus size={22} className="text-[#6BA3FF]" />
+                    <ImagePlus size={22} className="text-[var(--ink-muted)]" />
                     <span className="text-[9px] font-bold text-slate-500">Image</span>
                   </>
                 )}
@@ -449,7 +449,7 @@ export default function TokenLaunchForm({
                     required
                     maxLength={32}
                     placeholder="My Token"
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50"
+                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
                   />
                 </label>
                 <label className="block">
@@ -460,7 +460,7 @@ export default function TokenLaunchForm({
                     required
                     maxLength={10}
                     placeholder="TOKEN"
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50"
+                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
                   />
                 </label>
                 <label className="block">
@@ -468,7 +468,7 @@ export default function TokenLaunchForm({
                   <select
                     value={quoteToken}
                     onChange={(e) => setQuoteToken(e.target.value as QuoteToken)}
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50"
+                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
                   >
                     <option value="ETH">ETH</option>
                     <option value="USDC">USDC</option>
@@ -485,7 +485,7 @@ export default function TokenLaunchForm({
                 maxLength={280}
                 rows={3}
                 placeholder="What is this token about?"
-                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none focus:border-[#0052FF]/50"
+                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none focus:border-[var(--accent)]"
               />
             </label>
 
@@ -494,16 +494,16 @@ export default function TokenLaunchForm({
               <input
                 value={startPriceUsd}
                 onChange={(e) => setStartPriceUsd(e.target.value)}
-                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[#0052FF]/50"
+                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--accent)]"
               />
             </label>
 
             <p className="text-[10px] font-bold text-slate-500 uppercase">Links (optional)</p>
             <div className="grid grid-cols-1 gap-2">
-              <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourproject.xyz" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50" />
-              <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://x.com/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50" />
-              <input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="https://t.me/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50" />
-              <input value={discord} onChange={(e) => setDiscord(e.target.value)} placeholder="https://discord.gg/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#0052FF]/50" />
+              <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourproject.xyz" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
+              <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://x.com/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
+              <input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="https://t.me/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
+              <input value={discord} onChange={(e) => setDiscord(e.target.value)} placeholder="https://discord.gg/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
             </div>
           </div>
 
@@ -539,7 +539,7 @@ export default function TokenLaunchForm({
             onAntiSnipeBlocks={setAntiSnipeBlocks}
           />
 
-          <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.06] p-4 space-y-3">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-3">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -576,7 +576,7 @@ export default function TokenLaunchForm({
                       onClick={() => setSeedDex(id)}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                         seedDex === id
-                          ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                          ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                           : "border-white/10 text-slate-500 hover:text-slate-300"
                       }`}
                     >
@@ -602,7 +602,7 @@ export default function TokenLaunchForm({
                   step="0.00001"
                   value={seedLiquidityEth}
                   onChange={(e) => setSeedLiquidityEth(e.target.value)}
-                  className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-cyan-500/40"
+                  className="mt-1 w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--border-focus)]"
                 />
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {SEED_LIQUIDITY_PRESETS.map((preset) => (
@@ -612,7 +612,7 @@ export default function TokenLaunchForm({
                       onClick={() => setSeedLiquidityEth(preset)}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                         seedLiquidityEth === preset
-                          ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                          ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                           : "border-white/10 text-slate-500 hover:text-slate-300"
                       }`}
                     >
@@ -626,7 +626,7 @@ export default function TokenLaunchForm({
                   ))}
                 </div>
                 {seedPreview && (
-                  <p className="text-[11px] text-cyan-200/70 mt-2">
+                  <p className="text-[11px] text-[var(--ink-muted)] mt-2">
                     ~{formatCompact(seedPreview.tokenHuman)} {symbol || "tokens"} minted to your
                     wallet for the pool
                     {seedUsd != null ? ` · ${formatUsd(seedUsd)} liquidity` : ""}
@@ -647,7 +647,7 @@ export default function TokenLaunchForm({
               !vanitySalt ||
               grinding
             }
-            className="w-full py-4 rounded-2xl font-black text-base bg-[#0052FF] hover:bg-[#1a63ff] text-white shadow-lg shadow-[#0052FF]/25 disabled:opacity-40 flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl font-black text-base bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {launchLoading || imageUploading ? (
               <>
@@ -666,7 +666,7 @@ export default function TokenLaunchForm({
             One B20 factory transaction mints liquid allocations atomically. Vested % (
             {vestedPct}%) and pool seed ({poolPct}%) stay unminted. Gas ~$0.05–$0.15 on Base.
             Every transaction includes builder code{" "}
-            <span className="font-mono text-cyan-400/80">{BUILDER_CODE}</span>. Rabby may warn
+            <span className="font-mono text-[var(--ink-muted)]">{BUILDER_CODE}</span>. Rabby may warn
             &quot;not a contract&quot; on the B20 factory (
             <span className="font-mono text-slate-400">0xB20f…</span>) — that is not your token;
             your token address starts with <span className="font-mono text-emerald-400/90">0xB200…</span>.

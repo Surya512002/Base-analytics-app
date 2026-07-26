@@ -1,15 +1,15 @@
 export const OG_VERSION = "12";
 
 export const OG_COLORS = {
-  bg: "#020508",
+  bg: "#0a0a0b",
   panel: "rgba(255,255,255,0.055)",
   border: "rgba(255,255,255,0.12)",
   blue: "#0052FF",
   cyan: "#6BA3FF",
   green: "#34D399",
-  text: "#F8FAFC",
-  muted: "#94A3B8",
-  dim: "#64748B",
+  text: "#FAFAFA",
+  muted: "#A0A0AB",
+  dim: "#6E6E79",
 } as const;
 
 export function OgLogo({ size = 48 }: { size?: number }) {
@@ -32,29 +32,14 @@ export function OgLogo({ size = 48 }: { size?: number }) {
 
 export function OgBackground() {
   return (
-    <>
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          background:
-            "radial-gradient(circle at 84% 10%, rgba(0,82,255,0.30), transparent 42%), radial-gradient(circle at 10% 90%, rgba(52,211,153,0.12), transparent 38%), #020508",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          opacity: 0.22,
-          backgroundImage:
-            "linear-gradient(rgba(107,163,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(107,163,255,0.08) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-          maskImage: "linear-gradient(to bottom, black, transparent 82%)",
-        }}
-      />
-    </>
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        background: "#0a0a0b",
+      }}
+    />
   );
 }
 
@@ -103,7 +88,6 @@ export function OgHeader({ label = "LIVE ON BASE" }: { label?: string }) {
             height: 8,
             borderRadius: 99,
             background: OG_COLORS.green,
-            boxShadow: "0 0 12px rgba(52,211,153,0.8)",
           }}
         />
         <span

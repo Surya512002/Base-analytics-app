@@ -39,7 +39,7 @@ export default function ScoreImprovementTips({
             onClick={() =>
               onNavigate(ACTION_TAB[t.action], t.action === "swap" ? "q_swap_first" : undefined)
             }
-            className="w-full text-left rounded-xl border border-white/[0.08] bg-black/20 px-4 py-3 hover:border-[#0052FF]/30 transition-colors group"
+            className="w-full text-left rounded-xl border border-white/[0.08] bg-black/20 px-4 py-3 hover:border-[var(--border-strong)] transition-colors group"
           >
             <div className="flex items-start justify-between gap-3">
               <div>

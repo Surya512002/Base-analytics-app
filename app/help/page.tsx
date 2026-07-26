@@ -44,43 +44,42 @@ const FAQ = [
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-[#03080f] text-white">
-      <div className="absolute inset-0 bg-aurora pointer-events-none opacity-80" />
+    <div className="min-h-screen bg-[var(--bg-deep)] text-[var(--ink)]">
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-12">
         <Link href={APP_URL_WEB} className="flex items-center gap-2 mb-10">
           <AppLogo size="md" />
           <span className="font-black tracking-widest uppercase text-sm">Base Analytics</span>
         </Link>
 
-        <h1 className="text-3xl font-black text-white flex items-center gap-3">
-          <HelpCircle className="text-violet-400" /> Help & FAQ
+        <h1 className="text-3xl font-black text-[var(--ink)] flex items-center gap-3">
+          <HelpCircle className="text-[var(--ink-muted)]" /> Help & FAQ
         </h1>
-        <p className="text-slate-400 mt-2 text-sm leading-relaxed">
+        <p className="text-[var(--ink-muted)] mt-2 text-sm leading-relaxed">
           Everything you need to send vouchers, redeem gifts, and use onchain analytics on Base.
         </p>
 
         <div className="mt-8 space-y-4">
           {FAQ.map((item) => (
-            <div key={item.q} className="elegant-panel rounded-2xl p-5 border border-white/10">
-              <p className="font-black text-white text-sm">{item.q}</p>
-              <p className="text-sm text-slate-400 mt-2 leading-relaxed">{item.a}</p>
+            <div key={item.q} className="elegant-panel rounded-2xl p-5 border border-[var(--border-subtle)]">
+              <p className="font-black text-[var(--ink)] text-sm">{item.q}</p>
+              <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">{item.a}</p>
             </div>
           ))}
         </div>
 
-        <div id="api" className="mt-12 elegant-panel rounded-3xl p-6 border border-violet-500/20">
-          <p className="section-eyebrow text-violet-300">API & integrations</p>
-          <h2 className="text-xl font-black text-white mt-2">Public endpoints</h2>
-          <ul className="mt-4 space-y-3 text-sm font-mono text-slate-300">
-            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/launchpad/market — live volume & mcap</li>
-            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/launchpad/activity — global feed</li>
-            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/analyze-wallet?address=0x…</li>
-            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">GET /api/voucher/card-preview?card=12-3</li>
-            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">POST /api/premium-scan (x402)</li>
-            <li className="rounded-xl bg-black/30 px-3 py-2 border border-white/8">POST /api/mcp — voucher tools for agents</li>
+        <div id="api" className="mt-12 elegant-panel rounded-3xl p-6 border border-[var(--border-subtle)]">
+          <p className="section-eyebrow">API & integrations</p>
+          <h2 className="text-xl font-black text-[var(--ink)] mt-2">Public endpoints</h2>
+          <ul className="mt-4 space-y-3 text-sm font-mono text-[var(--ink-muted)]">
+            <li className="rounded-xl bg-[var(--bg-elevated)] px-3 py-2 border border-[var(--border-subtle)]">GET /api/launchpad/market — live volume & mcap</li>
+            <li className="rounded-xl bg-[var(--bg-elevated)] px-3 py-2 border border-[var(--border-subtle)]">GET /api/launchpad/activity — global feed</li>
+            <li className="rounded-xl bg-[var(--bg-elevated)] px-3 py-2 border border-[var(--border-subtle)]">GET /api/analyze-wallet?address=0x…</li>
+            <li className="rounded-xl bg-[var(--bg-elevated)] px-3 py-2 border border-[var(--border-subtle)]">GET /api/voucher/card-preview?card=12-3</li>
+            <li className="rounded-xl bg-[var(--bg-elevated)] px-3 py-2 border border-[var(--border-subtle)]">POST /api/premium-scan (x402)</li>
+            <li className="rounded-xl bg-[var(--bg-elevated)] px-3 py-2 border border-[var(--border-subtle)]">POST /api/mcp — voucher tools for agents</li>
           </ul>
-          <p className="text-xs text-slate-500 mt-4 flex items-center gap-2">
-            <Shield size={12} /> MCP plugin: <code className="text-violet-300">skills/base-mcp/plugins/base-voucher.md</code>
+          <p className="text-xs text-[var(--ink-dim)] mt-4 flex items-center gap-2">
+            <Shield size={12} /> MCP plugin: <code className="text-[var(--ink)]">skills/base-mcp/plugins/base-voucher.md</code>
           </p>
         </div>
 
@@ -88,10 +87,10 @@ export default function HelpPage() {
           <Link href="/explore" className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl btn-primary font-black text-sm">
             Explore tokens
           </Link>
-          <Link href={`${APP_URL_WEB}/?tab=voucher`} className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 border border-white/15 font-black text-sm">
+          <Link href={`${APP_URL_WEB}/?tab=voucher`} className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] font-black text-sm">
             <Gift size={16} /> Create voucher
           </Link>
-          <Link href="/redeem" className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 border border-white/15 font-black text-sm">
+          <Link href="/redeem" className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] font-black text-sm">
             <Zap size={16} /> Redeem card
           </Link>
         </div>

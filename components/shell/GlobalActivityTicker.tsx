@@ -89,7 +89,7 @@ export default function GlobalActivityTicker({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-cyan-400/70 hover:text-cyan-300"
+                    className="text-[var(--ink-dim)] hover:text-[var(--ink)]"
                   >
                     <ExternalLink size={10} />
                   </a>

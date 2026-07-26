@@ -24,7 +24,7 @@ export default function MobileBottomNav({
   return (
     <nav
       aria-label="Main navigation"
-      className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/[0.08] bg-[#080808]/97 backdrop-blur-md pb-[env(safe-area-inset-bottom)]"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/[0.08] bg-[#080808]/97 pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex items-stretch justify-around max-w-lg mx-auto px-1">
         {ITEMS.map(({ id, icon: Icon, label }) => {

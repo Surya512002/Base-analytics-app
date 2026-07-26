@@ -27,7 +27,7 @@ export default function VoucherSecurityNotice({
               href={`https://basescan.org/address/${VOUCHER_CONTRACT}#code`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-cyan-400 font-bold hover:text-cyan-300 inline-flex items-center gap-0.5"
+              className="text-[var(--ink)] font-bold hover:text-[var(--ink-muted)] inline-flex items-center gap-0.5"
             >
               verified contract <ExternalLink size={10} />
             </a>{" "}

@@ -16,11 +16,11 @@ export default function WeeklyRecapBanner({
   rankLabel?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.06] px-4 py-3 flex flex-wrap items-center gap-4 justify-between">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3 flex flex-wrap items-center gap-4 justify-between">
       <div>
-        <p className="section-eyebrow text-cyan-300/90">This week</p>
+        <p className="section-eyebrow text-[var(--ink-muted)]">This week</p>
         <p className="text-sm font-bold text-white mt-0.5">
-          <span className="text-cyan-300">{weeklyXP} XP</span>
+          <span className="text-[var(--ink)]">{weeklyXP} XP</span>
           {rankLabel ? ` · ${rankLabel}` : ""}
         </p>
       </div>

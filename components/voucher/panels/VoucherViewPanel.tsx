@@ -103,7 +103,7 @@ export default function VoucherViewPanel({
               </div>
               <div className="glass-panel-accent rounded-xl p-3">
                 <p className="text-[9px] font-bold text-slate-500 uppercase">Redeemed</p>
-                <p className="font-black text-cyan-400 mt-0.5">
+                <p className="font-black text-[var(--ink)] mt-0.5">
                   {viewedCard.redeemedCount}/{viewedCard.cardCount}
                 </p>
               </div>
@@ -135,7 +135,7 @@ export default function VoucherViewPanel({
                   setRedeemSecret(viewSecret);
                   setView("redeem");
                 }}
-                className="w-full py-3 rounded-xl font-black bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
+                className="w-full py-3 rounded-xl font-black bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)]"
               >
                 Go to Redeem →
               </button>

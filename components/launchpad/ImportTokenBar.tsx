@@ -25,7 +25,7 @@ export default function ImportTokenBar({
     try {
       const { token } = await resolveTokenByAddress(raw);
       if (!token) {
-        onError?.("No Uniswap / Aerodrome liquidity found for this token on Base");
+        onError?.("That address is not an ERC-20 token on Base");
         return;
       }
       onResolved(token);
@@ -44,8 +44,8 @@ export default function ImportTokenBar({
         <p className="text-[13px] font-semibold text-[var(--ink)]">Trade any Base token</p>
       </div>
       <p className="text-[12px] text-[var(--ink-dim)] mb-3 leading-relaxed">
-        Paste a contract address — we&apos;ll pull DexScreener liquidity and route swaps via
-        Uniswap + Aerodrome.
+        Paste any Base contract address — we&apos;ll read it on-chain and route the swap
+        across Uniswap, Aerodrome and 0x.
       </p>
       <div className="flex flex-col sm:flex-row gap-2">
         <input
@@ -62,7 +62,7 @@ export default function ImportTokenBar({
           type="button"
           disabled={loading}
           onClick={() => void submit()}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--ink)] text-[#080808] hover:bg-white disabled:opacity-50 transition-colors"
+          className="btn-primary inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-semibold disabled:opacity-50 transition-colors"
         >
           {loading ? "Loading…" : "Trade"}
           <ArrowRight size={14} />

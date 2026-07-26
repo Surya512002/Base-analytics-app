@@ -70,7 +70,7 @@ export default function WatchlistPanel({ myAddress }: WatchlistPanelProps) {
           }}
           onKeyDown={(e) => e.key === "Enter" && add()}
           placeholder="0x…"
-          className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500/40"
+          className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-[var(--border-focus)]"
         />
         <button
           type="button"
@@ -97,7 +97,7 @@ export default function WatchlistPanel({ myAddress }: WatchlistPanelProps) {
             <div className="flex gap-1 shrink-0">
               <a
                 href={`/wallet/${addr}`}
-                className="p-1.5 rounded-lg hover:bg-white/10 text-cyan-400"
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-muted)]"
                 title="View profile"
               >
                 <Eye size={14} />

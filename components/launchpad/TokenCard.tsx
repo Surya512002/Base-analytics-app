@@ -41,9 +41,8 @@ export default function TokenCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onTrade();
       }}
-      className="group cursor-pointer rounded-2xl border border-white/10 bg-linear-to-b from-[#0a1220]/95 to-black/40 overflow-hidden hover:border-[#0052FF]/50 hover:shadow-lg hover:shadow-[#0052FF]/10 transition-all"
+      className="group cursor-pointer rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] overflow-hidden hover:border-[var(--border-strong)] transition-all"
     >
-      <div className="h-1 bg-linear-to-r from-[#0052FF] via-[#3B7FFF] to-[#6BA3FF] opacity-80 group-hover:opacity-100" />
       <div className="p-4">
         <div className="flex items-start gap-3">
           {onToggleWatch && (
@@ -67,16 +66,16 @@ export default function TokenCard({
             <img
               src={token.imageUrl}
               alt=""
-              className="w-12 h-12 rounded-xl object-cover border border-white/10 group-hover:border-[#0052FF]/30"
+              className="w-12 h-12 rounded-xl object-cover border border-white/10 group-hover:border-[var(--border-strong)]"
             />
           ) : (
-            <div className="w-12 h-12 rounded-xl bg-[#0052FF]/20 border border-[#0052FF]/30 flex items-center justify-center text-sm font-black text-[#6BA3FF]">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
               {token.symbol.slice(0, 2)}
             </div>
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-black text-white truncate group-hover:text-[#6BA3FF] transition-colors">
+              <h3 className="font-black text-white truncate group-hover:text-[var(--ink)] transition-colors">
                 {token.name}
               </h3>
               <span
@@ -108,7 +107,7 @@ export default function TokenCard({
                     : safety === "low"
                       ? "border-amber-500/30 text-amber-200 bg-amber-500/10"
                       : safety === "new"
-                        ? "border-cyan-500/30 text-cyan-200 bg-cyan-500/10"
+                        ? "border-[var(--border-subtle)] text-[var(--ink-muted)] bg-[var(--bg-elevated)]"
                         : "border-white/10 text-slate-500"
                 }`}
               >
@@ -116,7 +115,7 @@ export default function TokenCard({
                 {safetyLabel}
               </span>
             </div>
-            <p className="text-sm font-bold text-[#6BA3FF]">${token.symbol}</p>
+            <p className="text-sm font-bold text-[var(--ink-muted)]">${token.symbol}</p>
             <p className="text-[10px] text-slate-500 font-mono mt-1">
               {shortAddr(token.address)}
             </p>
@@ -171,14 +170,14 @@ export default function TokenCard({
               <Link
                 href={`/creator/${token.creator}`}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-[10px] text-[#6BA3FF] hover:text-white mt-1"
+                className="inline-flex items-center gap-1 text-[10px] text-[var(--ink)] hover:text-white mt-1"
               >
                 <User size={10} />
                 Creator
               </Link>
             )}
           </div>
-          <span className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-[#0052FF] group-hover:bg-[#1a63ff] px-3 py-1.5 rounded-lg transition-colors">
+          <span className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-[var(--accent)] group-hover:bg-[var(--accent-hover)] px-3 py-1.5 rounded-lg transition-colors">
             Trade <ArrowUpRight size={12} />
           </span>
         </div>
@@ -192,10 +191,10 @@ export function CreateTokenCard({ onCreate }: { onCreate: () => void }) {
     <button
       type="button"
       onClick={onCreate}
-      className="h-full min-h-[220px] rounded-2xl border-2 border-dashed border-[#0052FF]/35 bg-linear-to-br from-[#0052FF]/[0.06] to-transparent hover:from-[#0052FF]/12 hover:border-[#0052FF]/60 transition-all flex flex-col items-center justify-center gap-3 p-6 text-center"
+      className="h-full min-h-[220px] rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] hover:border-[var(--border-strong)] transition-all flex flex-col items-center justify-center gap-3 p-6 text-center"
     >
-      <div className="w-14 h-14 rounded-2xl bg-[#0052FF]/20 border border-[#0052FF]/40 flex items-center justify-center shadow-lg shadow-[#0052FF]/10">
-        <Rocket size={24} className="text-[#6BA3FF]" />
+      <div className="w-14 h-14 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center">
+        <Rocket size={24} className="text-[var(--ink-muted)]" />
       </div>
       <div>
         <p className="font-black text-white text-lg">Launch on Base</p>

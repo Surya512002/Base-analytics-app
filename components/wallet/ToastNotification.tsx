@@ -20,10 +20,9 @@ export default function ToastNotification({
 
   return (
     <div
-      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] text-white px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-cyan-500/25 max-h-[40dvh] overflow-y-auto overscroll-contain"
+      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] text-white px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-[var(--border-strong)] bg-[var(--bg-elevated)] max-h-[40dvh] overflow-y-auto overscroll-contain"
       style={{
-        background: "linear-gradient(135deg, rgba(0,82,255,0.9), rgba(255,51,102,0.85))",
-        boxShadow: "0 8px 32px rgba(255,51,102,0.3)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
         animation: "slideUp 0.3s ease-out",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
       }}
@@ -36,7 +35,7 @@ export default function ToastNotification({
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-x-1 text-cyan-100 text-xs underline hover:text-white break-all"
+            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-x-1 text-[var(--ink-muted)] text-xs underline hover:text-white break-all"
           >
             <span>View on BaseScan</span>
             {shortHash && <span className="font-mono opacity-90">{shortHash}</span>}

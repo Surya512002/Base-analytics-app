@@ -49,8 +49,8 @@ export default function CreatorProfilePanel({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="rounded-3xl border border-[#0052FF]/25 bg-linear-to-br from-[#0052FF]/10 to-black/40 p-6 sm:p-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6BA3FF] mb-2">
+      <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] p-6 sm:p-8">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ink-muted)] mb-2">
           Creator profile
         </p>
         <h1 className="text-2xl sm:text-3xl font-black text-white font-mono">
@@ -78,7 +78,7 @@ export default function CreatorProfilePanel({
           href={`https://basescan.org/address/${address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-[#6BA3FF] hover:text-white"
+          className="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-[var(--ink)] hover:text-white"
         >
           View on BaseScan <ExternalLink size={12} />
         </a>
@@ -89,7 +89,7 @@ export default function CreatorProfilePanel({
       ) : (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <Rocket size={16} className="text-[#6BA3FF]" />
+            <Rocket size={16} className="text-[var(--ink-muted)]" />
             <h2 className="text-lg font-black text-white">Launched tokens</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

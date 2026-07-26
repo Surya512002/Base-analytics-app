@@ -44,19 +44,19 @@ export default function LaunchSuccessPanel({
       </div>
 
       <div className="glass-panel rounded-3xl overflow-hidden border border-emerald-500/20">
-        <div className="h-0.5 bg-linear-to-r from-emerald-500 to-[#0052FF]" />
+        <div className="h-0.5 bg-[var(--bg-raised)]" />
         <div className="p-6 flex flex-col sm:flex-row gap-5 items-center sm:items-start">
           <div className="w-24 h-24 rounded-2xl border border-white/10 bg-white/[0.06] overflow-hidden shrink-0 flex items-center justify-center">
             {token.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={token.imageUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <Rocket className="text-[#6BA3FF]" size={32} />
+              <Rocket className="text-[var(--ink-muted)]" size={32} />
             )}
           </div>
           <div className="flex-1 text-center sm:text-left min-w-0">
             <p className="font-black text-white text-xl">{token.name}</p>
-            <p className="text-[#6BA3FF] font-bold text-lg">${token.symbol}</p>
+            <p className="text-[var(--ink-muted)] font-bold text-lg">${token.symbol}</p>
             {token.description && (
               <p className="text-sm text-slate-400 mt-2">{token.description}</p>
             )}
@@ -86,7 +86,7 @@ export default function LaunchSuccessPanel({
                   href={tokenUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-[#6BA3FF] hover:text-white"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-[var(--ink)] hover:text-white"
                 >
                   Token on BaseScan <ExternalLink size={12} />
                 </a>
@@ -133,7 +133,7 @@ export default function LaunchSuccessPanel({
             href={uniswapPoolUrl(token.address)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-[11px] font-bold text-cyan-300 hover:text-white"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]"
           >
             Add on Uniswap <ExternalLink size={12} />
           </a>
@@ -141,7 +141,7 @@ export default function LaunchSuccessPanel({
             href={aerodromeDepositUrl(token.address)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-[11px] font-bold text-cyan-300 hover:text-white"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]"
           >
             Add on Aerodrome <ExternalLink size={12} />
           </a>

@@ -19,7 +19,7 @@ const SERVICES: {
     label: "B20 Launchpad",
     desc: "Create tokens · dual-DEX · 0.5% fees",
     icon: Rocket,
-    accent: "from-[#0052FF]/20 to-[#0052FF]/5 border-[#0052FF]/30",
+    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
   {
     id: "analytics",
@@ -27,7 +27,7 @@ const SERVICES: {
     label: "Wallet Analytics",
     desc: "Onchain score · heatmap · portfolio",
     icon: BarChart3,
-    accent: "from-cyan-500/15 to-cyan-500/5 border-cyan-500/25",
+    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
   {
     id: "vouchers",
@@ -35,7 +35,7 @@ const SERVICES: {
     label: "Crypto Vouchers",
     desc: "Gift USDC & ETH on Base",
     icon: Gift,
-    accent: "from-amber-500/15 to-amber-500/5 border-amber-500/25",
+    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
   {
     id: "badges",
@@ -43,7 +43,7 @@ const SERVICES: {
     label: "Achievement NFTs",
     desc: "Mint badges · earn XP",
     icon: Trophy,
-    accent: "from-violet-500/15 to-violet-500/5 border-violet-500/25",
+    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
 ];
 
@@ -66,10 +66,9 @@ export default function ExploreServicesRail({
 
   return (
     <section className="page-hero overflow-hidden">
-      <div className="h-0.5 bg-linear-to-r from-violet-500 via-[#0052FF] to-emerald-400" />
       <div className="p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles size={16} className="text-[#6BA3FF]" />
+          <Sparkles size={16} className="text-[var(--ink-muted)]" />
           <p className="section-eyebrow">Everything in one app</p>
         </div>
         <h3 className="page-hero-title mb-4">Trade, earn &amp; launch on Base</h3>
@@ -81,14 +80,14 @@ export default function ExploreServicesRail({
                 key={s.id}
                 type="button"
                 onClick={() => click(s.tab)}
-                className={`group text-left rounded-2xl border bg-linear-to-br ${s.accent} p-4 hover:brightness-110 transition-all`}
+                className={`group text-left rounded-2xl border ${s.accent} p-4 hover:border-[var(--border-strong)] transition-colors`}
               >
-                <Icon size={18} className="text-white/80 mb-2" />
-                <p className="text-sm font-black text-white group-hover:text-[#6BA3FF] transition-colors">
+                <Icon size={18} className="text-[var(--ink-muted)] mb-2" />
+                <p className="text-sm font-black text-white group-hover:text-[var(--ink)] transition-colors">
                   {s.label}
                 </p>
                 <p className="text-[10px] text-slate-400 mt-1 leading-snug">{s.desc}</p>
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#6BA3FF] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--ink-muted)] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   Open <ArrowUpRight size={10} />
                 </span>
               </button>

@@ -9,32 +9,44 @@ import { DEX_ROUTERS, DEFI_PROTOCOLS } from "@/lib/constants/protocols";
 
 const WETH = "0x4200000000000000000000000000000000000006";
 
-/** Base mainnet symbol → contract (lowercase). */
+/** Base mainnet symbol → contract (lowercase). Every entry verified on chain. */
 const SYMBOL_TO_ADDRESS: Record<string, string> = {
   eth: "eth",
   weth: WETH,
   usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
   usdbc: "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
   dai: "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
-  usdt: "0xfde4c96c8593536e31f229ea8f37b25ada2f435a",
-  usde: "0x820c137fa70c8691f0e3fc6f225d4c956d9900e2",
-  cbeth: "0x2ae3f1ec7f1f2ad4a3dac6aa832b89e6e1b08893",
-  wsteth: "0xc1cba3fcea764f57cd08b8e9a0aa74c1f29e2f55",
-  eurc: "0x60a3e35cc302bfa44e2f138ea258988f9a7b4220",
-  axlusdc: "0xedfa23602d0ec14bf2b89fa5d5077243395e085f",
+  usdt: "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2",
+  usde: "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+  cbeth: "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",
+  cbbtc: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+  wsteth: "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
+  eurc: "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+  axlusdc: "0xeb466342c4d449bc9f53a865d5cb90586f405215",
 };
 
-const STABLE_OR_ETH = new Set([
+/** Assets worth ~$1 each, so `value` can be read straight through as USD. */
+const STABLE_SYMBOLS = ["usdc", "usdbc", "dai", "usdt", "usde", "eurc", "axlusdc"];
+const STABLE_KEYS = new Set([
+  ...STABLE_SYMBOLS,
+  ...STABLE_SYMBOLS.map((s) => SYMBOL_TO_ADDRESS[s]).filter(
+    (a): a is string => Boolean(a)
+  ),
+]);
+
+/**
+ * Assets that track the ETH price, so `value * ethUsd` is a good estimate.
+ * cbETH and wstETH drift a little above ETH, which is far closer than the $1
+ * they would otherwise be valued at.
+ */
+const ETH_PEGGED_KEYS = new Set([
   "eth",
   "weth",
-  "usdc",
-  "usdbc",
-  "dai",
-  "usdt",
-  "usde",
-  "eurc",
+  "cbeth",
+  "wsteth",
   WETH,
-  ...Object.values(SYMBOL_TO_ADDRESS).filter((a) => a.startsWith("0x")),
+  SYMBOL_TO_ADDRESS.cbeth,
+  SYMBOL_TO_ADDRESS.wsteth,
 ]);
 
 const APP_CONTRACTS = new Set(
@@ -178,15 +190,13 @@ function isFungible(tx: AlchemyTransfer): boolean {
 
 function isEthLike(key: string, tx: AlchemyTransfer): boolean {
   return (
-    key === "eth" ||
-    key === "weth" ||
-    key === WETH ||
+    ETH_PEGGED_KEYS.has(key) ||
     (!tx.asset && (tx.category === "external" || tx.category === "internal"))
   );
 }
 
 function isStableKey(key: string): boolean {
-  return STABLE_OR_ETH.has(key);
+  return STABLE_KEYS.has(key);
 }
 
 function legUsd(

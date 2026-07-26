@@ -199,7 +199,7 @@ export default function VoucherCreatePanel({
           <div
             className={`rounded-2xl p-4 border ${
               split.valid
-                ? "glass-panel-accent border-cyan-500/25"
+                ? "glass-panel-accent border-[var(--border-subtle)]"
                 : "bg-orange-500/8 border-orange-500/30"
             }`}
           >
@@ -214,7 +214,7 @@ export default function VoucherCreatePanel({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-slate-500 uppercase">Cards</p>
-                  <p className="text-sm font-black text-cyan-400 mt-0.5">{split.cardCount}</p>
+                  <p className="text-sm font-black text-[var(--ink)] mt-0.5">{split.cardCount}</p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-slate-500 uppercase">Per card</p>
@@ -254,13 +254,13 @@ export default function VoucherCreatePanel({
             onChange={(e) => setMessage(e.target.value.slice(0, 280))}
             rows={3}
             placeholder="Happy day! Enjoy your onchain gift."
-            className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-white/25 resize-none"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white text-sm outline-none resize-none"
           />
           <p className="text-[9px] text-slate-600 mt-1">{message.length}/280</p>
         </div>
 
         <p className="readable-body text-[10px]">
-          Each wallet can redeem <span className="text-cyan-400 font-bold">one card per batch</span> — including the creator. Share unique Card ID + Secret per recipient.
+          Each wallet can redeem <span className="text-[var(--ink)] font-bold">one card per batch</span> — including the creator. Share unique Card ID + Secret per recipient.
         </p>
 
         {!pendingCards ? (
@@ -274,10 +274,10 @@ export default function VoucherCreatePanel({
           </button>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3">
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-black text-cyan-200">
+                  <p className="text-sm font-black text-[var(--ink)]">
                     Batch #{pendingCards.batchId} · ready to fund
                   </p>
                   <p className="readable-body text-xs mt-1">
@@ -294,8 +294,8 @@ export default function VoucherCreatePanel({
                 </button>
               </div>
             </div>
-            <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/8 px-4 py-3">
-              <p className="text-sm font-black text-cyan-200">Confirm in your wallet to create cards</p>
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3">
+              <p className="text-sm font-black text-[var(--ink)]">Confirm in your wallet to create cards</p>
               <p className="readable-body text-xs mt-1">
                 Card IDs and secret keys are generated now but{" "}
                 <span className="text-white font-bold">only shown after your deposit confirms</span>
@@ -421,7 +421,7 @@ export default function VoucherCreatePanel({
                   <CheckCircle size={20} /> Your cards are ready!
                 </div>
                 <p className="text-sm text-white font-bold mt-1">Batch #{readyBatchOnCreate.batchId}</p>
-                <p className="text-xs text-cyan-300 font-bold mt-1">
+                <p className="text-xs text-[var(--ink-muted)] font-bold mt-1">
                   {readyBatchOnCreate.cardCount} cards
                   {batchCardStatuses[readyBatchOnCreate.batchId]
                     ? ` · ${batchCardStatuses[readyBatchOnCreate.batchId].filter((c) => !c.redeemed).length} not redeemed yet`

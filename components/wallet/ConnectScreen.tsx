@@ -121,7 +121,7 @@ export default function ConnectScreen({
             <button
               onClick={onOpenModal}
               disabled={loading}
-              className="w-full max-w-md mx-auto lg:mx-0 py-3.5 rounded-lg text-[14px] font-semibold text-[#080808] bg-[var(--ink)] hover:bg-white flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
+              className="btn-primary w-full max-w-md mx-auto lg:mx-0 py-3.5 rounded-lg text-[14px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
             >
               {loading ? (
                 <>

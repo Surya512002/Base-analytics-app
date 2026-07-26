@@ -127,7 +127,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
             <button
               type="button"
               onClick={handleCopyAll}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-sm bg-cyan-500 hover:bg-cyan-400 text-white active:scale-[0.98] transition"
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-sm btn-primary active:scale-[0.98] transition"
             >
               {copied === `gate-batch-${batch.batchId}` ? (
                 <CheckCircle size={18} />
@@ -172,7 +172,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
                 type="checkbox"
                 checked={acknowledged}
                 onChange={(e) => setAcknowledged(e.target.checked)}
-                className="mt-1 w-4 h-4 rounded border-cyan-500/50 accent-cyan-500"
+                className="mt-1 w-4 h-4 rounded border-[var(--border-strong)] accent-[var(--accent)]"
               />
               <span className="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
                 I copied or saved every Card ID and Secret. I understand recipients need both to

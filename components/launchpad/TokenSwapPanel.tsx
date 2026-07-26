@@ -4,17 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowDownUp,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   Loader2,
   Settings2,
   Wallet,
   Zap,
 } from "lucide-react";
-import { formatUnits, parseAbi } from "viem";
+import { formatUnits } from "viem";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { fetchSwapQuote, fetchProtectionStatus, type LaunchDex } from "@/lib/api/launchpad-client";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
+import { ERC20_ABI } from "@/lib/constants/contracts";
 import { captureTokenReferrerFromUrl, readTokenReferrer } from "@/lib/utils/referral";
 import {
   aerodromeDepositUrl,
@@ -27,26 +29,27 @@ import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
 import {
-  computePriceImpactPct,
   computeSwapUsd,
   impliedTokenPriceUsd,
-  isUsdcAddress,
   isWethAddress,
 } from "@/lib/launchpad/swap-display";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
 import { WETH_BASE } from "@/lib/launchpad/uniswap";
-import { USDC_BASE, USDC_DECIMALS } from "@/lib/launchpad/tokens-base";
+import { type SwapAsset } from "@/lib/launchpad/tokens-base";
 import SeedLiquidityPanel from "@/components/launchpad/SeedLiquidityPanel";
+import TokenPickerDialog, {
+  CounterAvatar,
+  ETH_COUNTER,
+  counterDecimalsOf,
+  counterSymbol,
+  sameCounter,
+  type SwapCounter,
+} from "@/components/launchpad/TokenPickerDialog";
 import {
   amountFromBalanceFraction,
   formatTokenBalanceDisplay,
   formatTokenInputAmount,
 } from "@/lib/launchpad/token-amount";
-
-const ERC20_ABI = parseAbi([
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-]);
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -62,12 +65,23 @@ const PCT_PRESETS = [
   { label: "MAX", pct: -1 },
 ] as const;
 
-/** Leave native ETH for gas when user picks MAX on buy. */
+const SLIPPAGE_PRESETS = ["0.5", "1", "3", "5"];
+
+/** Leave native ETH for gas when the user picks MAX on an ETH buy. */
 const MAX_ETH_FRACTION = 0.97;
 /** Sell MAX — leave dust to avoid rounding reverts. */
 const MAX_TOKEN_FRACTION = 0.995;
 /** Only warn on meaningful price impact (not pool size alone). */
 const HIGH_IMPACT_PCT = 5;
+
+/** Symbols that track the dollar closely enough to price at $1 without a feed. */
+const DOLLAR_PEGGED = new Set(["USDC", "USDT", "DAI", "USDBC", "USDS", "USDE"]);
+
+/** A sensible starting amount so the panel opens with a live quote. */
+function defaultAmountFor(counter: SwapCounter): string {
+  if (counter.kind === "eth") return "0.01";
+  return DOLLAR_PEGGED.has(counter.symbol.toUpperCase()) ? "10" : "1";
+}
 
 function formatQuoteOut(amountOut: string, decimals: number): string {
   const n = Number(amountOut) / 10 ** decimals;
@@ -89,27 +103,39 @@ function formatUsdSide(value: number | null): string {
   return formatUsd(value);
 }
 
-function TokenAvatar({
-  symbol,
-  imageUrl,
-}: {
-  symbol: string;
-  imageUrl?: string;
-}) {
+function TokenAvatar({ symbol, imageUrl }: { symbol: string; imageUrl?: string }) {
   if (imageUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imageUrl}
         alt=""
-        className="w-9 h-9 rounded-full object-cover border border-white/15 shrink-0"
+        className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0"
       />
     );
   }
+  return <span className="swap-eth-icon">{symbol.slice(0, 2)}</span>;
+}
+
+/** The counter side is a button: any Base token can sit on it. */
+function CounterPill({
+  counter,
+  onOpen,
+}: {
+  counter: SwapCounter;
+  onOpen: () => void;
+}) {
   return (
-    <div className="w-9 h-9 rounded-full bg-[#0052FF]/30 border border-[#0052FF]/40 flex items-center justify-center text-xs font-black text-[#6BA3FF] shrink-0">
-      {symbol.slice(0, 2)}
-    </div>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="swap-token-pill"
+      aria-label={`Change token — currently ${counterSymbol(counter)}`}
+    >
+      <CounterAvatar counter={counter} size={28} />
+      <span>{counterSymbol(counter)}</span>
+      <ChevronDown size={14} className="text-[var(--ink-dim)] shrink-0" />
+    </button>
   );
 }
 
@@ -137,23 +163,27 @@ export default function TokenSwapPanel({
   guestMode?: boolean;
   onRequestConnect?: () => void;
 }) {
-  const { wallet, walletCore, swapLoading, handleTokenSwap, showToast } = app;
+  const { wallet, walletCore, swapLoading, handleTokenSwap, handleUnwrapWeth, showToast } = app;
   const [direction, setDirection] = useState<"buy" | "sell">("buy");
+  const [counter, setCounter] = useState<SwapCounter>(ETH_COUNTER);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [amount, setAmount] = useState("0.01");
   const [slippage, setSlippage] = useState("1");
   const [dex, setDex] = useState<LaunchDex>("auto");
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
-  const [quoteReceiveAsset, setQuoteReceiveAsset] = useState<"eth" | "usdc" | "token">("eth");
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
   const [hasPool, setHasPool] = useState<boolean | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [activeDex, setActiveDex] = useState<SwapVenue | null>(null);
+  const [quoteImpactBps, setQuoteImpactBps] = useState<number | null>(null);
+  const [aggregatorReady, setAggregatorReady] = useState(true);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [wethBalance, setWethBalance] = useState(0);
-  const [usdcBalance, setUsdcBalance] = useState(0);
+  const [counterTokenBalance, setCounterTokenBalance] = useState(0);
+  const [counterTokenUsd, setCounterTokenUsd] = useState<number | null>(null);
   const [priceUsd, setPriceUsd] = useState<number | null>(null);
   const [ethUsd, setEthUsd] = useState(2500);
   const [antiSnipeActive, setAntiSnipeActive] = useState(false);
@@ -165,16 +195,49 @@ export default function TokenSwapPanel({
   const [activePct, setActivePct] = useState<string | null>(null);
   const [tokenDecimals, setTokenDecimals] = useState(18);
 
+  const isWethToken = token ? isWethAddress(token.address) : false;
+
+  /** A token can't be paired against itself, so that page falls back to ETH. */
+  const effectiveCounter: SwapCounter =
+    counter.kind === "token" &&
+    token &&
+    counter.address.toLowerCase() === token.address.toLowerCase()
+      ? ETH_COUNTER
+      : counter;
+
+  const counterDecimals = counterDecimalsOf(effectiveCounter);
+  const counterLabel = counterSymbol(effectiveCounter);
+
+  /**
+   * USD per unit of the counter asset, which anchors both sides of the trade.
+   * Null for an unpriced token — the USD readouts then show a dash rather than
+   * a number derived from nothing.
+   */
+  const counterUsd = useMemo(() => {
+    if (effectiveCounter.kind === "eth") return ethUsd;
+    const symbol = effectiveCounter.symbol.toUpperCase();
+    if (DOLLAR_PEGGED.has(symbol)) return 1;
+    if (symbol === "WETH") return ethUsd;
+    return counterTokenUsd;
+  }, [effectiveCounter, ethUsd, counterTokenUsd]);
+
+  const counterBalance =
+    effectiveCounter.kind === "eth"
+      ? parseFloat(walletCore?.balance ?? wallet?.balance ?? "0") || 0
+      : counterTokenBalance;
+
+  const counterAssetParam: SwapAsset =
+    effectiveCounter.kind === "eth" ? "eth" : "token";
+  const counterTokenParam =
+    effectiveCounter.kind === "token" ? effectiveCounter.address : null;
+
   useEffect(() => {
     if (!token) return;
     setTokenDecimals(token.decimals);
     let alive = true;
     void (async () => {
       try {
-        const n = await fetchErc20Decimals(
-          token.address as `0x${string}`,
-          token.decimals
-        );
+        const n = await fetchErc20Decimals(token.address as `0x${string}`, token.decimals);
         if (alive) setTokenDecimals(n);
       } catch {
         /* keep token.decimals */
@@ -225,25 +288,39 @@ export default function TokenSwapPanel({
     if (!token || !wallet) {
       setTokenBalance(0);
       setWethBalance(0);
-      setUsdcBalance(0);
+      setCounterTokenBalance(0);
       return;
     }
+    const counterAddress =
+      effectiveCounter.kind === "token"
+        ? (effectiveCounter.address as `0x${string}`)
+        : null;
     let alive = true;
     void (async () => {
-      const [tok, weth, usdc] = await Promise.all([
+      const [tok, weth, counterBal] = await Promise.all([
         readErc20Balance(token.address as `0x${string}`, tokenDecimals),
         readErc20Balance(WETH_BASE, 18),
-        readErc20Balance(USDC_BASE, USDC_DECIMALS),
+        counterAddress
+          ? readErc20Balance(counterAddress, counterDecimals)
+          : Promise.resolve(0),
       ]);
       if (!alive) return;
       setTokenBalance(tok);
       setWethBalance(weth);
-      setUsdcBalance(usdc);
+      setCounterTokenBalance(counterBal);
     })();
     return () => {
       alive = false;
     };
-  }, [token, wallet, balanceTick, readErc20Balance, tokenDecimals]);
+  }, [
+    token,
+    wallet,
+    balanceTick,
+    readErc20Balance,
+    tokenDecimals,
+    effectiveCounter,
+    counterDecimals,
+  ]);
 
   useEffect(() => {
     if (!token || !wallet) return;
@@ -288,6 +365,35 @@ export default function TokenSwapPanel({
     };
   }, [token]);
 
+  /** Price an arbitrary counter token so the USD readouts stay meaningful. */
+  useEffect(() => {
+    if (effectiveCounter.kind !== "token") {
+      setCounterTokenUsd(null);
+      return;
+    }
+    const symbol = effectiveCounter.symbol.toUpperCase();
+    if (DOLLAR_PEGGED.has(symbol) || symbol === "WETH") {
+      setCounterTokenUsd(null);
+      return;
+    }
+    let alive = true;
+    void fetchTokenPairs(effectiveCounter.address)
+      .then((d) => {
+        if (!alive) return;
+        const best = [...(d.pairs ?? [])].sort(
+          (a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0)
+        )[0];
+        const price = best?.priceUsd ? parseFloat(best.priceUsd) : NaN;
+        setCounterTokenUsd(Number.isFinite(price) && price > 0 ? price : null);
+      })
+      .catch(() => {
+        if (alive) setCounterTokenUsd(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [effectiveCounter]);
+
   useEffect(() => {
     if (!token) return;
     let alive = true;
@@ -310,6 +416,7 @@ export default function TokenSwapPanel({
       setHasLiquidity(null);
       setQuoteError(null);
       setActiveDex(null);
+      setQuoteImpactBps(null);
       setQuoteLoading(false);
       return;
     }
@@ -325,22 +432,25 @@ export default function TokenSwapPanel({
         dex,
         referrer,
         taker: wallet?.address,
-        payAsset: "eth",
-        receiveAsset: "eth",
+        counterDecimals,
+        payAsset: direction === "buy" ? counterAssetParam : "eth",
+        receiveAsset: direction === "sell" ? counterAssetParam : "eth",
+        payToken: direction === "buy" ? counterTokenParam : null,
+        receiveToken: direction === "sell" ? counterTokenParam : null,
       });
       if (!alive) return;
       setQuoteLoading(false);
       setHasLiquidity(q.hasLiquidity);
       setQuoteError(q.hasLiquidity ? null : (q.error ?? null));
       setActiveDex(q.dex ?? null);
+      setQuoteImpactBps(q.priceImpactBps ?? null);
+      setAggregatorReady(q.aggregatorConfigured !== false);
       if (q.antiSnipe?.active) {
         setAntiSnipeActive(true);
         setAntiSnipeMsg(q.antiSnipe.message ?? null);
       }
-      const outDec = q.outDecimals ?? (direction === "buy" ? tokenDecimals : 18);
-      setQuoteReceiveAsset(
-        q.receiveAsset ?? (direction === "buy" ? "token" : "eth")
-      );
+      const outDec =
+        q.outDecimals ?? (direction === "buy" ? tokenDecimals : counterDecimals);
       if (q.hasLiquidity && q.amountOut) {
         setQuoteOut(formatQuoteOut(q.amountOut, outDec));
         setMinReceive(
@@ -355,10 +465,19 @@ export default function TokenSwapPanel({
       alive = false;
       clearTimeout(t);
     };
-  }, [token, direction, amount, slippage, dex, referrer, wallet?.address, tokenDecimals]);
-
-  const isUsdcToken = token ? isUsdcAddress(token.address) : false;
-  const isWethToken = token ? isWethAddress(token.address) : false;
+  }, [
+    token,
+    direction,
+    amount,
+    slippage,
+    dex,
+    referrer,
+    wallet?.address,
+    tokenDecimals,
+    counterDecimals,
+    counterAssetParam,
+    counterTokenParam,
+  ]);
 
   const payAmountNum = parseFloat(amount);
   const quoteOutNum = quoteOut != null ? parseFloat(quoteOut) : null;
@@ -369,9 +488,11 @@ export default function TokenSwapPanel({
         direction,
         payAmount: payAmountNum,
         quoteOut: quoteOutNum,
-        ethUsd,
+        // 0 is rejected downstream, which is the intent: an unpriced counter
+        // token yields no USD figure rather than a fabricated one.
+        counterUsd: counterUsd ?? 0,
       }),
-    [direction, payAmountNum, quoteOutNum, ethUsd]
+    [direction, payAmountNum, quoteOutNum, counterUsd]
   );
 
   const liveTokenPriceUsd = useMemo(() => {
@@ -388,44 +509,41 @@ export default function TokenSwapPanel({
         direction,
         payAmount: payAmountNum,
         quoteOut: quoteOutNum,
-        ethUsd,
+        counterUsd: counterUsd ?? 0,
       }) ?? priceUsd
     );
-  }, [direction, payAmountNum, quoteOutNum, ethUsd, priceUsd]);
+  }, [direction, payAmountNum, quoteOutNum, counterUsd, priceUsd]);
 
   const exchangeRate = useMemo(() => {
-    const pay = parseFloat(amount);
-    const out = parseFloat(quoteOut ?? "0");
-    if (!Number.isFinite(pay) || pay <= 0 || !Number.isFinite(out) || out <= 0) return null;
-    if (direction === "buy") {
-      if (isUsdcToken) {
-        return `1 ETH = ${(out / pay).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC`;
-      }
-      return `1 ETH = ${(out / pay).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${token?.symbol ?? ""}`;
-    }
-    if (isUsdcToken) {
-      return `1 USDC = ${(out / pay).toFixed(8)} ETH`;
-    }
-    return `1 ${token?.symbol ?? ""} = ${(out / pay).toFixed(8)} ETH`;
-  }, [amount, quoteOut, direction, token?.symbol, isUsdcToken]);
-
-  const priceImpactPct = useMemo(() => {
     if (
-      quoteOutNum == null ||
       !Number.isFinite(payAmountNum) ||
       payAmountNum <= 0 ||
+      quoteOutNum == null ||
       quoteOutNum <= 0
     ) {
       return null;
     }
-    return computePriceImpactPct({
-      direction,
-      payAmount: payAmountNum,
-      quoteOut: quoteOutNum,
-      ethUsd,
-      referencePriceUsd: priceUsd,
-    });
-  }, [quoteOutNum, priceUsd, payAmountNum, direction, ethUsd]);
+    const rate = quoteOutNum / payAmountNum;
+    if (direction === "buy") {
+      return `1 ${counterLabel} = ${rate.toLocaleString(undefined, {
+        maximumFractionDigits: rate >= 1 ? 4 : 8,
+      })} ${token?.symbol ?? ""}`;
+    }
+    return `1 ${token?.symbol ?? ""} = ${rate.toLocaleString(undefined, {
+      maximumFractionDigits: rate >= 1 ? 4 : 8,
+    })} ${counterLabel}`;
+  }, [payAmountNum, quoteOutNum, direction, token?.symbol, counterLabel]);
+
+  /**
+   * Measured by the quote API against the pool being traded. Null means it
+   * could not be measured, so nothing is shown — a stale external price feed
+   * is not a usable substitute and used to invent several percent of impact on
+   * trades that had none.
+   */
+  const priceImpactPct = useMemo(
+    () => (quoteImpactBps == null ? null : quoteImpactBps / 100),
+    [quoteImpactBps]
+  );
 
   const needsImpactAck =
     hasLiquidity === true &&
@@ -437,43 +555,44 @@ export default function TokenSwapPanel({
     setHighImpactAck(false);
   }, [token?.address, direction, amount, dex]);
 
-  const isWethPage = isWethToken;
+  const defaultBuyAmount = defaultAmountFor(effectiveCounter);
 
-  const walletBalances = useMemo(() => {
-    const rows: { label: string; value: string }[] = [
-      { label: "ETH", value: ethBalance.toFixed(4) },
-      { label: "WETH", value: wethBalance.toFixed(4) },
-    ];
-    if (usdcBalance > 0) {
-      rows.push({ label: "USDC", value: usdcBalance.toFixed(2) });
-    }
-    if (!isWethPage && token) {
-      rows.push({
-        label: token.symbol,
-        value: formatTokenBalanceDisplay(tokenBalance, tokenDecimals),
-      });
-    }
-    return rows;
-  }, [ethBalance, wethBalance, usdcBalance, tokenBalance, token, isWethPage, tokenDecimals]);
+  const resetAmount = useCallback(
+    (d: "buy" | "sell") => {
+      setAmount(d === "buy" ? defaultBuyAmount : "");
+      setQuoteOut(null);
+      setMinReceive(null);
+      setActivePct(null);
+    },
+    [defaultBuyAmount]
+  );
 
   const setDirectionSafe = (d: "buy" | "sell") => {
     setDirection(d);
-    setAmount(d === "buy" ? "0.01" : "");
+    resetAmount(d);
+  };
+
+  const pickCounter = (next: SwapCounter) => {
+    if (sameCounter(next, effectiveCounter)) return;
+    setCounter(next);
+    setAmount(direction === "buy" ? defaultAmountFor(next) : "");
     setQuoteOut(null);
     setMinReceive(null);
     setActivePct(null);
   };
 
-  const flipDirection = () => {
-    setDirectionSafe(direction === "buy" ? "sell" : "buy");
-  };
+  const openPicker = () => setPickerOpen(true);
+
+  const flipDirection = () => setDirectionSafe(direction === "buy" ? "sell" : "buy");
 
   const setPct = (pct: number, label: string) => {
     setActivePct(label);
     if (direction === "buy") {
-      const fraction = pct < 0 ? MAX_ETH_FRACTION : pct;
-      const v = ethBalance * fraction;
-      setAmount(v > 0 ? formatTokenInputAmount(v, 18) : "0");
+      // Native ETH doubles as the gas token, so MAX has to leave a buffer.
+      const fraction =
+        pct < 0 ? (effectiveCounter.kind === "eth" ? MAX_ETH_FRACTION : 1) : pct;
+      const v = counterBalance * fraction;
+      setAmount(v > 0 ? formatTokenInputAmount(v, counterDecimals) : "0");
     } else {
       const fraction = pct < 0 ? MAX_TOKEN_FRACTION : pct;
       setAmount(amountFromBalanceFraction(tokenBalance, tokenDecimals, fraction));
@@ -496,10 +615,7 @@ export default function TokenSwapPanel({
       return;
     }
     if (!hasLiquidity) {
-      showToast(
-        quoteError || "No swap route — try Aerodrome or wait for indexing",
-        ""
-      );
+      showToast(quoteError || "No swap route — try Aerodrome or wait for indexing", "");
       return;
     }
     const ok = await handleTokenSwap({
@@ -511,15 +627,25 @@ export default function TokenSwapPanel({
       slippageBps: parseSlippageBps(slippage),
       dex,
       referrer,
-      payAsset: "eth",
-      receiveAsset: "eth",
+      counterDecimals,
+      payAsset: direction === "buy" ? counterAssetParam : "eth",
+      receiveAsset: direction === "sell" ? counterAssetParam : "eth",
+      payToken: direction === "buy" ? counterTokenParam : null,
+      receiveToken: direction === "sell" ? counterTokenParam : null,
     });
     if (ok) {
-      setAmount(direction === "buy" ? "0.01" : "");
-      setActivePct(null);
+      resetAmount(direction);
       refreshBalances();
       window.setTimeout(refreshBalances, 2500);
       window.setTimeout(refreshBalances, 8000);
+    }
+  };
+
+  const onUnwrapWeth = async () => {
+    const ok = await handleUnwrapWeth();
+    if (ok) {
+      refreshBalances();
+      window.setTimeout(refreshBalances, 3000);
     }
   };
 
@@ -533,18 +659,33 @@ export default function TokenSwapPanel({
 
   const swapReady = hasPool !== false || hasLiquidity === true;
   const slippageValid = parseSlippageBps(slippage) > 0;
-  const paySymbol = direction === "buy" ? "ETH" : token.symbol;
-  const receiveSymbol =
-    direction === "buy"
-      ? token.symbol
-      : quoteReceiveAsset === "usdc"
-        ? "USDC"
-        : "ETH";
+  const paySymbol = direction === "buy" ? counterLabel : token.symbol;
+  const receiveSymbol = direction === "buy" ? token.symbol : counterLabel;
+  const payBalance = direction === "buy" ? counterBalance : tokenBalance;
+  const payBalanceDecimals = direction === "buy" ? counterDecimals : tokenDecimals;
+  const insufficientBalance =
+    Boolean(wallet) &&
+    !guestMode &&
+    Number.isFinite(payAmountNum) &&
+    payAmountNum > 0 &&
+    payAmountNum > payBalance;
+
+  /**
+   * Direct Uniswap/Aerodrome/Slipstream routes only cover the ETH pair; every
+   * other counter token is routed by the 0x aggregator, so picking a venue by
+   * hand is meaningless there and the swap is blocked if 0x is unconfigured.
+   */
+  const needsAggregator = effectiveCounter.kind !== "eth";
+  const aggregatorMissing = needsAggregator && !aggregatorReady;
+  const routeSelectable = !needsAggregator;
+
   const canSwap =
     Boolean(amount) &&
-    parseFloat(amount) > 0 &&
+    payAmountNum > 0 &&
     slippageValid &&
     hasLiquidity &&
+    !insufficientBalance &&
+    !aggregatorMissing &&
     !(needsImpactAck && !highImpactAck) &&
     !(antiSnipeActive && direction === "buy" && !guestMode);
 
@@ -567,15 +708,16 @@ export default function TokenSwapPanel({
   const ctaLabel = (() => {
     if (guestMode || !wallet) return "Connect wallet";
     if (swapLoading) return "Confirm in wallet…";
-    if (!amount || parseFloat(amount) <= 0) return "Enter an amount";
+    if (!amount || payAmountNum <= 0) return "Enter an amount";
+    if (insufficientBalance) return `Not enough ${paySymbol}`;
+    if (aggregatorMissing) return `${counterLabel} routing unavailable`;
     if (!hasLiquidity) return "No route available";
     if (needsImpactAck && !highImpactAck) return "Confirm price impact";
     if (antiSnipeActive && direction === "buy") return "Buys paused";
-    const usd = payUsd;
-    if (usd != null && usd > 0) {
+    if (payUsd != null && payUsd > 0) {
       return direction === "buy"
-        ? `Buy ${formatUsd(usd)} of ${token.symbol}`
-        : `Sell ${formatUsd(usd)} of ${token.symbol}`;
+        ? `Buy ${formatUsd(payUsd)} of ${token.symbol}`
+        : `Sell ${formatUsd(payUsd)} of ${token.symbol}`;
     }
     return direction === "buy" ? `Buy ${token.symbol}` : `Sell ${token.symbol}`;
   })();
@@ -621,45 +763,73 @@ export default function TokenSwapPanel({
         {wallet && !guestMode && (
           <div className="swap-wallet-row swap-wallet-row-multi">
             <Wallet size={14} className="text-slate-500 shrink-0" />
-            {walletBalances.map((b, i) => (
-              <span key={b.label} className="inline-flex items-center gap-1.5">
-                {i > 0 && <span className="text-slate-600">·</span>}
+            <span>
+              <span className="text-slate-300 font-semibold">{ethBalance.toFixed(4)}</span>{" "}
+              <span className="text-slate-500">ETH</span>
+            </span>
+            {effectiveCounter.kind === "token" && counterTokenBalance > 0 && (
+              <>
+                <span className="text-slate-600">·</span>
                 <span>
-                  <span className="text-slate-300 font-semibold">{b.value}</span>{" "}
-                  <span className="text-slate-500">{b.label}</span>
+                  <span className="text-slate-300 font-semibold">
+                    {formatTokenBalanceDisplay(counterTokenBalance, counterDecimals)}
+                  </span>{" "}
+                  <span className="text-slate-500">{counterLabel}</span>
                 </span>
-              </span>
-            ))}
+              </>
+            )}
+            {!isWethToken && tokenBalance > 0 && (
+              <>
+                <span className="text-slate-600">·</span>
+                <span>
+                  <span className="text-slate-300 font-semibold">
+                    {formatTokenBalanceDisplay(tokenBalance, tokenDecimals)}
+                  </span>{" "}
+                  <span className="text-slate-500">{token.symbol}</span>
+                </span>
+              </>
+            )}
           </div>
         )}
 
-        {wethBalance > 0 && !isWethPage && (
-          <p className="swap-weth-hint">
-            You have {wethBalance.toFixed(4)} WETH —{" "}
-            <a href={`/explore/token/${WETH_BASE}`} className="text-[#6BA3FF] underline">
-              open WETH to swap back to ETH
-            </a>
-          </p>
+        {wethBalance > 0 && !isWethToken && wallet && !guestMode && (
+          <div className="swap-alert swap-alert-warn flex items-center justify-between gap-3">
+            <span>
+              {wethBalance.toFixed(4)} WETH sitting idle — convert it to spendable ETH.
+            </span>
+            <button
+              type="button"
+              onClick={onUnwrapWeth}
+              disabled={swapLoading}
+              className="swap-route-chip shrink-0"
+            >
+              Unwrap
+            </button>
+          </div>
         )}
 
         {showSettings && (
           <div className="swap-settings-panel">
-            <p className="swap-settings-label">Route</p>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {ROUTE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setDex(opt.id)}
-                  className={`swap-route-chip ${dex === opt.id ? "swap-route-chip-active" : ""}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            {routeSelectable && (
+              <>
+                <p className="swap-settings-label">Route</p>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {ROUTE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setDex(opt.id)}
+                      className={`swap-route-chip ${dex === opt.id ? "swap-route-chip-active" : ""}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <p className="swap-settings-label">Slippage</p>
             <div className="flex gap-2">
-              {["0.5", "1", "3", "5"].map((s) => (
+              {SLIPPAGE_PRESETS.map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -681,7 +851,7 @@ export default function TokenSwapPanel({
             onSeeded={() => {
               setHasPool(true);
               setHasLiquidity(null);
-              setAmount("0.01");
+              setAmount(defaultBuyAmount);
             }}
           />
         )}
@@ -692,21 +862,19 @@ export default function TokenSwapPanel({
               <div className="swap-field-header">
                 <span className="swap-field-label">You pay</span>
                 <span className="swap-balance-hint">
-                  Balance{" "}
-                  {direction === "buy"
-                    ? `${formatTokenBalanceDisplay(ethBalance, 18)} ETH`
-                    : `${formatTokenBalanceDisplay(tokenBalance, tokenDecimals)} ${token.symbol}`}
+                  Balance {formatTokenBalanceDisplay(payBalance, payBalanceDecimals)}{" "}
+                  {paySymbol}
                 </span>
               </div>
               <div className="swap-amount-row">
-                <div className="swap-token-pill">
-                  {direction === "sell" ? (
+                {direction === "sell" ? (
+                  <div className="swap-token-pill">
                     <TokenAvatar symbol={token.symbol} imageUrl={token.imageUrl} />
-                  ) : (
-                    <span className="swap-eth-icon">Ξ</span>
-                  )}
-                  <span>{paySymbol}</span>
-                </div>
+                    <span>{paySymbol}</span>
+                  </div>
+                ) : (
+                  <CounterPill counter={effectiveCounter} onOpen={openPicker} />
+                )}
                 <input
                   value={amount}
                   onChange={(e) => onAmountChange(e.target.value)}
@@ -732,7 +900,12 @@ export default function TokenSwapPanel({
             </div>
 
             <div className="swap-mid-row">
-              <button type="button" onClick={flipDirection} className="swap-flip-btn" aria-label="Flip">
+              <button
+                type="button"
+                onClick={flipDirection}
+                className="swap-flip-btn"
+                aria-label="Flip direction"
+              >
                 <ArrowDownUp size={20} />
               </button>
               {exchangeRate && hasLiquidity && !quoteLoading && (
@@ -750,17 +923,15 @@ export default function TokenSwapPanel({
                 )}
               </div>
               <div className="swap-amount-row">
-                <div className="swap-token-pill">
-                  {direction === "buy" ? (
+                {direction === "buy" ? (
+                  <div className="swap-token-pill">
                     <TokenAvatar symbol={token.symbol} imageUrl={token.imageUrl} />
-                  ) : (
-                    <span className="swap-eth-icon">Ξ</span>
-                  )}
-                  <span>{receiveSymbol}</span>
-                </div>
-                <p className="swap-amount-display">
-                  {quoteLoading ? "…" : quoteOut ?? "0"}
-                </p>
+                    <span>{receiveSymbol}</span>
+                  </div>
+                ) : (
+                  <CounterPill counter={effectiveCounter} onOpen={openPicker} />
+                )}
+                <p className="swap-amount-display">{quoteLoading ? "…" : quoteOut ?? "0"}</p>
                 <SwapUsdColumn usd={receiveUsd} loading={quoteLoading} />
               </div>
             </div>
@@ -772,18 +943,14 @@ export default function TokenSwapPanel({
                 </span>
                 <span className="swap-summary-dot">·</span>
                 <span>{formatPlatformFeeLabel()} platform fee</span>
-                {payUsd != null && receiveUsd != null && payUsd > 0 && (
-                  <>
-                    <span className="swap-summary-dot">·</span>
-                    <span>
-                      Est. receive {formatUsd(receiveUsd)} after fee
-                    </span>
-                  </>
-                )}
                 {priceImpactPct != null && (
                   <>
                     <span className="swap-summary-dot">·</span>
-                    <span className={priceImpactPct >= HIGH_IMPACT_PCT ? "text-rose-300 font-semibold" : ""}>
+                    <span
+                      className={
+                        priceImpactPct >= HIGH_IMPACT_PCT ? "text-rose-300 font-semibold" : ""
+                      }
+                    >
                       {priceImpactPct.toFixed(1)}% impact
                     </span>
                   </>
@@ -794,7 +961,9 @@ export default function TokenSwapPanel({
             {(liveTokenPriceUsd != null || poolLiquidityUsd != null) && (
               <p className="swap-meta-line">
                 {liveTokenPriceUsd != null && liveTokenPriceUsd > 0 && (
-                  <>1 {token.symbol} ≈ {formatSubscriptPrice(liveTokenPriceUsd)}</>
+                  <>
+                    1 {token.symbol} ≈ {formatSubscriptPrice(liveTokenPriceUsd)}
+                  </>
                 )}
                 {poolLiquidityUsd != null && poolLiquidityUsd > 0 && (
                   <>
@@ -805,25 +974,29 @@ export default function TokenSwapPanel({
               </p>
             )}
 
-            {direction === "buy" && activePct === "MAX" && (
+            {direction === "buy" && activePct === "MAX" && effectiveCounter.kind === "eth" && (
               <p className="swap-gas-hint">MAX keeps a small ETH buffer for network fees.</p>
-            )}
-            {direction === "sell" && activePct === "MAX" && tokenBalance > 0 && (
-              <p className="swap-gas-hint">MAX uses your full {token.symbol} balance (minus rounding dust).</p>
             )}
 
             {antiSnipeActive && direction === "buy" && antiSnipeMsg && (
               <div className="swap-alert swap-alert-warn">{antiSnipeMsg}</div>
             )}
 
-            {hasLiquidity === false && !quoteLoading && (
+            {aggregatorMissing && (
+              <div className="swap-alert swap-alert-warn">
+                Trading against {counterLabel} needs the 0x aggregator, which is not
+                configured. Switch to ETH.
+              </div>
+            )}
+
+            {hasLiquidity === false && !quoteLoading && !aggregatorMissing && (
               <div className="swap-alert swap-alert-warn">
                 {quoteError ?? "No in-app route yet."}{" "}
                 <a
                   href={aerodromeSwapUrl(token.address)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#6BA3FF] underline inline-flex items-center gap-1"
+                  className="text-[var(--ink)] underline inline-flex items-center gap-1"
                 >
                   Aerodrome <ExternalLink size={10} />
                 </a>
@@ -857,16 +1030,32 @@ export default function TokenSwapPanel({
               <a href={aerodromeSwapUrl(token.address)} target="_blank" rel="noopener noreferrer">
                 Aerodrome <ExternalLink size={10} />
               </a>
-              <a href={aerodromeDepositUrl(token.address)} target="_blank" rel="noopener noreferrer">
+              <a
+                href={aerodromeDepositUrl(token.address)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Add liquidity <ExternalLink size={10} />
               </a>
-              <a href={dexscreenerTokenUrl(token.address)} target="_blank" rel="noopener noreferrer">
+              <a
+                href={dexscreenerTokenUrl(token.address)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Chart <ExternalLink size={10} />
               </a>
             </div>
           </>
         )}
       </div>
+
+      <TokenPickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={pickCounter}
+        excludeAddress={token.address}
+        title={direction === "buy" ? "Pay with" : "Receive"}
+      />
     </div>
   );
 }

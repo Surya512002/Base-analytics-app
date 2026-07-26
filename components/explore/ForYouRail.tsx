@@ -16,13 +16,13 @@ function ForYouCard({
     <button
       type="button"
       onClick={onOpen}
-      className="shrink-0 snap-start w-[188px] sm:w-[200px] rounded-xl border border-violet-500/25 bg-violet-500/[0.06] p-3.5 text-left hover:border-violet-400/40 transition-colors"
+      className="shrink-0 snap-start w-[188px] sm:w-[200px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3.5 text-left hover:border-[var(--border-strong)] transition-colors"
     >
-      <p className="text-[10px] font-bold uppercase tracking-wider text-violet-300 mb-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] mb-2">
         For you
       </p>
       <p className="text-[13px] font-semibold text-white truncate">{token.name}</p>
-      <p className="text-[11px] text-[#6BA3FF] font-mono">${token.symbol}</p>
+      <p className="text-[11px] text-[var(--ink-muted)] font-mono">${token.symbol}</p>
       {market?.volume24h != null && market.volume24h > 0 && (
         <p className="text-[10px] text-slate-500 mt-2 font-mono">
           Vol ${market.volume24h >= 1000 ? `${(market.volume24h / 1000).toFixed(0)}K` : market.volume24h.toFixed(0)}
@@ -46,7 +46,7 @@ export default function ForYouRail({
   return (
     <section>
       <div className="mb-4">
-        <p className="section-eyebrow mb-1 text-violet-300/90">Personalized</p>
+        <p className="section-eyebrow mb-1">Personalized</p>
         <h2 className="font-display text-xl sm:text-2xl font-bold text-[var(--ink)] tracking-tight">
           For you
         </h2>

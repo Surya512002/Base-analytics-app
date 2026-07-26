@@ -6,6 +6,7 @@ import {
 import {
   quoteSlipstreamExactIn,
   SLIPSTREAM_SWAP_ROUTER,
+  type SlipstreamTickSpacing,
 } from "@/lib/launchpad/slipstream";
 import {
   quoteSwapExactIn,
@@ -31,7 +32,7 @@ export type DexQuoteResult = {
   slipstreamHasLiquidity: boolean;
   uniswapFeeTier?: UniswapFeeTier;
   aerodromeStable?: boolean;
-  slipstreamTickSpacing?: number;
+  slipstreamTickSpacing?: SlipstreamTickSpacing;
 };
 
 export async function quoteLaunchSwap(params: {

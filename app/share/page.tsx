@@ -119,7 +119,7 @@ export default async function SharePage({ searchParams }: Props) {
             <p className="text-[11px] text-center text-[#6BA3FF] font-semibold">{SHARE_HASHTAGS}</p>
             <Link
               href={ref ? `/?ref=${ref}` : "/"}
-              className="flex items-center justify-center w-full min-h-[52px] py-4 rounded-xl font-bold text-[15px] text-[#080808] bg-white hover:bg-[#6BA3FF] transition-colors"
+              className="btn-primary flex items-center justify-center w-full min-h-[52px] py-4 rounded-xl font-bold text-[15px] transition-colors"
             >
               Accept challenge — get my score →
             </Link>

@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 const PAY_TO = APP_TREASURY;
 const NETWORK: Network = "eip155:8453";
-const USDC_ADDRESS = "0x833589fCD6EDB6E08f4c7C32D4f71b54bdA02913";
+const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PRODUCT_ID = "farcaster" as const;
 
 function buildPaymentRequired(req: NextRequest): PaymentRequired {

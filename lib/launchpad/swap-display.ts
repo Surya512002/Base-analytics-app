@@ -22,17 +22,20 @@ export function grossFromNet(net: number): number {
 }
 
 /**
- * USD values for a swap, anchored on ETH.
+ * USD values for a swap, anchored on the counter asset (the ETH or USDC side).
  *
- * Every in-app swap routes token↔ETH, and ETH/USD is our one reliable price
- * feed, so we derive both the pay and receive USD from the ETH leg + the live
- * quote. This works consistently for ANY asset (memecoins, USDC, WETH) instead
- * of trusting a possibly-stale DexScreener token price for the counter side.
+ * Every in-app swap pairs the page token against a counter asset we have a
+ * reliable USD price for, so both sides are derived from that leg + the live
+ * quote. This works for ANY page token instead of trusting a possibly-stale
+ * DexScreener price for the token side.
  *
- * - Buy  (ETH in → token out): pay = gross ETH value, receive = net ETH value
- *   (post platform fee). The token you receive is worth ~the net ETH you spent.
- * - Sell (token in → ETH out): receive = ETH out value, pay = grossed-up value
- *   (what the tokens were worth before the platform fee).
+ * `counterUsd` is USD per unit of the counter asset: the live ETH price for
+ * ETH/WETH routes, or 1 for USDC routes.
+ *
+ * - Buy  (counter in → token out): pay = gross value, receive = net value
+ *   (post platform fee). The token you receive is worth ~the net you spent.
+ * - Sell (token in → counter out): receive = counter out value, pay = grossed-up
+ *   value (what the tokens were worth before the platform fee).
  *
  * Price impact/slippage beyond the fee is surfaced separately via priceImpact.
  */
@@ -40,73 +43,58 @@ export function computeSwapUsd(opts: {
   direction: "buy" | "sell";
   payAmount: number;
   quoteOut: number | null;
-  ethUsd: number;
+  counterUsd: number;
 }): { payUsd: number | null; receiveUsd: number | null } {
-  const { direction, payAmount, quoteOut, ethUsd } = opts;
-  const validEth = Number.isFinite(ethUsd) && ethUsd > 0;
+  const { direction, payAmount, quoteOut, counterUsd } = opts;
+  const validCounter = Number.isFinite(counterUsd) && counterUsd > 0;
 
   if (direction === "buy") {
-    if (!Number.isFinite(payAmount) || payAmount <= 0 || !validEth) {
+    if (!Number.isFinite(payAmount) || payAmount <= 0 || !validCounter) {
       return { payUsd: null, receiveUsd: null };
     }
-    const payUsd = payAmount * ethUsd;
+    const payUsd = payAmount * counterUsd;
     return { payUsd, receiveUsd: netAfterPlatformFee(payUsd) };
   }
 
-  // Sell: ETH out is the reliable side.
-  if (quoteOut == null || !Number.isFinite(quoteOut) || quoteOut <= 0 || !validEth) {
+  if (
+    quoteOut == null ||
+    !Number.isFinite(quoteOut) ||
+    quoteOut <= 0 ||
+    !validCounter
+  ) {
     return { payUsd: null, receiveUsd: null };
   }
-  const receiveUsd = quoteOut * ethUsd;
+  const receiveUsd = quoteOut * counterUsd;
   return { payUsd: grossFromNet(receiveUsd), receiveUsd };
 }
 
 /**
- * Token unit price implied by the live quote (USD per 1 token), anchored on ETH.
- * Reliable for every asset since it comes straight from the executable route.
+ * Token unit price implied by the live quote (USD per 1 token), anchored on the
+ * counter asset. Reliable for every token since it comes straight from the
+ * executable route.
  */
 export function impliedTokenPriceUsd(opts: {
   direction: "buy" | "sell";
   payAmount: number;
   quoteOut: number;
-  ethUsd: number;
+  counterUsd: number;
 }): number | null {
-  const { direction, payAmount, quoteOut, ethUsd } = opts;
+  const { direction, payAmount, quoteOut, counterUsd } = opts;
   if (
     !Number.isFinite(payAmount) ||
     payAmount <= 0 ||
     !Number.isFinite(quoteOut) ||
     quoteOut <= 0 ||
-    !Number.isFinite(ethUsd) ||
-    ethUsd <= 0
+    !Number.isFinite(counterUsd) ||
+    counterUsd <= 0
   ) {
     return null;
   }
   if (direction === "buy") {
-    // netEth spent buys quoteOut tokens.
-    const netEthUsd = netAfterPlatformFee(payAmount) * ethUsd;
-    return netEthUsd / quoteOut;
+    const netSpentUsd = netAfterPlatformFee(payAmount) * counterUsd;
+    return netSpentUsd / quoteOut;
   }
-  // payAmount tokens (net of fee) yield quoteOut ETH.
   const netTokens = netAfterPlatformFee(payAmount);
   if (netTokens <= 0) return null;
-  return (quoteOut * ethUsd) / netTokens;
-}
-
-/**
- * Price impact %: how far the quote's execution price sits from the reference
- * market price (DexScreener). Returns null when we lack a sane reference.
- */
-export function computePriceImpactPct(opts: {
-  direction: "buy" | "sell";
-  payAmount: number;
-  quoteOut: number;
-  ethUsd: number;
-  referencePriceUsd: number | null;
-}): number | null {
-  const { referencePriceUsd } = opts;
-  if (referencePriceUsd == null || referencePriceUsd <= 0) return null;
-  const implied = impliedTokenPriceUsd(opts);
-  if (implied == null || implied <= 0) return null;
-  return Math.abs(1 - implied / referencePriceUsd) * 100;
+  return (quoteOut * counterUsd) / netTokens;
 }

@@ -199,8 +199,8 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
       </div>
 
       {!BADGE_MARKETPLACE_CONTRACT && (
-        <div className="mx-4 mt-4 rounded-xl border border-violet-500/25 bg-violet-500/10 px-4 py-3">
-          <p className="text-sm font-bold text-violet-100">On-chain marketplace coming soon</p>
+        <div className="mx-4 mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3">
+          <p className="text-sm font-bold text-[var(--ink)]">On-chain marketplace coming soon</p>
           <p className="readable-body text-xs mt-1">
             Mint badges in the catalog and share them — listings go live when the marketplace contract
             is deployed.

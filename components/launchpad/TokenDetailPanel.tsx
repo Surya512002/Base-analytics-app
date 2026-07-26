@@ -234,7 +234,7 @@ export default function TokenDetailPanel({
           <button
             type="button"
             onClick={onBack}
-            className="text-sm font-bold text-[#6BA3FF] hover:text-white shrink-0"
+            className="text-sm font-bold text-[var(--ink)] hover:text-white shrink-0"
           >
             ← Back
           </button>
@@ -246,14 +246,14 @@ export default function TokenDetailPanel({
               className="w-10 h-10 rounded-xl object-cover border border-white/10"
             />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-[#0052FF]/25 border border-[#0052FF]/40 flex items-center justify-center text-sm font-black text-[#6BA3FF]">
+            <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
               {token.symbol.slice(0, 2)}
             </div>
           )}
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-white truncate">
               {token.name}{" "}
-              <span className="text-[#6BA3FF]">${token.symbol}</span>
+              <span className="text-[var(--ink-muted)]">${token.symbol}</span>
             </h1>
             <p className="text-[11px] text-slate-500">
               {priceUsd ? formatSubscriptPrice(priceUsd) : "—"}
@@ -263,13 +263,13 @@ export default function TokenDetailPanel({
         </div>
       ) : (
       /* Hero */
-      <div className="rounded-3xl border border-[#0052FF]/25 bg-linear-to-br from-[#0052FF]/12 via-[#0a1220]/90 to-black/40 overflow-hidden">
-        <div className="h-1 bg-linear-to-r from-[#0052FF] via-[#3B7FFF] to-emerald-400" />
+      <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
+        <div className="h-1 bg-[var(--bg-raised)]" />
         <div className="p-5 sm:p-6">
           <button
             type="button"
             onClick={onBack}
-            className="text-sm font-bold text-[#6BA3FF] hover:text-white mb-4"
+            className="text-sm font-bold text-[var(--ink)] hover:text-white mb-4"
           >
             ← All tokens
           </button>
@@ -281,10 +281,10 @@ export default function TokenDetailPanel({
                 <img
                   src={token.imageUrl}
                   alt=""
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-white/10 shadow-lg shadow-[#0052FF]/20"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-white/10"
                 />
               ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0052FF]/25 border border-[#0052FF]/40 flex items-center justify-center text-xl font-black text-[#6BA3FF]">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-xl font-black text-[var(--ink-muted)]">
                   {token.symbol.slice(0, 2)}
                 </div>
               )}
@@ -293,7 +293,7 @@ export default function TokenDetailPanel({
                   <h1 className="text-2xl sm:text-3xl font-black text-white truncate">
                     {token.name}
                   </h1>
-                  <span className="text-lg sm:text-xl font-black text-[#6BA3FF]">
+                  <span className="text-lg sm:text-xl font-black text-[var(--ink-muted)]">
                     ${token.symbol}/ETH
                   </span>
                 </div>
@@ -307,7 +307,7 @@ export default function TokenDetailPanel({
                   <span className="truncate">{token.address}</span>
                 </button>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[#0052FF]/20 text-[#6BA3FF] border border-[#0052FF]/30">
+                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--bg-hover)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                     {tokenBadgeLabel(token)}
                   </span>
                   {appLaunch && (
@@ -319,7 +319,7 @@ export default function TokenDetailPanel({
                     ETH
                   </span>
                   {token.launchPreset && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-200 border border-violet-500/25">
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                       {token.launchPreset}
                     </span>
                   )}
@@ -369,7 +369,7 @@ export default function TokenDetailPanel({
                         "noopener,noreferrer"
                       )
                     }
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 text-[11px] font-bold text-purple-200 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   >
                     <MessageCircle size={12} /> Farcaster
                   </button>
@@ -384,7 +384,7 @@ export default function TokenDetailPanel({
                         })
                         .catch(() => void copy(tokenSharePageUrl, "Share link copied"));
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-[11px] font-bold text-violet-200 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   >
                     <Share2 size={12} /> Share
                   </button>
@@ -399,7 +399,7 @@ export default function TokenDetailPanel({
                     href={`https://dexscreener.com/base/${token.address}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-cyan-300 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   >
                     DexScreener <ExternalLink size={12} />
                   </a>
@@ -497,7 +497,7 @@ export default function TokenDetailPanel({
             onClick={() => setTab(t.id)}
             className={`flex-1 min-w-[88px] py-2.5 rounded-lg text-xs font-black transition-colors ${
               tab === t.id
-                ? "bg-[#0052FF]/25 text-[#6BA3FF] border border-[#0052FF]/40"
+                ? "bg-[var(--accent-soft)] text-[var(--ink)] border border-[var(--accent)]"
                 : "text-slate-500 hover:text-slate-300"
             }`}
           >
@@ -533,7 +533,7 @@ export default function TokenDetailPanel({
               />
             </div>
             <p className="md:hidden text-center text-[11px] text-slate-500">
-              Open the <button type="button" className="text-[#6BA3FF] font-bold" onClick={() => setTab("chart")}>Chart</button> tab for live price action.
+              Open the <button type="button" className="text-[var(--ink)] font-bold" onClick={() => setTab("chart")}>Chart</button> tab for live price action.
             </p>
           </div>
         ) : (
@@ -619,7 +619,7 @@ export default function TokenDetailPanel({
                                   href={txUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-cyan-300 hover:text-white font-mono"
+                                  className="text-[var(--ink-muted)] hover:text-[var(--ink)] font-mono"
                                 >
                                   {shortAddr(s.txHash!)}
                                 </a>
@@ -683,7 +683,7 @@ export default function TokenDetailPanel({
                               href={`https://basescan.org/address/${h.address}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-cyan-300 hover:text-white font-mono"
+                              className="text-[var(--ink-muted)] hover:text-[var(--ink)] font-mono"
                             >
                               {shortAddr(h.address)}
                             </a>
@@ -691,7 +691,7 @@ export default function TokenDetailPanel({
                           <td className="py-2.5 px-2 text-right text-white font-mono">
                             {formatCompact(h.balance)} {token.symbol}
                           </td>
-                          <td className="py-2.5 px-2 text-right text-[#6BA3FF] font-bold">
+                          <td className="py-2.5 px-2 text-right text-[var(--ink-muted)] font-bold">
                             {h.pctSupply.toFixed(2)}%
                           </td>
                           <td className="py-2.5 px-2 text-right text-emerald-300/90">
@@ -703,7 +703,7 @@ export default function TokenDetailPanel({
                                 h.tag === "Pool liquidity"
                                   ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
                                   : h.tag === "Creator"
-                                    ? "bg-[#0052FF]/15 text-[#6BA3FF] border border-[#0052FF]/25"
+                                    ? "bg-[var(--bg-hover)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
                                     : "bg-white/[0.06] text-slate-400 border border-white/10"
                               }`}
                             >
@@ -731,7 +731,7 @@ export default function TokenDetailPanel({
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Shield size={16} className="text-[#6BA3FF]" />
+                  <Shield size={16} className="text-[var(--ink-muted)]" />
                   <p className="text-sm font-black text-white">Token facts</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-[11px]">
@@ -765,12 +765,12 @@ export default function TokenDetailPanel({
               </div>
 
               {appLaunch ? (
-                <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-5">
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles size={16} className="text-violet-200" />
-                    <p className="text-sm font-black text-violet-100">Why we beat typical launchpads</p>
+                    <Sparkles size={16} className="text-[var(--ink-muted)]" />
+                    <p className="text-sm font-black text-[var(--ink)]">Why we beat typical launchpads</p>
                   </div>
-                  <ul className="space-y-2 text-[11px] text-violet-100/80">
+                  <ul className="space-y-2 text-[11px] text-[var(--ink-muted)]">
                     <li>$0 launch fee — pay Base gas only</li>
                     <li>
                       {formatPlatformFeeLabel()} swap fee — split on-chain:{" "}
@@ -783,12 +783,12 @@ export default function TokenDetailPanel({
                   </ul>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.06] p-5">
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles size={16} className="text-cyan-200" />
-                    <p className="text-sm font-black text-cyan-100">External token</p>
+                    <Sparkles size={16} className="text-[var(--ink-muted)]" />
+                    <p className="text-sm font-black text-[var(--ink)]">External token</p>
                   </div>
-                  <ul className="space-y-2 text-[11px] text-cyan-100/80">
+                  <ul className="space-y-2 text-[11px] text-[var(--ink-muted)]">
                     <li>Discovered via DexScreener — not launched in this app</li>
                     <li>Trade via Uniswap + Aerodrome with platform fee</li>
                     <li>Creator fee split / anti-snipe apply only to app launches</li>

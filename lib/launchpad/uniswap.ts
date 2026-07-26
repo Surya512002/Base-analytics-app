@@ -1,22 +1,27 @@
 import {
-  createPublicClient,
   encodeFunctionData,
-  http,
   parseEther,
   type Address,
   type Hex,
 } from "viem";
-import { base } from "viem/chains";
-import { getBaseRpcUrls } from "@/lib/utils/base-rpc";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
 export const WETH_BASE =
   "0x4200000000000000000000000000000000000006" as const;
 
 export const SWAP_ROUTER_02 =
-  "0x2626664c2603336E57B97c5bfad9bb53f0f42e74" as const;
+  "0x2626664c2603336E57B271c5C0b26F421741e481" as const;
 
 export const QUOTER_V2 =
-  "0x3d4e44EbC4aD5650a2715f8292cd71C024322B1e" as const;
+  "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a" as const;
+
+/**
+ * SwapRouter02 recipient sentinel meaning "the router itself"
+ * (`Constants.ADDRESS_THIS`). Required to hold WETH mid-multicall so it can be
+ * unwrapped to native ETH in the same transaction.
+ */
+const ROUTER_ADDRESS_THIS =
+  "0x0000000000000000000000000000000000000002" as const;
 
 /** Common Uniswap V3 fee tiers on Base */
 export const UNISWAP_FEE_TIERS = [500, 3000, 10000] as const;
@@ -71,16 +76,41 @@ const SWAP_ROUTER_ABI = [
     ],
     outputs: [{ name: "amountOut", type: "uint256" }],
   },
+  {
+    name: "unwrapWETH9",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "amountMinimum", type: "uint256" },
+      { name: "recipient", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "multicall",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [{ name: "data", type: "bytes[]" }],
+    outputs: [{ name: "results", type: "bytes[]" }],
+  },
 ] as const;
 
+/**
+ * Uses the shared fallback transport rather than a single RPC: quote failures
+ * are swallowed and surface to the user as "no route", so one rate-limited
+ * endpoint would silently hide every Uniswap pool.
+ */
 function getClient() {
-  return createPublicClient({
-    chain: base,
-    transport: http(getBaseRpcUrls()[0]),
-  });
+  return createBasePublicClient();
 }
 
-async function quoteFeeTier(
+/**
+ * Quote one specific fee tier.
+ *
+ * Exported so callers that already know the winning tier (price-impact probes)
+ * can spend a single `eth_call` instead of re-scanning all three.
+ */
+export async function quoteUniswapFeeTier(
   tokenIn: Address,
   tokenOut: Address,
   amountIn: bigint,
@@ -119,7 +149,7 @@ export async function quoteSwapExactIn(
   const quotes = await Promise.all(
     UNISWAP_FEE_TIERS.map(async (fee) => ({
       fee,
-      amountOut: await quoteFeeTier(tokenIn, tokenOut, amountIn, fee),
+      amountOut: await quoteUniswapFeeTier(tokenIn, tokenOut, amountIn, fee),
     }))
   );
 
@@ -159,6 +189,66 @@ export function encodeExactInputSingle(params: {
         sqrtPriceLimitX96: BigInt(0),
       },
     ],
+  });
+}
+
+/**
+ * Sell `tokenIn` for native ETH in one transaction.
+ *
+ * `exactInputSingle` can only ever pay out WETH, so the swap sends its output
+ * to the router and a batched `unwrapWETH9` withdraws it and forwards real ETH
+ * to the recipient. Without this the seller silently receives WETH.
+ */
+export function encodeExactInputSingleToEth(params: {
+  tokenIn: Address;
+  recipient: Address;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+  fee?: number;
+}): Hex {
+  const swap = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "exactInputSingle",
+    args: [
+      {
+        tokenIn: params.tokenIn,
+        tokenOut: WETH_BASE,
+        fee: params.fee ?? 3000,
+        recipient: ROUTER_ADDRESS_THIS,
+        amountIn: params.amountIn,
+        amountOutMinimum: params.amountOutMinimum,
+        sqrtPriceLimitX96: BigInt(0),
+      },
+    ],
+  });
+  const unwrap = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "unwrapWETH9",
+    args: [params.amountOutMinimum, params.recipient],
+  });
+  return encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "multicall",
+    args: [[swap, unwrap]],
+  });
+}
+
+const WETH_ABI = [
+  {
+    name: "withdraw",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "wad", type: "uint256" }],
+    outputs: [],
+  },
+] as const;
+
+/** Burn WETH for native ETH 1:1. */
+export function encodeWethWithdrawCalldata(amount: bigint): Hex {
+  return encodeFunctionData({
+    abi: WETH_ABI,
+    functionName: "withdraw",
+    args: [amount],
   });
 }
 

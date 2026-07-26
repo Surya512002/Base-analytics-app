@@ -11,7 +11,7 @@ describe("launch receipt helpers", () => {
     expect(isInvalidLaunchTokenAddress(B20_FACTORY_ADDRESS)).toBe(true);
     expect(isInvalidLaunchTokenAddress(B20_TOKEN_PLACEHOLDER)).toBe(true);
     expect(
-      isInvalidLaunchTokenAddress("0xB2000000000000000000007E07Dc0291e7897473")
+      isInvalidLaunchTokenAddress("0xb2000000000000000000007E07Dc0291e7897473")
     ).toBe(false);
   });
 });

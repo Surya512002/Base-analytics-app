@@ -39,7 +39,7 @@ export default function TabBar({ tab, doneQuests, onTabChange, guest }: TabBarPr
               ? "tab-active shadow-lg"
               : guest && t.id !== "launchpad"
                 ? "text-slate-500 hover:text-slate-300 hover:bg-white/5 opacity-70"
-                : "text-slate-400 hover:text-cyan-200 hover:bg-white/8"
+                : "text-slate-400 hover:text-[var(--ink)] hover:bg-[var(--bg-hover)]"
           } ${t.featured && tab !== t.id ? "tab-featured" : ""}`}
         >
           {t.icon}

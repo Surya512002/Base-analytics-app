@@ -189,5 +189,5 @@ export const TIER_GRADIENTS = [
   "from-amber-500 to-orange-600",
   "from-slate-300 to-slate-500",
   "from-yellow-400 to-yellow-600",
-  "from-blue-600 to-indigo-600",
+  "from-[var(--accent)] to-[var(--accent-hover)]",
 ];

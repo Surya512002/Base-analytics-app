@@ -7,6 +7,22 @@ import {
 import { base } from "viem/chains";
 import { getAlchemyKey, BASE_PUBLIC_RPC, alchemyRpcForKey } from "@/lib/constants/env";
 
+/**
+ * Keyless public Base endpoints used as fallbacks.
+ *
+ * A single swap quote fans ~11 concurrent `eth_call`s out at once (3 Uniswap fee
+ * tiers, 5 Slipstream tick spacings, 2 Aerodrome pool types).
+ * `https://mainnet.base.org` rate-limits that burst and drops calls, and because
+ * a failed quote is swallowed it reaches the user as a bogus "no route". Having
+ * real alternates lets the fallback transport recover instead.
+ */
+const PUBLIC_BASE_RPCS = [
+  BASE_PUBLIC_RPC,
+  "https://base-rpc.publicnode.com",
+  "https://base.drpc.org",
+  "https://1rpc.io/base",
+];
+
 /** Ordered RPC URLs — public Base first (Alchemy free tier often hits monthly caps). */
 export function getBaseRpcUrls(): string[] {
   const urls: string[] = [];
@@ -19,7 +35,7 @@ export function getBaseRpcUrls(): string[] {
   if (explicit && !explicit.includes("alchemy.com")) {
     urls.push(explicit);
   }
-  urls.push(BASE_PUBLIC_RPC);
+  urls.push(...PUBLIC_BASE_RPCS);
   if (explicit?.includes("alchemy.com")) {
     urls.push(explicit);
   } else if (alchemy) {
@@ -41,6 +57,12 @@ export function createPublicOnlyBaseClient() {
   });
 }
 
+/**
+ * Note: JSON-RPC batching is deliberately NOT enabled. `https://mainnet.base.org`
+ * rejects batched request arrays, which turns every quote — including ones for
+ * pools that exist — into "RPC Request failed" and, because quote errors are
+ * swallowed, into a bogus "no route" for the user.
+ */
 export function createBaseHttpTransport(): Transport {
   const urls = getBaseRpcUrls();
   const transports = urls.map((url) =>

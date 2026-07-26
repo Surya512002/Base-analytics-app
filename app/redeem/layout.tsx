@@ -33,7 +33,7 @@ export const metadata: Metadata = {
           name: "Redeem Base Voucher",
           url: `${APP_URL}/redeem`,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#020508",
+          splashBackgroundColor: "#0a0a0b",
         },
       },
     }),

@@ -225,7 +225,7 @@ if (!wallet) return null;
                       key={sym}
                       type="button"
                       onClick={() => openLaunchpad()}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-white/10 text-slate-300 hover:border-[#0052FF]/40 hover:text-[#6BA3FF]"
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-white/10 text-slate-300 hover:border-[var(--border-strong)] hover:text-[var(--ink)]"
                     >
                       {sym}
                     </button>
@@ -426,18 +426,18 @@ if (!wallet) return null;
                   return(
                     <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-white/[0.03] transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-white/8':''}`}>
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${isGM?'bg-yellow-500/10 border-yellow-500/20':isBoost?'bg-cyan-500/15 border-cyan-500/20':isCI?'bg-orange-500/10 border-orange-500/20':isBadge?'bg-yellow-500/10 border-yellow-500/20':isDEX?'bg-cyan-500/10 border-cyan-500/18':isBridge?'bg-purple-500/10 border-purple-500/20':'bg-cyan-500/10 border-cyan-500/15'}`}>{icon}</div>
+                        <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${isGM?'bg-yellow-500/10 border-yellow-500/20':isCI?'bg-orange-500/10 border-orange-500/20':isBadge?'bg-yellow-500/10 border-yellow-500/20':'bg-[var(--bg-elevated)] border-[var(--border-subtle)]'}`}>{icon}</div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <p className="text-xs font-black text-white uppercase truncate">{label}</p>
-                            {badge&&<span className="text-[9px] bg-cyan-500/10 border border-cyan-500/18 text-cyan-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
+                            {badge&&<span className="text-[9px] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
                           </div>
                           <p className="text-[10px] text-slate-500 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
                           {tx.to&&<p className="text-[9px] text-slate-700 font-mono truncate">{tx.to.slice(0,10)}…</p>}
                         </div>
                       </div>
                       <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
-                        className="shrink-0 text-[10px] font-black text-cyan-400 hover:text-cyan-300 bg-cyan-500/8 hover:bg-cyan-500/12 border border-cyan-500/18 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
+                        className="shrink-0 text-[10px] font-black text-[var(--ink-muted)] hover:text-[var(--ink)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
                         <ExternalLink size={9}/>{tx.value&&tx.value>0?`${parseFloat(tx.value.toFixed(4))} ${tx.asset||'ETH'}`:'View ↗'}
                       </a>
                     </div>

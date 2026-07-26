@@ -4,7 +4,7 @@ import type { AppTab } from "@/hooks/useWalletApp";
 const STRIP: { icon: React.ReactNode; label: string; tab?: AppTab; core?: boolean }[] = [
   { icon: <Rocket size={13} className="text-emerald-400" />, label: "Launchpad", tab: "launchpad", core: true },
   { icon: <Zap size={13} className="text-amber-400" />, label: "Quests & XP", tab: "checkin" },
-  { icon: <Gift size={13} className="text-cyan-400" />, label: "Base Voucher", tab: "basehub" },
+  { icon: <Gift size={13} className="text-[var(--ink-muted)]" />, label: "Base Voucher", tab: "basehub" },
   { icon: <BarChart3 size={13} className="text-rose-400" />, label: "Wallet Analytics", tab: "dashboard" },
 ];
 
@@ -16,7 +16,7 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
   return (
     <div className="mb-4 flex flex-wrap gap-2 items-center">
       <div className="inline-flex items-center gap-2 badge-live rounded-full px-3 py-1.5">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow shadow-[0_0_6px_#10b981]" />
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow" />
         <span className="text-[9px] font-black uppercase tracking-widest">B20 launchpad live</span>
       </div>
       {STRIP.map((s) => (
@@ -24,7 +24,7 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
           key={s.label}
           type="button"
           onClick={() => s.tab && onNavigate?.(s.tab)}
-          className={`glass-panel-accent rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:border-cyan-500/40 transition ${
+          className={`glass-panel-accent rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:border-[var(--border-strong)] transition ${
             s.core ? "border-emerald-500/30" : ""
           }`}
         >

@@ -46,7 +46,7 @@ export const metadata: Metadata = {
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#020508",
+          splashBackgroundColor: "#0a0a0b",
         },
       },
     }),
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#020508] text-slate-200 antialiased theme-terminal">
+      <body className="bg-[var(--bg-deep)] text-slate-200 antialiased theme-terminal">
         <Providers>{children}</Providers>
       </body>
     </html>

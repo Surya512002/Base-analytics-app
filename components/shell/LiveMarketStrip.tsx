@@ -25,15 +25,15 @@ export default function LiveMarketStrip({
       <div className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-1">
         <span className="relative flex h-2 w-2">
           {!syncing && (
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60" />
+            <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60" />
           )}
           <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-400" />
         </span>
         <span className="text-[10px] font-black uppercase tracking-wider text-rose-200">Live</span>
       </div>
-      <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0052FF]/30 bg-[#0052FF]/10 px-2.5 py-1">
-        <Radio size={10} className="text-[#6BA3FF]" />
-        <span className="text-[10px] font-bold text-[#6BA3FF]">Base mainnet</span>
+      <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-2.5 py-1">
+        <Radio size={10} className="text-[var(--ink-muted)]" />
+        <span className="text-[10px] font-bold text-[var(--ink-muted)]">Base mainnet</span>
       </div>
       <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
         <Activity size={10} className="text-emerald-400" />

@@ -88,6 +88,12 @@ export type SwapQuoteResponse = {
   uniswapFeeTier?: number;
   aerodromeStable?: boolean;
   slipstreamTickSpacing?: number;
+  /**
+   * Impact of this order's size on the winning route, measured server-side by
+   * re-quoting the same pool with a sliver of the amount. Null when it could
+   * not be measured — which is not the same as zero.
+   */
+  priceImpactBps?: number | null;
   platformFee?: string;
   grossAmount?: string;
   creator?: string;

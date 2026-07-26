@@ -131,10 +131,8 @@ import { BASE_RPC } from "@/lib/constants/env";
 import {
   ERC20_ABI,
 } from "@/lib/constants/contracts";
-import { parseUnits, parseEther, maxUint256 } from "viem";
+import { parseUnits, parseEther, formatUnits, maxUint256 } from "viem";
 import type { LeaderboardEntry } from "@/lib/types/leaderboard";
-import type { PredictionAsset, PredictionDuration } from "@/lib/constants/predictions";
-import type { StreakEntry } from "@/lib/predictions/types";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import {
   extractB20TokenFromReceipt,
@@ -149,9 +147,12 @@ import {
 } from "@/lib/b20/encode";
 import {
   encodeExactInputSingle,
+  encodeExactInputSingleToEth,
+  encodeWethWithdrawCalldata,
   SWAP_ROUTER_02,
   WETH_BASE,
 } from "@/lib/launchpad/uniswap";
+import { routerHasCode } from "@/lib/launchpad/router-guard";
 import {
   encodeAerodromeBuy,
   encodeAerodromeSell,
@@ -1138,6 +1139,11 @@ export function useWalletApp() {
           return false;
         }
 
+        if (!(await routerHasCode(router))) {
+          showToast("❌ Router unavailable on Base — try another route", "");
+          return false;
+        }
+
         let referrerBoostBps = 0;
         if (referrer) {
           const stake = await fetchOnchainStake(referrer);
@@ -1248,6 +1254,10 @@ export function useWalletApp() {
             showToast("Amount too small after platform fee", "");
             return false;
           }
+          // The aggregator signs calldata for `net` server-side, so its input is
+          // fixed. Direct DEX routes sell the whole balance and pay the platform
+          // fee out of the ETH proceeds instead, so a MAX sell leaves no dust.
+          const sellAmount = isAggregator ? net : gross;
           const spender = (
             isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
           ) as `0x${string}` | undefined;
@@ -1259,7 +1269,7 @@ export function useWalletApp() {
               functionName: "allowance",
               args: [recipient, spender],
             });
-            if (allowance < net) {
+            if (allowance < sellAmount) {
               calls.push(
                 buildContractCall(
                   token,
@@ -1282,7 +1292,7 @@ export function useWalletApp() {
                 ? encodeAerodromeSell({
                     tokenIn: token,
                     recipient,
-                    amountIn: net,
+                    amountIn: sellAmount,
                     amountOutMinimum: minOut,
                     stable: aeroStable,
                   })
@@ -1290,15 +1300,14 @@ export function useWalletApp() {
                   ? encodeSlipstreamSell({
                       tokenIn: token,
                       recipient,
-                      amountIn: net,
+                      amountIn: sellAmount,
                       amountOutMinimum: minOut,
                       tickSpacing: slipTick,
                     })
-                  : encodeExactInputSingle({
+                  : encodeExactInputSingleToEth({
                       tokenIn: token,
-                      tokenOut: weth,
                       recipient,
-                      amountIn: net,
+                      amountIn: sellAmount,
                       amountOutMinimum: minOut,
                       fee: uniFee,
                     });
@@ -1430,6 +1439,53 @@ export function useWalletApp() {
     },
     [connType, showToast, wallet]
   );
+
+  /** Withdraw the wallet's full WETH balance back to native ETH. */
+  const handleUnwrapWeth = useCallback(async (): Promise<boolean> => {
+    if (!wallet) return false;
+
+    setSwapLoading(true);
+    try {
+      const activeConn = await resolveActiveConnType(connType, wallet.address);
+      if (activeConn && activeConn !== connType) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
+      }
+      if (!activeConn) {
+        showToast("❌ Reconnect wallet to unwrap", "");
+        return false;
+      }
+
+      const pub = createBasePublicClient();
+      const balance = await pub.readContract({
+        address: WETH_BASE,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [wallet.address as `0x${string}`],
+      });
+      if (balance <= BigInt(0)) {
+        showToast("No WETH to unwrap", "");
+        return false;
+      }
+
+      const hash = await sendAppTransactions(
+        activeConn,
+        wallet.address,
+        [buildContractCall(WETH_BASE, encodeWethWithdrawCalldata(balance))],
+        { atomicBatch: true }
+      );
+      showToast(`✅ Unwrapped ${formatUnits(balance, 18)} WETH to ETH`, hash);
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message.split("\n")[0] : "Unwrap failed";
+      if (!msg.toLowerCase().includes("reject")) {
+        showToast(`❌ ${msg}`, "");
+      }
+      return false;
+    } finally {
+      setSwapLoading(false);
+    }
+  }, [connType, showToast, wallet]);
 
   const handleChallenge = useCallback(async () => {
     const addr = challenge.trim().toLowerCase();
@@ -2574,16 +2630,7 @@ export function useWalletApp() {
     handleLaunchB20,
     handleTokenSwap,
     handleSeedLiquidity,
-    /** @deprecated Predictions retired from UI — stubs for legacy PredictionsTab */
-    predictionLoading: false,
-    predictionStreak: [] as StreakEntry[],
-    handlePredictionTrade: async (_args: {
-      asset: PredictionAsset;
-      duration: PredictionDuration;
-      side: "yes" | "no";
-      usdcAmount: number;
-      marketId: number;
-    }) => false,
+    handleUnwrapWeth,
     x402Product,
     setX402Product,
     referralBonusXp,

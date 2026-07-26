@@ -95,14 +95,14 @@ export default function CommandPalette({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/75 backdrop-blur-md"
+        className="absolute inset-0 bg-black/75"
         onClick={onClose}
         aria-label="Close"
       />
       <div className="command-palette-shell relative flex flex-col overflow-hidden">
-        <div className="h-1 bg-linear-to-r from-[#0052FF] via-[#6BA3FF] to-emerald-500 shrink-0" />
+        <div className="h-1 bg-[var(--bg-raised)] shrink-0" />
         <div className="flex items-center gap-4 border-b border-white/10 px-5 sm:px-6 py-4 sm:py-5 shrink-0">
-          <Search size={22} className="text-[#6BA3FF] shrink-0" />
+          <Search size={22} className="text-[var(--ink-muted)] shrink-0" />
           <input
             autoFocus
             value={query}
@@ -134,11 +134,11 @@ export default function CommandPalette({
                       onClick={() => selectNav(item.id, item.rewardsView)}
                       className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-colors ${
                         active
-                          ? "bg-[#0052FF]/22 border border-[#0052FF]/35 text-white"
+                          ? "bg-[var(--accent-soft)] border border-[var(--accent)] text-white"
                           : "hover:bg-white/[0.06] border border-transparent text-slate-300"
                       }`}
                     >
-                      <Icon size={18} className="text-[#6BA3FF] shrink-0" />
+                      <Icon size={18} className="text-[var(--ink-muted)] shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-[15px] font-bold">{item.label}</p>
                         <p className="text-[12px] text-slate-500 truncate">{item.hint}</p>
@@ -176,14 +176,14 @@ export default function CommandPalette({
                         className="w-11 h-11 rounded-xl object-cover border border-white/10"
                       />
                     ) : (
-                      <div className="w-11 h-11 rounded-xl bg-[#0052FF]/20 border border-[#0052FF]/30 flex items-center justify-center text-sm font-black text-[#6BA3FF]">
+                      <div className="w-11 h-11 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
                         {t.symbol.slice(0, 2)}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-bold text-white truncate">
                         {t.name}{" "}
-                        <span className="text-[#6BA3FF]">${t.symbol}</span>
+                        <span className="text-[var(--ink-muted)]">${t.symbol}</span>
                       </p>
                       <p className="text-[12px] text-slate-500 font-mono">{shortAddr(t.address)}</p>
                     </div>

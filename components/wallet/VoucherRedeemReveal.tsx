@@ -81,13 +81,13 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
       aria-label="Voucher redeemed"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-[#020812]/88 backdrop-blur-xl" />
+      <div className="absolute inset-0 bg-[var(--bg-deep)]/80 backdrop-blur-xl" />
 
       {phase !== "enter" &&
         SPARKLES.map((s) => (
           <span
             key={s.id}
-            className="voucher-sparkle pointer-events-none absolute rounded-full bg-cyan-300"
+            className="voucher-sparkle pointer-events-none absolute rounded-full bg-[var(--ink)]"
             style={{
               left: s.left,
               bottom: "18%",
@@ -114,7 +114,7 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
 
         <div className="text-center mb-5 min-h-[4.5rem]">
           <p
-            className={`text-[11px] font-black uppercase tracking-[0.35em] text-cyan-300 transition-opacity duration-500 ${
+            className={`text-[11px] font-black uppercase tracking-[0.35em] text-[var(--ink-muted)] transition-opacity duration-500 ${
               phase === "reveal" ? "opacity-100" : "opacity-0"
             }`}
           >
@@ -135,7 +135,7 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_0%,rgba(255,77,122,0.35),transparent_55%)]" />
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(0,82,255,0.28),transparent_50%)]" />
               <div className="relative h-full flex flex-col items-center justify-center p-8 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-5 shadow-[0_0_40px_rgba(255,77,122,0.35)]">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-5">
                   <Gift size={32} className="text-rose-300" />
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-2">
@@ -143,7 +143,7 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
                 </p>
                 <p className="text-xl font-black text-white">A gift is waiting</p>
                 <p className="text-sm text-slate-400 mt-2">Opening your card…</p>
-                <div className="mt-6 flex items-center gap-2 text-cyan-300/80">
+                <div className="mt-6 flex items-center gap-2 text-[var(--ink-muted)]">
                   <Sparkles size={14} className="opacity-80" />
                   <span className="text-xs font-bold">Onchain greeting card</span>
                   <Sparkles size={14} className="opacity-80" />
@@ -205,7 +205,7 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
                     </div>
                     <div className="text-right">
                       <p className="text-[9px] font-bold text-slate-500 uppercase">Card</p>
-                      <p className="text-sm font-mono font-bold text-cyan-300 mt-0.5">{data.cardId}</p>
+                      <p className="text-sm font-mono font-bold text-[var(--ink)] mt-0.5">{data.cardId}</p>
                     </div>
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
                   onCreateOwn();
                   onClose();
                 }}
-                className="text-center text-sm font-black px-5 py-3 rounded-xl bg-cyan-500/15 border border-cyan-400/35 text-cyan-200 hover:bg-cyan-500/25 transition"
+                className="text-center text-sm font-black px-5 py-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--ink)] transition"
               >
                 Create your own gift cards
               </button>

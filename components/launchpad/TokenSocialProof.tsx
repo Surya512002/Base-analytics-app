@@ -74,7 +74,7 @@ export default function TokenSocialProof({
             {tagged.map((h) => (
               <span
                 key={h.address}
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-200 border border-violet-500/25"
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
               >
                 {h.tag}
               </span>
@@ -99,7 +99,7 @@ export default function TokenSocialProof({
         </div>
         <Link
           href={`/creator/${creator}`}
-          className="text-sm font-bold text-[#6BA3FF] hover:text-white truncate block"
+          className="text-sm font-bold text-[var(--ink)] hover:text-white truncate block"
         >
           {fc?.displayName ?? fc?.username ?? shortAddr(creator)}
         </Link>

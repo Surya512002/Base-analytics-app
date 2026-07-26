@@ -7,7 +7,7 @@ export default function AppFooterNav() {
       <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
         <Link
           href="/explore"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-bold text-[#6BA3FF] hover:text-white border border-[#0052FF]/30 transition"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)] transition"
         >
           <Compass size={13} /> Explore
         </Link>
@@ -21,7 +21,7 @@ export default function AppFooterNav() {
           href="/hall-of-fame"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-bold text-slate-400 hover:text-white border border-white/10 transition"
         >
-          <Trophy size={13} className="text-champagne" /> Hall of Fame
+          <Trophy size={13} className="text-[var(--ink-muted)]" /> Hall of Fame
         </Link>
         <Link
           href="/help#api"

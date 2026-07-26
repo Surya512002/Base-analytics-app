@@ -42,12 +42,12 @@ export default function VoucherSharePanel({ batch }: VoucherSharePanelProps) {
   };
 
   return (
-    <div className="rounded-2xl border-2 border-cyan-500/30 bg-cyan-500/8 p-4 sm:p-5 space-y-4">
+    <div className="rounded-2xl border-2 border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 sm:p-5 space-y-4">
       <div>
-        <p className="text-sm font-black text-cyan-200">Share your gift cards</p>
+        <p className="text-sm font-black text-[var(--ink)]">Share your gift cards</p>
         <p className="text-xs text-slate-400 mt-1 leading-relaxed">
           Spread the word on Farcaster or copy a ready-made message. Recipients redeem at{" "}
-          <span className="text-cyan-400 font-bold">/redeem</span>.
+          <span className="text-[var(--ink)] font-bold">/redeem</span>.
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default function VoucherSharePanel({ batch }: VoucherSharePanelProps) {
         href={buildBatchFarcasterUrl(batch)}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm bg-purple-500/15 border border-purple-400/30 text-purple-200 hover:bg-purple-500/25 transition"
+        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--ink)] transition"
       >
         Cast on Farcaster ↗
       </a>

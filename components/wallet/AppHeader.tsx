@@ -25,13 +25,13 @@ export default function AppHeader({
   showCommandPalette,
 }: AppHeaderProps) {
   return (
-    <header className="app-header sticky top-0 z-40 bg-[#03080f]/90 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
+    <header className="app-header sticky top-0 z-40 bg-[var(--bg-deep)]/90 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <Link href="/explore" className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
             <AppLogo size="sm" />
             <span className="font-black text-sm sm:text-base text-white truncate tracking-wide">
-              BASE<span className="text-champagne">.</span>ANALYTICS
+              BASE<span className="text-[var(--ink)]">.</span>ANALYTICS
             </span>
           </Link>
         </div>
@@ -47,37 +47,37 @@ export default function AppHeader({
             </button>
           )}
           <div className="hidden sm:flex items-center gap-1.5 badge-live rounded-xl px-2.5 py-1.5">
-            <Rocket size={10} className="text-[#6BA3FF]" />
-            <span className="text-[10px] font-black whitespace-nowrap uppercase tracking-wide text-[#6BA3FF]">
+            <Rocket size={10} className="text-[var(--ink-muted)]" />
+            <span className="text-[10px] font-semibold whitespace-nowrap uppercase tracking-wide text-[var(--ink-muted)]">
               B20 Launchpad
             </span>
             <span className="text-emerald-300/50 mx-0.5">·</span>
             <span className="text-[10px] text-slate-300">{getDaysLeft()}d left</span>
           </div>
           <div className="flex items-center gap-1 glass-panel-accent rounded-xl px-2.5 py-1.5">
-            <Zap size={11} className="text-cyan-400" />
-            <span className="text-[10px] font-black text-cyan-300">{weeklyXP}</span>
+            <Zap size={11} className="text-[var(--ink-muted)]" />
+            <span className="text-[10px] font-black text-[var(--ink)]">{weeklyXP}</span>
             <span className="text-[9px] text-slate-400 hidden sm:inline">XP</span>
           </div>
           {!guest && walletRefreshing && (
-            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5 border border-cyan-500/20 max-w-[220px]">
-              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shrink-0" />
-              <span className="text-[9px] font-bold text-cyan-300 uppercase tracking-wide truncate">
+            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5 border border-[var(--border-subtle)] max-w-[220px]">
+              <div className="w-1.5 h-1.5 bg-[var(--ink-muted)] rounded-full animate-pulse shrink-0" />
+              <span className="text-[9px] font-bold text-[var(--ink-muted)] uppercase tracking-wide truncate">
                 {scanProgress || "Syncing history"}
               </span>
             </div>
           )}
           {!guest && sponsored > 0 && (
             <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5">
-              <Droplets size={11} className="text-cyan-400" />
-              <span className="text-[10px] text-cyan-400 font-bold">{sponsored}</span>
+              <Droplets size={11} className="text-[var(--ink-muted)]" />
+              <span className="text-[10px] text-[var(--ink-muted)] font-bold">{sponsored}</span>
             </div>
           )}
           {guest ? (
             <button
               type="button"
               onClick={onConnect}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-[11px] sm:text-xs bg-[#0052FF] hover:bg-[#1a63ff] text-white shadow-lg shadow-[#0052FF]/25"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-[11px] sm:text-xs bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-ink)] transition-colors"
             >
               <Wallet size={14} />
               Connect
@@ -85,7 +85,7 @@ export default function AppHeader({
           ) : (
             <button
               onClick={onDisconnect}
-              className="p-2 glass-panel rounded-xl text-slate-400 hover:text-white hover:border-cyan-400/40 transition-colors"
+              className="p-2 glass-panel rounded-xl text-slate-400 hover:text-white hover:border-[var(--border-strong)] transition-colors"
               aria-label="Disconnect wallet"
             >
               <Power size={14} />

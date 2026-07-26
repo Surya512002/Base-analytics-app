@@ -49,7 +49,7 @@ export default function VoucherRedeemPanel({
             value={redeemCardId}
             onChange={(e) => setRedeemCardId(e.target.value)}
             placeholder="e.g. 12-3"
-            className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-white font-mono outline-none focus:border-white/25"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-mono outline-none"
           />
         </div>
         <div>
@@ -58,7 +58,7 @@ export default function VoucherRedeemPanel({
             value={redeemSecret}
             onChange={(e) => setRedeemSecret(e.target.value.toUpperCase())}
             placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-            className="w-full mt-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-white font-mono tracking-wider outline-none focus:border-white/25"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-mono tracking-wider outline-none"
           />
         </div>
 
@@ -73,10 +73,10 @@ export default function VoucherRedeemPanel({
         />
 
         {(redeemParsedForTx || redeemPreview) && (
-          <div className="relative min-h-[340px] rounded-2xl border border-cyan-500/20 bg-white/[0.02] overflow-hidden">
+          <div className="relative min-h-[340px] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] overflow-hidden">
             {redeemPreviewLoading && !redeemPreview ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400">
-                <RefreshCcw size={20} className="animate-spin text-cyan-400/70" />
+                <RefreshCcw size={20} className="animate-spin text-[var(--ink-muted)]" />
                 <p className="text-sm font-bold">Loading card details…</p>
               </div>
             ) : redeemPreview ? (
@@ -86,8 +86,8 @@ export default function VoucherRedeemPanel({
                 }`}
               >
                 {redeemPreviewRefreshing && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#020812]/40 backdrop-blur-[1px]">
-                    <RefreshCcw size={18} className="animate-spin text-cyan-300" />
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-deep)]/60 backdrop-blur-[1px]">
+                    <RefreshCcw size={18} className="animate-spin text-[var(--ink-muted)]" />
                   </div>
                 )}
                 <p className="section-eyebrow mb-3">
@@ -108,7 +108,7 @@ export default function VoucherRedeemPanel({
         )}
 
         <p className="readable-body text-[10px]">
-          You can only redeem <span className="text-cyan-400 font-bold">one card</span> per batch per wallet.
+          You can only redeem <span className="text-[var(--ink)] font-bold">one card</span> per batch per wallet.
         </p>
 
         {contractReady && redeemCall.length > 0 && !redeemPreview?.redeemed ? (

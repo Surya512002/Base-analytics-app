@@ -57,7 +57,7 @@ export default function AppSidebar({
               <button
                 type="button"
                 onClick={onConnect}
-                className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-[var(--ink)] text-[#080808] hover:bg-white transition-colors"
+                className="btn-primary w-full py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
               >
                 Connect wallet
               </button>
@@ -145,7 +145,7 @@ export default function AppSidebar({
           type="button"
           onClick={onCreateToken}
           disabled={guest}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white bg-[var(--base-blue)] hover:bg-[#1a63ff] disabled:opacity-40 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white bg-[var(--base-blue)] hover:bg-[var(--accent-hover)] disabled:opacity-40 transition-colors"
         >
           <Plus size={16} />
           Launch token

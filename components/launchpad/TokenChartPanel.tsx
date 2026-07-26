@@ -31,7 +31,7 @@ export default function TokenChartPanel({
               href={page}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] font-bold text-[#6BA3FF] hover:text-white inline-flex items-center gap-1"
+              className="text-[10px] font-bold text-[var(--ink)] hover:text-white inline-flex items-center gap-1"
             >
               Open full <ExternalLink size={10} />
             </a>

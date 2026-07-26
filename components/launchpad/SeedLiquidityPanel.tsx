@@ -82,11 +82,11 @@ export default function SeedLiquidityPanel({
   };
 
   return (
-    <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-4 space-y-3 mb-4">
-      <p className="text-sm font-black text-cyan-200 flex items-center gap-2">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-4 space-y-3 mb-4">
+      <p className="text-sm font-black text-[var(--ink)] flex items-center gap-2">
         <Droplets size={16} /> Enable in-app trading
       </p>
-      <p className="text-[11px] text-cyan-200/70 leading-relaxed">
+      <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
         Swaps need a WETH pool on Aerodrome or Uniswap V3. Seed once — then anyone can trade
         in-app without visiting an external DEX.
       </p>
@@ -106,7 +106,7 @@ export default function SeedLiquidityPanel({
               onClick={() => setSeedDex(id)}
               className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
                 seedDex === id
-                  ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                  ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                   : "border-white/10 text-slate-500"
               }`}
             >
@@ -131,7 +131,7 @@ export default function SeedLiquidityPanel({
             step="0.00001"
             value={seedEth}
             onChange={(e) => setSeedEth(e.target.value)}
-            className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-cyan-500/40"
+            className="mt-1 w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--border-focus)]"
           />
           <div className="flex flex-wrap gap-1.5 mt-2">
                 {SEED_LIQUIDITY_PRESETS.map((preset) => (
@@ -141,7 +141,7 @@ export default function SeedLiquidityPanel({
                     onClick={() => setSeedEth(preset)}
                     className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
                       seedEth === preset
-                        ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                        ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                         : "border-white/10 text-slate-500"
                     }`}
                   >
@@ -167,7 +167,7 @@ export default function SeedLiquidityPanel({
                 onClick={() => setTokenPct(p)}
                 className={`flex-1 py-2 rounded-lg text-[10px] font-bold border ${
                   tokenPct === p
-                    ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-200"
+                    ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                     : "border-white/10 text-slate-500"
                 }`}
               >
@@ -181,7 +181,7 @@ export default function SeedLiquidityPanel({
         type="button"
         disabled={swapLoading}
         onClick={() => void onSeed()}
-        className="w-full py-3 rounded-xl font-black text-sm bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-50 flex items-center justify-center gap-2"
+        className="btn-primary w-full py-3 rounded-xl font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {swapLoading ? (
           <>

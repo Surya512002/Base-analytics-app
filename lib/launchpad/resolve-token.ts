@@ -45,8 +45,36 @@ const ERC20_META_ABI = [
   },
 ] as const;
 
+/** Pre-2018 tokens (MKR and friends) return a padded bytes32 instead of a string. */
+const ERC20_BYTES32_META_ABI = [
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bytes32" }],
+  },
+  {
+    name: "name",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bytes32" }],
+  },
+] as const;
+
 function isAddressLike(a: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(a);
+}
+
+function decodeBytes32(value: `0x${string}`): string {
+  let out = "";
+  for (let i = 2; i < value.length; i += 2) {
+    const byte = parseInt(value.slice(i, i + 2), 16);
+    if (byte === 0) break;
+    out += String.fromCharCode(byte);
+  }
+  return out.trim();
 }
 
 type PairInfo = {
@@ -112,6 +140,81 @@ async function resolveB20OnChain(addr: `0x${string}`): Promise<LaunchedToken | n
   }
 }
 
+/**
+ * Build a token straight from its contract when no indexer knows about it yet.
+ *
+ * DexScreener only lists tokens once it has indexed a pool, which can lag a new
+ * launch by minutes and may never happen for thin or unusual pairs. Refusing to
+ * resolve those made perfectly tradeable tokens unreachable in the app, so the
+ * contract itself is the source of truth here and the quote step decides
+ * whether a route actually exists.
+ *
+ * A successful `symbol()` and `decimals()` is what proves this is an ERC-20;
+ * anything that fails both the string and bytes32 shapes is rejected.
+ */
+async function resolveErc20OnChain(
+  addr: `0x${string}`
+): Promise<LaunchedToken | null> {
+  const pub = createPublicOnlyBaseClient();
+  try {
+    const code = await pub.getCode({ address: addr });
+    if (!code || code === "0x") return null;
+
+    const [symbolRaw, decimalsRaw] = await Promise.all([
+      pub
+        .readContract({ address: addr, abi: ERC20_META_ABI, functionName: "symbol" })
+        .then((s) => String(s))
+        .catch(async () =>
+          decodeBytes32(
+            await pub.readContract({
+              address: addr,
+              abi: ERC20_BYTES32_META_ABI,
+              functionName: "symbol",
+            })
+          )
+        ),
+      pub.readContract({
+        address: addr,
+        abi: ERC20_META_ABI,
+        functionName: "decimals",
+      }),
+    ]);
+
+    const symbol = symbolRaw.trim();
+    const decimals = Number(decimalsRaw);
+    if (!symbol || !Number.isFinite(decimals) || decimals < 0 || decimals > 36) {
+      return null;
+    }
+
+    const name = await pub
+      .readContract({ address: addr, abi: ERC20_META_ABI, functionName: "name" })
+      .then((n) => String(n))
+      .catch(async () =>
+        decodeBytes32(
+          await pub.readContract({
+            address: addr,
+            abi: ERC20_BYTES32_META_ABI,
+            functionName: "name",
+          })
+        )
+      )
+      .catch(() => "");
+
+    return {
+      address: addr.toLowerCase(),
+      name: name.trim() || symbol,
+      symbol: symbol.toUpperCase(),
+      decimals,
+      creator: "",
+      txHash: "",
+      createdAt: 0,
+      source: addr.toLowerCase().startsWith("0xb20") ? "b20" : "external",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Resolve registry token or build tradeable external token from DexScreener. */
 export async function resolveTradeableToken(
   address: string
@@ -140,7 +243,8 @@ export async function resolveTradeableToken(
   }
 
   if (!best || (best.liquidity?.usd ?? 0) <= 0) {
-    return { token: null, market: null };
+    const onChain = await resolveErc20OnChain(addr as `0x${string}`);
+    return onChain ? { token: onChain, market: null } : { token: null, market: null };
   }
   const meta = extractMeta(best as { info?: PairInfo });
 

@@ -21,9 +21,9 @@ export default function MyLaunchedTokens({
   if (mine.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-[#0052FF]/25 bg-linear-to-br from-[#0052FF]/10 to-transparent p-4 sm:p-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-3">
-        <Rocket size={16} className="text-[#6BA3FF]" />
+        <Rocket size={16} className="text-[var(--ink-muted)]" />
         <p className="text-sm font-black text-white">Your launched tokens</p>
         <span className="text-[10px] text-slate-500 ml-auto">{mine.length} live</span>
       </div>
@@ -33,20 +33,20 @@ export default function MyLaunchedTokens({
             key={t.address}
             type="button"
             onClick={() => onOpen(t)}
-            className="text-left rounded-xl border border-white/10 bg-black/20 hover:border-[#0052FF]/40 hover:bg-[#0052FF]/10 px-3 py-2.5 transition-colors"
+            className="text-left rounded-xl border border-white/10 bg-black/20 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] px-3 py-2.5 transition-colors"
           >
             <div className="flex items-center gap-2">
               {t.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={t.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover" />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-[#0052FF]/20 flex items-center justify-center text-[10px] font-black text-[#6BA3FF]">
+                <div className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center text-[10px] font-black text-[var(--ink-muted)]">
                   {t.symbol.slice(0, 2)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black text-white truncate">{t.name}</p>
-                <p className="text-[10px] text-[#6BA3FF] font-bold">${t.symbol}</p>
+                <p className="text-[10px] text-[var(--ink-muted)] font-bold">${t.symbol}</p>
               </div>
             </div>
             <div className="flex items-center justify-between mt-2 text-[10px]">
