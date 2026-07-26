@@ -48,7 +48,13 @@ export default function B20MarketHero({
   const spotlightMarket = spotlight
     ? markets[spotlight.address.toLowerCase()]
     : undefined;
-  const chg = spotlightMarket?.priceChange24h ?? 0;
+  const spotlightPriceUsd = spotlightMarket?.priceUsd;
+  const spotlightVolume24h = spotlightMarket?.volume24h;
+  const spotlightMarketCap = spotlightMarket?.marketCap;
+  const spotlightFdv = spotlightMarket?.fdv;
+  const spotlightCap = spotlightMarketCap ?? spotlightFdv;
+  const spotlightChange24h = spotlightMarket?.priceChange24h;
+  const chg = spotlightChange24h ?? 0;
   const isUp = chg >= 0;
 
   return (
@@ -148,35 +154,33 @@ export default function B20MarketHero({
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 lg:min-w-[22rem] shrink-0">
-                      {spotlightMarket?.priceUsd != null && spotlightMarket.priceUsd > 0 && (
+                      {spotlightPriceUsd != null && spotlightPriceUsd > 0 && (
                         <div className="spotlight-stat">
                           <p className="spotlight-stat-label">Price</p>
                           <p className="spotlight-stat-value">
-                            {formatSubscriptPrice(spotlightMarket.priceUsd)}
+                            {formatSubscriptPrice(spotlightPriceUsd)}
                           </p>
                         </div>
                       )}
-                      {spotlightMarket?.volume24h != null && spotlightMarket.volume24h > 0 && (
+                      {spotlightVolume24h != null && spotlightVolume24h > 0 && (
                         <div className="spotlight-stat">
                           <p className="spotlight-stat-label">24h vol</p>
                           <p className="spotlight-stat-value">
-                            {formatUsd(spotlightMarket.volume24h)}
+                            {formatUsd(spotlightVolume24h)}
                           </p>
                         </div>
                       )}
-                      {(spotlightMarket?.marketCap ?? spotlightMarket?.fdv) != null && (
+                      {spotlightCap != null && (
                         <div className="spotlight-stat">
                           <p className="spotlight-stat-label">
-                            {spotlightMarket?.marketCap ? "Market cap" : "FDV"}
+                            {spotlightMarketCap != null ? "Market cap" : "FDV"}
                           </p>
                           <p className="spotlight-stat-value text-emerald-300/95">
-                            {formatUsd(
-                              spotlightMarket?.marketCap ?? spotlightMarket?.fdv ?? 0
-                            )}
+                            {formatUsd(spotlightCap)}
                           </p>
                         </div>
                       )}
-                      {spotlightMarket?.priceChange24h != null && (
+                      {spotlightChange24h != null && (
                         <div className="spotlight-stat">
                           <p className="spotlight-stat-label">24h</p>
                           <p
