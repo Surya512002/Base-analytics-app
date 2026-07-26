@@ -87,6 +87,7 @@ export type SwapQuoteResponse = {
   slipstreamHasLiquidity?: boolean;
   uniswapFeeTier?: number;
   aerodromeStable?: boolean;
+  aerodromeHops?: Array<{ from: string; to: string; stable: boolean }>;
   slipstreamTickSpacing?: number;
   /**
    * Impact of this order's size on the winning route, measured server-side by

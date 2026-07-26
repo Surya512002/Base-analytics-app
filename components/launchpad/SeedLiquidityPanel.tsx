@@ -45,17 +45,23 @@ export default function SeedLiquidityPanel({
 
   const seedUsd = useMemo(() => seedEthUsdValue(seedEth, ethUsd), [seedEth, ethUsd]);
 
+  const tokenAmountHuman = useMemo(() => {
+    if (tokenBalance <= 0) return 0;
+    return tokenBalance * (tokenPct / 100);
+  }, [tokenBalance, tokenPct]);
+
+  const tokenAmount = useMemo(() => {
+    if (tokenAmountHuman <= 0) return "0";
+    if (tokenAmountHuman >= 1) return String(Math.floor(tokenAmountHuman));
+    return String(tokenAmountHuman);
+  }, [tokenAmountHuman]);
+
   const isCreator =
     wallet &&
     token.creator &&
     wallet.address.toLowerCase() === token.creator.toLowerCase();
 
-  const tokenAmount = useMemo(() => {
-    if (tokenBalance <= 0) return 0;
-    return Math.floor(tokenBalance * (tokenPct / 100));
-  }, [tokenBalance, tokenPct]);
-
-  if (!isCreator || tokenBalance <= 0) return null;
+  if (!isCreator || !wallet || tokenBalance <= 0) return null;
 
   const onSeed = async () => {
     const eth = parseFloat(seedEth);
@@ -63,7 +69,7 @@ export default function SeedLiquidityPanel({
       showToast("Enter a valid ETH amount", "");
       return;
     }
-    if (tokenAmount < 1) {
+    if (parseFloat(tokenAmount) <= 0) {
       showToast("Not enough tokens — lower % or get a larger balance", "");
       return;
     }
@@ -71,25 +77,26 @@ export default function SeedLiquidityPanel({
       token: token.address,
       symbol: token.symbol,
       decimals: token.decimals,
-      tokenAmount: String(tokenAmount),
+      tokenAmount,
       seedEth,
       seedDex,
     });
     if (ok) {
-      showToast(`Pool seeded — ${token.symbol} is tradable`, "");
+      showToast(`${token.symbol} pool seeded — you can swap in-app now`, "");
       onSeeded?.();
     }
   };
 
+  const headline = "Enable in-app trading";
+  const blurb =
+    "Swaps need a WETH pool on Aerodrome or Uniswap V3. Seed once — then anyone can trade in-app.";
+
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-4 space-y-3 mb-4">
       <p className="text-sm font-black text-[var(--ink)] flex items-center gap-2">
-        <Droplets size={16} /> Enable in-app trading
+        <Droplets size={16} /> {headline}
       </p>
-      <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
-        Swaps need a WETH pool on Aerodrome or Uniswap V3. Seed once — then anyone can trade
-        in-app without visiting an external DEX.
-      </p>
+      <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">{blurb}</p>
       <label className="block">
         <span className="text-[10px] font-bold text-slate-500 uppercase">Pool venue</span>
         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -134,30 +141,30 @@ export default function SeedLiquidityPanel({
             className="mt-1 w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--border-focus)]"
           />
           <div className="flex flex-wrap gap-1.5 mt-2">
-                {SEED_LIQUIDITY_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setSeedEth(preset)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
-                      seedEth === preset
-                        ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
-                        : "border-white/10 text-slate-500"
-                    }`}
-                  >
-                    {preset} ETH
-                    {ethUsd > 0 && (
-                      <span className="text-slate-500 font-normal ml-1">
-                        ({formatUsd(parseFloat(preset) * ethUsd)})
-                      </span>
-                    )}
-                  </button>
-                ))}
+            {SEED_LIQUIDITY_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setSeedEth(preset)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
+                  seedEth === preset
+                    ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
+                    : "border-white/10 text-slate-500"
+                }`}
+              >
+                {preset} ETH
+                {ethUsd > 0 && (
+                  <span className="text-slate-500 font-normal ml-1">
+                    ({formatUsd(parseFloat(preset) * ethUsd)})
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </label>
         <label className="block">
           <span className="text-[10px] font-bold text-slate-500 uppercase">
-            Tokens ({formatCompact(tokenAmount)} {token.symbol})
+            Your tokens ({formatCompact(tokenAmountHuman)} {token.symbol})
           </span>
           <div className="flex gap-1.5 mt-1">
             {[10, 25, 50, 100].map((p) => (
@@ -185,10 +192,10 @@ export default function SeedLiquidityPanel({
       >
         {swapLoading ? (
           <>
-            <Loader2 size={16} className="animate-spin" /> Seeding pool…
+            <Loader2 size={16} className="animate-spin" /> Adding liquidity…
           </>
         ) : (
-          "Seed pool & enable swaps"
+          "Add liquidity & enable swaps"
         )}
       </button>
     </div>

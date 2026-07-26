@@ -47,8 +47,10 @@ import TokenPickerDialog, {
 } from "@/components/launchpad/TokenPickerDialog";
 import {
   amountFromBalanceFraction,
+  amountFromRawBalanceFraction,
   formatTokenBalanceDisplay,
   formatTokenInputAmount,
+  sanitizeTokenAmountInput,
 } from "@/lib/launchpad/token-amount";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
@@ -181,6 +183,7 @@ export default function TokenSwapPanel({
   const [quoteImpactBps, setQuoteImpactBps] = useState<number | null>(null);
   const [aggregatorReady, setAggregatorReady] = useState(true);
   const [tokenBalance, setTokenBalance] = useState(0);
+  const [tokenBalanceRaw, setTokenBalanceRaw] = useState<bigint>(BigInt(0));
   const [wethBalance, setWethBalance] = useState(0);
   const [counterTokenBalance, setCounterTokenBalance] = useState(0);
   const [counterTokenUsd, setCounterTokenUsd] = useState<number | null>(null);
@@ -266,8 +269,11 @@ export default function TokenSwapPanel({
   }, []);
 
   const readErc20Balance = useCallback(
-    async (tokenAddr: `0x${string}`, decimals: number): Promise<number> => {
-      if (!wallet) return 0;
+    async (
+      tokenAddr: `0x${string}`,
+      decimals: number
+    ): Promise<{ human: number; raw: bigint }> => {
+      if (!wallet) return { human: 0, raw: BigInt(0) };
       try {
         const pub = createBasePublicClient();
         const raw = await pub.readContract({
@@ -276,9 +282,13 @@ export default function TokenSwapPanel({
           functionName: "balanceOf",
           args: [wallet.address as `0x${string}`],
         });
-        return parseFloat(formatUnits(raw, decimals));
+        const human = parseFloat(formatUnits(raw, decimals));
+        return {
+          human: Number.isFinite(human) ? human : 0,
+          raw,
+        };
       } catch {
-        return 0;
+        return { human: 0, raw: BigInt(0) };
       }
     },
     [wallet]
@@ -287,6 +297,7 @@ export default function TokenSwapPanel({
   useEffect(() => {
     if (!token || !wallet) {
       setTokenBalance(0);
+      setTokenBalanceRaw(BigInt(0));
       setWethBalance(0);
       setCounterTokenBalance(0);
       return;
@@ -302,12 +313,13 @@ export default function TokenSwapPanel({
         readErc20Balance(WETH_BASE, 18),
         counterAddress
           ? readErc20Balance(counterAddress, counterDecimals)
-          : Promise.resolve(0),
+          : Promise.resolve({ human: 0, raw: BigInt(0) }),
       ]);
       if (!alive) return;
-      setTokenBalance(tok);
-      setWethBalance(weth);
-      setCounterTokenBalance(counterBal);
+      setTokenBalance(tok.human);
+      setTokenBalanceRaw(tok.raw);
+      setWethBalance(weth.human);
+      setCounterTokenBalance(counterBal.human);
     })();
     return () => {
       alive = false;
@@ -409,8 +421,15 @@ export default function TokenSwapPanel({
     };
   }, [token, direction]);
 
+  const quoteAmountDecimals =
+    direction === "sell" ? tokenDecimals : counterDecimals;
+  const quoteAmount = useMemo(
+    () => sanitizeTokenAmountInput(amount, quoteAmountDecimals),
+    [amount, quoteAmountDecimals]
+  );
+
   useEffect(() => {
-    if (!token || !amount || parseFloat(amount) <= 0) {
+    if (!token || !quoteAmount || parseFloat(quoteAmount) <= 0) {
       setQuoteOut(null);
       setMinReceive(null);
       setHasLiquidity(null);
@@ -426,7 +445,7 @@ export default function TokenSwapPanel({
       const q = await fetchSwapQuote({
         token: token.address,
         direction,
-        amount,
+        amount: quoteAmount,
         decimals: tokenDecimals,
         slippageBps: parseSlippageBps(slippage),
         dex,
@@ -469,6 +488,7 @@ export default function TokenSwapPanel({
     token,
     direction,
     amount,
+    quoteAmount,
     slippage,
     dex,
     referrer,
@@ -595,13 +615,23 @@ export default function TokenSwapPanel({
       setAmount(v > 0 ? formatTokenInputAmount(v, counterDecimals) : "0");
     } else {
       const fraction = pct < 0 ? MAX_TOKEN_FRACTION : pct;
-      setAmount(amountFromBalanceFraction(tokenBalance, tokenDecimals, fraction));
+      const nextAmount =
+        tokenBalanceRaw > BigInt(0)
+          ? amountFromRawBalanceFraction(tokenBalanceRaw, tokenDecimals, fraction)
+          : amountFromBalanceFraction(tokenBalance, tokenDecimals, fraction);
+      setAmount(nextAmount);
     }
   };
 
   const onAmountChange = (raw: string) => {
     setAmount(raw);
     setActivePct(null);
+    if (!raw.trim() || parseFloat(raw) <= 0) {
+      setQuoteOut(null);
+      setMinReceive(null);
+      setHasLiquidity(null);
+      setQuoteError(null);
+    }
   };
 
   const onSwap = async () => {
@@ -623,7 +653,7 @@ export default function TokenSwapPanel({
       symbol: token.symbol,
       decimals: tokenDecimals,
       direction,
-      amount,
+      amount: sanitizeTokenAmountInput(amount, quoteAmountDecimals) || amount,
       slippageBps: parseSlippageBps(slippage),
       dex,
       referrer,
@@ -657,7 +687,8 @@ export default function TokenSwapPanel({
     );
   }
 
-  const swapReady = hasPool !== false || hasLiquidity === true;
+  const showLiquidityPanel = hasPool === false && Boolean(wallet) && !guestMode;
+  const swapReady = hasPool !== false || hasLiquidity === true || tokenBalanceRaw > BigInt(0);
   const slippageValid = parseSlippageBps(slippage) > 0;
   const paySymbol = direction === "buy" ? counterLabel : token.symbol;
   const receiveSymbol = direction === "buy" ? token.symbol : counterLabel;
@@ -843,7 +874,7 @@ export default function TokenSwapPanel({
           </div>
         )}
 
-        {hasPool === false && (
+        {showLiquidityPanel && (
           <SeedLiquidityPanel
             app={app}
             token={token}
@@ -851,7 +882,7 @@ export default function TokenSwapPanel({
             onSeeded={() => {
               setHasPool(true);
               setHasLiquidity(null);
-              setAmount(defaultBuyAmount);
+              setAmount(direction === "buy" ? defaultBuyAmount : "");
             }}
           />
         )}
@@ -991,7 +1022,8 @@ export default function TokenSwapPanel({
 
             {hasLiquidity === false && !quoteLoading && !aggregatorMissing && (
               <div className="swap-alert swap-alert-warn">
-                {quoteError ?? "No in-app route yet."}{" "}
+                {quoteError ??
+                  "No route found on Aerodrome, Uniswap, or Slipstream yet."}{" "}
                 <a
                   href={aerodromeSwapUrl(token.address)}
                   target="_blank"

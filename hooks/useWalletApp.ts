@@ -1130,6 +1130,11 @@ export function useWalletApp() {
         const minOut = BigInt(quote.amountOutMinimum);
         const uniFee = quote.uniswapFeeTier ?? 3000;
         const aeroStable = quote.aerodromeStable ?? false;
+        const aeroHops = quote.aerodromeHops?.map((h) => ({
+          from: h.from as `0x${string}`,
+          to: h.to as `0x${string}`,
+          stable: h.stable,
+        }));
         const slipTick = quote.slipstreamTickSpacing ?? 200;
         const creator = quote.creator as `0x${string}` | undefined;
         const referrer = (quote.referrer || args.referrer) as `0x${string}` | null;
@@ -1228,6 +1233,7 @@ export function useWalletApp() {
                     recipient,
                     amountOutMinimum: minOut,
                     stable: aeroStable,
+                    hops: aeroHops,
                   })
                 : swapDex === "slipstream"
                   ? encodeSlipstreamBuy({
@@ -1295,6 +1301,7 @@ export function useWalletApp() {
                     amountIn: sellAmount,
                     amountOutMinimum: minOut,
                     stable: aeroStable,
+                    hops: aeroHops,
                   })
                 : swapDex === "slipstream"
                   ? encodeSlipstreamSell({

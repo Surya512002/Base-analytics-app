@@ -1,7 +1,9 @@
 import type { Address } from "viem";
 import {
   quoteAerodromeExactIn,
+  quoteAerodromeUsdcHop,
   AERODROME_ROUTER,
+  type AerodromeHop,
 } from "@/lib/launchpad/aerodrome";
 import {
   quoteSlipstreamExactIn,
@@ -32,6 +34,7 @@ export type DexQuoteResult = {
   slipstreamHasLiquidity: boolean;
   uniswapFeeTier?: UniswapFeeTier;
   aerodromeStable?: boolean;
+  aerodromeHops?: AerodromeHop[];
   slipstreamTickSpacing?: SlipstreamTickSpacing;
 };
 
@@ -41,10 +44,23 @@ export async function quoteLaunchSwap(params: {
   amountIn: bigint;
   slippageBps: number;
   dex?: LaunchDex;
+  /** When true, try Aerodrome WETH↔USDC↔token if direct WETH pool is empty. */
+  allowUsdcHop?: boolean;
 }): Promise<DexQuoteResult> {
   const weth = WETH_BASE as Address;
   const tokenIn = params.direction === "buy" ? weth : params.token;
   const tokenOut = params.direction === "buy" ? params.token : weth;
+
+  const order: Array<Exclude<SwapVenue, "aggregator">> =
+    params.dex && params.dex !== "auto"
+      ? [params.dex]
+      : ["slipstream", "aerodrome", "uniswap"];
+
+  const quoteVenue = async (venue: Exclude<SwapVenue, "aggregator">) => {
+    if (venue === "uniswap") return quoteSwapExactIn(tokenIn, tokenOut, params.amountIn);
+    if (venue === "aerodrome") return quoteAerodromeExactIn(tokenIn, tokenOut, params.amountIn);
+    return quoteSlipstreamExactIn(tokenIn, tokenOut, params.amountIn);
+  };
 
   const [uni, aero, slip] = await Promise.all([
     quoteSwapExactIn(tokenIn, tokenOut, params.amountIn),
@@ -58,27 +74,50 @@ export async function quoteLaunchSwap(params: {
     slipstream: SLIPSTREAM_SWAP_ROUTER,
   };
 
-  const pick = (dex: Exclude<SwapVenue, "aggregator">) => {
+  const pick = (
+    dex: Exclude<SwapVenue, "aggregator">,
+    extras?: {
+      aerodromeHops?: AerodromeHop[];
+      amountOut?: bigint;
+      hasLiquidity?: boolean;
+      aerodromeStable?: boolean;
+    }
+  ) => {
     const q = dex === "uniswap" ? uni : dex === "aerodrome" ? aero : slip;
+    const amountOut = extras?.amountOut ?? q.amountOut;
+    const hasLiquidity = extras?.hasLiquidity ?? q.hasLiquidity;
     return {
       dex,
-      amountOut: q.amountOut,
-      amountOutMinimum: applySlippage(q.amountOut, params.slippageBps),
-      hasLiquidity: q.hasLiquidity,
+      amountOut,
+      amountOutMinimum: applySlippage(amountOut, params.slippageBps),
+      hasLiquidity,
       router: routers[dex],
       uniswapHasLiquidity: uni.hasLiquidity,
-      aerodromeHasLiquidity: aero.hasLiquidity,
+      aerodromeHasLiquidity: aero.hasLiquidity || Boolean(extras?.aerodromeHops?.length),
       slipstreamHasLiquidity: slip.hasLiquidity,
       uniswapFeeTier: uni.feeTier,
-      aerodromeStable: aero.stable,
+      aerodromeStable: extras?.aerodromeStable ?? aero.stable,
+      aerodromeHops: extras?.aerodromeHops,
       slipstreamTickSpacing: slip.tickSpacing,
     };
   };
 
   const pref = params.dex ?? "auto";
-  if (pref === "uniswap") return pick("uniswap");
-  if (pref === "aerodrome") return pick("aerodrome");
-  if (pref === "slipstream") return pick("slipstream");
+  if (pref !== "auto") {
+    const q = await quoteVenue(pref);
+    if (q.hasLiquidity) return pick(pref);
+    if (pref === "aerodrome" && params.allowUsdcHop !== false) {
+      const hop = await quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn);
+      if (hop.hasLiquidity) {
+        return pick("aerodrome", {
+          aerodromeHops: hop.hops,
+          amountOut: hop.amountOut,
+          hasLiquidity: true,
+        });
+      }
+    }
+    return pick(pref);
+  }
 
   const candidates = [
     { dex: "uniswap" as const, out: uni.hasLiquidity ? uni.amountOut : BigInt(0) },
@@ -91,15 +130,26 @@ export async function quoteLaunchSwap(params: {
     return pick(candidates[0]!.dex);
   }
 
+  if (params.allowUsdcHop !== false) {
+    const hop = await quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn);
+    if (hop.hasLiquidity) {
+      return pick("aerodrome", {
+        aerodromeHops: hop.hops,
+        amountOut: hop.amountOut,
+        hasLiquidity: true,
+      });
+    }
+  }
+
   return {
-    dex: "uniswap",
+    dex: order[0] ?? "uniswap",
     amountOut: BigInt(0),
     amountOutMinimum: BigInt(0),
     hasLiquidity: false,
-    router: SWAP_ROUTER_02,
-    uniswapHasLiquidity: false,
-    aerodromeHasLiquidity: false,
-    slipstreamHasLiquidity: false,
+    router: routers[order[0] ?? "uniswap"],
+    uniswapHasLiquidity: uni.hasLiquidity,
+    aerodromeHasLiquidity: aero.hasLiquidity,
+    slipstreamHasLiquidity: slip.hasLiquidity,
   };
 }
 

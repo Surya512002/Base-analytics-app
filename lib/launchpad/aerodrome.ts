@@ -96,6 +96,83 @@ function buildRoute(tokenIn: Address, tokenOut: Address, stable: boolean): Route
   ];
 }
 
+export type AerodromeHop = {
+  from: Address;
+  to: Address;
+  stable: boolean;
+};
+
+function buildMultiRoute(hops: AerodromeHop[]): Route[] {
+  return hops.map((h) => ({
+    from: h.from,
+    to: h.to,
+    stable: h.stable,
+    factory: AERODROME_FACTORY,
+  }));
+}
+
+async function quoteAerodromePath(
+  amountIn: bigint,
+  hops: AerodromeHop[]
+): Promise<{ amountOut: bigint; hasLiquidity: boolean; hops: AerodromeHop[] }> {
+  if (amountIn <= BigInt(0) || hops.length === 0) {
+    return { amountOut: BigInt(0), hasLiquidity: false, hops };
+  }
+  try {
+    const pub = createBasePublicClient();
+    const amounts = await pub.readContract({
+      address: AERODROME_ROUTER,
+      abi: ROUTER_ABI,
+      functionName: "getAmountsOut",
+      args: [amountIn, buildMultiRoute(hops)],
+    });
+    const amountOut = amounts[amounts.length - 1] ?? BigInt(0);
+    return { amountOut, hasLiquidity: amountOut > BigInt(0), hops };
+  } catch {
+    return { amountOut: BigInt(0), hasLiquidity: false, hops };
+  }
+}
+
+/** WETH ↔ USDC ↔ token when no direct WETH pool exists on Aerodrome. */
+export async function quoteAerodromeUsdcHop(
+  tokenIn: Address,
+  tokenOut: Address,
+  amountIn: bigint
+): Promise<{ amountOut: bigint; hasLiquidity: boolean; hops: AerodromeHop[] }> {
+  const weth = WETH_BASE as Address;
+  const usdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
+
+  let candidates: AerodromeHop[][] = [];
+  if (tokenIn === weth) {
+    for (const s1 of [true, false] as const) {
+      for (const s2 of [true, false] as const) {
+        candidates.push([
+          { from: weth, to: usdc, stable: s1 },
+          { from: usdc, to: tokenOut, stable: s2 },
+        ]);
+      }
+    }
+  } else if (tokenOut === weth) {
+    for (const s1 of [true, false] as const) {
+      for (const s2 of [true, false] as const) {
+        candidates.push([
+          { from: tokenIn, to: usdc, stable: s1 },
+          { from: usdc, to: weth, stable: s2 },
+        ]);
+      }
+    }
+  } else {
+    return { amountOut: BigInt(0), hasLiquidity: false, hops: [] };
+  }
+
+  let best = { amountOut: BigInt(0), hasLiquidity: false, hops: [] as AerodromeHop[] };
+  for (const hops of candidates) {
+    const q = await quoteAerodromePath(amountIn, hops);
+    if (q.amountOut > best.amountOut) best = q;
+  }
+  return best;
+}
+
 function swapDeadline(): bigint {
   return BigInt(Math.floor(Date.now() / 1000) + 20 * 60);
 }
@@ -150,17 +227,16 @@ export function encodeAerodromeBuy(params: {
   recipient: Address;
   amountOutMinimum: bigint;
   stable?: boolean;
+  hops?: AerodromeHop[];
 }): Hex {
-  const stable = params.stable ?? false;
+  const routes =
+    params.hops && params.hops.length > 0
+      ? buildMultiRoute(params.hops)
+      : buildRoute(WETH_BASE as Address, params.tokenOut, params.stable ?? false);
   return encodeFunctionData({
     abi: ROUTER_ABI,
     functionName: "swapExactETHForTokens",
-    args: [
-      params.amountOutMinimum,
-      buildRoute(WETH_BASE as Address, params.tokenOut, stable),
-      params.recipient,
-      swapDeadline(),
-    ],
+    args: [params.amountOutMinimum, routes, params.recipient, swapDeadline()],
   });
 }
 
@@ -170,15 +246,19 @@ export function encodeAerodromeSell(params: {
   amountIn: bigint;
   amountOutMinimum: bigint;
   stable?: boolean;
+  hops?: AerodromeHop[];
 }): Hex {
-  const stable = params.stable ?? false;
+  const routes =
+    params.hops && params.hops.length > 0
+      ? buildMultiRoute(params.hops)
+      : buildRoute(params.tokenIn, WETH_BASE as Address, params.stable ?? false);
   return encodeFunctionData({
     abi: ROUTER_ABI,
     functionName: "swapExactTokensForETH",
     args: [
       params.amountIn,
       params.amountOutMinimum,
-      buildRoute(params.tokenIn, WETH_BASE as Address, stable),
+      routes,
       params.recipient,
       swapDeadline(),
     ],

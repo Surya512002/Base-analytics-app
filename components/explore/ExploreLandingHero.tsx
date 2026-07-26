@@ -48,8 +48,8 @@ export default function ExploreLandingHero({
   const tradableCount = tokens.length;
 
   return (
-    <section className="page-hero relative border-b border-white/[0.08] pb-8 sm:pb-12">
-      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-5 sm:mb-8">
+    <section className="explore-hero pb-8 sm:pb-12">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-5 sm:mb-6">
         <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           <span className="live-dot" />
           B20 Launchpad · Live on Base
@@ -65,94 +65,98 @@ export default function ExploreLandingHero({
         <button
           type="button"
           onClick={() => onOpenToken(spotlight.token)}
-          className="spotlight-card group w-full text-left p-5 sm:p-8 mb-8 sm:mb-10 relative"
+          className="spotlight-card group w-full text-left mb-8 sm:mb-10"
+          aria-label={`Open ${spotlight.token.name} spotlight`}
         >
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10">
-            <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
-              {spotlight.token.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={spotlight.token.imageUrl}
-                  alt=""
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-white/15 shadow-lg shrink-0"
-                />
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-xl sm:text-2xl font-black text-white shrink-0">
-                  {spotlight.token.symbol.slice(0, 2)}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <span className="spotlight-badge mb-3">
-                  <span className="live-dot" style={{ width: 6, height: 6 }} />
-                  B20 Spotlight · top volume
-                </span>
-                <h2 className="font-display text-2xl sm:text-4xl font-bold text-white tracking-tight truncate">
-                  {spotlight.token.name}
-                </h2>
-                <p className="text-[15px] sm:text-lg text-[var(--ink-muted)] font-mono font-semibold mt-1">
-                  ${spotlight.token.symbol}
-                </p>
-                {spotlight.market?.priceUsd != null && (
-                  <p className="text-[14px] text-[var(--ink-muted)] mt-2 font-mono">
-                    {formatSubscriptPrice(spotlight.market.priceUsd)}
-                    <span
-                      className={`inline-flex items-center gap-0.5 ml-2 font-semibold ${
-                        isUp ? "text-emerald-400" : "text-rose-400"
-                      }`}
-                    >
-                      {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                      {isUp ? "+" : ""}
-                      {chg.toFixed(1)}%
-                    </span>
-                  </p>
+          <div className="spotlight-card-accent" aria-hidden />
+          <div className="spotlight-card-body">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8">
+              <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
+                {spotlight.token.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={spotlight.token.imageUrl}
+                    alt=""
+                    className="w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-2xl object-cover border border-[var(--border-strong)] shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-strong)] flex items-center justify-center text-xl sm:text-2xl font-black text-[var(--ink)] shrink-0">
+                    {spotlight.token.symbol.slice(0, 2)}
+                  </div>
                 )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4 shrink-0 w-full lg:w-auto">
-              {[
-                {
-                  label: "Vol 24h",
-                  value: spotlight.market?.volume24h ? formatUsd(spotlight.market.volume24h) : "—",
-                },
-                {
-                  label: "Liquidity",
-                  value: spotlight.market?.liquidityUsd ? formatUsd(spotlight.market.liquidityUsd) : "—",
-                },
-                {
-                  label: "MCap",
-                  value: spotlight.market?.marketCap ? formatUsd(spotlight.market.marketCap) : "—",
-                },
-                { label: "Pool", value: spotlight.market?.hasPool ? "Live" : "—" },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-xl bg-black/35 border border-white/10 px-3 py-3 sm:px-4 sm:py-3.5"
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
-                    {stat.label}
+                <div className="min-w-0 flex-1">
+                  <span className="spotlight-badge mb-2.5">
+                    <span className="live-dot" style={{ width: 6, height: 6 }} />
+                    B20 Spotlight
+                  </span>
+                  <h2 className="font-display text-2xl sm:text-[2rem] font-bold text-[var(--ink)] tracking-tight truncate leading-tight">
+                    {spotlight.token.name}
+                  </h2>
+                  <p className="text-[15px] sm:text-base text-[var(--ink-muted)] font-mono font-semibold mt-1">
+                    ${spotlight.token.symbol}
                   </p>
-                  <p className="text-[15px] sm:text-base font-bold text-white font-mono mt-1 tabular-nums">
-                    {stat.value}
-                  </p>
+                  {spotlight.market?.priceUsd != null && (
+                    <p className="text-[14px] text-[var(--ink-muted)] mt-2 font-mono tabular-nums">
+                      {formatSubscriptPrice(spotlight.market.priceUsd)}
+                      <span
+                        className={`inline-flex items-center gap-0.5 ml-2 font-semibold ${
+                          isUp ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        {isUp ? "+" : ""}
+                        {chg.toFixed(1)}%
+                      </span>
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <div className="flex items-center gap-2 lg:flex-col lg:items-end shrink-0">
-              <span className="btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-colors">
-                Trade in-app
-                <ArrowUpRight size={16} />
-              </span>
-              <span className="text-[11px] text-[var(--ink-dim)] hidden sm:block">
-                Uniswap + Aerodrome · USD quotes
-              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3 shrink-0 w-full lg:w-auto">
+                {[
+                  {
+                    label: "Vol 24h",
+                    value: spotlight.market?.volume24h
+                      ? formatUsd(spotlight.market.volume24h)
+                      : "—",
+                  },
+                  {
+                    label: "Liquidity",
+                    value: spotlight.market?.liquidityUsd
+                      ? formatUsd(spotlight.market.liquidityUsd)
+                      : "—",
+                  },
+                  {
+                    label: "MCap",
+                    value: spotlight.market?.marketCap
+                      ? formatUsd(spotlight.market.marketCap)
+                      : "—",
+                  },
+                  { label: "Pool", value: spotlight.market?.hasPool ? "Live" : "Seed" },
+                ].map((stat) => (
+                  <div key={stat.label} className="spotlight-stat">
+                    <p className="spotlight-stat-label">{stat.label}</p>
+                    <p className="spotlight-stat-value">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 lg:flex-col lg:items-end shrink-0">
+                <span className="btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold">
+                  Trade in-app
+                  <ArrowUpRight size={16} />
+                </span>
+                <span className="text-[11px] text-[var(--ink-dim)] hidden sm:block text-right">
+                  Aerodrome · Uniswap · Slipstream
+                </span>
+              </div>
             </div>
           </div>
         </button>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_auto] gap-6 items-end">
+      <div className="page-hero">
+        <div className="grid lg:grid-cols-[1fr_auto] gap-6 items-end">
         <div>
           <p className="section-eyebrow mb-2 sm:mb-3">Explore Base</p>
           <h1 className="page-hero-title max-w-2xl">
@@ -225,6 +229,7 @@ export default function ExploreLandingHero({
               </kbd>
             </button>
           </div>
+        </div>
         </div>
       </div>
     </section>

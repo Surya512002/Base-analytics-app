@@ -56,16 +56,31 @@ export function computeSwapUsd(opts: {
     return { payUsd, receiveUsd: netAfterPlatformFee(payUsd) };
   }
 
-  if (
-    quoteOut == null ||
-    !Number.isFinite(quoteOut) ||
-    quoteOut <= 0 ||
-    !validCounter
-  ) {
+  const hasPay =
+    Number.isFinite(payAmount) && payAmount > 0;
+  const hasQuote =
+    quoteOut != null && Number.isFinite(quoteOut) && quoteOut > 0;
+
+  if (!validCounter || (!hasPay && !hasQuote)) {
     return { payUsd: null, receiveUsd: null };
   }
-  const receiveUsd = quoteOut * counterUsd;
-  return { payUsd: grossFromNet(receiveUsd), receiveUsd };
+
+  const receiveUsd = hasQuote ? quoteOut * counterUsd : null;
+
+  // Pay USD must track the token amount the user typed — not a stale quote on
+  // the receive leg, which is what made MAX sell show dollars with an empty input.
+  let payUsd: number | null = null;
+  if (hasPay && hasQuote) {
+    const impliedTokenUsd = (quoteOut * counterUsd) / netAfterPlatformFee(payAmount);
+    if (Number.isFinite(impliedTokenUsd) && impliedTokenUsd > 0) {
+      payUsd = payAmount * impliedTokenUsd;
+    }
+  }
+  if (payUsd == null && hasQuote) {
+    payUsd = grossFromNet(receiveUsd!);
+  }
+
+  return { payUsd, receiveUsd };
 }
 
 /**

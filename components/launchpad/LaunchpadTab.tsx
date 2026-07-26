@@ -245,6 +245,7 @@ export default function LaunchpadTab({
         b20Activated: data.b20Activated,
         marketStats: stats,
       });
+
       return merged;
     } catch (e) {
       console.error("[LaunchpadTab] refresh failed", e);
@@ -498,7 +499,7 @@ export default function LaunchpadTab({
     <div className="space-y-6">
       <ExploreLandingHero
         tokens={tradableTokens}
-        b20Tokens={tradableB20}
+        b20Tokens={allB20Tokens}
         markets={markets}
         marketLoading={initialLoading && tradableTokens.length === 0}
         guestMode={guestMode}

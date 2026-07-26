@@ -13,7 +13,10 @@ import {
 } from "@/lib/launchpad/price-impact";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
+import { sanitizeTokenAmountInput } from "@/lib/launchpad/token-amount";
 import { quoteLaunchSwap, type LaunchDex } from "@/lib/launchpad/dex";
+import { fetchDexScreenerBatch } from "@/lib/launchpad/dexscreener";
+import { inferPreferredDex, pickRoutingPair } from "@/lib/launchpad/routing-pairs";
 import {
   fetchZeroXPrice,
   fetchZeroXQuote,
@@ -166,7 +169,12 @@ export async function GET(req: Request) {
     const feeShares = feeShareLabels();
     const creator = registered?.creator as `0x${string}` | undefined;
 
-    const gross = parseUnits(amount, legs.amountDecimals);
+    const cleanAmount = sanitizeTokenAmountInput(amount, legs.amountDecimals);
+    if (!cleanAmount || parseFloat(cleanAmount) <= 0) {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    }
+
+    const gross = parseUnits(cleanAmount, legs.amountDecimals);
     if (gross <= BigInt(0)) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
@@ -196,12 +204,18 @@ export async function GET(req: Request) {
 
     let directQuote: Awaited<ReturnType<typeof quoteLaunchSwap>> | null = null;
     if (legs.canUseDirectDex) {
+      const pairBatch = await fetchDexScreenerBatch([token]);
+      const routing = pickRoutingPair(pairBatch.get(token) ?? [], token);
+      const venueHint = inferPreferredDex(routing?.dexId);
+      const quoteDex: LaunchDex = dex !== "auto" ? dex : venueHint ?? "auto";
+
       directQuote = await quoteLaunchSwap({
         token: tokenAddr,
         direction,
         amountIn,
         slippageBps,
-        dex,
+        dex: quoteDex,
+        allowUsdcHop: true,
       });
     }
 
@@ -231,6 +245,7 @@ export async function GET(req: Request) {
           slipstreamHasLiquidity: directQuote.slipstreamHasLiquidity,
           uniswapFeeTier: directQuote.uniswapFeeTier,
           aerodromeStable: directQuote.aerodromeStable,
+          aerodromeHops: directQuote.aerodromeHops,
           slipstreamTickSpacing: directQuote.slipstreamTickSpacing,
         }
       : {
@@ -291,7 +306,7 @@ export async function GET(req: Request) {
             router: directQuote.router,
           };
         }
-        if (aggQuote) {
+        if (aggQuote?.hasLiquidity) {
           return {
             kind: "aggregator" as const,
             out: aggQuote.amountOut,
@@ -428,7 +443,7 @@ export async function GET(req: Request) {
     const msg =
       err instanceof Error && err.message.includes("Number")
         ? "Invalid amount format"
-        : "Quote failed — add liquidity on Uniswap or Aerodrome";
+        : "Quote failed — no route on Aerodrome, Uniswap, or Slipstream";
     return NextResponse.json({
       hasLiquidity: false,
       error: msg,

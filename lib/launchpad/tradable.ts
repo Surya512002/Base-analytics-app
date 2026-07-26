@@ -14,10 +14,8 @@ export function marketFor(
 
 /**
  * Token has a live pool on Base with enough liquidity to swap in-app.
- * Routing covers Uniswap V3, Aerodrome classic, Slipstream, and the 0x
- * aggregator fallback (USDC pairs / multi-hop), so any DexScreener pool
- * above the threshold is genuinely swappable. Tokens that still fail to
- * route get an external "Trade on Aerodrome" fallback in the swap panel.
+ * Routing scans Uniswap V3, Aerodrome, Slipstream, and Aerodrome USDC
+ * hops automatically. Tokens listed here have live DexScreener pools.
  */
 export function isTradableListing(
   token: LaunchedToken,

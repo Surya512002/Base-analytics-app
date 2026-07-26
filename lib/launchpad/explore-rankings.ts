@@ -30,22 +30,34 @@ export function tokenSafetyLabel(level: TokenSafetyLevel): string {
   }
 }
 
-/** Top B20 by 24h volume for spotlight (matches OG trending logic). */
+/** Top B20 by 24h volume for spotlight; falls back to top liquidity when volume is thin. */
 export function pickB20Spotlight(
   tokens: LaunchedToken[],
   markets: Record<string, TokenMarketSummary>
 ): { token: LaunchedToken; market?: TokenMarketSummary } | null {
   const b20 = tokens.filter(isB20ExploreToken);
-  const ranked = sortByMarketVolume(
+  const withVolume = sortByMarketVolume(
     b20.filter((t) => {
       const m = markets[t.address.toLowerCase()];
       return m?.hasPool && (m.volume24h ?? 0) > 0;
     }),
     markets
   );
-  const token = ranked[0];
-  if (!token) return null;
-  return { token, market: markets[token.address.toLowerCase()] };
+  if (withVolume[0]) {
+    const token = withVolume[0];
+    return { token, market: markets[token.address.toLowerCase()] };
+  }
+
+  const withLiq = [...b20]
+    .filter((t) => (markets[t.address.toLowerCase()]?.liquidityUsd ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (markets[b.address.toLowerCase()]?.liquidityUsd ?? 0) -
+        (markets[a.address.toLowerCase()]?.liquidityUsd ?? 0)
+    );
+  const fallback = withLiq[0];
+  if (!fallback) return null;
+  return { token: fallback, market: markets[fallback.address.toLowerCase()] };
 }
 
 /** Tokens with most swap/launch activity in the last hour. */
