@@ -142,26 +142,25 @@ export async function quoteAerodromeUsdcHop(
   const weth = WETH_BASE as Address;
   const usdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 
-  let candidates: AerodromeHop[][] = [];
-  if (tokenIn === weth) {
-    for (const s1 of [true, false] as const) {
-      for (const s2 of [true, false] as const) {
-        candidates.push([
-          { from: weth, to: usdc, stable: s1 },
-          { from: usdc, to: tokenOut, stable: s2 },
-        ]);
-      }
-    }
-  } else if (tokenOut === weth) {
-    for (const s1 of [true, false] as const) {
-      for (const s2 of [true, false] as const) {
-        candidates.push([
-          { from: tokenIn, to: usdc, stable: s1 },
-          { from: usdc, to: weth, stable: s2 },
-        ]);
-      }
-    }
-  } else {
+  const hopPairs = [true, false] as const;
+  const candidates: AerodromeHop[][] =
+    tokenIn === weth
+      ? hopPairs.flatMap((s1) =>
+          hopPairs.map((s2) => [
+            { from: weth, to: usdc, stable: s1 },
+            { from: usdc, to: tokenOut, stable: s2 },
+          ])
+        )
+      : tokenOut === weth
+        ? hopPairs.flatMap((s1) =>
+            hopPairs.map((s2) => [
+              { from: tokenIn, to: usdc, stable: s1 },
+              { from: usdc, to: weth, stable: s2 },
+            ])
+          )
+        : [];
+
+  if (candidates.length === 0) {
     return { amountOut: BigInt(0), hasLiquidity: false, hops: [] };
   }
 

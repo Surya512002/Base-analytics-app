@@ -167,10 +167,12 @@ export default function B20MarketHero({
                       {(spotlightMarket?.marketCap ?? spotlightMarket?.fdv) != null && (
                         <div className="spotlight-stat">
                           <p className="spotlight-stat-label">
-                            {spotlightMarket.marketCap ? "Market cap" : "FDV"}
+                            {spotlightMarket?.marketCap ? "Market cap" : "FDV"}
                           </p>
                           <p className="spotlight-stat-value text-emerald-300/95">
-                            {formatUsd(spotlightMarket.marketCap ?? spotlightMarket.fdv ?? 0)}
+                            {formatUsd(
+                              spotlightMarket?.marketCap ?? spotlightMarket?.fdv ?? 0
+                            )}
                           </p>
                         </div>
                       )}
