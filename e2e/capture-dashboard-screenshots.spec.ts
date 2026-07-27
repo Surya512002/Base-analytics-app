@@ -47,7 +47,7 @@ test.describe("Base dashboard screenshots", () => {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
-    await expect(page.getByText(/you pay/i)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("Sell", { exact: true })).toBeVisible({ timeout: 60_000 });
     await page.waitForTimeout(3500);
     await page.screenshot({
       path: "public/screenshots/screenshot-2-dashboard.png",

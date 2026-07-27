@@ -17,7 +17,8 @@ test.describe("mobile viewport flows", () => {
 
   test("explore token page shows swap UI on mobile", async ({ page }) => {
     await page.goto(`${BASE}/explore/token/${WETH}`, { waitUntil: "domcontentloaded" });
-    await expect(page.getByText(/you pay/i)).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText("Sell", { exact: true })).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 });
 
