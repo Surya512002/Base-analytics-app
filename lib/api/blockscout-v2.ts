@@ -319,10 +319,16 @@ export async function fetchBlockscoutV2Chunk(
   let done = false;
 
   for (let page = 0; page < maxPages; page++) {
-    const res = await fetch(`${BLOCKSCOUT_V2}${path}`, {
-      next: { revalidate: 0 },
-      signal: AbortSignal.timeout(25_000),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${BLOCKSCOUT_V2}${path}`, {
+        next: { revalidate: 0 },
+        signal: AbortSignal.timeout(8_000),
+      });
+    } catch {
+      break;
+    }
+    if (res.status === 429) break;
     if (!res.ok) break;
 
     const data = (await res.json()) as Paginated<unknown>;

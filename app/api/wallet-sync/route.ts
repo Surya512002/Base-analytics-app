@@ -20,6 +20,54 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const ANALYZE_CACHE_TTL = ANALYZE_CACHE_TTL_SECONDS;
+/** Stay under Vercel's function wall — leave room for analyze + JSON response. */
+const HANDLER_BUDGET_MS = 95_000;
+
+async function buildPartialSyncResponse(
+  address: string,
+  transfers: Awaited<ReturnType<typeof runWalletSyncBurst>>["transfers"],
+  state: Awaited<ReturnType<typeof runWalletSyncBurst>>["state"]
+) {
+  const cached = await getCachedAnalyze(address);
+  const prior = cached?.wallet;
+
+  const patch = await buildWalletMetricsPatch(transfers, address, state, {
+    partialSync: true,
+    priorWallet: prior ?? null,
+    basename: prior?.basename,
+    gmCount: prior?.gmCount,
+    checkInCount: prior?.checkInCount,
+    currentStreak: prior?.currentStreak,
+    longestStreak: prior?.longestStreak,
+    bridgeTxCount: prior?.bridgeTxCount,
+    defiInteractions: prior?.defiInteractions,
+    uniqueContracts: prior?.uniqueContracts,
+  });
+  const recentTxs = buildRecentTxPreview(transfers, address, 10);
+  const sortedTs = transfers
+    .map((t) => t.metadata?.blockTimestamp)
+    .filter(Boolean)
+    .sort();
+  const firstTx = sortedTs[0]?.slice(0, 10) ?? prior?.firstTx;
+  const lastTx = sortedTs[sortedTs.length - 1]?.slice(0, 10) ?? prior?.lastTx;
+
+  return NextResponse.json({
+    historyComplete: false,
+    partial: true,
+    wallet: {
+      ...patch,
+      recentTxs,
+      firstTx,
+      lastTx,
+    },
+    sync: {
+      complete: false,
+      transferLegs: transfers.length,
+      uniqueDays: patch.uniqueDays,
+      uniqueHashes: patch.txCount,
+    },
+  });
+}
 
 export async function GET(req: Request) {
   const ip = getClientIp(req);
@@ -34,53 +82,25 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
 
+  const handlerDeadline = Date.now() + HANDLER_BUDGET_MS;
+
   try {
     if (reset) {
       await saveWalletHistory(address, emptyHistoryState());
     }
 
-    const { transfers, state } = await runWalletSyncBurst(address, 58_000);
+    const syncBudget = Math.min(
+      52_000,
+      Math.max(12_000, handlerDeadline - Date.now() - 35_000)
+    );
+    const { transfers, state } = await runWalletSyncBurst(address, syncBudget);
 
     if (!state.historyComplete) {
-      const cached = await getCachedAnalyze(address);
-      const prior = cached?.wallet;
+      return buildPartialSyncResponse(address, transfers, state);
+    }
 
-      const patch = await buildWalletMetricsPatch(transfers, address, state, {
-        partialSync: true,
-        priorWallet: prior ?? null,
-        basename: prior?.basename,
-        gmCount: prior?.gmCount,
-        checkInCount: prior?.checkInCount,
-        currentStreak: prior?.currentStreak,
-        longestStreak: prior?.longestStreak,
-        bridgeTxCount: prior?.bridgeTxCount,
-        defiInteractions: prior?.defiInteractions,
-        uniqueContracts: prior?.uniqueContracts,
-      });
-      const recentTxs = buildRecentTxPreview(transfers, address, 10);
-      const sortedTs = transfers
-        .map((t) => t.metadata?.blockTimestamp)
-        .filter(Boolean)
-        .sort();
-      const firstTx = sortedTs[0]?.slice(0, 10) ?? prior?.firstTx;
-      const lastTx = sortedTs[sortedTs.length - 1]?.slice(0, 10) ?? prior?.lastTx;
-
-      return NextResponse.json({
-        historyComplete: false,
-        partial: true,
-        wallet: {
-          ...patch,
-          recentTxs,
-          firstTx,
-          lastTx,
-        },
-        sync: {
-          complete: false,
-          transferLegs: transfers.length,
-          uniqueDays: patch.uniqueDays,
-          uniqueHashes: patch.txCount,
-        },
-      });
+    if (handlerDeadline - Date.now() < 28_000) {
+      return buildPartialSyncResponse(address, transfers, state);
     }
 
     const cached = await getCachedAnalyze(address);
@@ -90,10 +110,11 @@ export async function GET(req: Request) {
       historyComplete: true,
       v2StreamStates: state.v2StreamStates,
       fetchDepth: "complete",
+      transfers,
     });
 
     if (!result) {
-      return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+      return buildPartialSyncResponse(address, transfers, state);
     }
 
     const wallet = priorWallet
@@ -119,6 +140,23 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     console.error("[wallet-sync]", err);
+    try {
+      const cached = await getCachedAnalyze(address);
+      if (cached?.wallet) {
+        return NextResponse.json({
+          ...cached,
+          historyComplete: cached.historyComplete ?? false,
+          partial: true,
+          sync: {
+            complete: cached.historyComplete === true,
+            uniqueDays: cached.wallet.uniqueDays,
+            uniqueHashes: cached.wallet.txCount,
+          },
+        });
+      }
+    } catch {
+      /* ignore cache read errors */
+    }
     return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   }
 }

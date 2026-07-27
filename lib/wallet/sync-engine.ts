@@ -20,7 +20,7 @@ import {
   type StoredWalletHistory,
 } from "@/lib/wallet/history-store";
 
-const PAGES_PER_STEP = 30;
+const PAGES_PER_STEP = 8;
 
 export interface SyncBurstResult {
   transfers: AlchemyTransfer[];
@@ -31,40 +31,38 @@ function allV2Complete(states: Record<string, { complete: boolean }>): boolean {
   return V2_STREAMS.every((s) => states[s]?.complete);
 }
 
-async function advanceAllV2StreamsParallel(
+async function advanceAllV2StreamsSequential(
   address: string,
-  state: StoredWalletHistory
+  state: StoredWalletHistory,
+  deadline: number
 ): Promise<{ state: StoredWalletHistory; legs: AlchemyTransfer[] }> {
   const pending = V2_STREAMS.filter((s) => !state.v2StreamStates[s]?.complete);
   if (!pending.length) return { state, legs: [] };
-
-  const chunks = await Promise.all(
-    pending.map(async (stream) => {
-      const streamState = state.v2StreamStates[stream];
-      const cursor = streamState?.cursor
-        ? decodeV2Cursor(streamState.cursor)
-        : null;
-      const chunk = await fetchBlockscoutV2Chunk(
-        address,
-        stream,
-        cursor,
-        PAGES_PER_STEP
-      );
-      return { stream, chunk };
-    })
-  );
 
   let next = { ...state, historyComplete: false };
   const nextStates = { ...next.v2StreamStates };
   let legs: AlchemyTransfer[] = [];
 
-  for (const { stream, chunk } of chunks) {
+  for (const stream of pending) {
+    if (Date.now() >= deadline) break;
+
+    const streamState = nextStates[stream];
+    const cursor = streamState?.cursor
+      ? decodeV2Cursor(streamState.cursor)
+      : null;
+    const chunk = await fetchBlockscoutV2Chunk(
+      address,
+      stream,
+      cursor,
+      PAGES_PER_STEP
+    );
     nextStates[stream] = {
       complete: chunk.done,
       cursor: chunk.done ? null : chunk.nextCursor,
     };
     legs = mergeTransfers([legs, chunk.transfers]);
     next = mergeActivityIntoState(next, chunk.transfers, address);
+    next = { ...next, v2StreamStates: nextStates };
   }
 
   next = { ...next, v2StreamStates: nextStates };
@@ -74,12 +72,13 @@ async function advanceAllV2StreamsParallel(
 
 async function advanceUserOpScan(
   address: string,
-  state: StoredWalletHistory
+  state: StoredWalletHistory,
+  maxTimeoutMs = 45_000
 ): Promise<{ state: StoredWalletHistory; legs: AlchemyTransfer[] }> {
   if (state.userOpsComplete) return { state, legs: [] };
 
   const result = await fetchUserOperationActivityWithProgress(address, {
-    timeoutMs: 45_000,
+    timeoutMs: maxTimeoutMs,
     maxChunks: 30,
     startChunk: state.userOpChunkCursor ?? 0,
   });
@@ -210,7 +209,11 @@ export async function runWalletSyncBurst(
   let idleRounds = 0;
   while (Date.now() < deadline) {
     if (!state.userOpsComplete) {
-      const uop = await advanceUserOpScan(address, state);
+      const uop = await advanceUserOpScan(
+        address,
+        state,
+        Math.min(20_000, Math.max(3_000, deadline - Date.now() - 1_000))
+      );
       state = uop.state;
       if (uop.legs.length) {
         newLegs = mergeTransfers([newLegs, uop.legs]);
@@ -221,7 +224,7 @@ export async function runWalletSyncBurst(
     if (allV2Complete(state.v2StreamStates)) break;
 
     const daysBefore = uniqueDaysFromState(state);
-    const advanced = await advanceAllV2StreamsParallel(address, state);
+    const advanced = await advanceAllV2StreamsSequential(address, state, deadline);
     state = advanced.state;
     if (advanced.legs.length) {
       newLegs = mergeTransfers([newLegs, advanced.legs]);
@@ -237,10 +240,12 @@ export async function runWalletSyncBurst(
   }
 
   if (allV2Complete(state.v2StreamStates) && !state.userOpsFetched) {
-    if (!state.userOpsComplete) {
+    const remaining = () => Math.max(0, deadline - Date.now());
+
+    if (!state.userOpsComplete && remaining() > 5_000) {
       const uop = await fetchUserOperationActivityWithProgress(address, {
-        timeoutMs: 90_000,
-        maxChunks: 80,
+        timeoutMs: Math.min(remaining() - 2_000, 25_000),
+        maxChunks: 20,
         startChunk: state.userOpChunkCursor ?? 0,
       });
       state = mergeActivityIntoState(state, uop.transfers, address);
@@ -252,16 +257,23 @@ export async function runWalletSyncBurst(
       newLegs = mergeTransfers([newLegs, uop.transfers]);
     }
 
-    const sup = await collectWalletSupplements(address);
-    state = mergeActivityIntoState(state, sup.transfers, address);
-    state = {
-      ...state,
-      userOpsFetched: true,
-      v1SupplementFetched: true,
-      historyComplete: true,
-    };
-    await saveWalletHistory(address, state);
-    newLegs = mergeTransfers([newLegs, sup.transfers]);
+    if (remaining() > 4_000) {
+      const sup = await collectWalletSupplements(address, {
+        deadlineMs: Math.min(remaining() - 2_000, 20_000),
+      });
+      state = mergeActivityIntoState(state, sup.transfers, address);
+      newLegs = mergeTransfers([newLegs, sup.transfers]);
+      state = {
+        ...state,
+        userOpsFetched: true,
+        v1SupplementFetched: true,
+      };
+    }
+
+    if (state.userOpsComplete) {
+      state = { ...state, historyComplete: true, userOpsFetched: true };
+      await saveWalletHistory(address, state);
+    }
   }
 
   return {
