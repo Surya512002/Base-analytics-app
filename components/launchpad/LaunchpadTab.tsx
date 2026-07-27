@@ -15,13 +15,11 @@ import TokenCard, { CreateTokenCard } from "@/components/launchpad/TokenCard";
 import { fetchLaunchpadTokens, fetchDiscoverTokens, resolveTokenByAddress } from "@/lib/api/launchpad-client";
 import { fetchMarketData, fetchMarketBatch, fetchGlobalActivity } from "@/lib/api/launchpad-market-client";
 import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
-import { mergeMarketSummaries } from "@/lib/launchpad/dexscreener";
+import { mergeMarketSummaries, type TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import { readExploreCache, writeExploreCache, hasExploreCache } from "@/lib/launchpad/explore-cache";
 import { mergeExploreTokens, sortByMarketVolume } from "@/lib/launchpad/merge-tokens";
 import { filterCatalogTokens, filterTradableExploreTokens } from "@/lib/launchpad/tradable";
 import { isAppLaunched, isB20ExploreToken } from "@/lib/launchpad/token-meta";
-import ImportTokenBar from "@/components/launchpad/ImportTokenBar";
-import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
 import MyLaunchedTokens from "@/components/launchpad/MyLaunchedTokens";
@@ -46,7 +44,7 @@ import {
   readTokenWatchlist,
   toggleTokenWatch,
 } from "@/lib/utils/token-watchlist";
-import { buildExploreTokenPath } from "@/lib/utils/app-url";
+import { buildExploreTokenPath, syncTabUrl } from "@/lib/utils/app-url";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 
 type View = "explore" | "create" | "trade";
@@ -107,7 +105,6 @@ export default function LaunchpadTab({
   guestMode,
   onRequestConnect,
   onShellBridge,
-  initialToken,
   onNavigate,
   onPayAgent,
   isActive = true,
@@ -116,8 +113,7 @@ export default function LaunchpadTab({
   guestMode?: boolean;
   onRequestConnect?: () => void;
   onShellBridge?: (bridge: LaunchpadShellBridge) => void;
-  initialToken?: string | null;
-  onNavigate?: (tab: AppTab) => void;
+  onNavigate?: (tab: AppTab, opts?: { token?: string | null }) => void;
   onPayAgent?: (productId: X402ProductId) => void;
   isActive?: boolean;
 }) {
@@ -267,7 +263,7 @@ export default function LaunchpadTab({
     return () => clearInterval(id);
   }, [isActive, refresh]);
 
-  const openTrade = useCallback((token: LaunchedToken) => {
+  const ensureTokenInCatalog = useCallback((token: LaunchedToken) => {
     setCatalog((prev) => {
       const key = token.address.toLowerCase();
       if (prev.tokens.some((t) => t.address.toLowerCase() === key)) return prev;
@@ -278,16 +274,22 @@ export default function LaunchpadTab({
         tokens: mergeExploreTokens(launched, [token, ...external]),
       };
     });
-    setSelected(token);
-    setView("trade");
-    syncTokenUrl(token);
   }, []);
+
+  const openSwap = useCallback(
+    (token: LaunchedToken) => {
+      ensureTokenInCatalog(token);
+      syncTabUrl("swap", { token: token.address });
+      onNavigate?.("swap", { token: token.address });
+    },
+    [ensureTokenInCatalog, onNavigate]
+  );
 
   const openTradeByAddress = useCallback(
     async (addr: string) => {
       const found = tokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
       if (found) {
-        openTrade(found);
+        openSwap(found);
         return;
       }
       const { token, market } = await resolveTokenByAddress(addr);
@@ -311,9 +313,9 @@ export default function LaunchpadTab({
           markets: market ? { ...prev.markets, [key]: market } : prev.markets,
         };
       });
-      openTrade(token);
+      openSwap(token);
     },
-    [tokens, openTrade, app]
+    [tokens, openSwap, app]
   );
 
   const requestCreate = useCallback(() => {
@@ -328,29 +330,10 @@ export default function LaunchpadTab({
     onShellBridge?.({
       tokens,
       openCreate: requestCreate,
-      openToken: openTrade,
+      openToken: openSwap,
       b20Activated: launchEnabled,
     });
-  }, [tokens, launchEnabled, onShellBridge, requestCreate, openTrade]);
-
-  const resolveToken = useCallback(
-    (addr: string) => tokens.find((t) => t.address.toLowerCase() === addr.toLowerCase()) ?? null,
-    [tokens]
-  );
-
-  useEffect(() => {
-    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    const fromQuery = params?.get("token")?.trim().toLowerCase();
-    const addr = initialToken ?? fromQuery;
-    if (!addr) return;
-    const found = resolveToken(addr);
-    if (found) {
-      setSelected(found);
-      setView("trade");
-      return;
-    }
-    void openTradeByAddress(addr);
-  }, [tokens, initialToken, resolveToken, openTradeByAddress]);
+  }, [tokens, launchEnabled, onShellBridge, requestCreate, openSwap]);
 
   const allNonB20Tokens = useMemo(
     () => tokens.filter((t) => !isB20ExploreToken(t)),
@@ -472,7 +455,7 @@ export default function LaunchpadTab({
         <TokenLaunchForm
           app={app}
           onLaunched={() => void refresh()}
-          onTrade={(token) => openTrade(token)}
+          onTrade={(token) => openSwap(token)}
           onExplore={goExplore}
         />
       </div>
@@ -494,7 +477,7 @@ export default function LaunchpadTab({
         marketLoading={initialLoading && tradableTokens.length === 0}
         guestMode={guestMode}
         onLaunch={requestCreate}
-        onOpenToken={openTrade}
+        onOpenToken={openSwap}
         onConnect={onRequestConnect}
         onBrowseTrending={scrollToGrid}
         onConnectToTrade={onRequestConnect}
@@ -504,7 +487,7 @@ export default function LaunchpadTab({
 
       <ExploreSearchBar
         tokens={tradableTokens}
-        onOpenToken={openTrade}
+        onOpenToken={openSwap}
         onBrowseTrending={scrollToGrid}
       />
 
@@ -518,7 +501,7 @@ export default function LaunchpadTab({
       <B20MarketHero
         tokens={tradableB20}
         markets={markets}
-        onOpen={openTrade}
+        onOpen={openSwap}
         onLaunch={guestMode ? undefined : requestCreate}
         loading={initialLoading && tradableB20.length === 0}
         guestMode={guestMode}
@@ -527,8 +510,7 @@ export default function LaunchpadTab({
       <LaunchpadExploreSections
         tokens={tradableTokens}
         markets={markets}
-        onOpen={openTrade}
-        activities={activities}
+        onOpen={openSwap}
         syncing={syncing}
       />
 
@@ -540,18 +522,13 @@ export default function LaunchpadTab({
         onConnect={onRequestConnect}
       />
 
-      <ImportTokenBar
-        onResolved={(token) => openTrade(token)}
-        onError={(msg) => app.showToast(msg, "")}
-      />
-
       {watchlist.length > 0 && (
         <>
           <TokenWatchlistRail
             tokens={tradableTokens}
             markets={markets}
             watchlist={watchlist}
-            onOpen={openTrade}
+            onOpen={openSwap}
             onToggleWatch={handleToggleWatch}
             pinned
             holdings={holdings}
@@ -616,7 +593,7 @@ export default function LaunchpadTab({
                     key={t.address}
                     token={t}
                     market={markets[t.address.toLowerCase()]}
-                    onTrade={() => openTrade(t)}
+                    onTrade={() => openSwap(t)}
                     isMine={
                       isAppLaunched(t) &&
                       wallet?.address.toLowerCase() === t.creator.toLowerCase()
@@ -643,7 +620,7 @@ export default function LaunchpadTab({
             loading={initialLoading}
             filter={b20Filter}
             onFilterChange={setB20Filter}
-            onOpen={openTrade}
+            onOpen={openSwap}
             onCreate={requestCreate}
             guestMode={guestMode}
             wallet={wallet?.address}
@@ -659,7 +636,7 @@ export default function LaunchpadTab({
         <MyLaunchedTokens
           tokens={tokens.filter(isAppLaunched)}
           wallet={wallet.address}
-          onOpen={openTrade}
+          onOpen={openSwap}
         />
       )}
 

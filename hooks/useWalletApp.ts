@@ -236,6 +236,7 @@ export type WalletAppState = ReturnType<typeof useWalletApp>;
 
 export type AppTab =
   | "launchpad"
+  | "swap"
   | "dashboard"
   | "checkin"
   | "achievements"
@@ -244,8 +245,9 @@ export type AppTab =
   | "rewards";
 
 function resolveInitialTab(): AppTab {
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/explore")) {
-    return "launchpad";
+  if (typeof window !== "undefined") {
+    if (window.location.pathname.startsWith("/swap")) return "swap";
+    if (window.location.pathname.startsWith("/explore")) return "launchpad";
   }
   const fromUrl = resolveTabFromUrl();
   if (fromUrl) return fromUrl;
@@ -2072,10 +2074,6 @@ export function useWalletApp() {
       setLoading(true);
       setScanProgress("Connecting wallet…");
 
-      if (type === "farcaster") {
-        showToast("⏳ Connecting Base App wallet...", "");
-      }
-
       const { address: addr, connType: resolvedType } = await connectAppWallet(type);
       setConnType(resolvedType);
       persistConnType(resolvedType);
@@ -2152,12 +2150,16 @@ export function useWalletApp() {
     } catch (e) {
       const msg =
         e instanceof Error ? e.message.split("\n")[0] : "Connection failed";
+      const rejected = msg.toLowerCase().includes("reject") || msg.toLowerCase().includes("denied");
       showToast(
-        msg.includes("timed out")
-          ? `❌ ${msg}`
-          : "❌ Connection failed. Switch to Base network and try again.",
+        rejected
+          ? "Connection cancelled"
+          : msg.includes("timed out")
+            ? `❌ ${msg}`
+            : `❌ ${msg}`,
         ""
       );
+      setShowModal(true);
       setLoading(false);
       setScanProgress("");
     } finally {

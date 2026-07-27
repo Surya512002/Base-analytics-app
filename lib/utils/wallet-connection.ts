@@ -10,9 +10,28 @@ const BASE_APP_CLIENT_FID = 309857;
 
 export type MiniAppHost = "warpcast" | "base" | "other";
 
-function inMiniAppShell(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean(window.ReactNativeWebView) || window !== window.parent;
+/** True when running inside Warpcast / Base App / Farcaster mini app with embedded wallet. */
+export async function detectMiniAppConnType(): Promise<ConnectionType | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const { sdk } = await import("@farcaster/miniapp-sdk");
+    const inMiniApp = await Promise.race([
+      sdk.isInMiniApp(),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3_000)),
+    ]);
+    if (!inMiniApp) return null;
+
+    const provider = await Promise.race([
+      sdk.wallet.getEthereumProvider(),
+      new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), 3_000)
+      ),
+    ]);
+    if (provider) return "farcaster";
+  } catch {
+    /* regular browser tab */
+  }
+  return null;
 }
 
 export function persistConnType(type: ConnectionType): void {
@@ -30,32 +49,6 @@ export function readConnType(): ConnectionType | null {
 export function clearConnType(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(CONN_TYPE_KEY);
-}
-
-/** True when running inside Warpcast / Base App / Farcaster mini app with embedded wallet. */
-export async function detectMiniAppConnType(): Promise<ConnectionType | null> {
-  if (typeof window === "undefined") return null;
-  const shell = inMiniAppShell();
-  try {
-    const { sdk } = await import("@farcaster/miniapp-sdk");
-    const inMiniApp = await Promise.race([
-      sdk.isInMiniApp(),
-      new Promise<boolean>((resolve) =>
-        setTimeout(() => resolve(shell), 4_000)
-      ),
-    ]);
-    if (!inMiniApp && !shell) return null;
-    const provider = await Promise.race([
-      sdk.wallet.getEthereumProvider(),
-      new Promise<undefined>((resolve) =>
-        setTimeout(() => resolve(undefined), 5_000)
-      ),
-    ]);
-    if (provider) return "farcaster";
-  } catch {
-    // not in mini app
-  }
-  return null;
 }
 
 /** Distinguish Warpcast vs Base App inside the mini-app shell. */

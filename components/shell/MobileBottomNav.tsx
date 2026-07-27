@@ -29,7 +29,7 @@ export default function MobileBottomNav({
       <div className="flex items-stretch justify-around max-w-lg mx-auto px-1">
         {ITEMS.map(({ id, icon: Icon, label }) => {
           const active = tab === id || (id === "checkin" && isRewardsHubTab(tab));
-          const locked = guest && id !== "launchpad";
+          const locked = guest && id !== "launchpad" && id !== "swap";
           return (
             <button
               key={id}

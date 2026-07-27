@@ -8,6 +8,8 @@ import {
   type CommonToken,
 } from "@/lib/launchpad/common-tokens";
 import { resolveTokenByAddress } from "@/lib/api/launchpad-client";
+import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
+import TokenIcon from "@/components/swap/TokenIcon";
 
 /** Either native ETH or any Base ERC-20. */
 export type SwapCounter =
@@ -44,30 +46,7 @@ export function CounterAvatar({
   counter: SwapCounter;
   size?: number;
 }) {
-  const style = { width: size, height: size };
-  if (counter.kind === "eth") {
-    return (
-      <span className="swap-eth-icon" style={style}>
-        Ξ
-      </span>
-    );
-  }
-  if (counter.imageUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={counter.imageUrl}
-        alt=""
-        className="rounded-full object-cover border border-white/10 shrink-0"
-        style={style}
-      />
-    );
-  }
-  return (
-    <span className="swap-eth-icon" style={style}>
-      {counter.symbol.slice(0, 2)}
-    </span>
-  );
+  return <TokenIcon counter={counter} size={size} />;
 }
 
 export default function TokenPickerDialog({
@@ -151,13 +130,15 @@ export default function TokenPickerDialog({
           setResolveError("That address is not an ERC-20 token on Base");
           return;
         }
-        setResolved({
-          kind: "token",
-          address: token.address,
-          symbol: token.symbol,
-          decimals: token.decimals ?? 18,
-          imageUrl: token.imageUrl,
-        });
+        setResolved(
+          enrichSwapCounter({
+            kind: "token",
+            address: token.address,
+            symbol: token.symbol,
+            decimals: token.decimals ?? 18,
+            imageUrl: token.imageUrl,
+          }) as Extract<SwapCounter, { kind: "token" }>
+        );
       })
       .catch(() => {
         if (alive) setResolveError("Could not read that contract");
@@ -173,16 +154,11 @@ export default function TokenPickerDialog({
   if (!open) return null;
 
   const pick = (counter: SwapCounter) => {
-    onSelect(counter);
+    onSelect(enrichSwapCounter(counter));
     onClose();
   };
 
-  const asCounter = (t: CommonToken): SwapCounter => ({
-    kind: "token",
-    address: t.address,
-    symbol: t.symbol,
-    decimals: t.decimals,
-  });
+  const asCounter = (t: CommonToken): SwapCounter => commonTokenToCounter(t);
 
   return (
     <div
@@ -217,7 +193,7 @@ export default function TokenPickerDialog({
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name or paste address"
+              placeholder="Search name or paste 0x address"
               className="flex-1 bg-transparent py-2.5 text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none"
             />
             {resolving && (

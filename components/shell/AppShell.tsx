@@ -44,7 +44,7 @@ export default function AppShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const handleTabChange = (t: AppTab) => {
-    if (guest && t !== "launchpad") {
+    if (guest && t !== "launchpad" && t !== "swap") {
       onConnect?.();
       return;
     }

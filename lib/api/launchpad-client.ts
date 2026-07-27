@@ -10,9 +10,13 @@ export async function fetchDiscoverTokens(): Promise<{
   tokens: LaunchedToken[];
   markets: Record<string, TokenMarketSummary>;
 }> {
-  const r = await fetch("/api/launchpad/discover", { cache: "no-store" });
-  if (!r.ok) return { tokens: [], markets: {} };
-  return r.json();
+  try {
+    const r = await fetch("/api/launchpad/discover", { cache: "no-store" });
+    if (!r.ok) return { tokens: [], markets: {} };
+    return r.json();
+  } catch {
+    return { tokens: [], markets: {} };
+  }
 }
 
 export async function resolveTokenByAddress(
@@ -143,8 +147,21 @@ export async function fetchSwapQuote(params: {
   if (params.receiveToken) qs.set("receiveToken", params.receiveToken);
   if (params.counterDecimals != null) qs.set("counterDecimals", String(params.counterDecimals));
   if (params.includeAggregator) qs.set("includeAggregator", "1");
-  const r = await fetch(`/api/launchpad/quote?${qs}`, { cache: "no-store" });
-  if (!r.ok) {
+  try {
+    const r = await fetch(`/api/launchpad/quote?${qs}`, { cache: "no-store" });
+    if (!r.ok) {
+      return {
+        amountIn: "0",
+        amountOut: "0",
+        amountOutMinimum: "0",
+        hasLiquidity: false,
+        tokenIn: "",
+        tokenOut: "",
+        error: "Quote failed",
+      };
+    }
+    return r.json();
+  } catch {
     return {
       amountIn: "0",
       amountOut: "0",
@@ -152,10 +169,9 @@ export async function fetchSwapQuote(params: {
       hasLiquidity: false,
       tokenIn: "",
       tokenOut: "",
-      error: "Quote failed",
+      error: "Network error — check connection and retry",
     };
   }
-  return r.json();
 }
 
 export async function fetchProtectionStatus(

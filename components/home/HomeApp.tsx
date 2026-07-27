@@ -18,6 +18,10 @@ import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView } f
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 
+const SwapTab = dynamic(
+  () => import("@/components/swap/SwapTab"),
+  { loading: () => <TabSkeleton /> }
+);
 const LaunchpadTab = dynamic(
   () => import("@/components/launchpad/LaunchpadTab"),
   { loading: () => <TabSkeleton /> }
@@ -92,8 +96,8 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   }, [setShowModal]);
 
   const handleTabChange = useCallback(
-    (next: AppTab, opts?: { rewardsView?: RewardsHubView }) => {
-      if (guest && next !== "launchpad") {
+    (next: AppTab, opts?: { rewardsView?: RewardsHubView; token?: string | null }) => {
+      if (guest && next !== "launchpad" && next !== "swap") {
         openConnect();
         return;
       }
@@ -103,6 +107,8 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         syncRewardsHubUrl(
           opts?.rewardsView ?? (next === "rewards" ? "stake" : "checkin")
         );
+      } else if (opts?.token) {
+        syncTabUrl(resolved, { token: opts.token });
       } else {
         syncTabUrl(resolved);
       }
@@ -194,10 +200,17 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
               guestMode={guest}
               onRequestConnect={openConnect}
               onShellBridge={handleShellBridge}
-              initialToken={initialToken}
               onNavigate={handleTabChange}
               onPayAgent={handlePayAgent}
               isActive
+            />
+          )}
+          {activeTab === "swap" && (
+            <SwapTab
+              app={app}
+              guestMode={guest}
+              onRequestConnect={openConnect}
+              initialToken={initialToken}
             />
           )}
           {!guest && activeTab === "basehub" && <BaseVoucherTab app={app} />}

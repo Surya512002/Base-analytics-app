@@ -8,6 +8,10 @@ import {
   MetaMaskWalletIcon,
 } from "@/components/wallet/WalletBrandIcon";
 import { isInsideBaseMiniApp, detectMiniAppHost, type MiniAppHost } from "@/lib/utils/mini-app-connect";
+import {
+  detectBrowserWalletAvailability,
+  type BrowserWalletAvailability,
+} from "@/lib/utils/wallet-providers";
 import type { ConnectionType } from "@/lib/types/wallet";
 
 type WalletOption = {
@@ -15,41 +19,47 @@ type WalletOption = {
   label: string;
   short: string;
   icon: ReactNode;
+  available?: boolean;
+  installUrl?: string;
 };
 
 const BASE_WALLET: WalletOption = {
   type: "baseAccount",
   label: "Base Wallet",
-  short: "Passkey or email · recommended",
+  short: "Email or passkey · opens Base sign-in",
   icon: <BaseAppWalletIcon size={22} />,
+  available: true,
 };
 
-const OTHER_WALLETS: WalletOption[] = [
-  {
-    type: "coinbase",
-    label: "Extension",
-    short: "Coinbase Wallet",
-    icon: <BaseAppWalletIcon size={20} />,
-  },
-  {
-    type: "metamask",
-    label: "MetaMask",
-    short: "Browser ext.",
-    icon: <MetaMaskWalletIcon size={20} />,
-  },
-  {
-    type: "injected",
-    label: "Other",
-    short: "Rabby, Rainbow…",
-    icon: <Globe size={16} className="text-[var(--ink-dim)]" />,
-  },
-  {
-    type: "farcaster",
-    label: "Farcaster",
-    short: "Warpcast",
-    icon: <FarcasterWalletIcon size={20} />,
-  },
-];
+function browserWalletOptions(
+  availability: BrowserWalletAvailability
+): WalletOption[] {
+  return [
+    {
+      type: "metamask",
+      label: "MetaMask",
+      short: availability.metamask ? "Browser extension" : "Not installed",
+      icon: <MetaMaskWalletIcon size={20} />,
+      available: availability.metamask,
+      installUrl: "https://metamask.io/download/",
+    },
+    {
+      type: "coinbase",
+      label: "Coinbase Wallet",
+      short: availability.coinbase ? "Browser extension" : "Not installed",
+      icon: <BaseAppWalletIcon size={20} />,
+      available: availability.coinbase,
+      installUrl: "https://www.coinbase.com/wallet/downloads",
+    },
+    {
+      type: "injected",
+      label: "Other wallet",
+      short: availability.otherInjected ? "Rabby, Rainbow…" : "Not detected",
+      icon: <Globe size={16} className="text-[var(--ink-dim)]" />,
+      available: availability.otherInjected,
+    },
+  ];
+}
 
 function WalletGridButton({
   wallet,
@@ -60,12 +70,35 @@ function WalletGridButton({
   loading: boolean;
   onConnect: (type: ConnectionType) => void;
 }) {
+  const unavailable = wallet.available === false;
+
+  if (unavailable && wallet.installUrl) {
+    return (
+      <a
+        href={wallet.installUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-white/[0.06] bg-black/10 text-left opacity-70 hover:opacity-100 hover:border-white/15 transition-colors"
+      >
+        <span className="w-7 h-7 rounded-md bg-white/90 flex items-center justify-center shrink-0 overflow-hidden grayscale">
+          {wallet.icon}
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[11px] font-semibold text-[var(--ink-muted)] truncate">
+            {wallet.label}
+          </span>
+          <span className="block text-[9px] text-[var(--ink-dim)] truncate">Install extension</span>
+        </span>
+      </a>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={() => onConnect(wallet.type)}
-      disabled={loading}
-      className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-white/[0.08] bg-black/20 hover:bg-white/[0.04] hover:border-white/20 text-left transition-colors disabled:opacity-50"
+      disabled={loading || unavailable}
+      className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-white/[0.08] bg-black/20 hover:bg-white/[0.04] hover:border-white/20 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       <span className="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden">
         {wallet.icon}
@@ -91,8 +124,12 @@ export default function ConnectWalletModal({
 }) {
   const [inMiniApp, setInMiniApp] = useState(false);
   const [miniAppHost, setMiniAppHost] = useState<MiniAppHost | null>(null);
+  const [availability, setAvailability] = useState<BrowserWalletAvailability>(() =>
+    detectBrowserWalletAvailability()
+  );
 
   useEffect(() => {
+    setAvailability(detectBrowserWalletAvailability());
     void (async () => {
       const inside = await isInsideBaseMiniApp();
       setInMiniApp(inside);
@@ -108,32 +145,39 @@ export default function ConnectWalletModal({
         setMiniAppHost(null);
       }
     })();
-  }, []);
+  }, [open]);
 
   const embeddedWallet = useMemo((): WalletOption => {
     if (miniAppHost === "warpcast") {
       return {
         type: "farcaster",
-        label: "Farcaster Wallet",
-        short: "Warpcast on Base",
+        label: "Warpcast Wallet",
+        short: "Your Farcaster smart wallet",
         icon: <FarcasterWalletIcon size={22} />,
+        available: true,
       };
     }
     return {
       type: "farcaster",
       label: "Base App Wallet",
-      short: "Smart wallet in mini-app",
+      short: "Smart wallet inside Base App",
       icon: <BaseAppWalletIcon size={22} />,
+      available: true,
     };
   }, [miniAppHost]);
+
+  const otherWallets = useMemo(
+    () => browserWalletOptions(availability),
+    [availability]
+  );
 
   if (!open) return null;
 
   const hint = inMiniApp
     ? miniAppHost === "warpcast"
-      ? "Connect your Warpcast wallet to trade on Base."
-      : "Connect your Base App smart wallet."
-    : "Sign in to launch, swap, and earn XP. Browse stays open without connecting.";
+      ? "You’re in Warpcast — connect your embedded wallet to trade on Base."
+      : "You’re in Base App — connect your in-app smart wallet."
+    : "Pick the wallet you want — each option opens that wallet only (no auto MetaMask).";
 
   return (
     <div
@@ -218,10 +262,10 @@ export default function ConnectWalletModal({
 
               <div className="mt-4 pt-3 border-t border-white/[0.08]">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)] mb-2">
-                  Other wallets
+                  Browser extensions
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {OTHER_WALLETS.map((w) => (
+                  {otherWallets.map((w) => (
                     <WalletGridButton
                       key={w.type}
                       wallet={w}
@@ -238,7 +282,7 @@ export default function ConnectWalletModal({
         <div className="px-4 py-2 border-t border-white/[0.08] flex items-center justify-center gap-1.5">
           <Droplets size={10} className="text-[var(--ink-dim)] shrink-0" />
           <p className="text-[10px] text-[var(--ink-dim)] font-medium">
-            Gas sponsored on Base Wallet
+            {inMiniApp ? "Gas sponsored in mini-app" : "Base Wallet supports sponsored gas on Base"}
           </p>
         </div>
       </div>

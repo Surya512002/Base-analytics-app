@@ -2,7 +2,8 @@ import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
-import { sortByMarketVolume } from "@/lib/launchpad/merge-tokens";
+import { sortByMarketVolume, sortByPriceChange } from "@/lib/launchpad/merge-tokens";
+import { isTradableListing } from "@/lib/launchpad/tradable";
 
 const MIN_LIQ_SAFE = 5_000;
 const MIN_LIQ_LOW = 1_000;
@@ -99,6 +100,86 @@ export function buildHotTokens(
     seen.add(t.address.toLowerCase());
   }
   return scored.slice(0, limit).map((s) => s.token);
+}
+
+/** Top 24h gainers on Base — B20 and ecosystem tokens with live pools. */
+export function buildBaseTopMovers(
+  tokens: LaunchedToken[],
+  markets: Record<string, TokenMarketSummary>,
+  limit = 12
+): LaunchedToken[] {
+  const tradable = tokens.filter((t) => {
+    if (!isTradableListing(t, markets)) return false;
+    const m = markets[t.address.toLowerCase()];
+    return (
+      m?.priceChange24h != null &&
+      (m.liquidityUsd ?? 0) >= MIN_LIQ_LOW &&
+      (m.volume24h ?? 0) > 0
+    );
+  });
+
+  const b20Movers = sortByPriceChange(
+    tradable.filter(
+      (t) =>
+        isB20ExploreToken(t) &&
+        (markets[t.address.toLowerCase()]?.priceChange24h ?? 0) > 0
+    ),
+    markets,
+    "gainers"
+  );
+
+  const ecosystemMovers = sortByPriceChange(
+    tradable.filter(
+      (t) =>
+        !isB20ExploreToken(t) &&
+        (markets[t.address.toLowerCase()]?.priceChange24h ?? 0) > 0
+    ),
+    markets,
+    "gainers"
+  );
+
+  const seen = new Set<string>();
+  const out: LaunchedToken[] = [];
+
+  /** Interleave B20 movers with broader Base movers — B20 first, then fill. */
+  const b20Cap = Math.min(b20Movers.length, Math.ceil(limit * 0.45));
+  for (const t of b20Movers.slice(0, b20Cap)) {
+    const key = t.address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+
+  for (const t of ecosystemMovers) {
+    if (out.length >= limit) break;
+    const key = t.address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+
+  for (const t of b20Movers.slice(b20Cap)) {
+    if (out.length >= limit) break;
+    const key = t.address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+
+  if (out.length < limit) {
+    const fillers = sortByPriceChange(
+      tradable.filter((t) => !seen.has(t.address.toLowerCase())),
+      markets,
+      "gainers"
+    );
+    for (const t of fillers) {
+      if (out.length >= limit) break;
+      seen.add(t.address.toLowerCase());
+      out.push(t);
+    }
+  }
+
+  return out.slice(0, limit);
 }
 
 export function countRecentLaunches(activities: GlobalActivityItem[], days = 7): number {

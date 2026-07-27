@@ -7,7 +7,7 @@ import type { AppTab } from "@/hooks/useWalletApp";
 
 const ACTION_TAB: Record<ScoreTip["action"], AppTab> = {
   checkin: "checkin",
-  swap: "launchpad",
+  swap: "swap",
   launch: "launchpad",
   basename: "dashboard",
   badge: "achievements",

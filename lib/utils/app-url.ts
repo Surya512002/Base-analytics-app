@@ -4,9 +4,11 @@ const TAB_ALIASES: Record<string, AppTab> = {
   launchpad: "launchpad",
   launch: "launchpad",
   terminal: "launchpad",
-  trade: "launchpad",
   explore: "launchpad",
   markets: "launchpad",
+  swap: "swap",
+  trade: "swap",
+  dex: "swap",
   predictions: "launchpad",
   predict: "launchpad",
   dashboard: "dashboard",
@@ -75,6 +77,14 @@ export function syncTabUrl(tab: AppTab, opts?: { token?: string | null }) {
   if (opts?.token) url.searchParams.set("token", opts.token);
   else url.searchParams.delete("token");
   window.history.replaceState({}, "", url);
+}
+
+export function buildSwapTokenPath(address: string): string {
+  return `/swap/token/${address}`;
+}
+
+export function buildSwapPath(): string {
+  return "/swap";
 }
 
 export function buildExploreTokenPath(address: string): string {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Gift, Rocket, Sparkles, Trophy, BarChart3 } from "lucide-react";
+import { ArrowUpRight, ArrowLeftRight, Gift, Rocket, Sparkles, Trophy, BarChart3 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 const SERVICES: {
@@ -19,6 +19,14 @@ const SERVICES: {
     label: "B20 Launchpad",
     desc: "Create tokens · dual-DEX · 0.5% fees",
     icon: Rocket,
+    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
+  },
+  {
+    id: "swap",
+    tab: "swap",
+    label: "Swap",
+    desc: "DEX swap · any Base token",
+    icon: ArrowLeftRight,
     accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
   {

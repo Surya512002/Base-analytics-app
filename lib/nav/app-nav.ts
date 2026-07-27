@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   BarChart3,
   Flame,
   Gift,
@@ -22,7 +23,13 @@ export const APP_NAV: AppNavItem[] = [
     id: "launchpad",
     label: "Explore",
     icon: Rocket,
-    hint: "B20 tokens, swap & launch",
+    hint: "B20 tokens & launch",
+  },
+  {
+    id: "swap",
+    label: "Swap",
+    icon: ArrowLeftRight,
+    hint: "Trade any token on Base",
   },
   {
     id: "dashboard",
