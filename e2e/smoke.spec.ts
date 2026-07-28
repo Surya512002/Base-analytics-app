@@ -13,10 +13,11 @@ test.describe("guest browse flow", () => {
   });
 
   test("home shows connect CTA for guests", async ({ page }) => {
-    await page.goto(BASE);
-    await expect(
-      page.getByText(/connect|guest|browse/i).first()
-    ).toBeVisible({ timeout: 30_000 });
+    await page.goto(`${BASE}/explore`);
+    await expect(page.getByText(/browsing as guest/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: /connect/i }).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("wallet profile public page loads", async ({ page }) => {
