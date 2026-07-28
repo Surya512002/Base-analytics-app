@@ -4,9 +4,9 @@ function parseFeeBps(): number {
   const raw =
     process.env.NEXT_PUBLIC_LAUNCHPAD_PLATFORM_FEE_BPS ||
     process.env.LAUNCHPAD_PLATFORM_FEE_BPS ||
-    "50";
+    "25";
   const n = parseInt(String(raw), 10);
-  if (!Number.isFinite(n) || n < 0) return 50;
+  if (!Number.isFinite(n) || n < 0) return 25;
   return Math.min(300, n);
 }
 
@@ -19,7 +19,7 @@ export const LAUNCHPAD_TREASURY = (
 
 /**
  * Swap platform fee in basis points.
- * 50 bps = 0.5% — below typical launchpad ~1% buy fee.
+ * 25 bps = 0.25% — below typical launchpad ~1% buy fee.
  */
 export const LAUNCHPAD_PLATFORM_FEE_BPS = parseFeeBps();
 
@@ -27,7 +27,7 @@ export const LAUNCHPAD_PLATFORM_FEE_PCT = LAUNCHPAD_PLATFORM_FEE_BPS / 100;
 
 /** Human label: 50 bps → "0.5%" */
 export function formatPlatformFeeLabel(bps = LAUNCHPAD_PLATFORM_FEE_BPS): string {
-  const safe = Number.isFinite(bps) && bps >= 0 ? bps : 50;
+  const safe = Number.isFinite(bps) && bps >= 0 ? bps : 25;
   const pct = safe / 100;
   if (pct === 0) return "0%";
   const rounded = pct >= 1 ? pct.toFixed(2) : pct.toFixed(2);

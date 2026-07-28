@@ -3,7 +3,6 @@ import type { ConnectionType } from "@/lib/types/wallet";
 import {
   getSendCallsCapabilities,
   supportsPaymaster,
-  batchUsesB20Precompile,
 } from "@/lib/utils/paymaster";
 import type { ContractCall } from "@/lib/utils/tx";
 import {
@@ -351,20 +350,83 @@ function groupCallsForExecution(
   return groups;
 }
 
+function isPaymasterDenied(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("paymaster") ||
+    msg.includes("sponsor") ||
+    msg.includes("request denied") ||
+    msg.includes("not allowlisted") ||
+    msg.includes("-32001")
+  );
+}
+
+/** B20 precompile legs must run first; router/fee legs can be paymaster-sponsored. */
+function partitionB20PreflightCalls(calls: ContractCall[]): {
+  preflight: ContractCall[];
+  main: ContractCall[];
+} {
+  const preflight: ContractCall[] = [];
+  const main: ContractCall[] = [];
+  for (const call of calls) {
+    if (isB20PrecompileAddress(call.to)) preflight.push(call);
+    else main.push(call);
+  }
+  return { preflight, main };
+}
+
+function batchCanTryPaymaster(calls: ContractCall[]): boolean {
+  if (calls.length === 0) return false;
+  return !calls.every((c) => isB20PrecompileAddress(c.to));
+}
+
+async function sendWalletCallsWithPaymasterFallback(
+  provider: Eip1193,
+  from: string,
+  calls: ContractCall[],
+  tryPaymaster: boolean,
+  stripSuffixForPreserved = false
+): Promise<string> {
+  if (tryPaymaster) {
+    try {
+      return await sendViaWalletSendCalls(
+        provider,
+        from,
+        calls,
+        getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: false })
+      );
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+      if (!isPaymasterDenied(e)) throw e;
+    }
+  }
+
+  return sendViaWalletSendCalls(
+    provider,
+    from,
+    calls,
+    getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: true })
+  );
+}
+
 async function sendSingleCall(
   provider: Eip1193,
   from: string,
   call: ContractCall,
   opts: { preferSendCalls: boolean }
 ): Promise<string> {
-  const skipSuffix = isPreservedCalldataCall(call);
-  const caps = getSendCallsCapabilities(skipSuffix, {
-    skipPaymaster: skipSuffix || isB20PrecompileAddress(call.to),
-  });
+  const stripSuffix = isPreservedCalldataCall(call);
+  const tryPaymaster = !isB20PrecompileAddress(call.to);
 
   if (opts.preferSendCalls) {
     try {
-      return await sendViaWalletSendCalls(provider, from, [call], caps);
+      return await sendWalletCallsWithPaymasterFallback(
+        provider,
+        from,
+        [call],
+        tryPaymaster,
+        stripSuffix
+      );
     } catch (e) {
       if (isUserRejection(e)) throw e;
     }
@@ -386,15 +448,16 @@ async function sendCallGroup(
     return sendSingleCall(provider, from, group[0]!, opts);
   }
 
-  const b20InBatch = batchUsesB20Precompile(group);
-  const hasValue = group.some((c) => c.value && c.value > BigInt(0));
-  const caps = getSendCallsCapabilities(false, {
-    skipPaymaster: b20InBatch || hasValue,
-  });
+  const tryPaymaster = batchCanTryPaymaster(group);
 
   if (opts.preferSendCalls || opts.atomicBatch) {
     try {
-      return await sendViaWalletSendCalls(provider, from, group, caps);
+      return await sendWalletCallsWithPaymasterFallback(
+        provider,
+        from,
+        group,
+        tryPaymaster
+      );
     } catch (e) {
       if (isUserRejection(e)) throw e;
     }
@@ -523,35 +586,51 @@ export async function sendAppTransactions(
   const inMiniApp = Boolean(await detectMiniAppConnType());
   const preferSendCalls = prefersWalletSendCalls(connType, inMiniApp);
   const atomicBatch = options?.atomicBatch !== false;
-  const b20Only =
-    batch.length === 1 && isB20PrecompileAddress(batch[0]!.to);
 
-  if (b20Only) {
-    return sendB20Launch(provider, from, batch[0]!, connType, inMiniApp);
+  const { preflight, main } = partitionB20PreflightCalls(batch);
+  let workBatch = batch;
+
+  if (preflight.length > 0 && main.length > 0) {
+    const preHash = await sendGroupedAppCalls(provider, from, preflight, {
+      preferSendCalls,
+      atomicBatch,
+    });
+    await waitForTxMined(preHash);
+    workBatch = main;
   }
 
-  if (batch.length > 1) {
-    return sendGroupedAppCalls(provider, from, batch, {
+  const b20Only =
+    workBatch.length === 1 && isB20PrecompileAddress(workBatch[0]!.to);
+
+  if (b20Only) {
+    return sendB20Launch(provider, from, workBatch[0]!, connType, inMiniApp);
+  }
+
+  if (workBatch.length > 1) {
+    return sendGroupedAppCalls(provider, from, workBatch, {
       preferSendCalls,
       atomicBatch,
     });
   }
 
-  const b20InBatch = batchUsesB20Precompile(batch);
-  const sendCallsCaps = getSendCallsCapabilities(b20InBatch, {
-    skipPaymaster: b20InBatch,
-  });
+  const stripSuffix = workBatch.some(isPreservedCalldataCall);
 
   if (trySponsored || preferSendCalls) {
     try {
-      return await sendViaWalletSendCalls(provider, from, batch, sendCallsCaps);
+      return await sendWalletCallsWithPaymasterFallback(
+        provider,
+        from,
+        workBatch,
+        batchCanTryPaymaster(workBatch),
+        stripSuffix
+      );
     } catch (e) {
       if (isUserRejection(e)) throw e;
-      return sendViaEthSendTransaction(provider, from, batch[0]!);
+      return sendViaEthSendTransaction(provider, from, workBatch[0]!);
     }
   }
 
-  return sendViaEthSendTransaction(provider, from, batch[0]!);
+  return sendViaEthSendTransaction(provider, from, workBatch[0]!);
 }
 
 /** Sends an app contract call — sponsored via paymaster in Base App / Coinbase Wallet. */

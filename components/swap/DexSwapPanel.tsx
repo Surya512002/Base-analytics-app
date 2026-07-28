@@ -40,6 +40,7 @@ import {
   resolveDexSwapRoute,
 } from "@/lib/launchpad/dex-swap-params";
 import { enrichSwapCounter } from "@/lib/launchpad/token-logo";
+import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -67,6 +68,17 @@ function formatQuoteOut(amountOut: string, decimals: number): string {
   if (n >= 1) return n.toFixed(4);
   if (n >= 0.0001) return n.toFixed(6);
   return n.toExponential(2);
+}
+
+function isPresetSlippage(value: string): boolean {
+  return SLIPPAGE_PRESETS.includes(value);
+}
+
+function sanitizeCustomSlippage(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const parts = cleaned.split(".");
+  if (parts.length <= 1) return cleaned;
+  return `${parts[0]}.${parts.slice(1).join("")}`;
 }
 
 function parseSlippageBps(raw: string): number {
@@ -672,6 +684,18 @@ export default function DexSwapPanel({
                 {s}%
               </button>
             ))}
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Custom"
+              aria-label="Custom slippage percent"
+              value={isPresetSlippage(slippage) ? "" : slippage}
+              onChange={(e) => {
+                const next = sanitizeCustomSlippage(e.target.value);
+                if (next) setSlippage(next);
+              }}
+              className={`dex-swap-chip dex-swap-chip-input ${!isPresetSlippage(slippage) ? "dex-swap-chip-on" : ""}`}
+            />
           </div>
         </div>
       )}
@@ -784,8 +808,8 @@ export default function DexSwapPanel({
       </button>
 
       <p className="dex-swap-foot">
-        Paste any <span className="font-mono">0x…</span> address in the token picker · Base
-        mainnet
+        {formatPlatformFeeLabel()} platform fee · Paste any{" "}
+        <span className="font-mono">0x…</span> address in the token picker · Base mainnet
       </p>
 
       <TokenPickerDialog

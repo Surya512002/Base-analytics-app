@@ -2089,6 +2089,17 @@ button.swap-token-pill:hover {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
+.dex-swap-chip-input {
+  width: 4.75rem;
+  text-align: center;
+  outline: none;
+}
+
+.dex-swap-chip-input::placeholder {
+  color: var(--ink-dim);
+  opacity: 0.85;
+}
+
 .dex-swap-fields {
   display: flex;
   flex-direction: column;
