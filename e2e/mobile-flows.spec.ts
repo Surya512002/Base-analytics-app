@@ -20,6 +20,21 @@ test.describe("mobile viewport flows", () => {
     await expect(page.getByText("Sell", { exact: true })).toBeVisible({ timeout: 45_000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("explore shows guest banner and connect on mobile", async ({ page }) => {
+    await page.goto(`${BASE}/explore`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(/browsing as guest/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: /^connect$/i })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("creator profile page loads on mobile", async ({ page }) => {
+    const addr = "0x0000000000000000000000000000000000000001";
+    await page.goto(`${BASE}/creator/${addr}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Creator profile")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
 });
 
 test.describe("API smoke", () => {

@@ -199,9 +199,9 @@ export default function CreatorProfilePanel({
         />
       )}
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-[var(--shadow-card)] sm:p-8">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4 sm:gap-5">
+          <div className="flex min-w-0 items-start gap-3 sm:gap-5">
             <CreatorAvatar address={creator} profile={profile} size="xl" ring />
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-dim)]">
@@ -280,11 +280,11 @@ export default function CreatorProfilePanel({
               )}
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={copyProfileLink}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:border-[var(--brand)]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:border-[var(--brand)] sm:w-auto touch-manipulation"
             >
               <Link2 size={16} />
               {copied ? "Copied!" : "Profile link"}
@@ -293,7 +293,7 @@ export default function CreatorProfilePanel({
               <button
                 type="button"
                 onClick={onConnect}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[var(--brand-dark)]"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[var(--brand-dark)] sm:w-auto touch-manipulation"
               >
                 Connect to edit
               </button>
@@ -325,7 +325,9 @@ export default function CreatorProfilePanel({
                 {s.label}
                 {s.hint && <span className="ml-1 normal-case text-[var(--ink-muted)]">({s.hint})</span>}
               </p>
-              <p className="mt-1 font-mono text-lg font-bold text-[var(--ink)]">{s.value}</p>
+              <p className="mt-1 truncate font-mono text-sm font-bold text-[var(--ink)] sm:text-lg">
+                {s.value}
+              </p>
             </div>
           ))}
         </div>
@@ -368,13 +370,13 @@ export default function CreatorProfilePanel({
 
       <CreatorProfileBenefits />
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 no-scrollbar touch-scroll-x">
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+            className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition-colors touch-manipulation sm:px-4 sm:py-2.5 sm:text-sm ${
               tab === t.id
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"

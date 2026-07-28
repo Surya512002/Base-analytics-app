@@ -6,6 +6,7 @@ import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import CreatorProfilePanel from "@/components/launchpad/CreatorProfilePanel";
+import MobileBottomNav from "@/components/shell/MobileBottomNav";
 import { useWalletApp } from "@/hooks/useWalletApp";
 
 export default function CreatorPageClient({ address }: { address: string }) {
@@ -52,7 +53,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
         />
-        <div className="app-container py-6 sm:py-8">
+        <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8">
           <Link
             href="/explore"
             className="mb-6 inline-block text-sm font-semibold text-[var(--brand-dark)] hover:text-[var(--brand)]"
@@ -69,6 +70,13 @@ export default function CreatorPageClient({ address }: { address: string }) {
           />
         </div>
       </div>
+
+      <MobileBottomNav
+        tab={tab}
+        onTabChange={setTab}
+        guest={guest}
+        onConnect={openConnect}
+      />
 
       <ConnectWalletModal
         open={showModal}

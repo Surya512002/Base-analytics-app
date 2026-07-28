@@ -176,7 +176,7 @@ export default function CreatorProfileForm({
               onChange={(e) => setDisplayName(e.target.value.slice(0, 50))}
               maxLength={50}
               placeholder="Surya Prakash"
-              className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--ink)]"
+              className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-base text-[var(--ink)] sm:text-sm"
             />
           </div>
           <div>
@@ -187,7 +187,7 @@ export default function CreatorProfileForm({
               maxLength={280}
               rows={2}
               placeholder="Builder on Base · B20 launches · swap fee revenue to creators"
-              className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--ink)]"
+              className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-base text-[var(--ink)] sm:text-sm"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -197,7 +197,7 @@ export default function CreatorProfileForm({
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 placeholder="https://…"
-                className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-base text-[var(--ink)] sm:text-sm"
               />
             </div>
             <div>
@@ -206,7 +206,7 @@ export default function CreatorProfileForm({
                 value={twitter}
                 onChange={(e) => setTwitter(e.target.value)}
                 placeholder="@handle or URL"
-                className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-base text-[var(--ink)] sm:text-sm"
               />
             </div>
             <div>
@@ -215,7 +215,7 @@ export default function CreatorProfileForm({
                 value={telegram}
                 onChange={(e) => setTelegram(e.target.value)}
                 placeholder="t.me/…"
-                className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-base text-[var(--ink)] sm:text-sm"
               />
             </div>
           </div>
@@ -226,7 +226,7 @@ export default function CreatorProfileForm({
             type="button"
             disabled={saving || uploading}
             onClick={() => void onSave()}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-bold text-white hover:bg-[var(--brand-dark)] disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-bold text-white hover:bg-[var(--brand-dark)] disabled:opacity-50 sm:w-auto touch-manipulation"
           >
             {saving ? (
               <Loader2 size={16} className="animate-spin" />

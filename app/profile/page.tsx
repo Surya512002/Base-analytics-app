@@ -58,14 +58,14 @@ export default function ProfilePage() {
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
         />
-        <div className="app-container py-10 sm:py-14">
+        <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14">
           {wallet?.address ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
               <p className="mt-4 text-sm text-[var(--ink-muted)]">Opening your profile…</p>
             </div>
           ) : (
-            <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 text-center shadow-[var(--shadow-card)]">
+            <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)] sm:p-8">
               <h1 className="text-2xl font-bold text-[var(--ink)]">Creator profile</h1>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">
                 Connect wallet, then sign in (free, no gas) to create your public profile and track

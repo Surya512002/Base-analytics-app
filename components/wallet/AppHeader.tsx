@@ -111,32 +111,42 @@ export default function AppHeader({
                 <span className="hidden sm:inline">Connect wallet</span>
               </button>
             ) : (
-              <div className="flex items-center gap-1.5 text-xs sm:gap-2">
+              <div className="flex items-center gap-1 text-xs sm:gap-2">
                 {!siweAuthenticated && onSiweSignIn && (
                   <button
                     type="button"
                     onClick={onSiweSignIn}
                     disabled={siweSigningIn}
-                    className="hidden rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-500/15 sm:inline disabled:opacity-60"
+                    className="inline-flex shrink-0 rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-900 hover:bg-amber-500/15 sm:text-[11px] disabled:opacity-60 touch-manipulation"
                   >
-                    {siweSigningIn ? "Signing…" : "Sign in"}
+                    {siweSigningIn ? "…" : "Sign in"}
                   </button>
                 )}
                 {siweAuthenticated && (
-                  <span className="hidden rounded-lg bg-emerald-500/12 px-2 py-1 text-[10px] font-bold text-emerald-800 sm:inline">
-                    Signed in
+                  <span
+                    className="inline-flex shrink-0 rounded-lg bg-emerald-500/12 px-1.5 py-1 text-[9px] font-bold text-emerald-800 sm:px-2 sm:text-[10px]"
+                    title="Signed in"
+                  >
+                    <span className="sm:hidden" aria-hidden>
+                      ✓
+                    </span>
+                    <span className="hidden sm:inline">Signed in</span>
                   </span>
                 )}
                 <Link
                   href={`/creator/${walletAddress}`}
-                  className="hidden rounded-lg bg-[var(--brand-soft)] px-2 py-1 font-semibold text-[var(--brand-dark)] hover:bg-[var(--brand)]/15 sm:inline"
+                  className="inline-flex shrink-0 rounded-lg bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--brand-dark)] hover:bg-[var(--brand)]/15 sm:text-xs touch-manipulation"
                 >
                   Profile
                 </Link>
-                <span className="hidden rounded-lg bg-[var(--surface-2)] px-2 py-1 font-mono sm:inline">
+                <span className="hidden rounded-lg bg-[var(--surface-2)] px-2 py-1 font-mono md:inline">
                   {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
                 </span>
-                <button type="button" onClick={onDisconnect} className="btn-ghost text-xs">
+                <button
+                  type="button"
+                  onClick={onDisconnect}
+                  className="btn-ghost shrink-0 px-2 text-[10px] sm:text-xs touch-manipulation"
+                >
                   Out
                 </button>
               </div>

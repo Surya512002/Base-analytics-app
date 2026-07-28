@@ -63,7 +63,7 @@ export default function SiweSignInBanner({
           type="button"
           onClick={onSignIn}
           disabled={signingIn}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60"
+          className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60 sm:w-auto touch-manipulation"
         >
           {signingIn ? (
             <>
