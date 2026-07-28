@@ -72,7 +72,7 @@ export default function VoucherMinePanel({
             <button
               type="button"
               onClick={() => copyText(buildPayLinkUrl(address), "pay-link")}
-              className="flex items-center justify-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 shrink-0"
+              className="flex items-center justify-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl btn-secondary shrink-0"
             >
               {copied === "pay-link" ? <CheckCircle size={14} /> : <Copy size={14} />}
               Copy link
@@ -88,7 +88,7 @@ export default function VoucherMinePanel({
         </div>
         <div className="flex items-center gap-2">
           {mineStatusesLoading && (
-            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+            <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
               <RefreshCcw size={12} className="animate-spin" /> Syncing…
             </span>
           )}
@@ -111,7 +111,7 @@ export default function VoucherMinePanel({
               value={recoverTxInput}
               onChange={(e) => setRecoverTxInput(e.target.value.trim())}
               placeholder="0x… deposit tx hash"
-              className="w-full input-ink rounded-xl px-3 py-2.5 text-white font-mono text-xs outline-none"
+              className="w-full input-ink rounded-xl px-3 py-2.5 text-[var(--ink)] font-mono text-xs outline-none"
             />
             {recoverError && (
               <p className="text-red-400 text-xs font-bold">{recoverError}</p>
@@ -133,18 +133,18 @@ export default function VoucherMinePanel({
           <p className="section-eyebrow text-amber-300/80">Creator analytics</p>
           <div className="grid grid-cols-3 gap-2 mt-2">
             <div>
-              <p className="text-lg font-black text-white">{creatorSummary.batchCount}</p>
-              <p className="text-[9px] uppercase text-slate-500 font-bold">Batches</p>
+              <p className="text-lg font-black text-[var(--ink)]">{creatorSummary.batchCount}</p>
+              <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Batches</p>
             </div>
             <div>
               <p className="text-lg font-black text-emerald-300">
                 {creatorSummary.totalCards - creatorSummary.totalUnredeemed}
               </p>
-              <p className="text-[9px] uppercase text-slate-500 font-bold">Redeemed</p>
+              <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Redeemed</p>
             </div>
             <div>
               <p className="text-lg font-black text-amber-300">{creatorSummary.totalUnredeemed}</p>
-              <p className="text-[9px] uppercase text-slate-500 font-bold">Unredeemed</p>
+              <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Unredeemed</p>
             </div>
           </div>
           <p className="readable-body text-xs mt-2">
@@ -156,8 +156,8 @@ export default function VoucherMinePanel({
       {myBatches.length === 0 ? (
         <SectionCard>
           <div className="py-6 text-center space-y-4">
-            <CreditCard size={28} className="text-slate-600 mx-auto" />
-            <p className="text-slate-400 text-sm font-bold">
+            <CreditCard size={28} className="text-[var(--ink-dim)] mx-auto" />
+            <p className="text-[var(--ink-muted)] text-sm font-bold">
               No vouchers yet — or your deposit needs to be linked.
             </p>
             <div className="text-left max-w-md mx-auto space-y-2 pt-2">
@@ -168,7 +168,7 @@ export default function VoucherMinePanel({
                 value={recoverTxInput}
                 onChange={(e) => setRecoverTxInput(e.target.value.trim())}
                 placeholder="0x…"
-                className="w-full input-ink rounded-xl px-3 py-3 text-white font-mono text-xs outline-none"
+                className="w-full input-ink rounded-xl px-3 py-3 text-[var(--ink)] font-mono text-xs outline-none"
               />
               {recoverError && (
                 <p className="text-red-400 text-xs font-bold">{recoverError}</p>
@@ -218,14 +218,14 @@ export default function VoucherMinePanel({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-black text-white">Batch #{b.batchId}</p>
+                      <p className="font-black text-[var(--ink)]">Batch #{b.batchId}</p>
                       {hasLocalSecrets && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 uppercase">
                           Secrets saved
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                       {formatVoucherAmount(b.asset, BigInt(b.totalAmount))} · {b.cardCount} card
                       {b.cardCount === 1 ? "" : "s"}
                     </p>
@@ -246,13 +246,13 @@ export default function VoucherMinePanel({
                         </span>
                       )}
                     </div>
-                    <span className="text-slate-500 mt-1">
+                    <span className="text-[var(--ink-muted)] mt-1">
                       {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </span>
                   </div>
                 </div>
                 {!isExpanded && (
-                  <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden mt-3">
+                  <div className="w-full bg-[var(--surface-2)] rounded-full h-1 overflow-hidden mt-3">
                     <div
                       className="h-full bg-[var(--accent)] rounded-full transition-all"
                       style={{ width: `${pct}%` }}
@@ -262,12 +262,12 @@ export default function VoucherMinePanel({
               </button>
 
               {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
+                <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] space-y-4">
                   {b.message && (
                     <p className="readable-body text-xs italic">&quot;{b.message}&quot;</p>
                   )}
 
-                  <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden">
                     <div
                       className="h-full bg-[var(--accent)] rounded-full transition-all"
                       style={{ width: `${pct}%` }}
@@ -280,7 +280,7 @@ export default function VoucherMinePanel({
                         <button
                           type="button"
                           onClick={() => copyText(formatBatchShareText(b), `batch-${b.batchId}`)}
-                          className="flex items-center gap-2 text-sm font-black px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15"
+                          className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl btn-secondary"
                         >
                           {copied === `batch-${b.batchId}` ? (
                             <CheckCircle size={14} />
@@ -328,7 +328,7 @@ export default function VoucherMinePanel({
                     ))}
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3 space-y-2">
                     <p className="section-eyebrow">Redemption status</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(cardStatuses?.length

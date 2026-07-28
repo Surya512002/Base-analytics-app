@@ -53,7 +53,7 @@ export default function VoucherViewPanel({
             value={viewCardId}
             onChange={(e) => setViewCardId(e.target.value)}
             placeholder="e.g. 12-3"
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-mono outline-none focus:border-white/25"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-[var(--ink)] font-mono outline-none focus:border-[var(--brand)]"
           />
         </div>
         <div>
@@ -62,7 +62,7 @@ export default function VoucherViewPanel({
             value={viewSecret}
             onChange={(e) => setViewSecret(e.target.value.toUpperCase())}
             placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-mono tracking-wider outline-none focus:border-white/25"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-[var(--ink)] font-mono tracking-wider outline-none focus:border-[var(--brand)]"
           />
         </div>
 
@@ -98,18 +98,18 @@ export default function VoucherViewPanel({
             />
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="glass-panel-accent rounded-xl p-3">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">Batch</p>
-                <p className="font-black text-white mt-0.5">#{viewedCard.batchId}</p>
+                <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Batch</p>
+                <p className="font-black text-[var(--ink)] mt-0.5">#{viewedCard.batchId}</p>
               </div>
               <div className="glass-panel-accent rounded-xl p-3">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">Redeemed</p>
+                <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Redeemed</p>
                 <p className="font-black text-[var(--ink)] mt-0.5">
                   {viewedCard.redeemedCount}/{viewedCard.cardCount}
                 </p>
               </div>
               <div className="glass-panel-accent rounded-xl p-3 col-span-2">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">Creator</p>
-                <p className="font-mono text-white mt-0.5 text-[11px] truncate">{viewedCard.creator}</p>
+                <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Creator</p>
+                <p className="font-mono text-[var(--ink)] mt-0.5 text-[11px] truncate">{viewedCard.creator}</p>
               </div>
             </div>
             {viewedCard.redeemed && (

@@ -85,12 +85,12 @@ export default function LaunchOptionsPanel({
               onClick={() => onPreset(preset.id)}
               className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
                 activePreset === preset.id
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                  ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                  : "border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]"
               }`}
             >
-              <p className="text-[11px] font-bold text-white">{preset.label}</p>
-              <p className="text-[9px] text-slate-500 mt-0.5 leading-snug">{preset.tagline}</p>
+              <p className="text-[11px] font-bold text-[var(--ink)]">{preset.label}</p>
+              <p className="text-[9px] text-[var(--ink-muted)] mt-0.5 leading-snug">{preset.tagline}</p>
             </button>
           ))}
         </div>

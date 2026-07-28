@@ -87,10 +87,10 @@ export default function VoucherCreatePanel({
               type="button"
               disabled={!!pendingCards}
               onClick={() => !pendingCards && setAsset(a)}
-              className={`py-3 rounded-xl font-black text-sm border transition ${
+              className={`py-3 rounded-xl font-bold text-sm border transition ${
                 asset === a
-                  ? "bg-white/[0.06] border-white/20 text-white"
-                  : "bg-white/[0.03] border-white/8 text-slate-500"
+                  ? "bg-[var(--brand-soft)] border-[var(--brand)] text-[var(--brand-dark)]"
+                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)]"
               } ${pendingCards ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {a}
@@ -111,7 +111,7 @@ export default function VoucherCreatePanel({
                   setCardCountInput(t.cards);
                   setMessage(t.message);
                 }}
-                className="preset-chip rounded-full px-3 py-2 text-[10px] font-black text-slate-400 hover:text-white"
+                className="preset-chip rounded-full px-3 py-2 text-[10px] font-bold"
               >
                 {t.emoji} {t.label}
               </button>
@@ -132,8 +132,8 @@ export default function VoucherCreatePanel({
                     setTotalAmount(p.total);
                     setCardCountInput(p.cards);
                   }}
-                  className={`preset-chip rounded-full px-4 py-2 text-xs font-black ${
-                    activePresetKey === key ? "preset-chip-active" : "text-slate-400"
+                  className={`preset-chip rounded-full px-4 py-2 text-xs font-bold ${
+                    activePresetKey === key ? "preset-chip-active" : ""
                   }`}
                 >
                   {p.label}
@@ -154,7 +154,7 @@ export default function VoucherCreatePanel({
             value={totalAmount}
             onChange={(e) => setTotalAmount(e.target.value)}
             placeholder={asset === "ETH" ? "0.01" : "10"}
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-bold outline-none focus:border-white/25"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 font-bold outline-none"
           />
           <p className="readable-body text-[10px] mt-1">
             e.g. {asset === "USDC" ? "$10 USDC" : "0.01 ETH"} split into {cardCountInput || "…"} cards
@@ -191,7 +191,7 @@ export default function VoucherCreatePanel({
               }
             }}
             placeholder="1"
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-bold outline-none focus:border-white/25"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 font-bold outline-none"
           />
         </div>
 
@@ -207,24 +207,24 @@ export default function VoucherCreatePanel({
             {split.valid ? (
               <div className="grid grid-cols-3 gap-2 text-center mb-3">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">Total</p>
-                  <p className="text-sm font-black text-white mt-0.5">
+                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Total</p>
+                  <p className="text-sm font-black text-[var(--ink)] mt-0.5">
                     {formatVoucherAmount(asset, split.total)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">Cards</p>
+                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Cards</p>
                   <p className="text-sm font-black text-[var(--ink)] mt-0.5">{split.cardCount}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">Per card</p>
-                  <p className="text-sm font-black text-emerald-400 mt-0.5">
+                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Per card</p>
+                  <p className="text-sm font-black text-emerald-600 mt-0.5">
                     {formatVoucherAmount(asset, split.perCard)}
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-orange-300 font-bold mb-3">
+              <p className="text-xs text-amber-700 font-bold mb-3">
                 {formatVoucherAmount(asset, split.total)} cannot split evenly into {cardCount} cards.
                 Adjust the total or card count so each card holds an equal amount.
               </p>
@@ -254,9 +254,9 @@ export default function VoucherCreatePanel({
             onChange={(e) => setMessage(e.target.value.slice(0, 280))}
             rows={3}
             placeholder="Happy day! Enjoy your onchain gift."
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white text-sm outline-none resize-none"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-sm outline-none resize-none"
           />
-          <p className="text-[9px] text-slate-600 mt-1">{message.length}/280</p>
+          <p className="text-[9px] text-[var(--ink-dim)] mt-1">{message.length}/280</p>
         </div>
 
         <p className="readable-body text-[10px]">
@@ -288,7 +288,7 @@ export default function VoucherCreatePanel({
                 <button
                   type="button"
                   onClick={cancelPendingCreate}
-                  className="text-[10px] font-black text-slate-500 hover:text-red-400 uppercase shrink-0"
+                  className="text-[10px] font-black text-[var(--ink-muted)] hover:text-red-400 uppercase shrink-0"
                 >
                   Cancel
                 </button>
@@ -298,12 +298,12 @@ export default function VoucherCreatePanel({
               <p className="text-sm font-black text-[var(--ink)]">Confirm in your wallet to create cards</p>
               <p className="readable-body text-xs mt-1">
                 Card IDs and secret keys are generated now but{" "}
-                <span className="text-white font-bold">only shown after your deposit confirms</span>
+                <span className="text-[var(--ink)] font-bold">only shown after your deposit confirms</span>
                 {pendingAsset === "USDC" && needsUsdcApproval
                   ? " — USDC requires approval first, then a separate deposit confirmation."
                   : "."}
               </p>
-              <p className="readable-body text-xs text-slate-500 mt-2">
+              <p className="readable-body text-xs text-[var(--ink-muted)] mt-2">
                 Already deposited? Your cards will appear automatically once Base confirms the transaction.
               </p>
             </div>
@@ -337,7 +337,7 @@ export default function VoucherCreatePanel({
               <button
                 type="button"
                 disabled
-                className="w-full py-3.5 rounded-xl font-black bg-white/10 text-slate-500"
+                className="w-full py-3.5 rounded-xl font-bold bg-[var(--surface-2)] text-[var(--ink-muted)]"
               >
                 Checking USDC allowance…
               </button>
@@ -362,7 +362,7 @@ export default function VoucherCreatePanel({
                   onStatus={handleApproveTx}
                 >
                   <TransactionButton
-                    className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
+                    className="w-full py-3.5 rounded-xl font-black btn-primary text-[var(--ink)]"
                     text={`Approve ${exactDepositLabel}`}
                   />
                 </Transaction>
@@ -383,7 +383,7 @@ export default function VoucherCreatePanel({
                   onStatus={handleFundTx}
                 >
                   <TransactionButton
-                    className="w-full py-3.5 rounded-xl font-black btn-primary text-white"
+                    className="w-full py-3.5 rounded-xl font-black btn-primary text-[var(--ink)]"
                     text={`Deposit ${exactDepositLabel}`}
                   />
                 </Transaction>
@@ -392,7 +392,7 @@ export default function VoucherCreatePanel({
               <button
                 type="button"
                 disabled
-                className="w-full py-3.5 rounded-xl font-black bg-white/10 text-slate-500"
+                className="w-full py-3.5 rounded-xl font-bold bg-[var(--surface-2)] text-[var(--ink-muted)]"
               >
                 Preparing funding…
               </button>
@@ -420,7 +420,7 @@ export default function VoucherCreatePanel({
                 <div className="flex items-center gap-2 text-emerald-400 font-black text-base sm:text-lg">
                   <CheckCircle size={20} /> Your cards are ready!
                 </div>
-                <p className="text-sm text-white font-bold mt-1">Batch #{readyBatchOnCreate.batchId}</p>
+                <p className="text-sm text-[var(--ink)] font-bold mt-1">Batch #{readyBatchOnCreate.batchId}</p>
                 <p className="text-xs text-[var(--ink-muted)] font-bold mt-1">
                   {readyBatchOnCreate.cardCount} cards
                   {batchCardStatuses[readyBatchOnCreate.batchId]
@@ -435,7 +435,7 @@ export default function VoucherCreatePanel({
                 <button
                   type="button"
                   onClick={() => copyText(formatBatchShareText(readyBatchOnCreate), `batch-${readyBatchOnCreate.batchId}`)}
-                  className="flex items-center justify-center gap-2 text-sm font-black px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15"
+                  className="flex items-center justify-center gap-2 text-sm font-bold px-4 py-3 rounded-xl btn-secondary"
                 >
                   {copied === `batch-${readyBatchOnCreate.batchId}` ? <CheckCircle size={16} /> : <Copy size={16} />}
                   Copy all cards

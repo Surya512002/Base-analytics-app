@@ -20,7 +20,7 @@ export function Providers({ children }: { children: ReactNode }) {
           analytics={Boolean(process.env.NEXT_PUBLIC_CDP_API_KEY)}
           config={{
             appearance: {
-              theme: 'dark',
+              theme: 'light',
             },
             paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined,
           }}

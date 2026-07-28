@@ -26,7 +26,7 @@ export default function VoucherSegmentTabs({
             aria-selected={selected}
             onClick={() => onChange(id as VoucherView)}
             className={`flex-1 min-w-[4.75rem] min-h-[44px] py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wide transition ${
-              selected ? "tab-active" : "text-slate-400 hover:text-white hover:bg-white/8"
+              selected ? "tab-active" : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]"
             }`}
           >
             {label}

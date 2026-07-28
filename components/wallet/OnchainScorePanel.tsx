@@ -70,27 +70,27 @@ export default function OnchainScorePanel({
       {syncing && (
         <div className="glass-panel rounded-2xl px-4 py-3 flex items-center gap-3">
           <RefreshCcw size={16} className="text-white/50 animate-spin shrink-0" />
-          <p className="text-xs text-slate-400 font-semibold">
+          <p className="text-xs text-[var(--ink-muted)] font-semibold">
             {scanProgress || "Syncing onchain score & heatmap…"}
           </p>
         </div>
       )}
       <div className="elegant-panel rounded-3xl overflow-hidden">
         <div className="accent-bar" />
-        <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/8">
+        <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)]">
           <div>
             <p className="section-eyebrow">Onchain Analysis</p>
-            <h2 className="text-lg sm:text-xl font-black text-white mt-1">
+            <h2 className="text-lg sm:text-xl font-black text-[var(--ink)] mt-1">
               Your Base Profile
             </h2>
           </div>
-          <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+          <p className="text-xs text-[var(--ink-muted)] max-w-xs leading-relaxed">
             Wallet score, heatmap & swap volume from indexed Base history.
           </p>
           <button
             type="button"
             onClick={onGoCheckIn}
-            className="mt-3 text-xs font-black text-slate-400 hover:text-white flex items-center gap-1"
+            className="mt-3 text-xs font-black text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1"
           >
             <Flame size={12} /> Open Check-In →
           </button>
@@ -141,14 +141,14 @@ export default function OnchainScorePanel({
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                    <span className="text-xs font-black text-[var(--ink-muted)] uppercase tracking-widest">
                       Wallet Health
                     </span>
-                    <span className="text-xs font-black text-white bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-black text-[var(--ink)] bg-[var(--surface-2)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full">
                       {wallet.walletHealthLabel}
                     </span>
                   </div>
-                  <p className="text-slate-200/70 text-xs leading-relaxed max-w-sm">
+                  <p className="text-[var(--ink-soft)]/70 text-xs leading-relaxed max-w-sm">
                     {wallet.recommendation}
                   </p>
                 </div>
@@ -161,10 +161,10 @@ export default function OnchainScorePanel({
                 ].map((s, i) => (
                   <div
                     key={i}
-                    className="bg-white/[0.04] border border-white/10 rounded-xl p-2.5 text-center"
+                    className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl p-2.5 text-center"
                   >
                     <p className={`font-black text-lg ${s.c}`}>{s.v}</p>
-                    <p className="text-[9px] text-slate-500 uppercase font-bold mt-0.5">
+                    <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold mt-0.5">
                       {s.l}
                     </p>
                   </div>
@@ -199,7 +199,7 @@ export default function OnchainScorePanel({
                       key={pl}
                       type="button"
                       onClick={() => shareScore(pl)}
-                      className="bg-white/5 hover:bg-[var(--bg-hover)] border border-white/10 text-[var(--ink-muted)] px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                      className="bg-[var(--surface-2)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-[var(--ink-muted)] px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
                     >
                       {pl === "w" ? (
                         <Send size={9} />
@@ -214,10 +214,10 @@ export default function OnchainScorePanel({
                 </div>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-7xl sm:text-8xl font-black text-white tracking-tighter leading-none">
+                <span className="text-7xl sm:text-8xl font-black text-[var(--ink)] tracking-tighter leading-none">
                   {wallet.score}
                 </span>
-                <span className="text-2xl text-slate-600 font-black">/100</span>
+                <span className="text-2xl text-[var(--ink-dim)] font-black">/100</span>
               </div>
               <p className="text-[var(--ink)] font-black text-base mt-2 flex items-center gap-2 flex-wrap">
                 {wallet.walletRank}
@@ -230,29 +230,29 @@ export default function OnchainScorePanel({
               </p>
 
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl">
-                <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3">
-                  <p className="text-[9px] text-slate-500 uppercase font-bold">ETH Sent</p>
-                  <p className="text-sm font-black text-white mt-1">{volumeSummary.ethSentLabel}</p>
+                <div className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl p-3">
+                  <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">ETH Sent</p>
+                  <p className="text-sm font-black text-[var(--ink)] mt-1">{volumeSummary.ethSentLabel}</p>
                 </div>
-                <div className="bg-white/[0.04] border border-[var(--border-subtle)] rounded-xl p-3">
-                  <p className="text-[9px] text-slate-500 uppercase font-bold flex items-center gap-1">
+                <div className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl p-3">
+                  <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold flex items-center gap-1">
                     <TrendingUp size={10} /> Swap Volume
                   </p>
                   <p className="text-sm font-black text-[var(--ink)] mt-1">
                     {volumeSummary.swapVolumeLabel}
                   </p>
                 </div>
-                <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3">
-                  <p className="text-[9px] text-slate-500 uppercase font-bold flex items-center gap-1">
+                <div className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl p-3">
+                  <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold flex items-center gap-1">
                     <Coins size={10} /> ETH in Swaps
                   </p>
                   <p className="text-sm font-black text-[var(--ink)] mt-1">
                     {volumeSummary.ethSwapLabel}
                   </p>
                 </div>
-                <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3">
-                  <p className="text-[9px] text-slate-500 uppercase font-bold">Swap Txs</p>
-                  <p className="text-sm font-black text-white mt-1">{volumeSummary.swapTxLabel}</p>
+                <div className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl p-3">
+                  <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Swap Txs</p>
+                  <p className="text-sm font-black text-[var(--ink)] mt-1">{volumeSummary.swapTxLabel}</p>
                 </div>
               </div>
 
@@ -263,10 +263,10 @@ export default function OnchainScorePanel({
                   const pct = Math.round((val / (SCORE_MAX[key] || 1)) * 100);
                   return (
                     <div key={i} className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] text-slate-400 w-16 sm:w-[4.25rem] font-bold shrink-0">
+                      <span className="text-[10px] text-[var(--ink-muted)] w-16 sm:w-[4.25rem] font-bold shrink-0">
                         {SCORE_LABELS[key] || k}
                       </span>
-                      <div className="flex-1 min-w-0 bg-white/5 rounded-full h-1.5 overflow-hidden border border-white/8">
+                      <div className="flex-1 min-w-0 bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden border border-[var(--border-subtle)]">
                         <div
                           className="h-full bg-[var(--accent)] rounded-full"
                           style={{
@@ -285,12 +285,12 @@ export default function OnchainScorePanel({
             </div>
             <div className="shrink-0">
               {selDay ? (
-                <div className="bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 text-center">
+                <div className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-2xl px-5 py-4 text-center">
                   <p className="text-[10px] text-[var(--ink-dim)] font-bold uppercase tracking-wide">
                     {selDay.date}
                   </p>
                   <p className="text-3xl font-black text-[var(--ink)] mt-1">{selDay.count}</p>
-                  <p className="text-[10px] text-slate-500 font-bold">transactions</p>
+                  <p className="text-[10px] text-[var(--ink-muted)] font-bold">transactions</p>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 opacity-30">

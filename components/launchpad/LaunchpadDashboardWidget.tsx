@@ -32,12 +32,12 @@ export default function LaunchpadDashboardWidget({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Rocket size={16} className="text-[var(--ink-muted)]" />
-          <p className="text-sm font-black text-white">B20 Launchpad</p>
+          <p className="text-sm font-black text-[var(--ink)]">B20 Launchpad</p>
         </div>
         <button
           type="button"
           onClick={() => onOpenLaunchpad()}
-          className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--ink)] hover:text-white"
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--ink)] hover:text-[var(--ink)]"
         >
           Explore <ArrowRight size={12} />
         </button>
@@ -54,8 +54,8 @@ export default function LaunchpadDashboardWidget({
           onClick={() => onOpenLaunchpad()}
           className="w-full rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-hover)] py-6 text-center hover:bg-[var(--bg-active)] transition-colors"
         >
-          <p className="text-sm font-bold text-white">Launch your first B20 token</p>
-          <p className="text-[11px] text-slate-500 mt-1">$0 fee · dual DEX · vanity addresses</p>
+          <p className="text-sm font-bold text-[var(--ink)]">Launch your first B20 token</p>
+          <p className="text-[11px] text-[var(--ink-muted)] mt-1">$0 fee · dual DEX · vanity addresses</p>
         </button>
       )}
     </div>

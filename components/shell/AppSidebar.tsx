@@ -44,10 +44,10 @@ export default function AppSidebar({
 }) {
   const portfolio = walletCore ?? wallet;
   return (
-    <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] border-r border-white/[0.08] bg-[#080808]/80">
+    <aside className="hidden lg:flex flex-col w-[240px] xl:w-[260px] shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] border-r border-[var(--border-subtle)] bg-[var(--surface)]/90">
       <div className="p-4 space-y-5 flex-1 overflow-y-auto">
         {guest ? (
-          <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-4">
+          <div className="card-quiet p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)] mb-2">
               Portfolio
             </p>
@@ -57,14 +57,14 @@ export default function AppSidebar({
               <button
                 type="button"
                 onClick={onConnect}
-                className="btn-primary w-full py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+                className="btn-primary w-full py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
               >
                 Connect wallet
               </button>
               <button
                 type="button"
                 onClick={() => onTabChange("basehub")}
-                className="w-full py-2 rounded-lg text-[12px] font-medium border border-white/[0.08] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-white/20 transition-colors"
+                className="w-full py-2 rounded-xl text-[12px] font-medium border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors"
               >
                 <ArrowDownToLine size={12} className="inline mr-1.5" />
                 Deposit
@@ -73,7 +73,7 @@ export default function AppSidebar({
           </div>
         ) : portfolio ? (
           <div className="space-y-3">
-            <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-4">
+            <div className="card-quiet p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Wallet size={13} className="text-[var(--ink-dim)]" />
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
@@ -93,7 +93,7 @@ export default function AppSidebar({
               <button
                 type="button"
                 onClick={() => onTabChange("basehub")}
-                className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg text-[12px] font-medium border border-white/[0.08] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-white/20 transition-colors"
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-medium border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors"
               >
                 <ArrowDownToLine size={13} />
                 Deposit
@@ -105,11 +105,11 @@ export default function AppSidebar({
         <button
           type="button"
           onClick={onCommandPalette}
-          className="w-full flex items-center gap-2 rounded-lg border border-white/[0.08] bg-transparent px-3 py-2.5 text-left text-[var(--ink-dim)] hover:text-[var(--ink)] hover:border-white/20 transition-colors"
+          className="w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-left text-[var(--ink-dim)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors"
         >
           <Search size={14} />
           <span className="text-[13px] flex-1">Search…</span>
-          <kbd className="text-[9px] font-mono border border-white/10 rounded px-1 py-0.5 flex items-center gap-0.5">
+          <kbd className="text-[9px] font-mono border border-[var(--border-subtle)] rounded px-1 py-0.5 flex items-center gap-0.5">
             <Command size={9} />K
           </kbd>
         </button>
@@ -126,10 +126,10 @@ export default function AppSidebar({
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
-                className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors ${
                   active
-                    ? "bg-white text-[#080808]"
-                    : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-white/[0.04]"
+                    ? "bg-[var(--brand-soft)] text-[var(--brand-dark)]"
+                    : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]"
                 }`}
               >
                 <Icon size={16} strokeWidth={active ? 2.25 : 1.75} />
@@ -140,12 +140,12 @@ export default function AppSidebar({
         </nav>
       </div>
 
-      <div className="p-4 border-t border-white/[0.08]">
+      <div className="p-4 border-t border-[var(--border-subtle)]">
         <button
           type="button"
           onClick={onCreateToken}
           disabled={guest}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white bg-[var(--base-blue)] hover:bg-[var(--accent-hover)] disabled:opacity-40 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold text-white btn-primary disabled:opacity-40 transition-colors"
         >
           <Plus size={16} />
           Launch token

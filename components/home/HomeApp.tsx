@@ -131,7 +131,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   if (!ready) return <LoadingScreen />;
 
   return (
-    <main className="main-app-shell min-h-screen text-white font-sans relative">
+    <main className="main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative">
       <AppBackground />
 
       {toast && (
@@ -145,31 +145,28 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
       <AppShell
         tab={activeTab}
         onTabChange={handleTabChange}
-        wallet={wallet}
-        walletCore={walletCore}
         guest={guest}
         onConnect={openConnect}
-        onCreateToken={() => launchBridge?.openCreate()}
         onOpenToken={(t) => launchBridge?.openToken(t)}
         tokens={launchBridge?.tokens ?? []}
         header={
           <AppHeader
-            weeklyXP={weeklyXP}
-            sponsored={sponsored}
+            tab={activeTab}
+            onTabChange={handleTabChange}
+            walletAddress={wallet?.address}
             walletRefreshing={walletRefreshing || (analyticsSyncing && activeTab === "dashboard")}
             scanProgress={scanProgress}
             onDisconnect={handleDisconnect}
             guest={guest}
             onConnect={openConnect}
-            showCommandPalette
           />
         }
       >
         {guest && (
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-[var(--bg-raised)] px-3 py-2">
-            <p className="text-[12px] text-[var(--ink-dim)]">
+          <div className="mb-4 flex flex-col gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <p className="min-w-0 text-[12px] text-[var(--ink-muted)]">
               Browsing as guest —{" "}
-              <span className="text-[var(--ink-muted)]">connect to trade &amp; launch</span>
+              <span className="text-[var(--ink-soft)]">connect to trade &amp; launch</span>
             </p>
             <button
               type="button"
@@ -193,7 +190,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
           </>
         )}
 
-        <div className="tab-content-enter">
+        <div className="tab-content-enter w-full min-w-0">
           {activeTab === "launchpad" && (
             <LaunchpadTab
               app={app}

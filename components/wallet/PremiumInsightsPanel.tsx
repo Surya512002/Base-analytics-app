@@ -16,7 +16,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
     return (
       <div className="elegant-panel rounded-3xl p-5 border border-amber-500/15">
         <p className="section-eyebrow text-amber-300">x402 Premium</p>
-        <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+        <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">
           Pay with USDC to unlock deep benchmarks —{" "}
           <span className="text-amber-300 font-bold">Deep Scan $0.01</span>
           {" · "}
@@ -31,7 +31,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
   if (!insights) {
     return (
       <div className="elegant-panel rounded-3xl p-5 border border-emerald-500/20 animate-pulse">
-        <p className="text-sm text-slate-400">Loading premium insights…</p>
+        <p className="text-sm text-[var(--ink-muted)]">Loading premium insights…</p>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
             <p className="section-eyebrow text-amber-300 flex items-center gap-2">
               <Sparkles size={12} /> Premium unlocked
             </p>
-            <h3 className="text-lg font-black text-white mt-1">{insights.headline}</h3>
+            <h3 className="text-lg font-black text-[var(--ink)] mt-1">{insights.headline}</h3>
           </div>
           <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full shrink-0">
             {insights.tier}
@@ -70,15 +70,15 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+          <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-4">
+            <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3 flex items-center gap-1">
               <TrendingUp size={11} /> Benchmarks
             </p>
             <div className="space-y-2">
               {insights.benchmarks.map((b) => (
                 <div key={b.label} className="flex justify-between gap-2 text-xs">
-                  <span className="text-slate-400">{b.label}</span>
-                  <span className="font-bold text-white text-right">
+                  <span className="text-[var(--ink-muted)]">{b.label}</span>
+                  <span className="font-bold text-[var(--ink)] text-right">
                     {b.value}
                     <span className="block text-[9px] text-[var(--ink-muted)] font-medium">{b.vsMedian}</span>
                   </span>
@@ -86,12 +86,12 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
               ))}
             </div>
           </div>
-          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Portfolio</p>
+          <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-4">
+            <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3">Portfolio</p>
             <div className="space-y-2">
               {insights.portfolio.map((p) => (
                 <div key={p.label} className="flex justify-between gap-2 text-xs">
-                  <span className="text-slate-400">{p.label}</span>
+                  <span className="text-[var(--ink-muted)]">{p.label}</span>
                   <span className="font-bold text-[var(--ink)]">{p.value}</span>
                 </div>
               ))}
@@ -101,7 +101,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
 
         <ul className="space-y-2">
           {insights.highlights.map((h, i) => (
-            <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
+            <li key={i} className="flex gap-2 text-xs text-[var(--ink-soft)] leading-relaxed">
               <CheckCircle size={14} className="text-emerald-400 shrink-0 mt-0.5" />
               {h}
             </li>
@@ -120,7 +120,7 @@ export default function PremiumInsightsPanel({ insights, unlocked }: PremiumInsi
             <button
               type="button"
               onClick={copyExport}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-xs font-black"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-black"
             >
               {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
               {copied ? "Copied" : "Copy summary"}

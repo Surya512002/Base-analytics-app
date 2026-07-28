@@ -24,7 +24,7 @@ function ServiceCard({
           {title}
         </p>
         {tag && (
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--ink-dim)] border border-white/[0.1] px-1.5 py-0.5 rounded">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--ink-dim)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded">
             {tag}
           </span>
         )}
@@ -71,8 +71,8 @@ export default function AgenticMarketplaceRail({
   };
 
   return (
-    <section className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between gap-3">
+    <section className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-[15px] font-bold text-[var(--ink)] tracking-tight">
             Agentic Marketplace
@@ -82,7 +82,7 @@ export default function AgenticMarketplaceRail({
           </p>
         </div>
         <Link
-          href="/help#api"
+          href="/docs#api"
           className="text-[11px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1 transition-colors"
         >
           All services <ExternalLink size={10} />
@@ -94,7 +94,7 @@ export default function AgenticMarketplaceRail({
             <Link
               key={s.id}
               href={s.href}
-              className="group block text-left rounded-lg border border-white/[0.08] bg-black/20 p-4 hover:border-white/20 transition-colors"
+              className="group block text-left rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 hover:border-[var(--border-strong)] transition-colors"
             >
               <ServiceCard title={s.title} desc={s.description} price={s.price} tag={s.tag} />
             </Link>
@@ -103,7 +103,7 @@ export default function AgenticMarketplaceRail({
               key={s.id}
               type="button"
               onClick={() => handleAgent(s)}
-              className="group text-left rounded-lg border border-white/[0.08] bg-black/20 p-4 hover:border-white/20 transition-colors"
+              className="group text-left rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 hover:border-[var(--border-strong)] transition-colors"
             >
               <ServiceCard title={s.title} desc={s.description} price={s.price} tag={s.tag} />
             </button>
@@ -116,8 +116,8 @@ export default function AgenticMarketplaceRail({
 
 export function ExploreKnowledgeRail() {
   return (
-    <section className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/[0.08] flex items-center gap-2.5">
+    <section className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center gap-2.5">
         <BookOpen size={15} className="text-[var(--ink-dim)]" />
         <div>
           <h3 className="font-display text-[15px] font-bold text-[var(--ink)] tracking-tight">
@@ -128,14 +128,14 @@ export function ExploreKnowledgeRail() {
       </div>
       <div className="p-4 grid sm:grid-cols-3 gap-2">
         {[
-          { label: "How to launch B20", href: "/help" },
-          { label: "Fee splits & referrals", href: "/help" },
-          { label: "MCP for agents", href: "/help#api" },
+          { label: "How to launch B20", href: "/docs" },
+          { label: "Fee splits & referrals", href: "/docs" },
+          { label: "MCP for agents", href: "/docs#api" },
         ].map((item) => (
           <Link
             key={item.label}
             href={item.href}
-            className="flex items-center justify-between rounded-lg border border-white/[0.08] px-3 py-2.5 text-[12px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-white/20 transition-colors"
+            className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] px-3 py-2.5 text-[12px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--border-strong)] transition-colors"
           >
             {item.label}
             <ExternalLink size={11} className="text-[var(--ink-dim)]" />

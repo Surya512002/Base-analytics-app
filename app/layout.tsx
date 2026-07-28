@@ -1,7 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Figtree, Syne } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
+
+const figtree = Figtree({
+  variable: "--font-figtree",
+  subsets: ["latin"],
+});
+
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+});
 
 const APP_URL = getAppUrl();
 const OG_IMAGE = appOgImage();
@@ -46,7 +57,7 @@ export const metadata: Metadata = {
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#0a0a0b",
+          splashBackgroundColor: "#f3f5f9",
         },
       },
     }),
@@ -55,8 +66,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-[var(--bg-deep)] text-slate-200 antialiased theme-terminal">
+    <html lang="en" className={`${figtree.variable} ${syne.variable}`}>
+      <body className="min-w-0 w-full bg-[var(--background)] text-[var(--foreground)] antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

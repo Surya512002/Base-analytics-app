@@ -53,7 +53,7 @@ export const AGENT_CATALOG: AgentCatalogEntry[] = [
     title: "Voucher MCP",
     description: "Create & redeem gift cards via agents",
     price: "Gas only",
-    href: "/help#api",
+    href: "/docs#api",
     tag: "MCP",
   },
   {

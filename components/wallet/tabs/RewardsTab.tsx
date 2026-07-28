@@ -141,8 +141,8 @@ export default function RewardsTab({
         <div className="accent-bar" />
         <div className="p-6">
         <p className="section-eyebrow mb-2">Rewards hub</p>
-        <h1 className="text-2xl font-black text-white">Stake & earn</h1>
-        <p className="text-sm text-slate-500 mt-2 max-w-xl">
+        <h1 className="text-2xl font-black text-[var(--ink)]">Stake & earn</h1>
+        <p className="text-sm text-[var(--ink-muted)] mt-2 max-w-xl">
           Stake ETH on-chain to boost your referral fee share on swaps.
         </p>
         </div>
@@ -167,19 +167,19 @@ export default function RewardsTab({
 
       <section className="glass-panel rounded-3xl p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Lock size={16} className="text-white/60" />
-          <h2 className="text-lg font-black text-white">On-chain ETH stake</h2>
+          <Lock size={16} className="text-[var(--ink)]/60" />
+          <h2 className="text-lg font-black text-[var(--ink)]">On-chain ETH stake</h2>
           {hasOnchainStake && (
             <span className="editorial-badge">{onchainMult}× referrer boost</span>
           )}
         </div>
 
         {onchainLoading && !hasOnchainStake ? (
-          <p className="text-sm text-slate-500">Loading on-chain stake…</p>
+          <p className="text-sm text-[var(--ink-muted)]">Loading on-chain stake…</p>
         ) : hasOnchainStake && onchainStake ? (
           <div className="space-y-3">
-            <p className="text-sm text-slate-300">
-              <span className="font-black text-white font-mono">
+            <p className="text-sm text-[var(--ink-soft)]">
+              <span className="font-black text-[var(--ink)] font-mono">
                 {formatEther(onchainStake.amount)} ETH
               </span>{" "}
               staked · tier {onchainStake.tier}
@@ -188,12 +188,12 @@ export default function RewardsTab({
               className={`rounded-xl border px-3 py-2.5 ${
                 canUnstakeOnchain
                   ? "border-emerald-500/25 bg-emerald-500/8"
-                  : "border-white/10 bg-white/[0.03]"
+                  : "border-[var(--border-subtle)] bg-[var(--surface-2)]"
               }`}
             >
               <p
                 className={`text-xs font-bold ${
-                  canUnstakeOnchain ? "text-emerald-300" : "text-slate-400"
+                  canUnstakeOnchain ? "text-emerald-300" : "text-[var(--ink-muted)]"
                 }`}
                 data-tick={tick}
               >
@@ -202,7 +202,7 @@ export default function RewardsTab({
                   : `Locked · ${formatStakeCountdown(onchainStake.unlockAt)}`}
               </p>
               {!canUnstakeOnchain && (
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-[10px] text-[var(--ink-muted)] mt-1">
                   Unlocks {new Date(onchainStake.unlockAt).toLocaleString()}
                 </p>
               )}
@@ -214,7 +214,7 @@ export default function RewardsTab({
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black border transition-colors ${
                 canUnstakeOnchain
                   ? "btn-primary"
-                  : "border-white/10 text-slate-500 disabled:opacity-50"
+                  : "border-[var(--border-subtle)] text-[var(--ink-muted)] disabled:opacity-50"
               }`}
             >
               <Unlock size={14} />
@@ -231,12 +231,12 @@ export default function RewardsTab({
                   onClick={() => setEthTier(t.eth)}
                   className={`rounded-xl border p-3 text-left transition-colors ${
                     ethTier === t.eth
-                      ? "border-white/20 bg-white/[0.06]"
-                      : "border-white/10 bg-black/20 hover:border-white/15"
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]"
                   }`}
                 >
-                  <p className="text-xs font-black text-white">{t.label}</p>
-                  <p className="text-[10px] text-slate-500">{t.eth} ETH · {t.mult}</p>
+                  <p className="text-xs font-black text-[var(--ink)]">{t.label}</p>
+                  <p className="text-[10px] text-[var(--ink-muted)]">{t.eth} ETH · {t.mult}</p>
                 </button>
               ))}
             </div>
@@ -249,21 +249,21 @@ export default function RewardsTab({
               Stake {ethTier} ETH for 7 days
             </button>
             {!XP_STAKE_CONTRACT && process.env.NODE_ENV === "development" && (
-              <p className="text-[10px] text-slate-600">
-                Deploy <code className="text-slate-400">XpStake.sol</code> and set{" "}
-                <code className="text-slate-400">NEXT_PUBLIC_XP_STAKE_CONTRACT</code> in{" "}
-                <code className="text-slate-400">.env.local</code>.
+              <p className="text-[10px] text-[var(--ink-dim)]">
+                Deploy <code className="text-[var(--ink-muted)]">XpStake.sol</code> and set{" "}
+                <code className="text-[var(--ink-muted)]">NEXT_PUBLIC_XP_STAKE_CONTRACT</code> in{" "}
+                <code className="text-[var(--ink-muted)]">.env.local</code>.
               </p>
             )}
             {!XP_STAKE_CONTRACT && process.env.NODE_ENV !== "development" && (
-              <p className="text-[10px] text-slate-500">
-                Set <code className="text-slate-400">NEXT_PUBLIC_XP_STAKE_CONTRACT</code> on Vercel
+              <p className="text-[10px] text-[var(--ink-muted)]">
+                Set <code className="text-[var(--ink-muted)]">NEXT_PUBLIC_XP_STAKE_CONTRACT</code> on Vercel
                 to enable on-chain staking.
               </p>
             )}
           </div>
         )}
-        <p className="text-[10px] text-slate-500 mt-3">
+        <p className="text-[10px] text-[var(--ink-muted)] mt-3">
           On-chain stake shifts extra fee share from platform → you when you&apos;re the referrer on
           swaps (live in app swaps).
         </p>
@@ -275,17 +275,17 @@ export default function RewardsTab({
           href="/?tab=checkin"
           className="quest-card p-4 transition-colors group"
         >
-          <Flame size={18} className="text-white/50 mb-2" />
-          <p className="font-black text-white">Daily check-in</p>
-          <p className="text-[11px] text-slate-500 mt-1">Earn XP & maintain streak</p>
+          <Flame size={18} className="text-[var(--ink)]/50 mb-2" />
+          <p className="font-black text-[var(--ink)]">Daily check-in</p>
+          <p className="text-[11px] text-[var(--ink-muted)] mt-1">Earn XP & maintain streak</p>
         </Link>
         <Link
           href="/?tab=achievements"
           className="quest-card p-4 transition-colors group"
         >
-          <Trophy size={18} className="text-white/50 mb-2" />
-          <p className="font-black text-white">Mint badges</p>
-          <p className="text-[11px] text-slate-500 mt-1">Onchain NFT achievements</p>
+          <Trophy size={18} className="text-[var(--ink)]/50 mb-2" />
+          <p className="font-black text-[var(--ink)]">Mint badges</p>
+          <p className="text-[11px] text-[var(--ink-muted)] mt-1">Onchain NFT achievements</p>
         </Link>
       </div>
       )}
@@ -293,17 +293,17 @@ export default function RewardsTab({
       {embedded ? (
         <Link
           href="/?tab=achievements"
-          className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-amber-400/30 transition-colors group block"
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 hover:border-amber-400/30 transition-colors group block"
         >
-          <Trophy size={18} className="text-white/50 mb-2" />
-          <p className="font-black text-white">Mint badges</p>
-          <p className="text-[11px] text-slate-500 mt-1">Onchain NFT achievements</p>
+          <Trophy size={18} className="text-[var(--ink)]/50 mb-2" />
+          <p className="font-black text-[var(--ink)]">Mint badges</p>
+          <p className="text-[11px] text-[var(--ink-muted)] mt-1">Onchain NFT achievements</p>
         </Link>
       ) : null}
 
       <div className="glass-panel rounded-2xl p-4 flex items-start gap-3">
-        <Sparkles size={16} className="text-white/50 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-slate-400 leading-relaxed">
+        <Sparkles size={16} className="text-[var(--ink)]/50 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
           Creator fee splits (50/30/20) pay referrers on every swap through the app. On-chain stake
           increases your referrer share when others use your link.
         </p>

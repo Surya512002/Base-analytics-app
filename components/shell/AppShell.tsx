@@ -4,21 +4,15 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Command } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
-import type { WalletData } from "@/lib/types/wallet";
-import AppSidebar from "@/components/shell/AppSidebar";
 import CommandPalette from "@/components/shell/CommandPalette";
 import MobileBottomNav from "@/components/shell/MobileBottomNav";
-
 import { syncTabUrl } from "@/lib/utils/app-url";
 
 export default function AppShell({
   tab,
   onTabChange,
-  wallet,
-  walletCore,
   guest,
   onConnect,
-  onCreateToken,
   onOpenToken,
   tokens,
   children,
@@ -26,13 +20,6 @@ export default function AppShell({
 }: {
   tab: AppTab;
   onTabChange: (t: AppTab) => void;
-  wallet?: WalletData | null;
-  walletCore?: {
-    address: string;
-    balance: string;
-    portfolioValueUSD: number;
-    basename: string | null;
-  } | null;
   guest?: boolean;
   onConnect?: () => void;
   onCreateToken?: () => void;
@@ -72,34 +59,22 @@ export default function AppShell({
     <>
       {header}
 
-      <div className="relative z-10 flex w-full max-w-[min(100%,100rem)] mx-auto">
-        <AppSidebar
-          tab={tab}
-          onTabChange={handleTabChange}
-          onCommandPalette={() => setPaletteOpen(true)}
-          onCreateToken={guest ? onConnect : onCreateToken}
-          wallet={wallet}
-          walletCore={walletCore}
-          guest={guest}
-          onConnect={onConnect}
-        />
-
-        <div className="flex-1 min-w-0 px-3 sm:px-6 pt-3 sm:pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-10">
-          {/* Mobile command trigger */}
-          <div className="lg:hidden mb-3">
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              className="w-full flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[var(--bg-raised)] px-3 py-2.5 text-[var(--ink-dim)]"
-            >
-              <Command size={14} />
-              <span className="text-[13px]">Search tokens & pages</span>
-              <kbd className="ml-auto text-[9px] font-mono border border-white/10 rounded px-1">⌘K</kbd>
-            </button>
-          </div>
-
-          {children}
+      <div className="app-container flex w-full min-w-0 flex-1 flex-col py-5 sm:py-6 md:py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-10 lg:pb-10">
+        <div className="mb-4 md:hidden">
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 text-[var(--ink-muted)] shadow-[var(--shadow-card)]"
+          >
+            <Command size={14} />
+            <span className="text-[13px]">Search tokens &amp; pages</span>
+            <kbd className="ml-auto text-[9px] font-mono border border-[var(--border-subtle)] rounded px-1">
+              ⌘K
+            </kbd>
+          </button>
         </div>
+
+        {children}
       </div>
 
       <CommandPalette

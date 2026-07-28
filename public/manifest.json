@@ -32,8 +32,8 @@
       "purpose": "any maskable"
     }
   ],
-  "theme_color": "#0052FF",
-  "background_color": "#020508",
+  "theme_color": "#1a5cff",
+  "background_color": "#f3f5f9",
   "display": "standalone",
   "start_url": "/?tab=launchpad"
 }

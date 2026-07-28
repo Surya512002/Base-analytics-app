@@ -46,17 +46,17 @@ export default function VoucherCardPreview({
         showStack={false}
       />
       <div className="glass-panel-accent rounded-xl px-3 py-2.5 space-y-1">
-        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+        <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
           Card ID · {cardId}
         </p>
         {showSecret && secret ? (
-          <p className="font-mono text-xs text-white/90 tracking-wider break-all">{secret}</p>
+          <p className="font-mono text-xs text-[var(--ink-soft)] tracking-wider break-all">{secret}</p>
         ) : (
-          <p className="font-mono text-xs text-slate-500 tracking-wider">•••••-•••••-•••••-•••••</p>
+          <p className="font-mono text-xs text-[var(--ink-muted)] tracking-wider">•••••-•••••-•••••-•••••</p>
         )}
       </div>
       {message && (
-        <p className="text-sm text-slate-200 italic px-1 leading-relaxed">&quot;{message}&quot;</p>
+        <p className="text-sm text-[var(--ink-soft)] italic px-1 leading-relaxed">&quot;{message}&quot;</p>
       )}
     </div>
   );

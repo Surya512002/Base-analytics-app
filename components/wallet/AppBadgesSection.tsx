@@ -42,8 +42,8 @@ function BadgeGroup({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="font-display text-lg font-bold text-white">{title}</h3>
-        <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
+        <h3 className="font-display text-lg font-bold text-[var(--ink)]">{title}</h3>
+        <p className="text-xs text-[var(--ink-muted)] mt-1">{subtitle}</p>
       </div>
       <StaggerIn className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {categories.map((cat) => {
@@ -81,25 +81,25 @@ function BadgeGroup({
             >
               <div className="flex justify-between items-start mb-3 gap-2">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-xl shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center text-xl shrink-0">
                     {cat.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-white text-sm truncate">{cat.name}</p>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">
+                    <p className="font-bold text-[var(--ink)] text-sm truncate">{cat.name}</p>
+                    <p className="text-[10px] text-[var(--ink-muted)] uppercase font-bold mt-0.5">
                       L{unlocked}/{cat.thresholds.length}
                     </p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-lg font-black text-white font-mono">{value}</p>
-                  <p className="text-[10px] text-slate-500 uppercase">{cat.unit}</p>
+                  <p className="text-lg font-black text-[var(--ink)] font-mono">{value}</p>
+                  <p className="text-[10px] text-[var(--ink-muted)] uppercase">{cat.unit}</p>
                 </div>
               </div>
 
-              <div className="w-full bg-white/5 rounded-full h-1.5 mb-4">
+              <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 mb-4">
                 <div
-                  className="h-full bg-white/70 rounded-full transition-all"
+                  className="h-full bg-[var(--brand)] rounded-full transition-all"
                   style={{ width: `${prog}%` }}
                 />
               </div>
@@ -143,7 +143,7 @@ function BadgeGroup({
                 className={`mt-auto w-full py-2.5 rounded-xl font-bold text-xs transition-all ${
                   canMint && minting !== pendingKey
                     ? "bg-[var(--base-blue)] text-white hover:bg-[#1a63ff]"
-                    : "bg-white/[0.04] text-slate-600 cursor-not-allowed border border-white/8"
+                    : "bg-[var(--surface-2)] text-[var(--ink-dim)] cursor-not-allowed border border-[var(--border-subtle)]"
                 }`}
               >
                 {minting === pendingKey ? (
@@ -153,7 +153,7 @@ function BadgeGroup({
                 )}
               </button>
               {canMint && (
-                <p className="text-[9px] text-slate-600 mt-2 text-center">
+                <p className="text-[9px] text-[var(--ink-dim)] mt-2 text-center">
                   +{XP_PER_APP_BADGE_CLAIM} season XP · on-chain mint
                 </p>
               )}
@@ -245,7 +245,7 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
           <p className="section-eyebrow text-[#7aa2ff] flex items-center gap-2 mb-1">
             <Sparkles size={12} /> In-app achievements · on-chain
           </p>
-          <p className="text-sm text-slate-300 max-w-xl">
+          <p className="text-sm text-[var(--ink-soft)] max-w-xl">
             Mint soulbound badges for trading, staking, check-ins, vouchers, and more — earned only
             by using Base Analytics.
           </p>
@@ -253,9 +253,9 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
         <div className="text-center sm:text-right shrink-0">
           <p className="text-3xl font-black text-[#7aa2ff] font-mono">
             {claimedCount}
-            <span className="text-slate-600 text-lg">/{totalTiers}</span>
+            <span className="text-[var(--ink-dim)] text-lg">/{totalTiers}</span>
           </p>
-          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+          <p className="text-[10px] text-[var(--ink-muted)] uppercase font-bold tracking-wider">
             app badges minted
           </p>
         </div>

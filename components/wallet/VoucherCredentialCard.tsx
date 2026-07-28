@@ -49,7 +49,7 @@ function CopyField({
         </button>
       </div>
       <div
-        className={`w-full rounded-xl px-4 py-3.5 bg-black/35 border-2 border-[var(--border-subtle)] text-white font-black select-all ${
+        className={`w-full rounded-xl px-4 py-3.5 bg-[var(--surface-2)] border-2 border-[var(--border-subtle)] text-white font-black select-all ${
           mono ? "font-mono text-base sm:text-lg tracking-wider break-all" : "text-base"
         }`}
       >
@@ -87,17 +87,17 @@ export default function VoucherCredentialCard({
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-black text-white">
+        <p className="text-sm font-black text-[var(--ink)]">
           Card <span className="text-[var(--ink)]">{index + 1}</span>
-          <span className="text-slate-500 font-bold"> / {total}</span>
+          <span className="text-[var(--ink-muted)] font-bold"> / {total}</span>
         </p>
         <div className="flex items-center gap-2">
           {statusLoading ? (
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">
+            <span className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-wide">
               Checking…
             </span>
           ) : redeemed ? (
-            <span className="text-xs font-black text-slate-400 bg-slate-500/20 border border-slate-500/30 px-3 py-1 rounded-full">
+            <span className="text-xs font-black text-[var(--ink-muted)] bg-slate-500/20 border border-slate-500/30 px-3 py-1 rounded-full">
               Redeemed
             </span>
           ) : (
@@ -116,7 +116,7 @@ export default function VoucherCredentialCard({
       </div>
 
       {redeemed && (
-        <p className="text-xs text-slate-400 font-bold -mt-1">
+        <p className="text-xs text-[var(--ink-muted)] font-bold -mt-1">
           This card was already redeemed onchain and can no longer be used.
         </p>
       )}
@@ -158,7 +158,7 @@ export default function VoucherCredentialCard({
           <button
             type="button"
             onClick={() => onCopy(`${cardId}\n${secret}`, bothId)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-white hover:bg-white/15 active:scale-[0.98] transition"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-white hover:bg-white/15 active:scale-[0.98] transition"
           >
             {copied === bothId ? <CheckCircle size={16} /> : <Copy size={16} />}
             {copied === bothId ? "Copied ID + Secret!" : "Copy ID + Secret"}
@@ -168,7 +168,7 @@ export default function VoucherCredentialCard({
           <button
             type="button"
             onClick={() => onCopy(shareText, cardId)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-slate-200 hover:bg-white/15 active:scale-[0.98] transition"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-soft)] hover:bg-white/15 active:scale-[0.98] transition"
           >
             {copied === cardId ? <CheckCircle size={16} /> : <Copy size={16} />}
             Copy full card

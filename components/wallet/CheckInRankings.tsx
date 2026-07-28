@@ -40,26 +40,26 @@ function LeaderboardTable({
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
-        <Users size={24} className="text-slate-600 mx-auto mb-2" />
-        <p className="font-black text-slate-500 text-sm">No rankings yet</p>
-        <p className="text-xs text-slate-600 mt-1">Launch tokens, swap, and complete quests to climb the board.</p>
+      <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] p-10 text-center">
+        <Users size={24} className="text-[var(--ink-dim)] mx-auto mb-2" />
+        <p className="font-black text-[var(--ink-muted)] text-sm">No rankings yet</p>
+        <p className="text-xs text-[var(--ink-dim)] mt-1">Launch tokens, swap, and complete quests to climb the board.</p>
       </div>
     );
   }
 
   return (
     <div className="glass-panel rounded-2xl overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-white/8 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-bold text-slate-500">
+      <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-bold text-[var(--ink-muted)]">
           Top{" "}
-          <span className="text-white font-black">{Math.min(TOP_N, entries.length)}</span> of{" "}
-          <span className="text-white font-black">{totalParticipants.toLocaleString()}</span>{" "}
+          <span className="text-[var(--ink)] font-black">{Math.min(TOP_N, entries.length)}</span> of{" "}
+          <span className="text-[var(--ink)] font-black">{totalParticipants.toLocaleString()}</span>{" "}
           {mode === "weekly" ? "this week" : "season"}
         </p>
       </div>
-      <div className="px-3 sm:px-4 py-2 border-b border-white/8">
-        <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem] gap-x-2 sm:gap-x-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+      <div className="px-3 sm:px-4 py-2 border-b border-[var(--border-subtle)]">
+        <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem] gap-x-2 sm:gap-x-3 text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
           <span>Rank</span>
           <span>Wallet</span>
           <span className="hidden sm:block text-right">Badges</span>
@@ -74,34 +74,34 @@ function LeaderboardTable({
         return (
           <div
             key={`${mode}-${e.address}`}
-            className={`grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem] gap-x-2 sm:gap-x-3 items-center px-3 sm:px-4 py-2.5 border-b border-white/6 last:border-0 ${
-              isMe ? "rank-you" : "hover:bg-white/[0.03]"
+            className={`grid grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4rem_5.5rem] gap-x-2 sm:gap-x-3 items-center px-3 sm:px-4 py-2.5 border-b border-[var(--border-subtle)] last:border-0 ${
+              isMe ? "rank-you" : "hover:bg-[var(--surface-2)]"
             }`}
           >
             <div className="shrink-0">
               {medal ? (
                 <span className="text-base">{medal}</span>
               ) : (
-                <span className="text-[11px] font-black text-slate-500">#{idx + 1}</span>
+                <span className="text-[11px] font-black text-[var(--ink-muted)]">#{idx + 1}</span>
               )}
             </div>
             <div className="min-w-0">
               <p
                 className={`font-black text-[11px] sm:text-sm truncate ${
-                  isMe ? "text-white" : "text-slate-200"
+                  isMe ? "text-[var(--ink)]" : "text-[var(--ink-soft)]"
                 }`}
               >
                 {e.basename || `${e.address.slice(0, 8)}...${e.address.slice(-4)}`}
                 {isMe && (
-                  <span className="text-[8px] text-slate-400 ml-1 font-bold">you</span>
+                  <span className="text-[8px] text-[var(--ink-muted)] ml-1 font-bold">you</span>
                 )}
               </p>
             </div>
-            <div className="hidden sm:block text-right text-xs font-black text-slate-500">
+            <div className="hidden sm:block text-right text-xs font-black text-[var(--ink-muted)]">
               {e.badges}
             </div>
             <div className="text-right shrink-0 tabular-nums">
-              <p className={`text-xs sm:text-sm font-black ${isMe ? "text-white" : "text-slate-300"}`}>
+              <p className={`text-xs sm:text-sm font-black ${isMe ? "text-[var(--ink)]" : "text-[var(--ink-soft)]"}`}>
                 {xp.toLocaleString()}
               </p>
             </div>
@@ -157,7 +157,7 @@ export default function CheckInRankings({
         className={
           embedded
             ? "flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2"
-            : "p-4 sm:p-5 border-b border-white/8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            : "p-4 sm:p-5 border-b border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         }
       >
         <div>
@@ -167,7 +167,7 @@ export default function CheckInRankings({
                 <Trophy size={12} />
                 Rankings
               </p>
-              <h3 className="text-lg sm:text-xl font-black text-white mt-1">
+              <h3 className="text-lg sm:text-xl font-black text-[var(--ink)] mt-1">
                 Weekly & season leaderboard
               </h3>
             </>
@@ -177,10 +177,10 @@ export default function CheckInRankings({
                 <Trophy size={12} />
                 Rankings
               </p>
-              <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+              <h3 className="text-xl sm:text-2xl font-black text-[var(--ink)] mt-1">
                 Quest & activity leaderboard
               </h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-xl">
+              <p className="text-xs text-[var(--ink-muted)] mt-1 max-w-xl">
                 {mode === "weekly"
                   ? "Ranked by weekly XP — launches, swaps, quests, check-in streak, and daily activity."
                   : "Season standings include all weekly XP plus badge mint rewards (+25 XP per badge)."}
@@ -200,7 +200,7 @@ export default function CheckInRankings({
               type="button"
               onClick={() => setMode(id)}
               className={`flex items-center gap-1 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors ${
-                mode === id ? "tab-active" : "text-slate-400 hover:text-white hover:bg-white/8"
+                mode === id ? "tab-active" : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]"
               }`}
             >
               <Icon size={12} />
@@ -219,10 +219,10 @@ export default function CheckInRankings({
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-2xl font-black text-white tabular-nums">
+            <p className="text-2xl font-black text-[var(--ink)] tabular-nums">
               {activeCount.toLocaleString()}
             </p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[var(--ink-muted)]">
               {mode === "weekly"
                 ? "Participants this week"
                 : "Total season participants"}
@@ -238,26 +238,26 @@ export default function CheckInRankings({
           <div className="glass-panel rounded-2xl p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0">
-                <div className="w-12 h-12 sm:w-[3.3rem] sm:h-[3.3rem] rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center font-black text-white text-base sm:text-lg shrink-0">
+                <div className="w-12 h-12 sm:w-[3.3rem] sm:h-[3.3rem] rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center font-black text-[var(--ink)] text-base sm:text-lg shrink-0">
                   #{myRank + 1}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-black text-white text-base sm:text-lg truncate">
+                  <p className="font-black text-[var(--ink)] text-base sm:text-lg truncate">
                     {wallet.basename ||
                       `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`}
                   </p>
                   {!inTop50 && (
-                    <p className="text-xs text-slate-500 font-semibold mt-1">
+                    <p className="text-xs text-[var(--ink-muted)] font-semibold mt-1">
                       Outside top {TOP_N} — keep completing quests!
                     </p>
                   )}
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[11px] text-slate-500 uppercase font-bold">
+                <p className="text-[11px] text-[var(--ink-muted)] uppercase font-bold">
                   {mode === "weekly" ? "Your weekly XP" : "Your season XP"}
                 </p>
-                <p className="text-3xl sm:text-[2.2rem] font-black text-white tabular-nums leading-none mt-0.5">
+                <p className="text-3xl sm:text-[2.2rem] font-black text-[var(--ink)] tabular-nums leading-none mt-0.5">
                   {myDisplayXp}
                 </p>
               </div>
@@ -283,8 +283,8 @@ export default function CheckInRankings({
                     : []),
                 ].map((s) => (
                   <div key={s.l} className="editorial-stat text-center py-2.5">
-                    <p className="text-sm sm:text-base font-black text-white tabular-nums">{s.v}</p>
-                    <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold mt-1">{s.l}</p>
+                    <p className="text-sm sm:text-base font-black text-[var(--ink)] tabular-nums">{s.v}</p>
+                    <p className="text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase font-bold mt-1">{s.l}</p>
                   </div>
                 ))}
               </div>
@@ -296,8 +296,8 @@ export default function CheckInRankings({
                 { l: "Streak", v: `${streak}d` },
               ].map((s) => (
                 <div key={s.l} className="editorial-stat text-center py-2.5">
-                  <p className="text-sm sm:text-base font-black text-white">{s.v}</p>
-                  <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold mt-1">{s.l}</p>
+                  <p className="text-sm sm:text-base font-black text-[var(--ink)]">{s.v}</p>
+                  <p className="text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase font-bold mt-1">{s.l}</p>
                 </div>
               ))}
             </div>
@@ -306,8 +306,8 @@ export default function CheckInRankings({
 
         {lbLoading ? (
           <div className="py-12 text-center">
-            <RefreshCcw className="animate-spin text-white/50 mx-auto mb-2" size={22} />
-            <p className="text-xs text-slate-500 font-bold">Loading rankings…</p>
+            <RefreshCcw className="animate-spin text-[var(--ink)]/50 mx-auto mb-2" size={22} />
+            <p className="text-xs text-[var(--ink-muted)] font-bold">Loading rankings…</p>
           </div>
         ) : (
           <>

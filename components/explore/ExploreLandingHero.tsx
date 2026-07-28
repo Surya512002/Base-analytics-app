@@ -7,6 +7,7 @@ import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
 import { pickB20Spotlight } from "@/lib/launchpad/explore-rankings";
 import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
+import BrandHeroBanner from "@/components/ui/BrandHeroBanner";
 
 export default function ExploreLandingHero({
   tokens,
@@ -48,18 +49,33 @@ export default function ExploreLandingHero({
   const tradableCount = tokens.length;
 
   return (
-    <section className="explore-hero pb-8 sm:pb-12">
-      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-5 sm:mb-6">
-        <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-          <span className="live-dot" />
-          B20 Launchpad · Live on Base
-        </span>
-        <span className="text-[12px] text-[var(--ink-dim)] font-mono">
-          {marketLoading
+    <section className="explore-hero w-full min-w-0 pb-8 sm:pb-12 space-y-6">
+      <BrandHeroBanner
+        imageSrc="/brand/base-analytics-hero-lanes.png"
+        eyebrow="B20 Launchpad · Live on Base"
+        title="Discover & launch on Base"
+        subtitle={
+          marketLoading
             ? "Syncing markets…"
-            : `${tradableCount} tradable${totalVolume24h ? ` · ${formatUsd(totalVolume24h)} 24h` : ""}`}
-        </span>
-      </div>
+            : `${tradableCount} tradable tokens${totalVolume24h ? ` · ${formatUsd(totalVolume24h)} 24h volume` : ""}`
+        }
+        minHeight="min-h-[220px] sm:min-h-[260px]"
+        className="mb-2"
+      >
+        <button type="button" onClick={onLaunch} className="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold">
+          Launch token
+        </button>
+        {guestMode ? (
+          <button type="button" onClick={onConnect} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold">
+            <Wallet size={16} />
+            Connect
+          </button>
+        ) : (
+          <button type="button" onClick={onBrowseTrending} className="inline-flex items-center rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold">
+            Top movers
+          </button>
+        )}
+      </BrandHeroBanner>
 
       {spotlight && (
         <button
@@ -141,12 +157,12 @@ export default function ExploreLandingHero({
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 lg:flex-col lg:items-end shrink-0">
-                <span className="btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold">
+              <div className="flex w-full flex-col items-stretch gap-2 sm:items-end lg:w-auto lg:flex-col">
+                <span className="btn-primary inline-flex w-full items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold sm:w-auto">
                   Trade in-app
                   <ArrowUpRight size={16} />
                 </span>
-                <span className="text-[11px] text-[var(--ink-dim)] hidden sm:block text-right">
+                <span className="text-[11px] text-[var(--ink-dim)] text-center sm:text-right hidden sm:block">
                   Aerodrome · Uniswap · Slipstream
                 </span>
               </div>
@@ -191,7 +207,7 @@ export default function ExploreLandingHero({
                 <button
                   type="button"
                   onClick={onLaunch}
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-white/[0.12] text-[14px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors touch-manipulation"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[14px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors touch-manipulation"
                 >
                   <Plus size={16} />
                   Launch B20
@@ -220,11 +236,11 @@ export default function ExploreLandingHero({
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-white/[0.12] text-[14px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--border-strong)] transition-colors touch-manipulation"
+              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[14px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--border-strong)] transition-colors touch-manipulation"
             >
               <Command size={15} />
               Search
-              <kbd className="hidden sm:inline text-[10px] font-mono text-[var(--ink-dim)] border border-white/10 rounded px-1.5 py-0.5">
+              <kbd className="hidden sm:inline text-[10px] font-mono text-[var(--ink-dim)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
                 ⌘K
               </kbd>
             </button>

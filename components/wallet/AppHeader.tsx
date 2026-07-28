@@ -1,98 +1,164 @@
+"use client";
+
 import Link from "next/link";
-import { Droplets, Power, Rocket, Wallet, Zap } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
-import { getDaysLeft } from "@/lib/utils/season";
+import type { AppTab } from "@/hooks/useWalletApp";
+import { isRewardsHubTab } from "@/lib/utils/app-url";
+
+type AppMode = "launch" | "trade";
 
 interface AppHeaderProps {
-  weeklyXP?: number;
-  sponsored?: number;
-  walletRefreshing?: boolean;
-  scanProgress?: string;
-  onDisconnect?: () => void;
+  tab: AppTab;
+  onTabChange: (tab: AppTab) => void;
   guest?: boolean;
   onConnect?: () => void;
-  showCommandPalette?: boolean;
+  onDisconnect?: () => void;
+  walletAddress?: string | null;
+  walletRefreshing?: boolean;
+  scanProgress?: string;
+}
+
+const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
+  { tab: "launchpad", label: "Explore", guestOk: true },
+  { tab: "swap", label: "Swap", guestOk: true },
+  { tab: "dashboard", label: "Analytics" },
+  { tab: "basehub", label: "Vouchers" },
+  { tab: "checkin", label: "Quests" },
+  { tab: "achievements", label: "Badges" },
+];
+
+function modeFromTab(tab: AppTab): AppMode {
+  if (tab === "launchpad" || tab === "basehub") return "launch";
+  return "trade";
+}
+
+function navActive(tab: AppTab, active: AppTab): boolean {
+  if (tab === "checkin") return isRewardsHubTab(active);
+  return active === tab;
 }
 
 export default function AppHeader({
-  weeklyXP = 0,
-  sponsored = 0,
-  walletRefreshing = false,
-  scanProgress = "",
-  onDisconnect,
+  tab,
+  onTabChange,
   guest,
   onConnect,
-  showCommandPalette,
+  onDisconnect,
+  walletAddress,
+  walletRefreshing,
+  scanProgress,
 }: AppHeaderProps) {
+  const mode = modeFromTab(tab);
+
+  const pickTab = (next: AppTab, guestOk?: boolean) => {
+    if (guest && !guestOk) {
+      onConnect?.();
+      return;
+    }
+    onTabChange(next);
+  };
+
   return (
-    <header className="app-header sticky top-0 z-40 bg-[var(--bg-deep)]/90 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_32px_rgba(0,0,0,0.45)]">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Link href="/explore" className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md pt-[env(safe-area-inset-top,0px)]">
+      <div className="app-container">
+        {/* Row 1 — brand + wallet actions (never overlaps nav) */}
+        <div className="flex min-w-0 items-center justify-between gap-3 py-2.5 sm:py-3">
+          <Link href="/explore" className="group flex shrink-0 items-center gap-2.5">
             <AppLogo size="sm" />
-            <span className="font-black text-sm sm:text-base text-white truncate tracking-wide">
-              BASE<span className="text-[var(--ink)]">.</span>ANALYTICS
+            <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
+              <span className="sm:hidden">Base</span>
+              <span className="hidden sm:inline">Base Analytics</span>
             </span>
           </Link>
-        </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {showCommandPalette && (
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-              className="hidden sm:flex items-center gap-1.5 glass-panel rounded-xl px-2.5 py-1.5 text-slate-400 hover:text-white border border-white/10"
-            >
-              <span className="text-[10px]">Search</span>
-              <kbd className="text-[9px] font-mono border border-white/10 rounded px-1">⌘K</kbd>
-            </button>
-          )}
-          <div className="hidden sm:flex items-center gap-1.5 badge-live rounded-xl px-2.5 py-1.5">
-            <Rocket size={10} className="text-[var(--ink-muted)]" />
-            <span className="text-[10px] font-semibold whitespace-nowrap uppercase tracking-wide text-[var(--ink-muted)]">
-              B20 Launchpad
-            </span>
-            <span className="text-emerald-300/50 mx-0.5">·</span>
-            <span className="text-[10px] text-slate-300">{getDaysLeft()}d left</span>
-          </div>
-          <div className="flex items-center gap-1 glass-panel-accent rounded-xl px-2.5 py-1.5">
-            <Zap size={11} className="text-[var(--ink-muted)]" />
-            <span className="text-[10px] font-black text-[var(--ink)]">{weeklyXP}</span>
-            <span className="text-[9px] text-slate-400 hidden sm:inline">XP</span>
-          </div>
-          {!guest && walletRefreshing && (
-            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5 border border-[var(--border-subtle)] max-w-[220px]">
-              <div className="w-1.5 h-1.5 bg-[var(--ink-muted)] rounded-full animate-pulse shrink-0" />
-              <span className="text-[9px] font-bold text-[var(--ink-muted)] uppercase tracking-wide truncate">
-                {scanProgress || "Syncing history"}
-              </span>
+
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="hidden rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-0.5 text-xs md:flex">
+              <button
+                type="button"
+                onClick={() => pickTab("launchpad", true)}
+                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-medium transition lg:px-3 ${
+                  mode === "launch" ? "bg-[var(--ink)] text-white" : "text-[var(--muted)]"
+                }`}
+              >
+                Launch / B20
+              </button>
+              <button
+                type="button"
+                onClick={() => pickTab("swap", true)}
+                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-medium transition lg:px-3 ${
+                  mode === "trade" ? "bg-[var(--ink)] text-white" : "text-[var(--muted)]"
+                }`}
+              >
+                Trade / Swap
+              </button>
             </div>
-          )}
-          {!guest && sponsored > 0 && (
-            <div className="hidden sm:flex items-center gap-1 glass-panel rounded-xl px-2.5 py-1.5">
-              <Droplets size={11} className="text-[var(--ink-muted)]" />
-              <span className="text-[10px] text-[var(--ink-muted)] font-bold">{sponsored}</span>
-            </div>
-          )}
-          {guest ? (
-            <button
-              type="button"
-              onClick={onConnect}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-[11px] sm:text-xs bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-ink)] transition-colors"
-            >
-              <Wallet size={14} />
-              Connect
-            </button>
-          ) : (
-            <button
-              onClick={onDisconnect}
-              className="p-2 glass-panel rounded-xl text-slate-400 hover:text-white hover:border-[var(--border-strong)] transition-colors"
-              aria-label="Disconnect wallet"
-            >
-              <Power size={14} />
-            </button>
-          )}
+
+            <span className="badge badge-brand hidden xl:inline-flex">Base Mainnet</span>
+
+            {guest || !walletAddress ? (
+              <button
+                type="button"
+                onClick={onConnect}
+                className="btn-primary whitespace-nowrap px-3 py-2 text-xs sm:px-4 sm:text-sm"
+              >
+                <span className="sm:hidden">Connect</span>
+                <span className="hidden sm:inline">Connect wallet</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs sm:gap-2">
+                <span className="hidden rounded-lg bg-[var(--surface-2)] px-2 py-1 font-mono sm:inline">
+                  {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+                </span>
+                <button type="button" onClick={onDisconnect} className="btn-ghost text-xs">
+                  Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Row 2 — desktop nav (full width, no overlap with wallet row) */}
+        <nav
+          aria-label="Main"
+          className="hidden min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar lg:flex xl:gap-1"
+        >
+          {HEADER_NAV.map((item) => {
+            const active = navActive(item.tab, tab);
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => pickTab(item.tab, item.guestOk)}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition ${
+                  active
+                    ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
+                    : "text-[var(--muted)] hover:text-[var(--ink)]"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+          <Link
+            href="/docs"
+            className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)]"
+          >
+            Documents
+          </Link>
+        </nav>
       </div>
+
+      {/* Sync strip — below nav, never covers links */}
+      {walletRefreshing && (
+        <div className="border-t border-[var(--border-subtle)] bg-[var(--brand-soft)]/40">
+          <div className="app-container flex items-center gap-2 py-1.5 text-xs text-[var(--brand-dark)]">
+            <RefreshCcw className="size-3.5 shrink-0 animate-spin" aria-hidden />
+            <span className="min-w-0 truncate font-medium">
+              {scanProgress || "Syncing wallet analytics…"}
+            </span>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

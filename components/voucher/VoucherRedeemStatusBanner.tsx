@@ -22,7 +22,7 @@ export default function VoucherRedeemStatusBanner({
       <div>
         <p className="text-base sm:text-lg font-black text-red-100">This card is already redeemed</p>
         <p className="text-sm text-red-200/85 mt-1 leading-relaxed">
-          Card <span className="font-mono font-bold text-white">{cardId}</span> was already claimed on
+          Card <span className="font-mono font-bold text-[var(--ink)]">{cardId}</span> was already claimed on
           Base. You cannot redeem it again — the funds went to whoever redeemed it first.
         </p>
       </div>

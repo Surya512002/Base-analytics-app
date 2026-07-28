@@ -41,10 +41,15 @@ function CaptureContent() {
   const app = createMockAppState(tab);
 
   return (
-    <main className="min-h-screen text-white font-sans relative">
+    <main className="min-h-screen text-[var(--foreground)] font-sans relative">
       <AppBackground />
-      <AppHeader weeklyXP={app.weeklyXP} sponsored={app.sponsored} onDisconnect={() => {}} />
-      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24">
+      <AppHeader
+        tab={tab}
+        onTabChange={() => {}}
+        walletAddress={app.wallet?.address}
+        onDisconnect={() => {}}
+      />
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-6 pb-24">
         <TabBar tab={tab} doneQuests={app.doneQuests} onTabChange={() => {}} />
         <AppFeatureStrip />
         {tab === "dashboard" && <DashboardTab app={app} />}

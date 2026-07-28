@@ -91,10 +91,10 @@ export default function ExploreServicesRail({
                 className={`group text-left rounded-2xl border ${s.accent} p-4 hover:border-[var(--border-strong)] transition-colors`}
               >
                 <Icon size={18} className="text-[var(--ink-muted)] mb-2" />
-                <p className="text-sm font-black text-white group-hover:text-[var(--ink)] transition-colors">
+                <p className="text-sm font-black text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors">
                   {s.label}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 leading-snug">{s.desc}</p>
+                <p className="text-[10px] text-[var(--ink-muted)] mt-1 leading-snug">{s.desc}</p>
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--ink-muted)] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   Open <ArrowUpRight size={10} />
                 </span>

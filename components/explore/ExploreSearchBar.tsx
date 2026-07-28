@@ -85,14 +85,14 @@ export default function ExploreSearchBar({
             }}
             onFocus={() => setOpen(true)}
             placeholder="Search tokens, symbol, or 0x address…"
-            className="w-full min-h-[48px] pl-10 pr-10 rounded-xl border border-white/[0.1] bg-[var(--bg-raised)] text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--accent)]"
+            className="w-full min-h-[48px] pl-10 pr-10 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand)] shadow-[var(--shadow-card)]"
             aria-label="Search tokens"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-dim)] hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-dim)] hover:text-[var(--ink)]"
               aria-label="Clear search"
             >
               <X size={14} />
@@ -102,7 +102,7 @@ export default function ExploreSearchBar({
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-          className="shrink-0 min-h-[48px] px-3 rounded-xl border border-white/[0.1] text-[var(--ink-dim)] hover:text-white hover:border-[var(--border-strong)] transition-colors"
+          className="shrink-0 min-h-[48px] px-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-dim)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors shadow-[var(--shadow-card)]"
           aria-label="Open command palette"
         >
           <Command size={16} />
@@ -119,7 +119,7 @@ export default function ExploreSearchBar({
               else setQuery(s.query);
               setOpen(true);
             }}
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-full border border-white/[0.08] text-[var(--ink-muted)] hover:text-white hover:border-[var(--border-strong)]"
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--brand-dark)] hover:border-[var(--brand)]"
           >
             {s.label}
           </button>
@@ -127,20 +127,20 @@ export default function ExploreSearchBar({
       </div>
 
       {open && (query || recent.length > 0) && (
-        <div className="absolute z-40 mt-2 w-full rounded-xl border border-white/[0.1] bg-[#080808]/98 shadow-2xl overflow-hidden max-h-[min(360px,50vh)] overflow-y-auto">
+        <div className="absolute z-40 mt-2 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden max-h-[min(360px,50vh)] overflow-y-auto">
           {query && results.length === 0 && (
-            <p className="px-4 py-3 text-sm text-[var(--ink-dim)]">No tokens match “{query}”</p>
+            <p className="px-4 py-3 text-sm text-[var(--ink-muted)]">No tokens match “{query}”</p>
           )}
           {results.map((t) => (
             <button
               key={t.address}
               type="button"
               onClick={() => selectToken(t, query)}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.06] border-b border-white/[0.05] last:border-0"
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--surface-2)] border-b border-[var(--border-subtle)] last:border-0"
             >
-              <TrendingUp size={14} className="text-[var(--ink-muted)] shrink-0" />
+              <TrendingUp size={14} className="text-[var(--brand)] shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
+                <p className="text-sm font-semibold text-[var(--ink)] truncate">
                   {t.name}{" "}
                   <span className="text-[var(--ink-muted)] font-mono">${t.symbol}</span>
                 </p>
@@ -158,7 +158,7 @@ export default function ExploreSearchBar({
                   key={r}
                   type="button"
                   onClick={() => setQuery(r)}
-                  className="w-full text-left px-3 py-2 text-sm text-[var(--ink-muted)] hover:text-white rounded-lg hover:bg-white/[0.05]"
+                  className="w-full text-left px-3 py-2 text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] rounded-lg hover:bg-[var(--surface-2)]"
                 >
                   {r}
                 </button>

@@ -96,22 +96,22 @@ export default function CheckInTab({
   return (
     <div className={`w-full space-y-4 ${embedded ? "" : "tab-content-enter"}`}>
       {!embedded && (
-      <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
+      <div className="glass-panel rounded-2xl border border-[var(--border-subtle)] overflow-hidden">
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+            <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest flex items-center gap-1.5">
               <Trophy size={11} className="text-amber-400" />
               Daily progress & live standings
             </p>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 leading-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-[var(--ink)] mt-1 leading-tight">
               Check-In <span className="text-[var(--ink-muted)]">&</span> Rankings
             </h2>
-            <p className="text-xs text-slate-500 mt-1.5">
+            <p className="text-xs text-[var(--ink-muted)] mt-1.5">
               Launches and swaps earn the most XP — then check in, quest & rank.
             </p>
           </div>
-          <div className="shrink-0 sm:text-right bg-white/[0.04] border border-white/8 rounded-xl px-4 py-3">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+          <div className="shrink-0 sm:text-right bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-4 py-3">
+            <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
               Your weekly XP
             </p>
             <p className="text-3xl font-black text-[var(--ink)] tabular-nums leading-none mt-0.5">
@@ -123,25 +123,25 @@ export default function CheckInTab({
       )}
 
       {/* Daily actions — top */}
-      <div className="glass-panel rounded-2xl border border-white/8 overflow-hidden">
-        <div className="px-4 sm:px-5 py-3 border-b border-white/8">
-          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+      <div className="glass-panel rounded-2xl border border-[var(--border-subtle)] overflow-hidden">
+        <div className="px-4 sm:px-5 py-3 border-b border-[var(--border-subtle)]">
+          <p className="text-[11px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
             Daily actions
           </p>
-          <p className="text-[10px] text-slate-500 mt-1">
+          <p className="text-[10px] text-[var(--ink-muted)] mt-1">
             Launch +{POINTS_PER_LAUNCH} PP · Swap +{POINTS_PER_TOKEN_SWAP} PP each · check-in, boost, GM &amp; GN fill the daily cap
           </p>
         </div>
         <div className="p-4 sm:p-5 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5 flex flex-col gap-2.5">
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3.5 flex flex-col gap-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-white flex items-center gap-1.5">
+                  <p className="text-sm font-black text-[var(--ink)] flex items-center gap-1.5">
                     <Flame size={15} className="text-emerald-400 shrink-0" />
                     Check-in
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
                     {streak > 0
                       ? `${streak}d on-chain streak · ${checkedToday ? "done today" : "gas sponsored"}`
                       : "Onchain check-in · gas sponsored"}
@@ -157,7 +157,7 @@ export default function CheckInTab({
                 disabled={checkedToday || minting === "checkin"}
                 className={`w-full py-3 rounded-xl font-black text-sm transition-colors active:scale-[0.99] mt-auto ${
                   checkedToday
-                    ? "bg-white/[0.04] text-slate-400 border border-white/10 cursor-default"
+                    ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-default"
                     : "btn-primary"
                 }`}
               >
@@ -212,7 +212,7 @@ export default function CheckInTab({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--ink-muted)]">
             <span className="font-black text-[var(--ink)] tabular-nums">+{boostPct}% quest boost</span>
             <span className="flex items-center gap-1.5">
               <Droplets size={9} className="text-[var(--ink-muted)]" />
@@ -220,13 +220,13 @@ export default function CheckInTab({
                 <>
                   {xp.dailyRemaining} PP to cap
                   {!capStreak.capBonusAwardedToday && (
-                    <span className="text-amber-300/90">
+                    <span className="text-amber-700/90">
                       · +{capStreak.nextBonusPP} weekly at cap
                     </span>
                   )}
                 </>
               ) : (
-                <span className="text-amber-300/90">
+                <span className="text-amber-700/90">
                   Daily cap reached — txs still count; PP resume tomorrow UTC
                 </span>
               )}
@@ -240,22 +240,22 @@ export default function CheckInTab({
 
       {/* Daily cap + 7-day track — compact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="glass-panel rounded-xl p-3.5 border border-white/8 space-y-3">
+        <div className="glass-panel rounded-xl p-3.5 border border-[var(--border-subtle)] space-y-3">
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
                 Daily activity
               </p>
               {xp.todayStreakXp > 0 && (
-                <span className="text-[9px] font-black text-amber-300">
+                <span className="text-[9px] font-black text-amber-700">
                   +{xp.todayStreakXp} streak
                 </span>
               )}
             </div>
-            <p className="text-sm font-black text-white tabular-nums mb-2">
+            <p className="text-sm font-black text-[var(--ink)] tabular-nums mb-2">
               {xp.todayActivityXp} / {DAILY_POINTS_CAP} PP
             </p>
-            <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden">
               <div
                 className="h-full bg-[var(--accent)] rounded-full transition-[width] duration-500"
                 style={{ width: `${dailyPct}%` }}
@@ -264,21 +264,21 @@ export default function CheckInTab({
           </div>
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
                 In-app txs today
               </p>
               <span
                 className={`text-[9px] font-black tabular-nums ${
-                  xp.todayTxCount >= TARGET_TXS_MIN ? "text-emerald-400" : "text-slate-500"
+                  xp.todayTxCount >= TARGET_TXS_MIN ? "text-emerald-400" : "text-[var(--ink-muted)]"
                 }`}
               >
                 aim {TARGET_TXS_MIN}–{TARGET_TXS_IDEAL}
               </span>
             </div>
-            <p className="text-sm font-black text-white tabular-nums mb-2">
+            <p className="text-sm font-black text-[var(--ink)] tabular-nums mb-2">
               {xp.todayTxCount} txs
             </p>
-            <div className="w-full bg-white/8 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden">
               <div
                 className="h-full bg-[var(--accent)] rounded-full transition-[width] duration-500"
                 style={{ width: `${txPct}%` }}
@@ -286,15 +286,15 @@ export default function CheckInTab({
             </div>
           </div>
           {xp.todayBonusXp > 0 && (
-            <p className="text-[9px] font-bold text-amber-300">
+            <p className="text-[9px] font-bold text-amber-700">
               +{xp.todayBonusXp} weekly bonus PP
             </p>
           )}
         </div>
 
-        <div className="glass-panel rounded-xl border border-white/8 overflow-hidden">
-          <div className="px-3.5 py-2 border-b border-white/8 flex items-center justify-between">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+        <div className="glass-panel rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+          <div className="px-3.5 py-2 border-b border-[var(--border-subtle)] flex items-center justify-between">
+            <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
               {CHECK_IN_TRACK_DAYS}-day weekly bonus
             </p>
             <span className="text-[10px] font-black text-[var(--ink)] tabular-nums">
@@ -318,25 +318,25 @@ export default function CheckInTab({
                       ? "border-[var(--border-focus)] bg-[var(--bg-hover)]"
                       : isDone
                         ? "border-emerald-500/30 bg-emerald-500/8"
-                        : "border-white/8 bg-white/[0.03]"
+                        : "border-[var(--border-subtle)] bg-[var(--surface-2)]"
                   }`}
                   title={`Day ${day}: +${dayPP} weekly PP`}
                 >
                   <span
                     className={`text-[8px] font-black uppercase ${
-                      isToday ? "text-[var(--ink)]" : isDone ? "text-emerald-400/80" : "text-slate-600"
+                      isToday ? "text-[var(--ink)]" : isDone ? "text-emerald-400/80" : "text-[var(--ink-dim)]"
                     }`}
                   >
                     D{day}
                   </span>
-                  <span className="text-[7px] font-bold text-slate-500 tabular-nums">{dayPP}</span>
+                  <span className="text-[7px] font-bold text-[var(--ink-muted)] tabular-nums">{dayPP}</span>
                   {isDone && <span className="text-[10px] leading-none">✓</span>}
                   {isToday && <Flame size={11} className="text-[var(--ink-muted)]" />}
                 </div>
               );
             })}
           </div>
-          <p className="px-3.5 pb-2.5 text-[9px] text-slate-500">
+          <p className="px-3.5 pb-2.5 text-[9px] text-[var(--ink-muted)]">
             Hit {DAILY_POINTS_CAP} PP daily · D1 = 10 → D7 = 100 weekly (resets after day 7)
           </p>
         </div>
@@ -344,20 +344,20 @@ export default function CheckInTab({
 
       {/* Weekly quests */}
       <div className="glass-panel rounded-2xl overflow-hidden flex flex-col">
-          <div className="px-5 sm:px-6 py-3.5 border-b border-white/8 flex flex-wrap items-center justify-between gap-3">
+          <div className="px-5 sm:px-6 py-3.5 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Target size={16} className="text-white/60" />
+              <Target size={16} className="text-[var(--ink)]/60" />
               <p className="section-eyebrow">Weekly quests</p>
-              <p className="text-[10px] text-slate-600 hidden sm:inline">· Launch & swap quests</p>
+              <p className="text-[10px] text-[var(--ink-dim)] hidden sm:inline">· Launch & swap quests</p>
             </div>
             <div className="flex items-center gap-3 min-w-[150px]">
-              <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden min-w-[88px]">
+              <div className="flex-1 h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden min-w-[88px]">
                 <div
                   className="progress-ink"
                   style={{ width: `${questPct}%` }}
                 />
               </div>
-              <span className="text-sm font-black text-white tabular-nums shrink-0">
+              <span className="text-sm font-black text-[var(--ink)] tabular-nums shrink-0">
                 {doneQuests}/{WEEKLY_QUESTS.length}
               </span>
             </div>
@@ -387,16 +387,16 @@ export default function CheckInTab({
                       <div className="min-w-0 flex-1">
                         <p
                           className={`text-sm font-black leading-snug ${
-                            done ? "text-slate-500 line-through" : "text-white"
+                            done ? "text-[var(--ink-muted)] line-through" : "text-[var(--ink)]"
                           }`}
                         >
                           {q.title}
                         </p>
-                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{q.desc}</p>
+                        <p className="text-[11px] text-[var(--ink-muted)] mt-1 line-clamp-2">{q.desc}</p>
                       </div>
                       <span
                         className={`text-xs font-black shrink-0 tabular-nums ${
-                          done ? "text-slate-500" : "text-white/70"
+                          done ? "text-[var(--ink-muted)]" : "text-[var(--ink)]/70"
                         }`}
                       >
                         +{q.xp}
@@ -418,7 +418,7 @@ export default function CheckInTab({
             </div>
             {streak >= CHECK_IN_TRACK_DAYS &&
               doneQuests === WEEKLY_QUESTS.length && (
-                <p className="text-[11px] font-semibold text-slate-400 mt-3 text-center">
+                <p className="text-[11px] font-semibold text-[var(--ink-muted)] mt-3 text-center">
                   7-day streak + all quests — +{SEVEN_DAY_ALL_TASKS_BONUS} weekly bonus PP
                 </p>
               )}

@@ -28,7 +28,7 @@ export default function VoucherMarketplace() {
 
   if (loading) {
     return (
-      <div className="h-28 rounded-2xl border border-white/10 bg-white/[0.02] animate-pulse" />
+      <div className="h-28 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] animate-pulse" />
     );
   }
 
@@ -50,7 +50,7 @@ export default function VoucherMarketplace() {
         </div>
         <Link
           href="/redeem"
-          className="shrink-0 text-[11px] font-bold text-emerald-300 hover:text-white transition"
+          className="shrink-0 text-[11px] font-bold text-emerald-300 hover:text-[var(--ink)] transition"
         >
           Redeem →
         </Link>
@@ -61,7 +61,7 @@ export default function VoucherMarketplace() {
           return (
             <div
               key={`${b.batchId}-${b.creator}`}
-              className="shrink-0 w-[min(200px,72vw)] rounded-2xl border border-white/10 bg-black/30 p-4"
+              className="shrink-0 w-[min(200px,72vw)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4"
             >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={12} className="text-emerald-400" />
@@ -69,13 +69,13 @@ export default function VoucherMarketplace() {
                   {b.asset}
                 </span>
               </div>
-              <p className="text-lg font-black text-white font-mono">
+              <p className="text-lg font-black text-[var(--ink)] font-mono">
                 {formatBatchAmount(b.asset, b.amountPerCard)}
               </p>
-              <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">
+              <p className="text-[10px] text-[var(--ink-muted)] mt-1 line-clamp-2">
                 {b.message || "Base gift card"}
               </p>
-              <p className="text-[10px] text-slate-400 mt-2">{left} cards left</p>
+              <p className="text-[10px] text-[var(--ink-muted)] mt-2">{left} cards left</p>
             </div>
           );
         })}

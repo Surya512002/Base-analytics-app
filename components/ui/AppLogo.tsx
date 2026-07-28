@@ -25,7 +25,7 @@ function LogoMark({ size }: { size: number }) {
       aria-label="Base Analytics"
       className="shrink-0"
     >
-      <rect width="64" height="64" rx="12" fill="#0052FF" />
+      <rect width="64" height="64" rx="12" fill="#1a5cff" />
       <path
         d="M32 14 46 23.5V42.5L32 52 18 42.5V23.5L32 14Z"
         stroke="#FFFFFF"

@@ -29,11 +29,11 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
           }`}
         >
           {s.icon}
-          <span className="text-[9px] font-black text-slate-300 uppercase tracking-wide">
+          <span className="text-[9px] font-black text-[var(--ink-soft)] uppercase tracking-wide">
             {s.label}
           </span>
           {s.core && (
-            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Core</span>
+            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">Core</span>
           )}
         </button>
       ))}

@@ -32,7 +32,7 @@ export default function VoucherHero() {
                 key={s.label}
                 className="inline-flex items-center gap-1.5 editorial-badge text-[10px] font-bold"
               >
-                <span className="text-white/50">{s.icon}</span>
+                <span className="text-[var(--brand)]">{s.icon}</span>
                 {s.label}
               </span>
             ))}
@@ -40,7 +40,7 @@ export default function VoucherHero() {
 
           <div className="mt-5 inline-flex items-center gap-2.5 editorial-badge px-4 py-2.5">
             <AppLogo size="sm" />
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-[var(--brand-dark)] uppercase tracking-widest">
               Built on Base
             </span>
           </div>

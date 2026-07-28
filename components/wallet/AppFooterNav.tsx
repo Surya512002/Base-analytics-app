@@ -1,38 +1,47 @@
 import Link from "next/link";
-import { BookOpen, Compass, HelpCircle, Trophy } from "lucide-react";
+import AppLogo from "@/components/ui/AppLogo";
 
+/** Paylane-style dark site footer. */
 export default function AppFooterNav() {
   return (
-    <footer className="mt-8 pt-6 border-t border-white/8">
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-        <Link
-          href="/explore"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)] transition"
-        >
-          <Compass size={13} /> Explore
-        </Link>
-        <Link
-          href="/help"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-bold text-slate-400 hover:text-white border border-white/10 transition"
-        >
-          <HelpCircle size={13} /> Help & FAQ
-        </Link>
-        <Link
-          href="/hall-of-fame"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-bold text-slate-400 hover:text-white border border-white/10 transition"
-        >
-          <Trophy size={13} className="text-[var(--ink-muted)]" /> Hall of Fame
-        </Link>
-        <Link
-          href="/help#api"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full elegant-panel text-[11px] font-bold text-slate-400 hover:text-white border border-white/10 transition"
-        >
-          <BookOpen size={13} /> API docs
-        </Link>
+    <footer className="mt-auto w-full border-t border-[var(--border-subtle)] bg-[var(--ink)] text-white">
+      <div className="app-container grid gap-8 py-8 md:grid-cols-[1.4fr_1fr] md:py-10">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <AppLogo size="sm" />
+            <span className="font-display text-lg font-bold">Base Analytics</span>
+          </div>
+          <p className="mt-3 max-w-md text-sm text-white/70">
+            Launch B20 tokens, swap on Base, and analyze your wallet — quests, vouchers, and x402
+            insights in one mini-app.
+          </p>
+        </div>
+        <nav className="grid grid-cols-2 gap-3 text-sm text-white/80 sm:justify-items-end">
+          <Link href="/explore" className="hover:text-white">
+            Explore
+          </Link>
+          <Link href="/swap" className="hover:text-white">
+            Swap
+          </Link>
+          <Link href="/docs" className="hover:text-white">
+            Documents
+          </Link>
+          <Link href="/hall-of-fame" className="hover:text-white">
+            Hall of Fame
+          </Link>
+          <Link href="/docs#api" className="hover:text-white">
+            API docs
+          </Link>
+          <Link href="/redeem" className="hover:text-white">
+            Redeem voucher
+          </Link>
+        </nav>
       </div>
-      <p className="text-center text-[10px] text-slate-600 mt-4">
-        Base Analytics · B20 Launchpad · Vouchers · Onchain identity on Base
-      </p>
+      <div className="border-t border-white/10">
+        <p className="app-container py-4 text-xs text-white/45">
+          © {new Date().getFullYear()} Base Analytics · Built on Base mainnet
+        </p>
+      </div>
     </footer>
   );
 }

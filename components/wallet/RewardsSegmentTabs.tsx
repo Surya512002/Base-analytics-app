@@ -15,7 +15,7 @@ export default function RewardsSegmentTabs({
   onChange: (view: RewardsHubView) => void;
 }) {
   return (
-    <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar touch-scroll-x border-b border-white/[0.08] pb-0.5">
+    <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar touch-scroll-x border-b border-[var(--border-subtle)] pb-0.5">
       <span className="text-[var(--ink-dim)] font-mono text-xs sm:text-sm shrink-0 select-none">
         {"////"}
       </span>

@@ -101,16 +101,16 @@ export default function CommandPalette({
       />
       <div className="command-palette-shell relative flex flex-col overflow-hidden">
         <div className="h-1 bg-[var(--bg-raised)] shrink-0" />
-        <div className="flex items-center gap-4 border-b border-white/10 px-5 sm:px-6 py-4 sm:py-5 shrink-0">
+        <div className="flex items-center gap-4 border-b border-[var(--border-subtle)] px-5 sm:px-6 py-4 sm:py-5 shrink-0">
           <Search size={22} className="text-[var(--ink-muted)] shrink-0" />
           <input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tokens, B20, pages…"
-            className="command-palette-input flex-1 bg-transparent text-white outline-none placeholder:text-slate-500"
+            className="command-palette-input flex-1 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--ink-dim)]"
           />
-          <kbd className="hidden sm:inline text-[11px] font-mono text-slate-500 border border-white/12 rounded-md px-2 py-1">
+          <kbd className="hidden sm:inline text-[11px] font-mono text-[var(--ink-muted)] border border-[var(--border-subtle)] rounded-md px-2 py-1">
             esc
           </kbd>
         </div>
@@ -118,7 +118,7 @@ export default function CommandPalette({
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-0">
           {filteredNav.length > 0 && (
             <div className="mb-4">
-              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
                 Go to
               </p>
               <div className="grid sm:grid-cols-2 gap-1.5">
@@ -134,16 +134,16 @@ export default function CommandPalette({
                       onClick={() => selectNav(item.id, item.rewardsView)}
                       className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-colors ${
                         active
-                          ? "bg-[var(--accent-soft)] border border-[var(--accent)] text-white"
-                          : "hover:bg-white/[0.06] border border-transparent text-slate-300"
+                          ? "bg-[var(--brand-soft)] border border-[var(--brand)] text-[var(--brand-dark)]"
+                          : "hover:bg-[var(--surface-2)] border border-transparent text-[var(--ink-soft)]"
                       }`}
                     >
                       <Icon size={18} className="text-[var(--ink-muted)] shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-[15px] font-bold">{item.label}</p>
-                        <p className="text-[12px] text-slate-500 truncate">{item.hint}</p>
+                        <p className="text-[12px] text-[var(--ink-muted)] truncate">{item.hint}</p>
                       </div>
-                      <ArrowRight size={16} className="text-slate-600 shrink-0" />
+                      <ArrowRight size={16} className="text-[var(--ink-dim)] shrink-0" />
                     </button>
                   );
                 })}
@@ -153,7 +153,7 @@ export default function CommandPalette({
 
           {filteredTokens.length > 0 && (
             <div>
-              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
                 Tradeable tokens
               </p>
               <div className="space-y-1">
@@ -166,14 +166,14 @@ export default function CommandPalette({
                       onOpenToken?.(t);
                       onClose();
                     }}
-                    className="w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-colors"
+                    className="w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left hover:bg-[var(--surface-2)] border border-transparent hover:border-[var(--border-subtle)] transition-colors"
                   >
                     {t.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={t.imageUrl}
                         alt=""
-                        className="w-11 h-11 rounded-xl object-cover border border-white/10"
+                        className="w-11 h-11 rounded-xl object-cover border border-[var(--border-subtle)]"
                       />
                     ) : (
                       <div className="w-11 h-11 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
@@ -181,11 +181,11 @@ export default function CommandPalette({
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-bold text-white truncate">
+                      <p className="text-[15px] font-bold text-[var(--ink)] truncate">
                         {t.name}{" "}
                         <span className="text-[var(--ink-muted)]">${t.symbol}</span>
                       </p>
-                      <p className="text-[12px] text-slate-500 font-mono">{shortAddr(t.address)}</p>
+                      <p className="text-[12px] text-[var(--ink-muted)] font-mono">{shortAddr(t.address)}</p>
                     </div>
                     <span className="text-[11px] font-semibold text-emerald-400/90 shrink-0">
                       Trade →
@@ -197,16 +197,16 @@ export default function CommandPalette({
           )}
 
           {filteredNav.length === 0 && filteredTokens.length === 0 && (
-            <p className="px-4 py-16 text-center text-[15px] text-slate-500">
+            <p className="px-4 py-16 text-center text-[15px] text-[var(--ink-muted)]">
               No results — try a token symbol or page name
             </p>
           )}
         </div>
 
-        <div className="border-t border-white/10 px-5 py-3 flex items-center gap-2 text-[12px] text-slate-500 shrink-0">
+        <div className="border-t border-[var(--border-subtle)] px-5 py-3 flex items-center gap-2 text-[12px] text-[var(--ink-muted)] shrink-0">
           <Command size={14} />
           <span>
-            <kbd className="font-mono text-slate-400">⌘K</kbd> spotlight · search &amp; trade without leaving the app
+            <kbd className="font-mono text-[var(--ink-dim)]">⌘K</kbd> spotlight · search &amp; trade without leaving the app
           </span>
         </div>
       </div>

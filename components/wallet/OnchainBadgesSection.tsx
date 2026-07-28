@@ -24,7 +24,7 @@ export default function OnchainBadgesSection({
         <p className="section-eyebrow flex items-center gap-2 mb-1">
           <Trophy size={12} /> Onchain score badges
         </p>
-        <p className="text-xs text-slate-500 max-w-2xl">
+        <p className="text-xs text-[var(--ink-muted)] max-w-2xl">
           Mint soulbound badges from your Base wallet score and onchain history. One-tap mint when a
           tier is unlocked.
         </p>
@@ -68,29 +68,29 @@ export default function OnchainBadgesSection({
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-xl shrink-0">
+                  <div className="w-10 h-10 bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center text-xl shrink-0">
                     {cat.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-white text-sm truncate">{cat.name}</p>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">
+                    <p className="font-bold text-[var(--ink)] text-sm truncate">{cat.name}</p>
+                    <p className="text-[10px] text-[var(--ink-muted)] uppercase font-bold mt-0.5">
                       L{unlocked}/{cat.thresholds.length}
                     </p>
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-2">
-                  <p className="text-lg font-black text-white">
+                  <p className="text-lg font-black text-[var(--ink)]">
                     {typeof value === "number" && value < 1
                       ? value.toFixed(3)
                       : value.toLocaleString()}
                   </p>
-                  <p className="text-[10px] text-slate-500 uppercase">{cat.unit}</p>
+                  <p className="text-[10px] text-[var(--ink-muted)] uppercase">{cat.unit}</p>
                 </div>
               </div>
 
-              <div className="w-full bg-white/5 rounded-full h-1.5 mb-4 overflow-hidden">
+              <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 mb-4 overflow-hidden">
                 <div
-                  className="h-full bg-white/70 rounded-full transition-all duration-700"
+                  className="h-full bg-[var(--brand)] rounded-full transition-all duration-700"
                   style={{ width: `${prog}%` }}
                 />
               </div>
@@ -134,7 +134,7 @@ export default function OnchainBadgesSection({
                 className={`mt-auto w-full py-2.5 rounded-xl font-bold text-xs transition-all ${
                   canMint && minting !== `mint-${cat.id}`
                     ? "btn-primary text-white"
-                    : "bg-white/[0.04] text-slate-600 cursor-not-allowed border border-white/8"
+                    : "bg-[var(--surface-2)] text-[var(--ink-dim)] cursor-not-allowed border border-[var(--border-subtle)]"
                 }`}
               >
                 {minting === `mint-${cat.id}` ? (
@@ -144,7 +144,7 @@ export default function OnchainBadgesSection({
                 )}
               </button>
               {canMint && (
-                <p className="text-[9px] text-slate-600 mt-2 text-center">
+                <p className="text-[9px] text-[var(--ink-dim)] mt-2 text-center">
                   +{XP_PER_BADGE_MINT} season XP per mint
                 </p>
               )}

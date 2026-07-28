@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowUpRight, RefreshCcw, Wallet } from "lucide-react";
-import AppLogo from "@/components/ui/AppLogo";
+import AppModeCards from "@/components/ui/AppModeCards";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { fetchLaunchpadTokens } from "@/lib/api/launchpad-client";
 import { createdAgo } from "@/lib/launchpad/format";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
+import AppFooterNav from "@/components/wallet/AppFooterNav";
 import type { ConnectionType } from "@/lib/types/wallet";
 
 interface ConnectScreenProps {
@@ -43,32 +45,29 @@ function LaunchpadTeaser() {
         ];
 
   return (
-    <div className="w-full max-w-[360px] mx-auto lg:mx-0">
-      <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="section-eyebrow">Just launched</p>
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-muted)]">
-            <span className="live-dot" />
-            Live
-          </span>
-        </div>
-        <div className="space-y-2">
-          {display.map((t) => (
-            <div
-              key={t.symbol + t.name}
-              className="rounded-lg border border-white/[0.06] bg-black/30 px-3 py-2.5 flex items-center justify-between"
-            >
-              <div>
-                <p className="text-[13px] font-semibold text-[var(--ink)]">{t.name}</p>
-                <p className="text-[11px] text-[var(--ink-muted)] font-mono mt-0.5">${t.symbol}</p>
-              </div>
-              <p className="text-[11px] text-[var(--ink-dim)]">{createdAgo(t.createdAt)}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-[12px] text-[var(--ink-dim)] mt-4 leading-relaxed">
-          Launch native B20 tokens and trade Uniswap + Aerodrome from one terminal.
+    <div className="card-quiet p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
+          Just launched
         </p>
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-muted)]">
+          <span className="live-dot" />
+          Live
+        </span>
+      </div>
+      <div className="space-y-2">
+        {display.map((t) => (
+          <div
+            key={t.symbol + t.name}
+            className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 flex items-center justify-between"
+          >
+            <div>
+              <p className="text-[13px] font-semibold text-[var(--ink)]">{t.name}</p>
+              <p className="text-[11px] text-[var(--ink-muted)] font-mono mt-0.5">${t.symbol}</p>
+            </div>
+            <p className="text-[11px] text-[var(--ink-dim)]">{createdAgo(t.createdAt)}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -83,89 +82,89 @@ export default function ConnectScreen({
   onConnect,
 }: ConnectScreenProps) {
   return (
-    <div className="min-h-screen bg-[var(--bg-deep)] flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-hidden">
-      <div className="absolute inset-0 bg-noise pointer-events-none" />
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 55%)",
-        }}
-      />
+    <div className="flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col">
+      {/* Full-bleed hero */}
+      <div className="relative w-full overflow-hidden">
+        <section className="relative min-h-[70vh] min-h-[70dvh] overflow-hidden sm:min-h-[78vh]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/base-analytics-hero-lanes.png"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#eef3fb]/95 via-[#eef3fb]/85 to-[#eef3fb]/35" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent" />
+          <div className="lane-rail lane-animated absolute bottom-0 left-0 right-0 h-1.5" />
 
-      <div className="relative z-10 w-full max-w-5xl">
-        <div className="flex items-center gap-3 mb-10 lg:mb-14">
-          <AppLogo size="lg" />
-          <span className="font-display font-bold text-xl sm:text-2xl text-[var(--ink)] tracking-tight">
-            BASE ANALYTICS
-          </span>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div className="text-center lg:text-left">
-            <p className="section-eyebrow mb-4 inline-flex items-center gap-2">
-              <span className="live-dot" />
-              B20 on Base mainnet
+          <div className="app-container relative flex min-h-[70vh] min-h-[70dvh] flex-col justify-center py-12 pb-20 sm:min-h-[78vh] sm:py-16 sm:pb-24 md:pb-28">
+            <p className="animate-rise font-display text-4xl font-bold tracking-tight text-[var(--ink)] sm:text-5xl md:text-6xl">
+              Base Analytics
             </p>
-
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[0.98] tracking-tight mb-4 text-[var(--ink)]">
-              Launch tokens.
-              <br />
-              Trade on Base.
+            <h1 className="animate-rise-delay mt-5 max-w-2xl font-display text-2xl font-semibold leading-snug text-[var(--ink-soft)] md:text-3xl">
+              Launch B20 tokens. Trade any asset on Base.
             </h1>
-            <p className="text-[15px] sm:text-base text-[var(--ink-muted)] leading-relaxed max-w-md mx-auto lg:mx-0 mb-8">
-              Create B20 tokens, swap when liquidity exists, and track your onchain score —
-              all in one Base mini-app.
+            <p className="animate-rise-delay-2 mt-4 max-w-xl text-base text-[var(--ink-muted)] md:text-lg">
+              Discover top movers, swap via Uniswap + Aerodrome, track your onchain score, and grow
+              with quests — all in one Base mini-app.
             </p>
-
-            <button
-              onClick={onOpenModal}
-              disabled={loading}
-              className="btn-primary w-full max-w-md mx-auto lg:mx-0 py-3.5 rounded-lg text-[14px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
-            >
-              {loading ? (
-                <>
-                  <RefreshCcw className="animate-spin" size={16} />
-                  <span>{scanProgress || "Connecting…"}</span>
-                </>
-              ) : (
-                <>
-                  <Wallet size={18} />
-                  <span>Connect wallet</span>
-                  <ArrowUpRight size={16} />
-                </>
-              )}
-            </button>
-            <p className="text-[11px] text-[var(--ink-dim)] mt-3">
-              Base network · browse Explore without connecting
-            </p>
+            <div className="animate-rise-delay-2 mt-9 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onOpenModal}
+                disabled={loading}
+                className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCcw className="animate-spin" size={16} />
+                    {scanProgress || "Connecting…"}
+                  </>
+                ) : (
+                  <>
+                    <Wallet size={18} />
+                    Connect wallet
+                    <ArrowUpRight size={16} />
+                  </>
+                )}
+              </button>
+              <Link href="/explore" className="btn-secondary">
+                Browse Explore
+              </Link>
+              <Link href="/docs" className="btn-ghost">
+                Documents →
+              </Link>
+            </div>
           </div>
+        </section>
+      </div>
 
-          <div className="hidden sm:block">
-            <LaunchpadTeaser />
-            <div className="mt-4 rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-4 max-w-[360px] mx-auto lg:mx-0">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
-                  Season progress
-                </span>
-                <span className="text-[11px] font-mono text-[var(--ink-muted)]">
-                  {getDaysLeft()}d left
-                </span>
-              </div>
-              <p className="font-display text-3xl font-bold text-[var(--ink)] mb-2 tracking-tight">
-                {getSeasonPct()}
-                <span className="text-lg text-[var(--ink-dim)]">%</span>
-              </p>
-              <div className="h-1 bg-white/[0.08] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[var(--ink)] rounded-full transition-all duration-700"
-                  style={{ width: `${getSeasonPct()}%` }}
-                />
-              </div>
+      <div className="app-container w-full min-w-0 flex-1 space-y-10 py-8 sm:py-10 md:py-12">
+        <AppModeCards />
+
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+          <LaunchpadTeaser />
+          <div className="card-quiet p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
+                Season progress
+              </span>
+              <span className="text-[11px] font-mono text-[var(--ink-muted)]">{getDaysLeft()}d left</span>
+            </div>
+            <p className="font-display text-3xl font-bold text-[var(--ink)] mb-2 tracking-tight">
+              {getSeasonPct()}
+              <span className="text-lg text-[var(--ink-dim)]">%</span>
+            </p>
+            <div className="h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+              <div
+                className="h-full lane-rail rounded-full transition-all duration-700"
+                style={{ width: `${getSeasonPct()}%` }}
+              />
             </div>
           </div>
         </div>
       </div>
+
+      <AppFooterNav />
 
       <ConnectWalletModal
         open={showModal}

@@ -49,7 +49,7 @@ export default function VoucherRedeemPanel({
             value={redeemCardId}
             onChange={(e) => setRedeemCardId(e.target.value)}
             placeholder="e.g. 12-3"
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-mono outline-none"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-[var(--ink)] font-mono outline-none"
           />
         </div>
         <div>
@@ -58,7 +58,7 @@ export default function VoucherRedeemPanel({
             value={redeemSecret}
             onChange={(e) => setRedeemSecret(e.target.value.toUpperCase())}
             placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-white font-mono tracking-wider outline-none"
+            className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-[var(--ink)] font-mono tracking-wider outline-none"
           />
         </div>
 
@@ -75,7 +75,7 @@ export default function VoucherRedeemPanel({
         {(redeemParsedForTx || redeemPreview) && (
           <div className="relative min-h-[340px] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] overflow-hidden">
             {redeemPreviewLoading && !redeemPreview ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[var(--ink-muted)]">
                 <RefreshCcw size={20} className="animate-spin text-[var(--ink-muted)]" />
                 <p className="text-sm font-bold">Loading card details…</p>
               </div>
@@ -130,7 +130,7 @@ export default function VoucherRedeemPanel({
             className={`w-full py-3.5 rounded-xl font-black ${
               redeemPreview?.redeemed
                 ? "bg-red-500/15 border border-red-400/40 text-red-200"
-                : "bg-white/10 text-slate-600"
+                : "bg-[var(--surface-2)] text-[var(--ink-dim)]"
             }`}
           >
             {redeemPreviewLoading && !redeemPreview

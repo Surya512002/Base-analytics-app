@@ -27,7 +27,7 @@ export default function QuickGiftCta({
       <div className="flex items-start gap-2 min-w-0">
         <Gift size={18} className="text-emerald-300 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-bold text-white">Send a $5 USDC gift card</p>
+          <p className="text-sm font-bold text-[var(--ink)]">Send a $5 USDC gift card</p>
           <p className="readable-body text-xs mt-0.5">
             One tap to create a voucher on Base — share with anyone.
           </p>
@@ -53,7 +53,7 @@ export default function QuickGiftCta({
         {payHref && (
           <Link
             href={payHref}
-            className="min-h-[40px] px-4 rounded-xl border border-white/10 text-[12px] font-bold text-slate-300 inline-flex items-center"
+            className="min-h-[40px] px-4 rounded-xl border border-[var(--border-subtle)] text-[12px] font-bold text-[var(--ink-muted)] inline-flex items-center"
           >
             Pay link
           </Link>

@@ -11,7 +11,7 @@ import SwapQuickPick from "@/components/swap/SwapQuickPick";
 
 const DexSwapPanel = dynamic(() => import("@/components/swap/DexSwapPanel"), {
   loading: () => (
-    <div className="dex-swap-card h-[340px] animate-pulse rounded-2xl border border-white/[0.06]" />
+    <div className="dex-swap-card h-[340px] animate-pulse rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]" />
   ),
 });
 
