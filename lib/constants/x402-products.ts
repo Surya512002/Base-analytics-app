@@ -1,4 +1,4 @@
-export type X402ProductId = "scan" | "export" | "compare" | "farcaster";
+export type X402ProductId = "scan" | "export" | "compare" | "farcaster" | "analytics";
 
 export interface X402Product {
   id: X402ProductId;
@@ -45,6 +45,14 @@ export const X402_PRODUCTS: X402Product[] = [
     amountLabel: "0.10 USDC",
     priceDisplay: "$0.10",
     description: "Unlock linked Farcaster identity & full cast analytics",
+  },
+  {
+    id: "analytics",
+    label: "Onchain Analytics",
+    amountUsdc: "100000",
+    amountLabel: "0.10 USDC",
+    priceDisplay: "$0.10",
+    description: "Unlock onchain score, activity heatmap & wallet health",
   },
 ];
 

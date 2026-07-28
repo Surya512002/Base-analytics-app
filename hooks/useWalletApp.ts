@@ -108,6 +108,11 @@ import {
   clearFarcasterUnlocked,
 } from "@/lib/utils/farcaster-unlock";
 import {
+  readAnalyticsUnlocked,
+  writeAnalyticsUnlocked,
+  clearAnalyticsUnlocked,
+} from "@/lib/utils/analytics-unlock";
+import {
   bumpBoostCount,
   bumpWeeklyTxKey,
   currentWeekKey,
@@ -347,6 +352,8 @@ export function useWalletApp() {
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [farcasterUnlocked, setFarcasterUnlocked] = useState(false);
   const [farcasterUnlockLoading, setFarcasterUnlockLoading] = useState(false);
+  const [analyticsUnlocked, setAnalyticsUnlocked] = useState(false);
+  const [analyticsUnlockLoading, setAnalyticsUnlockLoading] = useState(false);
   const [launchLoading, setLaunchLoading] = useState(false);
   const [swapLoading, setSwapLoading] = useState(false);
   const [b20Activated, setB20Activated] = useState<boolean | null>(null);
@@ -383,6 +390,7 @@ export function useWalletApp() {
     setPremiumData(null);
     setPremiumInsights(null);
     setFarcasterUnlocked(readFarcasterUnlocked(address));
+    setAnalyticsUnlocked(readAnalyticsUnlocked(address));
     setReferralBonusXp(readReferralBonusXpForAddress(address));
     void fetchReferralStats(address).then((s) => {
       const local = readReferralBonusXpForAddress(address);
@@ -776,6 +784,88 @@ export function useWalletApp() {
     } finally {
       x402Paying.current = false;
       setFarcasterUnlockLoading(false);
+    }
+  };
+
+  const handleAnalyticsUnlock = async () => {
+    if (!wallet || x402Paying.current) return;
+
+    let activeConn = connType;
+    if (!activeConn) {
+      activeConn = await inferConnType(wallet.address);
+      if (activeConn) {
+        setConnType(activeConn);
+        persistConnType(activeConn);
+      }
+    }
+    if (!activeConn) {
+      showToast("❌ Reconnect wallet to continue", "");
+      return;
+    }
+
+    x402Paying.current = true;
+    setAnalyticsUnlockLoading(true);
+    try {
+      const provider = await getEip1193Provider(activeConn);
+      const { getX402Fetch } = await import("@/lib/x402-client");
+      const x402Fetch = await getX402Fetch(provider);
+
+      const res = await x402Fetch("/api/analytics-unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: wallet.address }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as {
+          message?: string;
+          transaction?: string;
+        };
+        setAnalyticsUnlocked(true);
+        writeAnalyticsUnlocked(wallet.address);
+        const keys = x402StorageKeys(wallet.address);
+        const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
+        const next = prev + 1;
+        localStorage.setItem(keys.count, next.toString());
+        setX402PayCount(next);
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        recordConfirmedInAppAction(
+          wallet.address,
+          "x402",
+          nextKeys.x402 ?? next
+        );
+        setPointsRevision((n) => n + 1);
+        const txHash = data.transaction
+          ? normalizeTxHash(data.transaction)
+          : null;
+        showToast(
+          txHash
+            ? `✅ Analytics unlocked! Tx: ${txHash.slice(0, 10)}…`
+            : "✅ Onchain analytics unlocked!",
+          txHash ?? ""
+        );
+      } else {
+        let errMsg = `HTTP ${res.status}`;
+        const text = await res.text().catch(() => "");
+        try {
+          const err = JSON.parse(text) as { error?: string; detail?: string };
+          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
+        } catch {
+          if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
+        }
+        if (res.status === 404) {
+          errMsg = "Payment service unavailable — refresh the page and try again";
+        }
+        showToast(`❌ Payment failed: ${errMsg}`, "");
+      }
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message.split("\n")[0] : "Payment error";
+      if (!msg.includes("rejected")) showToast(`❌ ${msg}`, "");
+    } finally {
+      x402Paying.current = false;
+      setAnalyticsUnlockLoading(false);
     }
   };
 
@@ -2236,6 +2326,8 @@ export function useWalletApp() {
     setPremiumInsights(null);
     setFarcasterUnlocked(false);
     setFarcasterUnlockLoading(false);
+    setAnalyticsUnlocked(false);
+    setAnalyticsUnlockLoading(false);
     setMiniAppIdentity(null);
     setX402PayCount(0);
     setX402Product("scan");
@@ -2257,6 +2349,7 @@ export function useWalletApp() {
     if (address) {
       lockX402PremiumSession(address);
       clearFarcasterUnlocked(address);
+      clearAnalyticsUnlocked(address);
     }
     void siweSignOut();
     resetSessionState();
@@ -2670,6 +2763,9 @@ export function useWalletApp() {
     farcasterUnlocked,
     farcasterUnlockLoading,
     handleFarcasterUnlock,
+    analyticsUnlocked,
+    analyticsUnlockLoading,
+    handleAnalyticsUnlock,
     launchLoading,
     swapLoading,
     b20Activated,

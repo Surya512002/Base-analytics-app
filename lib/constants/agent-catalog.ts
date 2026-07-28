@@ -49,6 +49,15 @@ export const AGENT_CATALOG: AgentCatalogEntry[] = [
     tag: "Social",
   },
   {
+    id: "onchain-analytics",
+    title: "Onchain Analytics",
+    description: "Score, activity heatmap & wallet health status",
+    price: "$0.10",
+    productId: "analytics",
+    tab: "dashboard",
+    tag: "Core",
+  },
+  {
     id: "voucher-mcp",
     title: "Voucher MCP",
     description: "Create & redeem gift cards via agents",

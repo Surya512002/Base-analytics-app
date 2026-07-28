@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import AnalyticsLoadingPanel from "@/components/wallet/AnalyticsLoadingPanel";
+import AnalyticsPaywall from "@/components/wallet/AnalyticsPaywall";
 import OnchainScorePanel from "@/components/wallet/OnchainScorePanel";
 import PremiumBanner from "@/components/wallet/PremiumBanner";
 import PremiumInsightsPanel from "@/components/wallet/PremiumInsightsPanel";
@@ -67,6 +68,7 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     premiumUnlocked, premiumLoading, premiumData, premiumInsights, handlePremiumScan,
     x402Product, setX402Product,
     farcasterUnlocked, farcasterUnlockLoading, handleFarcasterUnlock,
+    analyticsUnlocked, analyticsUnlockLoading, handleAnalyticsUnlock,
     walletRefreshing, scanProgress, analyticsSyncing,
     miniAppIdentity, walletDisplayLabel,
     setTab,
@@ -191,19 +193,25 @@ if (!wallet) return null;
               <PremiumInsightsPanel insights={premiumInsights} unlocked={premiumUnlocked} />
             )}
 
-            <OnchainScorePanel
-              wallet={wallet}
-              streak={streak}
-              doneQuests={doneQuests}
-              selDay={selDay}
-              setSelDay={setSelDay}
-              scrollRef={scrollRef}
-              onGoCheckIn={() => app.setTab("checkin")}
-              onGoQuests={() => app.setTab("checkin")}
-              shareScore={shareScore}
-              syncing={scoreSyncing || analyticsSyncing}
-              scanProgress={scanProgress}
-            />
+            <AnalyticsPaywall
+              unlocked={analyticsUnlocked}
+              unlockLoading={analyticsUnlockLoading}
+              onUnlock={handleAnalyticsUnlock}
+            >
+              <OnchainScorePanel
+                wallet={wallet}
+                streak={streak}
+                doneQuests={doneQuests}
+                selDay={selDay}
+                setSelDay={setSelDay}
+                scrollRef={scrollRef}
+                onGoCheckIn={() => app.setTab("checkin")}
+                onGoQuests={() => app.setTab("checkin")}
+                shareScore={shareScore}
+                syncing={scoreSyncing || analyticsSyncing}
+                scanProgress={scanProgress}
+              />
+            </AnalyticsPaywall>
 
             <ScoreImprovementTips wallet={wallet} onNavigate={navigateFromTip} />
 
