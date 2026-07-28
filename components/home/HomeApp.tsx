@@ -10,6 +10,7 @@ import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
 import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
+import SiweSignInBanner from "@/components/wallet/SiweSignInBanner";
 import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
@@ -84,7 +85,19 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     walletScanComplete,
     handlePremiumScan,
     setX402Product,
+    siweAuthenticated,
+    siweSigningIn,
+    siweSignIn,
   } = app;
+
+  const handleSiweSignIn = useCallback(async () => {
+    const result = await siweSignIn();
+    if (result.ok) {
+      setToast({ msg: "Signed in — creator profile & revenue tools unlocked", hash: "" });
+    } else if (result.error && !/cancel/i.test(result.error)) {
+      setToast({ msg: result.error, hash: "" });
+    }
+  }, [siweSignIn, setToast]);
 
   const [launchBridge, setLaunchBridge] = useState<LaunchpadShellBridge | null>(null);
   const guest = !wallet;
@@ -159,9 +172,23 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
             onDisconnect={handleDisconnect}
             guest={guest}
             onConnect={openConnect}
+            siweAuthenticated={siweAuthenticated}
+            siweSigningIn={siweSigningIn}
+            onSiweSignIn={() => void handleSiweSignIn()}
           />
         }
       >
+        {!guest && wallet?.address && !siweAuthenticated && (
+          <div className="mb-4">
+            <SiweSignInBanner
+              walletAddress={wallet.address}
+              authenticated={siweAuthenticated}
+              signingIn={siweSigningIn}
+              onSignIn={() => void handleSiweSignIn()}
+            />
+          </div>
+        )}
+
         {guest && (
           <div className="mb-4 flex flex-col gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <p className="min-w-0 text-[12px] text-[var(--ink-muted)]">

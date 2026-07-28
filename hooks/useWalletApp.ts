@@ -185,6 +185,7 @@ import {
   readGuestResume,
   clearGuestResume,
 } from "@/lib/utils/guest-resume";
+import { useSiweAuth } from "@/hooks/useSiweAuth";
 
 function pushFeeSplitCalls(
   calls: ReturnType<typeof buildContractCall>[],
@@ -271,6 +272,14 @@ export function useWalletApp() {
   const [connType, setConnType] = useState<ConnectionType | null>(() =>
     typeof window !== "undefined" ? readConnType() : null
   );
+  const {
+    siweAuthenticated,
+    siweSessionChecked,
+    siweSigningIn,
+    siweSignIn,
+    siweSignOut,
+    refreshSiweSession,
+  } = useSiweAuth(wallet?.address, connType);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<AppTab>("launchpad");
   const [minting, setMinting] = useState<string | null>(null);
@@ -1159,10 +1168,14 @@ export function useWalletApp() {
           }
         }
         const calls = [];
+        let swapFee = BigInt(0);
+        let swapFeeAsset: "eth" | "usdc" | "token" = "eth";
 
         if (args.direction === "buy") {
           const gross = parseUnits(args.amount, payDecimals);
           const { net, fee } = splitGrossAmount(gross);
+          swapFee = fee;
+          swapFeeAsset = payAsset === "usdc" ? "usdc" : payAsset === "eth" ? "eth" : "token";
           if (net <= BigInt(0)) {
             showToast("Amount too small after platform fee", "");
             return false;
@@ -1258,6 +1271,8 @@ export function useWalletApp() {
         } else {
           const gross = parseUnits(args.amount, tokenDecimals);
           const { net, fee } = splitGrossAmount(gross);
+          swapFee = fee;
+          swapFeeAsset = "token";
           if (net <= BigInt(0)) {
             showToast("Amount too small after platform fee", "");
             return false;
@@ -1336,6 +1351,32 @@ export function useWalletApp() {
           atomicBatch: true,
         });
         setSponsored((s) => s + 1);
+
+        if (creator && swapFee > BigInt(0)) {
+          const split = splitPlatformFee(swapFee, {
+            creator,
+            referrer: referrer ?? null,
+            referrerBoostBps,
+          });
+          void fetch("/api/launchpad/fees", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              txHash: hash,
+              tokenAddress: token,
+              tokenSymbol: args.symbol,
+              trader: wallet.address,
+              creator,
+              referrer: referrer ?? null,
+              direction: args.direction,
+              feeAsset: swapFeeAsset,
+              feeAmount: swapFee.toString(),
+              creatorShare: split.creator.toString(),
+              platformShare: split.platform.toString(),
+              referrerShare: split.referrer.toString(),
+            }),
+          }).catch(() => {});
+        }
 
         const nextKeys = bumpWeeklyTxKey(wallet.address, "swap");
         setTxKeys((k) => ({ ...k, ...nextKeys }));
@@ -2108,6 +2149,7 @@ export function useWalletApp() {
       setScanProgress("Loading balance…");
       setWalletRefreshing(true);
       setAnalyticsSyncing(false);
+      void refreshSiweSession();
 
       void (async () => {
         const [basename, bootstrap, quick, miniIdentity] = await Promise.all([
@@ -2216,6 +2258,7 @@ export function useWalletApp() {
       lockX402PremiumSession(address);
       clearFarcasterUnlocked(address);
     }
+    void siweSignOut();
     resetSessionState();
   };
 
@@ -2664,5 +2707,10 @@ export function useWalletApp() {
     doneQuests,
     pointsRevision,
     setPointsRevision,
+    siweAuthenticated,
+    siweSessionChecked,
+    siweSigningIn,
+    siweSignIn,
+    siweSignOut,
   };
 }

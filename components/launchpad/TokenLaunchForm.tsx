@@ -30,6 +30,7 @@ import {
 } from "@/lib/launchpad/seed-liquidity";
 import { formatUsd } from "@/lib/launchpad/format";
 import LaunchAdvantageStrip from "@/components/launchpad/LaunchAdvantageStrip";
+import RevenueSharingLaunchBanner from "@/components/launchpad/RevenueSharingLaunchBanner";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { grindVanityAddress } from "@/lib/launchpad/vanity-salt";
 import LaunchConfigSummary from "@/components/launchpad/LaunchConfigSummary";
@@ -378,6 +379,7 @@ export default function TokenLaunchForm({
 
   return (
     <div className="space-y-6">
+      <RevenueSharingLaunchBanner />
       <LaunchAdvantageStrip />
 
       <div>

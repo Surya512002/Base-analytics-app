@@ -31,6 +31,7 @@ import { captureTokenReferrerFromUrl } from "@/lib/utils/referral";
 import TokenAnnouncementsPanel from "@/components/launchpad/TokenAnnouncementsPanel";
 import TokenChartPanel from "@/components/launchpad/TokenChartPanel";
 import TokenSocialProof from "@/components/launchpad/TokenSocialProof";
+import CreatorProfileCard from "@/components/launchpad/CreatorProfileCard";
 import { buildExploreTokenPath } from "@/lib/utils/app-url";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import {
@@ -505,6 +506,10 @@ export default function TokenDetailPanel({
           </button>
         ))}
       </div>
+
+      {tab !== "swap" && token.creator && (
+        <CreatorProfileCard creator={token.creator} />
+      )}
 
       {tab !== "swap" && (
         <TokenSocialProof

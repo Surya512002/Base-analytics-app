@@ -17,6 +17,9 @@ interface AppHeaderProps {
   walletAddress?: string | null;
   walletRefreshing?: boolean;
   scanProgress?: string;
+  siweAuthenticated?: boolean;
+  siweSigningIn?: boolean;
+  onSiweSignIn?: () => void;
 }
 
 const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
@@ -47,6 +50,9 @@ export default function AppHeader({
   walletAddress,
   walletRefreshing,
   scanProgress,
+  siweAuthenticated,
+  siweSigningIn,
+  onSiweSignIn,
 }: AppHeaderProps) {
   const mode = modeFromTab(tab);
 
@@ -106,6 +112,27 @@ export default function AppHeader({
               </button>
             ) : (
               <div className="flex items-center gap-1.5 text-xs sm:gap-2">
+                {!siweAuthenticated && onSiweSignIn && (
+                  <button
+                    type="button"
+                    onClick={onSiweSignIn}
+                    disabled={siweSigningIn}
+                    className="hidden rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-500/15 sm:inline disabled:opacity-60"
+                  >
+                    {siweSigningIn ? "Signing…" : "Sign in"}
+                  </button>
+                )}
+                {siweAuthenticated && (
+                  <span className="hidden rounded-lg bg-emerald-500/12 px-2 py-1 text-[10px] font-bold text-emerald-800 sm:inline">
+                    Signed in
+                  </span>
+                )}
+                <Link
+                  href={`/creator/${walletAddress}`}
+                  className="hidden rounded-lg bg-[var(--brand-soft)] px-2 py-1 font-semibold text-[var(--brand-dark)] hover:bg-[var(--brand)]/15 sm:inline"
+                >
+                  Profile
+                </Link>
                 <span className="hidden rounded-lg bg-[var(--surface-2)] px-2 py-1 font-mono sm:inline">
                   {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
                 </span>
@@ -139,6 +166,12 @@ export default function AppHeader({
               </button>
             );
           })}
+          <Link
+            href="/profile"
+            className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)]"
+          >
+            Profile
+          </Link>
           <Link
             href="/docs"
             className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)]"

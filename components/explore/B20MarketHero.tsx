@@ -136,12 +136,12 @@ export default function B20MarketHero({
                             #1 B20 · Spotlight
                           </span>
                           {isAppLaunched(spotlight) && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/90">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
                               App launch
                             </span>
                           )}
                         </div>
-                        <h3 className="font-display text-2xl sm:text-3xl font-bold text-[var(--ink)] truncate group-hover:text-white transition-colors">
+                        <h3 className="font-display text-2xl sm:text-3xl font-bold text-[var(--ink)] truncate group-hover:text-[var(--brand-dark)] transition-colors">
                           {spotlight.name}
                         </h3>
                         <p className="text-base text-[var(--ink-muted)] font-mono mt-1">
@@ -175,7 +175,7 @@ export default function B20MarketHero({
                           <p className="spotlight-stat-label">
                             {spotlightMarketCap != null ? "Market cap" : "FDV"}
                           </p>
-                          <p className="spotlight-stat-value text-emerald-300/95">
+                          <p className="spotlight-stat-value text-emerald-700">
                             {formatUsd(spotlightCap)}
                           </p>
                         </div>
@@ -185,7 +185,7 @@ export default function B20MarketHero({
                           <p className="spotlight-stat-label">24h</p>
                           <p
                             className={`spotlight-stat-value inline-flex items-center gap-1 ${
-                              isUp ? "text-emerald-400" : "text-rose-400"
+                              isUp ? "text-emerald-700" : "text-rose-700"
                             }`}
                           >
                             {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
@@ -214,7 +214,7 @@ export default function B20MarketHero({
                   <button
                     type="button"
                     onClick={onLaunch}
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--accent)] hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--brand-dark)] hover:text-[var(--brand)] transition-colors"
                   >
                     <Plus size={14} />
                     Launch B20

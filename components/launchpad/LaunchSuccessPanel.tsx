@@ -7,6 +7,9 @@ import { aerodromeDepositUrl, uniswapPoolUrl } from "@/lib/launchpad/dex";
 import { basescanTxUrl } from "@/lib/utils/tx";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import { isInvalidLaunchTokenAddress } from "@/lib/b20/launch-receipt";
+import Link from "next/link";
+import { feeShareLabels } from "@/lib/launchpad/fee-split";
+import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 
 export default function LaunchSuccessPanel({
   token,
@@ -32,6 +35,8 @@ export default function LaunchSuccessPanel({
       setTimeout(() => setCopied(false), 2500);
     }
   };
+
+  const shares = feeShareLabels();
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -121,6 +126,21 @@ export default function LaunchSuccessPanel({
         >
           Back to explore
         </button>
+      </div>
+
+      <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 space-y-2">
+        <p className="text-sm font-bold text-[var(--ink)]">Creator revenue is live</p>
+        <p className="text-[12px] leading-relaxed text-[var(--ink-muted)]">
+          You earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of every{" "}
+          {formatPlatformFeeLabel()} swap fee when traders use Base Analytics — paid instantly, no
+          claim step.
+        </p>
+        <Link
+          href={`/creator/${token.creator}`}
+          className="inline-flex text-[12px] font-bold text-[var(--brand-dark)] hover:underline"
+        >
+          Set up your creator profile →
+        </Link>
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">

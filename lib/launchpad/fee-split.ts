@@ -1,9 +1,20 @@
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 
-/** Share of the platform fee (bps of fee amount, must sum to 100). */
-export const FEE_SHARE_CREATOR_BPS = 5000; // 50%
-export const FEE_SHARE_PLATFORM_BPS = 3000; // 30%
-export const FEE_SHARE_REFERRER_BPS = 2000; // 20%
+function parseShareBps(key: string, fallback: number): number {
+  const raw = process.env[key] ?? process.env[`NEXT_PUBLIC_${key}`];
+  if (raw == null || raw === "") return fallback;
+  const n = parseInt(String(raw), 10);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.min(10000, n);
+}
+
+/**
+ * Share of the platform fee (bps of fee amount, must sum to 10000).
+ * Default favors creators — 60% creator, 20% platform, 20% referrer.
+ */
+export const FEE_SHARE_CREATOR_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_CREATOR_BPS", 6000);
+export const FEE_SHARE_PLATFORM_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_PLATFORM_BPS", 2000);
+export const FEE_SHARE_REFERRER_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_REFERRER_BPS", 2000);
 
 export type FeeSplitRecipients = {
   creator: `0x${string}`;

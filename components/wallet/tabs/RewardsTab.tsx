@@ -16,6 +16,7 @@ import { sendAppTransaction } from "@/lib/utils/send-app-tx";
 import { buildContractCall } from "@/lib/utils/tx";
 import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
 import { bumpWeeklyTxKey } from "@/lib/utils/wallet-session";
+import { feeShareLabels } from "@/lib/launchpad/fee-split";
 
 const STAKE_TIERS = [
   { label: "Bronze", eth: "0.0001", mult: "1.1×" },
@@ -304,7 +305,7 @@ export default function RewardsTab({
       <div className="glass-panel rounded-2xl p-4 flex items-start gap-3">
         <Sparkles size={16} className="text-[var(--ink)]/50 shrink-0 mt-0.5" />
         <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
-          Creator fee splits (50/30/20) pay referrers on every swap through the app. On-chain stake
+          Creator fee splits ({feeShareLabels().creator}/{feeShareLabels().platform}/{feeShareLabels().referrer}) pay referrers on every swap through the app. On-chain stake
           increases your referrer share when others use your link.
         </p>
       </div>

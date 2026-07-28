@@ -6,27 +6,27 @@ import { BUILDER_CODE } from "@/lib/constants/env";
 
 export default function LaunchAdvantageStrip() {
   return (
-    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] p-4 sm:p-5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div className="space-y-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] sm:p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-[var(--ink-muted)]" />
-          <p className="text-sm font-black text-white">Built to beat typical launchpads</p>
+          <Sparkles size={16} className="text-[var(--brand)]" />
+          <p className="text-sm font-bold text-[var(--ink)]">Why launch on Base Analytics</p>
         </div>
-        <p className="text-[10px] font-mono text-slate-500">
+        <p className="font-mono text-[10px] text-[var(--ink-dim)]">
           Builder <span className="text-[var(--ink-muted)]">{BUILDER_CODE}</span> on every tx
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {LAUNCHPAD_ADVANTAGES.map((item) => (
           <div
             key={item.title}
-            className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+            className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5"
           >
-            <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
-              <Zap size={11} className="text-emerald-400 shrink-0" />
+            <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--ink)]">
+              <Zap size={11} className="shrink-0 text-emerald-600" />
               {item.title}
             </p>
-            <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{item.detail}</p>
+            <p className="mt-0.5 text-[10px] leading-snug text-[var(--ink-muted)]">{item.detail}</p>
           </div>
         ))}
       </div>

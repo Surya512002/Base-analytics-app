@@ -231,5 +231,10 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     doneQuests: 6,
     pointsRevision: 0,
     setPointsRevision: () => {},
+    siweAuthenticated: true,
+    siweSessionChecked: true,
+    siweSigningIn: false,
+    siweSignIn: async () => ({ ok: true }),
+    siweSignOut: async () => {},
   };
 }

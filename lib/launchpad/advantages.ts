@@ -1,4 +1,7 @@
 import { formatPlatformFeeLabel, LAUNCHPAD_PLATFORM_FEE_BPS } from "@/lib/constants/launchpad";
+import { feeShareLabels } from "@/lib/launchpad/fee-split";
+
+const shares = feeShareLabels();
 
 export const LAUNCHPAD_ADVANTAGES = [
   {
@@ -6,8 +9,12 @@ export const LAUNCHPAD_ADVANTAGES = [
     detail: "Pay Base gas only — no platform cut on deploy",
   },
   {
-    title: `${formatPlatformFeeLabel(LAUNCHPAD_PLATFORM_FEE_BPS)} swap fee`,
-    detail: "Lower than typical 1% launchpad buy tax",
+    title: `${shares.creator} creator revenue`,
+    detail: `${formatPlatformFeeLabel(LAUNCHPAD_PLATFORM_FEE_BPS)} swap fee · ${shares.creator} to you instantly`,
+  },
+  {
+    title: `${shares.referrer} referrals`,
+    detail: "Share ?ref= links — earn on every swap through your link",
   },
   {
     title: "Dual DEX routing",
@@ -18,11 +25,7 @@ export const LAUNCHPAD_ADVANTAGES = [
     detail: "On-chain branded addresses via salt grinding",
   },
   {
-    title: "True vested lock",
-    detail: "Vested % stays unminted until vault ships — not liquid at genesis",
-  },
-  {
-    title: "Points on launch & trade",
-    detail: "Earn Base Analytics XP for every launch and swap",
+    title: "Sign in · no gas",
+    detail: "One signature secures your creator profile & fee dashboard",
   },
 ] as const;
