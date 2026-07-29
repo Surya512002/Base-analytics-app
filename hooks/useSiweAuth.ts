@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   fetchSiweSession,
+  readLocalSiweAddress,
   signInWithSiwe,
   signOutSiwe,
   writeLocalSiweAddress,
@@ -16,15 +17,30 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
   const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
+    const wallet = walletAddress?.toLowerCase();
     const session = await fetchSiweSession();
+
+    if (session.authenticated && session.address && wallet && session.address === wallet) {
+      setSessionAddress(session.address);
+      setAuthenticated(true);
+      setChecked(true);
+      return true;
+    }
+
+    // Cookie missing/blocked (iframe) but local marker matches — keep UX unlocked;
+    // server routes still enforce the httpOnly cookie when present.
+    const local = readLocalSiweAddress();
+    if (wallet && local === wallet) {
+      setSessionAddress(local);
+      setAuthenticated(true);
+      setChecked(true);
+      return true;
+    }
+
     setSessionAddress(session.address);
-    const match =
-      Boolean(session.authenticated) &&
-      Boolean(walletAddress) &&
-      session.address === walletAddress!.toLowerCase();
-    setAuthenticated(match);
+    setAuthenticated(false);
     setChecked(true);
-    return match;
+    return false;
   }, [walletAddress]);
 
   useEffect(() => {
@@ -36,7 +52,10 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
       setAuthenticated(false);
       setSessionAddress(null);
       writeLocalSiweAddress(null);
-    } else if (sessionAddress && sessionAddress !== walletAddress.toLowerCase()) {
+      return;
+    }
+    const wallet = walletAddress.toLowerCase();
+    if (sessionAddress && sessionAddress !== wallet) {
       setAuthenticated(false);
       void signOutSiwe();
     }
@@ -50,13 +69,18 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
     try {
       const result = await signInWithSiwe(walletAddress, connType);
       if (result.ok) {
-        await refresh();
+        const addr = (result.address ?? walletAddress).toLowerCase();
+        writeLocalSiweAddress(addr);
+        setSessionAddress(addr);
+        setAuthenticated(true);
+        // Confirm cookie when available (does not clear optimistic state on miss)
+        void fetchSiweSession();
       }
       return result;
     } finally {
       setSigningIn(false);
     }
-  }, [walletAddress, connType, refresh]);
+  }, [walletAddress, connType]);
 
   const signOut = useCallback(async () => {
     await signOutSiwe();

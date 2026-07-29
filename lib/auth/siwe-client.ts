@@ -3,7 +3,7 @@
 import { getEip1193Provider } from "@/app/connection";
 import type { ConnectionType } from "@/lib/types/wallet";
 import { isInsideBaseMiniApp } from "@/lib/utils/mini-app-connect";
-import { createWalletClient, custom } from "viem";
+import { createWalletClient, custom, getAddress, toHex } from "viem";
 import { base } from "viem/chains";
 
 const SESSION_KEY = "ba_siwe_authed_address";
@@ -26,7 +26,6 @@ export async function fetchSiweSession(): Promise<{ address: string | null; auth
     const data = (await r.json()) as { address?: string | null; authenticated?: boolean };
     const addr = data.address?.toLowerCase() ?? null;
     if (data.authenticated && addr) writeLocalSiweAddress(addr);
-    else writeLocalSiweAddress(null);
     return { address: addr, authenticated: Boolean(data.authenticated && addr) };
   } catch {
     return { address: null, authenticated: false };
@@ -39,27 +38,53 @@ async function signMessageWithWallet(
   message: string
 ): Promise<string> {
   const provider = await getEip1193Provider(connType);
+  const checksum = getAddress(address);
+
   const accounts = (await provider.request({
     method: "eth_requestAccounts",
   })) as string[];
-  const account = (accounts.find((a) => a.toLowerCase() === address.toLowerCase()) ??
-    accounts[0]) as `0x${string}`;
+  const matched =
+    accounts.find((a) => a.toLowerCase() === address.toLowerCase()) ?? accounts[0];
+  if (!matched) throw new Error("No wallet account connected");
 
-  const walletClient = createWalletClient({
-    chain: base,
-    transport: custom(provider),
-  });
-
-  return walletClient.signMessage({
-    account,
-    message,
-  });
+  // Prefer viem (handles EIP-191 correctly for most wallets)
+  try {
+    const walletClient = createWalletClient({
+      chain: base,
+      transport: custom(provider),
+    });
+    return await walletClient.signMessage({
+      account: matched as `0x${string}`,
+      message,
+    });
+  } catch (viemErr) {
+    // MetaMask / some injected wallets: personal_sign with [hexMessage, address]
+    try {
+      const hexMsg = toHex(message);
+      const sig = (await provider.request({
+        method: "personal_sign",
+        params: [hexMsg, checksum],
+      })) as string;
+      return sig;
+    } catch {
+      // Legacy param order / UTF-8 string message
+      try {
+        const sig = (await provider.request({
+          method: "personal_sign",
+          params: [message, checksum],
+        })) as string;
+        return sig;
+      } catch {
+        throw viemErr instanceof Error ? viemErr : new Error("Wallet could not sign message");
+      }
+    }
+  }
 }
 
 async function signInWithFarcasterMiniApp(
   address: string,
   nonce: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; address?: string }> {
   const { sdk } = await import("@farcaster/miniapp-sdk");
   if (sdk?.actions?.ready) {
     try {
@@ -93,8 +118,9 @@ async function signInWithFarcasterMiniApp(
     }
 
     const data = (await verifyRes.json()) as { address?: string };
-    if (data.address) writeLocalSiweAddress(data.address);
-    return { ok: true };
+    const sessionAddr = (data.address ?? address).toLowerCase();
+    writeLocalSiweAddress(sessionAddr);
+    return { ok: true, address: sessionAddr };
   } catch (e) {
     const name = e instanceof Error ? e.name : "";
     const msg = e instanceof Error ? e.message : "Sign-in failed";
@@ -108,18 +134,23 @@ async function signInWithFarcasterMiniApp(
 export async function signInWithSiwe(
   address: string,
   connType: ConnectionType
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; address?: string }> {
   try {
     const nonceRes = await fetch(
       `/api/auth/nonce?address=${encodeURIComponent(address)}`,
       { cache: "no-store", credentials: "include" }
     );
     if (!nonceRes.ok) return { ok: false, error: "Could not start sign-in" };
-    const { nonce, message } = (await nonceRes.json()) as { nonce?: string; message?: string };
+    const { nonce, message } = (await nonceRes.json()) as {
+      nonce?: string;
+      message?: string;
+    };
     if (!nonce || !message) return { ok: false, error: "Invalid sign-in challenge" };
 
-    const inMiniApp = await isInsideBaseMiniApp();
-    if (inMiniApp || connType === "farcaster") {
+    // Only use Farcaster native sign-in inside a real mini-app shell.
+    // MetaMask / Coinbase / injected must never take this path.
+    const inMiniApp = connType === "farcaster" && (await isInsideBaseMiniApp());
+    if (inMiniApp) {
       return signInWithFarcasterMiniApp(address, nonce);
     }
 
@@ -138,11 +169,14 @@ export async function signInWithSiwe(
     }
 
     const data = (await verifyRes.json()) as { address?: string };
-    if (data.address) writeLocalSiweAddress(data.address);
-    return { ok: true };
+    const sessionAddr = (data.address ?? address).toLowerCase();
+    writeLocalSiweAddress(sessionAddr);
+    return { ok: true, address: sessionAddr };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Sign-in failed";
-    if (/reject|denied|cancel/i.test(msg)) return { ok: false, error: "Sign-in cancelled" };
+    if (/reject|denied|cancel|user denied/i.test(msg)) {
+      return { ok: false, error: "Sign-in cancelled" };
+    }
     return { ok: false, error: msg };
   }
 }
