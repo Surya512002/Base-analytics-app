@@ -81,7 +81,74 @@ async function signMessageWithWallet(
   }
 }
 
-async function signInWithFarcasterMiniApp(
+async function postVerify(body: Record<string, unknown>): Promise<{
+  ok: boolean;
+  error?: string;
+  address?: string;
+}> {
+  const verifyRes = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+
+  if (!verifyRes.ok) {
+    const err = (await verifyRes.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: err.error ?? "Sign-in rejected" };
+  }
+
+  const data = (await verifyRes.json()) as { address?: string };
+  const sessionAddr = (data.address as string | undefined)?.toLowerCase();
+  if (sessionAddr) writeLocalSiweAddress(sessionAddr);
+  return { ok: true, address: sessionAddr };
+}
+
+function isUserRejected(e: unknown): boolean {
+  const name = e instanceof Error ? e.name : "";
+  const msg = e instanceof Error ? e.message : String(e);
+  return (
+    name === "SignIn.RejectedByUser" ||
+    /reject|denied|cancel|user denied/i.test(msg)
+  );
+}
+
+/** Preferred path inside Base App / Warpcast: Quick Auth JWT. */
+async function signInWithQuickAuth(
+  address: string
+): Promise<{ ok: boolean; error?: string; address?: string }> {
+  const { sdk } = await import("@farcaster/miniapp-sdk");
+  if (sdk?.actions?.ready) {
+    try {
+      await sdk.actions.ready();
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!sdk.quickAuth?.getToken) {
+    return { ok: false, error: "Quick Auth unavailable" };
+  }
+
+  try {
+    const { token } = await sdk.quickAuth.getToken();
+    if (!token) return { ok: false, error: "Quick Auth returned empty token" };
+    return postVerify({
+      token,
+      address,
+      authMethod: "quickAuth",
+    });
+  } catch (e) {
+    if (isUserRejected(e)) return { ok: false, error: "Sign-in cancelled" };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Quick Auth sign-in failed",
+    };
+  }
+}
+
+/** Fallback: native SIWF via sdk.actions.signIn */
+async function signInWithFarcasterSignIn(
   address: string,
   nonce: string
 ): Promise<{ ok: boolean; error?: string; address?: string }> {
@@ -100,35 +167,38 @@ async function signInWithFarcasterMiniApp(
       acceptAuthAddress: true,
     });
 
-    const verifyRes = await fetch("/api/auth/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        message: result.message,
-        signature: result.signature,
-        address,
-        authMethod: "farcaster",
-      }),
+    return postVerify({
+      message: result.message,
+      signature: result.signature,
+      address,
+      authMethod: "farcaster",
     });
-
-    if (!verifyRes.ok) {
-      const err = (await verifyRes.json().catch(() => ({}))) as { error?: string };
-      return { ok: false, error: err.error ?? "Sign-in rejected" };
-    }
-
-    const data = (await verifyRes.json()) as { address?: string };
-    const sessionAddr = (data.address ?? address).toLowerCase();
-    writeLocalSiweAddress(sessionAddr);
-    return { ok: true, address: sessionAddr };
   } catch (e) {
-    const name = e instanceof Error ? e.name : "";
-    const msg = e instanceof Error ? e.message : "Sign-in failed";
-    if (name === "SignIn.RejectedByUser" || /reject|denied|cancel/i.test(msg)) {
-      return { ok: false, error: "Sign-in cancelled" };
-    }
-    return { ok: false, error: msg };
+    if (isUserRejected(e)) return { ok: false, error: "Sign-in cancelled" };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Sign-in failed",
+    };
   }
+}
+
+async function signInInsideMiniApp(
+  address: string,
+  nonce: string
+): Promise<{ ok: boolean; error?: string; address?: string }> {
+  const quick = await signInWithQuickAuth(address);
+  if (quick.ok) return quick;
+  if (quick.error === "Sign-in cancelled") return quick;
+
+  const siwf = await signInWithFarcasterSignIn(address, nonce);
+  if (siwf.ok) return siwf;
+  if (siwf.error === "Sign-in cancelled") return siwf;
+
+  // Surface the more actionable error
+  return {
+    ok: false,
+    error: siwf.error || quick.error || "Base App sign-in failed — try again",
+  };
 }
 
 export async function signInWithSiwe(
@@ -147,31 +217,21 @@ export async function signInWithSiwe(
     };
     if (!nonce || !message) return { ok: false, error: "Invalid sign-in challenge" };
 
-    // Only use Farcaster native sign-in inside a real mini-app shell.
-    // MetaMask / Coinbase / injected must never take this path.
-    const inMiniApp = connType === "farcaster" && (await isInsideBaseMiniApp());
-    if (inMiniApp) {
-      return signInWithFarcasterMiniApp(address, nonce);
+    // Always use mini-app auth inside Base App / Warpcast — ignore stale connType
+    // (e.g. metamask persisted from a previous browser session).
+    const inMiniApp = await isInsideBaseMiniApp();
+    if (inMiniApp || connType === "farcaster") {
+      return signInInsideMiniApp(address, nonce);
     }
 
     const signature = await signMessageWithWallet(address, connType, message);
 
-    const verifyRes = await fetch("/api/auth/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ message, signature, address, authMethod: "siwe" }),
+    return postVerify({
+      message,
+      signature,
+      address,
+      authMethod: "siwe",
     });
-
-    if (!verifyRes.ok) {
-      const err = (await verifyRes.json().catch(() => ({}))) as { error?: string };
-      return { ok: false, error: err.error ?? "Sign-in rejected" };
-    }
-
-    const data = (await verifyRes.json()) as { address?: string };
-    const sessionAddr = (data.address ?? address).toLowerCase();
-    writeLocalSiweAddress(sessionAddr);
-    return { ok: true, address: sessionAddr };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Sign-in failed";
     if (/reject|denied|cancel|user denied/i.test(msg)) {

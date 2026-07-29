@@ -67,6 +67,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${figtree.variable} ${syne.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://auth.farcaster.xyz" />
+      </head>
       <body className="min-w-0 w-full bg-[var(--background)] text-[var(--foreground)] antialiased">
         <Providers>{children}</Providers>
       </body>
