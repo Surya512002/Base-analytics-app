@@ -21,9 +21,9 @@ interface LeaderboardEntry {
 // ONE key for all-time data — never changes across versions
 const DB_KEY = 'base_season1_leaderboard';
 
-function createRedis(): Redis {
+function createRedis(): Redis | null {
   const url = process.env.KV_REDIS_URL;
-  if (!url) throw new Error('KV_REDIS_URL not set');
+  if (!url) return null;
   const client = new Redis(url, {
     tls: url.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
     lazyConnect: true, maxRetriesPerRequest: 1,
@@ -44,7 +44,9 @@ function isoWeek(date: Date): number {
 export async function GET() {
   let redis: Redis | null = null;
   try {
-    redis = createRedis(); await redis.connect();
+    redis = createRedis();
+    if (!redis) return NextResponse.json({ leaderboard: [] });
+    await redis.connect();
     const raw = await redis.get(DB_KEY);
     const leaderboard: LeaderboardEntry[] = raw ? JSON.parse(raw) : [];
     return NextResponse.json({ leaderboard });
@@ -59,7 +61,11 @@ export async function GET() {
 export async function POST(req: Request) {
   let redis: Redis | null = null;
   try {
-    redis = createRedis(); await redis.connect();
+    redis = createRedis();
+    if (!redis) {
+      return NextResponse.json({ success: false, error: 'Storage unavailable' }, { status: 503 });
+    }
+    await redis.connect();
 
     // Client sends: address, basename, score, rank, boosts, badges, weeklyXP, badgeMintXp, weekNumber
     // Client NEVER controls totalXP — backend always computes it
