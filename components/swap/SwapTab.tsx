@@ -8,6 +8,7 @@ import { resolveTokenByAddress } from "@/lib/api/launchpad-client";
 import { buildSwapTokenPath, resolveTokenFromUrl, syncTabUrl } from "@/lib/utils/app-url";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import SwapQuickPick from "@/components/swap/SwapQuickPick";
+import WalletHoldings from "@/components/swap/WalletHoldings";
 
 const DexSwapPanel = dynamic(() => import("@/components/swap/DexSwapPanel"), {
   loading: () => (
@@ -28,6 +29,7 @@ export default function SwapTab({
 }) {
   const [prefill, setPrefill] = useState<LaunchedToken | null>(null);
   const [sidebarPick, setSidebarPick] = useState<SwapCounter | null>(null);
+  const [fromPick, setFromPick] = useState<SwapCounter | null>(null);
   const resolvingRef = useRef(false);
 
   const resolveAndPrefill = useCallback(
@@ -64,6 +66,13 @@ export default function SwapTab({
 
   return (
     <div className="dex-swap-page">
+      {!guestMode && app.wallet?.address && (
+        <WalletHoldings
+          walletAddress={app.wallet.address}
+          ethUsd={2500}
+          onSelectToken={setFromPick}
+        />
+      )}
       <DexSwapPanel
         key={panelKey}
         app={app}
@@ -72,6 +81,8 @@ export default function SwapTab({
         prefillToken={prefill}
         prefillReceiveCounter={sidebarPick}
         onPrefillReceiveApplied={() => setSidebarPick(null)}
+        prefillFromCounter={fromPick}
+        onPrefillFromApplied={() => setFromPick(null)}
       />
       <SwapQuickPick onPick={setSidebarPick} />
     </div>

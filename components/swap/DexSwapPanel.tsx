@@ -124,6 +124,8 @@ export default function DexSwapPanel({
   prefillReceiveCounter,
   onPrefillReceiveApplied,
   onReceiveTokenChange,
+  prefillFromCounter,
+  onPrefillFromApplied,
 }: {
   app: WalletAppState;
   guestMode?: boolean;
@@ -139,6 +141,9 @@ export default function DexSwapPanel({
     decimals: number;
     imageUrl?: string;
   } | null) => void;
+  /** Pre-select the "from" (sell) token via wallet holdings. */
+  prefillFromCounter?: SwapCounter | null;
+  onPrefillFromApplied?: () => void;
 }) {
   const { wallet, walletCore, swapLoading, handleTokenSwap, showToast } = app;
 
@@ -174,6 +179,12 @@ export default function DexSwapPanel({
   }, [from, to]);
 
   const fromDecimals = counterDecimalsOf(from);
+
+  useEffect(() => {
+    if (!prefillFromCounter) return;
+    setFrom(prefillFromCounter);
+    onPrefillFromApplied?.();
+  }, [prefillFromCounter, onPrefillFromApplied]);
 
   useEffect(() => {
     if (!onReceiveTokenChange) return;
