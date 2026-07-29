@@ -163,6 +163,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         onConnect={openConnect}
         onOpenToken={(t) => launchBridge?.openToken(t)}
         tokens={launchBridge?.tokens ?? []}
+        walletAddress={wallet?.address}
         header={
           <AppHeader
             tab={activeTab}

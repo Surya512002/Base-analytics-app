@@ -137,6 +137,7 @@ import { recordCheckInPointsOnce,
   recordConfirmedInAppAction,
   recordInAppTransaction,
   syncActivityPointsFromSession,
+  tryAwardCheckInWeeklyBonus,
   tryAwardSevenDayAllTasksBonus,
 } from "@/lib/utils/daily-points";
 import { BASE_RPC } from "@/lib/constants/env";
@@ -1910,6 +1911,7 @@ function useWalletAppController() {
           ? wallet.checkInCount
           : 0;
       const count = recordCheckInSuccess(address, floor);
+      const expectedStreak = checkedToday ? Math.max(streak, 1) : Math.max(streak + 1, 1);
       setCheckedToday(true);
       setTxKeys((k) => {
         const next = { ...k, checkin: (k.checkin || 0) + 1 };
@@ -1934,16 +1936,23 @@ function useWalletAppController() {
       );
       recordInAppTransaction(address);
       const { credited } = recordCheckInPointsOnce(address);
+      const awardStreak = Math.max(status.streak, expectedStreak, 1);
+      if (awardStreak > 0) setStreak(awardStreak);
+      const streakBonus = tryAwardCheckInWeeklyBonus(address, awardStreak);
       setPointsRevision((n) => n + 1);
       if (txHash) {
-        if (credited > 0) {
-          showToast(`✅ Check-in secured! +${credited} weekly streak PP`, txHash);
+        if (credited > 0 || streakBonus > 0) {
+          showToast(
+            `✅ Check-in secured! +${credited} activity` +
+              (streakBonus > 0 ? ` · +${streakBonus} weekly streak PP` : ""),
+            txHash
+          );
         } else {
           showToast("✅ Onchain check-in secured!", txHash);
         }
       }
     },
-    [showToast, syncCheckInStatus, wallet]
+    [checkedToday, showToast, streak, syncCheckInStatus, wallet]
   );
 
   const handleBoostSuccess = useCallback(

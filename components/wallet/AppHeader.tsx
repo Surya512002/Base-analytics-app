@@ -55,6 +55,7 @@ export default function AppHeader({
   onSiweSignIn,
 }: AppHeaderProps) {
   const mode = modeFromTab(tab);
+  const profileHref = walletAddress ? `/creator/${walletAddress}` : "/profile";
 
   const pickTab = (next: AppTab, guestOk?: boolean) => {
     if (guest && !guestOk) {
@@ -63,6 +64,40 @@ export default function AppHeader({
     }
     onTabChange(next);
   };
+
+  const navLinks = (
+    <>
+      {HEADER_NAV.map((item) => {
+        const active = navActive(item.tab, tab);
+        return (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => pickTab(item.tab, item.guestOk)}
+            className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation ${
+              active
+                ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+      <Link
+        href={profileHref}
+        className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)] touch-manipulation"
+      >
+        Profile
+      </Link>
+      <Link
+        href="/docs"
+        className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)] touch-manipulation"
+      >
+        Documents
+      </Link>
+    </>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md pt-[env(safe-area-inset-top,0px)]">
@@ -111,7 +146,7 @@ export default function AppHeader({
                 <span className="hidden sm:inline">Connect wallet</span>
               </button>
             ) : (
-              <div className="flex items-center gap-1 text-xs sm:gap-2">
+              <div className="flex max-w-[min(100%,14rem)] items-center gap-1 overflow-x-auto no-scrollbar text-xs sm:max-w-none sm:gap-2">
                 {!siweAuthenticated && onSiweSignIn && (
                   <button
                     type="button"
@@ -134,7 +169,7 @@ export default function AppHeader({
                   </span>
                 )}
                 <Link
-                  href={`/creator/${walletAddress}`}
+                  href={profileHref}
                   className="inline-flex shrink-0 rounded-lg bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--brand-dark)] hover:bg-[var(--brand)]/15 sm:text-xs touch-manipulation"
                 >
                   Profile
@@ -154,40 +189,12 @@ export default function AppHeader({
           </div>
         </div>
 
-        {/* Row 2 — desktop nav (full width, no overlap with wallet row) */}
+        {/* Nav — scrollable on mobile, full row on desktop */}
         <nav
           aria-label="Main"
-          className="hidden min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar lg:flex xl:gap-1"
+          className="flex min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar xl:gap-1"
         >
-          {HEADER_NAV.map((item) => {
-            const active = navActive(item.tab, tab);
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => pickTab(item.tab, item.guestOk)}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition ${
-                  active
-                    ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
-                    : "text-[var(--muted)] hover:text-[var(--ink)]"
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-          <Link
-            href={walletAddress ? `/creator/${walletAddress}` : "/profile"}
-            className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)]"
-          >
-            Profile
-          </Link>
-          <Link
-            href="/docs"
-            className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)]"
-          >
-            Documents
-          </Link>
+          {navLinks}
         </nav>
       </div>
 

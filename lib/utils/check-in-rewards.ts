@@ -1,8 +1,8 @@
 export const CHECK_IN_TRACK_DAYS = 7;
 
 /**
- * Weekly streak bonus PP when user hits the daily activity cap.
- * Day 1 = 10 → Day 7 = 100 (+15 per consecutive cap day). Resets after day 7.
+ * Weekly streak bonus PP on consecutive daily check-ins.
+ * Day 1 = 10 → Day 7 = 100 (+15 per day). Resets after day 7.
  */
 export const BASE_STREAK_PP = 10;
 export const PP_PER_STREAK_DAY = 15;
@@ -23,34 +23,42 @@ export function streakBoostPercent(streakDay: number): number {
   return (d - 1) * 10;
 }
 
-/** Which tier in the 7-day cap-streak cycle pays out on the next daily-cap hit. */
+/** Which tier in the 7-day check-in cycle pays out for today's check-in. */
 export function rewardDayForToday(streak: number, checkedToday: boolean): number {
   const nextStreak = checkedToday ? streak : streak + 1;
   if (nextStreak <= 0) return 1;
   return ((nextStreak - 1) % CHECK_IN_TRACK_DAYS) + 1;
 }
 
-/** On-chain streak track (quest multiplier) — not the cap-streak weekly bonus track. */
+/** Map absolute on-chain streak onto the current 1–7 cycle position. */
+export function cycleDayFromStreak(streak: number): number {
+  if (streak <= 0) return 0;
+  const mod = streak % CHECK_IN_TRACK_DAYS;
+  return mod === 0 ? CHECK_IN_TRACK_DAYS : mod;
+}
+
+/** 7-day weekly bonus track — driven by consecutive on-chain check-ins. */
 export function getTrackDayStatuses(
   streak: number,
   checkedToday: boolean
 ): TrackDayStatus[] {
+  const cycleStreak = cycleDayFromStreak(streak);
+
   return Array.from({ length: CHECK_IN_TRACK_DAYS }, (_, i) => {
     const day = i + 1;
     if (checkedToday) {
-      if (day <= streak) return "done";
+      if (day <= cycleStreak) return "done";
       return "upcoming";
     }
-    if (day <= streak) return "done";
-    if (day === streak + 1 || (streak === 0 && day === 1)) return "today";
+    if (day <= cycleStreak) return "done";
+    if (day === cycleStreak + 1 || (cycleStreak === 0 && day === 1)) return "today";
     return "upcoming";
   });
 }
 
 /**
- * 7-day weekly bonus track — driven by consecutive daily-cap hits (not on-chain streak).
- * @param nextAwardDay 1–7 tier earned on the next cap hit
- * @param capBonusAwardedToday whether today's cap bonus was already granted
+ * @deprecated Cap-hit track — weekly bonus is check-in driven.
+ * Kept for residual callers; prefer getTrackDayStatuses.
  */
 export function getCapStreakTrackStatuses(
   nextAwardDay: number,
@@ -84,7 +92,7 @@ export function capStreakProgressLabel(
   return `${done}/${CHECK_IN_TRACK_DAYS}`;
 }
 
-export function trackProgressLabel(streak: number, checkedToday: boolean): string {
-  const done = checkedToday ? Math.min(streak, CHECK_IN_TRACK_DAYS) : Math.min(streak, CHECK_IN_TRACK_DAYS);
+export function trackProgressLabel(streak: number, _checkedToday: boolean): string {
+  const done = cycleDayFromStreak(streak);
   return `${done}/${CHECK_IN_TRACK_DAYS}`;
 }

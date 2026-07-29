@@ -7,14 +7,14 @@ import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import { resolveQuestHighlightFromUrl } from "@/lib/utils/app-url";
 import {
   CHECK_IN_TRACK_DAYS,
-  capStreakProgressLabel,
-  getCapStreakTrackStatuses,
+  getTrackDayStatuses,
+  rewardDayForToday,
   streakBoostPercent,
+  trackProgressLabel,
   weeklyStreakBonusPP,
 } from "@/lib/utils/check-in-rewards";
 import {
   DAILY_POINTS_CAP,
-  getCapStreakUIState,
   POINTS_PER_BOOST,
   POINTS_PER_CHECKIN,
   POINTS_PER_GM,
@@ -24,6 +24,7 @@ import {
   SEVEN_DAY_ALL_TASKS_BONUS,
   TARGET_TXS_IDEAL,
   TARGET_TXS_MIN,
+  getTodayPointsSummary,
 } from "@/lib/utils/daily-points";
 import { computeXPBreakdown } from "@/lib/utils/season";
 import type { WalletAppState } from "@/hooks/useWalletApp";
@@ -78,11 +79,11 @@ export default function CheckInTab({
   const boostPct = streakBoostPercent(
     Math.min(Math.max(streak, 1), CHECK_IN_TRACK_DAYS)
   );
-  const capStreak = getCapStreakUIState(wallet.address);
-  const trackDays = getCapStreakTrackStatuses(
-    capStreak.nextAwardDay,
-    capStreak.capBonusAwardedToday
-  );
+  const todayPts = getTodayPointsSummary(wallet.address);
+  const nextAwardDay = rewardDayForToday(streak, checkedToday);
+  const nextBonusPP = weeklyStreakBonusPP(nextAwardDay);
+  const trackDays = getTrackDayStatuses(streak, checkedToday);
+  const weeklyBonusAwardedToday = todayPts.capBonusAwarded;
   const dailyPct = Math.min(
     100,
     Math.round((xp.todayActivityXp / xp.dailyCap) * 100)
@@ -218,10 +219,10 @@ export default function CheckInTab({
               <Droplets size={9} className="text-[var(--ink-muted)]" />
               {xp.dailyRemaining > 0 ? (
                 <>
-                  {xp.dailyRemaining} PP to cap
-                  {!capStreak.capBonusAwardedToday && (
+                  {xp.dailyRemaining} PP to daily cap
+                  {!checkedToday && (
                     <span className="text-amber-700/90">
-                      · +{capStreak.nextBonusPP} weekly at cap
+                      · check in for +{nextBonusPP} weekly
                     </span>
                   )}
                 </>
@@ -230,8 +231,8 @@ export default function CheckInTab({
                   Daily cap reached — txs still count; PP resume tomorrow UTC
                 </span>
               )}
-              {capStreak.capBonusAwardedToday && (
-                <span className="text-emerald-400">· cap bonus earned</span>
+              {weeklyBonusAwardedToday && (
+                <span className="text-emerald-400">· weekly bonus earned</span>
               )}
             </span>
           </div>
@@ -298,10 +299,7 @@ export default function CheckInTab({
               {CHECK_IN_TRACK_DAYS}-day weekly bonus
             </p>
             <span className="text-[10px] font-black text-[var(--ink)] tabular-nums">
-              {capStreakProgressLabel(
-                capStreak.nextAwardDay,
-                capStreak.capBonusAwardedToday
-              )}
+              {trackProgressLabel(streak, checkedToday)}
             </span>
           </div>
           <div className="p-2.5 grid grid-cols-7 gap-1.5">
@@ -337,7 +335,7 @@ export default function CheckInTab({
             })}
           </div>
           <p className="px-3.5 pb-2.5 text-[9px] text-[var(--ink-muted)]">
-            Hit {DAILY_POINTS_CAP} PP daily · D1 = 10 → D7 = 100 weekly (resets after day 7)
+            Check in daily · D1 = 10 → D7 = 100 weekly PP (resets after day 7)
           </p>
         </div>
       </div>

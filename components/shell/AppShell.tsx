@@ -17,6 +17,7 @@ export default function AppShell({
   tokens,
   children,
   header,
+  walletAddress,
 }: {
   tab: AppTab;
   onTabChange: (t: AppTab) => void;
@@ -27,6 +28,7 @@ export default function AppShell({
   tokens?: LaunchedToken[];
   children: ReactNode;
   header: ReactNode;
+  walletAddress?: string | null;
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -91,6 +93,7 @@ export default function AppShell({
         onTabChange={handleTabChange}
         guest={guest}
         onConnect={onConnect}
+        walletAddress={walletAddress}
       />
     </>
   );

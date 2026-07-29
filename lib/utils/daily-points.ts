@@ -131,7 +131,7 @@ function writeCapCycleNext(address: string, day: number): void {
   localStorage.setItem(capCycleKey(address), String(Math.max(1, Math.min(day, CHECK_IN_TRACK_DAYS))));
 }
 
-/** Weekly cap-streak UI state (10→100 PP when daily cap is hit). */
+/** Weekly check-in streak UI helpers (also used when syncing from local ledger). */
 export function getCapStreakUIState(address: string): {
   nextAwardDay: number;
   capBonusAwardedToday: boolean;
@@ -150,8 +150,8 @@ export function getCapStreakUIState(address: string): {
 }
 
 /**
- * When daily cap is hit, grant weekly streak bonus (10→100 over 7 consecutive cap days).
- * Resets cycle to day 1 after day 7 is awarded.
+ * When daily activity cap is hit, grant weekly streak bonus only if check-in
+ * has not already awarded today's weekly bonus (legacy path / no check-in day).
  */
 function tryAwardCapStreakBonus(address: string): number {
   if (!address || typeof window === "undefined") return 0;
@@ -179,6 +179,34 @@ function tryAwardCapStreakBonus(address: string): number {
   const nextCycle = cycleDay >= CHECK_IN_TRACK_DAYS ? 1 : cycleDay + 1;
   writeCapCycleNext(address, nextCycle);
   localStorage.setItem(capLastHitKey(address), today);
+  notifyPointsUpdated(address);
+
+  return points;
+}
+
+/**
+ * Award 7-day weekly bonus PP for today's on-chain check-in (10 → 100 over the cycle).
+ * Uses the live streak from the check-in contract.
+ */
+export function tryAwardCheckInWeeklyBonus(address: string, streak: number): number {
+  if (!address || streak < 1 || typeof window === "undefined") return 0;
+
+  const today = todayUtcKey();
+  const ledger = readWeekLedger(address);
+  const day = getDayEntry(ledger, today);
+  if (day.capBonusAwarded) return 0;
+
+  const cycleDay = ((streak - 1) % CHECK_IN_TRACK_DAYS) + 1;
+  const points = weeklyStreakBonusPP(cycleDay);
+  day.streak += points;
+  day.capBonusAwarded = true;
+  ledger[today] = day;
+  writeWeekLedger(address, ledger);
+
+  const nextCycle = cycleDay >= CHECK_IN_TRACK_DAYS ? 1 : cycleDay + 1;
+  writeCapCycleNext(address, nextCycle);
+  localStorage.setItem(capLastHitKey(address), today);
+  notifyPointsUpdated(address);
 
   return points;
 }
@@ -365,6 +393,9 @@ export function syncActivityPointsFromSession(
   if (checkedToday) {
     const ci = recordCheckInPointsOnce(address);
     if (ci.credited > 0) changed = true;
+    if (tryAwardCheckInWeeklyBonus(address, Math.max(_streak, 1)) > 0) {
+      changed = true;
+    }
   }
 
   const challengeCount = Math.max(

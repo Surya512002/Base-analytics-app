@@ -97,6 +97,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
         onTabChange={handleTabChange}
         guest={guest}
         onConnect={openConnect}
+        walletAddress={wallet?.address}
       />
 
       <ConnectWalletModal
