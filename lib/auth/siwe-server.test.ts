@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SiweMessage } from "siwe";
 import { consumeNonce, issueSiweNonce, buildSiweMessage } from "@/lib/auth/siwe-server";
 
 describe("siwe signed nonce", () => {
@@ -30,6 +31,6 @@ describe("siwe signed nonce", () => {
     expect(msg).toContain("Chain ID: 8453");
     expect(msg).toContain(`Nonce: ${nonce}`);
     // Round-trip parse (rejects unicode em-dashes in statement)
-    expect(() => new (require("siwe").SiweMessage)(msg)).not.toThrow();
+    expect(() => new SiweMessage(msg)).not.toThrow();
   });
 });

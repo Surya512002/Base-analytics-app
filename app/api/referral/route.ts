@@ -190,7 +190,7 @@ export async function POST(req: Request) {
       });
     }
 
-    let referrerAddress = resolveReferrerAddress(referrerCode, codeIndex, store);
+    const referrerAddress = resolveReferrerAddress(referrerCode, codeIndex, store);
     if (!referrerAddress || referrerAddress === address) {
       return NextResponse.json({ bonusXp: 0, referredBy: null });
     }
