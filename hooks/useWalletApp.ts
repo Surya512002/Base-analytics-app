@@ -256,12 +256,14 @@ export type AppTab =
   | "achievements"
   | "leaderboard"
   | "basehub"
-  | "rewards";
+  | "rewards"
+  | "profile";
 
 function resolveInitialTab(): AppTab {
   if (typeof window !== "undefined") {
     if (window.location.pathname.startsWith("/swap")) return "swap";
     if (window.location.pathname.startsWith("/explore")) return "launchpad";
+    if (window.location.pathname.startsWith("/profile") || window.location.pathname.startsWith("/creator")) return "profile";
   }
   const fromUrl = resolveTabFromUrl();
   if (fromUrl) return fromUrl;

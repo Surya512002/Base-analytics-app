@@ -29,6 +29,7 @@ const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
   { tab: "basehub", label: "Vouchers" },
   { tab: "checkin", label: "Quests" },
   { tab: "achievements", label: "Badges" },
+  { tab: "profile", label: "Profile" },
 ];
 
 function modeFromTab(tab: AppTab): AppMode {

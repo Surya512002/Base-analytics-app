@@ -49,6 +49,8 @@ export function hrefForAppTab(tab: string): string {
       return "/?tab=basehub";
     case "leaderboard":
       return "/?tab=checkin";
+    case "profile":
+      return "/profile";
     default:
       return "/explore";
   }
