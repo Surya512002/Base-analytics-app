@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { base } from 'wagmi/chains';
 import { wagmiConfig } from '@/lib/wagmi/config';
+import { WalletAppProvider } from '@/hooks/useWalletApp';
 
 const queryClient = new QueryClient();
 
@@ -25,8 +26,10 @@ export function Providers({ children }: { children: ReactNode }) {
             paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined,
           }}
         >
-          <ScrollPerf />
-          {children}
+          <WalletAppProvider>
+            <ScrollPerf />
+            {children}
+          </WalletAppProvider>
         </OnchainKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

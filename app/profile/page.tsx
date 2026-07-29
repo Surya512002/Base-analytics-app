@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import AppHeader from "@/components/wallet/AppHeader";
-import { useWalletApp } from "@/hooks/useWalletApp";
+import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { feeShareLabels } from "@/lib/launchpad/fee-split";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
+import { hrefForAppTab, readPersistedWalletAddress } from "@/lib/utils/wallet-persist";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function ProfilePage() {
     handleDisconnect,
     tab,
     setTab,
+    sessionBootstrapped,
     siweAuthenticated,
     siweSigningIn,
     siweSignIn,
@@ -28,12 +30,27 @@ export default function ProfilePage() {
   } = useWalletApp();
 
   useEffect(() => {
-    if (wallet?.address) {
-      router.replace(`/creator/${wallet.address.toLowerCase()}`);
+    if (!sessionBootstrapped) return;
+    const addr = wallet?.address ?? readPersistedWalletAddress();
+    if (addr) {
+      router.replace(`/creator/${addr.toLowerCase()}`);
     }
-  }, [wallet?.address, router]);
+  }, [wallet?.address, router, sessionBootstrapped]);
 
-  const guest = !wallet;
+  const guest = sessionBootstrapped ? !wallet : false;
+
+  const handleTabChange = useCallback(
+    (next: AppTab) => {
+      if (guest && next !== "launchpad" && next !== "swap") {
+        setShowModal(true);
+        return;
+      }
+      const resolved = next === "rewards" ? "checkin" : next;
+      setTab(resolved);
+      router.push(hrefForAppTab(resolved));
+    },
+    [guest, router, setShowModal, setTab]
+  );
 
   const handleSiweSignIn = useCallback(async () => {
     const result = await siweSignIn();
@@ -49,7 +66,7 @@ export default function ProfilePage() {
       <div className="relative z-10">
         <AppHeader
           tab={tab}
-          onTabChange={setTab}
+          onTabChange={handleTabChange}
           guest={guest}
           onConnect={() => setShowModal(true)}
           onDisconnect={handleDisconnect}
@@ -59,10 +76,12 @@ export default function ProfilePage() {
           onSiweSignIn={() => void handleSiweSignIn()}
         />
         <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14">
-          {wallet?.address ? (
+          {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
-              <p className="mt-4 text-sm text-[var(--ink-muted)]">Opening your profile…</p>
+              <p className="mt-4 text-sm text-[var(--ink-muted)]">
+                {!sessionBootstrapped ? "Restoring session…" : "Opening your profile…"}
+              </p>
             </div>
           ) : (
             <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)] sm:p-8">

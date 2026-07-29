@@ -177,7 +177,7 @@ export default function AppHeader({
             );
           })}
           <Link
-            href="/profile"
+            href={walletAddress ? `/creator/${walletAddress}` : "/profile"}
             className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)]"
           >
             Profile

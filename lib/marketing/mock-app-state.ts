@@ -143,6 +143,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     mintedLevels: { score: 2, age: 1, txs: 1 },
     setMintedLevels: noop,
     ready: true,
+    sessionBootstrapped: true,
     showModal: false,
     setShowModal: noop,
     selDay: null,

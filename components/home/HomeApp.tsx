@@ -85,6 +85,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     walletScanComplete,
     handlePremiumScan,
     setX402Product,
+    sessionBootstrapped,
     siweAuthenticated,
     siweSigningIn,
     siweSignIn,
@@ -100,7 +101,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   }, [siweSignIn, setToast]);
 
   const [launchBridge, setLaunchBridge] = useState<LaunchpadShellBridge | null>(null);
-  const guest = !wallet;
+  const guest = sessionBootstrapped ? !wallet : false;
   const activeTab = forceTab ?? tab;
 
   const openConnect = useCallback(() => {
@@ -141,7 +142,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     [handlePremiumScan, setX402Product]
   );
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready || !sessionBootstrapped) return <LoadingScreen />;
 
   return (
     <main className="main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative">

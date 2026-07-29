@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import CreatorProfilePanel from "@/components/launchpad/CreatorProfilePanel";
 import MobileBottomNav from "@/components/shell/MobileBottomNav";
-import { useWalletApp } from "@/hooks/useWalletApp";
+import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
+import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 
 export default function CreatorPageClient({ address }: { address: string }) {
+  const router = useRouter();
   const {
     wallet,
     loading,
@@ -21,13 +24,24 @@ export default function CreatorPageClient({ address }: { address: string }) {
     setToast,
     tab,
     setTab,
+    sessionBootstrapped,
     siweAuthenticated,
     siweSigningIn,
     siweSignIn,
   } = useWalletApp();
 
-  const guest = !wallet;
+  const guest = sessionBootstrapped ? !wallet : false;
   const openConnect = () => setShowModal(true);
+
+  const handleTabChange = (next: AppTab) => {
+    if (guest && next !== "launchpad" && next !== "swap") {
+      openConnect();
+      return;
+    }
+    const resolved = next === "rewards" ? "checkin" : next;
+    setTab(resolved);
+    router.push(hrefForAppTab(resolved));
+  };
 
   const handleSiweSignIn = async () => {
     const result = await siweSignIn();
@@ -44,7 +58,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
       <div className="relative z-10">
         <AppHeader
           tab={tab}
-          onTabChange={setTab}
+          onTabChange={handleTabChange}
           guest={guest}
           onConnect={openConnect}
           onDisconnect={handleDisconnect}
@@ -60,20 +74,27 @@ export default function CreatorPageClient({ address }: { address: string }) {
           >
             ← All tokens
           </Link>
-          <CreatorProfilePanel
-            address={address}
-            connectedAddress={wallet?.address ?? null}
-            onConnect={openConnect}
-            siweAuthenticated={siweAuthenticated}
-            siweSigningIn={siweSigningIn}
-            onSiweSignIn={() => void handleSiweSignIn()}
-          />
+          {!sessionBootstrapped ? (
+            <div className="mx-auto max-w-md text-center">
+              <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+              <p className="mt-4 text-sm text-[var(--ink-muted)]">Restoring session…</p>
+            </div>
+          ) : (
+            <CreatorProfilePanel
+              address={address}
+              connectedAddress={wallet?.address ?? null}
+              onConnect={openConnect}
+              siweAuthenticated={siweAuthenticated}
+              siweSigningIn={siweSigningIn}
+              onSiweSignIn={() => void handleSiweSignIn()}
+            />
+          )}
         </div>
       </div>
 
       <MobileBottomNav
         tab={tab}
-        onTabChange={setTab}
+        onTabChange={handleTabChange}
         guest={guest}
         onConnect={openConnect}
       />

@@ -49,9 +49,10 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
 
   useEffect(() => {
     if (!walletAddress) {
+      // Wallet can be null briefly before silent resume — do not wipe the local
+      // SIWE marker here. Explicit disconnect calls siweSignOut().
       setAuthenticated(false);
       setSessionAddress(null);
-      writeLocalSiweAddress(null);
       return;
     }
     const wallet = walletAddress.toLowerCase();

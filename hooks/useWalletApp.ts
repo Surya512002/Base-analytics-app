@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, createContext, useContext, createElement, type ReactNode } from "react";
 import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
@@ -93,6 +93,12 @@ import {
   readConnType,
   resolveActiveConnType,
 } from "@/lib/utils/wallet-connection";
+import {
+  clearPersistedWalletAddress,
+  isStandaloneWalletRoute,
+  persistWalletAddress,
+  readPersistedWalletAddress,
+} from "@/lib/utils/wallet-persist";
 import type { PremiumInsights } from "@/lib/premium/build-insights";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
@@ -239,7 +245,7 @@ function pushFeeSplitCalls(
   }
 }
 
-export type WalletAppState = ReturnType<typeof useWalletApp>;
+export type WalletAppState = ReturnType<typeof useWalletAppController>;
 
 export type AppTab =
   | "launchpad"
@@ -273,11 +279,10 @@ function analysisNeedsActivityRefresh(
   return false;
 }
 
-export function useWalletApp() {
+function useWalletAppController() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [connType, setConnType] = useState<ConnectionType | null>(() =>
-    typeof window !== "undefined" ? readConnType() : null
-  );
+  const [connType, setConnType] = useState<ConnectionType | null>(null);
+  const [sessionBootstrapped, setSessionBootstrapped] = useState(false);
   const {
     siweAuthenticated,
     siweSessionChecked,
@@ -297,6 +302,7 @@ export function useWalletApp() {
   const sharingRef = useRef(false);
   const pendingTx = useRef<Set<string>>(new Set());
   const connectingRef = useRef(false);
+  const autoResumeRef = useRef(false);
   const historySyncGen = useRef(0);
   const pendingChallengeRef = useRef<string | null>(null);
   const latestDaysRef = useRef(0);
@@ -402,6 +408,19 @@ export function useWalletApp() {
     });
   }, []);
 
+  // Restore last session before paint so Explore → Profile never flashes "Connect".
+  useLayoutEffect(() => {
+    const savedType = readConnType();
+    const savedAddr = readPersistedWalletAddress();
+    if (savedType && savedAddr) {
+      setConnType(savedType);
+      setWallet(buildPendingWalletShell(savedAddr));
+      loadX402PremiumState(savedAddr);
+      setMintedLevels(readPersistedMintedLevels(savedAddr));
+    }
+    setSessionBootstrapped(true);
+  }, [loadX402PremiumState]);
+
   useEffect(() => {
     let onPopState: (() => void) | undefined;
 
@@ -436,10 +455,23 @@ export function useWalletApp() {
         window.history.replaceState({}, "", nextUrl);
       }
 
-      onPopState = () => {
-        const next = resolveTabFromUrl();
-        if (next) setTab(next);
+      const syncTabFromLocation = () => {
+        const path = window.location.pathname;
+        if (path.startsWith("/swap")) {
+          setTab("swap");
+          return;
+        }
+        if (path.startsWith("/explore")) {
+          setTab("launchpad");
+          return;
+        }
+        if (path === "/" || path === "") {
+          const next = resolveTabFromUrl();
+          if (next) setTab(next);
+        }
       };
+
+      onPopState = () => syncTabFromLocation();
       window.addEventListener("popstate", onPopState);
     }
     fetchLeaderboard().then((d) => {
@@ -450,6 +482,98 @@ export function useWalletApp() {
       if (onPopState) window.removeEventListener("popstate", onPopState);
     };
   }, []);
+
+  // Enrich restored session (provider already may have a pending shell from layout hydrate).
+  useEffect(() => {
+    if (!ready || !sessionBootstrapped || autoResumeRef.current || connectingRef.current) return;
+    const savedType = readConnType();
+    const preferred = readPersistedWalletAddress();
+    if (!savedType || !preferred) return;
+    if (wallet && wallet.address.toLowerCase() !== preferred) return;
+    autoResumeRef.current = true;
+
+    void (async () => {
+      try {
+        const provider = await getEip1193Provider(savedType);
+        let accounts = (await provider.request({
+          method: "eth_accounts",
+        })) as string[];
+        let address =
+          accounts?.find((a) => a?.toLowerCase() === preferred) ??
+          accounts?.find((a) => a?.startsWith("0x"));
+
+        // Mini-app / Base Wallet: request accounts if eth_accounts is empty but session exists
+        if (!address && (savedType === "farcaster" || savedType === "baseAccount")) {
+          accounts = (await provider.request({
+            method: "eth_requestAccounts",
+          })) as string[];
+          address =
+            accounts?.find((a) => a?.toLowerCase() === preferred) ??
+            accounts?.find((a) => a?.startsWith("0x"));
+        }
+
+        // Keep hydrated UI even if the extension is locked; txs will re-prompt.
+        address = address ?? preferred;
+
+        setConnType(savedType);
+        persistConnType(savedType);
+        persistWalletAddress(address);
+        loadX402PremiumState(address);
+        setMintedLevels(readPersistedMintedLevels(address));
+
+        const shell = buildPendingWalletShell(address);
+        historyCompleteRef.current = false;
+        syncCompleteToastRef.current = false;
+        pendingHistorySyncRef.current = null;
+        historySyncRunningRef.current = false;
+        walletOpGenRef.current += 1;
+        historySyncGen.current += 1;
+        const resumeGen = walletOpGenRef.current;
+        balancesLockedRef.current = null;
+        setWalletCore(null);
+        setWallet(shell);
+        setWalletRefreshing(true);
+        void refreshSiweSession();
+
+        void (async () => {
+          const [basename, bootstrap, quick, miniIdentity] = await Promise.all([
+            resolveBasenameClient(address).catch(() => null),
+            fetchWalletBootstrap(address).catch(() => null),
+            fetchWalletAnalysisQuick(address, false).catch(() => null),
+            resolveMiniAppIdentity().catch(() => null),
+          ]);
+          if (walletOpGenRef.current !== resumeGen) return;
+          if (miniIdentity) {
+            persistMiniAppIdentity(address, miniIdentity);
+            setMiniAppIdentity(miniIdentity);
+          }
+          const fastWallet = quick?.wallet ?? bootstrap?.wallet;
+          if (!fastWallet) {
+            setWalletRefreshing(false);
+            setScanProgress("");
+            return;
+          }
+          const withBasename = {
+            ...fastWallet,
+            basename: basename ?? fastWallet.basename ?? bootstrap?.wallet?.basename ?? null,
+          };
+          setWallet((prev) => {
+            if (prev?.address.toLowerCase() !== address.toLowerCase()) return prev;
+            return mergeWalletMetricsMax(prev, withBasename);
+          });
+          lockWalletCore(mergeWalletMetricsMax(shell, withBasename));
+        })();
+
+        void analyzeWallet(address, { background: true });
+      } catch (e) {
+        console.warn("[wallet] silent resume skipped", e);
+        // Keep optimistic shell from layout hydrate; allow another resume attempt later.
+        autoResumeRef.current = false;
+      }
+    })();
+    // analyzeWallet / lockWalletCore are declared later; mount-time resume is intentional
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, sessionBootstrapped]);
 
   useEffect(() => {
     if (wallet && tab === "dashboard" && scrollRef.current)
@@ -2209,6 +2333,7 @@ export function useWalletApp() {
       const { address: addr, connType: resolvedType } = await connectAppWallet(type);
       setConnType(resolvedType);
       persistConnType(resolvedType);
+      persistWalletAddress(addr);
       clearWalletCache(addr);
       loadX402PremiumState(addr);
       setMintedLevels(readPersistedMintedLevels(addr));
@@ -2228,8 +2353,11 @@ export function useWalletApp() {
       const resume = readGuestResume() ?? {};
       const resumeTab =
         (resume.tab && resolveTabFromUrl(`?tab=${resume.tab}`)) || "launchpad";
-      setTab(resumeTab);
-      syncTabUrl(resumeTab, { token: resume.token ?? null });
+      // Don't rewrite /creator or /profile URLs — keep user on the page they connected from.
+      if (!isStandaloneWalletRoute()) {
+        setTab(resumeTab);
+        syncTabUrl(resumeTab, { token: resume.token ?? null });
+      }
       if (resume.card) localStorage.setItem("base_redeem_card", resume.card);
       if (resume.challenge) {
         pendingChallengeRef.current = resume.challenge;
@@ -2309,10 +2437,12 @@ export function useWalletApp() {
     historySyncRunningRef.current = false;
     syncCompleteToastRef.current = false;
     startHistorySyncRef.current = null;
+    autoResumeRef.current = false;
     setWalletCore(null);
     setWallet(null);
     setConnType(null);
     clearConnType();
+    clearPersistedWalletAddress();
     setMintedLevels({});
     setBoosts(0);
     setStreak(0);
@@ -2352,6 +2482,7 @@ export function useWalletApp() {
       clearFarcasterUnlocked(address);
       clearAnalyticsUnlocked(address);
     }
+    clearPersistedWalletAddress();
     void siweSignOut();
     resetSessionState();
   };
@@ -2720,6 +2851,7 @@ export function useWalletApp() {
     mintedLevels,
     setMintedLevels,
     ready,
+    sessionBootstrapped,
     showModal,
     setShowModal,
     selDay,
@@ -2810,4 +2942,20 @@ export function useWalletApp() {
     siweSignIn,
     siweSignOut,
   };
+}
+
+const WalletAppContext = createContext<WalletAppState | null>(null);
+
+export function WalletAppProvider({ children }: { children: ReactNode }) {
+  const value = useWalletAppController();
+  return createElement(WalletAppContext.Provider, { value }, children);
+}
+
+/** Shared wallet session — must be used under WalletAppProvider. */
+export function useWalletApp(): WalletAppState {
+  const ctx = useContext(WalletAppContext);
+  if (!ctx) {
+    throw new Error("useWalletApp must be used within WalletAppProvider");
+  }
+  return ctx;
 }
