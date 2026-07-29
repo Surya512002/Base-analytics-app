@@ -1,8 +1,10 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { SiweMessage } from "siwe";
-import { getAddress } from "viem";
+import { getAddress, type Hex } from "viem";
+import { verifyMessage } from "viem/actions";
 import { getAppUrl } from "@/lib/constants/app-url";
 import { cacheGet, cacheSet, getRedisClient } from "@/lib/redis-cache";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
 const BASE_CHAIN_ID = 8453;
 const SESSION_COOKIE = "ba_siwe_session";
@@ -166,12 +168,22 @@ export async function verifySiweCredentials(
       return { error: "Nonce expired — request a new sign-in" };
     }
 
-    const result = await siwe.verify({
-      signature,
-      domain: siwe.domain,
+    const claimedAddress = getAddress(siwe.address) as Hex;
+
+    // Use viem's verifyMessage which supports both EOA (ecrecover) and
+    // smart contract wallets (ERC-1271 isValidSignature on-chain check).
+    const client = createBasePublicClient();
+    const valid = await verifyMessage(client, {
+      address: claimedAddress,
+      message,
+      signature: signature as Hex,
     });
-    const address = getAddress(result.data.address).toLowerCase();
-    return { address };
+
+    if (!valid) {
+      return { error: "Signature verification failed" };
+    }
+
+    return { address: claimedAddress.toLowerCase() };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Verification failed";
     return { error: msg };
