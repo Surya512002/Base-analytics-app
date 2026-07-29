@@ -1,97 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatUnits } from "viem";
-import { parseAbi } from "viem";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { COMMON_BASE_TOKENS, type CommonToken } from "@/lib/launchpad/common-tokens";
-import { commonTokenToCounter } from "@/lib/launchpad/token-logo";
 import { CounterAvatar, type SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { formatUsd } from "@/lib/launchpad/format";
 
-const ERC20_BALANCE_ABI = parseAbi([
-  "function balanceOf(address owner) view returns (uint256)",
-]);
-
 export interface TokenHolding {
-  token: CommonToken | null; // null = native ETH
   symbol: string;
+  name: string;
   balance: number;
   usdValue: number;
+  address: string | null;
+  decimals: number;
+  logo: string | null;
   counter: SwapCounter;
 }
 
-const TOP_TOKENS = COMMON_BASE_TOKENS.slice(0, 12);
-
-async function fetchHoldings(
-  address: string,
-  ethUsd: number
-): Promise<TokenHolding[]> {
-  const client = createBasePublicClient();
-  const addr = address as `0x${string}`;
-
-  const ethBalPromise = client.getBalance({ address: addr }).catch(() => BigInt(0));
-
-  const tokenBalPromises = TOP_TOKENS.map((t) =>
-    client
-      .readContract({
-        address: t.address,
-        abi: ERC20_BALANCE_ABI,
-        functionName: "balanceOf",
-        args: [addr],
-      })
-      .catch(() => BigInt(0))
-  );
-
-  const [ethBal, ...tokenBals] = await Promise.all([
-    ethBalPromise,
-    ...tokenBalPromises,
-  ]);
-
-  const holdings: TokenHolding[] = [];
-
-  const ethBalance = parseFloat(formatUnits(ethBal, 18));
-  if (ethBalance > 0.0001) {
-    holdings.push({
-      token: null,
-      symbol: "ETH",
-      balance: ethBalance,
-      usdValue: ethBalance * ethUsd,
-      counter: { kind: "eth" },
-    });
-  }
-
-  for (let i = 0; i < TOP_TOKENS.length; i++) {
-    const t = TOP_TOKENS[i]!;
-    const raw = tokenBals[i]!;
-    if (raw === BigInt(0)) continue;
-    const bal = parseFloat(formatUnits(raw, t.decimals));
-    if (bal <= 0) continue;
-
-    let usdValue = 0;
-    const sym = t.symbol.toUpperCase();
-    if (["USDC", "USDT", "DAI", "USDBC", "EURC", "USDS"].includes(sym)) {
-      usdValue = bal;
-    } else if (["WETH", "CBETH", "WSTETH"].includes(sym)) {
-      usdValue = bal * ethUsd;
-    } else if (sym === "CBBTC") {
-      usdValue = bal * ethUsd * 25; // rough BTC/ETH ratio
-    } else {
-      // For other tokens without price feed, show balance but no USD
-      usdValue = 0;
-    }
-
-    holdings.push({
-      token: t,
-      symbol: t.symbol,
-      balance: bal,
-      usdValue,
-      counter: commonTokenToCounter(t),
-    });
-  }
-
-  holdings.sort((a, b) => b.usdValue - a.usdValue);
-  return holdings;
+function holdingToCounter(h: {
+  symbol: string;
+  address: string | null;
+  decimals: number;
+  logo: string | null;
+}): SwapCounter {
+  if (!h.address || h.symbol === "ETH") return { kind: "eth" };
+  return {
+    kind: "token",
+    address: h.address as `0x${string}`,
+    symbol: h.symbol,
+    decimals: h.decimals,
+    imageUrl: h.logo ?? undefined,
+  };
 }
 
 function formatBalance(bal: number): string {
@@ -104,7 +41,6 @@ function formatBalance(bal: number): string {
 
 export default function WalletHoldings({
   walletAddress,
-  ethUsd,
   onSelectToken,
 }: {
   walletAddress: string | null;
@@ -121,16 +57,25 @@ export default function WalletHoldings({
     }
     let cancelled = false;
     setLoading(true);
-    fetchHoldings(walletAddress, ethUsd ?? 2500)
-      .then((h) => {
-        if (!cancelled) setHoldings(h);
+    fetch(`/api/wallet-holdings?address=${encodeURIComponent(walletAddress)}`)
+      .then((r) => r.json())
+      .then((data: { holdings?: Array<{
+        symbol: string; name: string; balance: number;
+        usdValue: number; address: string | null; decimals: number; logo: string | null;
+      }> }) => {
+        if (cancelled) return;
+        const items: TokenHolding[] = (data.holdings ?? []).map((h) => ({
+          ...h,
+          counter: holdingToCounter(h),
+        }));
+        setHoldings(items);
       })
       .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [walletAddress, ethUsd]);
+  }, [walletAddress]);
 
   if (!walletAddress || (holdings.length === 0 && !loading)) return null;
 
@@ -150,7 +95,7 @@ export default function WalletHoldings({
         <div className="wallet-holdings-list">
           {holdings.map((h) => (
             <button
-              key={h.symbol}
+              key={h.symbol + (h.address ?? "eth")}
               type="button"
               className="wallet-holding-chip"
               onClick={() => onSelectToken?.(h.counter)}
