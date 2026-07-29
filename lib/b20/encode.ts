@@ -147,6 +147,7 @@ export interface LaunchB20Params {
   website?: string;
   twitter?: string;
   telegram?: string;
+  discord?: string;
   /** Genesis mints via batchMint initCall (factory bootstrap window) */
   mints?: MintAllocation[];
 }
@@ -240,6 +241,33 @@ export function encodeCreateB20Calldata(params: LaunchB20Params): Hex {
         abi: B20_TOKEN_ABI,
         functionName: "updateExtraMetadata",
         args: ["website", params.website.trim()],
+      })
+    );
+  }
+  if (params.twitter?.trim()) {
+    initCalls.push(
+      encodeFunctionData({
+        abi: B20_TOKEN_ABI,
+        functionName: "updateExtraMetadata",
+        args: ["twitter", params.twitter.trim()],
+      })
+    );
+  }
+  if (params.telegram?.trim()) {
+    initCalls.push(
+      encodeFunctionData({
+        abi: B20_TOKEN_ABI,
+        functionName: "updateExtraMetadata",
+        args: ["telegram", params.telegram.trim()],
+      })
+    );
+  }
+  if (params.discord?.trim()) {
+    initCalls.push(
+      encodeFunctionData({
+        abi: B20_TOKEN_ABI,
+        functionName: "updateExtraMetadata",
+        args: ["discord", params.discord.trim()],
       })
     );
   }

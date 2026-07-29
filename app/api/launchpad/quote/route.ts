@@ -139,6 +139,7 @@ export async function GET(req: Request) {
       currentBlock,
       poolOpenBlock: registered?.poolOpenBlock,
       antiSnipeBlocks: registered?.antiSnipeBlocks,
+      launchBlock: registered?.launchBlock,
       direction,
     });
 

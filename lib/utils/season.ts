@@ -1,7 +1,7 @@
 import { SEASON_END, SEASON_START, WEEKLY_QUESTS } from "@/lib/constants/season";
 import type { AppQuestContext } from "@/lib/constants/season";
 import {
-  CHECK_IN_TRACK_DAYS,
+  cycleDayFromStreak,
   streakBoostPercent,
 } from "@/lib/utils/check-in-rewards";
 import {
@@ -78,7 +78,7 @@ export function computeXPBreakdown(
   const address = ctx.wallet.address;
 
   const questBase = getQuestXP(ctx);
-  const cycleDay = Math.min(Math.max(ctx.streak, 0), CHECK_IN_TRACK_DAYS);
+  const cycleDay = cycleDayFromStreak(ctx.streak);
   const boostPct = streakBoostPercent(cycleDay || 1);
   const questMultiplier = 1 + boostPct / 100;
   const questXp = Math.round(questBase * questMultiplier);

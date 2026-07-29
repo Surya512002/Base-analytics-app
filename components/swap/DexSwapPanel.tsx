@@ -260,6 +260,21 @@ export default function DexSwapPanel({
     return fromTokenUsd;
   }, [from, ethUsd, fromTokenUsd]);
 
+  const toUsd = useMemo(() => {
+    if (!to) return null;
+    if (to.kind === "eth") return ethUsd;
+    const sym = to.symbol.toUpperCase();
+    if (DOLLAR_PEGGED.has(sym)) return 1;
+    if (sym === "WETH") return ethUsd;
+    return pageTokenUsd;
+  }, [to, ethUsd, pageTokenUsd]);
+
+  const counterUsd = useMemo(() => {
+    if (!route) return 0;
+    // Buy: pay with `from` (counter). Sell: receive `to` (counter).
+    return (route.direction === "buy" ? fromUsd : toUsd) ?? 0;
+  }, [route?.direction, fromUsd, toUsd]);
+
   useEffect(() => {
     if (from.kind !== "token") {
       setFromTokenUsd(null);
@@ -458,9 +473,9 @@ export default function DexSwapPanel({
         direction: route?.direction ?? "buy",
         payAmount: payAmountNum,
         quoteOut: quoteOutNum,
-        counterUsd: fromUsd ?? 0,
+        counterUsd,
       }),
-    [route?.direction, payAmountNum, quoteOutNum, fromUsd]
+    [route?.direction, payAmountNum, quoteOutNum, counterUsd]
   );
 
   const priceImpactPct = useMemo(

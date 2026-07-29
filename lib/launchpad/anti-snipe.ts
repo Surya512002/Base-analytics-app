@@ -14,9 +14,11 @@ export function evaluateAntiSnipe(params: {
   poolOpenBlock: number | null | undefined;
   antiSnipeBlocks: number | null | undefined;
   direction: "buy" | "sell";
+  /** Fallback when poolOpenBlock not yet written (use launch block). */
+  launchBlock?: number | null | undefined;
 }): AntiSnipeStatus {
   const blocks = params.antiSnipeBlocks ?? DEFAULT_ANTI_SNIPE_BLOCKS;
-  const poolOpen = params.poolOpenBlock ?? null;
+  const poolOpen = params.poolOpenBlock ?? params.launchBlock ?? null;
 
   if (!poolOpen || blocks <= 0) {
     return {

@@ -65,7 +65,7 @@ export default function ExploreServicesRail({
   onConnect?: () => void;
 }) {
   const click = (tab?: AppTab) => {
-    if (guest && tab && tab !== "launchpad") {
+    if (guest && tab && tab !== "launchpad" && tab !== "swap") {
       onConnect?.();
       return;
     }

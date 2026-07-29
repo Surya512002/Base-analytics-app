@@ -99,7 +99,10 @@ export async function verifyFarcasterQuickAuthToken(
     try {
       const payload = await client.verifyJwt({ token, domain });
       const jwtAddress = addressFromPayload(payload);
-      const sessionAddress = expectedAddress?.toLowerCase() ?? jwtAddress;
+      // After verifyJwt: bind to connected wallet when provided (Base App smart wallets),
+      // otherwise the address in the JWT.
+      const sessionAddress =
+        expectedAddress?.toLowerCase() ?? jwtAddress ?? null;
       if (!sessionAddress?.startsWith("0x")) {
         return { error: "Farcaster sign-in did not include a wallet address" };
       }
@@ -116,37 +119,8 @@ export async function verifyFarcasterQuickAuthToken(
     }
   }
 
-  // Fallback: the token was already verified by Farcaster Quick Auth server
-  // (sdk.quickAuth.getToken handles that). If domain mismatch is the only
-  // issue, trust the decoded payload when issued by auth.farcaster.xyz.
-  try {
-    const decoded = decodeJwt(token);
-    const iss = typeof decoded.iss === "string" ? decoded.iss : "";
-    if (!iss.includes("farcaster")) {
-      return { error: lastError };
-    }
-    const exp = typeof decoded.exp === "number" ? decoded.exp : 0;
-    if (exp * 1000 < Date.now()) {
-      return { error: "Token expired" };
-    }
-    const jwtAddress = addressFromPayload(decoded);
-    const sessionAddress = expectedAddress?.toLowerCase() ?? jwtAddress;
-    if (!sessionAddress?.startsWith("0x")) {
-      return { error: "Farcaster sign-in did not include a wallet address" };
-    }
-    const fid =
-      typeof decoded.sub === "number"
-        ? decoded.sub
-        : typeof decoded.sub === "string"
-          ? Number(decoded.sub)
-          : undefined;
-    return {
-      address: sessionAddress,
-      fid: Number.isFinite(fid) ? fid : undefined,
-    };
-  } catch {
-    return { error: lastError };
-  }
+  // Never mint a session from an unverified decode — verifyJwt must succeed.
+  return { error: lastError };
 }
 
 /**

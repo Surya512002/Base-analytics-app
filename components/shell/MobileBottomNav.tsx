@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import { isRewardsHubTab } from "@/lib/utils/app-url";
@@ -25,7 +26,10 @@ export default function MobileBottomNav({
   onConnect?: () => void;
   walletAddress?: string | null;
 }) {
+  const pathname = usePathname();
   const profileHref = walletAddress ? `/creator/${walletAddress}` : "/profile";
+  const profileActive =
+    pathname.startsWith("/profile") || pathname.startsWith("/creator");
 
   return (
     <nav
@@ -54,22 +58,33 @@ export default function MobileBottomNav({
             </button>
           );
         })}
-        <Link
-          href={guest && !walletAddress ? "#" : profileHref}
-          onClick={(e) => {
-            if (guest && !walletAddress) {
-              e.preventDefault();
-              onConnect?.();
-            }
-          }}
-          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[52px] py-1.5 px-0.5 text-[var(--ink-dim)] transition-colors touch-manipulation"
-          aria-label="Profile"
-        >
-          <User size={18} strokeWidth={1.75} />
-          <span className="max-w-full truncate text-[9px] font-semibold tracking-wide leading-none">
-            Profile
-          </span>
-        </Link>
+        {guest && !walletAddress ? (
+          <button
+            type="button"
+            onClick={() => onConnect?.()}
+            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[52px] py-1.5 px-0.5 text-[var(--ink-dim)] transition-colors touch-manipulation"
+            aria-label="Profile"
+          >
+            <User size={18} strokeWidth={1.75} />
+            <span className="max-w-full truncate text-[9px] font-semibold tracking-wide leading-none">
+              Profile
+            </span>
+          </button>
+        ) : (
+          <Link
+            href={profileHref}
+            className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[52px] py-1.5 px-0.5 transition-colors touch-manipulation ${
+              profileActive ? "text-[var(--brand-dark)]" : "text-[var(--ink-dim)]"
+            }`}
+            aria-label="Profile"
+            aria-current={profileActive ? "page" : undefined}
+          >
+            <User size={18} strokeWidth={profileActive ? 2.25 : 1.75} />
+            <span className="max-w-full truncate text-[9px] font-semibold tracking-wide leading-none">
+              Profile
+            </span>
+          </Link>
+        )}
       </div>
     </nav>
   );

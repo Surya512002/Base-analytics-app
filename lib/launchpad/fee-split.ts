@@ -16,6 +16,15 @@ export const FEE_SHARE_CREATOR_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_CREATOR_
 export const FEE_SHARE_PLATFORM_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_PLATFORM_BPS", 2000);
 export const FEE_SHARE_REFERRER_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_REFERRER_BPS", 2000);
 
+const FEE_SHARE_SUM =
+  FEE_SHARE_CREATOR_BPS + FEE_SHARE_PLATFORM_BPS + FEE_SHARE_REFERRER_BPS;
+
+if (FEE_SHARE_SUM !== 10000 && process.env.NODE_ENV !== "production") {
+  console.warn(
+    `[fee-split] shares sum to ${FEE_SHARE_SUM} bps (expected 10000) — check LAUNCHPAD_FEE_SHARE_* env`
+  );
+}
+
 export type FeeSplitRecipients = {
   creator: `0x${string}`;
   platform: `0x${string}`;

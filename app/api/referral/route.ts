@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Redis } from "ioredis";
 import { getReferralCode } from "@/lib/utils/share";
+import { requireSiweSession } from "@/lib/auth/siwe-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -166,6 +167,12 @@ export async function POST(req: Request) {
   if (!address?.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
+
+  const session = await requireSiweSession(address);
+  if (!session.ok) {
+    return NextResponse.json({ error: session.error }, { status: session.status });
+  }
+
   if (!referrerCode || isSelfReferral(address, referrerCode)) {
     return NextResponse.json({ bonusXp: 0, referredBy: null });
   }

@@ -30,7 +30,9 @@ export interface StoredVoucherBatch {
 }
 
 function randomChar(): string {
-  return CHARSET[Math.floor(Math.random() * CHARSET.length)];
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return CHARSET[buf[0]! % CHARSET.length]!;
 }
 
 function randomGroup(len: number): string {

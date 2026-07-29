@@ -28,16 +28,25 @@ function clientDomain(): string | undefined {
   return window.location.hostname;
 }
 
-export async function fetchSiweSession(): Promise<{ address: string | null; authenticated: boolean }> {
+export async function fetchSiweSession(): Promise<{
+  address: string | null;
+  authenticated: boolean;
+  /** True when /api/auth/session responded (vs network failure). */
+  reachable: boolean;
+}> {
   try {
     const r = await fetch("/api/auth/session", { cache: "no-store", credentials: "include" });
-    if (!r.ok) return { address: null, authenticated: false };
+    if (!r.ok) return { address: null, authenticated: false, reachable: false };
     const data = (await r.json()) as { address?: string | null; authenticated?: boolean };
     const addr = data.address?.toLowerCase() ?? null;
     if (data.authenticated && addr) writeLocalSiweAddress(addr);
-    return { address: addr, authenticated: Boolean(data.authenticated && addr) };
+    return {
+      address: addr,
+      authenticated: Boolean(data.authenticated && addr),
+      reachable: true,
+    };
   } catch {
-    return { address: null, authenticated: false };
+    return { address: null, authenticated: false, reachable: false };
   }
 }
 

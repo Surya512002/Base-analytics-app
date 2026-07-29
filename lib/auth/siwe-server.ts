@@ -12,11 +12,12 @@ const SESSION_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
 const NONCE_TTL_SEC = 300;
 
 function sessionSecret(): string {
-  return (
-    process.env.SIWE_SESSION_SECRET?.trim() ||
-    process.env.KV_REDIS_URL?.trim() ||
-    "dev-only-change-SIWE_SESSION_SECRET-in-production"
-  );
+  const secret = process.env.SIWE_SESSION_SECRET?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SIWE_SESSION_SECRET is required in production");
+  }
+  return "dev-only-change-SIWE_SESSION_SECRET-in-production";
 }
 
 /** Host used in SIWE messages — prefer the live request host so MetaMask matches the page. */

@@ -7,6 +7,7 @@ import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import { resolveQuestHighlightFromUrl } from "@/lib/utils/app-url";
 import {
   CHECK_IN_TRACK_DAYS,
+  cycleDayFromStreak,
   getTrackDayStatuses,
   rewardDayForToday,
   streakBoostPercent,
@@ -76,9 +77,7 @@ export default function CheckInTab({
 
   if (!wallet || !questContext || !xp) return null;
 
-  const boostPct = streakBoostPercent(
-    Math.min(Math.max(streak, 1), CHECK_IN_TRACK_DAYS)
-  );
+  const boostPct = streakBoostPercent(cycleDayFromStreak(streak) || 1);
   const todayPts = getTodayPointsSummary(wallet.address);
   const nextAwardDay = rewardDayForToday(streak, checkedToday);
   const nextBonusPP = weeklyStreakBonusPP(nextAwardDay);

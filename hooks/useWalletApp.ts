@@ -1141,6 +1141,7 @@ function useWalletAppController() {
           website: args.website,
           twitter: args.twitter,
           telegram: args.telegram,
+          discord: args.discord,
           mints: mergedMints,
         });
 
@@ -1189,6 +1190,22 @@ function useWalletAppController() {
           }
         }
 
+        if (isInvalidLaunchTokenAddress(tokenAddr)) {
+          showToast(
+            "Token may be live — paste the 0xB20… address from BaseScan to register",
+            hash
+          );
+          return {
+            ok: true,
+            address: undefined,
+            symbol: args.symbol,
+            name: args.name,
+            imageUrl: args.imageUrl,
+            txHash: hash,
+          };
+        }
+
+        const antiBlocks = args.antiSnipeBlocks ?? 8;
         const saved = await registerLaunchedToken({
           address: tokenAddr,
           name: args.name,
@@ -1206,7 +1223,8 @@ function useWalletAppController() {
           launchPreset: args.launchPreset,
           vestingSchedule: args.vestingSchedule,
           launchBlock,
-          antiSnipeBlocks: args.antiSnipeBlocks ?? 8,
+          antiSnipeBlocks: antiBlocks,
+          poolOpenBlock: launchBlock ?? undefined,
           startPriceUsd: args.startPriceUsd,
           source: "launched",
         });

@@ -30,7 +30,7 @@ export default function SignInOverlay({
         </h2>
         <p className="sign-in-overlay-desc">
           {signingIn
-            ? "Please confirm the signature in your wallet"
+            ? "Confirm the signature in your wallet — or skip and try again later"
             : "Verify wallet ownership to access all features"}
         </p>
         {!signingIn && (
@@ -43,13 +43,13 @@ export default function SignInOverlay({
             Sign In
           </button>
         )}
-        {!signingIn && onSkip && (
+        {onSkip && (
           <button
             type="button"
             onClick={onSkip}
             className="sign-in-overlay-skip"
           >
-            Skip for now
+            {signingIn ? "Cancel / skip" : "Skip for now"}
           </button>
         )}
       </div>

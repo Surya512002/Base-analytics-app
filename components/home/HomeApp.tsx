@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
@@ -10,7 +11,6 @@ import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
 import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
-import SiweSignInBanner from "@/components/wallet/SiweSignInBanner";
 import SignInOverlay from "@/components/wallet/SignInOverlay";
 import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
@@ -18,6 +18,7 @@ import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import type { LaunchpadShellBridge } from "@/components/launchpad/LaunchpadTab";
 import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView } from "@/lib/utils/app-url";
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
+import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 
 const SwapTab = dynamic(
@@ -64,6 +65,7 @@ export type HomeAppProps = {
 };
 
 export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
+  const router = useRouter();
   const app = useWalletApp();
   const {
     wallet,
@@ -88,6 +90,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     setX402Product,
     sessionBootstrapped,
     siweAuthenticated,
+    siweSessionChecked,
     siweSigningIn,
     siweSignIn,
   } = app;
@@ -106,6 +109,10 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   const guest = sessionBootstrapped ? !wallet : false;
   const activeTab = forceTab ?? tab;
 
+  useEffect(() => {
+    setSiweSkipped(false);
+  }, [wallet?.address]);
+
   const openConnect = useCallback(() => {
     saveGuestResume(captureGuestResumeFromUrl());
     setShowModal(true);
@@ -113,11 +120,16 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
 
   const handleTabChange = useCallback(
     (next: AppTab, opts?: { rewardsView?: RewardsHubView; token?: string | null }) => {
-      if (guest && next !== "launchpad" && next !== "swap" && next !== "profile") {
+      if (guest && next !== "launchpad" && next !== "swap") {
         openConnect();
         return;
       }
       const resolved = next === "rewards" ? "checkin" : next;
+      // /explore and /swap pin forceTab — leave the route when navigating away.
+      if (forceTab && resolved !== forceTab) {
+        router.push(hrefForAppTab(resolved));
+        return;
+      }
       setTab(resolved);
       if (resolved === "checkin") {
         syncRewardsHubUrl(
@@ -129,7 +141,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         syncTabUrl(resolved);
       }
     },
-    [guest, openConnect, setTab]
+    [guest, openConnect, setTab, forceTab, router]
   );
 
   const handleShellBridge = useCallback((bridge: LaunchpadShellBridge) => {
@@ -183,7 +195,13 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         }
       >
         <SignInOverlay
-          visible={!guest && !!wallet?.address && !siweAuthenticated && !siweSkipped}
+          visible={
+            !guest &&
+            !!wallet?.address &&
+            siweSessionChecked &&
+            !siweAuthenticated &&
+            !siweSkipped
+          }
           signingIn={siweSigningIn}
           onSignIn={() => void handleSiweSignIn()}
           onSkip={() => setSiweSkipped(true)}

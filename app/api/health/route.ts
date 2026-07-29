@@ -80,6 +80,6 @@ export async function GET() {
       checks,
       timestamp: new Date().toISOString(),
     },
-    { status: 200 }
+    { status: ok ? 200 : 503 }
   );
 }

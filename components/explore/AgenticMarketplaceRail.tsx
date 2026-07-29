@@ -50,7 +50,7 @@ export default function AgenticMarketplaceRail({
   onPayAgent?: (productId: X402ProductId) => void;
 }) {
   const openTab = (tab: AppTab) => {
-    if (guest && tab !== "launchpad") {
+    if (guest && tab !== "launchpad" && tab !== "swap") {
       onConnect?.();
       return;
     }

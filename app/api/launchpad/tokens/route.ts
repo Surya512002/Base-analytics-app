@@ -5,6 +5,7 @@ import {
   registerLaunchedToken,
 } from "@/lib/launchpad/token-store";
 import { isB20AssetActivated } from "@/lib/b20/activation";
+import { isInvalidLaunchTokenAddress } from "@/lib/b20/launch-receipt";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { scheduleLaunchNotification } from "@/lib/launchpad/launch-notify";
 import { requireSiweSession } from "@/lib/auth/siwe-session";
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
       !address ||
       !address.startsWith("0x") ||
       address.length !== 42 ||
+      isInvalidLaunchTokenAddress(address) ||
       !name ||
       !symbol ||
       !creator ||
@@ -95,7 +97,11 @@ export async function POST(req: Request) {
           ? body.antiSnipeBlocks
           : undefined,
       poolOpenBlock:
-        typeof body.poolOpenBlock === "number" ? body.poolOpenBlock : undefined,
+        typeof body.poolOpenBlock === "number"
+          ? body.poolOpenBlock
+          : typeof body.launchBlock === "number"
+            ? body.launchBlock
+            : undefined,
       startPriceUsd: body.startPriceUsd?.trim() || undefined,
       source: body.source ?? "launched",
     });

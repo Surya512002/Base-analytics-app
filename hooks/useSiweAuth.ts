@@ -27,8 +27,15 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
       return true;
     }
 
-    // Cookie missing/blocked (iframe) but local marker matches — keep UX unlocked;
-    // server routes still enforce the httpOnly cookie when present.
+    // Server confirmed no session — do not trust localStorage alone.
+    if (session.reachable && !session.authenticated) {
+      setSessionAddress(null);
+      setAuthenticated(false);
+      setChecked(true);
+      return false;
+    }
+
+    // Session endpoint unreachable (iframe/network) — soft unlock from local marker.
     const local = readLocalSiweAddress();
     if (wallet && local === wallet) {
       setSessionAddress(local);

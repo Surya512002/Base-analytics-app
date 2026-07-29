@@ -488,10 +488,8 @@ async function sendCallGroup(
     }
   }
 
-  if (opts.atomicBatch) {
-    throw new Error("Swap could not be batched — reconnect wallet and retry");
-  }
-
+  // Sequential fallback: required for ERC20 fee transfers (Multicall3 can't
+  // transferFrom the user's balance via token.transfer), and when wallet_sendCalls fails.
   let lastHash = "";
   for (const call of group) {
     lastHash = await sendSingleCall(provider, from, call, opts);
