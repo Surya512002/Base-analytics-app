@@ -37,6 +37,10 @@
     "splashBackgroundColor": "#020508",
     "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
     "primaryCategory": "finance",
+    "requiredCapabilities": [
+      "actions.signIn",
+      "wallet.getEthereumProvider"
+    ],
     "tags": [
       "b20",
       "launchpad",
