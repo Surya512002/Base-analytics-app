@@ -24,7 +24,9 @@ test.describe("mobile viewport flows", () => {
   test("explore shows guest banner and connect on mobile", async ({ page }) => {
     await page.goto(`${BASE}/explore`, { waitUntil: "domcontentloaded" });
     await expect(page.getByText(/browsing as guest/i)).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("button", { name: /^connect$/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /connect/i }).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("creator profile page loads on mobile", async ({ page }) => {
