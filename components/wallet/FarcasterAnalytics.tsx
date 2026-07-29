@@ -795,12 +795,12 @@ export default function FarcasterAnalytics({
             <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
               x402 · Base mainnet
             </p>
-            <h4 className="text-lg font-black text-white mt-2">Unlock Farcaster Analysis</h4>
-            <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+            <h4 className="text-lg font-black text-[var(--ink)] mt-2">Unlock Farcaster Analysis</h4>
+            <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">
               Pay once per session to view your linked Farcaster profile, cast analytics, and username search results.
             </p>
-            <p className="text-2xl font-black text-white mt-4 tabular-nums">$0.10 USDC</p>
-            <p className="text-[11px] text-slate-500 mt-1">via x402 on Base · session unlock only</p>
+            <p className="text-2xl font-black text-[var(--ink)] mt-4 tabular-nums">$0.10 USDC</p>
+            <p className="text-[11px] text-[var(--ink-dim)] mt-1">via x402 on Base · session unlock only</p>
             <button
               type="button"
               onClick={onUnlock}
@@ -819,7 +819,7 @@ export default function FarcasterAnalytics({
                 </>
               )}
             </button>
-            <p className="text-[10px] text-slate-600 mt-3 leading-relaxed">
+            <p className="text-[10px] text-[var(--ink-dim)] mt-3 leading-relaxed">
               Disconnecting or refreshing requires payment again.
             </p>
           </div>

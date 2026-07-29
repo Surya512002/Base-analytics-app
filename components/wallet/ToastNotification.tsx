@@ -20,22 +20,22 @@ export default function ToastNotification({
 
   return (
     <div
-      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] text-white px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-[var(--border-strong)] bg-[var(--bg-elevated)] max-h-[40dvh] overflow-y-auto overscroll-contain"
+      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-card)] max-h-[40dvh] overflow-y-auto overscroll-contain"
       style={{
-        boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
         animation: "slideUp 0.3s ease-out",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
       }}
+      role="status"
     >
-      <BadgeCheck size={20} className="shrink-0 mt-0.5" />
+      <BadgeCheck size={20} className="shrink-0 mt-0.5 text-emerald-600" />
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm leading-snug break-words">{msg}</p>
+        <p className="font-bold text-sm leading-snug break-words text-[var(--ink)]">{msg}</p>
         {url && (
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-x-1 text-[var(--ink-muted)] text-xs underline hover:text-white break-all"
+            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-x-1 text-[var(--brand-dark)] text-xs font-semibold underline hover:text-[var(--brand)] break-all"
           >
             <span>View on BaseScan</span>
             {shortHash && <span className="font-mono opacity-90">{shortHash}</span>}
@@ -43,8 +43,10 @@ export default function ToastNotification({
         )}
       </div>
       <button
+        type="button"
         onClick={onClose}
-        className="shrink-0 bg-white/10 hover:bg-white/20 p-1.5 rounded-xl transition-colors"
+        aria-label="Dismiss"
+        className="shrink-0 bg-[var(--surface-2)] hover:bg-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] p-1.5 rounded-xl transition-colors"
       >
         <X size={13} />
       </button>

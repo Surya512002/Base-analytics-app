@@ -93,7 +93,7 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
         <button
           type="button"
           onClick={close}
-          className="absolute top-3 right-3 p-2 rounded-xl bg-white/10 text-slate-400 hover:text-white z-10"
+          className="absolute top-3 right-3 p-2 rounded-xl bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] z-10"
           aria-label="Close tour"
         >
           <X size={16} />
@@ -102,13 +102,13 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
           <p className="section-eyebrow flex items-center gap-2">
             <Sparkles size={11} /> Launchpad · Step {step + 1}/{STEPS.length}
           </p>
-          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mt-4 mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center mt-4 mb-4">
             {current.icon}
           </div>
-          <h2 className="text-xl font-black text-white">{current.title}</h2>
-          <p className="text-sm text-slate-400 mt-2 leading-relaxed">{current.body}</p>
+          <h2 className="text-xl font-black text-[var(--ink)]">{current.title}</h2>
+          <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">{current.body}</p>
           <div className="flex gap-2 mt-6">
-            <button type="button" onClick={close} className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-500">
+            <button type="button" onClick={close} className="flex-1 py-3 rounded-xl text-sm font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]">
               Skip
             </button>
             <button type="button" onClick={next} className="flex-1 py-3 rounded-xl text-sm font-black btn-primary">
