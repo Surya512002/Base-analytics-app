@@ -36,11 +36,27 @@ import { feeShareLabels, FEE_SHARE_CREATOR_BPS } from "@/lib/launchpad/fee-split
 
 type ProfileTab = "launches" | "fees" | "vesting" | "referrals";
 
-function formatWeiEth(wei: string): string {
-  const n = Number(BigInt(wei || "0")) / 1e18;
-  if (n === 0) return "0 ETH";
+function formatFeeShare(wei: string, feeAsset: "eth" | "usdc" | "token" = "eth"): string {
+  const raw = BigInt(wei || "0");
+  if (raw === BigInt(0)) return feeAsset === "usdc" ? "$0" : "0";
+  if (feeAsset === "usdc") {
+    const n = Number(raw) / 1e6;
+    if (n < 0.01) return "<$0.01";
+    return `$${n.toFixed(n >= 100 ? 2 : 4)}`;
+  }
+  if (feeAsset === "token") {
+    const n = Number(raw) / 1e18;
+    if (n === 0) return "0";
+    if (n < 0.0001) return "<0.0001";
+    return `${n.toFixed(n >= 1 ? 4 : 6)}`;
+  }
+  const n = Number(raw) / 1e18;
   if (n < 0.0001) return "<0.0001 ETH";
   return `${n.toFixed(n >= 1 ? 4 : 6)} ETH`;
+}
+
+function formatWeiEth(wei: string): string {
+  return formatFeeShare(wei, "eth");
 }
 
 function estimateCreatorEthFromVolume(volumeUsd: number): number {
@@ -473,7 +489,8 @@ export default function CreatorProfilePanel({
                       <p className="text-[11px] text-[var(--ink-dim)]">{timeAgo(e.timestamp)}</p>
                     </div>
                     <p className="font-mono font-bold text-emerald-700">
-                      +{formatWeiEth(e.creatorShare)}
+                      +{formatFeeShare(e.creatorShare, e.feeAsset)}
+                      {e.feeAsset === "token" ? ` ${e.tokenSymbol}` : ""}
                     </p>
                     <a
                       href={`https://basescan.org/tx/${e.txHash}`}

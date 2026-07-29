@@ -212,6 +212,13 @@ export default function DexSwapPanel({
     setReferrer(readTokenReferrer(prefillToken.address));
   }, [prefillToken?.address]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep referral attached when user picks any page token (not only prefill).
+  useEffect(() => {
+    if (!route?.pageToken.address) return;
+    captureTokenReferrerFromUrl(route.pageToken.address);
+    setReferrer(readTokenReferrer(route.pageToken.address));
+  }, [route?.pageToken.address]);
+
   useEffect(() => {
     if (!route) return;
     let alive = true;

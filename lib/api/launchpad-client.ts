@@ -58,6 +58,7 @@ export async function registerLaunchedToken(
   const r = await fetch("/api/launchpad/tokens", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(token),
   });
   return r.ok;

@@ -80,12 +80,15 @@ export function storeTokenReferrer(token: string, ref: string) {
   const r = ref.trim().toLowerCase();
   if (!t.startsWith("0x") || t.length !== 42) return;
   if (!r.startsWith("0x") || r.length !== 42) return;
+  // Persist across tab close so referral fees still apply on return.
+  localStorage.setItem(`${TOKEN_REF_PREFIX}${t}`, r);
   sessionStorage.setItem(`${TOKEN_REF_PREFIX}${t}`, r);
 }
 
 export function readTokenReferrer(token: string): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(`${TOKEN_REF_PREFIX}${token.trim().toLowerCase()}`);
+  const key = `${TOKEN_REF_PREFIX}${token.trim().toLowerCase()}`;
+  return sessionStorage.getItem(key) || localStorage.getItem(key);
 }
 
 export function captureTokenReferrerFromUrl(token: string) {

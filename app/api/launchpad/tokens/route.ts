@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import {
+  getLaunchedToken,
   listLaunchedTokens,
   registerLaunchedToken,
 } from "@/lib/launchpad/token-store";
 import { isB20AssetActivated } from "@/lib/b20/activation";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { scheduleLaunchNotification } from "@/lib/launchpad/launch-notify";
+import { requireSiweSession } from "@/lib/auth/siwe-session";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
     const address = body.address?.trim();
     const name = body.name?.trim();
     const symbol = body.symbol?.trim();
-    const creator = body.creator?.trim();
+    const creator = body.creator?.trim()?.toLowerCase();
     const txHash = body.txHash?.trim();
 
     if (
@@ -40,9 +42,29 @@ export async function POST(req: Request) {
       !name ||
       !symbol ||
       !creator ||
+      !creator.startsWith("0x") ||
+      creator.length !== 42 ||
       !txHash
     ) {
       return NextResponse.json({ error: "Invalid token payload" }, { status: 400 });
+    }
+
+    const session = await requireSiweSession(creator);
+    if (!session.ok) {
+      return NextResponse.json({ error: session.error }, { status: session.status });
+    }
+
+    // Prevent fee hijack: existing registry creator cannot be overwritten by another wallet.
+    const existing = await getLaunchedToken(address);
+    if (
+      existing?.creator &&
+      existing.creator !== creator &&
+      existing.creator.startsWith("0x")
+    ) {
+      return NextResponse.json(
+        { error: "Token already registered to another creator" },
+        { status: 409 }
+      );
     }
 
     const decimals =
@@ -74,6 +96,8 @@ export async function POST(req: Request) {
           : undefined,
       poolOpenBlock:
         typeof body.poolOpenBlock === "number" ? body.poolOpenBlock : undefined,
+      startPriceUsd: body.startPriceUsd?.trim() || undefined,
+      source: body.source ?? "launched",
     });
 
     scheduleLaunchNotification({ symbol, name, address });

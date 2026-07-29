@@ -1056,6 +1056,20 @@ function useWalletAppController() {
 
       setLaunchLoading(true);
       try {
+        // Catalog registration requires SIWE — sign in before launch so fees bind to creator.
+        if (!siweAuthenticated) {
+          const signed = await siweSignIn();
+          if (!signed.ok) {
+            showToast(
+              signed.error === "Sign-in cancelled"
+                ? "Sign in required to launch and claim creator fees"
+                : signed.error || "Sign in required to launch",
+              ""
+            );
+            return { ok: false };
+          }
+        }
+
         const activated = await fetchB20ActivationStatus();
         setB20Activated(activated);
         if (!activated) {
@@ -1286,7 +1300,7 @@ function useWalletAppController() {
         setLaunchLoading(false);
       }
     },
-    [connType, showToast, wallet]
+    [connType, showToast, wallet, siweAuthenticated, siweSignIn]
   );
 
   const handleTokenSwap = useCallback(
@@ -1587,9 +1601,18 @@ function useWalletAppController() {
             referrer: referrer ?? null,
             referrerBoostBps,
           });
+          const trader = wallet.address.toLowerCase();
+          // Match pushFeeSplitCalls skipSelf — don't credit unpaid self-transfers.
+          const creatorShare =
+            trader === creator.toLowerCase() ? BigInt(0) : split.creator;
+          const referrerShare =
+            referrer && trader === referrer.toLowerCase()
+              ? BigInt(0)
+              : split.referrer;
           void fetch("/api/launchpad/fees", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({
               txHash: hash,
               tokenAddress: token,
@@ -1600,9 +1623,9 @@ function useWalletAppController() {
               direction: args.direction,
               feeAsset: swapFeeAsset,
               feeAmount: swapFee.toString(),
-              creatorShare: split.creator.toString(),
+              creatorShare: creatorShare.toString(),
               platformShare: split.platform.toString(),
-              referrerShare: split.referrer.toString(),
+              referrerShare: referrerShare.toString(),
             }),
           }).catch(() => {});
         }

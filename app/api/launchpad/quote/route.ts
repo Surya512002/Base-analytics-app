@@ -23,6 +23,7 @@ import {
   zeroXConfigured,
 } from "@/lib/launchpad/zerox";
 import { getLaunchedToken } from "@/lib/launchpad/token-store";
+import { resolveTokenCreator } from "@/lib/launchpad/resolve-creator";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { evaluateAntiSnipe } from "@/lib/launchpad/anti-snipe";
 import { ensurePoolOpenBlock } from "@/lib/launchpad/token-protection";
@@ -167,7 +168,10 @@ export async function GET(req: Request) {
     }
 
     const feeShares = feeShareLabels();
-    const creator = registered?.creator as `0x${string}` | undefined;
+    const creator =
+      (registered?.creator as `0x${string}` | undefined) ??
+      (await resolveTokenCreator(token)) ??
+      undefined;
 
     const cleanAmount = sanitizeTokenAmountInput(amount, legs.amountDecimals);
     if (!cleanAmount || parseFloat(cleanAmount) <= 0) {
