@@ -207,44 +207,29 @@ async function signInWithFarcasterSignIn(
   }
 }
 
-async function tryWalletSiwePaths(
+async function tryWalletSiwe(
   address: string,
   message: string,
   connType: ConnectionType
 ): Promise<{ ok: boolean; error?: string; address?: string }> {
-  const types: ConnectionType[] = [];
-  const push = (t: ConnectionType | null | undefined) => {
-    if (!t || types.includes(t)) return;
-    types.push(t);
-  };
+  const SIGN_TIMEOUT_MS = 12_000;
 
-  push(connType);
-  push("farcaster");
-  push("baseAccount");
-  push("coinbase");
-  push("metamask");
-  push("injected");
-
-  let lastError = "Wallet could not sign message";
-
-  for (const type of types) {
-    try {
-      const signature = await signMessageWithWallet(address, type, message);
-      const result = await postVerify({
-        message,
-        signature,
-        address,
-        authMethod: "siwe",
-      });
-      if (result.ok) return result;
-      lastError = result.error ?? lastError;
-    } catch (e) {
-      if (isUserRejected(e)) return { ok: false, error: "Sign-in cancelled" };
-      lastError = e instanceof Error ? e.message : lastError;
-    }
+  try {
+    const signPromise = signMessageWithWallet(address, connType, message);
+    const signature = await Promise.race([
+      signPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Sign timed out")), SIGN_TIMEOUT_MS)
+      ),
+    ]);
+    return postVerify({ message, signature, address, authMethod: "siwe" });
+  } catch (e) {
+    if (isUserRejected(e)) return { ok: false, error: "Sign-in cancelled" };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Wallet could not sign message",
+    };
   }
-
-  return { ok: false, error: lastError };
 }
 
 async function signInInsideMiniApp(
@@ -253,27 +238,23 @@ async function signInInsideMiniApp(
   message: string,
   connType: ConnectionType
 ): Promise<{ ok: boolean; error?: string; address?: string }> {
+  // 1. Quick Auth — fastest, no extra user prompt.
   const quick = await signInWithQuickAuth(address);
   if (quick.ok) return quick;
   if (quick.error === "Sign-in cancelled") return quick;
 
-  // Quick Auth got a token but our server rejected it — try wallet SIWE (passkey smart wallet).
-  if (quick.gotToken) {
-    const wallet = await tryWalletSiwePaths(address, message, connType);
-    if (wallet.ok || wallet.error === "Sign-in cancelled") return wallet;
-    return { ok: false, error: wallet.error || quick.error || "Sign-in rejected" };
-  }
-
+  // 2. SIWF via sdk.actions.signIn — single user prompt.
   const siwf = await signInWithFarcasterSignIn(address, nonce);
   if (siwf.ok) return siwf;
   if (siwf.error === "Sign-in cancelled") return siwf;
 
-  const wallet = await tryWalletSiwePaths(address, message, connType);
+  // 3. Last resort — sign with the connected provider (passkey wallet).
+  const wallet = await tryWalletSiwe(address, message, connType);
   if (wallet.ok || wallet.error === "Sign-in cancelled") return wallet;
 
   return {
     ok: false,
-    error: wallet.error || siwf.error || quick.error || "Base App sign-in failed — try again",
+    error: siwf.error || quick.error || wallet.error || "Base App sign-in failed — try again",
   };
 }
 
@@ -307,7 +288,7 @@ export async function signInWithSiwe(
       return signInInsideMiniApp(address, nonce, message, activeConn);
     }
 
-    return tryWalletSiwePaths(address, message, activeConn);
+    return tryWalletSiwe(address, message, activeConn);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Sign-in failed";
     if (/reject|denied|cancel|user denied/i.test(msg)) {
