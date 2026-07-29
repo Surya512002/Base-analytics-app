@@ -1,28 +1,18 @@
 import { NextResponse } from "next/server";
-import { getAddress, formatUnits } from "viem";
+import { getAddress, formatUnits, parseAbi } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { COMMON_BASE_TOKENS } from "@/lib/launchpad/common-tokens";
 
 export const dynamic = "force-dynamic";
 
-const BLOCKSCOUT_BASE = "https://base.blockscout.com/api/v2";
-
-interface BlockscoutTokenBalance {
-  value: string;
-  token: {
-    address: string;
-    name: string;
-    symbol: string;
-    decimals: string | number;
-    type: string;
-    icon_url?: string | null;
-    exchange_rate?: string | null;
-  };
-}
+const ERC20_BALANCE_ABI = parseAbi([
+  "function balanceOf(address owner) view returns (uint256)",
+]);
 
 const STABLECOINS = new Set([
-  "USDC", "USDT", "DAI", "USDBC", "USDbC", "EURC", "USDS", "USDE", "FRAX", "LUSD", "BUSD", "TUSD", "GUSD",
+  "USDC", "USDT", "DAI", "USDBC", "USDbC", "EURC", "USDS", "USDE", "FRAX", "LUSD",
 ]);
-const ETH_PEGGED = new Set(["WETH", "CBETH", "WSTETH", "RETH", "STETH"]);
+const ETH_PEGGED = new Set(["WETH", "CBETH", "WSTETH", "RETH"]);
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -39,16 +29,34 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Fetch all ERC-20 balances from Blockscout (free, no key needed)
-    const [bsRes, ethBal] = await Promise.all([
-      fetch(`${BLOCKSCOUT_BASE}/addresses/${address}/token-balances`, {
-        headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(12_000),
-      }).catch(() => null),
-      createBasePublicClient()
-        .getBalance({ address: address as `0x${string}` })
-        .catch(() => BigInt(0)),
+    const client = createBasePublicClient();
+    const addr = address as `0x${string}`;
+
+    // Batch all balance calls via multicall (single RPC round-trip)
+    const contracts = COMMON_BASE_TOKENS.map((t) => ({
+      address: t.address,
+      abi: ERC20_BALANCE_ABI,
+      functionName: "balanceOf" as const,
+      args: [addr] as const,
+    }));
+
+    const [ethBal, tokenResults] = await Promise.all([
+      client.getBalance({ address: addr }).catch(() => BigInt(0)),
+      client.multicall({ contracts }).catch(() => contracts.map(() => ({ status: "failure" as const, result: undefined }))),
     ]);
+
+    // Fetch ETH price from CoinGecko (free, no key)
+    let ethUsd = 2500;
+    try {
+      const priceRes = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+        { signal: AbortSignal.timeout(5_000) }
+      );
+      if (priceRes.ok) {
+        const priceData = (await priceRes.json()) as { ethereum?: { usd?: number } };
+        if (priceData.ethereum?.usd) ethUsd = priceData.ethereum.usd;
+      }
+    } catch { /* fallback to 2500 */ }
 
     const holdings: {
       symbol: string;
@@ -60,27 +68,7 @@ export async function GET(req: Request) {
       logo: string | null;
     }[] = [];
 
-    // ETH balance
     const ethBalance = parseFloat(formatUnits(ethBal, 18));
-    // We'll estimate ETH price from a stablecoin pair or fallback
-    let ethUsd = 2500;
-
-    // Parse Blockscout response
-    let tokens: BlockscoutTokenBalance[] = [];
-    if (bsRes?.ok) {
-      const data = await bsRes.json();
-      tokens = Array.isArray(data) ? data : [];
-    }
-
-    // Try to get ETH price from WETH exchange_rate if available
-    const weth = tokens.find(
-      (t) => t.token.symbol?.toUpperCase() === "WETH" && t.token.exchange_rate
-    );
-    if (weth?.token.exchange_rate) {
-      const parsed = parseFloat(weth.token.exchange_rate);
-      if (parsed > 100) ethUsd = parsed;
-    }
-
     if (ethBalance > 0.0001) {
       holdings.push({
         symbol: "ETH",
@@ -93,47 +81,81 @@ export async function GET(req: Request) {
       });
     }
 
-    for (const item of tokens) {
-      if (!item.token || item.token.type !== "ERC-20") continue;
-      const decimals = Number(item.token.decimals);
-      if (!decimals || !item.value || item.value === "0") continue;
+    for (let i = 0; i < COMMON_BASE_TOKENS.length; i++) {
+      const t = COMMON_BASE_TOKENS[i]!;
+      const result = tokenResults[i];
+      if (!result || result.status === "failure") continue;
+      const raw = result.result as bigint;
+      if (!raw || raw === BigInt(0)) continue;
 
-      const bal = parseFloat(formatUnits(BigInt(item.value), decimals));
+      const bal = parseFloat(formatUnits(raw, t.decimals));
       if (bal <= 0) continue;
 
-      const sym = (item.token.symbol || "???").toUpperCase();
+      const sym = t.symbol.toUpperCase();
       let usdValue = 0;
-
-      // Use exchange_rate from Blockscout if available (USD price per token)
-      if (item.token.exchange_rate) {
-        const rate = parseFloat(item.token.exchange_rate);
-        if (rate > 0 && Number.isFinite(rate)) {
-          usdValue = bal * rate;
-        }
-      } else if (STABLECOINS.has(sym)) {
+      if (STABLECOINS.has(sym)) {
         usdValue = bal;
       } else if (ETH_PEGGED.has(sym)) {
         usdValue = bal * ethUsd;
+      } else if (sym === "CBBTC") {
+        usdValue = bal * ethUsd * 25;
       }
 
       holdings.push({
-        symbol: item.token.symbol || "???",
-        name: item.token.name || item.token.symbol || "Unknown",
+        symbol: t.symbol,
+        name: t.name,
         balance: bal,
         usdValue,
-        address: item.token.address,
-        decimals,
-        logo: item.token.icon_url || null,
+        address: t.address,
+        decimals: t.decimals,
+        logo: null,
       });
     }
 
-    // Sort by USD value descending, unpriced tokens at the end sorted by balance
+    // Also try Blockscout for additional tokens (non-blocking, 6s timeout)
+    try {
+      const bsRes = await fetch(
+        `https://base.blockscout.com/api/v2/addresses/${address}/token-balances`,
+        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(6_000) }
+      );
+      if (bsRes.ok) {
+        const data = (await bsRes.json()) as Array<{
+          value: string;
+          token: { address: string; name: string; symbol: string; decimals: string | number; type: string; icon_url?: string | null; exchange_rate?: string | null };
+        }>;
+        const knownAddrs = new Set(holdings.map((h) => h.address?.toLowerCase()));
+        for (const item of data) {
+          if (!item.token || item.token.type !== "ERC-20") continue;
+          if (knownAddrs.has(item.token.address.toLowerCase())) continue;
+          const decimals = Number(item.token.decimals);
+          if (!decimals || !item.value || item.value === "0") continue;
+          const bal = parseFloat(formatUnits(BigInt(item.value), decimals));
+          if (bal <= 0) continue;
+
+          let usdValue = 0;
+          if (item.token.exchange_rate) {
+            const rate = parseFloat(item.token.exchange_rate);
+            if (rate > 0 && Number.isFinite(rate)) usdValue = bal * rate;
+          }
+
+          holdings.push({
+            symbol: item.token.symbol || "???",
+            name: item.token.name || item.token.symbol || "Unknown",
+            balance: bal,
+            usdValue,
+            address: item.token.address,
+            decimals,
+            logo: item.token.icon_url || null,
+          });
+        }
+      }
+    } catch { /* Blockscout optional — ignore failures */ }
+
     holdings.sort((a, b) => {
       if (b.usdValue !== a.usdValue) return b.usdValue - a.usdValue;
       return b.balance - a.balance;
     });
 
-    // Limit to top 30 to keep UI clean
     return NextResponse.json({ holdings: holdings.slice(0, 30) });
   } catch (e) {
     console.warn("[wallet-holdings]", e);

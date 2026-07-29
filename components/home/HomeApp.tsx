@@ -111,7 +111,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
 
   const handleTabChange = useCallback(
     (next: AppTab, opts?: { rewardsView?: RewardsHubView; token?: string | null }) => {
-      if (guest && next !== "launchpad" && next !== "swap") {
+      if (guest && next !== "launchpad" && next !== "swap" && next !== "profile") {
         openConnect();
         return;
       }

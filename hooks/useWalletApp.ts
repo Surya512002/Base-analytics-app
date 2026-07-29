@@ -515,8 +515,16 @@ function useWalletAppController() {
             accounts?.find((a) => a?.startsWith("0x"));
         }
 
-        // Keep hydrated UI even if the extension is locked; txs will re-prompt.
-        address = address ?? preferred;
+        // If provider returned no accounts, the wallet is disconnected/locked.
+        // Clear stale state so user lands in guest mode with full navigation.
+        if (!address) {
+          clearPersistedWalletAddress();
+          clearConnType();
+          setWallet(null);
+          setConnType(null);
+          autoResumeRef.current = false;
+          return;
+        }
 
         setConnType(savedType);
         persistConnType(savedType);
@@ -569,8 +577,11 @@ function useWalletAppController() {
 
         void analyzeWallet(address, { background: true });
       } catch (e) {
-        console.warn("[wallet] silent resume skipped", e);
-        // Keep optimistic shell from layout hydrate; allow another resume attempt later.
+        console.warn("[wallet] silent resume failed — clearing stale session", e);
+        clearPersistedWalletAddress();
+        clearConnType();
+        setWallet(null);
+        setConnType(null);
         autoResumeRef.current = false;
       }
     })();
