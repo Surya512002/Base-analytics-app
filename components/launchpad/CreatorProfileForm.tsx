@@ -122,7 +122,7 @@ export default function CreatorProfileForm({
             Create your creator profile
           </p>
           <h2 className="mt-1 text-lg font-bold text-[var(--ink)]">
-            Show up like o1 — photo, name, and bio
+            Add your photo, name, and bio
           </h2>
           <p className="mt-1 text-sm text-[var(--ink-muted)]">
             Your profile appears on every token you launch and on the creator page traders visit.

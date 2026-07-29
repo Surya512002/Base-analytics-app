@@ -50,7 +50,7 @@ export default function SiweSignInBanner({
             <span className="font-mono text-[var(--ink)]">
               {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
             </span>
-            . Sign a free message (no gas) to secure your profile and fee dashboard — like o1
+            . Sign a free message (no gas) to secure your profile and fee dashboard.
             launchpad.
           </p>
           <p className="mt-2 text-[11px] text-[var(--ink-dim)]">

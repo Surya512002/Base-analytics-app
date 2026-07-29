@@ -39,7 +39,7 @@ export default function CreatorProfileBenefits() {
         Base Analytics creators
       </p>
       <h2 className="mt-1 text-base font-bold text-[var(--ink)]">
-        Everything o1 launchpad offers — plus our app extras
+        Everything you need to launch — plus our app extras
       </h2>
       <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {perks.map((p) => (
