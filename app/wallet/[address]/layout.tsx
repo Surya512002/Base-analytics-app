@@ -20,7 +20,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const res = await fetch(
       `${appUrl}/api/analyze-wallet?address=${encodeURIComponent(address)}`,
-      { next: { revalidate: 300 } }
+      {
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(8_000),
+      }
     );
     if (res.ok) {
       const data = await res.json();

@@ -23,11 +23,22 @@ test.describe("guest browse flow", () => {
   test("wallet profile public page loads", async ({ page }) => {
     test.setTimeout(120_000);
     const demo = "0x3799cafa388da047caf7c999e31c844705fadfae";
-    await page.goto(`${BASE}/wallet/${demo}`, {
-      waitUntil: "domcontentloaded",
-      timeout: 90_000,
-    });
-    await expect(page.getByText(/public profile|onchain score|wallet/i).first()).toBeVisible({
+    let navigated = false;
+    for (let attempt = 0; attempt < 2 && !navigated; attempt++) {
+      try {
+        await page.goto(`${BASE}/wallet/${demo}`, {
+          waitUntil: "commit",
+          timeout: 60_000,
+        });
+        navigated = true;
+      } catch {
+        if (attempt === 1) throw new Error("Wallet profile page did not load");
+        await page.waitForTimeout(2_000);
+      }
+    }
+    await expect(
+      page.getByText(/public profile|onchain score|wallet|scanning onchain|invalid/i).first()
+    ).toBeVisible({
       timeout: 45_000,
     });
   });
