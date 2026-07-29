@@ -63,7 +63,7 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
   }, [walletAddress, sessionAddress]);
 
   const signIn = useCallback(async () => {
-    if (!walletAddress || !connType) {
+    if (!walletAddress) {
       return { ok: false as const, error: "Connect wallet first" };
     }
     setSigningIn(true);
@@ -74,7 +74,6 @@ export function useSiweAuth(walletAddress: string | undefined, connType: Connect
         writeLocalSiweAddress(addr);
         setSessionAddress(addr);
         setAuthenticated(true);
-        // Confirm cookie when available (does not clear optimistic state on miss)
         void fetchSiweSession();
       }
       return result;

@@ -1,5 +1,5 @@
 import { SiweMessage } from "siwe";
-import { createClient } from "@farcaster/quick-auth";
+import { createClient, decodeJwt } from "@farcaster/quick-auth";
 import { getAddress } from "viem";
 import { getAppUrl } from "@/lib/constants/app-url";
 
@@ -18,18 +18,42 @@ function normalizeHost(host: string | null | undefined): string | null {
   return cleaned.replace(/:80$/, "").replace(/:443$/, "");
 }
 
+function pushDomain(domains: string[], raw: string | null | undefined): void {
+  if (!raw) return;
+  const v = raw.toLowerCase();
+  if (!domains.includes(v)) domains.push(v);
+  const bare = v.replace(/^www\./, "");
+  if (!domains.includes(bare)) domains.push(bare);
+  if (!v.startsWith("www.")) pushDomain(domains, `www.${v}`);
+}
+
 /** Domains Quick Auth / SIWF may use for this deployment. */
-export function farcasterAuthDomains(requestHost?: string | null): string[] {
+export function farcasterAuthDomains(
+  requestHost?: string | null,
+  clientDomain?: string | null
+): string[] {
   const domains: string[] = [];
-  const push = (d: string | null | undefined) => {
-    if (!d) return;
-    const v = d.toLowerCase();
-    if (!domains.includes(v)) domains.push(v);
-    const bare = v.replace(/^www\./, "");
-    if (!domains.includes(bare)) domains.push(bare);
-  };
-  push(normalizeHost(requestHost));
-  push(appHostname());
+  pushDomain(domains, normalizeHost(clientDomain));
+  pushDomain(domains, normalizeHost(requestHost));
+  pushDomain(domains, appHostname());
+  return domains;
+}
+
+function domainsForJwt(
+  token: string,
+  requestHost?: string | null,
+  clientDomain?: string | null
+): string[] {
+  const domains: string[] = [];
+  try {
+    const decoded = decodeJwt(token);
+    if (typeof decoded.aud === "string") pushDomain(domains, decoded.aud);
+  } catch {
+    // ignore malformed token — verifyJwt will fail below
+  }
+  for (const d of farcasterAuthDomains(requestHost, clientDomain)) {
+    pushDomain(domains, d);
+  }
   return domains;
 }
 
@@ -63,10 +87,11 @@ function addressFromPayload(payload: unknown): string | null {
 export async function verifyFarcasterQuickAuthToken(
   token: string,
   requestHost?: string | null,
-  expectedAddress?: string
+  expectedAddress?: string,
+  clientDomain?: string | null
 ): Promise<{ address: string; fid?: number } | { error: string }> {
   const client = createClient();
-  const domains = farcasterAuthDomains(requestHost);
+  const domains = domainsForJwt(token, requestHost, clientDomain);
   let lastError = "Invalid Farcaster session token";
 
   for (const domain of domains) {
@@ -100,13 +125,14 @@ export async function verifyFarcasterSignIn(
   message: string,
   signature: string,
   expectedAddress?: string,
-  requestHost?: string | null
+  requestHost?: string | null,
+  clientDomain?: string | null
 ): Promise<{ address: string } | { error: string }> {
   const client = createClient();
   const msgDomain = domainFromSiwfMessage(message);
   const domains = [
     ...(msgDomain ? [msgDomain] : []),
-    ...farcasterAuthDomains(requestHost),
+    ...farcasterAuthDomains(requestHost, clientDomain),
   ].filter((d, i, arr) => arr.indexOf(d) === i);
 
   let lastError = "Farcaster sign-in failed";
@@ -117,13 +143,29 @@ export async function verifyFarcasterSignIn(
         message,
         signature,
         domain,
-        // Auth-address SIWF (Base App) — supported by Quick Auth; types lag behind.
+        // Auth-address SIWF (Base App passkey) — supported by Quick Auth; types lag behind.
         ...({ acceptAuthAddress: true } as Record<string, unknown>),
       } as Parameters<typeof client.verifySiwf>[0]);
 
-      const payload = await client.verifyJwt({ token, domain });
+      const jwtDomains = domainsForJwt(token, requestHost, clientDomain);
+      let payload: unknown = null;
+      let jwtError = lastError;
+
+      for (const jwtDomain of jwtDomains) {
+        try {
+          payload = await client.verifyJwt({ token, domain: jwtDomain });
+          break;
+        } catch (e) {
+          jwtError = e instanceof Error ? e.message : jwtError;
+        }
+      }
+
+      if (!payload) {
+        lastError = jwtError;
+        continue;
+      }
+
       const jwtAddress = addressFromPayload(payload);
-      // Prefer connected wallet — SIWF may be custody/auth address.
       const sessionAddress =
         expectedAddress?.toLowerCase() ?? jwtAddress ?? undefined;
 

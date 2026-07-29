@@ -20,12 +20,14 @@ export async function POST(req: Request) {
       signature?: string;
       token?: string;
       address?: string;
+      clientDomain?: string;
       authMethod?: "siwe" | "farcaster" | "quickAuth";
     };
     const message = body.message?.trim();
     const signature = body.signature?.trim();
     const quickToken = body.token?.trim();
     const authMethod = body.authMethod ?? "siwe";
+    const clientDomain = body.clientDomain?.trim() || null;
     let expectedAddress: string | null = null;
 
     try {
@@ -46,7 +48,8 @@ export async function POST(req: Request) {
       const verified = await verifyFarcasterQuickAuthToken(
         quickToken,
         requestHost,
-        expectedAddress ?? undefined
+        expectedAddress ?? undefined,
+        clientDomain
       );
       if ("error" in verified) {
         return NextResponse.json({ error: verified.error }, { status: 401 });
@@ -64,9 +67,9 @@ export async function POST(req: Request) {
       const verified = await verifyFarcasterSignIn(
         message,
         signature,
-        // SIWF may sign with custody/auth address ≠ connected smart wallet.
         expectedAddress ?? undefined,
-        requestHost
+        requestHost,
+        clientDomain
       );
       if ("error" in verified) {
         return NextResponse.json({ error: verified.error }, { status: 401 });
