@@ -29,5 +29,7 @@ describe("siwe signed nonce", () => {
     expect(msg).toContain("base-analytics-app.vercel.app wants you to sign in");
     expect(msg).toContain("Chain ID: 8453");
     expect(msg).toContain(`Nonce: ${nonce}`);
+    // Round-trip parse (rejects unicode em-dashes in statement)
+    expect(() => new (require("siwe").SiweMessage)(msg)).not.toThrow();
   });
 });

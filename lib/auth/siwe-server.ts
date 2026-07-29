@@ -138,7 +138,7 @@ export function buildSiweMessage(
   const siwe = new SiweMessage({
     domain: d,
     address: getAddress(address),
-    statement: "Sign in to Base Analytics — manage your creator profile and launch revenue.",
+    statement: "Sign in to Base Analytics - manage your creator profile and launch revenue.",
     uri: u,
     version: "1",
     chainId: BASE_CHAIN_ID,
