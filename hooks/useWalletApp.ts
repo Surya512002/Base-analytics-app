@@ -2390,7 +2390,14 @@ function useWalletAppController() {
       setScanProgress("Loading balance…");
       setWalletRefreshing(true);
       setAnalyticsSyncing(false);
-      void refreshSiweSession();
+
+      // Auto-trigger sign-in immediately after connect
+      void (async () => {
+        const hasSession = await refreshSiweSession();
+        if (!hasSession) {
+          void siweSignIn();
+        }
+      })();
 
       void (async () => {
         const [basename, bootstrap, quick, miniIdentity] = await Promise.all([

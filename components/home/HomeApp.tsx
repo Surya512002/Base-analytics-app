@@ -11,6 +11,7 @@ import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import SiweSignInBanner from "@/components/wallet/SiweSignInBanner";
+import SignInOverlay from "@/components/wallet/SignInOverlay";
 import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
@@ -100,6 +101,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     }
   }, [siweSignIn, setToast]);
 
+  const [siweSkipped, setSiweSkipped] = useState(false);
   const [launchBridge, setLaunchBridge] = useState<LaunchpadShellBridge | null>(null);
   const guest = sessionBootstrapped ? !wallet : false;
   const activeTab = forceTab ?? tab;
@@ -180,16 +182,12 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
           />
         }
       >
-        {!guest && wallet?.address && !siweAuthenticated && (
-          <div className="mb-4">
-            <SiweSignInBanner
-              walletAddress={wallet.address}
-              authenticated={siweAuthenticated}
-              signingIn={siweSigningIn}
-              onSignIn={() => void handleSiweSignIn()}
-            />
-          </div>
-        )}
+        <SignInOverlay
+          visible={!guest && !!wallet?.address && !siweAuthenticated && !siweSkipped}
+          signingIn={siweSigningIn}
+          onSignIn={() => void handleSiweSignIn()}
+          onSkip={() => setSiweSkipped(true)}
+        />
 
         {guest && (
           <div className="mb-4 flex flex-col gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
