@@ -37,7 +37,10 @@ function referralCode(address: string): string {
 }
 
 function isSelfReferral(address: string, referrerCode: string): boolean {
-  return referralCode(address) === referrerCode.toLowerCase();
+  const code = referrerCode.toLowerCase();
+  if (referralCode(address) === code) return true;
+  if (code.startsWith("0x") && code.length === 42 && code === address) return true;
+  return false;
 }
 
 async function loadStore(redis: Redis): Promise<RefStore> {
@@ -58,10 +61,7 @@ function ensureEntry(store: RefStore, address: string): RefEntry {
 }
 
 /** Merge legacy 8-char code buckets into full-address entries. */
-function migrateLegacyReferrerBucket(
-  store: RefStore,
-  address: string
-): void {
+function migrateLegacyReferrerBucket(store: RefStore, address: string): void {
   const code = referralCode(address);
   const legacy = store[code];
   if (!legacy || code === address) return;
@@ -87,6 +87,43 @@ async function registerReferrerCode(
   migrateLegacyReferrerBucket(store, address);
 }
 
+/**
+ * Resolve a referral code or full address to a referrer wallet.
+ * Accepts 8-char codes and 0x addresses; scans store if index is cold.
+ */
+function resolveReferrerAddress(
+  referrerInput: string,
+  codeIndex: CodeIndex,
+  store: RefStore
+): string | null {
+  const input = referrerInput.toLowerCase().trim();
+
+  if (input.startsWith("0x") && input.length === 42) {
+    return input;
+  }
+
+  if (codeIndex[input]) return codeIndex[input];
+
+  // Cold index: scan known addresses / legacy buckets
+  for (const [key, entry] of Object.entries(store)) {
+    if (key.startsWith("0x") && key.length === 42 && referralCode(key) === input) {
+      return key;
+    }
+    // Legacy: store keyed by code itself
+    if (key === input && entry) {
+      // Prefer an invite that points elsewhere? Legacy bucket is the code itself —
+      // can't recover address from code-only bucket without index.
+      continue;
+    }
+  }
+
+  for (const [code, addr] of Object.entries(codeIndex)) {
+    if (code === input && addr?.startsWith("0x")) return addr;
+  }
+
+  return null;
+}
+
 export async function GET(req: Request) {
   const address = new URL(req.url).searchParams.get("address")?.toLowerCase();
   if (!address?.startsWith("0x") || address.length !== 42) {
@@ -108,6 +145,7 @@ export async function GET(req: Request) {
       invites: entry.invites.length,
       bonusXp: entry.bonusXp,
       referredBy: entry.referredBy ?? null,
+      code: referralCode(address),
     });
   } catch {
     return NextResponse.json({ invites: 0, bonusXp: 0, referredBy: null });
@@ -140,7 +178,7 @@ export async function POST(req: Request) {
   try {
     await redis.connect();
     const store = await loadStore(redis);
-    const codeIndex = await loadCodeIndex(redis);
+    let codeIndex = await loadCodeIndex(redis);
 
     await registerReferrerCode(redis, store, address);
 
@@ -152,27 +190,33 @@ export async function POST(req: Request) {
       });
     }
 
-    const referrerAddress = codeIndex[referrerCode];
+    let referrerAddress = resolveReferrerAddress(referrerCode, codeIndex, store);
     if (!referrerAddress || referrerAddress === address) {
       return NextResponse.json({ bonusXp: 0, referredBy: null });
     }
 
+    // Keep index warm for 8-char codes
+    const code = referralCode(referrerAddress);
+    if (!codeIndex[code]) {
+      codeIndex = { ...codeIndex, [code]: referrerAddress };
+      await redis.set(REF_CODE_INDEX_KEY, JSON.stringify(codeIndex));
+    }
+
     const joiner = ensureEntry(store, address);
-    joiner.referredBy = referrerCode;
+    joiner.referredBy = code;
     joiner.bonusXp = (joiner.bonusXp ?? 0) + JOIN_BONUS_XP;
 
     const referrer = ensureEntry(store, referrerAddress);
     if (!referrer.invites.includes(address)) {
       referrer.invites.push(address);
-      referrer.bonusXp =
-        (referrer.bonusXp ?? 0) + REFERRER_XP_PER_INVITE;
+      referrer.bonusXp = (referrer.bonusXp ?? 0) + REFERRER_XP_PER_INVITE;
     }
 
     await redis.set(REFERRALS_KEY, JSON.stringify(store));
 
     return NextResponse.json({
       bonusXp: JOIN_BONUS_XP,
-      referredBy: referrerCode,
+      referredBy: code,
     });
   } catch (e) {
     console.error("[referral]", e);

@@ -667,8 +667,9 @@ export default function TokenLaunchForm({
           <p className="text-[11px] text-slate-500 leading-relaxed">
             One B20 factory transaction mints liquid allocations atomically. Vested % (
             {vestedPct}%) and pool seed ({poolPct}%) stay unminted. Gas ~$0.05–$0.15 on Base.
-            Every transaction includes builder code{" "}
-            <span className="font-mono text-[var(--ink-muted)]">{BUILDER_CODE}</span>. Rabby may warn
+            Launches include builder code{" "}
+            <span className="font-mono text-[var(--ink-muted)]">{BUILDER_CODE}</span>{" "}
+            via a companion attribution tx (B20 factory calldata stays canonical). Rabby may warn
             &quot;not a contract&quot; on the B20 factory (
             <span className="font-mono text-slate-400">0xB20f…</span>) — that is not your token;
             your token address starts with <span className="font-mono text-emerald-400/90">0xB200…</span>.

@@ -99,6 +99,7 @@ import {
   readStoredReferrer,
   registerReferralJoin,
   fetchReferralStats,
+  storeReferrer,
 } from "@/lib/utils/referral";
 import { loadLocalBatches } from "@/lib/utils/voucher";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
@@ -417,7 +418,7 @@ export function useWalletApp() {
       ensureSessionStorageVersion();
       const p = new URLSearchParams(window.location.search);
       const r = p.get("ref");
-      if (r) localStorage.setItem("base_referrer", r);
+      if (r) storeReferrer(r);
       const card = p.get("card");
       if (card) localStorage.setItem("base_redeem_card", card);
       const challengeAddr = p.get("challenge")?.trim().toLowerCase();
@@ -566,7 +567,7 @@ export function useWalletApp() {
         rank: wallet.walletRank,
         boosts,
         badges: mintedCount,
-        weeklyXP: questXp,
+        weeklyXP: questXp + referralBonusXp,
         badgeMintXp,
         weekNumber: getISOWeekNumber(),
       }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
@@ -999,9 +1000,9 @@ export function useWalletApp() {
           return { ok: false };
         }
 
-        const hash = await sendAppTransactions(activeConn, wallet.address, [createCall], {
-          skipBuilderCompanion: true,
-        });
+        // B20 factory calldata cannot include builder suffix — companion attribution
+        // tx is appended automatically; create hash is still returned for registration.
+        const hash = await sendAppTransactions(activeConn, wallet.address, [createCall]);
 
         let launchBlock: number | undefined;
         let receipt: import("viem").TransactionReceipt | null = null;

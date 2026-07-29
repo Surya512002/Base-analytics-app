@@ -13,7 +13,7 @@ export default function LaunchAdvantageStrip() {
           <p className="text-sm font-bold text-[var(--ink)]">Why launch on Base Analytics</p>
         </div>
         <p className="font-mono text-[10px] text-[var(--ink-dim)]">
-          Builder <span className="text-[var(--ink-muted)]">{BUILDER_CODE}</span> on every tx
+          Builder <span className="text-[var(--ink-muted)]">{BUILDER_CODE}</span> on launches &amp; swaps
         </p>
       </div>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">

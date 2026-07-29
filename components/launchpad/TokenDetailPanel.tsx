@@ -784,7 +784,7 @@ export default function TokenDetailPanel({
                     </li>
                     <li>Dual-DEX auto-routing (Uniswap + Aerodrome)</li>
                     <li>Vanity 0xB200… addresses + true unminted vesting</li>
-                    <li>Every on-app tx includes builder code {BUILDER_CODE}</li>
+                    <li>On-app txs include builder code {BUILDER_CODE} (launches use a companion attribution tx)</li>
                   </ul>
                 </div>
               ) : (

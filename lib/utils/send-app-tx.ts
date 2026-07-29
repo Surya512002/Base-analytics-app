@@ -13,6 +13,8 @@ import {
   finalizeAppTransactionBatch,
   canBundleViaMulticall3,
   bundleCallsViaMulticall3,
+  hasBuilderSuffix,
+  stripBuilderSuffix,
 } from "@/lib/utils/tx";
 import {
   detectMiniAppConnType,
@@ -375,6 +377,19 @@ function partitionB20PreflightCalls(calls: ContractCall[]): {
   return { preflight, main };
 }
 
+/** Zero-value builder attribution companion(s) appended after B20 create. */
+function isAttributionCompanionBatch(calls: ContractCall[]): boolean {
+  if (calls.length === 0) return false;
+  return calls.every((c) => {
+    const bare = hasBuilderSuffix(c.data) ? stripBuilderSuffix(c.data) : c.data;
+    return (
+      bare === "0x" &&
+      (!c.value || c.value === BigInt(0)) &&
+      !isB20PrecompileAddress(c.to)
+    );
+  });
+}
+
 function batchCanTryPaymaster(calls: ContractCall[]): boolean {
   if (calls.length === 0) return false;
   return !calls.every((c) => isB20PrecompileAddress(c.to));
@@ -556,7 +571,10 @@ async function sendB20Launch(
 }
 
 export type SendAppTxOptions = {
-  /** B20 factory calls must not be paired with a companion attribution tx (breaks paymaster batches). */
+  /**
+   * Skip treasury companion after B20-only batches.
+   * Prefer leaving this unset — companion is required for builder attribution on creates.
+   */
   skipBuilderCompanion?: boolean;
   /** When true (default), approve + swap + fee transfers run in one wallet_sendCalls batch. */
   atomicBatch?: boolean;
@@ -591,11 +609,35 @@ export async function sendAppTransactions(
   let workBatch = batch;
 
   if (preflight.length > 0 && main.length > 0) {
-    const preHash = await sendGroupedAppCalls(provider, from, preflight, {
-      preferSendCalls,
-      atomicBatch,
-    });
-    await waitForTxMined(preHash);
+    const b20CreateOnly =
+      preflight.length === 1 && isB20PrecompileAddress(preflight[0]!.to);
+
+    const createHash = b20CreateOnly
+      ? await sendB20Launch(provider, from, preflight[0]!, connType, inMiniApp)
+      : await sendGroupedAppCalls(provider, from, preflight, {
+          preferSendCalls,
+          atomicBatch,
+        });
+
+    if (!b20CreateOnly) {
+      await waitForTxMined(createHash);
+    }
+
+    // B20 create + builder companion: attribute, but return the create hash for registration.
+    if (isAttributionCompanionBatch(main)) {
+      try {
+        await sendGroupedAppCalls(provider, from, main, {
+          preferSendCalls,
+          atomicBatch: true,
+        });
+      } catch (e) {
+        if (!isUserRejection(e)) {
+          console.warn("[builder] attribution companion failed after B20 create", e);
+        }
+      }
+      return createHash;
+    }
+
     workBatch = main;
   }
 
