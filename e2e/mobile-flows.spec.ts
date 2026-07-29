@@ -36,10 +36,14 @@ test.describe("mobile viewport flows", () => {
     await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole("navigation", { name: "Main" }).getByText("Profile")).toBeVisible({
+    const headerNav = page.getByRole("navigation", { name: "Main", exact: true });
+    await expect(headerNav.getByRole("link", { name: "Profile" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole("navigation", { name: "Main" }).getByText("Quests")).toBeVisible();
+    await expect(headerNav.getByRole("button", { name: "Quests" })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Profile" })
+    ).toBeVisible({ timeout: 15_000 });
   });
 });
 
