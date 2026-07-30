@@ -189,10 +189,10 @@ export default function AppHeader({
           </div>
         </div>
 
-        {/* Nav — scrollable on mobile, full row on desktop */}
+        {/* Desktop only — phones use MobileBottomNav only (no duplicate Explore/Swap/…) */}
         <nav
           aria-label="Main"
-          className="flex min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar xl:gap-1"
+          className="max-lg:!hidden min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar lg:flex xl:gap-1"
         >
           {navLinks}
         </nav>

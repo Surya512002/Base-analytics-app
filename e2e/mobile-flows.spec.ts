@@ -33,16 +33,12 @@ test.describe("mobile viewport flows", () => {
     const addr = "0x0000000000000000000000000000000000000001";
     await page.goto(`${BASE}/creator/${addr}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Creator profile")).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible({
-      timeout: 15_000,
-    });
-    const headerNav = page.getByRole("navigation", { name: "Main", exact: true });
-    await expect(headerNav.getByRole("link", { name: "Profile" })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(headerNav.getByRole("button", { name: "Quests" })).toBeVisible();
-    // Guest bottom Profile is a button (opens connect); signed-in users get a link.
+    // Mobile: only bottom nav (header Main nav is lg+ to avoid duplicate tabs).
     const bottomNav = page.getByRole("navigation", { name: "Main navigation" });
+    await expect(bottomNav).toBeVisible({ timeout: 15_000 });
+    await expect(bottomNav.getByRole("button", { name: "Explore" })).toBeVisible();
+    await expect(bottomNav.getByRole("button", { name: "Quests" })).toBeVisible();
+    // Guest bottom Profile is a button (opens connect); signed-in users get a link.
     await expect(
       bottomNav
         .getByRole("link", { name: "Profile" })

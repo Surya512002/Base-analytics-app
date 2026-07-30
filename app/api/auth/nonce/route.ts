@@ -31,11 +31,21 @@ export async function GET(req: Request) {
     address = null;
   }
 
-  const host = requestHost(req);
-  const domain = resolveSiweDomain(host);
-  const uri = requestOrigin(req, domain);
-  const nonce = issueSiweNonce();
-  const message = address ? buildSiweMessage(address, nonce, domain, uri) : null;
+  try {
+    const host = requestHost(req);
+    const domain = resolveSiweDomain(host);
+    const uri = requestOrigin(req, domain);
+    const nonce = issueSiweNonce();
+    const message = address ? buildSiweMessage(address, nonce, domain, uri) : null;
 
-  return NextResponse.json({ nonce, message, address, domain });
+    return NextResponse.json({ nonce, message, address, domain });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "nonce failed";
+    console.error("[auth/nonce]", msg);
+    // Misconfigured production (e.g. missing SIWE_SESSION_SECRET) — surface as 503, not opaque 500
+    if (msg.includes("SIWE_SESSION_SECRET")) {
+      return NextResponse.json({ error: "Auth not configured" }, { status: 503 });
+    }
+    return NextResponse.json({ error: "Could not issue nonce" }, { status: 500 });
+  }
 }
