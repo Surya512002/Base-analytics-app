@@ -17,10 +17,10 @@ function StatTile({
   return (
     <div className={`analytics-tile rounded-2xl p-3 sm:p-4 group ${dim ? "opacity-60" : ""}`}>
       <div className="mb-2 group-hover:scale-110 transition-transform w-fit">{icon}</div>
-      <p className="font-black text-white text-sm sm:text-base truncate leading-tight tabular-nums">
+      <p className="font-black text-[var(--ink)] text-sm sm:text-base truncate leading-tight tabular-nums">
         {value}
       </p>
-      <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5 truncate">
+      <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold tracking-wide mt-0.5 truncate">
         {label}
       </p>
     </div>
@@ -38,17 +38,17 @@ function StatsSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[var(--bg-raised)]/60 overflow-hidden">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5 text-left hover:bg-white/[0.03] transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5 text-left hover:bg-[var(--surface-2)] transition-colors"
       >
-        <span className="text-[12px] sm:text-[13px] font-bold text-white tracking-tight">{title}</span>
+        <span className="text-[12px] sm:text-[13px] font-bold text-[var(--ink)] tracking-tight">{title}</span>
         {open ? (
-          <ChevronUp size={16} className="text-slate-500 shrink-0" />
+          <ChevronUp size={16} className="text-[var(--ink-muted)] shrink-0" />
         ) : (
-          <ChevronDown size={16} className="text-slate-500 shrink-0" />
+          <ChevronDown size={16} className="text-[var(--ink-muted)] shrink-0" />
         )}
       </button>
       {open && (

@@ -69,7 +69,7 @@ export default function OnchainScorePanel({
     <div className="space-y-4">
       {syncing && (
         <div className="glass-panel rounded-2xl px-4 py-3 flex items-center gap-3">
-          <RefreshCcw size={16} className="text-white/50 animate-spin shrink-0" />
+          <RefreshCcw size={16} className="text-[var(--ink-muted)] animate-spin shrink-0" />
           <p className="text-xs text-[var(--ink-muted)] font-semibold">
             {scanProgress || "Syncing onchain score & heatmap…"}
           </p>
@@ -155,9 +155,9 @@ export default function OnchainScorePanel({
               </div>
               <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
                 {[
-                  { l: "Active Days", v: wallet.uniqueDays, c: "text-white" },
-                  { l: "Months", v: wallet.activeMonths, c: "text-white" },
-                  { l: "Streak", v: `${wallet.currentStreak}d`, c: "text-white" },
+                  { l: "Active Days", v: wallet.uniqueDays, c: "text-[var(--ink)]" },
+                  { l: "Months", v: wallet.activeMonths, c: "text-[var(--ink)]" },
+                  { l: "Streak", v: `${wallet.currentStreak}d`, c: "text-[var(--ink)]" },
                 ].map((s, i) => (
                   <div
                     key={i}
@@ -293,9 +293,9 @@ export default function OnchainScorePanel({
                   <p className="text-[10px] text-[var(--ink-muted)] font-bold">transactions</p>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 opacity-30">
+                <div className="flex items-center gap-2 opacity-70">
                   <MousePointerClick size={14} className="text-[var(--ink-muted)]" />
-                  <span className="text-[10px] text-[var(--ink-dim)] uppercase font-bold">
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase font-bold">
                     Click a cell
                   </span>
                 </div>

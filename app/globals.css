@@ -676,12 +676,12 @@ html.is-scrolling .prism-scene {
 }
 
 .analytics-tile:hover {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--border-strong);
   background: var(--bg-hover);
 }
 
 .analytics-tile-icon {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--ink-muted);
 }
 
 .quest-card {

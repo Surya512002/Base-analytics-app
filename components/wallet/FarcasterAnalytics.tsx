@@ -425,8 +425,8 @@ export default function FarcasterAnalytics({
   const quotientScore=fcResult?Math.min(99.9,40+(Number(fcResult.reputation)*5)).toFixed(1):'0';
   const neynarScore=fcResult?Number(fcResult.reputation):0;
 
-  const scoreColor=neynarScore>=8?'text-yellow-400':neynarScore>=6?'text-[var(--ink)]':neynarScore>=4?'text-[var(--ink-muted)]':'text-slate-400';
-  const scoreBg=neynarScore>=8?'bg-yellow-500/10 border-yellow-500/25':'bg-[var(--bg-elevated)] border-[var(--border-subtle)]';
+  const scoreColor=neynarScore>=8?'text-amber-600':neynarScore>=6?'text-[var(--ink)]':neynarScore>=4?'text-[var(--ink-muted)]':'text-[var(--ink-dim)]';
+  const scoreBg=neynarScore>=8?'bg-amber-500/10 border-amber-500/30':'bg-[var(--surface-2)] border-[var(--border-subtle)]';
 
   const APP_WEBSITE_URL = APP_URL_WEB;
   const shareMsg = fcResult
@@ -445,55 +445,55 @@ export default function FarcasterAnalytics({
           unlocked ? "" : "blur-md pointer-events-none select-none"
         }`}
       >
-        <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-4">
-          <MessageCircle size={13}/> Farcaster Identity {isScanningFc&&<RefreshCcw size={11} className="animate-spin text-slate-700"/>}
+        <h3 className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest flex items-center gap-2 mb-4">
+          <MessageCircle size={13}/> Farcaster Identity {isScanningFc&&<RefreshCcw size={11} className="animate-spin text-[var(--ink-muted)]"/>}
         </h3>
 
         <form onSubmit={handleScanFarcaster} className="flex gap-3 mb-5">
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span className="text-slate-600 font-bold text-sm">@</span></div>
-            <input type="text" value={fcUsername} onChange={e=>setFcUsername(e.target.value.replace('@',''))} placeholder="Search any Farcaster username..." className="w-full bg-white/4 border border-white/6 text-white text-sm font-bold rounded-2xl focus:border-[var(--border-focus)] pl-8 pr-4 py-3.5 placeholder-slate-600 outline-none transition"/>
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span className="text-[var(--ink-muted)] font-bold text-sm">@</span></div>
+            <input type="text" value={fcUsername} onChange={e=>setFcUsername(e.target.value.replace('@',''))} placeholder="Search any Farcaster username..." className="w-full bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--ink)] text-sm font-bold rounded-2xl focus:border-[var(--border-focus)] pl-8 pr-4 py-3.5 placeholder:text-[var(--ink-dim)] outline-none transition"/>
           </div>
           <button type="submit" disabled={isScanningFc} className="btn-primary font-black px-6 py-3.5 rounded-2xl flex items-center gap-2 disabled:opacity-50 transition shrink-0">
             {isScanningFc?<RefreshCcw size={16} className="animate-spin"/>:<Search size={16}/>} Scan
           </button>
         </form>
-        {fcError&&<p className="text-amber-400/90 text-xs mb-4 font-bold">{fcError}</p>}
+        {fcError&&<p className="text-amber-600 text-xs mb-4 font-bold">{fcError}</p>}
         {neynarUnavailable&&!fcResult&&(
-          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+          <p className="text-xs text-[var(--ink-muted)] mb-4 leading-relaxed">
             Get a free key at{" "}
-            <a href="https://dev.neynar.com" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] font-bold hover:text-[var(--ink-muted)]">
+            <a href="https://dev.neynar.com" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-dark)] font-bold hover:underline">
               dev.neynar.com
             </a>
-            , add <span className="font-mono text-slate-400">NEYNAR_API_KEY=...</span> to <span className="font-mono text-slate-400">.env.local</span>, then restart <span className="font-mono text-slate-400">npm run dev</span>.
+            , add <span className="font-mono text-[var(--ink-dim)]">NEYNAR_API_KEY=...</span> to <span className="font-mono text-[var(--ink-dim)]">.env.local</span>, then restart <span className="font-mono text-[var(--ink-dim)]">npm run dev</span>.
           </p>
         )}
 
         {fcResult?(
           <div className="space-y-4">
-            <div className="bg-[var(--bg-raised)] border border-white/6 rounded-3xl p-5 sm:p-6">
+            <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-3xl p-5 sm:p-6 shadow-[var(--shadow-card)]">
               <div className="flex items-start gap-4 mb-5">
                 {fcResult.pfpUrl?(
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={fcResult.pfpUrl} alt="pfp" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/5 shrink-0 object-cover"/>
+                  <img src={fcResult.pfpUrl} alt="pfp" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--surface-2)] shrink-0 object-cover"/>
                 ):(
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center shrink-0"><MessageCircle size={28} className="text-[var(--ink-muted)]"/></div>
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center shrink-0"><MessageCircle size={28} className="text-[var(--ink-muted)]"/></div>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h4 className="font-black text-xl text-white">{fcResult.username}</h4>
-                    {fcResult.powerBadge&&<span className="text-[9px] font-black bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 px-2 py-0.5 rounded-full flex items-center gap-1"><Star size={8}/>Power Badge</span>}
+                    <h4 className="font-black text-xl text-[var(--ink)]">{fcResult.username}</h4>
+                    {fcResult.powerBadge&&<span className="text-[9px] font-black bg-amber-500/15 text-amber-700 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1"><Star size={8}/>Power Badge</span>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-black bg-white/5 text-slate-400 border border-white/8 px-2 py-1 rounded-lg">FID #{fcResult.fid}</span>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${fcResult.tier==='Power User'?'bg-yellow-500/10 text-yellow-400 border-yellow-500/20':fcResult.tier==='Active Caster'?'bg-[var(--bg-elevated)] text-[var(--ink)] border-[var(--border-subtle)]':fcResult.tier==='Regular'?'bg-[var(--bg-elevated)] text-[var(--ink-muted)] border-[var(--border-subtle)]':'bg-white/5 text-slate-500 border-white/8'}`}>{fcResult.tier}</span>
-                    <span className="text-[10px] font-black bg-white/5 text-slate-400 border border-white/8 px-2 py-1 rounded-lg flex items-center gap-1"><Calendar size={9}/>Joined {fcResult.joinedDate}</span>
+                    <span className="text-[10px] font-black bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] px-2 py-1 rounded-lg">FID #{fcResult.fid}</span>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${fcResult.tier==='Power User'?'bg-amber-500/10 text-amber-700 border-amber-500/25':fcResult.tier==='Active Caster'?'bg-[var(--brand-soft)] text-[var(--brand-dark)] border-[var(--brand)]/30':fcResult.tier==='Regular'?'bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--border-subtle)]':'bg-[var(--surface-2)] text-[var(--ink-dim)] border-[var(--border-subtle)]'}`}>{fcResult.tier}</span>
+                    <span className="text-[10px] font-black bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] px-2 py-1 rounded-lg flex items-center gap-1"><Calendar size={9}/>Joined {fcResult.joinedDate}</span>
                   </div>
-                  {fcResult.bio&&<p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{fcResult.bio}</p>}
+                  {fcResult.bio&&<p className="text-xs text-[var(--ink-dim)] mt-2 line-clamp-2 leading-relaxed">{fcResult.bio}</p>}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <a href={fcLink} target="_blank" rel="noopener noreferrer" className="bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-white p-2.5 rounded-xl transition"><Send size={14}/></a>
-                  <a href={xLink} target="_blank" rel="noopener noreferrer" className="bg-slate-800 hover:bg-slate-700 text-white p-2.5 rounded-xl transition"><Twitter size={14}/></a>
+                  <a href={fcLink} target="_blank" rel="noopener noreferrer" className="bg-[var(--surface-2)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] text-[var(--ink)] p-2.5 rounded-xl transition"><Send size={14}/></a>
+                  <a href={xLink} target="_blank" rel="noopener noreferrer" className="bg-[var(--ink)] hover:opacity-90 text-white p-2.5 rounded-xl transition"><Twitter size={14}/></a>
                 </div>
               </div>
 
@@ -501,32 +501,32 @@ export default function FarcasterAnalytics({
                 {[
                   {label:'FOLLOWERS',value:fcResult.followers.toLocaleString(),icon:<Users size={13}/>,color:'text-[var(--ink)]'},
                   {label:'FOLLOWING',value:fcResult.following.toLocaleString(),icon:<Users size={13}/>,color:'text-[var(--ink)]'},
-                  {label:'FID AGE',value:fcResult.fidAgeLabel,icon:<Clock size={13}/>,color:'text-green-400'},
+                  {label:'FID AGE',value:fcResult.fidAgeLabel,icon:<Clock size={13}/>,color:'text-emerald-600'},
                 ].map((s,i)=>(
-                  <div key={i} className="bg-white/4 border border-white/6 rounded-2xl p-3 sm:p-4 text-center">
-                    <div className={`flex items-center justify-center gap-1 mb-1 ${s.color}`}>{s.icon}<span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{s.label}</span></div>
+                  <div key={i} className="bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-2xl p-3 sm:p-4 text-center">
+                    <div className={`flex items-center justify-center gap-1 mb-1 ${s.color}`}>{s.icon}<span className="text-[9px] font-black uppercase tracking-widest text-[var(--ink-muted)]">{s.label}</span></div>
                     <p className={`font-black text-base sm:text-xl ${s.color}`}>{s.value}</p>
                   </div>
                 ))}
               </div>
 
               <div className={`rounded-2xl border p-4 sm:p-5 mb-4 ${scoreBg}`}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">NEYNAR REPUTATION SCORE</p>
-                <p className={`text-5xl sm:text-6xl font-black tracking-tight ${scoreColor}`}>{fcResult.reputation}<span className="text-xl text-slate-600">/10</span></p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)] mb-2">NEYNAR REPUTATION SCORE</p>
+                <p className={`text-5xl sm:text-6xl font-black tracking-tight ${scoreColor}`}>{fcResult.reputation}<span className="text-xl text-[var(--ink-muted)]">/10</span></p>
               </div>
 
               <div className="space-y-2">
                 {[
-                  {icon:<Clock size={15} className="text-[var(--ink-muted)]"/>,label:`FID Age: ${fcResult.fidAgeMonths} months`,value:`+${Math.round(fcResult.fidAgeMonths*200)} XP`,color:'text-green-400'},
-                  {icon:<Users size={15} className="text-[var(--ink-muted)]"/>,label:`Followers: ${fcResult.followers.toLocaleString()}`,value:fcResult.followers>5000?`+${Math.round(fcResult.followers/50)} XP`:'Grow your audience',color:fcResult.followers>5000?'text-green-400':'text-slate-500'},
-                  {icon:<Hash size={15} className="text-orange-400"/>,label:`FID Number: #${fcResult.fid.toLocaleString()}`,value:fcResult.fid<10000?'OG Early Adopter 🛸':fcResult.fid<100000?'Early Member':'Standard',color:fcResult.fid<10000?'text-yellow-400':fcResult.fid<100000?'text-[var(--ink)]':'text-slate-500'},
-                  {icon:<ShieldCheck size={15} className="text-green-400"/>,label:`Verifications: ${fcResult.verifications}`,value:fcResult.verifications>0?'Verified ✓':'Not verified',color:fcResult.verifications>0?'text-green-400':'text-slate-500'},
-                  {icon:<Star size={15} className="text-yellow-400"/>,label:'Most Influential Follower',value:fcResult.topFollower,color:'text-[var(--ink)]'},
+                  {icon:<Clock size={15} className="text-[var(--ink-muted)]"/>,label:`FID Age: ${fcResult.fidAgeMonths} months`,value:`+${Math.round(fcResult.fidAgeMonths*200)} XP`,color:'text-emerald-600'},
+                  {icon:<Users size={15} className="text-[var(--ink-muted)]"/>,label:`Followers: ${fcResult.followers.toLocaleString()}`,value:fcResult.followers>5000?`+${Math.round(fcResult.followers/50)} XP`:'Grow your audience',color:fcResult.followers>5000?'text-emerald-600':'text-[var(--ink-muted)]'},
+                  {icon:<Hash size={15} className="text-orange-500"/>,label:`FID Number: #${fcResult.fid.toLocaleString()}`,value:fcResult.fid<10000?'OG Early Adopter 🛸':fcResult.fid<100000?'Early Member':'Standard',color:fcResult.fid<10000?'text-amber-600':fcResult.fid<100000?'text-[var(--ink)]':'text-[var(--ink-muted)]'},
+                  {icon:<ShieldCheck size={15} className="text-emerald-600"/>,label:`Verifications: ${fcResult.verifications}`,value:fcResult.verifications>0?'Verified ✓':'Not verified',color:fcResult.verifications>0?'text-emerald-600':'text-[var(--ink-muted)]'},
+                  {icon:<Star size={15} className="text-amber-500"/>,label:'Most Influential Follower',value:fcResult.topFollower,color:'text-[var(--ink)]'},
                 ].map((row,i)=>(
-                  <div key={i} className="flex items-center justify-between bg-white/3 hover:bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 transition-colors">
+                  <div key={i} className="flex items-center justify-between bg-[var(--surface-2)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] rounded-xl p-3 sm:p-4 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
                       {row.icon}
-                      <span className="text-xs sm:text-sm text-slate-300 font-bold truncate">{row.label}</span>
+                      <span className="text-xs sm:text-sm text-[var(--ink)] font-bold truncate">{row.label}</span>
                     </div>
                     <span className={`text-xs sm:text-sm font-black shrink-0 ml-2 ${row.color}`}>{row.value}</span>
                   </div>
@@ -534,11 +534,11 @@ export default function FarcasterAnalytics({
               </div>
             </div>
 
-            <div className="bg-[var(--bg-raised)] border border-white/6 rounded-3xl p-5 sm:p-6">
+            <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-3xl p-5 sm:p-6 shadow-[var(--shadow-card)]">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
                 <div>
-                  <h4 className="font-black text-white text-base sm:text-lg">Cast Analytics</h4>
-                  <p className="text-xs text-slate-600 mt-0.5">
+                  <h4 className="font-black text-[var(--ink)] text-base sm:text-lg">Cast Analytics</h4>
+                  <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                     {isFetchingHistory
                       ? "Scanning full cast history from first post…"
                       : castAnalytics?.historyComplete
@@ -548,34 +548,61 @@ export default function FarcasterAnalytics({
                   </p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
-                    {['24h','3d','7d','14d','30d'].map(tf=>(
-                      <button key={tf} onClick={()=>setAnalyticsTimeframe(tf as typeof analyticsTimeframe)}
-                        className={`px-2.5 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${analyticsTimeframe===tf?'bg-white/10 text-white':'text-slate-600 hover:text-slate-400'}`}>{tf}</button>
+                  <div className="flex max-w-full overflow-x-auto no-scrollbar gap-0.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1">
+                    {(['24h','3d','7d','14d','30d'] as const).map(tf=>(
+                      <button
+                        key={tf}
+                        type="button"
+                        aria-pressed={analyticsTimeframe===tf}
+                        onClick={()=>setAnalyticsTimeframe(tf)}
+                        className={`shrink-0 min-h-[32px] px-2.5 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${
+                          analyticsTimeframe===tf ? "preset-chip-active" : "preset-chip"
+                        }`}
+                      >
+                        {tf}
+                      </button>
                     ))}
                   </div>
-                  <div className="flex bg-white/5 border border-white/8 rounded-xl p-1">
-                    <button onClick={()=>setFeedTab('stats')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='stats'?'btn-primary text-white':'text-slate-600 hover:text-slate-400'}`}>Stats</button>
-                    <button onClick={()=>setFeedTab('casts')} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${feedTab==='casts'?'btn-primary text-white':'text-slate-600 hover:text-slate-400'}`}>Casts</button>
+                  <div className="flex gap-0.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1">
+                    <button
+                      type="button"
+                      aria-pressed={feedTab==='stats'}
+                      onClick={()=>setFeedTab('stats')}
+                      className={`min-h-[32px] px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${
+                        feedTab==='stats' ? "preset-chip-active" : "preset-chip"
+                      }`}
+                    >
+                      Stats
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={feedTab==='casts'}
+                      onClick={()=>setFeedTab('casts')}
+                      className={`min-h-[32px] px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition ${
+                        feedTab==='casts' ? "preset-chip-active" : "preset-chip"
+                      }`}
+                    >
+                      Casts
+                    </button>
                   </div>
                 </div>
               </div>
 
               {feedTab==='stats'&&castAnalytics?(
                 <div className="space-y-4">
-                  <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5">
+                  <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5 shadow-[var(--shadow-card)]">
                     <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                          <Calendar size={12} className="text-[var(--ink-muted)]" />
+                        <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest flex items-center gap-1.5">
+                          <Calendar size={12} className="text-[var(--brand-dark)]" />
                           Active days
                         </p>
-                        <p className="text-xs text-slate-500 mt-1 max-w-md">
+                        <p className="text-xs text-[var(--ink-dim)] mt-1 max-w-md">
                           Each day you post at least one cast counts as 1 active day.
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-4xl sm:text-5xl font-black text-white tabular-nums leading-none">
+                        <p className="text-4xl sm:text-5xl font-black text-[var(--ink)] tabular-nums leading-none">
                           {castAnalytics.activeDays}
                         </p>
                         <p className="text-[11px] font-bold text-[var(--ink-muted)] mt-1">
@@ -585,15 +612,15 @@ export default function FarcasterAnalytics({
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                      <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center">
-                        <p className="text-xl font-black text-emerald-400 tabular-nums">{castAnalytics.activeDayPct}%</p>
-                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">Posting consistency</p>
+                      <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center">
+                        <p className="text-xl font-black text-emerald-600 tabular-nums">{castAnalytics.activeDayPct}%</p>
+                        <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold mt-1">Posting consistency</p>
                       </div>
-                      <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center">
+                      <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center">
                         <p className="text-xl font-black text-[var(--ink)] tabular-nums">{castAnalytics.allTimeDays}</p>
-                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">All-time active days</p>
+                        <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold mt-1">All-time active days</p>
                         {castAnalytics.firstCastLabel&&(
-                          <p className="text-[9px] text-slate-600 mt-1 leading-snug">
+                          <p className="text-[9px] text-[var(--ink-dim)] mt-1 leading-snug">
                             Since {castAnalytics.firstCastLabel}
                             {castAnalytics.daysSinceFirstCast
                               ? ` · ${castAnalytics.daysSinceFirstCast}d span`
@@ -601,11 +628,11 @@ export default function FarcasterAnalytics({
                           </p>
                         )}
                       </div>
-                      <div className="rounded-xl bg-white/[0.04] border border-white/8 p-3 text-center col-span-2 sm:col-span-1">
+                      <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center col-span-2 sm:col-span-1">
                         <p className="text-xl font-black text-[var(--ink)] tabular-nums">{castAnalytics.castsScanned.toLocaleString()}</p>
-                        <p className="text-[9px] text-slate-500 uppercase font-bold mt-1">Casts scanned</p>
+                        <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold mt-1">Casts scanned</p>
                         {castAnalytics.profileCastCount>0&&(
-                          <p className="text-[9px] text-slate-600 mt-1">
+                          <p className="text-[9px] text-[var(--ink-dim)] mt-1">
                             of {castAnalytics.profileCastCount.toLocaleString()} total
                             {!castAnalytics.historyComplete?" · partial":""}
                           </p>
@@ -613,9 +640,9 @@ export default function FarcasterAnalytics({
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                        <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
                           {analyticsTimeframe} activity track
                         </p>
                         <span className="text-[10px] font-black text-[var(--ink)] tabular-nums">
@@ -634,18 +661,18 @@ export default function FarcasterAnalytics({
                             title={day.key}
                             className={`aspect-square max-h-12 rounded-lg flex flex-col items-center justify-center gap-0.5 border ${
                               day.active
-                                ? "border-emerald-500/35 bg-emerald-500/12"
-                                : "border-white/8 bg-white/[0.02]"
+                                ? "border-emerald-500/50 bg-emerald-500/15"
+                                : "border-[var(--border-subtle)] bg-[var(--surface)]"
                             }`}
                           >
                             <span
                               className={`text-[8px] font-black uppercase ${
-                                day.active ? "text-emerald-400" : "text-slate-600"
+                                day.active ? "text-emerald-700" : "text-[var(--ink-muted)]"
                               }`}
                             >
                               {day.label}
                             </span>
-                            {day.active && <span className="text-[10px] leading-none">✓</span>}
+                            {day.active && <span className="text-[10px] leading-none text-emerald-700">✓</span>}
                           </div>
                         ))}
                       </div>
@@ -659,39 +686,39 @@ export default function FarcasterAnalytics({
                       {icon:<Repeat size={18}/>,label:'Recasts',val:castAnalytics.totalRecasts,c:'text-green-400',bg:'bg-green-500/10'},
                       {icon:<MessageSquare size={18}/>,label:'Replies',val:castAnalytics.totalReplies,c:'text-[var(--ink)]',bg:'bg-[var(--bg-elevated)]'},
                     ].map((s,i)=>(
-                      <div key={i} className="bg-white/4 border border-white/6 rounded-2xl p-4 text-center">
+                      <div key={i} className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-2xl p-4 text-center shadow-[var(--shadow-card)]">
                         <div className={`p-2 ${s.bg} ${s.c} rounded-xl mb-2 w-fit mx-auto`}>{s.icon}</div>
                         <p className={`font-black text-2xl ${s.c}`}>{s.val.toLocaleString()}</p>
-                        <p className="text-[10px] text-slate-600 uppercase font-bold tracking-wide mt-1">{s.label}</p>
+                        <p className="text-[10px] text-[var(--ink-muted)] uppercase font-bold tracking-wide mt-1">{s.label}</p>
                       </div>
                     ))}
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Detailed Breakdown</p>
+                    <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3">Detailed Breakdown</p>
                     {[
-                      {icon:<Flame size={15} className="text-orange-400"/>,label:'Longest Streak',value:`${castAnalytics.longestStreak} days`,sub:'consecutive days casting',positive:castAnalytics.longestStreak>3},
-                      {icon:<Zap size={15} className="text-yellow-400"/>,label:'Current Streak',value:`${castAnalytics.currentStreak} days`,sub:castAnalytics.currentStreak>0?'keep it going!':'streak broken',positive:castAnalytics.currentStreak>0},
+                      {icon:<Flame size={15} className="text-orange-500"/>,label:'Longest Streak',value:`${castAnalytics.longestStreak} days`,sub:'consecutive days casting',positive:castAnalytics.longestStreak>3},
+                      {icon:<Zap size={15} className="text-amber-500"/>,label:'Current Streak',value:`${castAnalytics.currentStreak} days`,sub:castAnalytics.currentStreak>0?'keep it going!':'streak broken',positive:castAnalytics.currentStreak>0},
                       {icon:<BarChart3 size={15} className="text-[var(--ink-muted)]"/>,label:'Avg Casts / Day',value:`${castAnalytics.avgPerDay}`,sub:'over selected period',positive:castAnalytics.avgPerDay>1},
                       {icon:<Target size={15} className="text-[var(--ink-muted)]"/>,label:'Engagement Rate',value:`${castAnalytics.engRate}x`,sub:'avg reactions per cast',positive:castAnalytics.engRate>2},
-                      {icon:<Star size={15} className="text-yellow-400"/>,label:'Best Day to Cast',value:castAnalytics.bestDay,sub:'most active weekday',positive:true},
-                      {icon:<Heart size={15} className="text-red-400"/>,label:'Most Liked Cast',value:`${castAnalytics.mostLiked?.reactions?.likes_count||0} likes`,sub:castAnalytics.mostLiked?.text?.substring(0,40)+'...'||'No casts in period',positive:(castAnalytics.mostLiked?.reactions?.likes_count||0)>5},
+                      {icon:<Star size={15} className="text-amber-500"/>,label:'Best Day to Cast',value:castAnalytics.bestDay,sub:'most active weekday',positive:true},
+                      {icon:<Heart size={15} className="text-red-500"/>,label:'Most Liked Cast',value:`${castAnalytics.mostLiked?.reactions?.likes_count||0} likes`,sub:castAnalytics.mostLiked?.text?.substring(0,40)+'...'||'No casts in period',positive:(castAnalytics.mostLiked?.reactions?.likes_count||0)>5},
                     ].map((row,i)=>(
-                      <div key={i} className="flex items-center justify-between bg-white/3 hover:bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 transition-colors gap-3">
+                      <div key={i} className="flex items-center justify-between bg-[var(--surface)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl p-3 sm:p-4 transition-colors gap-3">
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           {row.icon}
                           <div className="min-w-0">
-                            <p className="text-xs sm:text-sm text-white font-bold truncate">{row.label}</p>
-                            {row.sub&&<p className="text-[10px] text-slate-600 truncate">{row.sub}</p>}
+                            <p className="text-xs sm:text-sm text-[var(--ink)] font-bold truncate">{row.label}</p>
+                            {row.sub&&<p className="text-[10px] text-[var(--ink-dim)] truncate">{row.sub}</p>}
                           </div>
                         </div>
-                        <span className={`text-sm sm:text-base font-black shrink-0 ${row.positive?'text-green-400':'text-slate-500'}`}>{row.value}</span>
+                        <span className={`text-sm sm:text-base font-black shrink-0 ${row.positive?'text-emerald-600':'text-[var(--ink-muted)]'}`}>{row.value}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="bg-white/3 border border-white/5 rounded-2xl p-4 sm:p-5">
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Reputation Scores</p>
+                  <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5 shadow-[var(--shadow-card)]">
+                    <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-4">Reputation Scores</p>
                     <div className="space-y-4">
                       {[
                         {label:'Neynar Score',val:fcResult.reputation,max:10,icon:<Cpu size={12} className="text-[var(--ink-muted)]"/>,desc:'Farcaster network trust score'},
@@ -699,18 +726,18 @@ export default function FarcasterAnalytics({
                         {label:'Social Quotient',val:quotientScore,max:100,icon:<Zap size={12} className="text-[var(--ink-muted)]"/>,desc:'Overall social influence index'},
                       ].map((s,i)=>(
                         <div key={i}>
-                          <div className="flex justify-between items-center mb-1.5">
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex justify-between items-center mb-1.5 gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               {s.icon}
-                              <div>
-                                <span className="text-xs font-bold text-slate-300">{s.label}</span>
-                                <span className="text-[10px] text-slate-600 ml-2">{s.desc}</span>
+                              <div className="min-w-0">
+                                <span className="text-xs font-bold text-[var(--ink)]">{s.label}</span>
+                                <span className="text-[10px] text-[var(--ink-dim)] ml-2">{s.desc}</span>
                               </div>
                             </div>
-                            <span className="text-sm font-black text-white">{s.val}<span className="text-[10px] text-slate-700">/{s.max}</span></span>
+                            <span className="text-sm font-black text-[var(--ink)] shrink-0">{s.val}<span className="text-[10px] text-[var(--ink-muted)]">/{s.max}</span></span>
                           </div>
-                          <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-                            <div className="h-full rounded-full transition-all duration-1000 bg-[var(--accent)]" style={{width:`${(Number(s.val)/Number(s.max))*100}%`}}/>
+                          <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden border border-[var(--border-subtle)]">
+                            <div className="h-full rounded-full transition-all duration-1000 bg-[var(--brand)]" style={{width:`${(Number(s.val)/Number(s.max))*100}%`}}/>
                           </div>
                         </div>
                       ))}
@@ -720,61 +747,61 @@ export default function FarcasterAnalytics({
               ):feedTab==='stats'?(
                 <div className="text-center py-8">
                   <RefreshCcw className="animate-spin text-rose-400 mx-auto mb-3" size={24}/>
-                  <p className="text-slate-500 text-sm">Loading cast analytics...</p>
+                  <p className="text-[var(--ink-muted)] text-sm">Loading cast analytics...</p>
                 </div>
               ):(
                 <div>
-                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Recent Casts</p>
+                  <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3">Recent Casts</p>
                   {isFetchingForYou?(
-                    <div className="text-center py-6"><RefreshCcw className="animate-spin text-slate-600 mx-auto" size={20}/></div>
+                    <div className="text-center py-6"><RefreshCcw className="animate-spin text-[var(--ink-muted)] mx-auto" size={20}/></div>
                   ):forYouFeed.length>0?(
                     <div className="space-y-2">
                       {forYouFeed.map((cast,i)=>(
                         <a key={i} href={`https://warpcast.com/${cast.author?.username}/${cast.hash.substring(0,10)}`} target="_blank" rel="noopener noreferrer"
-                          className="flex items-start gap-3 bg-white/3 hover:bg-white/5 border border-white/5 p-3 sm:p-4 rounded-xl transition group">
+                          className="flex items-start gap-3 bg-[var(--surface)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 sm:p-4 rounded-xl transition group">
                           {cast.author?.pfp_url&&(
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={cast.author.pfp_url} alt="pfp" className="w-8 h-8 rounded-xl bg-white/5 shrink-0 object-cover"/>
+                            <img src={cast.author.pfp_url} alt="pfp" className="w-8 h-8 rounded-xl bg-[var(--surface-2)] shrink-0 object-cover"/>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-slate-300 leading-relaxed">{cast.text}</p>
+                            <p className="text-xs text-[var(--ink)] leading-relaxed">{cast.text}</p>
                             <div className="flex items-center gap-3 mt-2">
-                              <span className="flex items-center gap-1 text-[10px] text-red-400 font-bold"><Heart size={9}/>{cast.likes}</span>
-                              <span className="text-[10px] text-slate-600 group-hover:text-[var(--ink)] transition">View on Warpcast ↗</span>
+                              <span className="flex items-center gap-1 text-[10px] text-red-500 font-bold"><Heart size={9}/>{cast.likes}</span>
+                              <span className="text-[10px] text-[var(--ink-dim)] group-hover:text-[var(--brand-dark)] transition">View on Warpcast ↗</span>
                             </div>
                           </div>
                         </a>
                       ))}
                     </div>
                   ):(
-                    <p className="text-slate-600 text-sm text-center py-6">No recent casts found.</p>
+                    <p className="text-[var(--ink-muted)] text-sm text-center py-6">No recent casts found.</p>
                   )}
                 </div>
               )}
             </div>
           </div>
         ):(
-          <div className="bg-[var(--bg-raised)] border border-white/6 rounded-3xl p-6">
-            <div className="bg-white/3 border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center justify-center text-center mb-4">
-              <Lock size={28} className="text-slate-700 mb-3"/>
-              <h4 className="font-black text-slate-400 mb-1">Analytics Locked</h4>
-              <p className="text-sm text-slate-600">Connect your wallet or search a username above to unlock the full Farcaster dashboard.</p>
+          <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded-3xl p-6 shadow-[var(--shadow-card)]">
+            <div className="bg-[var(--surface-2)] border-2 border-dashed border-[var(--border-subtle)] rounded-2xl p-8 flex flex-col items-center justify-center text-center mb-4">
+              <Lock size={28} className="text-[var(--ink-muted)] mb-3"/>
+              <h4 className="font-black text-[var(--ink)] mb-1">Analytics Locked</h4>
+              <p className="text-sm text-[var(--ink-muted)]">Connect your wallet or search a username above to unlock the full Farcaster dashboard.</p>
             </div>
             {isFetchingGlobal?(
-              <div className="text-center py-6"><RefreshCcw className="animate-spin text-slate-600 mx-auto" size={20}/></div>
+              <div className="text-center py-6"><RefreshCcw className="animate-spin text-[var(--ink-muted)] mx-auto" size={20}/></div>
             ):(
               <div>
-                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Trending on Farcaster</p>
+                <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3">Trending on Farcaster</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {globalFeed.map((cast,i)=>(
                     <a key={i} href={`https://warpcast.com/${cast.author?.username}/${cast.hash.substring(0,10)}`} target="_blank" rel="noopener noreferrer"
-                      className="bg-white/3 border border-white/5 p-4 rounded-2xl flex flex-col justify-between group hover:border-[var(--border-strong)] transition">
+                      className="bg-[var(--surface)] border border-[var(--border-subtle)] p-4 rounded-2xl flex flex-col justify-between group hover:border-[var(--border-strong)] transition">
                       <div>
                         <div className="flex items-center gap-2 mb-3">
-                          {cast.author?.pfp_url&&<img src={cast.author.pfp_url} alt="pfp" className="w-7 h-7 rounded-xl bg-white/5"/>}
-                          <span className="text-[10px] font-bold text-slate-500">@{cast.author?.username}</span>
+                          {cast.author?.pfp_url&&<img src={cast.author.pfp_url} alt="pfp" className="w-7 h-7 rounded-xl bg-[var(--surface-2)]"/>}
+                          <span className="text-[10px] font-bold text-[var(--ink-muted)]">@{cast.author?.username}</span>
                         </div>
-                        <p className="text-xs text-slate-500 leading-relaxed">&quot;{cast.text}&quot;</p>
+                        <p className="text-xs text-[var(--ink-dim)] leading-relaxed">&quot;{cast.text}&quot;</p>
                       </div>
                       <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-[var(--ink-muted)]"><Flame size={10}/> {cast.likes}</div>
                     </a>

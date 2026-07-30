@@ -51,8 +51,8 @@ export function ActivityHeatmap({
             Activity heatmap
           </p>
           <p className="text-[13px] text-[var(--ink-muted)] mt-1">
-            <span className="text-white font-bold tabular-nums">{activeDays}</span> active days ·{" "}
-            <span className="text-white font-bold tabular-nums">{totalTxs.toLocaleString()}</span>{" "}
+            <span className="text-[var(--ink)] font-bold tabular-nums">{activeDays}</span> active days ·{" "}
+            <span className="text-[var(--ink)] font-bold tabular-nums">{totalTxs.toLocaleString()}</span>{" "}
             transactions
           </p>
         </div>
@@ -60,7 +60,7 @@ export function ActivityHeatmap({
           <button
             type="button"
             onClick={() => onSelectDay(null)}
-            className="text-[11px] font-semibold text-[#6BA3FF] hover:text-white"
+            className="text-[11px] font-semibold text-[var(--brand-dark)] hover:underline"
           >
             Clear selection
           </button>
@@ -126,7 +126,7 @@ export function ActivityHeatmap({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-white/[0.06]">
+      <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-[var(--border-subtle)]">
         <p className="text-[11px] text-[var(--ink-dim)]">
           Tap a cell for day details · darker blue = more activity
         </p>

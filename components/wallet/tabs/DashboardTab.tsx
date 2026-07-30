@@ -233,7 +233,7 @@ if (!wallet) return null;
                       key={sym}
                       type="button"
                       onClick={() => openLaunchpad()}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-white/10 text-slate-300 hover:border-[var(--border-strong)] hover:text-[var(--ink)]"
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--brand)] hover:text-[var(--brand-dark)] hover:bg-[var(--brand-soft)]"
                     >
                       {sym}
                     </button>
@@ -258,16 +258,16 @@ if (!wallet) return null;
               ].map((s,i)=>(
                 <div key={i} className={`analytics-tile p-4 ${s.active?'':'opacity-60'}`}>
                   <div className="mb-2 analytics-tile-icon">{s.icon}</div>
-                  <p className={`font-black text-lg leading-tight ${s.active?'text-white':'text-slate-600'}`}>{s.value}</p>
-                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide mt-0.5">{s.label}</p>
-                  <p className="text-[9px] text-slate-600 mt-0.5">{s.sub}</p>
+                  <p className={`font-black text-lg leading-tight ${s.active?'text-[var(--ink)]':'text-[var(--ink-muted)]'}`}>{s.value}</p>
+                  <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold tracking-wide mt-0.5">{s.label}</p>
+                  <p className="text-[9px] text-[var(--ink-dim)] mt-0.5">{s.sub}</p>
                 </div>
               ))}
             </div>
 
             <div className="page-hero mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-2xl flex items-center justify-center shrink-0">
                   <User size={22} className="analytics-tile-icon"/>
                 </div>
                 <div className="min-w-0">
@@ -351,8 +351,8 @@ if (!wallet) return null;
             <WatchlistPanel myAddress={wallet.address} />
 
             <div className="glass-panel rounded-2xl p-5" id="wallet-challenge-section">
-              <div className="flex items-center gap-2 mb-3"><Swords size={18} className="analytics-tile-icon"/><span className="font-black text-white">Wallet Challenge</span></div>
-              <p className="text-xs text-slate-500 mb-4">Enter any wallet to compare real onchain scores.</p>
+              <div className="flex items-center gap-2 mb-3"><Swords size={18} className="analytics-tile-icon"/><span className="font-black text-[var(--ink)]">Wallet Challenge</span></div>
+              <p className="text-xs text-[var(--ink-muted)] mb-4">Enter any wallet to compare real onchain scores.</p>
               <div className="flex gap-2 mb-3">
                 <input id="wallet-challenge-input" value={challenge} onChange={e=>setChallenge(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleChallenge()}
                   placeholder="0x..." className="flex-1 min-w-0 input-ink rounded-xl px-3 py-2.5 text-xs font-mono placeholder-slate-600"/>
@@ -363,17 +363,17 @@ if (!wallet) return null;
               </div>
               {challengeResult&&(
                 <div className="grid grid-cols-2 gap-2">
-                  <div className={`rounded-xl p-3 text-center border ${wallet.score>=challengeResult.score?'bg-white/[0.05] border-white/15':'bg-white/[0.02] border-white/8'}`}>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">You</p>
-                    <p className="text-3xl font-black text-white my-1">{wallet.score}</p>
-                    <p className="text-[9px] text-slate-500">{wallet.uniqueDays} days</p>
-                    {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-slate-300 mt-1">WINNER 🏆</p>}
+                  <div className={`rounded-xl p-3 text-center border ${wallet.score>=challengeResult.score?'bg-[var(--brand-soft)] border-[var(--brand)]/35':'bg-[var(--surface-2)] border-[var(--border-subtle)]'}`}>
+                    <p className="text-[10px] text-[var(--ink-muted)] uppercase font-bold">You</p>
+                    <p className="text-3xl font-black text-[var(--ink)] my-1">{wallet.score}</p>
+                    <p className="text-[9px] text-[var(--ink-dim)]">{wallet.uniqueDays} days</p>
+                    {wallet.score>challengeResult.score&&<p className="text-[10px] font-black text-[var(--brand-dark)] mt-1">WINNER 🏆</p>}
                   </div>
-                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-white/[0.05] border-white/15':'bg-white/[0.02] border-white/8'}`}>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
-                    <p className="text-3xl font-black text-white my-1">{challengeResult.score}</p>
-                    <p className="text-[9px] text-slate-500">{challengeResult.days} days</p>
-                    {challengeResult.score>wallet.score&&<p className="text-[10px] font-black text-slate-300 mt-1">WINNER 🏆</p>}
+                  <div className={`rounded-xl p-3 text-center border ${challengeResult.score>wallet.score?'bg-[var(--brand-soft)] border-[var(--brand)]/35':'bg-[var(--surface-2)] border-[var(--border-subtle)]'}`}>
+                    <p className="text-[10px] text-[var(--ink-muted)] uppercase font-bold">{challengeResult.address.slice(0,6)}...</p>
+                    <p className="text-3xl font-black text-[var(--ink)] my-1">{challengeResult.score}</p>
+                    <p className="text-[9px] text-[var(--ink-dim)]">{challengeResult.days} days</p>
+                    {challengeResult.score>wallet.score&&<p className="text-[10px] font-black text-[var(--brand-dark)] mt-1">WINNER 🏆</p>}
                   </div>
                 </div>
               )}
@@ -381,26 +381,26 @@ if (!wallet) return null;
 
             <ReferralPanel address={wallet.address} />
 
-            <div className="glass-panel rounded-2xl p-5 border border-white/[0.06]">
+            <div className="glass-panel rounded-2xl p-5 border border-[var(--border-subtle)]">
               <p className="section-eyebrow mb-2">Quick help</p>
-              <ul className="space-y-2 text-xs text-slate-400">
+              <ul className="space-y-2 text-xs text-[var(--ink-dim)]">
                 <li>
-                  <span className="text-slate-300 font-bold">Explore</span> — search tokens, swap,
+                  <span className="text-[var(--ink)] font-bold">Explore</span> — search tokens, swap,
                   and earn quest XP.
                 </li>
                 <li>
-                  <span className="text-slate-300 font-bold">Analytics</span> — score, heatmap, and
+                  <span className="text-[var(--ink)] font-bold">Analytics</span> — score, heatmap, and
                   improvement tips update as history syncs.
                 </li>
                 <li>
-                  <span className="text-slate-300 font-bold">⌘K</span> — jump to any tab, token, or
+                  <span className="text-[var(--ink)] font-bold">⌘K</span> — jump to any tab, token, or
                   voucher from anywhere.
                 </li>
               </ul>
             </div>
 
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
+              <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
               <div className="glass-panel-accent rounded-2xl overflow-hidden shadow-lg shadow-black/25">
                 {wallet.recentTxs.length>0?wallet.recentTxs.map((tx: AlchemyTransfer, i: number)=>{
                   const toAddr=(tx.to||'').toLowerCase();
@@ -432,12 +432,12 @@ if (!wallet) return null;
                   else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="analytics-tile-icon"/>;}
                   else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="analytics-tile-icon"/>;}
                   return(
-                    <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-white/[0.03] transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-white/8':''}`}>
+                    <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-[var(--surface-2)] transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-[var(--border-subtle)]':''}`}>
                       <div className="flex items-center gap-3 min-w-0">
                         <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${isGM?'bg-yellow-500/10 border-yellow-500/20':isCI?'bg-orange-500/10 border-orange-500/20':isBadge?'bg-yellow-500/10 border-yellow-500/20':'bg-[var(--bg-elevated)] border-[var(--border-subtle)]'}`}>{icon}</div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-black text-white uppercase truncate">{label}</p>
+                            <p className="text-xs font-black text-[var(--ink)] uppercase truncate">{label}</p>
                             {badge&&<span className="text-[9px] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
                           </div>
                           <p className="text-[10px] text-slate-500 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
