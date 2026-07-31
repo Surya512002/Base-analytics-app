@@ -314,8 +314,8 @@ export default function VoucherCreatePanel({
             />
             {confirmingDeposit && (
               <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 animate-pulse">
-                <p className="text-sm font-black text-amber-200">Confirming deposit on Base…</p>
-                <p className="readable-body text-xs text-amber-200/80 mt-1">
+                <p className="text-sm font-black text-amber-800">Confirming deposit on Base…</p>
+                <p className="readable-body text-xs text-amber-700 mt-1">
                   Waiting for your deposit transaction to confirm. Keep this tab open — your Card
                   ID and Secret will appear automatically.
                 </p>
@@ -345,13 +345,13 @@ export default function VoucherCreatePanel({
               <button
                 type="button"
                 onClick={() => void refreshUsdcAllowance()}
-                className="w-full py-3.5 rounded-xl font-black bg-amber-500/15 border border-amber-500/35 text-amber-200"
+                className="w-full py-3.5 rounded-xl font-black bg-amber-500/15 border border-amber-500/35 text-amber-800"
               >
                 Could not read USDC allowance — tap to retry
               </button>
             ) : needsUsdcApproval ? (
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-amber-300 uppercase tracking-widest text-center">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest text-center">
                   Step 1 of 2 · Approve {exactDepositLabel}
                 </p>
                 <Transaction
@@ -372,7 +372,7 @@ export default function VoucherCreatePanel({
               </div>
             ) : usdcReadyToFund ? (
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest text-center">
+                <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest text-center">
                   Step 2 of 2 · Deposit {exactDepositLabel}
                 </p>
                 <Transaction
@@ -407,8 +407,8 @@ export default function VoucherCreatePanel({
           >
             {!readyBatchOnCreate.cards.some((c) => c.secret) && (
               <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-                <p className="text-sm font-black text-amber-200">Card ID only — secret not stored</p>
-                <p className="readable-body text-xs text-amber-200/80 mt-1">
+                <p className="text-sm font-black text-amber-800">Card ID only — secret not stored</p>
+                <p className="readable-body text-xs text-amber-700 mt-1">
                   Your deposit is on Base (Batch #{readyBatchOnCreate.batchId}). The app failed to
                   save the secret when your deposit confirmed — this is not from clearing history.
                   If you still have the secret from a screenshot or copy, you can redeem manually.
@@ -417,7 +417,7 @@ export default function VoucherCreatePanel({
             )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 text-emerald-400 font-black text-base sm:text-lg">
+                <div className="flex items-center gap-2 text-emerald-700 font-black text-base sm:text-lg">
                   <CheckCircle size={20} /> Your cards are ready!
                 </div>
                 <p className="text-sm text-[var(--ink)] font-bold mt-1">Batch #{readyBatchOnCreate.batchId}</p>
@@ -427,7 +427,7 @@ export default function VoucherCreatePanel({
                     ? ` · ${batchCardStatuses[readyBatchOnCreate.batchId].filter((c) => !c.redeemed).length} not redeemed yet`
                     : " · syncing redemption status…"}
                 </p>
-                <p className="text-xs text-amber-200 font-bold mt-2">
+                <p className="text-xs text-amber-800 font-bold mt-2">
                   Save Card ID + Secret for each card — they cannot be recovered later.
                 </p>
               </div>

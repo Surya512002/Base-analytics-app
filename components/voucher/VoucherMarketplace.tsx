@@ -64,7 +64,7 @@ export default function VoucherMarketplace() {
               className="shrink-0 w-[min(200px,72vw)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={12} className="text-emerald-400" />
+                <Sparkles size={12} className="text-emerald-700" />
                 <span className="text-[10px] font-black text-emerald-300 uppercase">
                   {b.asset}
                 </span>

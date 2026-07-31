@@ -442,7 +442,7 @@ export default function FarcasterAnalytics({
     <div className="space-y-4 w-full relative">
       <div
         className={`space-y-4 w-full transition-[filter] duration-300 ${
-          unlocked ? "" : "blur-md pointer-events-none select-none"
+          unlocked ? "" : "blur-[5px] pointer-events-none select-none"
         }`}
       >
         <h3 className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest flex items-center gap-2 mb-4">
@@ -814,8 +814,8 @@ export default function FarcasterAnalytics({
       </div>
 
       {!unlocked && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-[var(--bg-deep)]/80 backdrop-blur-[2px] p-4">
-          <div className="max-w-sm w-full glass-panel border border-[var(--border-strong)] rounded-2xl p-6 text-center shadow-2xl shadow-black/40">
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-[var(--surface)]/55 p-4">
+          <div className="max-w-sm w-full bg-[var(--surface)] border border-[var(--border-strong)] rounded-2xl p-6 text-center shadow-[0_18px_50px_rgba(11,21,38,0.16)]">
             <div className="w-12 h-12 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-4">
               <Lock size={22} className="text-[var(--ink-muted)]" />
             </div>

@@ -29,8 +29,8 @@ export default function VoucherCardPreview({
         <div className="flex items-start gap-2 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5">
           <AlertCircle size={16} className="text-amber-300 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-black text-amber-200">This card has already been redeemed</p>
-            <p className="text-xs text-amber-200/70 mt-0.5">
+            <p className="text-sm font-black text-amber-800">This card has already been redeemed</p>
+            <p className="text-xs text-amber-700 mt-0.5">
               Card <span className="font-mono font-bold">{cardId}</span> was used onchain.
             </p>
           </div>

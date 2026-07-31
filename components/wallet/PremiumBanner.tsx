@@ -32,22 +32,22 @@ export default function PremiumBanner({
       <div className="p-4 sm:p-[1.15rem] flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5">
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0">
-              <Zap size={17} className="text-white/80" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0">
+              <Zap size={17} className="text-[var(--brand-dark)]" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-black text-white">x402 Premium</p>
-                <span className="text-[10px] font-semibold text-slate-400 bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded-full">
+                <p className="text-sm font-black text-[var(--ink)]">x402 Premium</p>
+                <span className="text-[10px] font-semibold text-[var(--ink-muted)] bg-[var(--surface-2)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full">
                   HTTP 402
                 </span>
                 {x402PayCount > 0 && (
-                  <span className="text-[10px] font-semibold text-slate-300 bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <CheckCircle size={10} /> {x402PayCount} paid
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500">{selected.description}</p>
+              <p className="text-xs text-[var(--ink-muted)]">{selected.description}</p>
             </div>
           </div>
 
@@ -58,18 +58,23 @@ export default function PremiumBanner({
                 <button
                   key={p.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onProductChange(p.id)}
                   title={p.description}
                   className={`rounded-xl px-3 py-2 border text-left transition-all ${
-                    active
-                      ? "border-white/25 bg-white/[0.06]"
-                      : "border-white/8 bg-white/[0.03] hover:border-white/15"
+                    active ? "preset-chip-active" : "preset-chip"
                   }`}
                 >
-                  <span className="text-[11px] font-bold text-slate-500 block leading-none">{p.label}</span>
+                  <span
+                    className={`text-[11px] font-bold block leading-none ${
+                      active ? "text-[var(--brand-dark)]" : "text-[var(--ink-muted)]"
+                    }`}
+                  >
+                    {p.label}
+                  </span>
                   <span
                     className={`text-base font-black tabular-nums leading-tight ${
-                      active ? "text-white" : "text-slate-300"
+                      active ? "text-[var(--brand-dark)]" : "text-[var(--ink)]"
                     }`}
                   >
                     {p.priceDisplay}
@@ -101,10 +106,10 @@ export default function PremiumBanner({
           const url = basescanTxUrl(premiumData.transaction);
           return url ? (
             <div className="flex flex-wrap gap-3 pl-[2.85rem] sm:pl-0">
-              <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-white hover:underline">
+              <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-[var(--brand-dark)] hover:underline">
                 Basescan ↗
               </a>
-              <Link href={`/receipt/${premiumData.transaction}`} className="text-xs text-slate-400 hover:text-white hover:underline">
+              <Link href={`/receipt/${premiumData.transaction}`} className="text-xs font-semibold text-[var(--brand-dark)] hover:underline">
                 Receipt →
               </Link>
             </div>

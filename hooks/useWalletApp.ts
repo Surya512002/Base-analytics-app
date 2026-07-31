@@ -136,6 +136,7 @@ import {
 import { recordCheckInPointsOnce,
   recordConfirmedInAppAction,
   recordInAppTransaction,
+  notifyPointsUpdated,
   syncActivityPointsFromSession,
   tryAwardCheckInWeeklyBonus,
   tryAwardSevenDayAllTasksBonus,
@@ -1988,11 +1989,12 @@ function useWalletAppController() {
         status.streak,
         true
       );
-      recordInAppTransaction(address);
+      recordInAppTransaction(address, { notify: false });
       const { credited } = recordCheckInPointsOnce(address);
       const awardStreak = Math.max(status.streak, expectedStreak, 1);
       if (awardStreak > 0) setStreak(awardStreak);
       const streakBonus = tryAwardCheckInWeeklyBonus(address, awardStreak);
+      notifyPointsUpdated(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
         if (credited > 0 || streakBonus > 0) {

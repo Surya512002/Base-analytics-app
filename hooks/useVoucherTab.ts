@@ -99,6 +99,7 @@ export function useVoucherTab(app: WalletAppState) {
   const createHandledRef = useRef(false);
   const confirmingCreateRef = useRef(false);
   const fundTxRef = useRef<string | undefined>(undefined);
+  const recoverBatchByTxRef = useRef<((txHash: string) => Promise<boolean>) | null>(null);
 
   const [redeemCardId, setRedeemCardId] = useState("");
   const [redeemSecret, setRedeemSecret] = useState("");
@@ -934,6 +935,7 @@ export function useVoucherTab(app: WalletAppState) {
       const nextKeys = bumpWeeklyTxKey(address, "voucher");
       setTxKeys((k) => ({ ...k, ...nextKeys }));
       recordConfirmedInAppAction(address, "voucher", nextKeys.voucher ?? 0);
+      setPointsRevision((n) => n + 1);
       clearPendingBatch(address, txHash);
       clearCreateSession(address);
       fundTxRef.current = undefined;
@@ -978,7 +980,14 @@ export function useVoucherTab(app: WalletAppState) {
       }
       return hasSecrets;
     },
-    [address, refreshMyBatches, resolvePendingBatch, setTxKeys, showToast]
+    [
+      address,
+      refreshMyBatches,
+      resolvePendingBatch,
+      setPointsRevision,
+      setTxKeys,
+      showToast,
+    ]
   );
 
   const tryShowCardsWithSecrets = useCallback(
@@ -1134,7 +1143,12 @@ export function useVoucherTab(app: WalletAppState) {
             batchId: data.batch!.batchId,
             cardIndex: i,
             cardId: formatCardId(data.batch!.batchId, i),
-            secret: "",
+            // Onchain confirm can fail while the deposit still succeeded — keep the
+            // locally generated secrets so recovery returns usable cards.
+            secret:
+              pending?.batchId === data.batch!.batchId
+                ? (pending.cards.find((c) => c.cardIndex === i)?.secret ?? "")
+                : "",
           })),
         });
         saveLocalBatch(address, placeholder);
@@ -1156,6 +1170,22 @@ export function useVoucherTab(app: WalletAppState) {
           } satisfies VoucherBatchMeta),
         });
         await refreshMyBatches();
+
+        // The deposit is confirmed onchain, so retire the pending batch. Leaving it
+        // set keeps the Create tab stuck on the deposit / "View transaction" state
+        // and suppresses the recovered cards via `readyBatchOnCreate`. Skip this when
+        // a different batch is mid-deposit so its secrets survive.
+        const clearsThisPending = !pending || pending.batchId === placeholder.batchId;
+        if (clearsThisPending) {
+          createHandledRef.current = true;
+          clearPendingBatch(address, hash);
+          clearCreateSession(address);
+          setPendingCards(null);
+          pendingBatchRef.current = null;
+          fundTxRef.current = undefined;
+          setConfirmingDeposit(false);
+        }
+
         setCreatedCards(placeholder);
         setExpandedBatchId(placeholder.batchId);
         setView("mine");
@@ -1176,6 +1206,8 @@ export function useVoucherTab(app: WalletAppState) {
     },
     [address, publicClient, finalizeCreatedBatch, refreshMyBatches, showToast, resolvePendingBatch]
   );
+
+  recoverBatchByTxRef.current = recoverBatchByTx;
 
   useEffect(() => {
     if (view !== "mine" || !address || recoverLoading) return;
@@ -1223,11 +1255,31 @@ export function useVoucherTab(app: WalletAppState) {
 
     let attempts = 0;
     const maxAttempts = 30;
+    /** Secret matching can keep failing on a deposit that already succeeded. */
+    const escalateAfter = 4;
+    let escalated = false;
 
     const interval = window.setInterval(() => {
-      if (createHandledRef.current || attempts >= maxAttempts) return;
+      if (createHandledRef.current) {
+        window.clearInterval(interval);
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        window.clearInterval(interval);
+        setConfirmingDeposit(false);
+        return;
+      }
       attempts += 1;
-      void onCreateSuccess(fundTx);
+      void (async () => {
+        const shown = await onCreateSuccess(fundTx);
+        if (shown || createHandledRef.current || escalated) return;
+        if (attempts >= escalateAfter) {
+          escalated = true;
+          // Fall back to onchain recovery, which links the batch and releases
+          // the pending deposit instead of leaving the Create tab stuck.
+          await recoverBatchByTxRef.current?.(fundTx);
+        }
+      })();
     }, 8_000);
 
     return () => window.clearInterval(interval);

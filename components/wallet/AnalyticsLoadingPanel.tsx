@@ -28,31 +28,31 @@ export default function AnalyticsLoadingPanel({
     <div className="editorial-hero overflow-hidden">
       <div className="accent-bar" />
       <div className="p-8 sm:p-12 text-center">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mb-5">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center mb-5">
           {walletRefreshing ? (
-            <RefreshCcw size={28} className="text-white/60 animate-spin" />
+            <RefreshCcw size={28} className="text-[var(--brand-dark)] animate-spin" />
           ) : (
-            <BarChart3 size={28} className="text-white/60" />
+            <BarChart3 size={28} className="text-[var(--brand-dark)]" />
           )}
         </div>
-        <h2 className="text-xl font-black text-white mb-2">Fetching wallet analytics</h2>
-        <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+        <h2 className="text-xl font-black text-[var(--ink)] mb-2">Fetching wallet analytics</h2>
+        <p className="text-sm text-[var(--ink-muted)] max-w-md mx-auto leading-relaxed">
           Indexing your Base history, score, heatmap, and swap volume. You can launch tokens,
           trade, and use vouchers while this loads.
         </p>
         {(scanProgress || walletRefreshing) && (
-          <p className="mt-4 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+          <p className="mt-4 text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wide">
             {scanProgress || "Syncing onchain data…"}
           </p>
         )}
         <div className="mt-5 max-w-md mx-auto">
-          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="h-1.5 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-hidden">
             <div
               className="h-full rounded-full bg-[var(--accent)] transition-all duration-700"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-2 text-[10px] text-slate-500 font-mono">{pct}% indexed</p>
+          <p className="mt-2 text-[10px] text-[var(--ink-muted)] font-mono">{pct}% indexed</p>
         </div>
         <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
           {SYNC_STAGES.map((label, i) => {
@@ -65,8 +65,8 @@ export default function AnalyticsLoadingPanel({
                   done
                     ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
                     : current
-                      ? "bg-white/[0.05] border-[var(--border-focus)] text-white animate-pulse"
-                      : "bg-white/[0.03] border-white/8 text-slate-600"
+                      ? "bg-[var(--brand-soft)] border-[var(--brand)] text-[var(--brand-dark)] animate-pulse"
+                      : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)]"
                 }`}
               >
                 {label}

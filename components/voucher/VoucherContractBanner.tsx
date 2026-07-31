@@ -8,11 +8,11 @@ export default function VoucherContractBanner({ contractReady }: { contractReady
   if (!contractReady) {
     return (
       <SectionCard bar={false}>
-        <div className="flex items-start gap-2 text-xs text-amber-200">
+        <div className="flex items-start gap-2 text-xs text-amber-800">
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
           <span className="readable-body text-xs">
-            Set <code className="text-amber-100">NEXT_PUBLIC_VOUCHER_CONTRACT</code> in{" "}
-            <code className="text-amber-100">.env.local</code> to enable vouchers.
+            Set <code className="text-amber-900 font-bold">NEXT_PUBLIC_VOUCHER_CONTRACT</code> in{" "}
+            <code className="text-amber-900 font-bold">.env.local</code> to enable vouchers.
           </span>
         </div>
       </SectionCard>

@@ -49,7 +49,7 @@ function CopyField({
         </button>
       </div>
       <div
-        className={`w-full rounded-xl px-4 py-3.5 bg-[var(--surface-2)] border-2 border-[var(--border-subtle)] text-white font-black select-all ${
+        className={`w-full rounded-xl px-4 py-3.5 bg-[var(--surface-2)] border-2 border-[var(--border-subtle)] text-[var(--ink)] font-black select-all ${
           mono ? "font-mono text-base sm:text-lg tracking-wider break-all" : "text-base"
         }`}
       >
@@ -103,11 +103,11 @@ export default function VoucherCredentialCard({
           ) : (
             <>
               {showAmount && (
-                <span className="text-xs font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
+                <span className="text-xs font-black text-emerald-700 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
                   {formatVoucherAmount(asset, amountPerCard)}
                 </span>
               )}
-              <span className="text-[10px] font-black text-emerald-400/90 uppercase tracking-wide">
+              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">
                 Available
               </span>
             </>
@@ -139,12 +139,12 @@ export default function VoucherCredentialCard({
         />
       ) : (
         <div>
-          <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1.5">
+          <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1.5">
             Secret Key
           </p>
           <div className="rounded-xl px-4 py-3.5 bg-amber-500/10 border-2 border-amber-500/30">
-            <p className="text-sm font-bold text-amber-200">Secret not saved on this device</p>
-            <p className="text-xs text-amber-200/75 mt-1 leading-relaxed">
+            <p className="text-sm font-bold text-amber-800">Secret not saved on this device</p>
+            <p className="text-xs text-amber-700 mt-1 leading-relaxed">
               Secrets are stored by your wallet address on our server after you create cards.
               This batch was created before that fix, or the save failed — the secret cannot be
               read from the blockchain.
@@ -158,7 +158,7 @@ export default function VoucherCredentialCard({
           <button
             type="button"
             onClick={() => onCopy(`${cardId}\n${secret}`, bothId)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-white hover:bg-white/15 active:scale-[0.98] transition"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition"
           >
             {copied === bothId ? <CheckCircle size={16} /> : <Copy size={16} />}
             {copied === bothId ? "Copied ID + Secret!" : "Copy ID + Secret"}
@@ -168,7 +168,7 @@ export default function VoucherCredentialCard({
           <button
             type="button"
             onClick={() => onCopy(shareText, cardId)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-soft)] hover:bg-white/15 active:scale-[0.98] transition"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-soft)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition"
           >
             {copied === cardId ? <CheckCircle size={16} /> : <Copy size={16} />}
             Copy full card

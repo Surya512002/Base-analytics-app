@@ -226,8 +226,8 @@ export default function CheckInTab({
                   )}
                 </>
               ) : (
-                <span className="text-amber-700/90">
-                  Daily cap reached — txs still count; PP resume tomorrow UTC
+                <span className="text-amber-700 font-bold">
+                  Daily cap reached — txs still count; activity PP resume tomorrow UTC
                 </span>
               )}
               {weeklyBonusAwardedToday && (

@@ -118,7 +118,7 @@ export default function VoucherViewPanel({
               </p>
             )}
             {viewedCard.secretValid === true && (
-              <p className="text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+              <p className="text-emerald-700 text-xs font-bold flex items-center gap-1.5">
                 <CheckCircle size={14} /> Secret verified — this key matches the card onchain.
               </p>
             )}

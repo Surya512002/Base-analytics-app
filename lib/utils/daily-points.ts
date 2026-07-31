@@ -221,7 +221,7 @@ function readTodayTxCounter(address: string): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-function notifyPointsUpdated(address: string): void {
+export function notifyPointsUpdated(address: string): void {
   if (typeof window === "undefined" || !address) return;
   try {
     window.dispatchEvent(
@@ -235,7 +235,10 @@ function notifyPointsUpdated(address: string): void {
 }
 
 /** Count a confirmed in-app transaction toward today's activity tally (independent of PP cap). */
-export function recordInAppTransaction(address: string): number {
+export function recordInAppTransaction(
+  address: string,
+  opts?: { notify?: boolean }
+): number {
   if (!address || typeof window === "undefined") return 0;
 
   const next = readTodayTxCounter(address) + 1;
@@ -253,7 +256,9 @@ export function recordInAppTransaction(address: string): number {
   ledger[today] = day;
   writeWeekLedger(address, ledger);
 
-  notifyPointsUpdated(address);
+  if (opts?.notify !== false) {
+    notifyPointsUpdated(address);
+  }
   return next;
 }
 
@@ -345,7 +350,10 @@ export function creditActivityFromCount(
     const result = addActivityPoints(address, pointsEach);
     credited += result.credited;
     hitCap = hitCap || result.hitCap;
-    if (result.credited > 0) {
+    // Only mark an action as fully synced when the full PP amount lands.
+    // A partial fill (near the daily cap) must leave the count unsynced so the
+    // remainder can credit after the UTC rollover — otherwise leftover PP is lost.
+    if (result.credited === pointsEach) {
       syncedDelta += 1;
     } else {
       break;
@@ -355,7 +363,7 @@ export function creditActivityFromCount(
     writeSyncedCount(address, action, synced + syncedDelta);
     return { credited, hitCap, changed: true };
   }
-  return { credited, hitCap, changed: false };
+  return { credited, hitCap, changed: credited > 0 };
 }
 
 /** Record one confirmed wallet action: increment today's tx tally, then sync PP. */
@@ -364,8 +372,11 @@ export function recordConfirmedInAppAction(
   action: ActivityAction,
   nextCount: number
 ): { credited: number; hitCap: boolean; txsToday: number } {
-  const txsToday = recordInAppTransaction(address);
+  // Delay the UI notify until after PP is written so Quests never refresh
+  // against a stale ledger (common in Base App WebViews).
+  const txsToday = recordInAppTransaction(address, { notify: false });
   const { credited, hitCap } = creditActivityFromCount(address, action, nextCount);
+  notifyPointsUpdated(address);
   return { credited, hitCap, txsToday };
 }
 

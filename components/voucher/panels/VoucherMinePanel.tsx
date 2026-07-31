@@ -220,7 +220,7 @@ export default function VoucherMinePanel({
                     <div className="flex items-center gap-2">
                       <p className="font-black text-[var(--ink)]">Batch #{b.batchId}</p>
                       {hasLocalSecrets && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 uppercase">
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 uppercase">
                           Secrets saved
                         </span>
                       )}
@@ -343,7 +343,7 @@ export default function VoucherMinePanel({
                           className={`rounded-lg px-3 py-2.5 text-xs font-bold border ${
                             c.redeemed
                               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                              : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                              : "border-amber-500/30 bg-amber-500/10 text-amber-800"
                           }`}
                         >
                           <span className="font-mono text-sm">{c.cardId}</span>

@@ -48,7 +48,8 @@ export async function userOpSendersInTx(
 
 export async function batchCreatedInTx(
   publicClient: VoucherChainReader,
-  txHash: Hash
+  txHash: Hash,
+  expectedCreator?: string
 ): Promise<BatchFromTx | null> {
   if (!VOUCHER_CONTRACT) return null;
   try {
@@ -65,7 +66,15 @@ export async function batchCreatedInTx(
       logs: voucherLogs as Parameters<typeof parseEventLogs>[0]["logs"],
       eventName: "BatchCreated",
     });
-    const created = events[0];
+
+    // Bundled txs (Base App / AA) can carry several creations — prefer our own.
+    const wanted = expectedCreator?.toLowerCase();
+    const created =
+      (wanted &&
+        events.find(
+          (e) => (e.args.creator as string | undefined)?.toLowerCase() === wanted
+        )) ||
+      events[0];
     if (!created?.args.batchId || !created.args.creator) return null;
 
     return {

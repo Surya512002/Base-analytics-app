@@ -183,7 +183,8 @@ export async function finalizePendingBatchFromTx(
 
     const fromReceipt = await batchCreatedInTx(
       publicClient,
-      txHash as `0x${string}`
+      txHash as `0x${string}`,
+      pending.creator
     );
 
     const matched = await findBatchIdBySecrets(
@@ -193,6 +194,19 @@ export async function finalizePendingBatchFromTx(
     );
     if (matched) {
       return preservePendingSecrets(pending, { ...matched, txHash });
+    }
+
+    // The BatchCreated event is authoritative — the deposit succeeded and we already
+    // hold the secrets locally. Hash verification is only a refinement, and it reads
+    // one slot per card per candidate batch, so a throttled RPC silently fails it.
+    // Never strand a confirmed deposit on that.
+    if (fromReceipt) {
+      const resolved = reconcileBatchId(
+        pending,
+        fromReceipt.batchId,
+        fromReceipt.onChainCreator
+      );
+      return preservePendingSecrets(pending, { ...resolved, txHash });
     }
 
     await new Promise((r) => setTimeout(r, POLL_BASE_MS * (attempt + 1)));
@@ -230,7 +244,8 @@ export async function confirmVoucherBatchCreate(
       if (receipt.status === "success") {
         const fromReceipt = await batchCreatedInTx(
           publicClient,
-          txHash as `0x${string}`
+          txHash as `0x${string}`,
+          batch.creator
         );
         if (fromReceipt) {
           resolved = reconcileBatchId(
@@ -246,9 +261,9 @@ export async function confirmVoucherBatchCreate(
           if (bySecrets) {
             return preservePendingSecrets(batch, { ...bySecrets, txHash });
           }
-          if (await verifyBatchOnChain(publicClient, resolved, creator, txHash)) {
-            return preservePendingSecrets(batch, { ...resolved, txHash });
-          }
+          // Receipt proves this tx created the batch — accept it even when the
+          // per-card hash reads fail, rather than polling for minutes.
+          return preservePendingSecrets(batch, { ...resolved, txHash });
         }
       }
     } catch {
