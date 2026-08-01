@@ -38,8 +38,9 @@ export default function AnalyticsPaywall({
             </p>
             <h4 className="text-lg font-black text-[var(--ink)] mt-2">Unlock Onchain Analytics</h4>
             <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">
-              Pay once to view your onchain score, activity heatmap, and wallet health status —
-              like Farcaster analysis.
+              Pay once to collect your full onchain history via Alchemy — every check-in, swap,
+              smart-wallet / paymaster tx, and activity day — then unlock score, heatmap, and
+              wallet health.
             </p>
             <p className="text-2xl font-black text-[var(--ink)] mt-4 tabular-nums">{product.priceDisplay} USDC</p>
             <p className="text-[11px] text-[var(--ink-dim)] mt-1">via x402 on Base · persists until disconnect</p>

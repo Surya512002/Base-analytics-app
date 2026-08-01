@@ -191,9 +191,10 @@ export async function fetchAlchemyTxsMultiKey(
   return mergeTransfers(results);
 }
 
-/** 56ca030-style unified pagination — one chronological stream across all categories. */
-const LEGACY_CONNECT_CATEGORIES = [
+/** Full category set — includes internal for contract self-calls / AA legs. */
+const CONNECT_CATEGORIES = [
   "external",
+  "internal",
   "erc20",
   "erc721",
   "erc1155",
@@ -213,7 +214,7 @@ export async function fetchAlchemyTxsUnified(
 
   const rpc = alchemyRpcForKey(key);
   const addressField = options.addressField ?? "fromAddress";
-  const categories = options.categories ?? LEGACY_CONNECT_CATEGORIES;
+  const categories = options.categories ?? CONNECT_CATEGORIES;
   const maxPages = options.maxPages ?? 20;
   const timeoutMs = options.timeoutMs ?? 12_000;
 

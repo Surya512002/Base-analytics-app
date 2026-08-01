@@ -4,6 +4,11 @@ import type { Network, PaymentRequired } from "@x402/core/types";
 import { settleX402Payment, verifyX402Payment } from "@/lib/x402-facilitator";
 import { getX402Product } from "@/lib/constants/x402-products";
 import { APP_TREASURY } from "@/lib/constants/treasury";
+import {
+  ANALYTICS_UNLOCK_COOKIE,
+  ANALYTICS_UNLOCK_TTL_SEC,
+  markAnalyticsUnlocked,
+} from "@/lib/utils/analytics-unlock-server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -89,14 +94,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const address = body.address?.toLowerCase();
+    let unlockToken: string | undefined;
+    if (address?.startsWith("0x") && address.length === 42) {
+      unlockToken = await markAnalyticsUnlocked(address);
+    }
+
+    const res = NextResponse.json({
       unlocked: true,
       product: PRODUCT_ID,
-      address: body.address?.toLowerCase(),
-      message: "Onchain analytics unlocked for this wallet",
+      address,
+      unlockToken,
+      message: "Onchain analytics unlocked — full Alchemy history sync will start",
       unlockedAt: new Date().toISOString(),
       transaction: settleData.transaction,
     });
+
+    if (unlockToken) {
+      res.cookies.set(ANALYTICS_UNLOCK_COOKIE, unlockToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: ANALYTICS_UNLOCK_TTL_SEC,
+      });
+    }
+
+    return res;
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Payment error";
     console.error("[analytics-unlock]", msg, e);

@@ -15,11 +15,11 @@ export default function AchievementsTab({ app }: { app: WalletAppState }) {
   const [heldNftCount, setHeldNftCount] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!wallet) return;
+    if (!wallet || !app.analyticsUnlocked) return;
     void fetchAlchemyNftTotalCount(wallet.address)
       .then((n) => setHeldNftCount(n > 0 ? n : null))
       .catch(() => setHeldNftCount(null));
-  }, [wallet?.address]);
+  }, [wallet?.address, app.analyticsUnlocked]);
 
   const getCatValue = (id: string) => {
     if (!wallet) return 0;

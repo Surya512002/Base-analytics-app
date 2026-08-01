@@ -28,13 +28,13 @@ describe("analytics-unlock storage", () => {
   });
 
   it("persists unlock per address", () => {
-    writeAnalyticsUnlocked(ADDR);
+    writeAnalyticsUnlocked(ADDR, "token-abc");
     expect(readAnalyticsUnlocked(ADDR)).toBe(true);
     expect(readAnalyticsUnlocked("0x0000000000000000000000000000000000000001")).toBe(false);
   });
 
   it("clears unlock on disconnect", () => {
-    writeAnalyticsUnlocked(ADDR);
+    writeAnalyticsUnlocked(ADDR, "token-abc");
     clearAnalyticsUnlocked(ADDR);
     expect(readAnalyticsUnlocked(ADDR)).toBe(false);
   });

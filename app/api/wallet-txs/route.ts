@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
 import { cacheGet, cacheSet } from "@/lib/redis-cache";
+import { requireAnalyticsUnlock } from "@/lib/utils/require-analytics-unlock";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,6 +21,9 @@ export async function GET(req: Request) {
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
+
+  const locked = await requireAnalyticsUnlock(req, address);
+  if (locked) return locked;
 
   const cacheKey = `wallet-txs:v9:${address}`;
 

@@ -7,6 +7,7 @@ import {
   isUsableAnalyzeCache,
   setCachedAnalyze,
 } from "@/lib/wallet/analyze-cache";
+import { requireAnalyticsUnlock } from "@/lib/utils/require-analytics-unlock";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,12 +31,16 @@ export async function GET(req: Request) {
   try {
     logEnvAuditOnce();
 
+    // Cached shell scores are fine without payment; Alchemy refresh requires unlock.
     if (!refresh) {
       const cached = await getCachedAnalyze(address);
       if (cached && isUsableAnalyzeCache(cached)) {
         return NextResponse.json({ ...cached, cached: true });
       }
     }
+
+    const locked = await requireAnalyticsUnlock(req, address);
+    if (locked) return locked;
 
     const result = await analyzeWalletAddress(address, {
       fetchDepth: quick ? "quick" : "connect",

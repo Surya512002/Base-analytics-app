@@ -1,22 +1,52 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
+import {
+  clearAnalyticsUnlocked,
+  readAnalyticsUnlockToken,
+} from "@/lib/utils/analytics-unlock";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function revokeClientUnlock(address: string): void {
+  clearAnalyticsUnlocked(address);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("ba-analytics-unlock-revoked", {
+        detail: { address: address.toLowerCase() },
+      })
+    );
+  }
+}
+
 async function fetchAnalyzeJson<T>(
   path: string,
   timeoutMs: number,
-  retries = 2
+  retries = 2,
+  addressForUnlock?: string
 ): Promise<T | null> {
+  const unlockToken = addressForUnlock
+    ? readAnalyticsUnlockToken(addressForUnlock)
+    : null;
+  const headers: HeadersInit = unlockToken
+    ? { "x-analytics-unlock": unlockToken }
+    : {};
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const r = await fetch(path, {
         cache: "no-store",
+        credentials: "same-origin",
+        headers,
         signal: AbortSignal.timeout(timeoutMs),
       });
       const contentType = r.headers.get("content-type") || "";
       if (!r.ok) {
+        if (r.status === 402) {
+          // Legacy local unlock without server token → force re-pay.
+          if (addressForUnlock) revokeClientUnlock(addressForUnlock);
+          return null;
+        }
         if (r.status >= 500 && attempt < retries) {
           await sleep(800 * (attempt + 1));
           continue;
@@ -43,7 +73,9 @@ export async function fetchWalletAnalysis(
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    refresh ? 90_000 : 25_000
+    refresh ? 90_000 : 25_000,
+    2,
+    address
   );
 }
 
@@ -52,6 +84,7 @@ export async function fetchWalletBootstrap(
   address: string
 ): Promise<(AnalyzeWalletResult & { bootstrapped?: boolean }) | null> {
   const qs = new URLSearchParams({ address });
+  // Bootstrap is free — no Alchemy / no unlock header required.
   return fetchAnalyzeJson<AnalyzeWalletResult & { bootstrapped?: boolean }>(
     `/api/wallet-bootstrap?${qs.toString()}`,
     15_000
@@ -67,11 +100,13 @@ export async function fetchWalletAnalysisQuick(
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    45_000
+    45_000,
+    2,
+    address
   );
 }
 
-/** Server-side history sync — paginates v2 until complete (poll until historyComplete). */
+/** Server-side history sync — paginates until complete (poll until historyComplete). */
 export async function pollWalletHistorySync(
   address: string,
   callbacks: {
@@ -91,7 +126,7 @@ export async function pollWalletHistorySync(
 
     callbacks.onProgress?.(
       attempts === 1
-        ? "Syncing full onchain history…"
+        ? "Syncing full onchain history via Alchemy…"
         : `Syncing full history… (pass ${attempts})`
     );
 
@@ -104,7 +139,7 @@ export async function pollWalletHistorySync(
           partial?: boolean;
           sync?: { complete?: boolean; uniqueDays?: number };
         }
-      >(`/api/wallet-sync?${qs.toString()}`, 115_000, 1);
+      >(`/api/wallet-sync?${qs.toString()}`, 115_000, 1, addr);
       if (!data) break;
 
       callbacks.onUpdate({

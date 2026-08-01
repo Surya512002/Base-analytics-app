@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchUserOperationActivity } from "@/lib/api/user-operations";
+import { requireAnalyticsUnlock } from "@/lib/utils/require-analytics-unlock";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,6 +14,9 @@ export async function GET(req: Request) {
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
+
+  const locked = await requireAnalyticsUnlock(req, address);
+  if (locked) return locked;
 
   try {
     const transfers = await fetchUserOperationActivity(address, {

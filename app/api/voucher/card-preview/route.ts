@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { VOUCHER_ABI } from "@/lib/constants/contracts";
-import { VOUCHER_CONTRACT } from "@/lib/constants/env";
+import {
+  VOUCHER_CONTRACT,
+  alchemyRpcForKey,
+  getAlchemyKey,
+  BASE_RPC,
+} from "@/lib/constants/env";
 import { parseCardId, tokenToAsset } from "@/lib/utils/voucher";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +22,11 @@ export async function GET(req: Request) {
   }
 
   try {
+    const alchemyKey = getAlchemyKey();
+    const rpcUrl = alchemyKey ? alchemyRpcForKey(alchemyKey) : BASE_RPC;
     const client = createPublicClient({
       chain: base,
-      transport: http(process.env.NEXT_PUBLIC_ALCHEMY_KEY ? `https://base-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_KEY}` : undefined),
+      transport: http(rpcUrl),
     });
 
     const [batch, redeemed] = await Promise.all([

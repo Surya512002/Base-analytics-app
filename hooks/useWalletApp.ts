@@ -665,10 +665,26 @@ function useWalletAppController() {
   }, [wallet?.address]);
 
   useEffect(() => {
+    const onRevoked = (e: Event) => {
+      const detail = (e as CustomEvent<{ address?: string }>).detail;
+      if (
+        wallet?.address &&
+        detail?.address?.toLowerCase() === wallet.address.toLowerCase()
+      ) {
+        setAnalyticsUnlocked(false);
+      }
+    };
+    window.addEventListener("ba-analytics-unlock-revoked", onRevoked);
+    return () =>
+      window.removeEventListener("ba-analytics-unlock-revoked", onRevoked);
+  }, [wallet?.address]);
+
+  useEffect(() => {
     if (tab !== "dashboard" || !wallet?.address) return;
+    if (!analyticsUnlocked) return;
     if (historyCompleteRef.current || historySyncRunningRef.current) return;
     startHistorySyncRef.current?.(wallet.basename);
-  }, [tab, wallet?.address, wallet?.basename]);
+  }, [tab, wallet?.address, wallet?.basename, analyticsUnlocked]);
 
   useEffect(() => {
     if (!wallet) return;
@@ -960,9 +976,10 @@ function useWalletAppController() {
         const data = (await res.json()) as {
           message?: string;
           transaction?: string;
+          unlockToken?: string;
         };
         setAnalyticsUnlocked(true);
-        writeAnalyticsUnlocked(wallet.address);
+        writeAnalyticsUnlocked(wallet.address, data.unlockToken);
         const keys = x402StorageKeys(wallet.address);
         const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
         const next = prev + 1;
@@ -981,10 +998,15 @@ function useWalletAppController() {
           : null;
         showToast(
           txHash
-            ? `✅ Analytics unlocked! Tx: ${txHash.slice(0, 10)}…`
-            : "✅ Onchain analytics unlocked!",
+            ? `✅ Analytics unlocked! Collecting full onchain history… Tx: ${txHash.slice(0, 10)}…`
+            : "✅ Analytics unlocked — collecting full onchain history via Alchemy…",
           txHash ?? ""
         );
+        // Paid unlock → start Alchemy + paymaster + smart-wallet history sync.
+        historyCompleteRef.current = false;
+        syncCompleteToastRef.current = false;
+        void analyzeWallet(wallet.address, { background: true });
+        startHistorySyncRef.current?.(wallet.basename);
       } else {
         let errMsg = `HTTP ${res.status}`;
         const text = await res.text().catch(() => "");
@@ -2209,6 +2231,12 @@ function useWalletAppController() {
         result: AnalyzeWalletResult,
         priorBasename?: string | null
       ) => {
+        // Full Alchemy / paymaster / smart-wallet history only after paid unlock.
+        if (!readAnalyticsUnlocked(address)) {
+          historyCompleteRef.current = false;
+          pendingHistorySyncRef.current = null;
+          return;
+        }
         if (result.historyComplete === true) {
           historyCompleteRef.current = true;
           pendingHistorySyncRef.current = null;
@@ -2255,7 +2283,37 @@ function useWalletAppController() {
         const skipBootstrap =
           balancesLockedRef.current === address.toLowerCase();
 
-        // 1) Cache + bootstrap + quick score — all in parallel for fastest first paint
+        const unlocked = readAnalyticsUnlocked(address);
+
+        // Unpaid wallets: bootstrap shell only — never hit Alchemy history APIs.
+        if (!unlocked) {
+          setScanProgress("Loading wallet…");
+          const bootstrap = skipBootstrap
+            ? null
+            : await fetchWalletBootstrap(address).catch(() => null);
+          if (stale()) return;
+          if (bootstrap) {
+            mergeAndApply(bootstrap, ci);
+            if (background) lockWalletCore(bootstrap.wallet);
+          } else if (!skipBootstrap) {
+            failScan(
+              background
+                ? "Could not load wallet shell — retry connect"
+                : "❌ Could not load wallet data — check connection and retry"
+            );
+            return;
+          }
+          if (!background) {
+            setLoading(false);
+            setScanProgress("");
+          } else {
+            setAnalyticsSyncing(false);
+            setScanProgress("");
+          }
+          return;
+        }
+
+        // Paid unlock — Alchemy + Blockscout + paymaster / smart-wallet history.
         setScanProgress(background ? "Loading score…" : "Calculating wallet score…");
         const [cached, bootstrap, quick] = await Promise.all([
           fetchWalletAnalysis(address, false),

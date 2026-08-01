@@ -259,7 +259,7 @@ export async function fetchWalletTransfersConnectRich(
   v2StreamStates: Record<string, V2StreamState>;
 }> {
   const addr = address.toLowerCase();
-  const ALCHEMY_PAGES = 20;
+  const ALCHEMY_PAGES = 40;
   const BLOCKSCOUT_PAGES = 30;
   const BLOCKSCOUT_DEADLINE_MS = 28_000;
 
@@ -274,15 +274,15 @@ export async function fetchWalletTransfersConnectRich(
     userOps,
     basescanTxs,
   ] = await Promise.all([
-    // 56ca030: single-stream 20-page outbound (not per-category shards) → ~550 active days
     fetchAlchemyTxsUnified(addr, {
       addressField: "fromAddress",
+      categories: ["external", "internal", "erc20", "erc721", "erc1155"],
       maxPages: ALCHEMY_PAGES,
       timeoutMs: 12_000,
     }).catch(() => []),
     fetchAlchemyTxsUnified(addr, {
       addressField: "toAddress",
-      categories: ["external", "erc20"],
+      categories: ["external", "internal", "erc20", "erc721", "erc1155"],
       maxPages: ALCHEMY_PAGES,
       timeoutMs: 12_000,
     }).catch(() => []),
