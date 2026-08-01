@@ -35,6 +35,7 @@ import WatchlistAlertsPanel from "@/components/explore/WatchlistAlertsPanel";
 import { useTokenHoldings } from "@/hooks/useTokenHoldings";
 import { checkAlerts } from "@/lib/utils/token-price-alerts";
 import LaunchpadExploreSections from "@/components/launchpad/LaunchpadExploreSections";
+import RecentlyLaunchedSection from "@/components/launchpad/RecentlyLaunchedSection";
 import B20TokensSection from "@/components/launchpad/B20TokensSection";
 import LaunchCalendar from "@/components/launchpad/LaunchCalendar";
 import TokenWatchlistRail from "@/components/launchpad/TokenWatchlistRail";
@@ -510,6 +511,15 @@ export default function LaunchpadTab({
         onOpen={openSwap}
         onLaunch={guestMode ? undefined : requestCreate}
         loading={initialLoading && tradableB20.length === 0}
+        guestMode={guestMode}
+      />
+
+      <RecentlyLaunchedSection
+        tokens={tokens}
+        markets={markets}
+        onOpen={openSwap}
+        onLaunch={guestMode ? undefined : requestCreate}
+        syncing={syncing || (initialLoading && tokens.length === 0)}
         guestMode={guestMode}
       />
 

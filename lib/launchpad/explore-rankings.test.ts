@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildHotTokens, buildBaseTopMovers, tokenSafetyLevel } from "@/lib/launchpad/explore-rankings";
+import {
+  buildHotTokens,
+  buildBaseTopMovers,
+  buildRecentlyAppLaunched,
+  tokenSafetyLevel,
+} from "@/lib/launchpad/explore-rankings";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 
-const token = (addr: string, symbol: string): LaunchedToken => ({
+const token = (
+  addr: string,
+  symbol: string,
+  extra: Partial<LaunchedToken> = {}
+): LaunchedToken => ({
   address: addr,
   symbol,
   name: symbol,
@@ -10,6 +19,7 @@ const token = (addr: string, symbol: string): LaunchedToken => ({
   creator: "0x0000000000000000000000000000000000000001",
   createdAt: Date.now(),
   txHash: "0x" + "a".repeat(64),
+  ...extra,
 });
 
 describe("tokenSafetyLevel", () => {
@@ -50,6 +60,33 @@ describe("buildHotTokens", () => {
       2
     );
     expect(hot[0]?.address).toBe(t1.address);
+  });
+});
+
+describe("buildRecentlyAppLaunched", () => {
+  it("keeps only platform launches and sorts newest first", () => {
+    const appOld = token("0xb200000000000000000000000000000000000001", "OLD", {
+      source: "launched",
+      createdAt: 1_000,
+    });
+    const appNew = token("0xb200000000000000000000000000000000000002", "NEW", {
+      source: "launched",
+      createdAt: 2_000,
+    });
+    const factory = token("0xb200000000000000000000000000000000000003", "FAC", {
+      source: "b20",
+      createdAt: 3_000,
+    });
+    const external = token("0x3333333333333333333333333333333333333333", "EXT", {
+      source: "external",
+      createdAt: 4_000,
+    });
+
+    const recent = buildRecentlyAppLaunched(
+      [appOld, factory, external, appNew],
+      8
+    );
+    expect(recent.map((t) => t.symbol)).toEqual(["NEW", "OLD"]);
   });
 });
 

@@ -1,7 +1,7 @@
 import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { LaunchedToken } from "@/lib/launchpad/types";
-import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
+import { isAppLaunched, isB20ExploreToken } from "@/lib/launchpad/token-meta";
 import { sortByMarketVolume, sortByPriceChange } from "@/lib/launchpad/merge-tokens";
 import { isTradableListing } from "@/lib/launchpad/tradable";
 
@@ -100,6 +100,17 @@ export function buildHotTokens(
     seen.add(t.address.toLowerCase());
   }
   return scored.slice(0, limit).map((s) => s.token);
+}
+
+/** Newest tokens registered on our launchpad (`source: launched`) only. */
+export function buildRecentlyAppLaunched(
+  tokens: LaunchedToken[],
+  limit = 8
+): LaunchedToken[] {
+  return [...tokens]
+    .filter(isAppLaunched)
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    .slice(0, limit);
 }
 
 /** Top 24h gainers on Base — B20 and ecosystem tokens with live pools. */
