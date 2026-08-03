@@ -86,6 +86,7 @@ export default function AppShell({
         onTabChange={handleTabChange}
         tokens={tokens ?? []}
         onOpenToken={onOpenToken}
+        guest={guest}
       />
 
       <MobileBottomNav

@@ -24,6 +24,7 @@ test.describe("Base dashboard screenshots", () => {
     await page.addInitScript(() => {
       localStorage.setItem("base_pin_banner_dismissed_v1", "1");
       localStorage.setItem("base_explore_onboarding_v1", "1");
+      localStorage.setItem("base_onboarding_done_v6", "1");
       localStorage.setItem("base_onboarding_done_v5", "1");
     });
   });

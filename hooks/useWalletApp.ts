@@ -2960,8 +2960,6 @@ function useWalletAppController() {
   const walletScanComplete = Boolean(
     wallet &&
       !loading &&
-      !analyticsSyncing &&
-      wallet.score > 0 &&
       wallet.recommendation !== "Fetching onchain data…"
   );
 

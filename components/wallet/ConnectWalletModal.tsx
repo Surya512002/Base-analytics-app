@@ -181,7 +181,7 @@ export default function ConnectWalletModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-3 sm:p-6 overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-3 sm:p-6 overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-label="Connect wallet"

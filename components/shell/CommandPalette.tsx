@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Command, Search, ArrowRight, TrendingUp } from "lucide-react";
+import { BookOpen, Command, Search, ArrowRight, TrendingUp } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import type { RewardsHubView } from "@/lib/utils/app-url";
 import { isRewardsHubTab } from "@/lib/utils/app-url";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { shortAddr } from "@/lib/launchpad/format";
 import { APP_NAV } from "@/lib/nav/app-nav";
+import { requestOpenGuide } from "@/lib/utils/onboarding-tour";
 
 type CommandPaletteProps = {
   open: boolean;
@@ -16,11 +17,18 @@ type CommandPaletteProps = {
   onTabChange: (tab: AppTab, opts?: { rewardsView?: RewardsHubView }) => void;
   tokens: LaunchedToken[];
   onOpenToken?: (token: LaunchedToken) => void;
+  guest?: boolean;
 };
 
 const EXTRA_NAV: { id: AppTab; label: string; hint: string; rewardsView?: RewardsHubView }[] = [
   { id: "checkin", label: "Check-in & quests", hint: "Daily check-in and season XP", rewardsView: "checkin" },
 ];
+
+const GUIDE_ACTION = {
+  id: "replay-guide",
+  label: "Replay app guide",
+  hint: "Walk through Explore, Analytics, Quests, Vouchers",
+} as const;
 
 export default function CommandPalette({
   open,
@@ -29,6 +37,7 @@ export default function CommandPalette({
   onTabChange,
   tokens,
   onOpenToken,
+  guest = false,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
 
@@ -76,6 +85,18 @@ export default function CommandPalette({
     );
   }, [query, navItems]);
 
+  const showGuideAction = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      GUIDE_ACTION.label.toLowerCase().includes(q) ||
+      GUIDE_ACTION.hint.toLowerCase().includes(q) ||
+      q.includes("guide") ||
+      q.includes("tour") ||
+      q.includes("onboard")
+    );
+  }, [query]);
+
   const selectNav = useCallback(
     (id: AppTab, rewardsView?: RewardsHubView) => {
       onTabChange(id, rewardsView ? { rewardsView } : undefined);
@@ -84,11 +105,20 @@ export default function CommandPalette({
     [onTabChange, onClose]
   );
 
+  const replayGuide = useCallback(() => {
+    onClose();
+    onTabChange("launchpad");
+    window.setTimeout(
+      () => requestOpenGuide(guest ? "explore" : "main"),
+      80
+    );
+  }, [onClose, onTabChange, guest]);
+
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-6 pt-[6vh] sm:pt-[8vh]"
+      className="fixed inset-0 z-[200] flex items-start justify-center p-3 sm:p-6 pt-[6vh] sm:pt-[8vh]"
       role="dialog"
       aria-modal="true"
       aria-label="Search spotlight"
@@ -116,6 +146,28 @@ export default function CommandPalette({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-0">
+          {showGuideAction && (
+            <div className="mb-4">
+              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+                Help
+              </p>
+              <button
+                type="button"
+                onClick={replayGuide}
+                className="w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] border border-transparent text-[var(--ink-soft)]"
+              >
+                <BookOpen size={18} className="text-[var(--ink-muted)] shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-bold">{GUIDE_ACTION.label}</p>
+                  <p className="text-[12px] text-[var(--ink-muted)] truncate">
+                    {GUIDE_ACTION.hint}
+                  </p>
+                </div>
+                <ArrowRight size={16} className="text-[var(--ink-dim)] shrink-0" />
+              </button>
+            </div>
+          )}
+
           {filteredNav.length > 0 && (
             <div className="mb-4">
               <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">

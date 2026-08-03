@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookOpen, Gift, Shield, Zap } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import AppModeCards from "@/components/ui/AppModeCards";
+import ReplayGuideButton from "@/components/docs/ReplayGuideButton";
 import { APP_URL_WEB } from "@/lib/constants/env";
 
 const FAQ = [
@@ -36,6 +37,10 @@ const FAQ = [
   {
     q: "What keyboard shortcuts exist?",
     a: "Press ⌘K (Mac) or Ctrl+K to open the command palette — jump to Explore, Analytics, Vouchers, quests, or search tokens.",
+  },
+  {
+    q: "How do I reopen the app guide?",
+    a: "Press ⌘K / Ctrl+K and choose “Replay app guide”, or use Replay in-app guide on this Documents page. The welcome tour also opens after you connect a wallet.",
   },
   {
     q: "Are badge mints gasless?",
@@ -74,6 +79,9 @@ export default function DocumentsPage() {
               Everything you need to launch on Base, swap tokens, use vouchers, and integrate with
               our API.
             </p>
+            <div className="mt-5">
+              <ReplayGuideButton />
+            </div>
           </div>
         </div>
 

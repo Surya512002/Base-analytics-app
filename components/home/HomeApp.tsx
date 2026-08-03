@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
@@ -20,6 +20,11 @@ import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView } f
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 import type { X402ProductId } from "@/lib/constants/x402-products";
+import {
+  armGuideReplay,
+  peekGuideReplay,
+  requestOpenGuide,
+} from "@/lib/utils/onboarding-tour";
 
 const SwapTab = dynamic(
   () => import("@/components/swap/SwapTab"),
@@ -108,10 +113,35 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   const [launchBridge, setLaunchBridge] = useState<LaunchpadShellBridge | null>(null);
   const guest = sessionBootstrapped ? !wallet : false;
   const activeTab = forceTab ?? tab;
+  const guideReplayHandled = useRef(false);
 
   useEffect(() => {
     setSiweSkipped(false);
   }, [wallet?.address]);
+
+  // Documents / deep-link replay: ?guide=1 arms the matching tour after shell is ready.
+  useEffect(() => {
+    if (typeof window === "undefined" || !sessionBootstrapped) return;
+    if (guideReplayHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get("guide") === "1";
+    const armed = peekGuideReplay();
+    if (!fromUrl && !armed) return;
+
+    guideReplayHandled.current = true;
+    if (fromUrl) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("guide");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      if (!armed) armGuideReplay(guest ? "explore" : "main");
+    }
+
+    const which = peekGuideReplay() ?? (guest ? "explore" : "main");
+    const t = window.setTimeout(() => {
+      requestOpenGuide(which);
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [sessionBootstrapped, guest, walletScanComplete]);
 
   const openConnect = useCallback(() => {
     saveGuestResume(captureGuestResumeFromUrl());
