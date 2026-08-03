@@ -53,7 +53,7 @@ export default function AchievementsHero({
             <span className="text-[var(--ink-muted)] font-bold text-lg"> · then onchain</span>
           </h2>
           <p className="text-xs text-[var(--ink-muted)] mt-2 max-w-md leading-relaxed">
-            {SEASON_NAME} · trade, stake, check in, and explore to unlock — no gas for app badges
+            {SEASON_NAME} · trade, check in, and explore to unlock — no gas for app badges
           </p>
         </div>
 

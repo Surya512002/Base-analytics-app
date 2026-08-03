@@ -88,7 +88,7 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
               }}
             >
               B20 launchpad, in-app swaps with USD quotes, weekly quest XP,
-              on-chain badges, ETH stake, and crypto gift cards.
+              on-chain badges, quests, and crypto gift cards.
             </span>
             <div style={{ display: "flex", gap: 9, marginTop: 24, flexWrap: "wrap" }}>
               {["B20 Launchpad", "In-app swaps", "Quests & badges", "Vouchers"].map((tag) => (

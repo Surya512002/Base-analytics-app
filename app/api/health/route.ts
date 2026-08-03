@@ -58,7 +58,6 @@ export async function GET() {
     badgeMarketplace: Boolean(
       process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT?.trim()
     ),
-    xpStake: Boolean(process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT?.trim()),
     baseNotifications: Boolean(
       process.env.BASE_DASHBOARD_API_KEY?.trim() ||
         process.env.BASE_NOTIFICATIONS_API_KEY?.trim()

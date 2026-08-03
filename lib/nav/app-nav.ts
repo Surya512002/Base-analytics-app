@@ -48,7 +48,7 @@ export const APP_NAV: AppNavItem[] = [
     label: "Quests",
     shortLabel: "Quests",
     icon: Flame,
-    hint: "Check-in, quests & stake",
+    hint: "Check-in & weekly quests",
   },
   {
     id: "achievements",

@@ -133,6 +133,7 @@ import {
   syncSessionFromAnalysis,
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
+import { incrementLifetimeAppStat } from "@/lib/utils/app-badge-lifetime";
 import { recordCheckInPointsOnce,
   recordConfirmedInAppAction,
   recordInAppTransaction,
@@ -191,7 +192,6 @@ import { preflightB20Launch, simulateB20Create } from "@/lib/b20/preflight";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
 import { splitPlatformFee } from "@/lib/launchpad/fee-split";
-import { fetchOnchainStake, tierToReferrerBoostBps } from "@/lib/wallet/onchain-stake";
 import { encodeErc20TransferCalldata } from "@/lib/b20/encode";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { syncTabUrl, resolveTabFromUrl } from "@/lib/utils/app-url";
@@ -1445,12 +1445,6 @@ function useWalletAppController() {
         }
 
         let referrerBoostBps = 0;
-        if (referrer) {
-          const stake = await fetchOnchainStake(referrer);
-          if (stake && Date.now() < stake.unlockAt) {
-            referrerBoostBps = tierToReferrerBoostBps(stake.tier);
-          }
-        }
         const calls = [];
         let swapFee = BigInt(0);
         let swapFeeAsset: "eth" | "usdc" | "token" = "eth";
@@ -1990,6 +1984,7 @@ function useWalletAppController() {
       const count = recordCheckInSuccess(address, floor);
       const expectedStreak = checkedToday ? Math.max(streak, 1) : Math.max(streak + 1, 1);
       setCheckedToday(true);
+      incrementLifetimeAppStat(address, "checkin");
       setTxKeys((k) => {
         const next = { ...k, checkin: (k.checkin || 0) + 1 };
         writePersistedTxKeys(address, next);

@@ -10,15 +10,19 @@ import {
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import {
   buildAppBadgeMetrics,
+  getAppBadgeMetricValue,
   readAppBadgeLevels,
   sumAppBadges,
   totalAppBadgeTiers,
   writeAppBadgeLevels,
   type AppBadgeMetrics,
 } from "@/lib/utils/app-badge-levels";
+import {
+  buildLifetimeBadgeMetrics,
+  ensureLifetimeFloors,
+} from "@/lib/utils/app-badge-lifetime";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { fetchAppMintedLevelsFromChain } from "@/lib/wallet/app-minted-badges";
-import { fetchOnchainStake } from "@/lib/wallet/onchain-stake";
 import StaggerIn from "@/components/ui/StaggerIn";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
@@ -47,7 +51,7 @@ function BadgeGroup({
       </div>
       <StaggerIn className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {categories.map((cat) => {
-          const value = metrics[cat.metric as keyof AppBadgeMetrics] ?? 0;
+          const value = getAppBadgeMetricValue(cat.metric, metrics);
           let unlocked = 0;
           for (let i = 0; i < cat.thresholds.length; i++) {
             if (value >= cat.thresholds[i]) unlocked = i + 1;
@@ -166,10 +170,17 @@ function BadgeGroup({
 }
 
 export default function AppBadgesSection({ app }: { app: WalletAppState }) {
-  const { wallet, txKeys, streak, checkedToday, referralInvites, minting, doAppBadgeMint } =
-    app;
+  const {
+    wallet,
+    txKeys,
+    streak,
+    checkedToday,
+    referralInvites,
+    minting,
+    doAppBadgeMint,
+    boosts,
+  } = app;
   const [claimedLevels, setClaimedLevels] = useState<Record<string, number>>({});
-  const [ethStakeTier, setEthStakeTier] = useState(0);
 
   const syncClaimedLevels = useCallback(async () => {
     if (!wallet) return;
@@ -192,32 +203,38 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
     void syncClaimedLevels();
   }, [syncClaimedLevels]);
 
-  const refreshStakeTier = useCallback(async () => {
-    if (!wallet) return;
-    try {
-      const onchain = await fetchOnchainStake(wallet.address);
-      const active =
-        onchain?.active && onchain.amount > BigInt(0) ? onchain.tier : 0;
-      setEthStakeTier(active);
-    } catch {
-      setEthStakeTier(0);
-    }
-  }, [wallet]);
-
+  // Seed lifetime floors from on-chain counters so reconnects unlock tiers.
   useEffect(() => {
-    void refreshStakeTier();
-  }, [refreshStakeTier, txKeys.stake]);
+    if (!wallet) return;
+    ensureLifetimeFloors(wallet.address, {
+      checkin: wallet.checkInCount,
+      boost: boosts,
+      gm: wallet.gmCount,
+    });
+  }, [wallet?.address, wallet?.checkInCount, wallet?.gmCount, boosts]);
 
   const metrics = useMemo(
     () =>
-      buildAppBadgeMetrics({
-        txKeys,
-        streak,
-        referralInvites,
-        ethStakeTier,
-        checkedToday,
-      }),
-    [txKeys, streak, referralInvites, ethStakeTier, checkedToday]
+      wallet
+        ? buildLifetimeBadgeMetrics({
+            address: wallet.address,
+            streak,
+            referralInvites,
+            checkedToday,
+            weeklyTxKeys: txKeys,
+            floors: {
+              checkin: wallet.checkInCount,
+              boost: boosts,
+              gm: wallet.gmCount,
+            },
+          })
+        : buildAppBadgeMetrics({
+            txKeys,
+            streak,
+            referralInvites,
+            checkedToday,
+          }),
+    [wallet, txKeys, streak, referralInvites, checkedToday, boosts]
   );
 
   const claimedCount = sumAppBadges(claimedLevels);
@@ -246,8 +263,8 @@ export default function AppBadgesSection({ app }: { app: WalletAppState }) {
             <Sparkles size={12} /> In-app achievements · on-chain
           </p>
           <p className="text-sm text-[var(--ink-soft)] max-w-xl">
-            Mint soulbound badges for trading, staking, check-ins, vouchers, and more — earned only
-            by using Base Analytics.
+            Mint soulbound badges for trading, check-ins, vouchers, and more — earned only
+            by using Base Analytics. Progress is lifetime (not reset each week).
           </p>
         </div>
         <div className="text-center sm:text-right shrink-0">

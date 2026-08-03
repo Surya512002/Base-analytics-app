@@ -28,25 +28,17 @@ const TAB_ALIASES: Record<string, AppTab> = {
   staking: "checkin",
 };
 
-export type RewardsHubView = "checkin" | "stake";
+export type RewardsHubView = "checkin";
 
-export function resolveRewardsViewFromUrl(search?: string): RewardsHubView {
-  if (typeof window === "undefined" && !search) return "checkin";
-  const raw = search ?? window.location.search;
-  const params = new URLSearchParams(raw);
-  const tab = params.get("tab");
-  const view = params.get("view");
-  if (view === "stake") return "stake";
-  if (tab === "rewards" || tab === "stake" || tab === "staking") return "stake";
+export function resolveRewardsViewFromUrl(_search?: string): RewardsHubView {
   return "checkin";
 }
 
-export function syncRewardsHubUrl(view: RewardsHubView) {
+export function syncRewardsHubUrl(_view?: RewardsHubView) {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
   url.searchParams.set("tab", "checkin");
-  if (view === "stake") url.searchParams.set("view", "stake");
-  else url.searchParams.delete("view");
+  url.searchParams.delete("view");
   url.searchParams.delete("token");
   window.history.replaceState({}, "", url);
 }

@@ -79,15 +79,7 @@ export function auditServerEnv(): EnvAuditItem[] {
     ok: Boolean(process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT?.trim()),
     detail: process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT
       ? "Set — on-chain badge marketplace live"
-      : "Optional — run npm run stake:deploy to enable",
-  });
-
-  items.push({
-    key: "NEXT_PUBLIC_XP_STAKE_CONTRACT",
-    ok: Boolean(process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT?.trim()),
-    detail: process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT
-      ? "Set — on-chain XP stake live"
-      : "Optional — deploy with npm run stake:deploy",
+      : "Optional — set NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT to enable",
   });
 
   return items;

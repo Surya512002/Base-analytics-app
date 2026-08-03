@@ -12,12 +12,18 @@ describe("resolveTabFromUrl", () => {
   it("returns null for unknown tabs", () => {
     expect(resolveTabFromUrl("?tab=unknown")).toBeNull();
   });
+
+  it("maps legacy stake aliases to checkin hub", () => {
+    expect(resolveTabFromUrl("?tab=stake")).toBe("checkin");
+    expect(resolveTabFromUrl("?tab=staking")).toBe("checkin");
+    expect(resolveTabFromUrl("?tab=rewards")).toBe("checkin");
+  });
 });
 
 describe("resolveRewardsViewFromUrl", () => {
-  it("resolves stake view", () => {
-    expect(resolveRewardsViewFromUrl("?tab=checkin&view=stake")).toBe("stake");
-    expect(resolveRewardsViewFromUrl("?tab=stake")).toBe("stake");
+  it("always resolves to checkin after stake removal", () => {
+    expect(resolveRewardsViewFromUrl("?tab=checkin&view=stake")).toBe("checkin");
+    expect(resolveRewardsViewFromUrl("?tab=stake")).toBe("checkin");
     expect(resolveRewardsViewFromUrl("?tab=checkin")).toBe("checkin");
   });
 });

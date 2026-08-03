@@ -19,7 +19,7 @@ type CommandPaletteProps = {
 };
 
 const EXTRA_NAV: { id: AppTab; label: string; hint: string; rewardsView?: RewardsHubView }[] = [
-  { id: "checkin", label: "Stake & earn", hint: "XP / ETH stake boosts", rewardsView: "stake" },
+  { id: "checkin", label: "Check-in & quests", hint: "Daily check-in and season XP", rewardsView: "checkin" },
 ];
 
 export default function CommandPalette({

@@ -2,7 +2,6 @@
 
 export type AppBadgeSection =
   | "traded"
-  | "staked"
   | "engaged"
   | "vouchers"
   | "social"
@@ -89,44 +88,6 @@ export const APP_TRADED_BADGES = assignAppBadgeBaseIds([
     elite: true,
   },
 ], 0);
-
-export const APP_STAKED_BADGES = assignAppBadgeBaseIds([
-  {
-    id: "app_stake",
-    section: "staked",
-    name: "Stake cadence",
-    icon: "🔒",
-    unit: "Stakes",
-    metric: "stake",
-    thresholds: [2, 8, 20, 45, 80, 150],
-    tierNames: ["First lock", "Regular", "Committed", "Vault keeper", "Stake maxi", "Iron vault"],
-    tierIcons: ["🔒", "⛓️", "🏦", "💎", "🏛️", "🗿"],
-    elite: true,
-  },
-  {
-    id: "app_eth_stake",
-    section: "staked",
-    name: "ETH stake tier",
-    icon: "⚡",
-    unit: "Tier",
-    metric: "eth_stake_tier",
-    thresholds: [1, 2, 3],
-    tierNames: ["Bronze lock", "Silver lock", "Gold lock"],
-    tierIcons: ["🥉", "🥈", "🥇"],
-  },
-  {
-    id: "app_diamond_stake",
-    section: "staked",
-    name: "Diamond hands",
-    icon: "💎",
-    unit: "Stakes",
-    metric: "stake",
-    thresholds: [50, 100, 200],
-    tierNames: ["Frosted", "Flawless", "Eternal"],
-    tierIcons: ["💠", "💎", "♾️"],
-    elite: true,
-  },
-], 4);
 
 export const APP_ENGAGED_BADGES = assignAppBadgeBaseIds([
   {
@@ -370,12 +331,6 @@ export const APP_BADGE_SECTIONS: {
     title: "Traded",
     subtitle: "Lifetime swaps and B20 launches — top tiers need hundreds of actions.",
     categories: APP_TRADED_BADGES,
-  },
-  {
-    id: "staked",
-    title: "Staked",
-    subtitle: "Repeated XP locks and on-chain ETH stake tiers.",
-    categories: APP_STAKED_BADGES,
   },
   {
     id: "engaged",

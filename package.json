@@ -19,7 +19,6 @@
     "test:swap-routes:local": "node scripts/test-swap-routes.mjs --local",
     "typecheck": "tsc --noEmit",
     "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh",
-    "stake:deploy": "bash scripts/deploy-stake-market.sh",
     "notify:list": "node scripts/send-base-notification.mjs list",
     "notify:b20": "node scripts/send-base-notification.mjs broadcast --preset b20_launch"
   },

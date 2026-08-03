@@ -44,7 +44,7 @@ export function splitPlatformFee(
     creator: `0x${string}`;
     referrer?: `0x${string}` | null;
     platform?: `0x${string}`;
-    /** Extra bps of total fee shifted from platform → referrer (on-chain stake boost). */
+    /** Extra bps of total fee shifted from platform → referrer (legacy optional). */
     referrerBoostBps?: number;
   }
 ): FeeSplitAmounts & { transfers: Array<{ to: `0x${string}`; amount: bigint }> } {

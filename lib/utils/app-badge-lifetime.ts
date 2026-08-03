@@ -2,8 +2,7 @@
 
 import type { AppBadgeMetrics } from "@/lib/utils/app-badge-levels";
 
-const LIFETIME_FIELDS: (keyof AppBadgeMetrics)[] = [
-  "stake",
+export const LIFETIME_INCREMENT_FIELDS = [
   "swap",
   "launch",
   "checkin",
@@ -15,6 +14,12 @@ const LIFETIME_FIELDS: (keyof AppBadgeMetrics)[] = [
   "x402",
   "challenge",
   "prediction",
+] as const;
+
+export type LifetimeIncrementField = (typeof LIFETIME_INCREMENT_FIELDS)[number];
+
+const LIFETIME_FIELDS: (keyof AppBadgeMetrics)[] = [
+  ...LIFETIME_INCREMENT_FIELDS,
   "trade_actions",
   "social_ping",
   "voucher_actions",
@@ -50,7 +55,7 @@ function writeLifetimeAppStats(
 
 export function incrementLifetimeAppStat(
   address: string,
-  field: keyof AppBadgeMetrics,
+  field: LifetimeIncrementField | keyof AppBadgeMetrics,
   amount = 1
 ): void {
   if (!address || amount <= 0) return;
@@ -68,17 +73,42 @@ export function incrementLifetimeAppStat(
   writeLifetimeAppStats(address, next);
 }
 
+/** Raise lifetime floors from on-chain / session totals without double-counting. */
+export function ensureLifetimeFloors(
+  address: string,
+  floors: Partial<AppBadgeMetrics>
+): void {
+  if (!address) return;
+  const prev = readLifetimeAppStats(address);
+  const next: Partial<AppBadgeMetrics> = { ...prev };
+  let changed = false;
+  for (const key of Object.keys(floors) as (keyof AppBadgeMetrics)[]) {
+    const floor = Number(floors[key]);
+    if (!Number.isFinite(floor) || floor <= 0) continue;
+    const cur = Number(next[key]) || 0;
+    if (floor > cur) {
+      next[key] = floor;
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  recomputeDerived(next);
+  writeLifetimeAppStats(address, next);
+}
+
 function recomputeDerived(stats: Partial<AppBadgeMetrics>): void {
   const gm = Number(stats.gm) || 0;
   const gn = Number(stats.gn) || 0;
   const voucher = Number(stats.voucher) || 0;
   const redeem = Number(stats.redeem) || 0;
+  const swap = Number(stats.swap) || 0;
+  const launch = Number(stats.launch) || 0;
+  stats.trade_actions = Math.max(Number(stats.trade_actions) || 0, swap + launch);
   stats.social_ping = gm + gn;
   stats.voucher_actions = voucher + redeem;
   stats.activity_total =
-    (Number(stats.swap) || 0) +
-    (Number(stats.launch) || 0) +
-    (Number(stats.stake) || 0) +
+    swap +
+    launch +
     (Number(stats.checkin) || 0) +
     (Number(stats.boost) || 0) +
     voucher +
@@ -90,43 +120,53 @@ function recomputeDerived(stats: Partial<AppBadgeMetrics>): void {
     (Number(stats.prediction) || 0);
 }
 
-/** Merge lifetime totals with live session metrics (streak, eth tier, referral). */
+function maxNum(...vals: number[]): number {
+  return vals.reduce((m, n) => (Number.isFinite(n) && n > m ? n : m), 0);
+}
+
+/** Merge lifetime totals with live session metrics (streak, referral). */
 export function buildLifetimeBadgeMetrics(input: {
   address: string;
   streak: number;
   referralInvites: number;
-  ethStakeTier: number;
   checkedToday?: boolean;
   weeklyTxKeys?: Record<string, number>;
+  /** On-chain / session floors (check-ins, boosts, GM hits). */
+  floors?: Partial<AppBadgeMetrics>;
 }): AppBadgeMetrics {
   const lifetime = readLifetimeAppStats(input.address);
-  const swap = Number(lifetime.swap) || 0;
-  const launch = Number(lifetime.launch) || 0;
-  const checkin = Math.max(
-    Number(lifetime.checkin) || 0,
-    input.checkedToday ? 1 : 0
-  );
+  const weekly = input.weeklyTxKeys ?? {};
+  const floors = input.floors ?? {};
+
+  const pick = (field: keyof AppBadgeMetrics): number =>
+    maxNum(
+      Number(lifetime[field]) || 0,
+      Number(weekly[field as string]) || 0,
+      Number(floors[field]) || 0
+    );
+
+  const swap = pick("swap");
+  const launch = pick("launch");
+  const checkin = maxNum(pick("checkin"), input.checkedToday ? 1 : 0);
 
   const metrics: AppBadgeMetrics = {
-    stake: Number(lifetime.stake) || 0,
     swap,
     launch,
-    ethStakeTier: input.ethStakeTier,
     checkin,
     streak: input.streak,
-    boost: Number(lifetime.boost) || 0,
-    voucher: Number(lifetime.voucher) || 0,
-    redeem: Number(lifetime.redeem) || 0,
-    gm: Number(lifetime.gm) || 0,
-    gn: Number(lifetime.gn) || 0,
-    x402: Number(lifetime.x402) || 0,
-    challenge: Number(lifetime.challenge) || 0,
-    prediction: Number(lifetime.prediction) || 0,
+    boost: pick("boost"),
+    voucher: pick("voucher"),
+    redeem: pick("redeem"),
+    gm: pick("gm"),
+    gn: pick("gn"),
+    x402: pick("x402"),
+    challenge: pick("challenge"),
+    prediction: pick("prediction"),
     referral: input.referralInvites,
-    trade_actions: Number(lifetime.trade_actions) || swap + launch,
-    social_ping: Number(lifetime.social_ping) || 0,
-    voucher_actions: Number(lifetime.voucher_actions) || 0,
-    activity_total: Number(lifetime.activity_total) || 0,
+    trade_actions: 0,
+    social_ping: 0,
+    voucher_actions: 0,
+    activity_total: 0,
   };
 
   recomputeDerived(metrics);

@@ -1,38 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { Flame, Sparkles, Trophy } from "lucide-react";
-import RewardsSegmentTabs from "@/components/wallet/RewardsSegmentTabs";
 import CheckInTab from "@/components/wallet/tabs/CheckInTab";
-import RewardsTab from "@/components/wallet/tabs/RewardsTab";
-import StakeContractBanner from "@/components/wallet/StakeContractBanner";
 import WeeklyRecapBanner from "@/components/wallet/WeeklyRecapBanner";
 import ReferralPanel from "@/components/wallet/ReferralPanel";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
-import {
-  resolveRewardsViewFromUrl,
-  syncRewardsHubUrl,
-  type RewardsHubView,
-} from "@/lib/utils/app-url";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 export default function RewardsHubTab({ app }: { app: WalletAppState }) {
   const { weeklyXP, doneQuests, streak, wallet } = app;
-  const [view, setView] = useState<RewardsHubView>(() =>
-    typeof window !== "undefined" ? resolveRewardsViewFromUrl() : "checkin"
-  );
-
-  useEffect(() => {
-    setView(resolveRewardsViewFromUrl());
-    const onPop = () => setView(resolveRewardsViewFromUrl());
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  const changeView = useCallback((next: RewardsHubView) => {
-    setView(next);
-    syncRewardsHubUrl(next);
-  }, []);
 
   return (
     <div className="w-full space-y-5 sm:space-y-6 tab-content-enter">
@@ -45,12 +21,9 @@ export default function RewardsHubTab({ app }: { app: WalletAppState }) {
                 <Sparkles size={12} className="shrink-0" />
                 Season rewards hub
               </p>
-              <h1 className="page-hero-title mt-3">
-                Quests &amp; Stake
-              </h1>
+              <h1 className="page-hero-title mt-3">Quests &amp; Check-in</h1>
               <p className="readable-body text-sm sm:text-base mt-3 max-w-xl">
-                Weekly quests, live rankings, and stake XP or ETH to boost your referrer share on
-                swaps.
+                Weekly quests, live rankings, and daily check-ins to earn season XP and points.
               </p>
             </div>
 
@@ -85,17 +58,9 @@ export default function RewardsHubTab({ app }: { app: WalletAppState }) {
         streak={streak}
       />
 
-      <StakeContractBanner />
-
       {wallet && <ReferralPanel address={wallet.address} />}
 
-      <RewardsSegmentTabs active={view} onChange={changeView} />
-
-      {view === "checkin" ? (
-        <CheckInTab app={app} embedded />
-      ) : (
-        <RewardsTab app={app} embedded />
-      )}
+      <CheckInTab app={app} embedded />
     </div>
   );
 }

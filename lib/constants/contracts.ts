@@ -101,56 +101,6 @@ export const ACHIEVEMENTS_ABI = [
   },
 ] as const;
 
-export const XP_STAKE_ABI = [
-  {
-    inputs: [],
-    name: "stake",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "unstake",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "user", type: "address" }],
-    name: "getStake",
-    outputs: [
-      { internalType: "uint256", name: "amount", type: "uint256" },
-      { internalType: "uint64", name: "unlockAt", type: "uint64" },
-      { internalType: "uint8", name: "tier", type: "uint8" },
-      { internalType: "bool", name: "active", type: "bool" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "MIN_TIER1",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "MIN_TIER2",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "MIN_TIER3",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
 export const BADGE_MARKETPLACE_ABI = [
   {
     inputs: [

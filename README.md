@@ -10,7 +10,7 @@ Gamified onchain wallet analytics on **Base** — explore & swap tokens, score y
 |---------|------------|
 | **Explore** | B20 launchpad, token search, trending rails, in-app swaps (Uniswap + Aerodrome), watchlist & price alerts |
 | **Analytics** | Onchain score, heatmap, improvement tips, challenge links, shareable profile |
-| **Quests** | Daily check-in, weekly quests, XP leaderboard, optional on-chain stake |
+| **Quests** | Daily check-in, weekly quests, XP leaderboard |
 | **Vouchers** | Split ETH/USDC into gift cards, redeem deep links, creator batch analytics |
 | **Badges** | 40+ achievement NFTs, gasless mints via Paymaster when configured |
 
@@ -22,7 +22,7 @@ Guests can browse **[/explore](https://base-analytics-app.vercel.app/explore)** 
 - Viem, Wagmi, Coinbase OnchainKit
 - Redis (`KV_REDIS_URL`) — leaderboard, wallet cache, voucher index
 - x402 — micropayments for premium wallet scan
-- Foundry — `BaseVoucher.sol`, optional `XpStake` / `BadgeMarketplace`
+- Foundry — `BaseVoucher.sol`, optional `BadgeMarketplace`
 
 ## Local setup
 
@@ -69,7 +69,6 @@ Copy `.env.example` → `.env.local`. **Never commit secrets.**
 | `CRON_SECRET` | Prod cron | Auth for `/api/cron/price-alerts` |
 | `MCP_API_KEY` | Optional | Auth for `/api/mcp` agent tools |
 | `X402_FACILITATOR_PRIVATE_KEY` | x402 | Premium scan settlement |
-| `NEXT_PUBLIC_XP_STAKE_CONTRACT` | Optional | On-chain XP stake |
 | `NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT` | Optional | On-chain badge listings |
 
 ## Deploy to Vercel

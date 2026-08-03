@@ -56,10 +56,8 @@ export function appBadgeCollectionPct(levels: Record<string, number>): number {
 }
 
 export type AppBadgeMetrics = {
-  stake: number;
   swap: number;
   launch: number;
-  ethStakeTier: number;
   checkin: number;
   streak: number;
   boost: number;
@@ -81,7 +79,6 @@ export function buildAppBadgeMetrics(input: {
   txKeys: Record<string, number>;
   streak: number;
   referralInvites: number;
-  ethStakeTier: number;
   checkedToday?: boolean;
 }): AppBadgeMetrics {
   const swap = input.txKeys.swap ?? 0;
@@ -92,10 +89,8 @@ export function buildAppBadgeMetrics(input: {
   );
 
   return {
-    stake: input.txKeys.stake ?? 0,
     swap,
     launch,
-    ethStakeTier: input.ethStakeTier,
     checkin,
     streak: input.streak,
     boost: input.txKeys.boost ?? 0,

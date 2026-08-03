@@ -1,5 +1,10 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 import { getWeekKey } from "@/lib/utils/dates";
+import {
+  ensureLifetimeFloors,
+  incrementLifetimeAppStat,
+  type LifetimeIncrementField,
+} from "@/lib/utils/app-badge-lifetime";
 
 /** Bump to reset stale per-wallet session keys after storage logic changes. */
 export const SESSION_STORAGE_VERSION = 8;
@@ -190,7 +195,7 @@ export function mergeTxKeyCounters(
   return merged;
 }
 
-/** Increment a weekly in-app action counter (quests + daily point sync). */
+/** Increment a weekly in-app action counter (quests + daily point sync) and lifetime badge stats. */
 export function bumpWeeklyTxKey(
   address: string,
   field: keyof typeof DEFAULT_TX_KEYS
@@ -201,6 +206,7 @@ export function bumpWeeklyTxKey(
     [field]: (current[field] || 0) + 1,
   };
   writePersistedTxKeys(address, next);
+  incrementLifetimeAppStat(address, field as LifetimeIncrementField);
   return next;
 }
 
@@ -210,6 +216,13 @@ export function syncSessionFromAnalysis(
 ): { boosts: number; checkInCount: number; txKeys: Record<string, number> } {
   const boosts = resolveBoostCount(result.boosts, address);
   const checkInCount = resolveCheckInCount(result.wallet.checkInCount, address);
+  const gmCount = Math.max(0, result.wallet.gmCount ?? 0);
+  // Seed lifetime floors from on-chain app activity so badges catch up after reconnect.
+  ensureLifetimeFloors(address, {
+    checkin: checkInCount,
+    boost: boosts,
+    gm: gmCount,
+  });
   const txKeys = {
     ...DEFAULT_TX_KEYS,
     ...readPersistedTxKeys(address),

@@ -132,9 +132,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
       }
       setTab(resolved);
       if (resolved === "checkin") {
-        syncRewardsHubUrl(
-          opts?.rewardsView ?? (next === "rewards" ? "stake" : "checkin")
-        );
+        syncRewardsHubUrl("checkin");
       } else if (opts?.token) {
         syncTabUrl(resolved, { token: opts.token });
       } else {
