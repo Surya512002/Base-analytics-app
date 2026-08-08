@@ -3,6 +3,16 @@ import type { LaunchedToken } from "@/lib/launchpad/types";
 const RECENT_KEY = "base_explore_recent_searches";
 const MAX_RECENT = 8;
 
+export type TokenSearchHit = {
+  address: string;
+  symbol: string;
+  name: string;
+  imageUrl?: string;
+  liquidityUsd: number;
+  volume24h: number;
+  priceUsd?: number;
+};
+
 export function filterTokensByQuery(tokens: LaunchedToken[], query: string): LaunchedToken[] {
   const q = query.trim().toLowerCase();
   if (!q) return tokens.slice(0, 12);

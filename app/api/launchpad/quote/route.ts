@@ -264,79 +264,51 @@ export async function GET(req: Request) {
         directQuote?.hasLiquidity && legs.canUseDirectDex ? directQuote.amountOut : BigInt(0);
       const aggOut = aggQuote?.hasLiquidity ? aggQuote.amountOut : BigInt(0);
 
-      if (dex !== "auto" && legs.canUseDirectDex && directQuote?.hasLiquidity) {
-        return {
-          kind: "direct" as const,
-          out: directQuote.amountOut,
-          min: directQuote.amountOutMinimum,
-          dex: directQuote.dex,
-          router: directQuote.router,
-        };
+      const asAggregator = () =>
+        aggQuote?.hasLiquidity
+          ? {
+              kind: "aggregator" as const,
+              out: aggQuote.amountOut,
+              min: aggQuote.amountOutMinimum,
+              dex: "aggregator" as const,
+              router: aggQuote.tx?.to ?? null,
+              tx: aggQuote.tx,
+              allowanceSpender: aggQuote.allowanceSpender,
+            }
+          : null;
+
+      const asDirect = () =>
+        directOut > BigInt(0) && directQuote
+          ? {
+              kind: "direct" as const,
+              out: directQuote.amountOut,
+              min: directQuote.amountOutMinimum,
+              dex: directQuote.dex,
+              router: directQuote.router,
+            }
+          : null;
+
+      // User locked a direct venue — honor it only when that venue has liquidity.
+      if (dex !== "auto" && legs.canUseDirectDex && directOut > BigInt(0) && directQuote) {
+        return asDirect();
+      }
+
+      // Any Base ERC-20: if direct WETH path is empty, always take 0x (covers Aerodrome
+      // pairs vs AERO/USDC/etc., multi-hop, and thin airdrop pools).
+      if (directOut <= BigInt(0)) {
+        return asAggregator() ?? asDirect();
       }
 
       if (dex === "auto") {
-        // Prefer direct DEX when liquidity exists — 0x calldata is fragile in smart wallets.
+        // Prefer direct when within 3% of aggregator (simpler calldata for smart wallets).
         const aggMuchBetter =
-          aggOut > BigInt(0) &&
-          directOut > BigInt(0) &&
-          aggOut > (directOut * BigInt(103)) / BigInt(100);
-
-        if (directOut > BigInt(0) && directQuote && !aggMuchBetter) {
-          return {
-            kind: "direct" as const,
-            out: directQuote.amountOut,
-            min: directQuote.amountOutMinimum,
-            dex: directQuote.dex,
-            router: directQuote.router,
-          };
-        }
-
-        if (aggOut > directOut && aggQuote) {
-          return {
-            kind: "aggregator" as const,
-            out: aggQuote.amountOut,
-            min: aggQuote.amountOutMinimum,
-            dex: "aggregator" as const,
-            router: aggQuote.tx?.to ?? null,
-            tx: aggQuote.tx,
-            allowanceSpender: aggQuote.allowanceSpender,
-          };
-        }
-        if (directOut > BigInt(0) && directQuote) {
-          return {
-            kind: "direct" as const,
-            out: directQuote.amountOut,
-            min: directQuote.amountOutMinimum,
-            dex: directQuote.dex,
-            router: directQuote.router,
-          };
-        }
-        if (aggQuote?.hasLiquidity) {
-          return {
-            kind: "aggregator" as const,
-            out: aggQuote.amountOut,
-            min: aggQuote.amountOutMinimum,
-            dex: "aggregator" as const,
-            router: aggQuote.tx?.to ?? null,
-            tx: aggQuote.tx,
-            allowanceSpender: aggQuote.allowanceSpender,
-          };
-        }
+          aggOut > BigInt(0) && aggOut > (directOut * BigInt(103)) / BigInt(100);
+        if (!aggMuchBetter) return asDirect();
+        return asAggregator() ?? asDirect();
       }
 
-      if (!legs.canUseDirectDex && aggQuote?.hasLiquidity) {
-        return {
-          kind: "aggregator" as const,
-          out: aggQuote.amountOut,
-          min: aggQuote.amountOutMinimum,
-          dex: "aggregator" as const,
-          router: aggQuote.tx?.to ?? null,
-          tx: aggQuote.tx,
-          allowanceSpender: aggQuote.allowanceSpender,
-        };
-      }
-
-      return null;
+      // Locked venue had no liquidity — fall back to aggregator rather than hard-fail.
+      return asAggregator() ?? asDirect();
     };
 
     /**
@@ -442,16 +414,20 @@ export async function GET(req: Request) {
       amountOutMinimum: "0",
       hasLiquidity: false,
       aggregatorConfigured: zeroXConfigured(),
+      error: zeroXConfigured()
+        ? "No swap route for this pair — token may have no Base liquidity, or a vesting lock blocks transfers"
+        : "No direct DEX pool and 0x aggregator is not configured — set ZEROX_API_KEY to route any Base token",
     });
   } catch (err) {
     console.error("[launchpad/quote]", err);
     const msg =
       err instanceof Error && err.message.includes("Number")
         ? "Invalid amount format"
-        : "Quote failed — no route on Aerodrome, Uniswap, or Slipstream";
+        : "Quote failed — could not route via Aerodrome, Uniswap, Slipstream, or 0x";
     return NextResponse.json({
       hasLiquidity: false,
       error: msg,
+      aggregatorConfigured: zeroXConfigured(),
     });
   }
 }

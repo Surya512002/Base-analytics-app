@@ -10,6 +10,7 @@ import {
 import { resolveTokenByAddress } from "@/lib/api/launchpad-client";
 import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
 import TokenIcon from "@/components/swap/TokenIcon";
+import type { TokenSearchHit } from "@/lib/launchpad/token-search";
 
 /** Either native ETH or any Base ERC-20. */
 export type SwapCounter =
@@ -65,6 +66,8 @@ export default function TokenPickerDialog({
 }) {
   const [query, setQuery] = useState("");
   const [resolving, setResolving] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchHits, setSearchHits] = useState<TokenSearchHit[]>([]);
   const [resolved, setResolved] = useState<Extract<
     SwapCounter,
     { kind: "token" }
@@ -77,6 +80,7 @@ export default function TokenPickerDialog({
     setQuery("");
     setResolved(null);
     setResolveError(null);
+    setSearchHits([]);
     const id = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(id);
   }, [open]);
@@ -151,6 +155,43 @@ export default function TokenPickerDialog({
     };
   }, [query]);
 
+  /** Name/symbol search via DexScreener so any Base pool token can be found. */
+  useEffect(() => {
+    const raw = query.trim();
+    if (ADDRESS_RE.test(raw) || raw.length < 2) {
+      setSearchHits([]);
+      setSearching(false);
+      return;
+    }
+
+    let alive = true;
+    setSearching(true);
+    const t = window.setTimeout(() => {
+      void fetch(`/api/launchpad/search-tokens?q=${encodeURIComponent(raw)}`, {
+        cache: "no-store",
+      })
+        .then((r) => r.json())
+        .then((data: { tokens?: TokenSearchHit[] }) => {
+          if (!alive) return;
+          const hits = (data.tokens ?? []).filter(
+            (h) => !excluded || h.address.toLowerCase() !== excluded
+          );
+          setSearchHits(hits);
+        })
+        .catch(() => {
+          if (alive) setSearchHits([]);
+        })
+        .finally(() => {
+          if (alive) setSearching(false);
+        });
+    }, 280);
+
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [query, excluded]);
+
   if (!open) return null;
 
   const pick = (counter: SwapCounter) => {
@@ -160,9 +201,21 @@ export default function TokenPickerDialog({
 
   const asCounter = (t: CommonToken): SwapCounter => commonTokenToCounter(t);
 
+  const hitToCounter = (h: TokenSearchHit): SwapCounter =>
+    enrichSwapCounter({
+      kind: "token",
+      address: h.address,
+      symbol: h.symbol,
+      decimals: 18,
+      imageUrl: h.imageUrl,
+    });
+
+  const listedAddrs = new Set(listed.map((t) => t.address.toLowerCase()));
+  const extraHits = searchHits.filter((h) => !listedAddrs.has(h.address.toLowerCase()));
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -193,13 +246,17 @@ export default function TokenPickerDialog({
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name or paste 0x address"
+              placeholder="Search any Base token or paste 0x address"
               className="flex-1 bg-transparent py-2.5 text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none"
             />
-            {resolving && (
+            {(resolving || searching) && (
               <Loader2 size={14} className="animate-spin text-[var(--ink-dim)] shrink-0" />
             )}
           </div>
+          <p className="mt-2 text-[11px] text-[var(--ink-dim)] leading-relaxed">
+            Majors, Aerodrome pools, airdrops — anything with Base liquidity. Paste the
+            contract if search misses it.
+          </p>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 pb-3">
@@ -220,6 +277,47 @@ export default function TokenPickerDialog({
             />
           ))}
 
+          {extraHits.length > 0 && (
+            <>
+              <p className="px-3 pt-3 pb-1 text-[11px] text-[var(--ink-dim)]">
+                On Base · DexScreener
+              </p>
+              {extraHits.map((h) => {
+                const fallback = hitToCounter(h);
+                return (
+                  <TokenRow
+                    key={h.address}
+                    counter={fallback}
+                    name={h.name}
+                    subtitle={
+                      h.liquidityUsd > 0
+                        ? `Liq $${Math.round(h.liquidityUsd).toLocaleString()}`
+                        : undefined
+                    }
+                    onSelect={() => {
+                      // Resolve decimals on-chain before trading (many airdrops aren't 18).
+                      void resolveTokenByAddress(h.address)
+                        .then(({ token }) => {
+                          if (token) {
+                            pick({
+                              kind: "token",
+                              address: token.address,
+                              symbol: token.symbol || h.symbol,
+                              decimals: token.decimals ?? 18,
+                              imageUrl: token.imageUrl ?? h.imageUrl,
+                            });
+                          } else {
+                            pick(fallback);
+                          }
+                        })
+                        .catch(() => pick(fallback));
+                    }}
+                  />
+                );
+              })}
+            </>
+          )}
+
           {resolved && (
             <>
               <p className="px-3 pt-3 pb-1 text-[11px] text-[var(--ink-dim)]">
@@ -233,11 +331,17 @@ export default function TokenPickerDialog({
             </>
           )}
 
-          {!showEth && listed.length === 0 && !resolved && !resolving && (
-            <p className="px-3 py-6 text-center text-[13px] text-[var(--ink-dim)]">
-              {resolveError ?? "No match. Paste a contract address to trade any Base token."}
-            </p>
-          )}
+          {!showEth &&
+            listed.length === 0 &&
+            extraHits.length === 0 &&
+            !resolved &&
+            !resolving &&
+            !searching && (
+              <p className="px-3 py-6 text-center text-[13px] text-[var(--ink-dim)]">
+                {resolveError ??
+                  "No match. Paste the token contract address (0x…) to trade any Base ERC-20."}
+              </p>
+            )}
         </div>
       </div>
     </div>
@@ -247,10 +351,12 @@ export default function TokenPickerDialog({
 function TokenRow({
   counter,
   name,
+  subtitle,
   onSelect,
 }: {
   counter: SwapCounter;
   name: string;
+  subtitle?: string;
   onSelect: () => void;
 }) {
   return (
@@ -264,7 +370,9 @@ function TokenRow({
         <span className="block text-[14px] font-medium text-[var(--ink)]">
           {counterSymbol(counter)}
         </span>
-        <span className="block text-[12px] text-[var(--ink-dim)] truncate">{name}</span>
+        <span className="block text-[12px] text-[var(--ink-dim)] truncate">
+          {subtitle ?? name}
+        </span>
       </span>
     </button>
   );

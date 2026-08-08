@@ -841,8 +841,9 @@ export default function DexSwapPanel({
       </button>
 
       <p className="dex-swap-foot">
-        {formatPlatformFeeLabel()} platform fee · Paste any{" "}
-        <span className="font-mono">0x…</span> address in the token picker · Base mainnet
+        {formatPlatformFeeLabel()} platform fee · Search or paste any Base{" "}
+        <span className="font-mono">0x…</span> address · routes via Aerodrome / Uniswap /
+        0x · Base mainnet
       </p>
 
       <TokenPickerDialog

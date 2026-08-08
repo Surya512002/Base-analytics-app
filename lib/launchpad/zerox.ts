@@ -49,10 +49,16 @@ async function zeroXFetch(
   try {
     const res = await fetch(`${ZEROX_API}/${endpoint}?${qs}`, {
       headers: { "0x-api-key": key, "0x-version": "v2" },
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(14_000),
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Surface rate limits / invalid key in logs so ops can fix, but never block the UI path.
+      if (res.status === 401 || res.status === 429) {
+        console.warn(`[0x] ${endpoint} HTTP ${res.status}`);
+      }
+      return null;
+    }
     return (await res.json()) as ZeroXApiResponse;
   } catch {
     return null;
