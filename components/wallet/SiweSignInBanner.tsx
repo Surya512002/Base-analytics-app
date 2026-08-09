@@ -36,7 +36,7 @@ export default function SiweSignInBanner({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-soft)]/50 p-4 sm:p-5">
+    <div className="sticky top-0 z-10 -mx-1 mb-4 rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-soft)]/80 p-4 shadow-[var(--shadow-card)] backdrop-blur-md sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--brand-dark)]">
@@ -51,7 +51,6 @@ export default function SiweSignInBanner({
               {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
             </span>
             . Sign a free message (no gas) to secure your profile and fee dashboard.
-            launchpad.
           </p>
           <p className="mt-2 text-[11px] text-[var(--ink-dim)]">
             Creators earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of every{" "}

@@ -12,7 +12,6 @@ import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
 import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
-import SignInOverlay from "@/components/wallet/SignInOverlay";
 import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
@@ -220,23 +219,13 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
             onConnect={openConnect}
             siweAuthenticated={siweAuthenticated}
             siweSigningIn={siweSigningIn}
+            siweSessionChecked={siweSessionChecked}
             onSiweSignIn={() => void handleSiweSignIn()}
+            siwePromptDismissed={siweSkipped}
+            onSiweSkip={() => setSiweSkipped(true)}
           />
         }
       >
-        <SignInOverlay
-          visible={
-            !guest &&
-            !!wallet?.address &&
-            siweSessionChecked &&
-            !siweAuthenticated &&
-            !siweSkipped
-          }
-          signingIn={siweSigningIn}
-          onSignIn={() => void handleSiweSignIn()}
-          onSkip={() => setSiweSkipped(true)}
-        />
-
         {guest && (
           <div className="mb-4 flex flex-col gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <p className="min-w-0 text-[12px] text-[var(--ink-muted)]">

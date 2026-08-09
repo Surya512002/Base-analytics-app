@@ -900,11 +900,9 @@ html.is-scrolling .prism-scene {
 @keyframes section-stage-in {
   from {
     opacity: 0;
-    transform: translateY(14px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -2842,34 +2840,51 @@ button.swap-token-pill:hover {
   background: var(--brand-soft);
 }
 
-/* ── Sign-In Overlay ── */
+/* Top-of-app SIWE strip — lives inside sticky header across all tabs/pages */
+.sign-in-top-bar {
+  width: 100%;
+  border-top: 1px solid color-mix(in srgb, var(--brand) 22%, var(--border-subtle));
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--brand-soft) 92%, white) 0%,
+      color-mix(in srgb, #fef3c7 55%, var(--surface)) 100%
+    );
+  box-shadow: 0 6px 18px rgba(11, 95, 255, 0.06);
+}
+
+/* Legacy modal classes — keep harmless if referenced elsewhere */
 .sign-in-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 9999;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
+  padding: calc(env(safe-area-inset-top, 0px) + 4.5rem) 1rem 1rem;
+  background: transparent;
+  pointer-events: none;
 }
 .sign-in-overlay-card {
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 2.5rem 2rem;
-  border-radius: 1.5rem;
+  padding: 1.25rem 1.25rem;
+  border-radius: 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-  max-width: 360px;
-  width: 90%;
+  box-shadow: var(--shadow-elevated);
+  max-width: 420px;
+  width: 100%;
   text-align: center;
 }
 .sign-in-overlay-icon {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2877,12 +2892,12 @@ button.swap-token-pill:hover {
   background: var(--brand-soft);
 }
 .sign-in-overlay-title {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 .sign-in-overlay-desc {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -2890,28 +2905,25 @@ button.swap-token-pill:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.75rem;
+  padding: 0.7rem 1.5rem;
   border-radius: 0.75rem;
   background: var(--brand);
   color: #fff;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
 }
 .sign-in-overlay-btn:hover {
   background: var(--brand-dark);
-  transform: scale(1.02);
 }
 .sign-in-overlay-skip {
   font-size: 0.8125rem;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
   cursor: pointer;
   padding: 0.5rem;
-  transition: color 0.15s;
 }
 .sign-in-overlay-skip:hover {
-  color: var(--text-secondary);
+  color: var(--ink);
 }
 
 /* ── Wallet Holdings Strip ── */

@@ -72,6 +72,7 @@ export default function ProfilePage() {
           siweAuthenticated={siweAuthenticated}
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
+          siweSessionChecked={sessionBootstrapped}
         />
         <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14">
           {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (

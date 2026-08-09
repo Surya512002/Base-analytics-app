@@ -64,6 +64,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
           siweAuthenticated={siweAuthenticated}
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
+          siweSessionChecked={sessionBootstrapped}
         />
         <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8">
           <Link
