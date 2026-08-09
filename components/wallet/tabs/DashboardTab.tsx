@@ -156,16 +156,23 @@ if (!wallet) return null;
       wallet.recommendation.includes("Syncing") ||
       wallet.recommendation.includes("Refining"));
 
-  /** Post-pay: big blur overlay over score/heatmap until full analysis pass settles. */
+  /** First score pass after unlock — release overlay once we have a real score. */
+  const hasUsableAnalytics =
+    analyticsUnlocked &&
+    wallet.score > 0 &&
+    !wallet.recommendation.includes("Fetching onchain data");
+
   const onchainAnalysisLoading =
     analyticsUnlocked &&
+    !hasUsableAnalytics &&
     (analyticsUnlockLoading ||
       analyticsSyncing ||
       walletRefreshing ||
       scoreSyncing ||
       wallet.recommendation.includes("Fetching onchain") ||
       wallet.recommendation.includes("Syncing full") ||
-      wallet.recommendation.includes("Refining"));
+      wallet.recommendation.includes("Refining") ||
+      wallet.recommendation.includes("Calculating"));
 
   return (
           <div className="space-y-4">
@@ -202,8 +209,17 @@ if (!wallet) return null;
               analysisLoading={onchainAnalysisLoading}
               onUnlock={handleAnalyticsUnlock}
               scanProgress={scanProgress}
-              walletRefreshing={walletRefreshing || analyticsSyncing}
+              walletRefreshing={walletRefreshing || (analyticsSyncing && !hasUsableAnalytics)}
+              walletAddress={wallet.address}
             >
+              <div className="space-y-4">
+              {analyticsUnlocked && analyticsSyncing && hasUsableAnalytics && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 flex items-center gap-2 text-xs font-semibold text-emerald-900">
+                  <RefreshCcw size={14} className="animate-spin shrink-0 text-emerald-700" />
+                  Refining your history in the background
+                  {scanProgress ? ` — ${scanProgress}` : "…"}
+                </div>
+              )}
               <OnchainScorePanel
                 wallet={wallet}
                 streak={streak}
@@ -217,7 +233,7 @@ if (!wallet) return null;
                 syncing={scoreSyncing || analyticsSyncing}
                 scanProgress={scanProgress}
               />
-            </AnalyticsPaywall>
+
             {wallet.topTokens.length > 0 && (
               <div className="glass-panel rounded-2xl p-5">
                 <p className="section-eyebrow mb-3">Tokens you&apos;ve traded</p>
@@ -339,6 +355,69 @@ if (!wallet) return null;
               ]}
             />
 
+            <div>
+              <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
+              <div className="glass-panel-accent rounded-2xl overflow-hidden shadow-lg shadow-black/25">
+                {wallet.recentTxs.length>0?wallet.recentTxs.map((tx: AlchemyTransfer, i: number)=>{
+                  const toAddr=(tx.to||'').toLowerCase();
+                  const wAddr=wallet.address.toLowerCase();
+                  const appHit=getAppContractHit(tx,wAddr);
+                  const isGM=appHit==='gm';
+                  const isBoost=appHit==='booster';
+                  const isCI=appHit==='checkin';
+                  const isBadge=appHit==='achievements';
+                  const isLaunch=appHit==='launchpad';
+                  const isDEX=DEX_ROUTERS.has(toAddr);
+                  const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
+                  const isPaymaster=isPaymasterActivity(tx,wAddr)||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
+                  let label='Contract Call',badge:string|null=null;
+                  let icon=<ArrowRightLeft size={13} className="analytics-tile-icon"/>;
+                  if(isGM){label='GM / GN';icon=<Star size={13} className="analytics-tile-icon"/>;badge='☀️ Vibes';}
+                  else if(isBoost){label='XP Boost';icon=<Rocket size={13} className="analytics-tile-icon"/>;badge='🚀 Boost';}
+                  else if(isCI){label='Check-In';icon=<Flame size={13} className="analytics-tile-icon"/>;badge='🔥 Streak';}
+                  else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>;badge='🏅 Badge';}
+                  else if(isLaunch){label='Launchpad';icon=<TrendingUp size={13} className="analytics-tile-icon"/>;badge='🚀 Launch';}
+                  else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="analytics-tile-icon"/>;badge='🔄 Swap';}
+                  else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="analytics-tile-icon"/>;badge='🌉 Bridge';}
+                  else if(isPaymaster){label=tx.category==='useroperation'||tx.metadata?.isUserOperation?'AA / Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge=tx.metadata?.isSponsored?'⛽ Sponsored':'⚡ AA';}
+                  else if(tx.category==='erc721'||tx.category==='erc1155'){
+                    const isMint=(tx.from||'').toLowerCase()==='0x0000000000000000000000000000000000000000';
+                    label=isMint?'NFT Mint':'NFT Transfer';
+                    icon=<Sparkles size={13} className="analytics-tile-icon"/>;
+                  }
+                  else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="analytics-tile-icon"/>;}
+                  else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="analytics-tile-icon"/>;}
+                  return(
+                    <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-[var(--surface-2)] transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-[var(--border-subtle)]':''}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${isGM?'bg-yellow-500/10 border-yellow-500/20':isCI?'bg-orange-500/10 border-orange-500/20':isBadge?'bg-yellow-500/10 border-yellow-500/20':'bg-[var(--bg-elevated)] border-[var(--border-subtle)]'}`}>{icon}</div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-black text-[var(--ink)] uppercase truncate">{label}</p>
+                            {badge&&<span className="text-[9px] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
+                          {tx.to&&<p className="text-[9px] text-slate-700 font-mono truncate">{tx.to.slice(0,10)}…</p>}
+                        </div>
+                      </div>
+                      <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
+                        className="shrink-0 text-[10px] font-black text-[var(--ink-muted)] hover:text-[var(--ink)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
+                        <ExternalLink size={9}/>{tx.value&&tx.value>0?`${parseFloat(tx.value.toFixed(4))} ${tx.asset||'ETH'}`:'View ↗'}
+                      </a>
+                    </div>
+                  );
+                }):(
+                  <p className="text-slate-600 text-sm text-center py-8">
+                    {analyticsSyncing || scoreSyncing
+                      ? "Syncing your onchain activity…"
+                      : "No recent transactions found."}
+                  </p>
+                )}
+              </div>
+            </div>
+              </div>
+            </AnalyticsPaywall>
+
             <FarcasterAnalytics
               address={wallet.address}
               unlocked={farcasterUnlocked}
@@ -406,67 +485,6 @@ if (!wallet) return null;
                   voucher from anywhere.
                 </li>
               </ul>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-3 flex items-center gap-2"><History size={12}/>Recent Activity</p>
-              <div className="glass-panel-accent rounded-2xl overflow-hidden shadow-lg shadow-black/25">
-                {wallet.recentTxs.length>0?wallet.recentTxs.map((tx: AlchemyTransfer, i: number)=>{
-                  const toAddr=(tx.to||'').toLowerCase();
-                  const wAddr=wallet.address.toLowerCase();
-                  const appHit=getAppContractHit(tx,wAddr);
-                  const isGM=appHit==='gm';
-                  const isBoost=appHit==='booster';
-                  const isCI=appHit==='checkin';
-                  const isBadge=appHit==='achievements';
-                  const isLaunch=appHit==='launchpad';
-                  const isDEX=DEX_ROUTERS.has(toAddr);
-                  const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
-                  const isPaymaster=isPaymasterActivity(tx,wAddr)||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
-                  let label='Contract Call',badge:string|null=null;
-                  let icon=<ArrowRightLeft size={13} className="analytics-tile-icon"/>;
-                  if(isGM){label='GM / GN';icon=<Star size={13} className="analytics-tile-icon"/>;badge='☀️ Vibes';}
-                  else if(isBoost){label='XP Boost';icon=<Rocket size={13} className="analytics-tile-icon"/>;badge='🚀 Boost';}
-                  else if(isCI){label='Check-In';icon=<Flame size={13} className="analytics-tile-icon"/>;badge='🔥 Streak';}
-                  else if(isBadge){label='Badge Mint';icon=<Trophy size={13} className="text-yellow-300"/>;badge='🏅 Badge';}
-                  else if(isLaunch){label='Launchpad';icon=<TrendingUp size={13} className="analytics-tile-icon"/>;badge='🚀 Launch';}
-                  else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="analytics-tile-icon"/>;badge='🔄 Swap';}
-                  else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="analytics-tile-icon"/>;badge='🌉 Bridge';}
-                  else if(isPaymaster){label=tx.category==='useroperation'||tx.metadata?.isUserOperation?'AA / Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge=tx.metadata?.isSponsored?'⛽ Sponsored':'⚡ AA';}
-                  else if(tx.category==='erc721'||tx.category==='erc1155'){
-                    const isMint=(tx.from||'').toLowerCase()==='0x0000000000000000000000000000000000000000';
-                    label=isMint?'NFT Mint':'NFT Transfer';
-                    icon=<Sparkles size={13} className="analytics-tile-icon"/>;
-                  }
-                  else if(tx.category==='erc20'){label='Token Transfer';icon=<Coins size={13} className="analytics-tile-icon"/>;}
-                  else if(tx.category==='internal'){label='Internal Tx';icon=<Zap size={13} className="analytics-tile-icon"/>;}
-                  return(
-                    <div key={i} className={`flex items-center justify-between p-3 sm:p-4 gap-3 hover:bg-[var(--surface-2)] transition-colors ${i!==wallet.recentTxs.length-1?'border-b border-[var(--border-subtle)]':''}`}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-8 h-8 border rounded-xl flex items-center justify-center shrink-0 ${isGM?'bg-yellow-500/10 border-yellow-500/20':isCI?'bg-orange-500/10 border-orange-500/20':isBadge?'bg-yellow-500/10 border-yellow-500/20':'bg-[var(--bg-elevated)] border-[var(--border-subtle)]'}`}>{icon}</div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-black text-[var(--ink)] uppercase truncate">{label}</p>
-                            {badge&&<span className="text-[9px] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] px-1.5 py-0.5 rounded-full font-bold shrink-0">{badge}</span>}
-                          </div>
-                          <p className="text-[10px] text-slate-500 truncate">{new Date(tx.metadata.blockTimestamp).toLocaleString()}</p>
-                          {tx.to&&<p className="text-[9px] text-slate-700 font-mono truncate">{tx.to.slice(0,10)}…</p>}
-                        </div>
-                      </div>
-                      <a href={`https://basescan.org/tx/${tx.hash}`} target="_blank" rel="noreferrer"
-                        className="shrink-0 text-[10px] font-black text-[var(--ink-muted)] hover:text-[var(--ink)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all whitespace-nowrap">
-                        <ExternalLink size={9}/>{tx.value&&tx.value>0?`${parseFloat(tx.value.toFixed(4))} ${tx.asset||'ETH'}`:'View ↗'}
-                      </a>
-                    </div>
-                  );
-                }):(
-                  <p className="text-slate-600 text-sm text-center py-8">
-                    {analyticsSyncing || scoreSyncing
-                      ? "Syncing your onchain activity…"
-                      : "No recent transactions found."}
-                  </p>
-                )}
-              </div>
             </div>
           </div>
   );

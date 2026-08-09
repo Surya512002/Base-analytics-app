@@ -93,9 +93,10 @@ export async function GET(req: Request) {
       await saveWalletHistory(address, emptyHistoryState());
     }
 
+    // Short bursts so each poll returns a partial for *this* address quickly.
     const syncBudget = Math.min(
-      52_000,
-      Math.max(12_000, handlerDeadline - Date.now() - 35_000)
+      22_000,
+      Math.max(8_000, handlerDeadline - Date.now() - 25_000)
     );
     const { transfers, state } = await runWalletSyncBurst(address, syncBudget);
 

@@ -1,63 +1,72 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { BarChart3, Blocks, Flame, LineChart, Sparkles, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  CheckCircle2,
+  Flame,
+  History,
+  LineChart,
+  Sparkles,
+  User,
+} from "lucide-react";
 
-const SYNC_STAGES = [
-  { id: "history", label: "History", icon: Blocks },
+const PAID_STAGES = [
+  { id: "wallet", label: "Your wallet", icon: User },
+  { id: "history", label: "Your history", icon: History },
   { id: "score", label: "Score", icon: LineChart },
   { id: "heatmap", label: "Heatmap", icon: Flame },
-  { id: "swaps", label: "Swaps", icon: Wallet },
 ] as const;
 
 function stageIndex(progress?: string): number {
-  if (!progress) return 0;
+  if (!progress) return 1;
   const p = progress.toLowerCase();
-  if (p.includes("complete") || p.includes("up to date")) return 4;
-  if (p.includes("swap") || p.includes("volume") || p.includes("health")) return 3;
+  if (p.includes("complete") || p.includes("up to date") || p.includes("ready"))
+    return 4;
+  if (p.includes("heatmap") || p.includes("swap") || p.includes("volume")) return 3;
+  if (p.includes("score") || p.includes("calculat")) return 2;
   if (
-    p.includes("heatmap") ||
     p.includes("history") ||
-    p.includes("active days") ||
-    p.includes("syncing") ||
-    p.includes("payment")
+    p.includes("alchemy") ||
+    p.includes("collect") ||
+    p.includes("sync") ||
+    p.includes("active days")
   )
-    return 2;
-  if (p.includes("score") || p.includes("calculating") || p.includes("alchemy")) return 1;
+    return 1;
+  if (p.includes("payment") || p.includes("confirmed")) return 0;
   return 1;
 }
 
-function stageCurrent(i: number, activeStage: number): boolean {
-  if (activeStage <= 0) return i === 0;
-  if (activeStage >= SYNC_STAGES.length) return false;
-  return i === Math.min(activeStage, SYNC_STAGES.length - 1) && i >= activeStage - 1
-    ? i === Math.min(activeStage, SYNC_STAGES.length - 1)
-    : i === activeStage;
-}
-
-/** Full-size post-pay overlay — blurs score / heatmap while Alchemy history builds. */
+/**
+ * Post-pay scan only — deliberately different from the locked paywall card:
+ * emerald “payment confirmed” chrome, wallet-scoped copy, live stage ticks.
+ */
 export default function AnalyticsLoadingPanel({
   scanProgress,
   walletRefreshing,
   variant = "hero",
+  walletAddress,
 }: {
   scanProgress?: string;
   walletRefreshing?: boolean;
-  /** hero = standalone full panel; overlay = absolute cover over blurred analytics */
   variant?: "hero" | "overlay";
+  /** Connected wallet — shown so it’s clear we only index this address. */
+  walletAddress?: string;
 }) {
   const activeStage = stageIndex(scanProgress);
-  const pct = Math.min(96, Math.max(14, 10 + activeStage * 22));
+  const pct = Math.min(94, Math.max(18, 12 + activeStage * 20));
+  const short =
+    walletAddress && walletAddress.length === 42
+      ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`
+      : null;
 
   const body = (
     <div className="relative w-full max-w-lg mx-auto text-center px-4 py-8 sm:py-10">
-      {/* Crypto motion field */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-3xl" aria-hidden>
         {[
-          { size: 96, x: "8%", y: "12%", color: "rgba(37,99,235,0.18)", delay: 0 },
-          { size: 64, x: "72%", y: "18%", color: "rgba(16,185,129,0.16)", delay: 0.4 },
-          { size: 80, x: "58%", y: "62%", color: "rgba(245,158,11,0.14)", delay: 0.8 },
-          { size: 52, x: "18%", y: "68%", color: "rgba(99,102,241,0.16)", delay: 1.1 },
+          { size: 110, x: "6%", y: "10%", color: "rgba(16,185,129,0.2)", delay: 0 },
+          { size: 72, x: "70%", y: "20%", color: "rgba(5,150,105,0.16)", delay: 0.5 },
+          { size: 88, x: "50%", y: "60%", color: "rgba(20,184,166,0.14)", delay: 0.9 },
         ].map((orb, i) => (
           <motion.div
             key={i}
@@ -70,37 +79,15 @@ export default function AnalyticsLoadingPanel({
               background: orb.color,
             }}
             animate={{
-              y: [0, -14, 6, 0],
-              x: [0, 8, -6, 0],
-              scale: [1, 1.12, 0.96, 1],
-              opacity: [0.55, 0.9, 0.65, 0.55],
+              y: [0, -12, 4, 0],
+              scale: [1, 1.1, 0.97, 1],
+              opacity: [0.5, 0.85, 0.6, 0.5],
             }}
             transition={{
-              duration: 4.2 + i * 0.4,
+              duration: 3.8 + i * 0.35,
               repeat: Infinity,
               ease: "easeInOut",
               delay: orb.delay,
-            }}
-          />
-        ))}
-        {/* Floating chain dots */}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <motion.div
-            key={`dot-${i}`}
-            className="absolute w-1.5 h-1.5 rounded-full bg-[var(--brand)]/40"
-            style={{
-              left: `${12 + ((i * 11) % 76)}%`,
-              top: `${20 + ((i * 17) % 58)}%`,
-            }}
-            animate={{
-              y: [0, -18 - (i % 3) * 6, 0],
-              opacity: [0.2, 0.85, 0.2],
-            }}
-            transition={{
-              duration: 2.4 + (i % 4) * 0.35,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.18,
             }}
           />
         ))}
@@ -108,43 +95,39 @@ export default function AnalyticsLoadingPanel({
 
       <motion.div
         className="relative z-10"
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+        transition={{ duration: 0.4 }}
       >
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 mb-4">
+          <CheckCircle2 size={14} className="text-emerald-600" />
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-800">
+            Payment confirmed · scanning live
+          </span>
+        </div>
+
         <motion.div
-          className="relative w-20 h-20 mx-auto mb-5"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+          className="relative w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-50 border border-emerald-200 flex items-center justify-center shadow-[0_8px_28px_rgba(16,185,129,0.2)]"
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 1.6, repeat: Infinity }}
         >
-          <div className="absolute inset-0 rounded-2xl border-2 border-dashed border-[var(--brand)]/45" />
-          <motion.div
-            className="absolute inset-2 rounded-xl bg-gradient-to-br from-[#dbeafe] via-[var(--surface)] to-[#d1fae5] border border-[var(--border-subtle)] flex items-center justify-center shadow-[0_10px_30px_rgba(37,99,235,0.12)]"
-            animate={{ rotate: -360 }}
-            transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
-          >
-            {walletRefreshing ? (
-              <motion.div
-                animate={{ scale: [1, 1.08, 1] }}
-                transition={{ duration: 1.4, repeat: Infinity }}
-              >
-                <BarChart3 size={28} className="text-[var(--brand-dark)]" />
-              </motion.div>
-            ) : (
-              <Sparkles size={28} className="text-[var(--brand-dark)]" />
-            )}
-          </motion.div>
+          {walletRefreshing ? (
+            <BarChart3 size={26} className="text-emerald-700" />
+          ) : (
+            <Sparkles size={26} className="text-emerald-700" />
+          )}
         </motion.div>
 
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--brand-dark)] mb-2">
-          Onchain analysis in progress
-        </p>
-        <h2 className="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">
-          Building your full Base report
+        <h2 className="text-2xl sm:text-3xl font-black text-emerald-950 tracking-tight">
+          Indexing your wallet on Base
         </h2>
-        <p className="text-sm text-[var(--ink-muted)] max-w-md mx-auto leading-relaxed mt-2">
-          After unlock we deep-index Alchemy history, AA / Base App user-ops, score, and heatmap.
-          This overlay stays until the first complete analysis pass finishes.
+        <p className="text-sm text-emerald-900/70 max-w-md mx-auto leading-relaxed mt-2">
+          Only activity from{" "}
+          <span className="font-mono font-bold text-emerald-900">
+            {short || "your connected address"}
+          </span>{" "}
+          — not chain-wide scans. Score tiles unlock as soon as the first pass finishes;
+          deeper history may refine in the background.
         </p>
 
         <AnimatePresence mode="wait">
@@ -152,44 +135,46 @@ export default function AnalyticsLoadingPanel({
             key={scanProgress || "default"}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            className="mt-4 text-[11px] font-bold text-[var(--ink)] uppercase tracking-wide"
+            exit={{ opacity: 0 }}
+            className="mt-4 text-[11px] font-bold text-emerald-800 uppercase tracking-wide"
           >
-            {scanProgress || "Indexing onchain activity…"}
+            {scanProgress || "Collecting your transfers & UserOps…"}
           </motion.p>
         </AnimatePresence>
 
         <div className="mt-5 max-w-md mx-auto">
-          <div className="h-2.5 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-hidden">
+          <div className="h-2.5 rounded-full bg-emerald-100 border border-emerald-200 overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[#2563eb] via-[#0d9488] to-[#059669]"
-              initial={{ width: "12%" }}
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-400"
+              initial={{ width: "14%" }}
               animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
+              transition={{ duration: 0.65, ease: "easeOut" }}
             />
           </div>
-          <p className="mt-2 text-[11px] text-[var(--ink-muted)] font-mono tabular-nums">
-            {pct}% · live scan
+          <p className="mt-2 text-[11px] text-emerald-800/70 font-mono tabular-nums">
+            {pct}% · your address only
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-lg mx-auto">
-          {SYNC_STAGES.map((stage, i) => {
+        <div className="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-lg mx-auto">
+          {PAID_STAGES.map((stage, i) => {
             const Icon = stage.icon;
             const done = i < activeStage;
-            const current = !done && stageCurrent(i, activeStage);
+            const current = i === Math.min(activeStage, PAID_STAGES.length - 1) && !done
+              ? true
+              : i === activeStage;
             return (
               <motion.div
                 key={stage.id}
                 className={`h-14 rounded-xl border flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide ${
                   done
-                    ? "bg-emerald-50 border-emerald-300/70 text-emerald-700"
+                    ? "bg-emerald-100 border-emerald-300 text-emerald-800"
                     : current
-                      ? "bg-sky-50 border-sky-300 text-sky-800 shadow-[0_0_0_1px_rgba(56,189,248,0.25)]"
-                      : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)]"
+                      ? "bg-white border-emerald-400 text-emerald-900 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]"
+                      : "bg-emerald-50/50 border-emerald-100 text-emerald-700/50"
                 }`}
-                animate={current ? { scale: [1, 1.03, 1] } : {}}
-                transition={{ duration: 1.5, repeat: Infinity }}
+                animate={current && !done ? { scale: [1, 1.03, 1] } : {}}
+                transition={{ duration: 1.4, repeat: Infinity }}
               >
                 <Icon size={14} />
                 {stage.label}
@@ -204,17 +189,17 @@ export default function AnalyticsLoadingPanel({
   if (variant === "overlay") {
     return (
       <div className="absolute inset-0 z-30 flex items-center justify-center rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-[var(--surface)]/72 backdrop-blur-md" />
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-100/40 via-transparent to-emerald-50/50" />
+        <div className="absolute inset-0 bg-emerald-50/80 backdrop-blur-md" />
+        <div className="absolute inset-0 bg-gradient-to-b from-teal-100/50 via-transparent to-emerald-100/40" />
         <div className="relative z-10 w-full max-h-full overflow-y-auto">{body}</div>
       </div>
     );
   }
 
   return (
-    <div className="editorial-hero overflow-hidden min-h-[420px] sm:min-h-[480px] relative">
-      <div className="accent-bar" />
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-[var(--surface)] to-emerald-50/80" />
+    <div className="editorial-hero overflow-hidden min-h-[400px] sm:min-h-[460px] relative border border-emerald-200">
+      <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400" />
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50/80" />
       {body}
     </div>
   );

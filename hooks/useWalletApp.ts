@@ -548,12 +548,17 @@ function useWalletAppController() {
         void refreshSiweSession();
 
         void (async () => {
-          const [basename, bootstrap, quick, miniIdentity] = await Promise.all([
+          const unlocked = readAnalyticsUnlocked(address);
+          // Unpaid: bootstrap shell only (balances / check-in). No analyze/cache/Alchemy.
+          const [basename, bootstrap, miniIdentity] = await Promise.all([
             resolveBasenameClient(address).catch(() => null),
             fetchWalletBootstrap(address).catch(() => null),
-            fetchWalletAnalysisQuick(address, false).catch(() => null),
             resolveMiniAppIdentity().catch(() => null),
           ]);
+          let quick = null as Awaited<ReturnType<typeof fetchWalletAnalysisQuick>>;
+          if (unlocked) {
+            quick = await fetchWalletAnalysisQuick(address, false).catch(() => null);
+          }
           if (walletOpGenRef.current !== resumeGen) return;
           if (miniIdentity) {
             persistMiniAppIdentity(address, miniIdentity);
@@ -1001,15 +1006,16 @@ function useWalletAppController() {
           : null;
         showToast(
           txHash
-            ? `✅ Analytics unlocked! Collecting full onchain history… Tx: ${txHash.slice(0, 10)}…`
-            : "✅ Analytics unlocked — collecting full onchain history via Alchemy…",
+            ? `✅ Analytics unlocked! Indexing your wallet… Tx: ${txHash.slice(0, 10)}…`
+            : "✅ Analytics unlocked — indexing only your wallet history…",
           txHash ?? ""
         );
-        // Paid unlock → start Alchemy + paymaster + smart-wallet history sync.
+        // Paid unlock → single analyze pass (starts background refine when needed).
+        // Do NOT start wallet-sync here in parallel — that doubles source load / latency.
         historyCompleteRef.current = false;
         syncCompleteToastRef.current = false;
+        setScanProgress("Payment confirmed — collecting your wallet activity…");
         void analyzeWallet(wallet.address, { background: true });
-        startHistorySyncRef.current?.(wallet.basename);
       } else {
         let errMsg = `HTTP ${res.status}`;
         const text = await res.text().catch(() => "");
@@ -2167,7 +2173,9 @@ function useWalletAppController() {
               const p = syncResult.wallet;
               const nextDays = Math.max(latestDaysRef.current, p.uniqueDays ?? 0);
               if (tabRef.current === "dashboard") {
-                setScanProgress(`Syncing full history… ${nextDays} active days`);
+                setScanProgress(
+                  `Your wallet: ${nextDays} active day${nextDays === 1 ? "" : "s"} indexed`
+                );
               }
               setWallet((prev) =>
                 prev?.address.toLowerCase() === address.toLowerCase()
@@ -2180,7 +2188,7 @@ function useWalletAppController() {
             historyCompleteRef.current = true;
             if (!syncCompleteToastRef.current) {
               syncCompleteToastRef.current = true;
-              showToast("✓ Full history synced — heatmap is up to date", "");
+              showToast("✓ Your wallet history is ready", "");
             }
             void fetchCheckInStatus(address).then((ci) => {
               mergeAndApply(syncResult, ci, priorBasename);
@@ -2311,13 +2319,13 @@ function useWalletAppController() {
           return;
         }
 
-        // Paid unlock — Alchemy + Blockscout + paymaster / smart-wallet history.
-        setScanProgress(background ? "Loading score…" : "Calculating wallet score…");
-        const [cached, bootstrap, quick] = await Promise.all([
-          fetchWalletAnalysis(address, false),
-          skipBootstrap ? Promise.resolve(null) : fetchWalletBootstrap(address),
-          fetchWalletAnalysisQuick(address, false),
-        ]);
+        // Paid unlock — one cache check, then a single connect-rich analyze
+        // (Alchemy full walk for this address + parallel AA UserOps).
+        setScanProgress(
+          background ? "Loading your onchain score…" : "Calculating wallet score…"
+        );
+
+        const cached = await fetchWalletAnalysis(address, false);
         if (stale()) return;
         let result = cached;
 
@@ -2348,18 +2356,6 @@ function useWalletAppController() {
               r.wallet.recommendation !== "Fetching onchain data…"
           );
 
-        const pickBestFast = (
-          a: (AnalyzeWalletResult & { cached?: boolean }) | null,
-          b: (AnalyzeWalletResult & { cached?: boolean }) | null
-        ) => {
-          if (isUsableAnalysis(a)) return a;
-          if (isUsableAnalysis(b)) return b;
-          if (hasFastScore(a) && hasFastScore(b)) {
-            return (a!.wallet.score ?? 0) >= (b!.wallet.score ?? 0) ? a : b;
-          }
-          return hasFastScore(a) ? a : hasFastScore(b) ? b : null;
-        };
-
         if (isUsableAnalysis(result) && !analysisNeedsActivityRefresh(result!)) {
           if (stale()) return;
           mergeAndApply(result!, ci);
@@ -2375,31 +2371,30 @@ function useWalletAppController() {
           return;
         }
 
-        // 2) Best fast score from parallel fetch
-        setScanProgress("Calculating score…");
-        const fast = pickBestFast(pickBestFast(quick, bootstrap), cached);
-        if (fast) {
-          mergeAndApply(fast, ci);
-          if (background) lockWalletCore(fast.wallet);
-          setScanProgress("Refining analytics…");
+        // Keep any bootstrap shell visible while we index — do not fire quick+full both
+        // (doubled RPC load was a major cause of “forever” scans).
+        if (!skipBootstrap) {
+          const bootstrap = await fetchWalletBootstrap(address).catch(() => null);
+          if (stale()) return;
+          if (bootstrap && hasFastScore(bootstrap)) {
+            mergeAndApply(bootstrap, ci);
+            if (background) lockWalletCore(bootstrap.wallet);
+            setScanProgress("Finishing score for your address…");
+          }
         }
 
-        // 3) Full analyze — skip heavy refresh in background when fast score exists
-        if (!isUsableAnalysis(result) && !background) {
-          setScanProgress("Fetching onchain data…");
-          result = await fetchWalletAnalysis(address, true);
-        } else if (!isUsableAnalysis(result) && background && !fast) {
-          setScanProgress("Fetching onchain data…");
-          result = await fetchWalletAnalysis(address, true);
-        }
+        setScanProgress("Indexing transfers for your address…");
+        result = await fetchWalletAnalysis(address, true);
+        if (stale()) return;
 
-        if (!result && !fast) {
+        if (!result) {
           setScanProgress("Retrying wallet scan…");
           await new Promise((r) => setTimeout(r, 400));
           result = await fetchWalletAnalysis(address, true);
         }
+        if (stale()) return;
 
-        if (!result && !fast) {
+        if (!result || !(isUsableAnalysis(result) || hasFastScore(result))) {
           failScan(
             background
               ? "Wallet analytics sync failed — open Analytics to retry"
@@ -2408,10 +2403,8 @@ function useWalletAppController() {
           return;
         }
 
-        if (result && (isUsableAnalysis(result) || hasFastScore(result))) {
-          mergeAndApply(result, ci);
-          if (background) lockWalletCore(result.wallet);
-        }
+        mergeAndApply(result, ci);
+        if (background) lockWalletCore(result.wallet);
 
         if (!background) {
           setLoading(false);
@@ -2421,7 +2414,7 @@ function useWalletAppController() {
           setScanProgress("");
         }
 
-        maybeStartHistorySync((result ?? fast)!);
+        maybeStartHistorySync(result);
       } catch (e) {
         console.error(e);
         failScan(
@@ -2499,12 +2492,17 @@ function useWalletAppController() {
       })();
 
       void (async () => {
-        const [basename, bootstrap, quick, miniIdentity] = await Promise.all([
+        const unlocked = readAnalyticsUnlocked(addr);
+        // Unpaid: bootstrap only. Full score/history starts after $0.10 analytics unlock.
+        const [basename, bootstrap, miniIdentity] = await Promise.all([
           resolveBasenameClient(addr).catch(() => null),
           fetchWalletBootstrap(addr).catch(() => null),
-          fetchWalletAnalysisQuick(addr, false).catch(() => null),
           resolveMiniAppIdentity().catch(() => null),
         ]);
+        let quick = null as Awaited<ReturnType<typeof fetchWalletAnalysisQuick>>;
+        if (unlocked) {
+          quick = await fetchWalletAnalysisQuick(addr, false).catch(() => null);
+        }
         if (walletOpGenRef.current !== connectGen) return;
         if (miniIdentity) {
           persistMiniAppIdentity(addr, miniIdentity);

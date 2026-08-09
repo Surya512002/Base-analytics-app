@@ -79,7 +79,7 @@ async function advanceUserOpScan(
 
   const result = await fetchUserOperationActivityWithProgress(address, {
     timeoutMs: maxTimeoutMs,
-    maxChunks: 30,
+    maxChunks: 8,
     startChunk: state.userOpChunkCursor ?? 0,
   });
 
@@ -188,6 +188,7 @@ export async function runWalletSyncBurst(
   let newLegs: AlchemyTransfer[] = [];
 
   if (!state.activityDays.length && !Object.keys(state.tpd).length) {
+    // Prefer a short address-scoped collect — full deep crawl is background only.
     const collected = await collectWalletFastAll(address);
     initTransfers = collected.transfers;
     const base = emptyFromBoot(collected.v2StreamStates);
@@ -212,7 +213,7 @@ export async function runWalletSyncBurst(
       const uop = await advanceUserOpScan(
         address,
         state,
-        Math.min(20_000, Math.max(3_000, deadline - Date.now() - 1_000))
+        Math.min(10_000, Math.max(2_500, deadline - Date.now() - 1_000))
       );
       state = uop.state;
       if (uop.legs.length) {
@@ -244,8 +245,8 @@ export async function runWalletSyncBurst(
 
     if (!state.userOpsComplete && remaining() > 5_000) {
       const uop = await fetchUserOperationActivityWithProgress(address, {
-        timeoutMs: Math.min(remaining() - 2_000, 25_000),
-        maxChunks: 20,
+        timeoutMs: Math.min(remaining() - 2_000, 12_000),
+        maxChunks: 8,
         startChunk: state.userOpChunkCursor ?? 0,
       });
       state = mergeActivityIntoState(state, uop.transfers, address);
@@ -259,7 +260,7 @@ export async function runWalletSyncBurst(
 
     if (remaining() > 4_000) {
       const sup = await collectWalletSupplements(address, {
-        deadlineMs: Math.min(remaining() - 2_000, 20_000),
+        deadlineMs: Math.min(remaining() - 2_000, 10_000),
       });
       state = mergeActivityIntoState(state, sup.transfers, address);
       newLegs = mergeTransfers([newLegs, sup.transfers]);
@@ -272,6 +273,26 @@ export async function runWalletSyncBurst(
 
     if (state.userOpsComplete) {
       state = { ...state, historyComplete: true, userOpsFetched: true };
+      await saveWalletHistory(address, state);
+    }
+  }
+
+  // Soft-complete: address index is dense enough for accurate score/heatmap.
+  // Deeper genesis UserOp scans are not worth multi-minute wall time.
+  if (!state.historyComplete) {
+    const days = uniqueDaysFromState(state);
+    const v2Done = allV2Complete(state.v2StreamStates);
+    const softDone =
+      (v2Done && (state.userOpsComplete || (state.userOpChunkCursor ?? 0) >= 10)) ||
+      (days >= 40 && v2Done) ||
+      (days >= 20 && idleRounds >= 2 && (state.userOpChunkCursor ?? 0) >= 6);
+    if (softDone) {
+      state = {
+        ...state,
+        historyComplete: true,
+        userOpsFetched: true,
+        userOpsComplete: state.userOpsComplete || (state.userOpChunkCursor ?? 0) >= 10,
+      };
       await saveWalletHistory(address, state);
     }
   }

@@ -131,7 +131,7 @@ async function fetchConnectHistory(
 
   // Connect analyze — rich single-shot fetch (d731448) for accurate heatmap / active days.
   if (!opts.isQuick && !opts.isComplete) {
-    opts.onProgress?.("Fetching onchain history (Alchemy + Blockscout + paymaster)...");
+    opts.onProgress?.("Indexing your address on Base (Alchemy + AA UserOps)…");
     const rich = await fetchWalletTransfersConnectRich(address);
     const transfers = enrichTransferLegs(rich.transfers, address.toLowerCase());
     const merged = mergeActivityIntoState(stored, transfers, address);

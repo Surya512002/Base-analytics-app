@@ -4,8 +4,11 @@ import { ENTRYPOINT_V06, ENTRYPOINT_V07 } from "@/lib/constants/contracts";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
-/** Prefer smaller chunks — public Base RPCs reject large eth_getLogs windows. */
-const CHUNK_SIZES = [BigInt(500_000), BigInt(150_000), BigInt(40_000)] as const;
+/**
+ * Prefer ~150k block windows (address-filtered sender logs only).
+ * Larger windows fail often on public Base RPCs.
+ */
+const CHUNK_SIZES = [BigInt(150_000), BigInt(40_000), BigInt(12_000)] as const;
 
 const USER_OP_EVENT = parseAbiItem(
   "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)"
@@ -78,6 +81,122 @@ async function getUserOpLogs(
   return [];
 }
 
+function logsToTransfers(
+  logs: Awaited<ReturnType<typeof getUserOpLogs>>,
+  wallet: string,
+  entryPoint: string,
+  chunkTimestamp: string
+): AlchemyTransfer[] {
+  const transfers: AlchemyTransfer[] = [];
+  for (const log of logs) {
+    const txHash = log.transactionHash;
+    if (!txHash) continue;
+    const raw = log as {
+      args?: {
+        userOpHash?: `0x${string}`;
+        paymaster?: Address;
+      };
+      logIndex?: number | null;
+    };
+    const userOpHash = (
+      raw.args?.userOpHash || `${txHash}-${raw.logIndex ?? 0}`
+    ).toLowerCase();
+    const paymaster = raw.args?.paymaster?.toLowerCase();
+    const sponsored = Boolean(paymaster && paymaster !== ZERO);
+    transfers.push({
+      hash: txHash,
+      category: "useroperation",
+      value: 0,
+      asset: "ETH",
+      from: wallet,
+      to: entryPoint.toLowerCase(),
+      metadata: {
+        blockTimestamp: chunkTimestamp,
+        isUserOperation: true,
+        isSponsored: sponsored,
+        userOpHash,
+        walletParticipated: true,
+      },
+    });
+  }
+  return transfers;
+}
+
+/** Scan one EntryPoint newest→oldest until budget / genesis. */
+async function scanEntryPoint(
+  client: Client,
+  entryPoint: Address,
+  wallet: Address,
+  latest: bigint,
+  startChunk: number,
+  maxChunks: number,
+  deadline: number,
+  primaryChunk: bigint
+): Promise<{
+  transfers: AlchemyTransfer[];
+  chunksScanned: number;
+  hitGenesis: boolean;
+  timedOut: boolean;
+}> {
+  const transfers: AlchemyTransfer[] = [];
+  let chunksScanned = 0;
+  let hitGenesis = false;
+  let timedOut = false;
+
+  for (let i = startChunk; i < startChunk + maxChunks; i++) {
+    if (Date.now() > deadline) {
+      timedOut = true;
+      break;
+    }
+
+    const toBlock =
+      latest - BigInt(i) * primaryChunk > BigInt(0)
+        ? latest - BigInt(i) * primaryChunk
+        : BigInt(0);
+    const fromBlock =
+      toBlock > primaryChunk ? toBlock - primaryChunk + BigInt(1) : BigInt(0);
+
+    let logs: Awaited<ReturnType<typeof getUserOpLogs>>;
+    try {
+      logs = await getUserOpLogs(client, entryPoint, wallet, fromBlock, toBlock);
+    } catch {
+      if (fromBlock === BigInt(0)) {
+        hitGenesis = true;
+        break;
+      }
+      continue;
+    }
+
+    chunksScanned++;
+
+    let chunkTimestamp = new Date().toISOString();
+    if (logs.length > 0) {
+      try {
+        const block = await client.getBlock({ blockNumber: toBlock });
+        chunkTimestamp = new Date(Number(block.timestamp) * 1000).toISOString();
+      } catch {
+        /* fallback */
+      }
+    }
+
+    transfers.push(
+      ...logsToTransfers(logs, wallet, entryPoint, chunkTimestamp)
+    );
+
+    if (fromBlock === BigInt(0)) {
+      hitGenesis = true;
+      break;
+    }
+  }
+
+  return {
+    transfers,
+    chunksScanned: startChunk + chunksScanned,
+    hitGenesis,
+    timedOut,
+  };
+}
+
 async function fetchUserOpLogs(
   address: string,
   options: UserOpFetchOptions
@@ -85,8 +204,6 @@ async function fetchUserOpLogs(
   const wallet = address.toLowerCase() as Address;
   const client = createBasePublicClient();
   const entryPoints = [ENTRYPOINT_V06, ENTRYPOINT_V07] as Address[];
-  const transfers: AlchemyTransfer[] = [];
-  const seenOpIds = new Set<string>();
   const maxChunks = options.maxChunks ?? 8;
   const startChunk = options.startChunk ?? 0;
   const deadline = Date.now() + (options.timeoutMs ?? 12_000);
@@ -99,100 +216,40 @@ async function fetchUserOpLogs(
     return { transfers: [], chunksScanned: 0, complete: false };
   }
 
-  let chunksScanned = 0;
-  let hitGenesis = false;
-  let timedOut = false;
+  // v0.6 + v0.7 in parallel — same wall clock as one EP, full AA coverage.
+  const scans = await Promise.all(
+    entryPoints.map((ep) =>
+      scanEntryPoint(
+        client,
+        ep,
+        wallet,
+        latest,
+        startChunk,
+        maxChunks,
+        deadline,
+        primaryChunk
+      )
+    )
+  );
 
-  for (const entryPoint of entryPoints) {
-    for (let i = startChunk; i < startChunk + maxChunks; i++) {
-      if (Date.now() > deadline) {
-        timedOut = true;
-        break;
-      }
-
-      const toBlock =
-        latest - BigInt(i) * primaryChunk > BigInt(0)
-          ? latest - BigInt(i) * primaryChunk
-          : BigInt(0);
-      const fromBlock =
-        toBlock > primaryChunk ? toBlock - primaryChunk + BigInt(1) : BigInt(0);
-
-      let logs: Awaited<ReturnType<typeof getUserOpLogs>>;
-      try {
-        logs = await getUserOpLogs(
-          client,
-          entryPoint,
-          wallet,
-          fromBlock,
-          toBlock
-        );
-      } catch {
-        if (fromBlock === BigInt(0)) break;
-        continue;
-      }
-
-      chunksScanned++;
-
-      let chunkTimestamp = new Date().toISOString();
-      if (logs.length > 0) {
-        try {
-          const block = await client.getBlock({ blockNumber: toBlock });
-          chunkTimestamp = new Date(
-            Number(block.timestamp) * 1000
-          ).toISOString();
-        } catch {
-          /* use fallback */
-        }
-      }
-
-      for (const log of logs) {
-        const txHash = log.transactionHash;
-        if (!txHash) continue;
-        const raw = log as {
-          args?: {
-            userOpHash?: `0x${string}`;
-            paymaster?: Address;
-          };
-          logIndex?: number | null;
-        };
-        const userOpHash = (
-          raw.args?.userOpHash ||
-          `${txHash}-${raw.logIndex ?? 0}`
-        ).toLowerCase();
-        if (seenOpIds.has(userOpHash)) continue;
-        seenOpIds.add(userOpHash);
-
-        const paymaster = raw.args?.paymaster?.toLowerCase();
-        const sponsored = Boolean(paymaster && paymaster !== ZERO);
-
-        transfers.push({
-          hash: txHash,
-          category: "useroperation",
-          value: 0,
-          asset: "ETH",
-          from: wallet,
-          to: entryPoint.toLowerCase(),
-          metadata: {
-            blockTimestamp: chunkTimestamp,
-            isUserOperation: true,
-            isSponsored: sponsored,
-            userOpHash,
-            walletParticipated: true,
-          },
-        });
-      }
-
-      if (fromBlock === BigInt(0)) {
-        hitGenesis = true;
-        break;
-      }
+  const seenOpIds = new Set<string>();
+  const transfers: AlchemyTransfer[] = [];
+  for (const scan of scans) {
+    for (const t of scan.transfers) {
+      const id = (t.metadata?.userOpHash || t.hash || "").toLowerCase();
+      if (!id || seenOpIds.has(id)) continue;
+      seenOpIds.add(id);
+      transfers.push(t);
     }
-    if (timedOut) break;
   }
+
+  const chunksScanned = Math.max(...scans.map((s) => s.chunksScanned), startChunk);
+  const timedOut = scans.some((s) => s.timedOut);
+  const hitGenesis = scans.every((s) => s.hitGenesis);
 
   return {
     transfers,
-    chunksScanned: startChunk + chunksScanned,
+    chunksScanned,
     complete: hitGenesis && !timedOut,
   };
 }
@@ -217,7 +274,7 @@ export async function fetchUserOperationActivityFull(
   address: string
 ): Promise<AlchemyTransfer[]> {
   return fetchUserOperationActivity(address, {
-    timeoutMs: 120_000,
-    maxChunks: 200,
+    timeoutMs: 30_000,
+    maxChunks: 28,
   });
 }

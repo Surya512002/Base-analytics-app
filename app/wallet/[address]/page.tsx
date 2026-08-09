@@ -41,7 +41,7 @@ function WalletProfileContent() {
     if (!address) return;
     setLoading(true);
     Promise.all([
-      fetch(`/api/analyze-wallet?address=${encodeURIComponent(address)}`).then((r) =>
+      fetch(`/api/wallet-bootstrap?address=${encodeURIComponent(address)}`).then((r) =>
         r.ok ? r.json() : Promise.reject()
       ),
       fetchOwnedBadges(address).catch(() => [] as OwnedBadge[]),

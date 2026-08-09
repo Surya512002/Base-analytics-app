@@ -4,6 +4,25 @@ import { Lock, RefreshCcw, Zap } from "lucide-react";
 import { getX402Product } from "@/lib/constants/x402-products";
 import AnalyticsLoadingPanel from "@/components/wallet/AnalyticsLoadingPanel";
 
+/** Decorative placeholders only — no real wallet metrics when locked. */
+function LockedAnalyticsSilhouette() {
+  return (
+    <div className="space-y-4 select-none pointer-events-none" aria-hidden>
+      <div className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white h-48" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-24 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]"
+          />
+        ))}
+      </div>
+      <div className="h-28 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]" />
+      <div className="h-56 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)]" />
+    </div>
+  );
+}
+
 export default function AnalyticsPaywall({
   unlocked,
   unlockLoading,
@@ -12,50 +31,59 @@ export default function AnalyticsPaywall({
   children,
   scanProgress,
   walletRefreshing,
+  walletAddress,
 }: {
   unlocked: boolean;
   unlockLoading?: boolean;
-  /** Full history / score sync after paid unlock — blurs score & heatmap until ready. */
+  /** First score pass after paid unlock — not the long background refine. */
   analysisLoading?: boolean;
   onUnlock: () => void;
   children: React.ReactNode;
   scanProgress?: string;
   walletRefreshing?: boolean;
+  walletAddress?: string;
 }) {
   const product = getX402Product("analytics");
-  const obscure = !unlocked || Boolean(analysisLoading);
+  const showPaidScan = unlocked && Boolean(analysisLoading);
 
   return (
-    <div className="relative w-full min-h-[28rem]">
+    <div className={`relative w-full ${!unlocked || showPaidScan ? "min-h-[36rem]" : ""}`}>
       <div
         className={`w-full transition-[filter,opacity] duration-500 ${
-          obscure ? "blur-[7px] opacity-80 pointer-events-none select-none scale-[0.995]" : ""
+          !unlocked
+            ? "blur-[8px] opacity-65 pointer-events-none select-none"
+            : showPaidScan
+              ? "blur-[6px] opacity-75 pointer-events-none select-none"
+              : ""
         }`}
-        aria-hidden={obscure}
+        aria-hidden={!unlocked || showPaidScan}
       >
-        {children}
+        {unlocked ? children : <LockedAnalyticsSilhouette />}
       </div>
 
+      {/* PRE-PAY — blue lock / no “scanning” chrome (different from post-pay). */}
       {!unlocked && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-[var(--surface)]/55 p-4 min-h-[28rem]">
-          <div className="max-w-sm w-full bg-[var(--surface)] border border-[var(--border-strong)] rounded-2xl p-6 text-center shadow-[0_18px_50px_rgba(11,21,38,0.16)]">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-4">
-              <Lock size={22} className="text-[var(--ink-muted)]" />
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-sky-950/10 p-4 min-h-[36rem]">
+          <div className="max-w-sm w-full bg-white border border-sky-200 rounded-2xl p-6 text-center shadow-[0_18px_50px_rgba(37,99,235,0.14)]">
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mx-auto mb-4">
+              <Lock size={22} className="text-sky-700" />
             </div>
-            <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
-              x402 · Base mainnet
+            <p className="text-[10px] font-black text-sky-700 uppercase tracking-widest">
+              Locked · x402 on Base
             </p>
-            <h4 className="text-lg font-black text-[var(--ink)] mt-2">Unlock Onchain Analytics</h4>
-            <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">
-              Pay once to collect your full onchain history via Alchemy — every check-in, swap,
-              smart-wallet AA / paymaster tx, and activity day — then unlock score, heatmap, and
-              wallet health.
+            <h4 className="text-lg font-black text-slate-900 mt-2">
+              Unlock Onchain Analytics
+            </h4>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+              Nothing is indexed yet. Pay once so we collect{" "}
+              <strong className="text-slate-800">only this wallet&apos;s</strong> history
+              (Alchemy + AA UserOps) and build score, heatmap, and AA stats.
             </p>
-            <p className="text-2xl font-black text-[var(--ink)] mt-4 tabular-nums">
+            <p className="text-2xl font-black text-sky-900 mt-4 tabular-nums">
               {product.priceDisplay} USDC
             </p>
-            <p className="text-[11px] text-[var(--ink-dim)] mt-1">
-              via x402 on Base · persists until disconnect
+            <p className="text-[11px] text-slate-500 mt-1">
+              One-time unlock · no scan until payment confirms
             </p>
             <button
               type="button"
@@ -71,22 +99,24 @@ export default function AnalyticsPaywall({
               ) : (
                 <>
                   <Zap size={16} />
-                  Pay {product.amountLabel} to unlock
+                  Pay {product.amountLabel} to start scan
                 </>
               )}
             </button>
-            <p className="text-[10px] text-[var(--ink-dim)] mt-3 leading-relaxed">
-              Disconnecting clears unlock — reconnect and pay again to view analytics.
+            <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+              After payment the card turns green and live-indexes your address only.
             </p>
           </div>
         </div>
       )}
 
-      {unlocked && analysisLoading && (
+      {/* POST-PAY — emerald scanning overlay (visually distinct from lock card). */}
+      {showPaidScan && (
         <AnalyticsLoadingPanel
           variant="overlay"
           scanProgress={scanProgress}
           walletRefreshing={walletRefreshing || unlockLoading}
+          walletAddress={walletAddress}
         />
       )}
     </div>

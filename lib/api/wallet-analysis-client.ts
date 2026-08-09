@@ -73,7 +73,8 @@ export async function fetchWalletAnalysis(
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    refresh ? 90_000 : 25_000,
+    // Cache miss needs room for Alchemy full-page walk (~14s) + score compute.
+    refresh ? 75_000 : 45_000,
     2,
     address
   );
@@ -100,13 +101,13 @@ export async function fetchWalletAnalysisQuick(
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    45_000,
-    2,
+    20_000,
+    1,
     address
   );
 }
 
-/** Server-side history sync — paginates until complete (poll until historyComplete). */
+/** Server-side history refine — address-only pagination until complete or plateau. */
 export async function pollWalletHistorySync(
   address: string,
   callbacks: {
@@ -118,7 +119,10 @@ export async function pollWalletHistorySync(
 ): Promise<boolean> {
   const addr = address.toLowerCase();
   let attempts = 0;
-  const maxAttempts = 120;
+  const maxAttempts = 24;
+  let lastDays = -1;
+  let plateauPasses = 0;
+  const short = `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 
   while (attempts < maxAttempts) {
     if (callbacks.shouldCancel?.()) return false;
@@ -126,8 +130,8 @@ export async function pollWalletHistorySync(
 
     callbacks.onProgress?.(
       attempts === 1
-        ? "Syncing full onchain history via Alchemy…"
-        : `Syncing full history… (pass ${attempts})`
+        ? `Collecting activity for ${short} only…`
+        : `Refining ${short}… (pass ${attempts}/${maxAttempts})`
     );
 
     try {
@@ -139,7 +143,7 @@ export async function pollWalletHistorySync(
           partial?: boolean;
           sync?: { complete?: boolean; uniqueDays?: number };
         }
-      >(`/api/wallet-sync?${qs.toString()}`, 115_000, 1, addr);
+      >(`/api/wallet-sync?${qs.toString()}`, 55_000, 1, addr);
       if (!data) break;
 
       callbacks.onUpdate({
@@ -147,22 +151,38 @@ export async function pollWalletHistorySync(
         historyComplete: data.historyComplete ?? data.sync?.complete,
       });
 
+      const days =
+        data.sync?.uniqueDays ?? data.wallet?.uniqueDays ?? 0;
       callbacks.onProgress?.(
-        data.sync?.uniqueDays
-          ? `Synced ${data.sync.uniqueDays} active days…`
-          : "Syncing…"
+        days > 0
+          ? `${short}: ${days} active day${days === 1 ? "" : "s"} indexed`
+          : `Indexing transfers for ${short}…`
       );
 
       if (data.historyComplete === true || data.sync?.complete === true) {
         callbacks.onProgress?.(
-          `History complete — ${data.wallet?.uniqueDays ?? 0} active days`
+          `Ready — ${data.wallet?.uniqueDays ?? days} active days for ${short}`
         );
         return true;
       }
 
-      await sleep(400);
+      if (days === lastDays && days > 0) {
+        plateauPasses++;
+      } else {
+        plateauPasses = 0;
+        lastDays = days;
+      }
+      // Stop spinning after a few stable passes — score is already usable.
+      if (attempts >= 4 && plateauPasses >= 2 && days >= 7) {
+        callbacks.onProgress?.(
+          `Stable at ${days} active days — background refine finished`
+        );
+        return true;
+      }
+
+      await sleep(300);
     } catch {
-      await sleep(2000);
+      await sleep(1500);
     }
   }
 

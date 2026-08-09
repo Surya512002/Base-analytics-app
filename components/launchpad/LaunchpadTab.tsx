@@ -25,7 +25,6 @@ import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
 import MyLaunchedTokens from "@/components/launchpad/MyLaunchedTokens";
 import AgenticMarketplaceRail, { ExploreKnowledgeRail } from "@/components/explore/AgenticMarketplaceRail";
 import ExploreLandingHero from "@/components/explore/ExploreLandingHero";
-import AppModeCards from "@/components/ui/AppModeCards";
 import B20MarketHero from "@/components/explore/B20MarketHero";
 import ExploreSegmentTabs, { type TokenCatalogTab } from "@/components/explore/ExploreSegmentTabs";
 import ExploreSearchBar from "@/components/explore/ExploreSearchBar";
@@ -485,11 +484,6 @@ export default function LaunchpadTab({
         onConnectToTrade={onRequestConnect}
         totalVolume24h={marketStats.totalVolume24h}
         totalLiquidity={marketStats.totalLiquidity}
-      />
-
-      <AppModeCards
-        onExplore={scrollToGrid}
-        onSwap={() => onNavigate?.("swap") ?? app.setTab("swap")}
       />
 
       <ExploreSearchBar

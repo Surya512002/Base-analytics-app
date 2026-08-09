@@ -31,16 +31,17 @@ export async function GET(req: Request) {
   try {
     logEnvAuditOnce();
 
-    // Cached shell scores are fine without payment; Alchemy refresh requires unlock.
+    // Full onchain analysis (incl. cached score shells) only after x402 unlock —
+    // avoids serving paid history without payment and discourages free key usage.
+    const locked = await requireAnalyticsUnlock(req, address);
+    if (locked) return locked;
+
     if (!refresh) {
       const cached = await getCachedAnalyze(address);
       if (cached && isUsableAnalyzeCache(cached)) {
         return NextResponse.json({ ...cached, cached: true });
       }
     }
-
-    const locked = await requireAnalyticsUnlock(req, address);
-    if (locked) return locked;
 
     const result = await analyzeWalletAddress(address, {
       fetchDepth: quick ? "quick" : "connect",

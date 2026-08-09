@@ -207,6 +207,8 @@ export async function fetchAlchemyTxsUnified(
     categories?: readonly string[];
     maxPages?: number;
     timeoutMs?: number;
+    /** Hard wall for multi-page loops (ms from now). */
+    budgetMs?: number;
   } = {}
 ): Promise<AlchemyTransfer[]> {
   const key = getAlchemyKey();
@@ -216,24 +218,103 @@ export async function fetchAlchemyTxsUnified(
   const addressField = options.addressField ?? "fromAddress";
   const categories = options.categories ?? CONNECT_CATEGORIES;
   const maxPages = options.maxPages ?? 20;
-  const timeoutMs = options.timeoutMs ?? 12_000;
+  const pageTimeoutMs = options.timeoutMs ?? 4_000;
+  const deadline =
+    options.budgetMs != null ? Date.now() + options.budgetMs : Number.POSITIVE_INFINITY;
 
   const all: AlchemyTransfer[] = [];
   let pageKey: string | undefined;
   for (let page = 1; page <= maxPages; page++) {
+    if (Date.now() >= deadline) break;
+    const remain = Math.max(600, Math.min(pageTimeoutMs, deadline - Date.now()));
     const res = await fetchAssetTransferPage(
       rpc,
       addressField,
       address,
       categories,
       pageKey,
-      timeoutMs
+      remain
     );
     all.push(...res.transfers);
     if (res.quotaExceeded || !res.pageKey) break;
+    if (res.transfers.length === 0) break;
     pageKey = res.pageKey;
   }
   return all;
+}
+
+export interface AlchemyWalletFetchResult {
+  transfers: AlchemyTransfer[];
+  /** Outgoing pagination exhausted (no more pageKey). */
+  outComplete: boolean;
+  /** Incoming pagination exhausted. */
+  inComplete: boolean;
+}
+
+/**
+ * Full address-filtered Alchemy history (from + to) until exhausted or budget.
+ * Primary source for paid onchain analysis — no chain-wide scans.
+ */
+export async function fetchAlchemyWalletComplete(
+  address: string,
+  options: {
+    budgetMs?: number;
+    maxPagesPerDirection?: number;
+    pageTimeoutMs?: number;
+  } = {}
+): Promise<AlchemyWalletFetchResult> {
+  const key = getAlchemyKey();
+  if (!key) {
+    return { transfers: [], outComplete: false, inComplete: false };
+  }
+
+  const budgetMs = options.budgetMs ?? 14_000;
+  const maxPages = options.maxPagesPerDirection ?? 100;
+  const pageTimeoutMs = options.pageTimeoutMs ?? 3_500;
+  const deadline = Date.now() + budgetMs;
+  const rpc = alchemyRpcForKey(key);
+  const addr = address.toLowerCase();
+
+  async function paginate(
+    addressField: AddressField
+  ): Promise<{ transfers: AlchemyTransfer[]; complete: boolean }> {
+    const all: AlchemyTransfer[] = [];
+    let pageKey: string | undefined;
+    for (let page = 1; page <= maxPages; page++) {
+      if (Date.now() >= deadline) {
+        return { transfers: all, complete: false };
+      }
+      const remain = Math.max(600, Math.min(pageTimeoutMs, deadline - Date.now()));
+      const res = await fetchAssetTransferPage(
+        rpc,
+        addressField,
+        addr,
+        CONNECT_CATEGORIES,
+        pageKey,
+        remain
+      );
+      all.push(...res.transfers);
+      if (res.quotaExceeded) {
+        return { transfers: all, complete: false };
+      }
+      if (!res.pageKey || res.transfers.length === 0) {
+        return { transfers: all, complete: true };
+      }
+      pageKey = res.pageKey;
+    }
+    return { transfers: all, complete: false };
+  }
+
+  const [out, inn] = await Promise.all([
+    paginate("fromAddress"),
+    paginate("toAddress"),
+  ]);
+
+  return {
+    transfers: mergeTransfers([out.transfers, inn.transfers]),
+    outComplete: out.complete,
+    inComplete: inn.complete,
+  };
 }
 
 export async function fetchAlchemyTxsFast(

@@ -7,7 +7,7 @@ import {
 import {
   fetchAlchemyTxsFast,
   fetchAlchemyTxsIncoming,
-  fetchAlchemyTxsUnified,
+  fetchAlchemyWalletComplete,
 } from "@/lib/api/alchemy";
 import { fetchBasescanAllFast } from "@/lib/api/basescan";
 import {
@@ -22,6 +22,7 @@ import {
   detectSmartAccount,
   collectionProfileForAccount,
 } from "@/lib/wallet/smart-account";
+import { getAlchemyKey } from "@/lib/constants/env";
 import { mergeTransfers, rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 
@@ -253,8 +254,14 @@ const EMPTY_V2_STATES: Record<string, V2StreamState> = {
 };
 
 /**
- * Rich connect fetch — Alchemy (20 pages) + Blockscout + paymaster, like pre-refactor analytics.
- * Accurate active days / tx counts on first connect (not quick partial snapshot).
+ * Paid first analyze — collect *this wallet only*, as completely as possible under a tight wall.
+ *
+ * Strategy:
+ * 1. Alchemy from+to pagination until empty page (primary; address-filtered).
+ * 2. EntryPoint UserOps for v0.6+v0.7 in parallel (AA / Base App).
+ * 3. Light Blockscout/Basescan fill only as supplement (does not extend the wall).
+ *
+ * Background `/api/wallet-sync` finishes any remaining v2 cursors.
  */
 export async function fetchWalletTransfersConnectRich(
   address: string
@@ -265,101 +272,138 @@ export async function fetchWalletTransfersConnectRich(
   v2StreamStates: Record<string, V2StreamState>;
 }> {
   const addr = address.toLowerCase();
-  const ALCHEMY_PAGES = 40;
-  const BLOCKSCOUT_PAGES = 30;
-  const BLOCKSCOUT_DEADLINE_MS = 28_000;
+  const hasAlchemy = Boolean(getAlchemyKey());
+  /** Wall-clock for first usable full score (completes early when Alchemy exhausts). */
+  const PRIMARY_BUDGET_MS = 14_000;
 
-  const [
-    alchemyOut,
-    alchemyIn,
-    blockscoutTxs,
-    internalTxs,
-    tokenTxs,
-    nftTxs,
-    blockscoutV2,
-    userOps,
-    basescanTxs,
-  ] = await Promise.all([
-    fetchAlchemyTxsUnified(addr, {
-      addressField: "fromAddress",
-      categories: ["external", "internal", "erc20", "erc721", "erc1155"],
-      maxPages: ALCHEMY_PAGES,
-      timeoutMs: 12_000,
-    }).catch(() => []),
-    fetchAlchemyTxsUnified(addr, {
-      addressField: "toAddress",
-      categories: ["external", "internal", "erc20", "erc721", "erc1155"],
-      maxPages: ALCHEMY_PAGES,
-      timeoutMs: 12_000,
-    }).catch(() => []),
-    fetchBlockscoutTxs(addr, {
-      deadlineMs: BLOCKSCOUT_DEADLINE_MS,
-      maxPages: BLOCKSCOUT_PAGES,
-    }).catch(() => []),
-    fetchBlockscoutInternalTxs(addr, {
-      deadlineMs: BLOCKSCOUT_DEADLINE_MS,
-      maxPages: BLOCKSCOUT_PAGES,
-    }).catch(() => []),
-    fetchBlockscoutTokenTxs(addr, {
-      deadlineMs: BLOCKSCOUT_DEADLINE_MS,
-      maxPages: BLOCKSCOUT_PAGES,
-    }).catch(() => []),
-    fetchBlockscoutNftTxs(addr, { deadlineMs: 20_000, maxPages: 12 }).catch(
-      () => []
-    ),
-    fetchBlockscoutV2Activity(addr, {
-      tokenPages: 60,
-      internalPages: 50,
-      externalPages: 40,
-      deadlineMs: 55_000,
-    }).catch(() => ({
-      transfers: [] as AlchemyTransfer[],
-      complete: false,
-      streamStates: EMPTY_V2_STATES,
-    })),
-    fetchUserOperationActivityWithProgress(addr, {
-      timeoutMs: 18_000,
-      maxChunks: 20,
-    })
-      .then((r) => r.transfers)
-      .catch(() => []),
-    fetchBasescanAllFast(addr, 22_000, 12).catch(() => []),
+  const alchemyP = hasAlchemy
+    ? fetchAlchemyWalletComplete(addr, {
+        budgetMs: PRIMARY_BUDGET_MS,
+        maxPagesPerDirection: 100,
+        pageTimeoutMs: 3_200,
+      }).catch(() => ({
+        transfers: [] as AlchemyTransfer[],
+        outComplete: false,
+        inComplete: false,
+      }))
+    : Promise.resolve({
+        transfers: [] as AlchemyTransfer[],
+        outComplete: false,
+        inComplete: false,
+      });
+
+  const userOpsP = fetchUserOperationActivityWithProgress(addr, {
+    timeoutMs: 9_000,
+    maxChunks: 12,
+  }).catch(() => ({
+    transfers: [] as AlchemyTransfer[],
+    chunksScanned: 0,
+    complete: false,
+  }));
+
+  // Short parallel fillers — bounded so they rarely become the bottleneck.
+  const v2P = fetchBlockscoutV2Activity(addr, {
+    tokenPages: hasAlchemy ? 12 : 24,
+    internalPages: hasAlchemy ? 8 : 16,
+    externalPages: hasAlchemy ? 8 : 16,
+    deadlineMs: hasAlchemy ? 8_000 : 12_000,
+    pageTimeoutMs: 3_000,
+  }).catch(() => ({
+    transfers: [] as AlchemyTransfer[],
+    complete: false,
+    streamStates: EMPTY_V2_STATES,
+  }));
+
+  const basescanP = fetchBasescanAllFast(addr, 5_000, 3).catch(() => []);
+
+  // Skip heavy v1 multi-endpoint crawl when Alchemy is on; only used as thin fallback.
+  const fillV1P = hasAlchemy
+    ? Promise.resolve({
+        txs: [] as AlchemyTransfer[],
+        internal: [] as AlchemyTransfer[],
+        token: [] as AlchemyTransfer[],
+        nft: [] as AlchemyTransfer[],
+      })
+    : Promise.all([
+        fetchBlockscoutTxs(addr, { deadlineMs: 10_000, maxPages: 12 }).catch(
+          () => []
+        ),
+        fetchBlockscoutInternalTxs(addr, {
+          deadlineMs: 10_000,
+          maxPages: 10,
+        }).catch(() => []),
+        fetchBlockscoutTokenTxs(addr, {
+          deadlineMs: 10_000,
+          maxPages: 12,
+        }).catch(() => []),
+        fetchBlockscoutNftTxs(addr, { deadlineMs: 6_000, maxPages: 4 }).catch(
+          () => []
+        ),
+      ]).then(([txs, internal, token, nft]) => ({
+        txs,
+        internal,
+        token,
+        nft,
+      }));
+
+  const [alchemy, userOps, blockscoutV2, basescanTxs, v1] = await Promise.all([
+    alchemyP,
+    userOpsP,
+    v2P,
+    basescanP,
+    fillV1P,
   ]);
 
-  const alchemyThin = alchemyOut.length + alchemyIn.length < 100;
-  let supplemental: AlchemyTransfer[] = [];
-  if (alchemyThin) {
-    const deep = await fetchWalletTransfersMerged(addr, { depth: "complete" }).catch(
-      () => null
-    );
-    if (deep?.transfers?.length) supplemental = deep.transfers;
+  // Optional short fill only when Alchemy returned almost nothing (no extra wait on healthy wallets).
+  let thinFill: AlchemyTransfer[] = [];
+  if (hasAlchemy && alchemy.transfers.length < 25) {
+    const [token, internal] = await Promise.all([
+      fetchBlockscoutTokenTxs(addr, {
+        deadlineMs: 5_000,
+        maxPages: 6,
+      }).catch(() => []),
+      fetchBlockscoutInternalTxs(addr, {
+        deadlineMs: 5_000,
+        maxPages: 5,
+      }).catch(() => []),
+    ]);
+    thinFill = mergeTransfers([token, internal]);
   }
+
+  const alchemyDone = alchemy.outComplete && alchemy.inComplete;
+  // Full Alchemy pages for this address + solid AA pass ⇒ score ready without long refine.
+  const historyComplete =
+    (alchemyDone && (userOps.complete || userOps.chunksScanned >= 6)) ||
+    (blockscoutV2.complete && alchemyDone);
 
   return buildResult(
     addr,
     [
-      alchemyOut,
-      alchemyIn,
-      supplemental,
-      blockscoutTxs,
-      tokenTxs,
-      nftTxs,
-      internalTxs,
+      alchemy.transfers,
+      v1.txs,
+      v1.token,
+      v1.nft,
+      v1.internal,
+      thinFill,
       blockscoutV2.transfers,
-      userOps,
+      userOps.transfers,
       basescanTxs,
     ],
     {
-      alchemyOut: alchemyOut.length,
-      alchemyIn: alchemyIn.length,
-      blockscoutV1: blockscoutTxs.length,
-      blockscoutInternalV1: internalTxs.length,
-      blockscoutTokenV1: tokenTxs.length,
+      alchemyOut: alchemy.transfers.filter(
+        (t) => (t.from || "").toLowerCase() === addr
+      ).length,
+      alchemyIn: alchemy.transfers.filter(
+        (t) => (t.to || "").toLowerCase() === addr
+      ).length,
+      blockscoutV1: v1.txs.length,
+      blockscoutInternalV1: v1.internal.length + thinFill.length,
+      blockscoutTokenV1: v1.token.length,
       blockscoutV2: blockscoutV2.transfers.length,
-      userOperations: userOps.length,
+      userOperations: userOps.transfers.length,
       basescan: basescanTxs.length,
     },
-    blockscoutV2.complete,
+    historyComplete,
     blockscoutV2.streamStates
   );
 }

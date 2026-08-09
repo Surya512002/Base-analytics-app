@@ -56,35 +56,35 @@ const EOA_PROFILE: WalletCollectionProfile = {
     tokenPages: 10,
     internalPages: 5,
     externalPages: 6,
-    deadlineMs: 16_000,
+    deadlineMs: 14_000,
     sequentialStreams: false,
   },
-  userOps: { timeoutMs: 18_000, maxChunks: 24 },
+  userOps: { timeoutMs: 10_000, maxChunks: 10 },
   alchemyPages: 12,
 };
 
 const SMART_ACCOUNT_PROFILE: WalletCollectionProfile = {
   v2: {
-    tokenPages: 22,
-    internalPages: 22,
-    externalPages: 55,
-    deadlineMs: 24_000,
+    tokenPages: 16,
+    internalPages: 14,
+    externalPages: 24,
+    deadlineMs: 18_000,
     sequentialStreams: false,
   },
-  userOps: { timeoutMs: 20_000, maxChunks: 28 },
+  userOps: { timeoutMs: 12_000, maxChunks: 12 },
   alchemyPages: 0,
 };
 
 const COMPLETE_PROFILE: WalletCollectionProfile = {
   v2: {
-    tokenPages: 150,
-    internalPages: 100,
-    externalPages: 80,
-    deadlineMs: 0,
+    tokenPages: 40,
+    internalPages: 28,
+    externalPages: 24,
+    deadlineMs: 45_000,
     sequentialStreams: false,
   },
-  userOps: { timeoutMs: 120_000, maxChunks: 100 },
-  alchemyPages: 18,
+  userOps: { timeoutMs: 30_000, maxChunks: 24 },
+  alchemyPages: 14,
 };
 
 /** Detect Base App / EIP-7702 smart accounts via Blockscout. */
