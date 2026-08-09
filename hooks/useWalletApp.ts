@@ -980,6 +980,9 @@ function useWalletAppController() {
         };
         setAnalyticsUnlocked(true);
         writeAnalyticsUnlocked(wallet.address, data.unlockToken);
+        // Show full-size blurred analysis overlay immediately after payment.
+        setAnalyticsSyncing(true);
+        setScanProgress("Payment confirmed — collecting full onchain history…");
         const keys = x402StorageKeys(wallet.address);
         const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
         const next = prev + 1;

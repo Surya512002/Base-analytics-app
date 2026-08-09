@@ -101,6 +101,7 @@ export function buildPendingWalletShell(address: string): WalletData {
     dexVolumeUSD30d: 0,
     dexTradeCount30d: 0,
     paymasterTxCount: 0,
+    aaTxCount: 0,
     bridgeTxCount: 0,
     netETHFlow: 0,
     avgTxValueETH: 0,

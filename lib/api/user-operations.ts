@@ -4,7 +4,8 @@ import { ENTRYPOINT_V06, ENTRYPOINT_V07 } from "@/lib/constants/contracts";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
-const CHUNK_SIZE = BigInt(1_500_000);
+/** Prefer smaller chunks — public Base RPCs reject large eth_getLogs windows. */
+const CHUNK_SIZES = [BigInt(500_000), BigInt(150_000), BigInt(40_000)] as const;
 
 const USER_OP_EVENT = parseAbiItem(
   "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)"
@@ -25,6 +26,58 @@ export interface UserOpFetchResult {
   complete: boolean;
 }
 
+type Client = ReturnType<typeof createBasePublicClient>;
+
+async function getUserOpLogs(
+  client: Client,
+  entryPoint: Address,
+  wallet: Address,
+  fromBlock: bigint,
+  toBlock: bigint
+) {
+  let lastErr: unknown;
+  for (const maxSpan of CHUNK_SIZES) {
+    const span = toBlock - fromBlock + BigInt(1);
+    if (span <= maxSpan) {
+      try {
+        return await client.getLogs({
+          address: entryPoint,
+          event: USER_OP_EVENT,
+          args: { sender: wallet },
+          fromBlock,
+          toBlock,
+        });
+      } catch (e) {
+        lastErr = e;
+        continue;
+      }
+    }
+
+    const merged: Awaited<ReturnType<typeof client.getLogs>> = [];
+    for (let start = fromBlock; start <= toBlock; start += maxSpan) {
+      const end =
+        start + maxSpan - BigInt(1) > toBlock
+          ? toBlock
+          : start + maxSpan - BigInt(1);
+      try {
+        const part = await client.getLogs({
+          address: entryPoint,
+          event: USER_OP_EVENT,
+          args: { sender: wallet },
+          fromBlock: start,
+          toBlock: end,
+        });
+        merged.push(...part);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (merged.length > 0 || !lastErr) return merged;
+  }
+  if (lastErr) throw lastErr;
+  return [];
+}
+
 async function fetchUserOpLogs(
   address: string,
   options: UserOpFetchOptions
@@ -33,10 +86,11 @@ async function fetchUserOpLogs(
   const client = createBasePublicClient();
   const entryPoints = [ENTRYPOINT_V06, ENTRYPOINT_V07] as Address[];
   const transfers: AlchemyTransfer[] = [];
-  const seenHashes = new Set<string>();
+  const seenOpIds = new Set<string>();
   const maxChunks = options.maxChunks ?? 8;
   const startChunk = options.startChunk ?? 0;
   const deadline = Date.now() + (options.timeoutMs ?? 12_000);
+  const primaryChunk = CHUNK_SIZES[0];
 
   let latest: bigint;
   try {
@@ -47,33 +101,31 @@ async function fetchUserOpLogs(
 
   let chunksScanned = 0;
   let hitGenesis = false;
+  let timedOut = false;
 
   for (const entryPoint of entryPoints) {
     for (let i = startChunk; i < startChunk + maxChunks; i++) {
       if (Date.now() > deadline) {
-        return {
-          transfers,
-          chunksScanned: startChunk + chunksScanned,
-          complete: false,
-        };
+        timedOut = true;
+        break;
       }
 
       const toBlock =
-        latest - BigInt(i) * CHUNK_SIZE > BigInt(0)
-          ? latest - BigInt(i) * CHUNK_SIZE
+        latest - BigInt(i) * primaryChunk > BigInt(0)
+          ? latest - BigInt(i) * primaryChunk
           : BigInt(0);
       const fromBlock =
-        toBlock > CHUNK_SIZE ? toBlock - CHUNK_SIZE + BigInt(1) : BigInt(0);
+        toBlock > primaryChunk ? toBlock - primaryChunk + BigInt(1) : BigInt(0);
 
-      let logs;
+      let logs: Awaited<ReturnType<typeof getUserOpLogs>>;
       try {
-        logs = await client.getLogs({
-          address: entryPoint,
-          event: USER_OP_EVENT,
-          args: { sender: wallet },
+        logs = await getUserOpLogs(
+          client,
+          entryPoint,
+          wallet,
           fromBlock,
-          toBlock,
-        });
+          toBlock
+        );
       } catch {
         if (fromBlock === BigInt(0)) break;
         continue;
@@ -95,12 +147,22 @@ async function fetchUserOpLogs(
 
       for (const log of logs) {
         const txHash = log.transactionHash;
-        if (!txHash || seenHashes.has(txHash)) continue;
-        seenHashes.add(txHash);
+        if (!txHash) continue;
+        const raw = log as {
+          args?: {
+            userOpHash?: `0x${string}`;
+            paymaster?: Address;
+          };
+          logIndex?: number | null;
+        };
+        const userOpHash = (
+          raw.args?.userOpHash ||
+          `${txHash}-${raw.logIndex ?? 0}`
+        ).toLowerCase();
+        if (seenOpIds.has(userOpHash)) continue;
+        seenOpIds.add(userOpHash);
 
-        const blockTimestamp = chunkTimestamp;
-
-        const paymaster = (log.args.paymaster as string | undefined)?.toLowerCase();
+        const paymaster = raw.args?.paymaster?.toLowerCase();
         const sponsored = Boolean(paymaster && paymaster !== ZERO);
 
         transfers.push({
@@ -111,9 +173,10 @@ async function fetchUserOpLogs(
           from: wallet,
           to: entryPoint.toLowerCase(),
           metadata: {
-            blockTimestamp,
+            blockTimestamp: chunkTimestamp,
             isUserOperation: true,
             isSponsored: sponsored,
+            userOpHash,
             walletParticipated: true,
           },
         });
@@ -124,12 +187,13 @@ async function fetchUserOpLogs(
         break;
       }
     }
+    if (timedOut) break;
   }
 
   return {
     transfers,
     chunksScanned: startChunk + chunksScanned,
-    complete: hitGenesis,
+    complete: hitGenesis && !timedOut,
   };
 }
 
@@ -148,12 +212,12 @@ export async function fetchUserOperationActivityWithProgress(
   return fetchUserOpLogs(address, options);
 }
 
-/** Scan all EntryPoint history back to genesis (Base App / paymaster txs). */
+/** Scan EntryPoint history deeply (Base App / AA / paymaster txs). */
 export async function fetchUserOperationActivityFull(
   address: string
 ): Promise<AlchemyTransfer[]> {
   return fetchUserOperationActivity(address, {
     timeoutMs: 120_000,
-    maxChunks: 100,
+    maxChunks: 200,
   });
 }

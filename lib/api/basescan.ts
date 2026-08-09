@@ -3,7 +3,7 @@ import type { AlchemyTransfer, BlockscoutTx } from "@/lib/types/wallet";
 
 const BASE_CHAIN_ID = 8453;
 
-type BasescanAction = "txlist" | "tokentx" | "txlistinternal";
+type BasescanAction = "txlist" | "tokentx" | "txlistinternal" | "aatxlist";
 
 function basescanUrl(apiKey: string, params: Record<string, string>): string {
   const q = new URLSearchParams({
@@ -72,6 +72,42 @@ function mapInternal(tx: BlockscoutTx): AlchemyTransfer {
   };
 }
 
+/** Map Basescan AA / Other Transactions rows when the API exposes them. */
+function mapAaTx(row: Record<string, unknown>): AlchemyTransfer | null {
+  const hash = String(
+    row.hash || row.transactionHash || row.userOpHash || row.userOperationHash || ""
+  );
+  if (!hash || hash === "undefined") return null;
+  const userOpHash = String(
+    row.userOpHash || row.userOperationHash || row.hash || ""
+  ).toLowerCase();
+  const ts = Number(row.timeStamp || row.timestamp || 0);
+  const from = String(row.from || row.sender || "").toLowerCase() || null;
+  const to = String(row.to || row.entryPoint || row.entrypoint || "").toLowerCase() || null;
+  const paymaster = String(row.paymaster || "").toLowerCase();
+  const sponsored =
+    Boolean(paymaster) &&
+    paymaster !== "0x0000000000000000000000000000000000000000";
+
+  return {
+    hash,
+    category: "useroperation",
+    value: 0,
+    asset: "ETH",
+    from,
+    to,
+    metadata: {
+      blockTimestamp: ts
+        ? new Date(ts * 1000).toISOString()
+        : new Date().toISOString(),
+      isUserOperation: true,
+      isSponsored: sponsored,
+      userOpHash: userOpHash || undefined,
+      walletParticipated: true,
+    },
+  };
+}
+
 async function fetchBasescanAction(
   action: BasescanAction,
   address: string,
@@ -111,6 +147,11 @@ async function fetchBasescanAction(
         all.push(...(rows as BlockscoutTx[]).map(mapExternal));
       } else if (action === "tokentx") {
         all.push(...(rows as BlockscoutTx[]).map(mapToken));
+      } else if (action === "aatxlist") {
+        for (const row of rows as Record<string, unknown>[]) {
+          const mapped = mapAaTx(row);
+          if (mapped) all.push(mapped);
+        }
       } else {
         all.push(...(rows as BlockscoutTx[]).map(mapInternal));
       }
@@ -157,17 +198,32 @@ export async function fetchBasescanInternalTxs(
   );
 }
 
-/** All Basescan streams in parallel (fast supplement to Blockscout). */
+/**
+ * Basescan AA / Other Transactions for an address.
+ * Uses action `aatxlist` when the plan exposes it; returns [] otherwise
+ * (UI AA tab has no free public action on all plans — EntryPoint logs fill the gap).
+ */
+export async function fetchBasescanAaTxs(
+  address: string,
+  apiKey: string,
+  maxPages = 10,
+  deadlineMs = 12_000
+): Promise<AlchemyTransfer[]> {
+  return fetchBasescanAction("aatxlist", address, apiKey, maxPages, deadlineMs);
+}
+
+/** All Basescan streams in parallel (fast supplement to Blockscout + AA). */
 export async function fetchBasescanAll(
   address: string,
   apiKey: string
 ): Promise<AlchemyTransfer[]> {
-  const [txs, tokens, internals] = await Promise.all([
+  const [txs, tokens, internals, aa] = await Promise.all([
     fetchBasescanTxs(address, apiKey),
     fetchBasescanTokenTxs(address, apiKey),
     fetchBasescanInternalTxs(address, apiKey),
+    fetchBasescanAaTxs(address, apiKey),
   ]);
-  return [...txs, ...tokens, ...internals];
+  return [...txs, ...tokens, ...internals, ...aa];
 }
 
 export function getBasescanApiKey(): string {
@@ -197,20 +253,20 @@ export async function fetchBasescanAllFast(
 ): Promise<AlchemyTransfer[]> {
   const keys = getBasescanApiKeys();
   if (!keys.length) return [];
-  const [txs, tokens, internals] = await Promise.all([
-    fetchBasescanTxs(address, keys[0], maxPages, deadlineMs),
-    fetchBasescanTokenTxs(
-      address,
-      keys[keys.length > 1 ? 1 : 0],
-      maxPages,
-      deadlineMs
-    ),
+  const k0 = keys[0];
+  const k1 = keys[keys.length > 1 ? 1 : 0];
+  const k2 = keys[keys.length > 2 ? 2 : 0];
+  const k3 = keys[keys.length > 3 ? 3 : 0];
+  const [txs, tokens, internals, aa] = await Promise.all([
+    fetchBasescanTxs(address, k0, maxPages, deadlineMs),
+    fetchBasescanTokenTxs(address, k1, maxPages, deadlineMs),
     fetchBasescanInternalTxs(
       address,
-      keys[keys.length > 2 ? 2 : 0],
+      k2,
       Math.min(maxPages, 3),
       deadlineMs
     ),
+    fetchBasescanAaTxs(address, k3, Math.min(maxPages, 6), deadlineMs),
   ]);
-  return [...txs, ...tokens, ...internals];
+  return [...txs, ...tokens, ...internals, ...aa];
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Droplets, Globe, X } from "lucide-react";
+import { motion } from "motion/react";
 import {
   BaseAppWalletIcon,
   FarcasterWalletIcon,
@@ -186,21 +187,28 @@ export default function ConnectWalletModal({
       aria-modal="true"
       aria-label="Connect wallet"
     >
-      <button
+      <motion.button
         type="button"
         className="absolute inset-0 bg-black/55 backdrop-blur-[6px]"
         onClick={onClose}
         aria-label="Close"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
       />
 
-      <div
-        className="relative w-full max-w-[340px] rounded-xl border border-white/[0.1] bg-[var(--bg-raised)] overflow-hidden tab-content-enter my-auto"
+      <motion.div
+        className="relative w-full max-w-[340px] rounded-xl border border-white/[0.1] bg-[var(--bg-raised)] overflow-hidden my-auto"
         style={{
           marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
           maxHeight:
             "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
         }}
+        initial={{ opacity: 0, y: 28, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 420, damping: 30 }}
       >
+        <div className="h-1 w-full bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400" />
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.08]">
           <div>
             <p className="text-[14px] font-semibold text-[var(--ink)]">Connect wallet</p>
@@ -225,10 +233,11 @@ export default function ConnectWalletModal({
           <p className="text-[12px] text-[var(--ink-muted)] leading-relaxed mb-3">{hint}</p>
 
           {inMiniApp ? (
-            <button
+            <motion.button
               type="button"
               onClick={() => onConnect(embeddedWallet.type)}
               disabled={loading}
+              whileTap={{ scale: 0.98 }}
               className="btn-primary w-full flex items-center gap-2.5 px-3 py-3 rounded-lg font-semibold text-[13px] transition-colors disabled:opacity-50"
             >
               <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-black/10">
@@ -240,13 +249,14 @@ export default function ConnectWalletModal({
                   {embeddedWallet.short}
                 </span>
               </span>
-            </button>
+            </motion.button>
           ) : (
             <>
-              <button
+              <motion.button
                 type="button"
                 onClick={() => onConnect(BASE_WALLET.type)}
                 disabled={loading}
+                whileTap={{ scale: 0.98 }}
                 className="btn-primary w-full flex items-center gap-2.5 px-3 py-3 rounded-lg font-semibold text-[13px] transition-colors disabled:opacity-50"
               >
                 <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-black/10">
@@ -258,20 +268,26 @@ export default function ConnectWalletModal({
                     {BASE_WALLET.short}
                   </span>
                 </span>
-              </button>
+              </motion.button>
 
               <div className="mt-4 pt-3 border-t border-white/[0.08]">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)] mb-2">
                   Browser extensions
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {otherWallets.map((w) => (
-                    <WalletGridButton
+                  {otherWallets.map((w, i) => (
+                    <motion.div
                       key={w.type}
-                      wallet={w}
-                      loading={loading}
-                      onConnect={onConnect}
-                    />
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.04 * i }}
+                    >
+                      <WalletGridButton
+                        wallet={w}
+                        loading={loading}
+                        onConnect={onConnect}
+                      />
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -285,7 +301,7 @@ export default function ConnectWalletModal({
             {inMiniApp ? "Gas sponsored in mini-app" : "Base Wallet supports sponsored gas on Base"}
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,4 +1,7 @@
+"use client";
+
 import { BadgeCheck, X } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { basescanTxUrl } from "@/lib/utils/tx";
 
 interface ToastNotificationProps {
@@ -12,6 +15,7 @@ export default function ToastNotification({
   hash,
   onClose,
 }: ToastNotificationProps) {
+  const reduce = useReducedMotion();
   const url = hash ? basescanTxUrl(hash) : null;
   const shortHash =
     hash && hash.startsWith("0x") && hash.length >= 18
@@ -19,15 +23,21 @@ export default function ToastNotification({
       : hash;
 
   return (
-    <div
-      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-card)] max-h-[40dvh] overflow-y-auto overscroll-contain"
-      style={{
-        animation: "slideUp 0.3s ease-out",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
-      }}
+    <motion.div
+      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-emerald-200/80 bg-[var(--surface)] text-[var(--ink)] shadow-[0_16px_40px_rgba(16,185,129,0.12)] max-h-[40dvh] overflow-y-auto overscroll-contain"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
       role="status"
+      initial={reduce ? false : { opacity: 0, y: 24, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={reduce ? undefined : { opacity: 0, y: 12, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 420, damping: 28 }}
     >
-      <BadgeCheck size={20} className="shrink-0 mt-0.5 text-emerald-600" />
+      <motion.div
+        animate={reduce ? undefined : { scale: [1, 1.12, 1] }}
+        transition={{ duration: 0.6 }}
+      >
+        <BadgeCheck size={20} className="shrink-0 mt-0.5 text-emerald-600" />
+      </motion.div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm leading-snug break-words text-[var(--ink)]">{msg}</p>
         {url && (
@@ -50,6 +60,6 @@ export default function ToastNotification({
       >
         <X size={13} />
       </button>
-    </div>
+    </motion.div>
   );
 }

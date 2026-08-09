@@ -108,6 +108,7 @@ export function createMockWallet(): WalletData {
     dexVolumeUSD30d: 1200,
     dexTradeCount30d: 14,
     paymasterTxCount: 42,
+    aaTxCount: 38,
     bridgeTxCount: 6,
     netETHFlow: 0.34,
     avgTxValueETH: 0.012,

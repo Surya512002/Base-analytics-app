@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Rocket, Shield, Star, TrendingDown, TrendingUp } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import CreatorChip from "@/components/launchpad/CreatorChip";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
@@ -33,17 +34,26 @@ export default function TokenCard({
   const hasPool = market?.hasPool;
   const safety = tokenSafetyLevel(market);
   const safetyLabel = tokenSafetyLabel(safety);
+  const reduce = useReducedMotion();
 
   return (
-    <article
+    <motion.article
       role="button"
       tabIndex={0}
       onClick={onTrade}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onTrade();
       }}
-      className="token-card group cursor-pointer rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-card)] transition-all hover:border-[var(--brand)] hover:shadow-[0_12px_32px_rgba(26,92,255,0.12)]"
+      whileHover={
+        reduce
+          ? undefined
+          : { y: -3, boxShadow: "0 14px 36px rgba(16,185,129,0.14)" }
+      }
+      whileTap={reduce ? undefined : { scale: 0.99 }}
+      transition={{ type: "spring", stiffness: 400, damping: 28 }}
+      className="token-card group cursor-pointer rounded-2xl border border-emerald-100/80 bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-card)] transition-colors hover:border-emerald-400/60"
     >
+      <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 opacity-80 group-hover:opacity-100 transition-opacity" />
       <div className="p-4 sm:p-4.5">
         <div className="flex items-start gap-3.5">
           {onToggleWatch && (
@@ -181,12 +191,12 @@ export default function TokenCard({
               />
             )}
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[var(--brand)] px-3 py-2 text-[11px] font-bold text-white transition-colors group-hover:bg-[var(--brand-dark)]">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white transition-colors group-hover:bg-emerald-700">
             Trade <ArrowUpRight size={12} />
           </span>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 

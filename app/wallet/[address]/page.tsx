@@ -22,6 +22,7 @@ interface ProfileData {
     uniqueDays: number;
     nftCount: number;
     paymasterTxCount: number;
+    aaTxCount?: number;
     dexVolumeUSD30d: number;
     portfolioValueUSD: number;
   };
@@ -88,8 +89,9 @@ function WalletProfileContent() {
                   {[
                     { l: "Transactions", v: w.txCount.toLocaleString() },
                     { l: "Active days", v: String(w.uniqueDays) },
+                    { l: "AA txs", v: String(w.aaTxCount ?? 0) },
+                    { l: "Base App / gasless", v: String(w.paymasterTxCount) },
                     { l: "NFTs", v: String(w.nftCount) },
-                    { l: "Paymaster txs", v: String(w.paymasterTxCount) },
                     { l: "DEX 30d", v: formatDexVolumeUsd(w.dexVolumeUSD30d) },
                     { l: "Portfolio", v: w.portfolioValueUSD > 0 ? `$${w.portfolioValueUSD.toFixed(0)}` : "—" },
                   ].map((s) => (

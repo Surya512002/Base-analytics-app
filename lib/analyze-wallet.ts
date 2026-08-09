@@ -344,6 +344,7 @@ export async function analyzeWalletAddress(
   const ms: Record<string, number> = {};
 
   const bridgeTxHashes = new Set<string>();
+  const aaTxIds = new Set<string>();
   const paymasterTxHashes = new Set<string>();
   const ep06 = ENTRYPOINT_V06.toLowerCase();
   const ep07 = ENTRYPOINT_V07.toLowerCase();
@@ -358,17 +359,37 @@ export async function analyzeWalletAddress(
     ) {
       bridgeTxHashes.add(tx.hash);
     }
-    if (tx.metadata?.isSponsored || tx.metadata?.isUserOperation) {
+
+    const isUserOp =
+      tx.category === "useroperation" ||
+      tx.metadata?.isUserOperation === true ||
+      toAddr === ep06 ||
+      toAddr === ep07;
+
+    if (isUserOp) {
+      const aaId =
+        (tx.metadata?.userOpHash || "").toLowerCase() ||
+        `${tx.hash.toLowerCase()}-${fromAddr}-${toAddr}`;
+      aaTxIds.add(aaId);
       paymasterTxHashes.add(tx.hash);
     }
-    if (tx.category === "internal" && toAddr === addrLow)
+
+    if (tx.metadata?.isSponsored === true) {
       paymasterTxHashes.add(tx.hash);
-    if (tx.category === "useroperation") paymasterTxHashes.add(tx.hash);
-    if (fromAddr === ep06 || fromAddr === ep07) paymasterTxHashes.add(tx.hash);
+    }
+    // Inbound internal zero-value legs often mark paymaster-funded execution.
+    if (tx.category === "internal" && toAddr === addrLow) {
+      paymasterTxHashes.add(tx.hash);
+    }
+    if (fromAddr === ep06 || fromAddr === ep07) {
+      paymasterTxHashes.add(tx.hash);
+    }
   }
 
   const bridgeTxCount = bridgeTxHashes.size;
-  const paymasterTxCount = paymasterTxHashes.size;
+  const aaTxCount = aaTxIds.size;
+  // Prefer explicit AA count when higher (userOps only); never drop prior paid signals.
+  const paymasterTxCount = Math.max(paymasterTxHashes.size, aaTxCount);
 
   const ethUSD = ethPriceData?.ethereum?.usd || 3200;
   const {
@@ -723,6 +744,7 @@ export async function analyzeWalletAddress(
     dexVolumeUSD30d,
     dexTradeCount30d,
     ethSwapVolumeUSD,
+    aaTxCount,
     paymasterTxCount,
     bridgeTxCount,
     netETHFlow: parseFloat((ethReceived - ethVol).toFixed(4)),

@@ -17,6 +17,7 @@ const MEDIAN = {
   txCount: 85,
   uniqueDays: 28,
   paymasterTxCount: 12,
+  aaTxCount: 10,
   dexVolumeUSD: 450,
 };
 
@@ -35,6 +36,7 @@ export function buildPremiumInsights(
     { label: "Onchain score", value: `${wallet.score}/100`, vsMedian: vs(wallet.score, MEDIAN.score) },
     { label: "Transactions", value: wallet.txCount.toLocaleString(), vsMedian: vs(wallet.txCount, MEDIAN.txCount) },
     { label: "Active days", value: String(wallet.uniqueDays), vsMedian: vs(wallet.uniqueDays, MEDIAN.uniqueDays) },
+    { label: "AA txs", value: String(wallet.aaTxCount ?? 0), vsMedian: vs(wallet.aaTxCount ?? 0, MEDIAN.aaTxCount) },
     { label: "Paymaster txs", value: String(wallet.paymasterTxCount), vsMedian: vs(wallet.paymasterTxCount, MEDIAN.paymasterTxCount) },
     { label: "DEX volume (30d)", value: `$${wallet.dexVolumeUSD30d.toFixed(0)}`, vsMedian: vs(wallet.dexVolumeUSD30d, MEDIAN.dexVolumeUSD) },
   ];
@@ -49,7 +51,11 @@ export function buildPremiumInsights(
   ];
 
   const highlights: string[] = [];
-  if (wallet.paymasterTxCount > 0) {
+  if ((wallet.aaTxCount ?? 0) > 0) {
+    highlights.push(
+      `${wallet.aaTxCount} AA (ERC-4337) transactions — same class as Basescan Other Transactions.`
+    );
+  } else if (wallet.paymasterTxCount > 0) {
     highlights.push(`${wallet.paymasterTxCount} smart-wallet / paymaster transactions detected (Base App activity).`);
   }
   if (wallet.dexTradeCount30d > 0) {
@@ -74,7 +80,7 @@ export function buildPremiumInsights(
     `Address: ${wallet.address}`,
     `Score: ${wallet.score}/100 (${wallet.walletRank})`,
     `Txs: ${wallet.txCount} | Active days: ${wallet.uniqueDays}`,
-    `Paymaster: ${wallet.paymasterTxCount} | DEX 30d: $${wallet.dexVolumeUSD30d.toFixed(2)}`,
+    `AA: ${wallet.aaTxCount ?? 0} | Paymaster: ${wallet.paymasterTxCount} | DEX 30d: $${wallet.dexVolumeUSD30d.toFixed(2)}`,
     `Generated: ${new Date().toISOString()}`,
   ].join("\n");
 

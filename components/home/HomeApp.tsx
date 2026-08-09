@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "motion/react";
 import AppBackground from "@/components/ui/AppBackground";
+import { MotionPage } from "@/components/ui/MotionShell";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
@@ -190,13 +192,16 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     <main className="main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative">
       <AppBackground />
 
-      {toast && (
-        <ToastNotification
-          msg={toast.msg}
-          hash={toast.hash}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {toast ? (
+          <ToastNotification
+            key={`${toast.msg}-${toast.hash}`}
+            msg={toast.msg}
+            hash={toast.hash}
+            onClose={() => setToast(null)}
+          />
+        ) : null}
+      </AnimatePresence>
 
       <AppShell
         tab={activeTab}
@@ -263,30 +268,52 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
           </>
         )}
 
-        <div className="tab-content-enter w-full min-w-0">
-          {activeTab === "launchpad" && (
-            <LaunchpadTab
-              app={app}
-              guestMode={guest}
-              onRequestConnect={openConnect}
-              onShellBridge={handleShellBridge}
-              onNavigate={handleTabChange}
-              onPayAgent={handlePayAgent}
-              isActive
-            />
-          )}
-          {activeTab === "swap" && (
-            <SwapTab
-              app={app}
-              guestMode={guest}
-              onRequestConnect={openConnect}
-              initialToken={initialToken}
-            />
-          )}
-          {!guest && activeTab === "basehub" && <BaseVoucherTab app={app} />}
-          {!guest && activeTab === "dashboard" && <DashboardTab app={app} />}
-          {!guest && isRewardsHubTab(activeTab) && <RewardsHubTab app={app} />}
-          {!guest && activeTab === "achievements" && <AchievementsTab app={app} />}
+        <div className="w-full min-w-0 relative">
+          <AnimatePresence mode="wait" initial={false}>
+            {activeTab === "launchpad" && (
+              <MotionPage key="tab-launchpad" pageKey="launchpad" className="w-full min-w-0">
+                <LaunchpadTab
+                  app={app}
+                  guestMode={guest}
+                  onRequestConnect={openConnect}
+                  onShellBridge={handleShellBridge}
+                  onNavigate={handleTabChange}
+                  onPayAgent={handlePayAgent}
+                  isActive
+                />
+              </MotionPage>
+            )}
+            {activeTab === "swap" && (
+              <MotionPage key="tab-swap" pageKey="swap" className="w-full min-w-0">
+                <SwapTab
+                  app={app}
+                  guestMode={guest}
+                  onRequestConnect={openConnect}
+                  initialToken={initialToken}
+                />
+              </MotionPage>
+            )}
+            {!guest && activeTab === "basehub" && (
+              <MotionPage key="tab-basehub" pageKey="basehub" className="w-full min-w-0">
+                <BaseVoucherTab app={app} />
+              </MotionPage>
+            )}
+            {!guest && activeTab === "dashboard" && (
+              <MotionPage key="tab-dashboard" pageKey="dashboard" className="w-full min-w-0">
+                <DashboardTab app={app} />
+              </MotionPage>
+            )}
+            {!guest && isRewardsHubTab(activeTab) && (
+              <MotionPage key="tab-rewards" pageKey="rewards" className="w-full min-w-0">
+                <RewardsHubTab app={app} />
+              </MotionPage>
+            )}
+            {!guest && activeTab === "achievements" && (
+              <MotionPage key="tab-achievements" pageKey="achievements" className="w-full min-w-0">
+                <AchievementsTab app={app} />
+              </MotionPage>
+            )}
+          </AnimatePresence>
         </div>
 
         <AppFooterNav />

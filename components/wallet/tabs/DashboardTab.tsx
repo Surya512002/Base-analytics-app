@@ -6,12 +6,11 @@ import {
   ChevronDown, ChevronUp, Clock, Coins, CreditCard,
   Database, DollarSign, Droplets, ExternalLink, FileCode, Flame, Gauge, Gift,
   GitBranch, Globe, History, Landmark, Layers, Lock, MousePointerClick,
-  Palette, RefreshCcw, Repeat2, Rocket, Send, Share2, ShieldCheck, Sparkles,
+  Palette, RefreshCcw, Repeat2, Rocket, Send, Share2, ShieldCheck, Smartphone, Sparkles,
   Star, Sun, Swords, Target, TrendingUp, Trophy, Twitter, User, Users, Wifi,
   Zap,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import AnalyticsLoadingPanel from "@/components/wallet/AnalyticsLoadingPanel";
 import AnalyticsPaywall from "@/components/wallet/AnalyticsPaywall";
 import OnchainScorePanel from "@/components/wallet/OnchainScorePanel";
 import PremiumBanner from "@/components/wallet/PremiumBanner";
@@ -157,15 +156,19 @@ if (!wallet) return null;
       wallet.recommendation.includes("Syncing") ||
       wallet.recommendation.includes("Refining"));
 
+  /** Post-pay: big blur overlay over score/heatmap until full analysis pass settles. */
+  const onchainAnalysisLoading =
+    analyticsUnlocked &&
+    (analyticsUnlockLoading ||
+      analyticsSyncing ||
+      walletRefreshing ||
+      scoreSyncing ||
+      wallet.recommendation.includes("Fetching onchain") ||
+      wallet.recommendation.includes("Syncing full") ||
+      wallet.recommendation.includes("Refining"));
+
   return (
           <div className="space-y-4">
-            {scoreSyncing && (
-              <AnalyticsLoadingPanel
-                scanProgress={scanProgress}
-                walletRefreshing={walletRefreshing}
-              />
-            )}
-
             <LaunchpadDashboardWidget
               wallet={wallet.address}
               onOpenLaunchpad={openLaunchpad}
@@ -196,7 +199,10 @@ if (!wallet) return null;
             <AnalyticsPaywall
               unlocked={analyticsUnlocked}
               unlockLoading={analyticsUnlockLoading}
+              analysisLoading={onchainAnalysisLoading}
               onUnlock={handleAnalyticsUnlock}
+              scanProgress={scanProgress}
+              walletRefreshing={walletRefreshing || analyticsSyncing}
             >
               <OnchainScorePanel
                 wallet={wallet}
@@ -212,18 +218,6 @@ if (!wallet) return null;
                 scanProgress={scanProgress}
               />
             </AnalyticsPaywall>
-
-            <ScoreImprovementTips wallet={wallet} onNavigate={navigateFromTip} />
-
-            <ChallengePromoCard
-              wallet={wallet}
-              onChallenge={() => {
-                const el = document.getElementById("wallet-challenge-input");
-                el?.scrollIntoView({ behavior: "smooth", block: "center" });
-                el?.focus();
-              }}
-            />
-
             {wallet.topTokens.length > 0 && (
               <div className="glass-panel rounded-2xl p-5">
                 <p className="section-eyebrow mb-3">Tokens you&apos;ve traded</p>
@@ -249,10 +243,12 @@ if (!wallet) return null;
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
               {[
                 {label:'Age Percentile',value:wallet.onchainAgePercentile>0?`Top ${Math.min(99,Math.max(1,100-wallet.onchainAgePercentile))}%`:'—',sub:`vs Base median`,icon:<GitBranch size={16} className="analytics-tile-icon"/>,active:wallet.onchainAgePercentile>0},
                 {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="analytics-tile-icon"/>,active:true},
+                {label:'AA Txs',value:(wallet.aaTxCount??0).toLocaleString(),sub:'Account abstraction (4337)',icon:<Smartphone size={16} className="analytics-tile-icon"/>,active:(wallet.aaTxCount??0)>0},
+                {label:'Base App / gasless',value:wallet.paymasterTxCount.toLocaleString(),sub:'Paymaster · smart wallet',icon:<Droplets size={16} className="analytics-tile-icon"/>,active:wallet.paymasterTxCount>0},
                 {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="analytics-tile-icon"/>,active:wallet.bridgeTxCount>0},
                 {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
               ].map((s,i)=>(
@@ -288,6 +284,8 @@ if (!wallet) return null;
               overview={[
                 { label: "Portfolio", value: `$${wallet.portfolioValueUSD.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
                 { label: "Total Txs", value: wallet.txCount.toLocaleString(), icon: <Layers size={15} className="analytics-tile-icon" /> },
+                { label: "AA txs", value: (wallet.aaTxCount ?? 0).toLocaleString(), icon: <Smartphone size={15} className="analytics-tile-icon" />, dim: (wallet.aaTxCount ?? 0) <= 0 },
+                { label: "Base App / gasless", value: wallet.paymasterTxCount.toLocaleString(), icon: <Droplets size={15} className="analytics-tile-icon" />, dim: wallet.paymasterTxCount <= 0 },
                 { label: "Age percentile", value: wallet.onchainAgePercentile > 0 ? `Top ${Math.min(99, Math.max(1, 100 - wallet.onchainAgePercentile))}%` : "—", icon: <GitBranch size={15} className="analytics-tile-icon" />, dim: wallet.onchainAgePercentile <= 0 },
                 { label: "Net ETH flow", value: `${wallet.netETHFlow >= 0 ? "+" : ""}${wallet.netETHFlow} Ξ`, icon: <TrendingUp size={15} className={wallet.netETHFlow >= 0 ? "text-green-400" : "text-red-400"} /> },
                 { label: "Bridge txs", value: wallet.bridgeTxCount, icon: <Globe size={15} className="analytics-tile-icon" />, dim: wallet.bridgeTxCount <= 0 },
@@ -346,6 +344,17 @@ if (!wallet) return null;
               unlocked={farcasterUnlocked}
               unlockLoading={farcasterUnlockLoading}
               onUnlock={handleFarcasterUnlock}
+            />
+
+            <ScoreImprovementTips wallet={wallet} onNavigate={navigateFromTip} />
+
+            <ChallengePromoCard
+              wallet={wallet}
+              onChallenge={() => {
+                const el = document.getElementById("wallet-challenge-input");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                el?.focus();
+              }}
             />
 
             <WatchlistPanel myAddress={wallet.address} />
@@ -423,7 +432,7 @@ if (!wallet) return null;
                   else if(isLaunch){label='Launchpad';icon=<TrendingUp size={13} className="analytics-tile-icon"/>;badge='🚀 Launch';}
                   else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="analytics-tile-icon"/>;badge='🔄 Swap';}
                   else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="analytics-tile-icon"/>;badge='🌉 Bridge';}
-                  else if(isPaymaster){label=tx.category==='useroperation'?'Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge='⛽ Sponsored';}
+                  else if(isPaymaster){label=tx.category==='useroperation'||tx.metadata?.isUserOperation?'AA / Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge=tx.metadata?.isSponsored?'⛽ Sponsored':'⚡ AA';}
                   else if(tx.category==='erc721'||tx.category==='erc1155'){
                     const isMint=(tx.from||'').toLowerCase()==='0x0000000000000000000000000000000000000000';
                     label=isMint?'NFT Mint':'NFT Transfer';

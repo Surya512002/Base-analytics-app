@@ -65,7 +65,23 @@ export default function SwapTab({
   const panelKey = useMemo(() => prefill?.address ?? "default", [prefill?.address]);
 
   return (
-    <div className="dex-swap-page">
+    <div className="dex-swap-page space-y-4">
+      <div
+        className="rounded-2xl border px-4 py-3 overflow-hidden relative"
+        style={{
+          borderColor: "rgba(99,102,241,0.28)",
+          background:
+            "linear-gradient(135deg, rgba(99,102,241,0.1), var(--surface) 60%)",
+        }}
+      >
+        <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-indigo-500 via-violet-400 to-blue-400" />
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-indigo-800">
+          Swap
+        </p>
+        <p className="text-sm text-indigo-950/70 mt-0.5">
+          Route via Uniswap + Aerodrome + 0x on Base
+        </p>
+      </div>
       {!guestMode && app.wallet?.address && (
         <WalletHoldings
           walletAddress={app.wallet.address}

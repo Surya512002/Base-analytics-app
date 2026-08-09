@@ -105,6 +105,7 @@ export async function fetchWalletTransfersMerged(
       nftTxs,
       blockscoutV2Result,
       userOps,
+      basescanTxs,
     ] = await Promise.all([
       fetchBlockscoutTxs(addr, { deadlineMs: 0 }).catch(() => []),
       fetchBlockscoutInternalTxs(addr, { deadlineMs: 0 }).catch(() => []),
@@ -112,6 +113,7 @@ export async function fetchWalletTransfersMerged(
       fetchBlockscoutNftTxs(addr, { deadlineMs: 0 }).catch(() => []),
       v2FetchP,
       fetchUserOperationActivityFull(addr).catch(() => []),
+      fetchBasescanAllFast(addr, 45_000, 20).catch(() => []),
     ]);
 
     return buildResult(
@@ -123,6 +125,7 @@ export async function fetchWalletTransfersMerged(
         internalTxs,
         blockscoutV2Result.transfers,
         userOps,
+        basescanTxs,
       ],
       {
         alchemyOut: 0,
@@ -132,14 +135,14 @@ export async function fetchWalletTransfersMerged(
         blockscoutTokenV1: tokenTxs.length,
         blockscoutV2: blockscoutV2Result.transfers.length,
         userOperations: userOps.length,
-        basescan: 0,
+        basescan: basescanTxs.length,
       },
       blockscoutV2Result.complete,
       blockscoutV2Result.streamStates
     );
   }
 
-  // Connect — Blockscout only
+  // Connect — Blockscout + AA userOps + Basescan (when API key present)
   const [
     v2Res,
     blockscoutTxs,
@@ -147,6 +150,7 @@ export async function fetchWalletTransfersMerged(
     tokenTxs,
     nftTxs,
     userOps,
+    basescanTxs,
   ] = await Promise.all([
     skipV2
       ? Promise.resolve({
@@ -180,6 +184,7 @@ export async function fetchWalletTransfersMerged(
     })
       .then((r) => r.transfers)
       .catch(() => []),
+    fetchBasescanAllFast(addr, 14_000, 6).catch(() => []),
   ]);
 
   return buildResult(
@@ -191,6 +196,7 @@ export async function fetchWalletTransfersMerged(
       internalTxs,
       v2Res.transfers,
       userOps,
+      basescanTxs,
     ],
     {
       alchemyOut: 0,
@@ -200,7 +206,7 @@ export async function fetchWalletTransfersMerged(
       blockscoutTokenV1: tokenTxs.length,
       blockscoutV2: v2Res.transfers.length,
       userOperations: userOps.length,
-      basescan: 0,
+      basescan: basescanTxs.length,
     },
     v2Res.complete,
     v2Res.streamStates

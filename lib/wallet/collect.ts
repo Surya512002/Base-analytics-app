@@ -110,12 +110,11 @@ async function collectWalletFastParallelInner(
           timeoutMs: 4_500,
         }).catch(() => [] as AlchemyTransfer[])
       : Promise.resolve([] as AlchemyTransfer[]),
-    hasAlchemy
-      ? Promise.resolve([] as AlchemyTransfer[])
-      : fetchBasescanAllFast(addr, FAST_DEADLINE_MS, 1).catch(() => []),
+    // Always try Basescan when keys exist — AA tab + normal history supplement.
+    fetchBasescanAllFast(addr, FAST_DEADLINE_MS, 2).catch(() => []),
     fetchUserOperationActivityWithProgress(addr, {
-      timeoutMs: 3_000,
-      maxChunks: 4,
+      timeoutMs: 5_000,
+      maxChunks: 8,
       startChunk: 0,
     }).catch(() => ({
       transfers: [] as AlchemyTransfer[],

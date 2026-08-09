@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { SEASON_NAME } from "@/lib/constants/season";
 import {
@@ -14,6 +15,7 @@ import {
   sumAppBadges,
   totalAppBadgeTiers,
 } from "@/lib/utils/app-badge-levels";
+import { SECTION_THEME } from "@/lib/motion/presets";
 
 interface AchievementsHeroProps {
   wallet: NonNullable<WalletAppState["wallet"]>;
@@ -27,6 +29,8 @@ export default function AchievementsHero({
   weeklyXP,
 }: AchievementsHeroProps) {
   const [appLevels, setAppLevels] = useState<Record<string, number>>({});
+  const reduce = useReducedMotion();
+  const badges = SECTION_THEME.badges;
 
   useEffect(() => {
     setAppLevels(readAppBadgeLevels(wallet.address));
@@ -40,13 +44,21 @@ export default function AchievementsHero({
   const appPct = appBadgeCollectionPct(appLevels);
 
   return (
-    <div className="page-hero mb-5 relative overflow-hidden !p-0">
-      <div className="accent-bar" />
+    <motion.div
+      className="page-hero mb-5 relative overflow-hidden !p-0 border"
+      style={{
+        borderColor: badges.border,
+        background: `linear-gradient(145deg, ${badges.soft}, var(--surface) 50%)`,
+      }}
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <div className={`h-1 w-full bg-gradient-to-r ${badges.bar}`} />
 
       <div className="relative z-10 p-5 sm:p-6 grid sm:grid-cols-[1fr_auto] gap-5 items-center">
         <div className="min-w-0">
-          <p className="section-eyebrow flex items-center gap-2">
-            <Sparkles size={12} className="shrink-0" /> Badge collection
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-violet-800 flex items-center gap-2">
+            <Sparkles size={12} className="shrink-0 text-violet-600" /> Badge collection
           </p>
           <h2 className="page-hero-title mt-2">
             App badges first
@@ -57,35 +69,43 @@ export default function AchievementsHero({
           </p>
         </div>
 
-        <div
+        <motion.div
           className="badge-orbit shrink-0 mx-auto sm:mx-0"
           title={`${appClaimed} of ${appTotal} app badges claimed`}
+          animate={reduce ? undefined : { rotate: [0, 2, -2, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
         >
           <div className="badge-orbit-ring" aria-hidden />
           <div className="badge-orbit-core flex flex-col items-center justify-center text-center">
-            <p className="text-2xl font-black text-[var(--ink)] leading-none tabular-nums">
+            <p className="text-2xl font-black text-violet-900 leading-none tabular-nums">
               {appClaimed}
             </p>
-            <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase tracking-wide mt-1.5 leading-none">
+            <p className="text-[9px] font-bold text-violet-700/70 uppercase tracking-wide mt-1.5 leading-none">
               of {appTotal} app
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--border-subtle)] border-t border-[var(--border-subtle)]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-violet-100/60 border-t border-violet-100">
         {[
-          { l: "App badges", v: `${appPct}%` },
-          { l: "Onchain", v: `${onchainMinted}/${onchainTotal}` },
-          { l: "Weekly XP", v: weeklyXP.toLocaleString() },
-          { l: "Score", v: `${wallet.score}` },
-        ].map((s) => (
-          <div key={s.l} className="bg-[var(--surface-2)] px-3 py-3 text-center">
-            <p className="font-black text-base sm:text-lg text-[var(--ink)]">{s.v}</p>
+          { l: "App badges", v: `${appPct}%`, c: "text-violet-800" },
+          { l: "Onchain", v: `${onchainMinted}/${onchainTotal}`, c: "text-indigo-800" },
+          { l: "Weekly XP", v: weeklyXP.toLocaleString(), c: "text-amber-800" },
+          { l: "Score", v: `${wallet.score}`, c: "text-sky-800" },
+        ].map((s, i) => (
+          <motion.div
+            key={s.l}
+            className="bg-white/70 px-3 py-3 text-center"
+            initial={reduce ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 * i }}
+          >
+            <p className={`font-black text-base sm:text-lg ${s.c}`}>{s.v}</p>
             <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold mt-0.5">{s.l}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

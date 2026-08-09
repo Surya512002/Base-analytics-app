@@ -154,6 +154,7 @@ export async function bootstrapWalletAnalysis(
     dexVolumeUSD30d: 0,
     dexTradeCount30d: 0,
     paymasterTxCount: smart.isSmartAccount ? Math.max(1, txFloor) : 0,
+    aaTxCount: smart.isSmartAccount ? Math.max(1, txFloor) : 0,
     bridgeTxCount: 0,
     netETHFlow: 0,
     avgTxValueETH: 0,

@@ -57,6 +57,15 @@ export interface WalletData {
   dexTradeCount30d: number;
   /** Native ETH/WETH swap leg volume (USD) — included in dexVolumeUSD. */
   ethSwapVolumeUSD?: number;
+  /**
+   * ERC-4337 User Operations (Basescan “AA / Other Transactions” equivalent).
+   * Counted from EntryPoint UserOperationEvent for this wallet as sender.
+   */
+  aaTxCount: number;
+  /**
+   * Sponsored / paymaster-backed activity (Base App gasless and similar).
+   * Includes AA user-ops with a paymaster plus related gasless signals.
+   */
   paymasterTxCount: number;
   bridgeTxCount: number;
   netETHFlow: number;
@@ -82,6 +91,8 @@ export interface AlchemyTransfer {
     blockTimestamp: string;
     isSponsored?: boolean;
     isUserOperation?: boolean;
+    /** ERC-4337 userOpHash when known (Basescan AA txn id). */
+    userOpHash?: string;
     /** Set for address-indexed indexer rows (Blockscout/Basescan/user-ops). */
     walletParticipated?: boolean;
   };

@@ -17,34 +17,36 @@ export default function ChallengePromoCard({
 
   return (
     <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5">
-      <p className="section-eyebrow text-[var(--ink-muted)] flex items-center gap-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--ink-muted)] flex items-center gap-2">
         <Swords size={12} /> Challenge friends
       </p>
-      <h3 className="page-hero-title text-lg mt-1">Compare onchain scores</h3>
-      <p className="readable-body text-sm mt-2">
+      <h3 className="text-lg font-black text-[var(--ink)] mt-1 tracking-tight">
+        Compare onchain scores
+      </h3>
+      <p className="text-sm text-[var(--ink-muted)] mt-2 leading-relaxed">
         Share your score link — friends connect and see how they stack up on Base.
       </p>
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap items-center gap-3 mt-4">
         <button
           type="button"
           onClick={onChallenge}
-          className="min-h-[40px] px-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-transparent text-[12px] font-bold text-[var(--accent-ink)] transition-colors"
+          className="min-h-[40px] px-4 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-transparent text-[12px] font-bold text-[var(--accent-ink)] transition-colors"
         >
           Challenge a wallet
         </button>
         <button
           type="button"
           onClick={() => warpcast(text)}
-          className="min-h-[40px] px-3 rounded-xl border border-white/10 text-[11px] font-bold text-slate-300 flex items-center gap-1"
+          className="min-h-[40px] px-1 text-[12px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1.5"
         >
-          <Share2 size={12} /> Farcaster
+          <Share2 size={13} /> Farcaster
         </button>
         <button
           type="button"
           onClick={() => twitterShare(text)}
-          className="min-h-[40px] px-3 rounded-xl border border-white/10 text-[11px] font-bold text-slate-300 flex items-center gap-1"
+          className="min-h-[40px] px-1 text-[12px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1.5"
         >
-          <Twitter size={12} /> X
+          <Twitter size={13} /> X
         </button>
       </div>
     </section>

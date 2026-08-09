@@ -78,7 +78,17 @@ export function buildScoreImprovementTips(wallet: WalletData): ScoreTip[] {
     });
   }
 
-  if (wallet.paymasterTxCount < 5 && wallet.txCount > 10) {
+  if ((wallet.aaTxCount ?? 0) < 3 && wallet.txCount > 10) {
+    tips.push({
+      id: "aa-activity",
+      title: "Build AA transaction history",
+      detail:
+        "UserOps from Base App / smart wallets show as AA on Basescan and raise activity signals.",
+      impact: "Low",
+      action: "checkin",
+      priority: 36,
+    });
+  } else if (wallet.paymasterTxCount < 5 && wallet.txCount > 10) {
     tips.push({
       id: "paymaster",
       title: "Use gas-sponsored txs",

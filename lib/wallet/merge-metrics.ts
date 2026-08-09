@@ -132,5 +132,10 @@ export function mergeWalletMetricsMax(
     defiInteractions: Math.max(prior.defiInteractions, next.defiInteractions),
     uniqueContracts: Math.max(prior.uniqueContracts, next.uniqueContracts),
     bridgeTxCount: Math.max(prior.bridgeTxCount, next.bridgeTxCount),
+    paymasterTxCount: Math.max(
+      prior.paymasterTxCount ?? 0,
+      next.paymasterTxCount ?? 0
+    ),
+    aaTxCount: Math.max(prior.aaTxCount ?? 0, next.aaTxCount ?? 0),
   };
 }

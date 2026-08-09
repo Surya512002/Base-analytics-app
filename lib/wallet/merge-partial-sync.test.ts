@@ -42,6 +42,7 @@ function shell(address: string): WalletData {
     onchainAgePercentile: 0,
     netETHFlow: 0,
     paymasterTxCount: 0,
+    aaTxCount: 0,
     gmCount: 0,
     checkInCount: 0,
     walletHealthScore: 0,

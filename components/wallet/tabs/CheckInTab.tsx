@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Droplets, Flame, RefreshCcw, Rocket, Target, Trophy } from "lucide-react";
+import { motion } from "motion/react";
 import CheckInRankings from "@/components/wallet/CheckInRankings";
 import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import { resolveQuestHighlightFromUrl } from "@/lib/utils/app-url";
@@ -94,32 +95,42 @@ export default function CheckInTab({
   const questPct = Math.round((doneQuests / WEEKLY_QUESTS.length) * 100);
 
   return (
-    <div className={`w-full space-y-4 ${embedded ? "" : "tab-content-enter"}`}>
+    <div className={`w-full space-y-4 ${embedded ? "" : ""}`}>
       {!embedded && (
-      <div className="glass-panel rounded-2xl border border-[var(--border-subtle)] overflow-hidden">
+      <motion.div
+        className="glass-panel rounded-2xl overflow-hidden border"
+        style={{
+          borderColor: "rgba(249,115,22,0.28)",
+          background:
+            "linear-gradient(145deg, rgba(249,115,22,0.1), var(--surface) 55%)",
+        }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300" />
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest flex items-center gap-1.5">
-              <Trophy size={11} className="text-amber-400" />
+            <p className="text-[10px] font-black text-orange-800/70 uppercase tracking-widest flex items-center gap-1.5">
+              <Trophy size={11} className="text-amber-500" />
               Daily progress & live standings
             </p>
             <h2 className="text-2xl sm:text-3xl font-black text-[var(--ink)] mt-1 leading-tight">
-              Check-In <span className="text-[var(--ink-muted)]">&</span> Rankings
+              Check-In <span className="text-orange-700/50">&</span> Rankings
             </h2>
             <p className="text-xs text-[var(--ink-muted)] mt-1.5">
               Launches and swaps earn the most XP — then check in, quest & rank.
             </p>
           </div>
-          <div className="shrink-0 sm:text-right bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-4 py-3">
-            <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest">
+          <div className="shrink-0 sm:text-right bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <p className="text-[9px] font-black text-orange-800/70 uppercase tracking-widest">
               Your weekly XP
             </p>
-            <p className="text-3xl font-black text-[var(--ink)] tabular-nums leading-none mt-0.5">
+            <p className="text-3xl font-black text-orange-800 tabular-nums leading-none mt-0.5">
               {weeklyXP}
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
       )}
 
       {/* Daily actions — top */}
