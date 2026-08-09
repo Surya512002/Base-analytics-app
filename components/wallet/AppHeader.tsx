@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, RefreshCcw, ShieldCheck, X } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -62,6 +63,9 @@ export default function AppHeader({
   onSiweSkip,
   siweSessionChecked = true,
 }: AppHeaderProps) {
+  const pathname = usePathname() || "";
+  const onProfileRoute =
+    pathname.startsWith("/profile") || pathname.startsWith("/creator");
   const mode = modeFromTab(tab);
   const profileHref = walletAddress ? `/creator/${walletAddress}` : "/profile";
   const showTopSignIn =
@@ -83,7 +87,8 @@ export default function AppHeader({
   const navLinks = (
     <>
       {HEADER_NAV.map((item) => {
-        const active = navActive(item.tab, tab);
+        // On profile/creator pages, don't keep an old app tab falsely "active".
+        const active = !onProfileRoute && navActive(item.tab, tab);
         return (
           <button
             key={item.label}
@@ -101,7 +106,12 @@ export default function AppHeader({
       })}
       <Link
         href={profileHref}
-        className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)] touch-manipulation"
+        className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation ${
+          onProfileRoute
+            ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
+            : "text-[var(--muted)] hover:text-[var(--ink)]"
+        }`}
+        aria-current={onProfileRoute ? "page" : undefined}
       >
         Profile
       </Link>
@@ -115,11 +125,14 @@ export default function AppHeader({
   );
 
   return (
-    <header className="app-header-shell sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)]">
+    <header className="app-header-shell sticky top-0 z-[60] w-full pt-[env(safe-area-inset-top,0px)]">
       <div className="app-container">
         {/* Row 1 — brand + wallet actions (never overlaps nav) */}
-        <div className="flex min-w-0 items-center justify-between gap-3 py-2.5 sm:py-3">
-          <Link href="/explore" className="group flex shrink-0 items-center gap-2.5">
+        <div className="flex min-w-0 items-center justify-between gap-2 py-2.5 sm:gap-3 sm:py-3">
+          <Link
+            href="/explore"
+            className="group flex min-w-0 shrink items-center gap-2 sm:gap-2.5"
+          >
             <AppLogo size="sm" />
             <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
               <span className="sm:hidden">Base</span>
@@ -127,13 +140,15 @@ export default function AppHeader({
             </span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="hidden rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-0.5 text-xs md:flex">
               <button
                 type="button"
                 onClick={() => pickTab("launchpad", true)}
                 className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-medium transition lg:px-3 ${
-                  mode === "launch" ? "bg-[var(--ink)] text-white" : "text-[var(--muted)]"
+                  !onProfileRoute && mode === "launch"
+                    ? "bg-[var(--ink)] text-white"
+                    : "text-[var(--muted)]"
                 }`}
               >
                 Launch / B20
@@ -142,7 +157,9 @@ export default function AppHeader({
                 type="button"
                 onClick={() => pickTab("swap", true)}
                 className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-medium transition lg:px-3 ${
-                  mode === "trade" ? "bg-[var(--ink)] text-white" : "text-[var(--muted)]"
+                  !onProfileRoute && mode === "trade"
+                    ? "bg-[var(--ink)] text-white"
+                    : "text-[var(--muted)]"
                 }`}
               >
                 Trade / Swap
@@ -161,7 +178,7 @@ export default function AppHeader({
                 <span className="hidden sm:inline">Connect wallet</span>
               </button>
             ) : (
-              <div className="flex max-w-[min(100%,14rem)] items-center gap-1 overflow-x-auto no-scrollbar text-xs sm:max-w-none sm:gap-2">
+              <div className="flex max-w-[min(100%,18rem)] items-center gap-1 overflow-x-auto no-scrollbar text-xs sm:max-w-none sm:gap-2">
                 {!siweAuthenticated && onSiweSignIn && (
                   <button
                     type="button"
@@ -190,7 +207,12 @@ export default function AppHeader({
                 )}
                 <Link
                   href={profileHref}
-                  className="inline-flex shrink-0 rounded-lg bg-[var(--brand-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--brand-dark)] hover:bg-[var(--brand)]/15 sm:text-xs touch-manipulation"
+                  className={`inline-flex shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold sm:text-xs touch-manipulation ${
+                    onProfileRoute
+                      ? "bg-[var(--brand)] text-white"
+                      : "bg-[var(--brand-soft)] text-[var(--brand-dark)] hover:bg-[var(--brand)]/15"
+                  }`}
+                  aria-current={onProfileRoute ? "page" : undefined}
                 >
                   Profile
                 </Link>
@@ -209,16 +231,23 @@ export default function AppHeader({
           </div>
         </div>
 
-        {/* Desktop only — phones use MobileBottomNav only (no duplicate Explore/Swap/…) */}
+        {/*
+          Main nav:
+          - Desktop / large tablet: always visible full row
+          - Mobile on profile/creator: also show scrollable top nav (bottom nav alone feels incomplete)
+          - Other mobile app screens: use bottom nav only to avoid dual chrome
+        */}
         <nav
           aria-label="Main"
-          className="max-lg:!hidden min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar lg:flex xl:gap-1"
+          className={`${
+            onProfileRoute ? "flex" : "hidden lg:flex"
+          } min-w-0 items-center gap-0.5 overflow-x-auto pb-2.5 text-sm no-scrollbar touch-scroll-x xl:gap-1`}
         >
           {navLinks}
         </nav>
       </div>
 
-      {/* Top sticky sign-in — always under brand/nav for every tab & page */}
+      {/* Top sticky sign-in — under brand/nav for every tab & page */}
       {showTopSignIn && (
         <div
           className="sign-in-top-bar"
@@ -285,7 +314,6 @@ export default function AppHeader({
         </div>
       )}
 
-      {/* Sync strip — below nav / sign-in */}
       {walletRefreshing && (
         <div className="border-t border-[var(--border-subtle)] bg-[var(--brand-soft)]/40">
           <div className="app-container flex items-center gap-2 py-1.5 text-xs text-[var(--brand-dark)]">

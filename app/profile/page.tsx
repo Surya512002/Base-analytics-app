@@ -61,48 +61,46 @@ export default function ProfilePage() {
 
   return (
     <main className="relative min-h-screen font-sans text-[var(--ink)]">
-      <div className="relative z-10">
-        <AppHeader
-          tab={tab}
-          onTabChange={handleTabChange}
-          guest={guest}
-          onConnect={() => setShowModal(true)}
-          onDisconnect={handleDisconnect}
-          walletAddress={wallet?.address}
-          siweAuthenticated={siweAuthenticated}
-          siweSigningIn={siweSigningIn}
-          onSiweSignIn={() => void handleSiweSignIn()}
-          siweSessionChecked={sessionBootstrapped}
-        />
-        <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14">
-          {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
-            <div className="mx-auto max-w-md text-center">
-              <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
-              <p className="mt-4 text-sm text-[var(--ink-muted)]">
-                {!sessionBootstrapped ? "Restoring session…" : "Opening your profile…"}
-              </p>
-            </div>
-          ) : (
-            <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)] sm:p-8">
-              <h1 className="text-2xl font-bold text-[var(--ink)]">Creator profile</h1>
-              <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                Connect wallet, then sign in (free, no gas) to create your public profile and track
-                creator revenue.
-              </p>
-              <p className="mt-3 text-[12px] text-[var(--ink-dim)]">
-                B20 launches earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of
-                every {formatPlatformFeeLabel()} swap fee — paid instantly on each trade.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowModal(true)}
-                className="btn-primary mt-6 px-6 py-3"
-              >
-                Connect wallet
-              </button>
-            </div>
-          )}
-        </div>
+      <AppHeader
+        tab={tab}
+        onTabChange={handleTabChange}
+        guest={guest}
+        onConnect={() => setShowModal(true)}
+        onDisconnect={handleDisconnect}
+        walletAddress={wallet?.address}
+        siweAuthenticated={siweAuthenticated}
+        siweSigningIn={siweSigningIn}
+        onSiweSignIn={() => void handleSiweSignIn()}
+        siweSessionChecked={sessionBootstrapped}
+      />
+      <div className="app-container relative z-0 py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-14">
+        {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
+          <div className="mx-auto max-w-md text-center">
+            <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+            <p className="mt-4 text-sm text-[var(--ink-muted)]">
+              {!sessionBootstrapped ? "Restoring session…" : "Opening your profile…"}
+            </p>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)] sm:p-8">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Creator profile</h1>
+            <p className="mt-2 text-sm text-[var(--ink-muted)]">
+              Connect wallet, then sign in (free, no gas) to create your public profile and track
+              creator revenue.
+            </p>
+            <p className="mt-3 text-[12px] text-[var(--ink-dim)]">
+              B20 launches earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of
+              every {formatPlatformFeeLabel()} swap fee — paid instantly on each trade.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="btn-primary mt-6 px-6 py-3"
+            >
+              Connect wallet
+            </button>
+          </div>
+        )}
       </div>
       <ConnectWalletModal
         open={showModal}

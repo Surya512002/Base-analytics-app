@@ -41,7 +41,10 @@ export default function MobileBottomNav({
     >
       <div className="flex w-full max-w-none items-stretch justify-around px-0.5">
         {ITEMS.map(({ id, icon: Icon, label }) => {
-          const active = tab === id || (id === "checkin" && isRewardsHubTab(tab));
+          // On /profile|/creator, Profile is the current page — don't highlight another tab.
+          const active =
+            !profileActive &&
+            (tab === id || (id === "checkin" && isRewardsHubTab(tab)));
           const locked = guest && id !== "launchpad" && id !== "swap";
           const theme = SECTION_THEME[accentForTab(id)];
           return (

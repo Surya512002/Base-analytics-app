@@ -53,42 +53,40 @@ export default function CreatorPageClient({ address }: { address: string }) {
 
   return (
     <main className="relative min-h-screen font-sans text-[var(--ink)]">
-      <div className="relative z-10">
-        <AppHeader
-          tab={tab}
-          onTabChange={handleTabChange}
-          guest={guest}
-          onConnect={openConnect}
-          onDisconnect={handleDisconnect}
-          walletAddress={wallet?.address}
-          siweAuthenticated={siweAuthenticated}
-          siweSigningIn={siweSigningIn}
-          onSiweSignIn={() => void handleSiweSignIn()}
-          siweSessionChecked={sessionBootstrapped}
-        />
-        <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8">
-          <Link
-            href="/explore"
-            className="mb-6 inline-block text-sm font-semibold text-[var(--brand-dark)] hover:text-[var(--brand)]"
-          >
-            ← All tokens
-          </Link>
-          {!sessionBootstrapped ? (
-            <div className="mx-auto max-w-md text-center">
-              <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
-              <p className="mt-4 text-sm text-[var(--ink-muted)]">Restoring session…</p>
-            </div>
-          ) : (
-            <CreatorProfilePanel
-              address={address}
-              connectedAddress={wallet?.address ?? null}
-              onConnect={openConnect}
-              siweAuthenticated={siweAuthenticated}
-              siweSigningIn={siweSigningIn}
-              onSiweSignIn={() => void handleSiweSignIn()}
-            />
-          )}
-        </div>
+      <AppHeader
+        tab={tab}
+        onTabChange={handleTabChange}
+        guest={guest}
+        onConnect={openConnect}
+        onDisconnect={handleDisconnect}
+        walletAddress={wallet?.address}
+        siweAuthenticated={siweAuthenticated}
+        siweSigningIn={siweSigningIn}
+        onSiweSignIn={() => void handleSiweSignIn()}
+        siweSessionChecked={sessionBootstrapped}
+      />
+      <div className="app-container relative z-0 py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8">
+        <Link
+          href="/explore"
+          className="mb-6 inline-block text-sm font-semibold text-[var(--brand-dark)] hover:text-[var(--brand)]"
+        >
+          ← All tokens
+        </Link>
+        {!sessionBootstrapped ? (
+          <div className="mx-auto max-w-md text-center">
+            <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+            <p className="mt-4 text-sm text-[var(--ink-muted)]">Restoring session…</p>
+          </div>
+        ) : (
+          <CreatorProfilePanel
+            address={address}
+            connectedAddress={wallet?.address ?? null}
+            onConnect={openConnect}
+            siweAuthenticated={siweAuthenticated}
+            siweSigningIn={siweSigningIn}
+            onSiweSignIn={() => void handleSiweSignIn()}
+          />
+        )}
       </div>
 
       <MobileBottomNav

@@ -36,7 +36,7 @@ export default function SiweSignInBanner({
   }
 
   return (
-    <div className="sticky top-0 z-10 -mx-1 mb-4 rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-soft)]/80 p-4 shadow-[var(--shadow-card)] backdrop-blur-md sm:p-5">
+    <div className="mb-4 rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-soft)]/80 p-4 shadow-[var(--shadow-card)] sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--brand-dark)]">
