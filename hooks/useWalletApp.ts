@@ -1453,7 +1453,7 @@ function useWalletAppController() {
           return false;
         }
 
-        let referrerBoostBps = 0;
+        const referrerBoostBps = 0;
         const calls = [];
         let swapFee = BigInt(0);
         let swapFeeAsset: "eth" | "usdc" | "token" = "eth";

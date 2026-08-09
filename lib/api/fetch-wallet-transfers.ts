@@ -4,11 +4,7 @@ import {
   fetchBlockscoutTokenTxs,
   fetchBlockscoutTxs,
 } from "@/lib/api/blockscout";
-import {
-  fetchAlchemyTxsFast,
-  fetchAlchemyTxsIncoming,
-  fetchAlchemyWalletComplete,
-} from "@/lib/api/alchemy";
+import { fetchAlchemyWalletComplete } from "@/lib/api/alchemy";
 import { fetchBasescanAllFast } from "@/lib/api/basescan";
 import {
   fetchBlockscoutV2Activity,
