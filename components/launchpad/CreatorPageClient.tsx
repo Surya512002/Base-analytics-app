@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import ToastNotification from "@/components/wallet/ToastNotification";
@@ -54,7 +53,6 @@ export default function CreatorPageClient({ address }: { address: string }) {
 
   return (
     <main className="relative min-h-screen font-sans text-[var(--ink)]">
-      <AppBackground />
       <div className="relative z-10">
         <AppHeader
           tab={tab}

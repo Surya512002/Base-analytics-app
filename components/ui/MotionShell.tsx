@@ -194,10 +194,15 @@ export function SectionAccentBar({
   className?: string;
 }) {
   const theme = SECTION_THEME[accent];
+  const reduce = useReducedMotion();
   return (
-    <div
+    <motion.div
       className={`h-1 w-full bg-gradient-to-r ${theme.bar} ${className}`}
       aria-hidden
+      initial={reduce ? false : { scaleX: 0, transformOrigin: "left" }}
+      whileInView={reduce ? undefined : { scaleX: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
     />
   );
 }

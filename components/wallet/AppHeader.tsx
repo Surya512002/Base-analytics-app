@@ -100,7 +100,7 @@ export default function AppHeader({
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md pt-[env(safe-area-inset-top,0px)]">
+    <header className="app-header-shell sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)]">
       <div className="app-container">
         {/* Row 1 — brand + wallet actions (never overlaps nav) */}
         <div className="flex min-w-0 items-center justify-between gap-3 py-2.5 sm:py-3">
@@ -108,7 +108,7 @@ export default function AppHeader({
             <AppLogo size="sm" />
             <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
               <span className="sm:hidden">Base</span>
-              <span className="hidden sm:inline">Base Analytics</span>
+              <span className="hidden sm:inline text-gradient-hero">Base Analytics</span>
             </span>
           </Link>
 

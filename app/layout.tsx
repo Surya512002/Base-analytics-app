@@ -1,17 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, Syne } from "next/font/google";
+import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import AppBackground from "@/components/ui/AppBackground";
 import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
 
-const figtree = Figtree({
-  variable: "--font-figtree",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
-const syne = Syne({
-  variable: "--font-syne",
+const sora = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 const APP_URL = getAppUrl();
@@ -21,6 +24,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#e8eef8",
 };
 
 export const metadata: Metadata = {
@@ -57,7 +61,7 @@ export const metadata: Metadata = {
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#f3f5f9",
+          splashBackgroundColor: "#e8eef8",
         },
       },
     }),
@@ -66,12 +70,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${figtree.variable} ${syne.variable}`}>
+    <html lang="en" className={`${jakarta.variable} ${sora.variable}`}>
       <head>
         <link rel="preconnect" href="https://auth.farcaster.xyz" />
       </head>
       <body className="min-w-0 w-full bg-[var(--background)] text-[var(--foreground)] antialiased">
-        <Providers>{children}</Providers>
+        <AppBackground />
+        <div className="relative z-[1] min-h-dvh w-full min-w-0">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );

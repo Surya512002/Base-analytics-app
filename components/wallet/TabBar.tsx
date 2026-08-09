@@ -42,7 +42,7 @@ export default function TabBar({ tab, doneQuests, onTabChange, guest }: TabBarPr
   ];
 
   return (
-    <div className="flex glass-panel p-1.5 rounded-2xl mb-4 overflow-x-auto gap-1 no-scrollbar touch-scroll-x shadow-lg shadow-black/20">
+    <div className="tab-rail flex p-1.5 rounded-2xl mb-4 overflow-x-auto gap-1 no-scrollbar touch-scroll-x">
       {tabs.map((t) => {
         const active = tab === t.id || (t.id === "checkin" && isRewardsHubTab(tab));
         const accent = TAB_ACCENT[t.id] || SECTION_THEME.default.accent;

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import AppBackground from "@/components/ui/AppBackground";
 import { MotionPage } from "@/components/ui/MotionShell";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
@@ -190,8 +189,6 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
 
   return (
     <main className="main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative">
-      <AppBackground />
-
       <AnimatePresence mode="wait">
         {toast ? (
           <ToastNotification

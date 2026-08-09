@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import AppBackground from "@/components/ui/AppBackground";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import AppHeader from "@/components/wallet/AppHeader";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
@@ -62,7 +61,6 @@ export default function ProfilePage() {
 
   return (
     <main className="relative min-h-screen font-sans text-[var(--ink)]">
-      <AppBackground />
       <div className="relative z-10">
         <AppHeader
           tab={tab}

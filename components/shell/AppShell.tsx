@@ -58,15 +58,15 @@ export default function AppShell({
   }, []);
 
   return (
-    <>
+    <div className="app-shell-root flex min-h-dvh w-full min-w-0 flex-col">
       {header}
 
       <div className="app-container flex w-full min-w-0 flex-1 flex-col py-5 sm:py-6 md:py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-10 lg:pb-10">
-        <div className="mb-4 md:hidden">
+        <div className="mb-4 md:hidden section-stage">
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
-            className="w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 text-[var(--ink-muted)] shadow-[var(--shadow-card)]"
+            className="w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]/90 px-3 py-2.5 text-[var(--ink-muted)] shadow-[var(--shadow-card)] backdrop-blur-md transition hover:border-[var(--brand)]/30"
           >
             <Command size={14} />
             <span className="text-[13px]">Search tokens &amp; pages</span>
@@ -76,7 +76,7 @@ export default function AppShell({
           </button>
         </div>
 
-        {children}
+        <div className="section-stage min-w-0 flex-1">{children}</div>
       </div>
 
       <CommandPalette
@@ -96,6 +96,6 @@ export default function AppShell({
         onConnect={onConnect}
         walletAddress={walletAddress}
       />
-    </>
+    </div>
   );
 }

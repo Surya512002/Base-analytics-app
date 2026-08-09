@@ -11,9 +11,9 @@ export default function LoadingScreen() {
       {!reduce && (
         <div className="absolute inset-0 pointer-events-none" aria-hidden>
           {[
-            { c: "rgba(37,99,235,0.14)", s: 180, x: "15%", y: "30%" },
-            { c: "rgba(16,185,129,0.12)", s: 140, x: "70%", y: "55%" },
-            { c: "rgba(249,115,22,0.1)", s: 120, x: "55%", y: "20%" },
+            { c: "rgba(11,95,255,0.16)", s: 200, x: "12%", y: "28%" },
+            { c: "rgba(13,159,140,0.14)", s: 160, x: "72%", y: "52%" },
+            { c: "rgba(14,165,233,0.12)", s: 130, x: "52%", y: "18%" },
           ].map((o, i) => (
             <motion.div
               key={i}
@@ -53,7 +53,7 @@ export default function LoadingScreen() {
           <AppLogo size="xl" className="mx-auto" />
         </motion.div>
         <div>
-          <p className="text-[var(--ink)] font-semibold text-lg tracking-tight">
+          <p className="font-display text-[var(--ink)] font-semibold text-lg tracking-tight">
             BASE.ANALYTICS
           </p>
           <p className="text-[var(--ink-dim)] text-xs tracking-wide mt-1.5">
@@ -62,7 +62,7 @@ export default function LoadingScreen() {
           {!reduce && (
             <div className="mt-4 mx-auto w-28 h-1 rounded-full bg-[var(--surface-2)] overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400"
+                className="h-full rounded-full bg-gradient-to-r from-[var(--brand)] via-[var(--sky)] to-[var(--teal)]"
                 animate={{ x: ["-100%", "100%"] }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: "55%" }}

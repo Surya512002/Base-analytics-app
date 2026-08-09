@@ -3,7 +3,6 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectScreen from "@/components/wallet/ConnectScreen";
 import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
@@ -42,7 +41,6 @@ function CaptureContent() {
 
   return (
     <main className="min-h-screen text-[var(--foreground)] font-sans relative">
-      <AppBackground />
       <AppHeader
         tab={tab}
         onTabChange={() => {}}

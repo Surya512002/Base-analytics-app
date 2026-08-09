@@ -37,7 +37,7 @@ export default function MobileBottomNav({
   return (
     <nav
       aria-label="Main navigation"
-      className="lg:hidden fixed bottom-0 inset-x-0 z-50 w-full border-t border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_32px_rgba(11,21,38,0.06)]"
+      className="mobile-nav-shell lg:hidden fixed bottom-0 inset-x-0 z-50 w-full pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex w-full max-w-none items-stretch justify-around px-0.5">
         {ITEMS.map(({ id, icon: Icon, label }) => {
