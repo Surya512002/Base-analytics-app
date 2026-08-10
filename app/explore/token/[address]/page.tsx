@@ -79,5 +79,5 @@ export default async function ExploreTokenPage({
   const token = address?.trim().toLowerCase();
   const valid =
     token?.startsWith("0x") && token.length === 42 ? token : null;
-  return <HomeApp forceTab="swap" initialToken={valid} />;
+  return <HomeApp forceTab="launchpad" initialToken={valid} />;
 }

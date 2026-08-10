@@ -17,6 +17,7 @@ export default function TokenCard({
   token,
   market,
   onTrade,
+  onOpen,
   isMine,
   watched,
   onToggleWatch,
@@ -24,7 +25,10 @@ export default function TokenCard({
 }: {
   token: LaunchedToken;
   market?: TokenMarketSummary;
+  /** Instant swap prefilled with this token. */
   onTrade: () => void;
+  /** Card body opens detail (seed, holders, chart). Falls back to onTrade. */
+  onOpen?: () => void;
   isMine?: boolean;
   watched?: boolean;
   onToggleWatch?: () => void;
@@ -35,14 +39,15 @@ export default function TokenCard({
   const safety = tokenSafetyLevel(market);
   const safetyLabel = tokenSafetyLabel(safety);
   const reduce = useReducedMotion();
+  const open = onOpen ?? onTrade;
 
   return (
     <motion.article
       role="button"
       tabIndex={0}
-      onClick={onTrade}
+      onClick={open}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onTrade();
+        if (e.key === "Enter" || e.key === " ") open();
       }}
       whileHover={
         reduce
@@ -191,9 +196,16 @@ export default function TokenCard({
               />
             )}
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white transition-colors group-hover:bg-emerald-700">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTrade();
+            }}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-emerald-700"
+          >
             Trade <ArrowUpRight size={12} />
-          </span>
+          </button>
         </div>
       </div>
     </motion.article>

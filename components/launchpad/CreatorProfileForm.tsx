@@ -71,10 +71,12 @@ export default function CreatorProfileForm({
     setError(null);
     if (!siweAuthenticated && onSiweSignIn) {
       const ok = await onSiweSignIn();
-      if (!ok) {
+      // Require an explicit successful boolean; header may return void after signing.
+      if (ok === false) {
         setError("Sign in with your wallet to save your profile.");
         return;
       }
+      // void / undefined: continue — parent may have signed; save API will reject if not SIWE.
     }
     if (!displayName.trim() && !avatarUrl && !bio.trim()) {
       setError("Add a display name or profile photo to create your profile.");

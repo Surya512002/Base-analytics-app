@@ -45,7 +45,7 @@ import {
   readTokenWatchlist,
   toggleTokenWatch,
 } from "@/lib/utils/token-watchlist";
-import { buildExploreTokenPath, syncTabUrl } from "@/lib/utils/app-url";
+import { buildExploreTokenPath } from "@/lib/utils/app-url";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 
 type View = "explore" | "create" | "trade";
@@ -109,6 +109,7 @@ export default function LaunchpadTab({
   onNavigate,
   onPayAgent,
   isActive = true,
+  focusToken,
 }: {
   app: WalletAppState;
   guestMode?: boolean;
@@ -117,6 +118,8 @@ export default function LaunchpadTab({
   onNavigate?: (tab: AppTab, opts?: { token?: string | null }) => void;
   onPayAgent?: (productId: X402ProductId) => void;
   isActive?: boolean;
+  /** Deep-link `/explore/token/0x…` — open token detail (swap + seed + holders). */
+  focusToken?: string | null;
 }) {
   const { wallet, b20Activated: appB20Activated } = app;
   const [view, setView] = useState<View>("explore");
@@ -280,10 +283,53 @@ export default function LaunchpadTab({
   const openSwap = useCallback(
     (token: LaunchedToken) => {
       ensureTokenInCatalog(token);
-      syncTabUrl("swap", { token: token.address });
+      // Deep-link so /explore forceTab cannot strip the address when routing to swap.
       onNavigate?.("swap", { token: token.address });
     },
     [ensureTokenInCatalog, onNavigate]
+  );
+
+  const openDetail = useCallback(
+    (token: LaunchedToken) => {
+      ensureTokenInCatalog(token);
+      setSelected(token);
+      setView("trade");
+      syncTokenUrl(token);
+    },
+    [ensureTokenInCatalog]
+  );
+
+  const openDetailByAddress = useCallback(
+    async (addr: string) => {
+      const found = tokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
+      if (found) {
+        openDetail(found);
+        return;
+      }
+      const { token, market } = await resolveTokenByAddress(addr);
+      if (!token) {
+        app.showToast(
+          addr.toLowerCase().startsWith("0xb20")
+            ? "B20 token not found on Base — check the deploy tx on BaseScan or wait a minute and retry"
+            : "Token not found or no liquidity on Base",
+          ""
+        );
+        return;
+      }
+      setCatalog((prev) => {
+        const launched = prev.tokens.filter(isAppLaunched);
+        const external = prev.tokens.filter((t) => !isAppLaunched(t));
+        const nextTokens = mergeExploreTokens(launched, [token, ...external]);
+        const key = token.address.toLowerCase();
+        return {
+          ...prev,
+          tokens: nextTokens,
+          markets: market ? { ...prev.markets, [key]: market } : prev.markets,
+        };
+      });
+      openDetail(token);
+    },
+    [tokens, openDetail, app]
   );
 
   const openTradeByAddress = useCallback(
@@ -296,7 +342,7 @@ export default function LaunchpadTab({
       const { token, market } = await resolveTokenByAddress(addr);
       if (!token) {
         app.showToast(
-          addr.startsWith("0xb20")
+          addr.toLowerCase().startsWith("0xb20")
             ? "B20 token not found on Base — check the deploy tx on BaseScan or wait a minute and retry"
             : "Token not found or no liquidity on Base",
           ""
@@ -318,6 +364,16 @@ export default function LaunchpadTab({
     },
     [tokens, openSwap, app]
   );
+
+  // Deep-link /explore/token/0x… → token terminal (seed retry, holders, chart).
+  const focusHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    const addr = focusToken?.trim().toLowerCase();
+    if (!addr?.startsWith("0x") || addr.length !== 42) return;
+    if (focusHandledRef.current === addr) return;
+    focusHandledRef.current = addr;
+    void openDetailByAddress(addr);
+  }, [focusToken, openDetailByAddress]);
 
   const requestCreate = useCallback(() => {
     if (guestMode) {
@@ -465,7 +521,14 @@ export default function LaunchpadTab({
 
   if (view === "trade" && selected) {
     return (
-      <TokenDetailPanel app={app} token={selected} onBack={goExplore} guestMode={guestMode} onRequestConnect={onRequestConnect} />
+      <TokenDetailPanel
+        app={app}
+        token={selected}
+        onBack={goExplore}
+        guestMode={guestMode}
+        onRequestConnect={onRequestConnect}
+        onTrade={() => openSwap(selected)}
+      />
     );
   }
 
@@ -603,6 +666,7 @@ export default function LaunchpadTab({
                     key={t.address}
                     token={t}
                     market={markets[t.address.toLowerCase()]}
+                    onOpen={() => openDetail(t)}
                     onTrade={() => openSwap(t)}
                     isMine={
                       isAppLaunched(t) &&
@@ -630,7 +694,8 @@ export default function LaunchpadTab({
             loading={initialLoading}
             filter={b20Filter}
             onFilterChange={setB20Filter}
-            onOpen={openSwap}
+            onOpen={openDetail}
+            onTrade={openSwap}
             onCreate={requestCreate}
             guestMode={guestMode}
             wallet={wallet?.address}
@@ -646,7 +711,7 @@ export default function LaunchpadTab({
         <MyLaunchedTokens
           tokens={tokens.filter(isAppLaunched)}
           wallet={wallet.address}
-          onOpen={openSwap}
+          onOpen={openDetail}
         />
       )}
 

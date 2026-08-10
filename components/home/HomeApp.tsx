@@ -16,7 +16,7 @@ import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import type { LaunchpadShellBridge } from "@/components/launchpad/LaunchpadTab";
-import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView } from "@/lib/utils/app-url";
+import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView, buildSwapTokenPath } from "@/lib/utils/app-url";
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 import type { X402ProductId } from "@/lib/constants/x402-products";
@@ -69,6 +69,12 @@ export type HomeAppProps = {
   forceTab?: AppTab;
 };
 
+function normalizeTokenAddr(raw: string | null | undefined): string | null {
+  const t = raw?.trim().toLowerCase();
+  if (!t?.startsWith("0x") || t.length !== 42) return null;
+  return t;
+}
+
 export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   const router = useRouter();
   const app = useWalletApp();
@@ -111,9 +117,18 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
 
   const [siweSkipped, setSiweSkipped] = useState(false);
   const [launchBridge, setLaunchBridge] = useState<LaunchpadShellBridge | null>(null);
+  /** Soft-route + SSR prefill for swap "receive" token (Explore → Trade). */
+  const [swapPrefillToken, setSwapPrefillToken] = useState<string | null>(() =>
+    normalizeTokenAddr(initialToken)
+  );
   const guest = sessionBootstrapped ? !wallet : false;
   const activeTab = forceTab ?? tab;
   const guideReplayHandled = useRef(false);
+
+  useEffect(() => {
+    const next = normalizeTokenAddr(initialToken);
+    if (next) setSwapPrefillToken(next);
+  }, [initialToken]);
 
   useEffect(() => {
     setSiweSkipped(false);
@@ -155,16 +170,38 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         return;
       }
       const resolved = next === "rewards" ? "checkin" : next;
+      const token = normalizeTokenAddr(opts?.token);
+
+      if (token) {
+        setSwapPrefillToken(token);
+      }
+
+      // Explore Trade (and other deep links) must land on /swap/token/0x…
+      // forceTab pages previously pushed bare /swap and dropped the address.
+      if (resolved === "swap" && token) {
+        const path = buildSwapTokenPath(token);
+        if (typeof window !== "undefined") {
+          const here = window.location.pathname.toLowerCase();
+          if (here !== path.toLowerCase()) {
+            router.push(path);
+            return;
+          }
+        }
+        setTab("swap");
+        syncTabUrl("swap", { token });
+        return;
+      }
+
       // /explore and /swap pin forceTab — leave the route when navigating away.
       if (forceTab && resolved !== forceTab) {
-        router.push(hrefForAppTab(resolved));
+        router.push(hrefForAppTab(resolved, { token }));
         return;
       }
       setTab(resolved);
       if (resolved === "checkin") {
         syncRewardsHubUrl("checkin");
-      } else if (opts?.token) {
-        syncTabUrl(resolved, { token: opts.token });
+      } else if (token) {
+        syncTabUrl(resolved, { token });
       } else {
         syncTabUrl(resolved);
       }
@@ -204,7 +241,14 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         onTabChange={handleTabChange}
         guest={guest}
         onConnect={openConnect}
-        onOpenToken={(t) => launchBridge?.openToken(t)}
+        onOpenToken={(t) => {
+          // Prefer bridge open (catalog + toast) when Explore is mounted; else deep-link.
+          if (launchBridge?.openToken) {
+            launchBridge.openToken(t);
+            return;
+          }
+          handleTabChange("swap", { token: t.address });
+        }}
         tokens={launchBridge?.tokens ?? []}
         walletAddress={wallet?.address}
         header={
@@ -266,6 +310,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
                   onNavigate={handleTabChange}
                   onPayAgent={handlePayAgent}
                   isActive
+                  focusToken={forceTab === "launchpad" ? normalizeTokenAddr(initialToken) : null}
                 />
               </MotionPage>
             )}
@@ -275,7 +320,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
                   app={app}
                   guestMode={guest}
                   onRequestConnect={openConnect}
-                  initialToken={initialToken}
+                  initialToken={normalizeTokenAddr(initialToken) ?? swapPrefillToken}
                 />
               </MotionPage>
             )}

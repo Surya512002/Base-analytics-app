@@ -2633,11 +2633,30 @@ function useWalletAppController() {
       setWallet(shell);
       const resume = readGuestResume() ?? {};
       const resumeTab =
-        (resume.tab && resolveTabFromUrl(`?tab=${resume.tab}`)) || "launchpad";
+        (resume.tab && resolveTabFromUrl(`?tab=${resume.tab}`)) ||
+        (resume.returnPath?.startsWith("/swap")
+          ? "swap"
+          : resume.returnPath?.startsWith("/explore")
+            ? "launchpad"
+            : null) ||
+        "launchpad";
       // Don't rewrite /creator or /profile URLs — keep user on the page they connected from.
       if (!isStandaloneWalletRoute()) {
-        setTab(resumeTab);
-        syncTabUrl(resumeTab, { token: resume.token ?? null });
+        const path = resume.returnPath;
+        if (
+          path &&
+          (path.startsWith("/swap") || path.startsWith("/explore")) &&
+          path !== window.location.pathname + window.location.search
+        ) {
+          // Soft-set tab for SPA tabs; forceTab routes recover from URL after reload.
+          setTab(resumeTab);
+          if (typeof window !== "undefined" && path !== window.location.pathname + window.location.search) {
+            window.history.replaceState({}, "", path);
+          }
+        } else {
+          setTab(resumeTab);
+          syncTabUrl(resumeTab, { token: resume.token ?? null });
+        }
       }
       if (resume.card) localStorage.setItem("base_redeem_card", resume.card);
       if (resume.challenge) {

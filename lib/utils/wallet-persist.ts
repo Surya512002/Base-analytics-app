@@ -32,12 +32,19 @@ export function isStandaloneWalletRoute(pathname?: string): boolean {
 }
 
 /** Map app tabs to real routes when leaving standalone pages. */
-export function hrefForAppTab(tab: string): string {
+export function hrefForAppTab(
+  tab: string,
+  opts?: { token?: string | null }
+): string {
+  const token = opts?.token?.trim().toLowerCase();
+  const validToken =
+    token && token.startsWith("0x") && token.length === 42 ? token : null;
+
   switch (tab) {
     case "launchpad":
-      return "/explore";
+      return validToken ? `/explore/token/${validToken}` : "/explore";
     case "swap":
-      return "/swap";
+      return validToken ? `/swap/token/${validToken}` : "/swap";
     case "dashboard":
       return "/?tab=dashboard";
     case "checkin":

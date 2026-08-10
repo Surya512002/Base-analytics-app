@@ -18,16 +18,16 @@ export default function VoucherSecurityNotice({
   return (
     <div className="glass-panel-accent border border-emerald-500/25 rounded-xl p-4 space-y-3">
       <div className="flex items-start gap-2.5">
-        <ShieldCheck size={18} className="text-emerald-400 shrink-0 mt-0.5" />
-        <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
-          <p className="font-black text-emerald-300 text-sm">Your wallet & funds are safe</p>
+        <ShieldCheck size={18} className="text-emerald-700 shrink-0 mt-0.5" />
+        <div className="space-y-2 text-xs text-[var(--ink-muted)] leading-relaxed">
+          <p className="font-black text-emerald-800 text-sm">Your wallet & funds are safe</p>
           <p>
             Deposits go to a{" "}
             <a
               href={`https://basescan.org/address/${VOUCHER_CONTRACT}#code`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--ink)] font-bold hover:text-[var(--ink-muted)] inline-flex items-center gap-0.5"
+              className="text-[var(--ink)] font-bold hover:text-[var(--brand)] inline-flex items-center gap-0.5"
             >
               verified contract <ExternalLink size={10} />
             </a>{" "}
@@ -35,20 +35,22 @@ export default function VoucherSecurityNotice({
           </p>
           {asset === "USDC" && needsApproval && (
             <p>
-              <span className="text-amber-200 font-bold">USDC approval is exact only</span> — you
-              approve precisely <span className="text-white font-bold">{exactAmount}</span>, not
-              unlimited access. MetaMask may show a Blockaid notice for new contracts; that is
-              common for token approvals and does not mean this app is malicious.
+              <span className="text-amber-800 font-bold">USDC approval is exact only</span> — you
+              approve precisely{" "}
+              <span className="text-[var(--ink)] font-bold">{exactAmount}</span>, not unlimited
+              access. MetaMask may show a Blockaid notice for new contracts; that is common for
+              token approvals and does not mean this app is malicious.
             </p>
           )}
           {asset === "ETH" && (
             <p>
-              You send exactly <span className="text-white font-bold">{exactAmount}</span> ETH in
-              one transaction — no token approval required.
+              You send exactly <span className="text-[var(--ink)] font-bold">{exactAmount}</span> ETH
+              in one transaction — no token approval required.
             </p>
           )}
-          <p className="text-[10px] text-slate-500">
-            Only share Card ID + secret with intended recipients. Never share your wallet seed phrase.
+          <p className="text-[10px] text-[var(--ink-dim)]">
+            Only share Card ID + secret with intended recipients. Never share your wallet seed
+            phrase.
           </p>
         </div>
       </div>

@@ -62,7 +62,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
         walletAddress={wallet?.address}
         siweAuthenticated={siweAuthenticated}
         siweSigningIn={siweSigningIn}
-        onSiweSignIn={() => void handleSiweSignIn()}
+        onSiweSignIn={handleSiweSignIn}
         siweSessionChecked={sessionBootstrapped}
       />
       <div className="app-container relative z-0 py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8">
@@ -84,7 +84,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
             onConnect={openConnect}
             siweAuthenticated={siweAuthenticated}
             siweSigningIn={siweSigningIn}
-            onSiweSignIn={() => void handleSiweSignIn()}
+            onSiweSignIn={handleSiweSignIn}
           />
         )}
       </div>

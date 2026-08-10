@@ -203,13 +203,18 @@ async function waitForOnchainHash(hash: string): Promise<string> {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.toLowerCase().includes("revert")) throw e;
     if (msg.includes("not broadcast")) throw e;
-    // Tx was submitted — RPC may be flaky while confirming; return hash for downstream retry.
-    return hash;
+    // Do not soft-succeed: sequential approve→LP / auto-seed must wait for a real receipt.
+    throw new Error(
+      msg.includes("Timeout") || msg.toLowerCase().includes("timed out")
+        ? "Transaction sent but not confirmed yet — check BaseScan, then retry the next step"
+        : msg.split("\n")[0] || "Could not confirm transaction on Base — retry in a moment"
+    );
   }
 }
 
 async function pollCallsStatus(provider: Eip1193, id: string): Promise<string> {
   const deadline = Date.now() + CALLS_POLL_MS;
+  let confirmedWithoutHashMs = 0;
   while (Date.now() < deadline) {
     const raw = (await provider.request({
       method: "wallet_getCallsStatus",
@@ -220,6 +225,13 @@ async function pollCallsStatus(provider: Eip1193, id: string): Promise<string> {
     if (state === "confirmed") {
       const hash = extractTxHashFromStatus(raw);
       if (hash) return hash;
+      confirmedWithoutHashMs += 1200;
+      // Confirmed batch without a hash is a dead end — fail before hanging the full timeout.
+      if (confirmedWithoutHashMs >= 8_000) {
+        throw new Error(
+          "Wallet confirmed the batch but returned no transaction hash — reopen wallet and check BaseScan"
+        );
+      }
     }
     if (state === "failed") {
       throw new Error("Sponsored transaction failed onchain");

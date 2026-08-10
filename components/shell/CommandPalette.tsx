@@ -14,7 +14,7 @@ type CommandPaletteProps = {
   open: boolean;
   onClose: () => void;
   tab: AppTab;
-  onTabChange: (tab: AppTab, opts?: { rewardsView?: RewardsHubView }) => void;
+  onTabChange: (tab: AppTab, opts?: { rewardsView?: RewardsHubView; token?: string | null }) => void;
   tokens: LaunchedToken[];
   onOpenToken?: (token: LaunchedToken) => void;
   guest?: boolean;
@@ -214,7 +214,8 @@ export default function CommandPalette({
                     key={t.address}
                     type="button"
                     onClick={() => {
-                      onTabChange("launchpad");
+                      // Open trade deep-link only — avoid routing to Explore first
+                      // and wiping the swap token prefill.
                       onOpenToken?.(t);
                       onClose();
                     }}

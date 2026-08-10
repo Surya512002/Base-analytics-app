@@ -16,6 +16,12 @@ const DexSwapPanel = dynamic(() => import("@/components/swap/DexSwapPanel"), {
   ),
 });
 
+function normalizeTokenAddr(raw: string | null | undefined): string | null {
+  const t = raw?.trim().toLowerCase();
+  if (!t?.startsWith("0x") || t.length !== 42) return null;
+  return t;
+}
+
 export default function SwapTab({
   app,
   guestMode,
@@ -30,35 +36,51 @@ export default function SwapTab({
   const [prefill, setPrefill] = useState<LaunchedToken | null>(null);
   const [sidebarPick, setSidebarPick] = useState<SwapCounter | null>(null);
   const [fromPick, setFromPick] = useState<SwapCounter | null>(null);
-  const resolvingRef = useRef(false);
+  const resolvingAddrRef = useRef<string | null>(null);
+  const lastPrefillAddrRef = useRef<string | null>(null);
 
   const resolveAndPrefill = useCallback(
     async (addr: string) => {
-      if (resolvingRef.current) return;
-      resolvingRef.current = true;
+      const key = normalizeTokenAddr(addr);
+      if (!key) return;
+      if (resolvingAddrRef.current === key) return;
+      if (lastPrefillAddrRef.current === key) return;
+      resolvingAddrRef.current = key;
       try {
-        const { token } = await resolveTokenByAddress(addr);
+        const { token } = await resolveTokenByAddress(key);
         if (token) {
+          lastPrefillAddrRef.current = token.address.toLowerCase();
           setPrefill(token);
           syncTabUrl("swap", { token: token.address });
           if (typeof window !== "undefined" && window.location.pathname.startsWith("/swap")) {
-            window.history.replaceState({}, "", buildSwapTokenPath(token.address));
+            const path = buildSwapTokenPath(token.address);
+            if (window.location.pathname.toLowerCase() !== path.toLowerCase()) {
+              window.history.replaceState({}, "", path);
+            }
           }
         } else {
           app.showToast("Token not found on Base — check the address", "");
         }
       } finally {
-        resolvingRef.current = false;
+        if (resolvingAddrRef.current === key) resolvingAddrRef.current = null;
       }
     },
     [app]
   );
 
   useEffect(() => {
-    const fromProp = initialToken?.trim().toLowerCase();
+    const fromProp = normalizeTokenAddr(initialToken);
     const fromUrl = resolveTokenFromUrl();
-    const addr = fromProp ?? fromUrl;
-    if (!addr?.startsWith("0x") || addr.length !== 42) return;
+    let fromPath: string | null = null;
+    if (typeof window !== "undefined") {
+      const m = window.location.pathname.match(/^\/swap\/token\/(0x[a-fA-F0-9]{40})\/?$/i);
+      if (m?.[1]) fromPath = m[1].toLowerCase();
+    }
+    const addr = fromProp ?? fromPath ?? fromUrl;
+    if (!addr) return;
+    if (lastPrefillAddrRef.current && lastPrefillAddrRef.current !== addr) {
+      lastPrefillAddrRef.current = null;
+    }
     void resolveAndPrefill(addr);
   }, [initialToken, resolveAndPrefill]);
 

@@ -70,12 +70,15 @@ export default function TokenDetailPanel({
   onBack,
   guestMode,
   onRequestConnect,
+  onTrade,
 }: {
   app: WalletAppState;
   token: LaunchedToken;
   onBack: () => void;
   guestMode?: boolean;
   onRequestConnect?: () => void;
+  /** Open global Swap tab prefilled with this token. */
+  onTrade?: () => void;
 }) {
   const appLaunch = isAppLaunched(token);
 
@@ -261,6 +264,15 @@ export default function TokenDetailPanel({
               {best?.liquidity?.usd ? ` · ${formatUsd(best.liquidity.usd)} liq` : ""}
             </p>
           </div>
+          {onTrade && (
+            <button
+              type="button"
+              onClick={onTrade}
+              className="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-emerald-700"
+            >
+              Full swap
+            </button>
+          )}
         </div>
       ) : (
       /* Hero */

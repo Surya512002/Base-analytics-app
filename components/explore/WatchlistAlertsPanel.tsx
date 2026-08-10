@@ -67,10 +67,10 @@ export default function WatchlistAlertsPanel({
           return (
             <div
               key={t.address}
-              className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2"
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2"
             >
-              <span className="text-sm font-bold text-white">${t.symbol}</span>
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-sm font-bold text-[var(--ink)]">${t.symbol}</span>
+              <span className="text-[10px] text-[var(--ink-dim)] font-mono">
                 now {price > 0 ? `$${price < 0.01 ? price.toExponential(2) : price.toFixed(4)}` : "—"}
               </span>
               {existing ? (

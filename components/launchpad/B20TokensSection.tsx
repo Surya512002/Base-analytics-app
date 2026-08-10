@@ -18,6 +18,7 @@ export default function B20TokensSection({
   filter,
   onFilterChange,
   onOpen,
+  onTrade,
   onCreate,
   guestMode,
   wallet,
@@ -32,6 +33,7 @@ export default function B20TokensSection({
   filter: B20Filter;
   onFilterChange: (f: B20Filter) => void;
   onOpen: (token: LaunchedToken) => void;
+  onTrade?: (token: LaunchedToken) => void;
   onCreate: () => void;
   guestMode?: boolean;
   wallet?: string;
@@ -133,7 +135,8 @@ export default function B20TokensSection({
               key={t.address}
               token={t}
               market={markets[t.address.toLowerCase()]}
-              onTrade={() => onOpen(t)}
+              onOpen={() => onOpen(t)}
+              onTrade={() => (onTrade ?? onOpen)(t)}
               isMine={
                 (isAppLaunched(t) || Boolean(t.creator)) &&
                 wallet?.toLowerCase() === t.creator.toLowerCase()

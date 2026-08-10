@@ -4,9 +4,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Command } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
+import type { RewardsHubView } from "@/lib/utils/app-url";
 import CommandPalette from "@/components/shell/CommandPalette";
 import MobileBottomNav from "@/components/shell/MobileBottomNav";
-import { syncTabUrl } from "@/lib/utils/app-url";
 
 export default function AppShell({
   tab,
@@ -20,7 +20,7 @@ export default function AppShell({
   walletAddress,
 }: {
   tab: AppTab;
-  onTabChange: (t: AppTab) => void;
+  onTabChange: (t: AppTab, opts?: { rewardsView?: RewardsHubView; token?: string | null }) => void;
   guest?: boolean;
   onConnect?: () => void;
   onCreateToken?: () => void;
@@ -32,13 +32,16 @@ export default function AppShell({
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const handleTabChange = (t: AppTab) => {
+  const handleTabChange = (
+    t: AppTab,
+    opts?: { rewardsView?: RewardsHubView; token?: string | null }
+  ) => {
     if (guest && t !== "launchpad" && t !== "swap") {
       onConnect?.();
       return;
     }
-    onTabChange(t);
-    syncTabUrl(t);
+    // Parent owns URL sync (must preserve deep-link token).
+    onTabChange(t, opts);
   };
 
   useEffect(() => {
@@ -91,7 +94,7 @@ export default function AppShell({
 
       <MobileBottomNav
         tab={tab}
-        onTabChange={handleTabChange}
+        onTabChange={(t) => handleTabChange(t)}
         guest={guest}
         onConnect={onConnect}
         walletAddress={walletAddress}
