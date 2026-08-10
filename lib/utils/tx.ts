@@ -250,6 +250,7 @@ export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
     if (isPreservedCalldataCall(call)) {
       callData = call.data;
     } else if (hasBuilderSuffix(call.data)) {
+      // Inner legs must be canonical router/fee ABI — no builder suffix, or Multical reverts.
       callData = stripBuilderSuffix(call.data);
     }
     if (!callData || callData === "0x") {
@@ -267,7 +268,14 @@ export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
     functionName: "aggregate3Value",
     args: [inner],
   });
-  return buildContractCall(MULTICALL3_ADDRESS, data, totalValue);
+  // CRITICAL: do not append builder suffix to Multical3 aggregate calldata —
+  // suffix corrupts the ABI decode and wallets show "transaction is likely to fail".
+  return {
+    to: MULTICALL3_ADDRESS,
+    data,
+    preserveCalldata: true,
+    ...(totalValue > BigInt(0) ? { value: totalValue } : {}),
+  };
 }
 
 /** Active builder code — every app tx must include this attribution. */

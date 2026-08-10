@@ -462,6 +462,26 @@ async function sendSingleCall(
   return sendViaEthSendTransaction(provider, from, call);
 }
 
+async function simulateContractCall(
+  from: string,
+  call: ContractCall
+): Promise<boolean> {
+  try {
+    const pub = createPublicOnlyBaseClient();
+    await withRpcRetry(() =>
+      pub.call({
+        account: from as `0x${string}`,
+        to: call.to,
+        data: call.data,
+        ...(call.value && call.value > BigInt(0) ? { value: call.value } : {}),
+      })
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function sendCallGroup(
   provider: Eip1193,
   from: string,
@@ -478,13 +498,15 @@ async function sendCallGroup(
   const tryPaymaster = batchCanTryPaymaster(group);
   const multicallable = opts.atomicBatch && canBundleViaMulticall3(group);
 
-  // Desktop EOAs (MetaMask / Rabby): Multicall3 first → one eth_sendTransaction.
-  // wallet_sendCalls first was failing open / sequentializing into 3 fee+swap prompts.
+  // Desktop EOAs: try Multical only if eth_call simulates clean — never open a doomed prompt.
   if (multicallable && !opts.preferSendCalls) {
     try {
       const bundled = bundleCallsViaMulticall3(group);
-      const hash = await sendViaEthSendTransaction(provider, from, bundled);
-      return waitForOnchainHash(hash);
+      const ok = await simulateContractCall(from, bundled);
+      if (ok) {
+        const hash = await sendViaEthSendTransaction(provider, from, bundled);
+        return waitForOnchainHash(hash);
+      }
     } catch (e) {
       if (isUserRejection(e)) throw e;
     }
@@ -507,15 +529,18 @@ async function sendCallGroup(
   if (multicallable) {
     try {
       const bundled = bundleCallsViaMulticall3(group);
-      const hash = await sendViaEthSendTransaction(provider, from, bundled);
-      return waitForOnchainHash(hash);
+      const ok = await simulateContractCall(from, bundled);
+      if (ok) {
+        const hash = await sendViaEthSendTransaction(provider, from, bundled);
+        return waitForOnchainHash(hash);
+      }
     } catch (e) {
       if (isUserRejection(e)) throw e;
     }
   }
 
   // Sequential fallback: required for ERC20 fee transfers (Multicall3 can't
-  // transferFrom the user's balance via token.transfer), and when wallet_sendCalls fails.
+  // transferFrom the user's balance via token.transfer), and when Multical / sendCalls fail.
   // Always wait for each leg to mine before the next — otherwise approve+LP after
   // B20 launch races (LP simulates with allowance still 0 and reverts).
   let lastHash = "";
