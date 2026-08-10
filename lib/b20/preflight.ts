@@ -10,8 +10,10 @@ import {
 export const B20_CREATE_GAS_LIMIT = BigInt(1_200_000);
 export const B20_MINT_GAS_LIMIT = BigInt(200_000);
 
-/** Minimum ETH reserved for B20 factory gas (create + optional seed tx). */
+/** Gas cushion for create (+ ~2 follow-up seed txs when auto-seed is on). */
 export const MIN_LAUNCH_GAS_ETH = parseEther("0.00003");
+/** Extra reserve when auto-seeding so approve + addLiquidity don't run dry after create. */
+export const MIN_SEED_FOLLOWUP_GAS_ETH = parseEther("0.00012");
 
 export function gasLimitForB20Target(to: string): bigint {
   return to.toLowerCase() === B20_FACTORY_ADDRESS.toLowerCase()
@@ -94,7 +96,9 @@ export async function preflightB20Launch(
   minEth: string;
 }> {
   const seedWei = opts?.seedEthWei ?? BigInt(0);
-  const minRequired = MIN_LAUNCH_GAS_ETH + seedWei;
+  const gasCushion =
+    seedWei > BigInt(0) ? MIN_LAUNCH_GAS_ETH + MIN_SEED_FOLLOWUP_GAS_ETH : MIN_LAUNCH_GAS_ETH;
+  const minRequired = gasCushion + seedWei;
   let balanceEth = "0";
   let hasMinGas = true;
   try {

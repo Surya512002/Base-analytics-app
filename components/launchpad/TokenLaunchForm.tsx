@@ -551,10 +551,12 @@ export default function TokenLaunchForm({
               />
               <span>
                 <span className="text-sm font-bold text-[var(--ink)] block">
-                  Auto-seed Aerodrome pool (enables in-app swaps)
+                  Auto-seed pool (enables in-app swaps)
                 </span>
                 <span className="text-[11px] text-[var(--ink-muted)]">
-                  Mints matching tokens + adds WETH liquidity right after launch.
+                  Mints matching tokens in the create tx, then asks your wallet to
+                  approve + add liquidity (2 more confirms on most desktop wallets —
+                  B20 factory and DEX routers cannot share one transaction).
                 </span>
               </span>
             </label>

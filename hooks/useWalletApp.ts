@@ -1364,7 +1364,11 @@ function useWalletAppController() {
                 ethAmount: seed.ethWei,
                 dex: args.seedDex ?? "aerodrome",
               });
-              await sendAppTransactions(activeConn, wallet.address, seedCalls);
+              await sendAppTransactions(activeConn, wallet.address, seedCalls, {
+                // Prefer wallet batch when available; sequential path must isolate
+                // approve → mine → addLiquidity (desktop wallets).
+                atomicBatch: true,
+              });
               showToast(
                 `💧 Liquidity seeded on ${seedDexLabel(args.seedDex ?? "aerodrome")} — ${args.symbol} is tradable in-app`,
                 ""

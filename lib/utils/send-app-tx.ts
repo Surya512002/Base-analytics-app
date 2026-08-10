@@ -15,6 +15,7 @@ import {
   bundleCallsViaMulticall3,
   hasBuilderSuffix,
   stripBuilderSuffix,
+  isErc20ApproveCall as isErc20ApproveCallData,
 } from "@/lib/utils/tx";
 import {
   detectMiniAppConnType,
@@ -323,8 +324,7 @@ async function waitForTxMined(hash: string): Promise<void> {
 
 function isErc20ApproveCall(call: ContractCall): boolean {
   if (isB20PrecompileAddress(call.to)) return false;
-  const hex = call.data.toLowerCase();
-  return hex.startsWith("0x095ea7b3");
+  return isErc20ApproveCallData(call);
 }
 
 /** Approve is isolated for legacy sequential wallets; atomic batches keep one on-chain tx. */
@@ -490,9 +490,14 @@ async function sendCallGroup(
 
   // Sequential fallback: required for ERC20 fee transfers (Multicall3 can't
   // transferFrom the user's balance via token.transfer), and when wallet_sendCalls fails.
+  // Always wait for each leg to mine before the next — otherwise approve+LP after
+  // B20 launch races (LP simulates with allowance still 0 and reverts).
   let lastHash = "";
-  for (const call of group) {
-    lastHash = await sendSingleCall(provider, from, call, opts);
+  for (let i = 0; i < group.length; i++) {
+    lastHash = await sendSingleCall(provider, from, group[i]!, opts);
+    if (i < group.length - 1) {
+      await waitForTxMined(lastHash);
+    }
   }
   return lastHash;
 }

@@ -220,18 +220,24 @@ const MULTICALL3_ABI = parseAbi([
 export function canBundleViaMulticall3(calls: ContractCall[]): boolean {
   if (calls.length < 2) return false;
   if (calls.some((c) => isB20PrecompileAddress(c.to))) return false;
-  // ERC20 transfer(to,amount) uses msg.sender — Multicall3 has no balance.
-  // Bundling those legs reverts the whole swap (sells / USDC pays).
-  if (calls.some((c) => isErc20TransferCall(c))) return false;
+  // ERC20 transfer/approve use msg.sender — Multicall3 has no balance or allowance slot.
+  // Bundling those legs reverts the whole batch (swaps, LP seed after B20 launch).
+  if (calls.some((c) => isErc20TransferCall(c) || isErc20ApproveCall(c))) return false;
   const preserved = calls.filter(isPreservedCalldataCall);
   return preserved.length <= 1;
 }
 
 const ERC20_TRANSFER_SELECTOR = "0xa9059cbb";
+const ERC20_APPROVE_SELECTOR = "0x095ea7b3";
 
 export function isErc20TransferCall(call: ContractCall): boolean {
   const data = call.data?.toLowerCase() ?? "";
   return data.startsWith(ERC20_TRANSFER_SELECTOR);
+}
+
+export function isErc20ApproveCall(call: ContractCall): boolean {
+  const data = call.data?.toLowerCase() ?? "";
+  return data.startsWith(ERC20_APPROVE_SELECTOR);
 }
 
 /** Pack multiple app calls into a single Multicall3 transaction (EOA fallback). */
