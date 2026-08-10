@@ -24,8 +24,8 @@ export default function MyLaunchedTokens({
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-3">
         <Rocket size={16} className="text-[var(--ink-muted)]" />
-        <p className="text-sm font-black text-white">Your launched tokens</p>
-        <span className="text-[10px] text-slate-500 ml-auto">{mine.length} live</span>
+        <p className="text-sm font-black text-[var(--ink)]">Your launched tokens</p>
+        <span className="text-[10px] text-[var(--ink-dim)] ml-auto">{mine.length} live</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {mine.map((t) => (
@@ -33,7 +33,7 @@ export default function MyLaunchedTokens({
             key={t.address}
             type="button"
             onClick={() => onOpen(t)}
-            className="text-left rounded-xl border border-white/10 bg-black/20 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] px-3 py-2.5 transition-colors"
+            className="text-left rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] px-3 py-2.5 transition-colors"
           >
             <div className="flex items-center gap-2">
               {t.imageUrl ? (
@@ -45,12 +45,12 @@ export default function MyLaunchedTokens({
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-white truncate">{t.name}</p>
+                <p className="text-xs font-black text-[var(--ink)] truncate">{t.name}</p>
                 <p className="text-[10px] text-[var(--ink-muted)] font-bold">${t.symbol}</p>
               </div>
             </div>
             <div className="flex items-center justify-between mt-2 text-[10px]">
-              <span className="text-slate-500 font-mono">{shortAddr(t.address)}</span>
+              <span className="text-[var(--ink-dim)] font-mono">{shortAddr(t.address)}</span>
               <TokenMarketBadge address={t.address} />
             </div>
             <p className="text-[9px] text-slate-600 mt-1">{createdAgo(t.createdAt)}</p>

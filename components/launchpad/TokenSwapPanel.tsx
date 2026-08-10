@@ -112,7 +112,7 @@ function TokenAvatar({ symbol, imageUrl }: { symbol: string; imageUrl?: string }
       <img
         src={imageUrl}
         alt=""
-        className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0"
+        className="w-7 h-7 rounded-full object-cover border border-[var(--border-subtle)] shrink-0"
       />
     );
   }
@@ -146,7 +146,7 @@ function SwapUsdColumn({ usd, loading }: { usd: number | null; loading?: boolean
     <div className="swap-usd-column">
       <span className="swap-usd-label">USD</span>
       {loading ? (
-        <Loader2 size={16} className="animate-spin text-slate-500 ml-auto" />
+        <Loader2 size={16} className="animate-spin text-[var(--ink-dim)] ml-auto" />
       ) : (
         <span className="swap-usd-value">{formatUsdSide(usd)}</span>
       )}
@@ -681,7 +681,7 @@ export default function TokenSwapPanel({
 
   if (!token) {
     return (
-      <div className="swap-panel p-8 text-center text-sm text-slate-500">
+      <div className="swap-panel p-8 text-center text-sm text-[var(--ink-dim)]">
         Select a token to trade
       </div>
     );
@@ -793,19 +793,19 @@ export default function TokenSwapPanel({
 
         {wallet && !guestMode && (
           <div className="swap-wallet-row swap-wallet-row-multi">
-            <Wallet size={14} className="text-slate-500 shrink-0" />
+            <Wallet size={14} className="text-[var(--ink-dim)] shrink-0" />
             <span>
-              <span className="text-slate-300 font-semibold">{ethBalance.toFixed(4)}</span>{" "}
-              <span className="text-slate-500">ETH</span>
+              <span className="text-[var(--ink-muted)] font-semibold">{ethBalance.toFixed(4)}</span>{" "}
+              <span className="text-[var(--ink-dim)]">ETH</span>
             </span>
             {effectiveCounter.kind === "token" && counterTokenBalance > 0 && (
               <>
                 <span className="text-slate-600">·</span>
                 <span>
-                  <span className="text-slate-300 font-semibold">
+                  <span className="text-[var(--ink-muted)] font-semibold">
                     {formatTokenBalanceDisplay(counterTokenBalance, counterDecimals)}
                   </span>{" "}
-                  <span className="text-slate-500">{counterLabel}</span>
+                  <span className="text-[var(--ink-dim)]">{counterLabel}</span>
                 </span>
               </>
             )}
@@ -813,10 +813,10 @@ export default function TokenSwapPanel({
               <>
                 <span className="text-slate-600">·</span>
                 <span>
-                  <span className="text-slate-300 font-semibold">
+                  <span className="text-[var(--ink-muted)] font-semibold">
                     {formatTokenBalanceDisplay(tokenBalance, tokenDecimals)}
                   </span>{" "}
-                  <span className="text-slate-500">{token.symbol}</span>
+                  <span className="text-[var(--ink-dim)]">{token.symbol}</span>
                 </span>
               </>
             )}

@@ -74,9 +74,9 @@ export default function LaunchOptionsPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-5">
       <div>
-        <p className="text-[10px] font-bold text-slate-500 uppercase mb-3">Quick presets</p>
+        <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase mb-3">Quick presets</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {LAUNCH_PRESETS.map((preset) => (
             <button
@@ -97,9 +97,9 @@ export default function LaunchOptionsPanel({
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-slate-500 uppercase mb-3">Launch options</p>
+        <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase mb-3">Launch options</p>
         <label className="flex items-center justify-between gap-3 cursor-pointer">
-          <span className="text-sm text-slate-300">Metadata editable after launch</span>
+          <span className="text-sm text-[var(--ink-soft)]">Metadata editable after launch</span>
           <input
             type="checkbox"
             checked={metadataEditable}
@@ -107,22 +107,22 @@ export default function LaunchOptionsPanel({
             className="accent-[var(--accent)] w-4 h-4"
           />
         </label>
-        <p className="text-[10px] text-slate-500 mt-1.5">
+        <p className="text-[10px] text-[var(--ink-dim)] mt-1.5">
           Grants METADATA role to you. Off by default — fully admin-less, renounced control.
         </p>
       </div>
 
-      <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-3">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-amber-100 flex items-center gap-1.5">
+            <p className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
               <Shield size={14} /> Anti-snipe window
             </p>
-            <p className="text-[10px] text-amber-200/60">
+            <p className="text-[10px] text-amber-800/80">
               Blocks buys via Base Analytics for N blocks after pool opens (~2s/block on Base)
             </p>
           </div>
-          <span className="text-sm font-black text-amber-200">{antiSnipeBlocks} blocks</span>
+          <span className="text-sm font-black text-amber-800">{antiSnipeBlocks} blocks</span>
         </div>
         <input
           type="range"
@@ -133,17 +133,17 @@ export default function LaunchOptionsPanel({
           onChange={(e) => onAntiSnipeBlocks(parseInt(e.target.value, 10))}
           className="w-full accent-amber-400"
         />
-        <p className="text-[10px] text-amber-200/50">
+        <p className="text-[10px] text-amber-800/70">
           Default {DEFAULT_ANTI_SNIPE_BLOCKS} blocks (~16s). Set 0 to disable. Direct DEX trades bypass
           this — disclosed on token page.
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-white">Creator wallet</p>
-            <p className="text-[10px] text-slate-500">Liquid at genesis via batch mint</p>
+            <p className="text-sm font-bold text-[var(--ink)]">Creator wallet</p>
+            <p className="text-[10px] text-[var(--ink-dim)]">Liquid at genesis via batch mint</p>
           </div>
           <span className="text-sm font-black text-[var(--ink-muted)]">{creatorPct}%</span>
         </div>
@@ -158,13 +158,13 @@ export default function LaunchOptionsPanel({
         />
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-white">Insider allocations</p>
-            <p className="text-[10px] text-slate-500">Immediate, liquid at genesis</p>
+            <p className="text-sm font-bold text-[var(--ink)]">Insider allocations</p>
+            <p className="text-[10px] text-[var(--ink-dim)]">Immediate, liquid at genesis</p>
           </div>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-[var(--ink-dim)]">
             {insiders.length}/{maxInsiders} slots
           </span>
         </div>
@@ -174,7 +174,7 @@ export default function LaunchOptionsPanel({
               value={a.address}
               onChange={(e) => updateInsider(a.id, { address: e.target.value })}
               placeholder="0x…"
-              className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[var(--accent)]"
+              className="flex-1 min-w-0 input-ink rounded-lg px-2.5 py-2 text-xs font-mono"
             />
             <input
               type="number"
@@ -183,9 +183,9 @@ export default function LaunchOptionsPanel({
               step={0.1}
               value={a.pct}
               onChange={(e) => updateInsider(a.id, { pct: parseFloat(e.target.value) || 0 })}
-              className="w-16 bg-white/[0.04] border border-white/10 rounded-lg px-2 py-2 text-xs text-white text-center outline-none"
+              className="w-16 input-ink rounded-lg px-2 py-2 text-xs text-center"
             />
-            <span className="text-[10px] text-slate-500">%</span>
+            <span className="text-[10px] text-[var(--ink-dim)]">%</span>
             <button
               type="button"
               onClick={() => removeInsider(a.id)}
@@ -199,7 +199,7 @@ export default function LaunchOptionsPanel({
           type="button"
           onClick={addInsider}
           disabled={insiders.length >= maxInsiders}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border border-dashed border-white/15 text-slate-400 hover:text-white disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold border border-dashed border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] disabled:opacity-40"
         >
           <Plus size={14} /> Add liquid allocation
         </button>
@@ -220,12 +220,12 @@ export default function LaunchOptionsPanel({
           </span>
         </div>
         {vested.map((a) => (
-          <div key={a.id} className="space-y-2 rounded-lg border border-[var(--border-subtle)] bg-black/20 p-3">
+          <div key={a.id} className="space-y-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
             <input
               value={a.address}
               onChange={(e) => updateVested(a.id, { address: e.target.value })}
               placeholder="Beneficiary 0x…"
-              className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[var(--border-focus)]"
+              className="w-full input-ink rounded-lg px-2.5 py-2 text-xs font-mono"
             />
             <div className="flex flex-wrap gap-2 items-center">
               <input
@@ -235,10 +235,10 @@ export default function LaunchOptionsPanel({
                 step={0.5}
                 value={a.pct}
                 onChange={(e) => updateVested(a.id, { pct: parseFloat(e.target.value) || 0 })}
-                className="w-16 bg-white/[0.04] border border-white/10 rounded-lg px-2 py-2 text-xs text-white text-center outline-none"
+                className="w-16 input-ink rounded-lg px-2 py-2 text-xs text-center"
               />
-              <span className="text-[10px] text-slate-500">%</span>
-              <span className="text-[10px] text-slate-500">cliff</span>
+              <span className="text-[10px] text-[var(--ink-dim)]">%</span>
+              <span className="text-[10px] text-[var(--ink-dim)]">cliff</span>
               <input
                 type="number"
                 min={0}
@@ -247,9 +247,9 @@ export default function LaunchOptionsPanel({
                 onChange={(e) =>
                   updateVested(a.id, { cliffMonths: parseInt(e.target.value, 10) || 0 })
                 }
-                className="w-14 bg-white/[0.04] border border-white/10 rounded-lg px-2 py-2 text-xs text-white text-center outline-none"
+                className="w-14 input-ink rounded-lg px-2 py-2 text-xs text-center"
               />
-              <span className="text-[10px] text-slate-500">mo · vest</span>
+              <span className="text-[10px] text-[var(--ink-dim)]">mo · vest</span>
               <input
                 type="number"
                 min={1}
@@ -258,9 +258,9 @@ export default function LaunchOptionsPanel({
                 onChange={(e) =>
                   updateVested(a.id, { vestMonths: parseInt(e.target.value, 10) || 1 })
                 }
-                className="w-14 bg-white/[0.04] border border-white/10 rounded-lg px-2 py-2 text-xs text-white text-center outline-none"
+                className="w-14 input-ink rounded-lg px-2 py-2 text-xs text-center"
               />
-              <span className="text-[10px] text-slate-500">mo</span>
+              <span className="text-[10px] text-[var(--ink-dim)]">mo</span>
               <button
                 type="button"
                 onClick={() => removeVested(a.id)}
@@ -281,13 +281,13 @@ export default function LaunchOptionsPanel({
         </button>
       </div>
 
-      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-4 text-[11px] text-slate-400 leading-relaxed space-y-2">
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-4 text-[11px] text-[var(--ink-muted)] leading-relaxed space-y-2">
         <p>
           <span className="text-[var(--ink-muted)] font-bold">{poolPct}%</span> of supply stays unminted as
           pool seed reserve. Add liquidity on Uniswap V3 or Aerodrome after launch — our router
           auto-picks the best price.
         </p>
-        <p className="text-slate-500">
+        <p className="text-[var(--ink-dim)]">
           Fixed 1B supply · one atomic genesis mint · no bonding curve · no migration tax.
         </p>
       </div>

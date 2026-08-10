@@ -25,13 +25,13 @@ export default function TokenPriceChart({
 
   if (loading) {
     return (
-      <div className="h-48 rounded-2xl bg-white/[0.03] border border-white/10 animate-pulse" />
+      <div className="h-48 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] animate-pulse" />
     );
   }
 
   if (points.length < 2) {
     return (
-      <div className="h-48 rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center text-sm text-slate-500">
+      <div className="h-48 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] flex items-center justify-center text-sm text-[var(--ink-dim)]">
         Not enough swap data for a chart yet
       </div>
     );
@@ -57,13 +57,13 @@ export default function TokenPriceChart({
   const up = change >= 0;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-dim)]">
           Price from recent swaps
         </p>
         <span
-          className={`text-xs font-black font-mono ${up ? "text-emerald-400" : "text-rose-400"}`}
+          className={`text-xs font-black font-mono ${up ? "text-emerald-600" : "text-rose-400"}`}
         >
           {up ? "+" : ""}
           {change.toFixed(2)}%
@@ -89,7 +89,7 @@ export default function TokenPriceChart({
           points={coords.join(" ")}
         />
       </svg>
-      <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-2">
+      <div className="flex justify-between text-[10px] font-mono text-[var(--ink-dim)] mt-2">
         <span>${minY < 0.01 ? minY.toExponential(2) : minY.toFixed(4)}</span>
         <span>${last < 0.01 ? last.toExponential(2) : last.toFixed(4)}</span>
       </div>

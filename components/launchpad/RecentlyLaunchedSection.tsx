@@ -30,7 +30,7 @@ export default function RecentlyLaunchedSection({
   if (recent.length === 0) {
     if (syncing) {
       return (
-        <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)]/40 h-40 animate-pulse" />
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-raised)]/40 h-40 animate-pulse" />
       );
     }
     return (

@@ -386,22 +386,22 @@ export default function TokenLaunchForm({
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ink-muted)] mb-1">
           Create a token
         </p>
-        <h2 className="text-2xl sm:text-3xl font-black text-white max-w-3xl">
+        <h2 className="text-2xl sm:text-3xl font-black text-[var(--ink)] max-w-3xl">
           Launch on Base with more control, lower fees, and dual-DEX trading
         </h2>
-        <p className="text-sm text-slate-400 mt-2 max-w-3xl">
+        <p className="text-sm text-[var(--ink-muted)] mt-2 max-w-3xl">
           Fixed 1B B20 supply · vanity 0xB200… addresses · liquid + truly locked vesting ·
           Uniswap + Aerodrome auto-routing · earn points on every launch and swap.
         </p>
       </div>
 
       {b20Activated === null && (
-        <div className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm text-slate-400">
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--ink-muted)]">
           Checking B20 activation on Base…
         </div>
       )}
       {b20Activated === false && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           B20 is not activated on Base mainnet yet.
         </div>
       )}
@@ -411,7 +411,7 @@ export default function TokenLaunchForm({
       <form onSubmit={onSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div className="xl:col-span-7 space-y-5">
           <div className="glass-panel rounded-2xl p-5 space-y-4">
-            <p className="text-[10px] font-bold text-slate-500 uppercase">Token identity</p>
+            <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Token identity</p>
 
             <div className="flex gap-4">
               <input
@@ -432,7 +432,7 @@ export default function TokenLaunchForm({
                 ) : (
                   <>
                     <ImagePlus size={22} className="text-[var(--ink-muted)]" />
-                    <span className="text-[9px] font-bold text-slate-500">Image</span>
+                    <span className="text-[9px] font-bold text-[var(--ink-dim)]">Image</span>
                   </>
                 )}
               </button>
@@ -444,33 +444,33 @@ export default function TokenLaunchForm({
 
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="block sm:col-span-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Token name *</span>
+                  <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Token name *</span>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
                     maxLength={32}
                     placeholder="My Token"
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
+                    className="mt-1 w-full input-ink rounded-xl px-3 py-2.5 text-sm"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Symbol *</span>
+                  <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Symbol *</span>
                   <input
                     value={symbol}
                     onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                     required
                     maxLength={10}
                     placeholder="TOKEN"
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
+                    className="mt-1 w-full input-ink rounded-xl px-3 py-2.5 text-sm"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Quote token *</span>
+                  <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Quote token *</span>
                   <select
                     value={quoteToken}
                     onChange={(e) => setQuoteToken(e.target.value as QuoteToken)}
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
+                    className="mt-1 w-full input-ink rounded-xl px-3 py-2.5 text-sm"
                   >
                     <option value="ETH">ETH</option>
                     <option value="USDC">USDC</option>
@@ -480,32 +480,32 @@ export default function TokenLaunchForm({
             </div>
 
             <label className="block">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Description</span>
+              <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Description</span>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={280}
                 rows={3}
                 placeholder="What is this token about?"
-                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none focus:border-[var(--accent)]"
+                className="mt-1 w-full input-ink rounded-xl px-3 py-2.5 text-sm resize-none"
               />
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Start price (USD per token)</span>
+              <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Start price (USD per token)</span>
               <input
                 value={startPriceUsd}
                 onChange={(e) => setStartPriceUsd(e.target.value)}
-                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--accent)]"
+                className="mt-1 w-full input-ink rounded-xl px-3 py-2.5 text-sm font-mono"
               />
             </label>
 
-            <p className="text-[10px] font-bold text-slate-500 uppercase">Links (optional)</p>
+            <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Links (optional)</p>
             <div className="grid grid-cols-1 gap-2">
-              <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourproject.xyz" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-              <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://x.com/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-              <input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="https://t.me/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-              <input value={discord} onChange={(e) => setDiscord(e.target.value)} placeholder="https://discord.gg/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
+              <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourproject.xyz" className="w-full input-ink rounded-xl px-3 py-2.5 text-sm" />
+              <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://x.com/yourproject" className="w-full input-ink rounded-xl px-3 py-2.5 text-sm" />
+              <input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="https://t.me/yourproject" className="w-full input-ink rounded-xl px-3 py-2.5 text-sm" />
+              <input value={discord} onChange={(e) => setDiscord(e.target.value)} placeholder="https://discord.gg/yourproject" className="w-full input-ink rounded-xl px-3 py-2.5 text-sm" />
             </div>
           </div>
 
@@ -550,10 +550,10 @@ export default function TokenLaunchForm({
                 className="mt-1"
               />
               <span>
-                <span className="text-sm font-bold text-white block">
+                <span className="text-sm font-bold text-[var(--ink)] block">
                   Auto-seed Aerodrome pool (enables in-app swaps)
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-[var(--ink-muted)]">
                   Mints matching tokens + adds WETH liquidity right after launch.
                 </span>
               </span>
@@ -561,7 +561,7 @@ export default function TokenLaunchForm({
             {autoSeedLiquidity && (
               <>
               <label className="block">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">
+                <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">
                   Seed pool on
                 </span>
                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -579,7 +579,7 @@ export default function TokenLaunchForm({
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                         seedDex === id
                           ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
-                          : "border-white/10 text-slate-500 hover:text-slate-300"
+                          : "border-[var(--border-subtle)] text-[var(--ink-dim)] hover:text-[var(--ink-muted)]"
                       }`}
                     >
                       {label}
@@ -589,11 +589,11 @@ export default function TokenLaunchForm({
               </label>
               <label className="block">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">
+                  <span className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">
                     ETH for initial liquidity
                   </span>
                   {seedUsd != null && (
-                    <span className="text-[11px] font-bold text-emerald-300 font-mono tabular-nums">
+                    <span className="text-[11px] font-bold text-emerald-700 font-mono tabular-nums">
                       ≈ {formatUsd(seedUsd)}
                     </span>
                   )}
@@ -604,7 +604,7 @@ export default function TokenLaunchForm({
                   step="0.00001"
                   value={seedLiquidityEth}
                   onChange={(e) => setSeedLiquidityEth(e.target.value)}
-                  className="mt-1 w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--border-focus)]"
+                  className="mt-1 w-full input-ink rounded-xl px-3 py-2.5 text-sm font-mono"
                 />
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {SEED_LIQUIDITY_PRESETS.map((preset) => (
@@ -615,12 +615,12 @@ export default function TokenLaunchForm({
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                         seedLiquidityEth === preset
                           ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
-                          : "border-white/10 text-slate-500 hover:text-slate-300"
+                          : "border-[var(--border-subtle)] text-[var(--ink-dim)] hover:text-[var(--ink-muted)]"
                       }`}
                     >
                       {preset} ETH
                       {ethUsd > 0 && (
-                        <span className="text-slate-500 font-normal ml-1">
+                        <span className="text-[var(--ink-dim)] font-normal ml-1">
                           ({formatUsd(parseFloat(preset) * ethUsd)})
                         </span>
                       )}
@@ -664,15 +664,15 @@ export default function TokenLaunchForm({
             )}
           </button>
 
-          <p className="text-[11px] text-slate-500 leading-relaxed">
+          <p className="text-[11px] text-[var(--ink-dim)] leading-relaxed">
             One B20 factory transaction mints liquid allocations atomically. Vested % (
             {vestedPct}%) and pool seed ({poolPct}%) stay unminted. Gas ~$0.05–$0.15 on Base.
             Launches include builder code{" "}
             <span className="font-mono text-[var(--ink-muted)]">{BUILDER_CODE}</span>{" "}
             via a companion attribution tx (B20 factory calldata stays canonical). Rabby may warn
             &quot;not a contract&quot; on the B20 factory (
-            <span className="font-mono text-slate-400">0xB20f…</span>) — that is not your token;
-            your token address starts with <span className="font-mono text-emerald-400/90">0xB200…</span>.
+            <span className="font-mono text-[var(--ink-muted)]">0xB20f…</span>) — that is not your token;
+            your token address starts with <span className="font-mono text-emerald-600/90">0xB200…</span>.
           </p>
         </div>
 

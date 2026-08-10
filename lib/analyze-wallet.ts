@@ -39,6 +39,7 @@ import {
 } from "@/lib/utils/wallet-activity";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
 import { computeSwapVolume, computeEthFlowVolumes } from "@/lib/utils/swap-volume";
+import { getAlchemyKey } from "@/lib/constants/env";
 import { buildOnchainScore } from "@/lib/analytics/onchain-score";
 import type {
   AnalyzeWalletResult,
@@ -135,11 +136,22 @@ async function fetchConnectHistory(
     const rich = await fetchWalletTransfersConnectRich(address);
     const transfers = enrichTransferLegs(rich.transfers, address.toLowerCase());
     const merged = mergeActivityIntoState(stored, transfers, address);
+    const alchemyDone =
+      rich.alchemyOutComplete === true && rich.alchemyInComplete === true;
     const next = {
       ...merged,
       v2StreamStates: rich.v2StreamStates,
-      historyComplete: stored.historyComplete || rich.historyComplete,
+      alchemyOutComplete: rich.alchemyOutComplete ?? false,
+      alchemyInComplete: rich.alchemyInComplete ?? false,
+      alchemyOutPageKey: rich.alchemyOutPageKey ?? null,
+      alchemyInPageKey: rich.alchemyInPageKey ?? null,
+      historyComplete: false as boolean,
     };
+    // Only mark complete when Alchemy (if configured) and the fetch path both finished.
+    const hasAlchemy = Boolean(getAlchemyKey());
+    next.historyComplete = hasAlchemy
+      ? alchemyDone && rich.historyComplete
+      : Boolean(rich.historyComplete || stored.historyComplete);
     void saveWalletHistory(address, next).catch(() => {});
     return {
       transfers,
@@ -309,13 +321,12 @@ export async function analyzeWalletAddress(
   const activity = isQuick
     ? rollupWalletActivity(allTxs, addrLow)
     : rollupAnalyticsActivity(allTxs, addrLow);
-  // Connect/full analyze: live rollup only (d731448) — history merge inflated days without heatmap cells.
-  const mergedActivity = isQuick
-    ? mergeRollupWithHistory(activity, fullHeatmapState, addrLow)
-    : {
-        ...activity,
-        mergedState: mergeActivityIntoState(fullHeatmapState, allTxs, addrLow),
-      };
+  // Always merge stored tpd so heatmap/uniqueDays include earlier Alchemy/sync pages.
+  const mergedActivity = mergeRollupWithHistory(
+    activity,
+    fullHeatmapState,
+    addrLow
+  );
   const {
     participatingHashes,
     uDays,
@@ -764,13 +775,31 @@ export async function analyzeWalletAddress(
 
   const priorHistory = historyBundle.mergedHistory ?? emptyHistoryState();
   const mergedHistory = mergeActivityIntoState(heatmapState, allTxs, address);
+  const outDone =
+    Boolean(mergedHistory.alchemyOutComplete) ||
+    Boolean(priorHistory.alchemyOutComplete);
+  const inDone =
+    Boolean(mergedHistory.alchemyInComplete) ||
+    Boolean(priorHistory.alchemyInComplete);
+  const alchemyExhausted = !getAlchemyKey() || (outDone && inDone);
+  // Never stamp full history while Alchemy still has pages (prevents missing days).
   const finalHistoryComplete =
-    historyComplete ||
-    options.historyComplete === true ||
-    priorHistory.historyComplete;
+    alchemyExhausted &&
+    (historyComplete ||
+      options.historyComplete === true ||
+      (priorHistory.historyComplete && alchemyExhausted));
+
   await saveWalletHistory(address, {
     ...mergedHistory,
     historyComplete: finalHistoryComplete,
+    alchemyOutComplete: outDone,
+    alchemyInComplete: inDone,
+    alchemyOutPageKey: outDone
+      ? null
+      : (mergedHistory.alchemyOutPageKey ?? priorHistory.alchemyOutPageKey),
+    alchemyInPageKey: inDone
+      ? null
+      : (mergedHistory.alchemyInPageKey ?? priorHistory.alchemyInPageKey),
     v2StreamStates: v2StreamStates ?? mergedHistory.v2StreamStates,
     userOpsFetched:
       mergedHistory.userOpsFetched ||

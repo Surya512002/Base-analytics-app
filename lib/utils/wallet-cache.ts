@@ -4,7 +4,7 @@ import {
   markAnalysisFresh,
 } from "@/lib/utils/analysis-freshness";
 
-const CACHE_VERSION = 41;
+const CACHE_VERSION = 42;
 /** Align with analysis freshness (~4h). */
 const TTL_MS = 4 * 60 * 60 * 1000;
 

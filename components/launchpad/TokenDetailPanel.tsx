@@ -235,7 +235,7 @@ export default function TokenDetailPanel({
           <button
             type="button"
             onClick={onBack}
-            className="text-sm font-bold text-[var(--ink)] hover:text-white shrink-0"
+            className="text-sm font-bold text-[var(--ink)] hover:text-[var(--ink)] shrink-0"
           >
             ← Back
           </button>
@@ -244,7 +244,7 @@ export default function TokenDetailPanel({
             <img
               src={token.imageUrl}
               alt=""
-              className="w-10 h-10 rounded-xl object-cover border border-white/10"
+              className="w-10 h-10 rounded-xl object-cover border border-[var(--border-subtle)]"
             />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
@@ -252,11 +252,11 @@ export default function TokenDetailPanel({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-white truncate">
+            <h1 className="text-lg font-black text-[var(--ink)] truncate">
               {token.name}{" "}
               <span className="text-[var(--ink-muted)]">${token.symbol}</span>
             </h1>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[var(--ink-dim)]">
               {priceUsd ? formatSubscriptPrice(priceUsd) : "—"}
               {best?.liquidity?.usd ? ` · ${formatUsd(best.liquidity.usd)} liq` : ""}
             </p>
@@ -270,7 +270,7 @@ export default function TokenDetailPanel({
           <button
             type="button"
             onClick={onBack}
-            className="text-sm font-bold text-[var(--ink)] hover:text-white mb-4"
+            className="text-sm font-bold text-[var(--ink)] hover:text-[var(--ink)] mb-4"
           >
             ← All tokens
           </button>
@@ -282,7 +282,7 @@ export default function TokenDetailPanel({
                 <img
                   src={token.imageUrl}
                   alt=""
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-white/10"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-[var(--border-subtle)]"
                 />
               ) : (
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-xl font-black text-[var(--ink-muted)]">
@@ -291,7 +291,7 @@ export default function TokenDetailPanel({
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-black text-white truncate">
+                  <h1 className="text-2xl sm:text-3xl font-black text-[var(--ink)] truncate">
                     {token.name}
                   </h1>
                   <span className="text-lg sm:text-xl font-black text-[var(--ink-muted)]">
@@ -301,7 +301,7 @@ export default function TokenDetailPanel({
                 <button
                   type="button"
                   onClick={() => void copy(token.address, "Contract address copied")}
-                  className="text-[11px] text-slate-400 font-mono mt-1 flex items-center gap-1.5 hover:text-white transition-colors group"
+                  className="text-[11px] text-[var(--ink-muted)] font-mono mt-1 flex items-center gap-1.5 hover:text-[var(--ink)] transition-colors group"
                   title="Tap to copy full address"
                 >
                   <Copy size={11} className="opacity-60 group-hover:opacity-100 shrink-0" />
@@ -312,11 +312,11 @@ export default function TokenDetailPanel({
                     {tokenBadgeLabel(token)}
                   </span>
                   {appLaunch && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">
                       Immutable
                     </span>
                   )}
-                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/10">
+                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                     ETH
                   </span>
                   {token.launchPreset && (
@@ -325,18 +325,18 @@ export default function TokenDetailPanel({
                     </span>
                   )}
                   {antiSnipeActive && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-200 border border-amber-500/30">
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 border border-amber-500/30">
                       Anti-snipe
                     </span>
                   )}
                 </div>
                 {antiSnipeActive && antiSnipeMsg && (
-                  <p className="text-[11px] text-amber-200/90 mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+                  <p className="text-[11px] text-amber-800/90 mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
                     {antiSnipeMsg}
                   </p>
                 )}
                 {token.description && (
-                  <p className="text-sm text-slate-400 mt-3 max-w-2xl leading-relaxed">
+                  <p className="text-sm text-[var(--ink-muted)] mt-3 max-w-2xl leading-relaxed">
                     {token.description}
                   </p>
                 )}
@@ -344,7 +344,7 @@ export default function TokenDetailPanel({
                   <button
                     type="button"
                     onClick={() => void copy(referralLink, "Referral link copied")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-200 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-800 hover:text-[var(--ink)]"
                   >
                     <Copy size={12} /> Referral link
                   </button>
@@ -357,7 +357,7 @@ export default function TokenDetailPanel({
                         "noopener,noreferrer"
                       )
                     }
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-white/10 text-[11px] font-bold text-slate-200 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--ink-soft)] hover:text-[var(--ink)]"
                   >
                     <Twitter size={12} /> X
                   </button>
@@ -392,7 +392,7 @@ export default function TokenDetailPanel({
                   <button
                     type="button"
                     onClick={() => void copy(token.address, "Contract address copied")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-300 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   >
                     <Copy size={12} /> Copy address
                   </button>
@@ -409,7 +409,7 @@ export default function TokenDetailPanel({
                       href={token.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-400 hover:text-white"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     >
                       <Globe size={12} /> Web
                     </a>
@@ -419,7 +419,7 @@ export default function TokenDetailPanel({
                       href={token.twitter}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-400 hover:text-white"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     >
                       <Twitter size={12} /> X
                     </a>
@@ -429,7 +429,7 @@ export default function TokenDetailPanel({
                       href={token.telegram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-400 hover:text-white"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     >
                       <MessageCircle size={12} /> TG
                     </a>
@@ -474,11 +474,11 @@ export default function TokenDetailPanel({
               ].map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5"
+                  className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5"
                 >
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">{s.label}</p>
-                  <p className="text-sm font-black text-white mt-0.5">{s.value}</p>
-                  {s.sub && <p className="text-[9px] text-slate-500 mt-0.5 truncate">{s.sub}</p>}
+                  <p className="text-[9px] font-bold text-[var(--ink-dim)] uppercase">{s.label}</p>
+                  <p className="text-sm font-black text-[var(--ink)] mt-0.5">{s.value}</p>
+                  {s.sub && <p className="text-[9px] text-[var(--ink-dim)] mt-0.5 truncate">{s.sub}</p>}
                 </div>
               ))}
             </div>
@@ -490,7 +490,7 @@ export default function TokenDetailPanel({
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 overflow-x-auto">
+      <div className="flex gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -499,7 +499,7 @@ export default function TokenDetailPanel({
             className={`flex-1 min-w-[88px] py-2.5 rounded-lg text-xs font-black transition-colors ${
               tab === t.id
                 ? "bg-[var(--accent-soft)] text-[var(--ink)] border border-[var(--accent)]"
-                : "text-slate-500 hover:text-slate-300"
+                : "text-[var(--ink-dim)] hover:text-[var(--ink-muted)]"
             }`}
           >
             {t.label}
@@ -537,7 +537,7 @@ export default function TokenDetailPanel({
                 swapsLoading={swaps.length === 0 && !swapsErr}
               />
             </div>
-            <p className="md:hidden text-center text-[11px] text-slate-500">
+            <p className="md:hidden text-center text-[11px] text-[var(--ink-dim)]">
               Open the <button type="button" className="text-[var(--ink)] font-bold" onClick={() => setTab("chart")}>Chart</button> tab for live price action.
             </p>
           </div>
@@ -553,23 +553,23 @@ export default function TokenDetailPanel({
           )}
 
           {tab === "transactions" && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                <p className="text-sm font-black text-white">Transactions</p>
-                <span className="text-[10px] text-slate-500">Recent pool swaps</span>
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                <p className="text-sm font-black text-[var(--ink)]">Transactions</p>
+                <span className="text-[10px] text-[var(--ink-dim)]">Recent pool swaps</span>
               </div>
               {swapsErr && (
                 <p className="text-[11px] text-rose-200 px-4 py-3">{swapsErr}</p>
               )}
               {swaps.length === 0 && !swapsErr ? (
-                <p className="text-sm text-slate-500 px-4 py-8 text-center">
+                <p className="text-sm text-[var(--ink-dim)] px-4 py-8 text-center">
                   No swaps yet — add liquidity and trade to populate this feed.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-[11px]">
                     <thead>
-                      <tr className="text-slate-500 border-b border-white/5">
+                      <tr className="text-[var(--ink-dim)] border-b border-[var(--border-subtle)]">
                         <th className="text-left font-bold py-3 px-4">Time</th>
                         <th className="text-left font-bold py-3 px-2">Type</th>
                         <th className="text-right font-bold py-3 px-2">Price</th>
@@ -590,32 +590,32 @@ export default function TokenDetailPanel({
                         return (
                           <tr
                             key={`${s.txHash || idx}`}
-                            className="border-t border-white/[0.04] hover:bg-white/[0.02]"
+                            className="border-t border-[var(--border-subtle)] hover:bg-[var(--surface)]"
                           >
-                            <td className="py-2.5 px-4 text-slate-400 whitespace-nowrap">
+                            <td className="py-2.5 px-4 text-[var(--ink-muted)] whitespace-nowrap">
                               {timeAgo(s.timestamp)}
                             </td>
                             <td
                               className={`py-2.5 px-2 font-black ${
-                                s.side === "buy" ? "text-emerald-300" : "text-rose-300"
+                                s.side === "buy" ? "text-emerald-700" : "text-rose-300"
                               }`}
                             >
                               {s.side === "buy" ? "Buy" : "Sell"}
                             </td>
-                            <td className="py-2.5 px-2 text-right text-slate-300">
+                            <td className="py-2.5 px-2 text-right text-[var(--ink-muted)]">
                               <div>{formatSubscriptPrice(price)}</div>
                               <div className="text-[9px] text-slate-600">
                                 {s.priceEth ? formatEth(s.priceEth) : "—"}
                               </div>
                             </td>
-                            <td className="py-2.5 px-2 text-right text-white font-mono">
+                            <td className="py-2.5 px-2 text-right text-[var(--ink)] font-mono">
                               {formatCompact(tokenAmt)} {token.symbol}
                             </td>
                             <td className="py-2.5 px-2 text-right">
-                              <div className="text-white font-mono">{formatEth(ethAmt)}</div>
-                              <div className="text-[9px] text-slate-500">{formatUsd(value)}</div>
+                              <div className="text-[var(--ink)] font-mono">{formatEth(ethAmt)}</div>
+                              <div className="text-[9px] text-[var(--ink-dim)]">{formatUsd(value)}</div>
                             </td>
-                            <td className="py-2.5 px-2 text-slate-400 font-mono">
+                            <td className="py-2.5 px-2 text-[var(--ink-muted)] font-mono">
                               {isAddressLike(s.trader) ? shortAddr(s.trader) : "—"}
                             </td>
                             <td className="py-2.5 px-4">
@@ -643,13 +643,13 @@ export default function TokenDetailPanel({
           )}
 
           {tab === "holders" && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-black text-white">Holders</p>
-                <div className="flex gap-3 text-[10px] text-slate-500">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-black text-[var(--ink)]">Holders</p>
+                <div className="flex gap-3 text-[10px] text-[var(--ink-dim)]">
                   <span>
                     Top 10:{" "}
-                    <span className="text-white font-bold">
+                    <span className="text-[var(--ink)] font-bold">
                       {top10Pct !== null ? `${top10Pct.toFixed(2)}%` : "—"}
                     </span>
                   </span>
@@ -657,17 +657,17 @@ export default function TokenDetailPanel({
                 </div>
               </div>
               {holdersErr && (
-                <p className="text-[11px] text-amber-200 px-4 py-3">{holdersErr}</p>
+                <p className="text-[11px] text-amber-800 px-4 py-3">{holdersErr}</p>
               )}
               {holders.length === 0 ? (
-                <p className="text-sm text-slate-500 px-4 py-8 text-center">
+                <p className="text-sm text-[var(--ink-dim)] px-4 py-8 text-center">
                   Holder list unavailable — upgrade BaseScan API tier or check back later.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-[11px]">
                     <thead>
-                      <tr className="text-slate-500 border-b border-white/5">
+                      <tr className="text-[var(--ink-dim)] border-b border-[var(--border-subtle)]">
                         <th className="text-left font-bold py-3 px-4">#</th>
                         <th className="text-left font-bold py-3 px-2">Holder</th>
                         <th className="text-right font-bold py-3 px-2">Balance</th>
@@ -680,9 +680,9 @@ export default function TokenDetailPanel({
                       {holders.map((h, i) => (
                         <tr
                           key={h.address}
-                          className="border-t border-white/[0.04] hover:bg-white/[0.02]"
+                          className="border-t border-[var(--border-subtle)] hover:bg-[var(--surface)]"
                         >
-                          <td className="py-2.5 px-4 text-slate-500">{i + 1}</td>
+                          <td className="py-2.5 px-4 text-[var(--ink-dim)]">{i + 1}</td>
                           <td className="py-2.5 px-2">
                             <a
                               href={`https://basescan.org/address/${h.address}`}
@@ -693,23 +693,23 @@ export default function TokenDetailPanel({
                               {shortAddr(h.address)}
                             </a>
                           </td>
-                          <td className="py-2.5 px-2 text-right text-white font-mono">
+                          <td className="py-2.5 px-2 text-right text-[var(--ink)] font-mono">
                             {formatCompact(h.balance)} {token.symbol}
                           </td>
                           <td className="py-2.5 px-2 text-right text-[var(--ink-muted)] font-bold">
                             {h.pctSupply.toFixed(2)}%
                           </td>
-                          <td className="py-2.5 px-2 text-right text-emerald-300/90">
+                          <td className="py-2.5 px-2 text-right text-emerald-700/90">
                             {formatUsd(h.valueUsd)}
                           </td>
                           <td className="py-2.5 px-4">
                             <span
                               className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
                                 h.tag === "Pool liquidity"
-                                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
+                                  ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/25"
                                   : h.tag === "Creator"
                                     ? "bg-[var(--bg-hover)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
-                                    : "bg-white/[0.06] text-slate-400 border border-white/10"
+                                    : "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
                               }`}
                             >
                               {h.tag}
@@ -734,10 +734,10 @@ export default function TokenDetailPanel({
                 />
               )}
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Shield size={16} className="text-[var(--ink-muted)]" />
-                  <p className="text-sm font-black text-white">Token facts</p>
+                  <p className="text-sm font-black text-[var(--ink)]">Token facts</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-[11px]">
                   {(appLaunch
@@ -761,9 +761,9 @@ export default function TokenDetailPanel({
                         ["Routing", "Uniswap + Aerodrome"],
                       ]
                   ).map(([k, v]) => (
-                    <div key={k} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                      <p className="text-slate-500">{k}</p>
-                      <p className="text-white font-mono mt-1 break-all">{v}</p>
+                    <div key={k} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
+                      <p className="text-[var(--ink-dim)]">{k}</p>
+                      <p className="text-[var(--ink)] font-mono mt-1 break-all">{v}</p>
                     </div>
                   ))}
                 </div>
@@ -801,36 +801,36 @@ export default function TokenDetailPanel({
                 </div>
               )}
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Lock size={16} className="text-slate-400" />
-                  <p className="text-sm font-black text-white">Disclosures</p>
+                  <Lock size={16} className="text-[var(--ink-muted)]" />
+                  <p className="text-sm font-black text-[var(--ink)]">Disclosures</p>
                 </div>
-                <ul className="space-y-2 text-[11px] text-slate-400">
+                <ul className="space-y-2 text-[11px] text-[var(--ink-muted)]">
                   <li>
-                    <span className="text-white font-bold">Immutable token</span> — no live admin by
+                    <span className="text-[var(--ink)] font-bold">Immutable token</span> — no live admin by
                     default. Metadata fixed at launch unless you opted in.
                   </li>
                   <li>
-                    <span className="text-white font-bold">Dual-DEX</span> — swaps route through
+                    <span className="text-[var(--ink)] font-bold">Dual-DEX</span> — swaps route through
                     Uniswap V3 or Aerodrome with auto best-quote.
                   </li>
                   <li>
-                    <span className="text-white font-bold">Liquidity</span> — add WETH pools on
+                    <span className="text-[var(--ink)] font-bold">Liquidity</span> — add WETH pools on
                     Uniswap or Aerodrome after launch to enable trading.
                   </li>
                   <li>
-                    <span className="text-white font-bold">Anti-snipe</span> — buys blocked via
+                    <span className="text-[var(--ink)] font-bold">Anti-snipe</span> — buys blocked via
                     Base Analytics for {token.antiSnipeBlocks ?? 8} blocks after pool opens. Direct
                     Uniswap/Aerodrome trades are not blocked.
                   </li>
                   <li>
-                    <span className="text-white font-bold">Referrals</span> — share your link to earn{" "}
+                    <span className="text-[var(--ink)] font-bold">Referrals</span> — share your link to earn{" "}
                     {feeShareLabels().referrer} of swap fees when others trade through the app.
                   </li>
                   {token.vestingSchedule && token.vestingSchedule.length > 0 && (
                     <li>
-                      <span className="text-white font-bold">Vested allocations</span> —{" "}
+                      <span className="text-[var(--ink)] font-bold">Vested allocations</span> —{" "}
                       {token.vestingSchedule.length} schedule(s) recorded; tokens stay unminted until
                       vault ships.
                     </li>

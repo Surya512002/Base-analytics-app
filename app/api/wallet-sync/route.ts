@@ -94,9 +94,10 @@ export async function GET(req: Request) {
     }
 
     // Short bursts so each poll returns a partial for *this* address quickly.
+    // Give Alchemy resume more room per burst (~35s) under the 95s handler wall.
     const syncBudget = Math.min(
-      22_000,
-      Math.max(8_000, handlerDeadline - Date.now() - 25_000)
+      40_000,
+      Math.max(12_000, handlerDeadline - Date.now() - 28_000)
     );
     const { transfers, state } = await runWalletSyncBurst(address, syncBudget);
 

@@ -35,10 +35,10 @@ export default function TokenWatchlistRail({
     >
       <div className="flex items-center gap-2 mb-3 px-1">
         <Star size={16} className="text-amber-400 fill-amber-400" />
-        <h3 className="text-sm font-black text-white">
+        <h3 className="text-sm font-black text-[var(--ink)]">
           {pinned ? "Pinned watchlist" : "Your watchlist"}
         </h3>
-        <span className="text-[10px] text-slate-500">{watched.length}</span>
+        <span className="text-[10px] text-[var(--ink-dim)]">{watched.length}</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {watched.map((t) => (

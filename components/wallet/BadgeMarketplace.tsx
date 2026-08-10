@@ -166,11 +166,11 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
       <div className="accent-bar" />
       <div className="px-5 py-4 border-b border-white/8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h3 className="text-sm font-black text-white flex items-center gap-2">
-            <Store size={16} className="text-white/60" />
+          <h3 className="text-sm font-black text-[var(--ink)] flex items-center gap-2">
+            <Store size={16} className="text-[var(--ink-muted)]" />
             Badge marketplace
           </h3>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[10px] text-[var(--ink-dim)]">
             Trade achievement NFTs · {BADGE_MARKETPLACE_CONTRACT ? "on-chain escrow" : "off-chain listings"}
           </p>
         </div>
@@ -189,7 +189,7 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
               className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${
                 panel === id
                   ? "tab-active"
-                  : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                  : "text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-[var(--bg-hover)]"
               }`}
             >
               <Icon size={11} /> {label}
@@ -210,10 +210,10 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
 
       <div className="p-4">
         {loading ? (
-          <div className="h-24 rounded-2xl bg-white/[0.03] animate-pulse" />
+          <div className="h-24 rounded-2xl bg-[var(--surface-2)] animate-pulse" />
         ) : panel === "browse" ? (
           onchainListings.length === 0 && listings.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">No badges listed yet.</p>
+            <p className="text-sm text-[var(--ink-dim)] text-center py-8">No badges listed yet.</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {onchainListings.map((l) => (
@@ -221,21 +221,21 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
                   key={`chain-${l.listingId}`}
                   className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4"
                 >
-                  <span className="text-[8px] font-black uppercase text-emerald-400">On-chain</span>
+                  <span className="text-[8px] font-black uppercase text-emerald-700">On-chain</span>
                   <div className="flex items-center gap-2 mb-2 mt-1">
                     <span className="text-xl">{l.tierIcon}</span>
                     <div>
-                      <p className="text-sm font-black text-white">{l.tierName}</p>
-                      <p className="text-[10px] text-slate-500">{l.catName}</p>
+                      <p className="text-sm font-black text-[var(--ink)]">{l.tierName}</p>
+                      <p className="text-[10px] text-[var(--ink-dim)]">{l.catName}</p>
                     </div>
                   </div>
-                  <p className="text-lg font-black text-emerald-300 font-mono">${l.priceUsdc}</p>
+                  <p className="text-lg font-black text-emerald-700 font-mono">${l.priceUsdc}</p>
                   {l.seller.toLowerCase() !== wallet.address.toLowerCase() && (
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void handleOnchainBuy(l.listingId, l.priceUsdc)}
-                      className="mt-3 text-[10px] font-black px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200"
+                      className="mt-3 text-[10px] font-black px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800"
                     >
                       Buy with USDC
                     </button>
@@ -245,17 +245,17 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
               {listings.map((l) => (
                 <div
                   key={l.id}
-                  className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">{l.tierIcon}</span>
                     <div>
-                      <p className="text-sm font-black text-white">{l.tierName}</p>
-                      <p className="text-[10px] text-slate-500">{l.catName}</p>
+                      <p className="text-sm font-black text-[var(--ink)]">{l.tierName}</p>
+                      <p className="text-[10px] text-[var(--ink-dim)]">{l.catName}</p>
                     </div>
                   </div>
-                  <p className="text-lg font-black text-emerald-300 font-mono">${l.priceUsdc}</p>
-                  <p className="text-[10px] text-slate-600 font-mono mt-1">
+                  <p className="text-lg font-black text-emerald-700 font-mono">${l.priceUsdc}</p>
+                  <p className="text-[10px] text-[var(--ink-dim)] font-mono mt-1">
                     #{l.tokenId} · {l.seller.slice(0, 8)}…
                   </p>
                   <div className="flex gap-2 mt-3">
@@ -263,7 +263,7 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
                       href={openSeaBadgeUrl(l.tokenId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-slate-400 hover:text-white inline-flex items-center gap-1"
+                      className="text-[10px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] inline-flex items-center gap-1"
                     >
                       OpenSea <ExternalLink size={10} />
                     </a>
@@ -274,26 +274,26 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
           )
         ) : panel === "owned" ? (
           owned.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">No badges in wallet yet — mint some above.</p>
+            <p className="text-sm text-[var(--ink-dim)] text-center py-8">No badges in wallet yet — mint some above.</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {owned.map((b) => (
                 <div
                   key={b.tokenId}
-                  className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{b.tierIcon}</span>
                     <div>
-                      <p className="text-sm font-black text-white">{b.tierName}</p>
-                      <p className="text-[10px] text-slate-500">{b.catName} · ×{b.balance}</p>
+                      <p className="text-sm font-black text-[var(--ink)]">{b.tierName}</p>
+                      <p className="text-[10px] text-[var(--ink-dim)]">{b.catName} · ×{b.balance}</p>
                     </div>
                   </div>
                   <a
                     href={openSeaBadgeUrl(b.tokenId)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex text-[10px] font-bold text-[#6BA3FF] hover:text-white items-center gap-1"
+                    className="mt-3 inline-flex text-[10px] font-bold text-[#6BA3FF] hover:text-[var(--ink)] items-center gap-1"
                   >
                     View on OpenSea <ExternalLink size={10} />
                   </a>
@@ -303,13 +303,13 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
           )
         ) : (
           <div className="max-w-md space-y-3">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase">
+            <label className="block text-[10px] font-bold text-[var(--ink-dim)] uppercase">
               Badge to sell
             </label>
             <select
               value={sellTokenId}
               onChange={(e) => setSellTokenId(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+              className="w-full input-ink rounded-xl px-3 py-2 text-sm"
             >
               <option value="">Select owned badge</option>
               {owned.map((b) => (
@@ -318,21 +318,21 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
                 </option>
               ))}
             </select>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase">
+            <label className="block text-[10px] font-bold text-[var(--ink-dim)] uppercase">
               Price (USDC)
             </label>
             <input
               type="text"
               value={sellPrice}
               onChange={(e) => setSellPrice(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm font-mono text-white"
+              className="w-full input-ink rounded-xl px-3 py-2 text-sm font-mono"
             />
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => void handleListOffchain()}
-                className="px-4 py-2 rounded-xl text-xs font-black bg-white/10 text-white hover:bg-white/15 disabled:opacity-40"
+                className="px-4 py-2 rounded-xl text-xs font-black border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--bg-hover)] disabled:opacity-40"
               >
                 List (catalog)
               </button>
@@ -348,7 +348,7 @@ export default function BadgeMarketplace({ app }: { app: WalletAppState }) {
               )}
             </div>
             {!BADGE_MARKETPLACE_CONTRACT && (
-              <p className="text-[10px] text-slate-600">
+              <p className="text-[10px] text-[var(--ink-dim)]">
                 Set <code className="text-slate-400">NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT</code> for
                 escrow trading.
               </p>

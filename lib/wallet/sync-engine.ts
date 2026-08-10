@@ -9,6 +9,8 @@ import {
   collectWalletSupplements,
 } from "@/lib/wallet/collect";
 import { fetchUserOperationActivityWithProgress } from "@/lib/api/user-operations";
+import { fetchAlchemyDirection } from "@/lib/api/alchemy";
+import { getAlchemyKey } from "@/lib/constants/env";
 import { mergeTransfers } from "@/lib/utils/wallet-activity";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import type { DayStats } from "@/lib/types/wallet";
@@ -29,6 +31,86 @@ export interface SyncBurstResult {
 
 function allV2Complete(states: Record<string, { complete: boolean }>): boolean {
   return V2_STREAMS.every((s) => states[s]?.complete);
+}
+
+function alchemyDone(state: StoredWalletHistory): boolean {
+  if (!getAlchemyKey()) return true;
+  return Boolean(state.alchemyOutComplete && state.alchemyInComplete);
+}
+
+async function advanceAlchemyScan(
+  address: string,
+  state: StoredWalletHistory,
+  budgetMs: number
+): Promise<{ state: StoredWalletHistory; legs: AlchemyTransfer[] }> {
+  if (!getAlchemyKey()) {
+    return {
+      state: {
+        ...state,
+        alchemyOutComplete: true,
+        alchemyInComplete: true,
+        alchemyOutPageKey: null,
+        alchemyInPageKey: null,
+      },
+      legs: [],
+    };
+  }
+  if (state.alchemyOutComplete && state.alchemyInComplete) {
+    return { state, legs: [] };
+  }
+
+  const half = Math.max(2_500, Math.floor(budgetMs / 2));
+
+  const jobs: Promise<{
+    transfers: AlchemyTransfer[];
+    complete: boolean;
+    pageKey: string | null;
+    field: "out" | "in";
+  }>[] = [];
+
+  if (!state.alchemyOutComplete) {
+    jobs.push(
+      fetchAlchemyDirection(address, "fromAddress", {
+        budgetMs: half,
+        maxPages: 40,
+        pageTimeoutMs: 3_500,
+        startPageKey: state.alchemyOutPageKey,
+      }).then((r) => ({ ...r, field: "out" as const }))
+    );
+  }
+  if (!state.alchemyInComplete) {
+    jobs.push(
+      fetchAlchemyDirection(address, "toAddress", {
+        budgetMs: half,
+        maxPages: 40,
+        pageTimeoutMs: 3_500,
+        startPageKey: state.alchemyInPageKey,
+      }).then((r) => ({ ...r, field: "in" as const }))
+    );
+  }
+
+  const results = await Promise.all(jobs);
+  const legs = mergeTransfers(results.map((r) => r.transfers));
+  let next = mergeActivityIntoState(state, legs, address);
+
+  for (const r of results) {
+    if (r.field === "out") {
+      next = {
+        ...next,
+        alchemyOutComplete: r.complete,
+        alchemyOutPageKey: r.complete ? null : r.pageKey,
+      };
+    } else {
+      next = {
+        ...next,
+        alchemyInComplete: r.complete,
+        alchemyInPageKey: r.complete ? null : r.pageKey,
+      };
+    }
+  }
+
+  await saveWalletHistory(address, next);
+  return { state: next, legs };
 }
 
 async function advanceAllV2StreamsSequential(
@@ -170,6 +252,10 @@ function emptyFromBoot(
     erc20LegCount: 0,
     userOpChunkCursor: 0,
     userOpsComplete: false,
+    alchemyOutComplete: false,
+    alchemyInComplete: false,
+    alchemyOutPageKey: null,
+    alchemyInPageKey: null,
     updatedAt: 0,
   };
 }
@@ -203,12 +289,32 @@ export async function runWalletSyncBurst(
     }
   }
 
-  if (state.historyComplete) {
+  if (state.historyComplete && alchemyDone(state)) {
     return { transfers: mergeTransfers([initTransfers, newLegs]), state };
+  }
+  // Prior soft-complete without Alchemy — keep refining.
+  if (state.historyComplete && !alchemyDone(state)) {
+    state = { ...state, historyComplete: false };
   }
 
   let idleRounds = 0;
   while (Date.now() < deadline) {
+    // Prefer Alchemy resume — oldest active days usually live on incomplete Alchemy pages.
+    if (!alchemyDone(state)) {
+      const remain = deadline - Date.now();
+      if (remain < 2_500) break;
+      const alc = await advanceAlchemyScan(
+        address,
+        state,
+        Math.min(16_000, remain - 1_000)
+      );
+      state = alc.state;
+      if (alc.legs.length) {
+        newLegs = mergeTransfers([newLegs, alc.legs]);
+        idleRounds = 0;
+      }
+    }
+
     if (!state.userOpsComplete) {
       const uop = await advanceUserOpScan(
         address,
@@ -222,7 +328,12 @@ export async function runWalletSyncBurst(
       }
     }
 
-    if (allV2Complete(state.v2StreamStates)) break;
+    if (allV2Complete(state.v2StreamStates)) {
+      // Keep looping for Alchemy/UserOps until wall if needed.
+      if (alchemyDone(state) && state.userOpsComplete) break;
+      if (Date.now() >= deadline) break;
+      continue;
+    }
 
     const daysBefore = uniqueDaysFromState(state);
     const advanced = await advanceAllV2StreamsSequential(address, state, deadline);
@@ -232,7 +343,8 @@ export async function runWalletSyncBurst(
       idleRounds = 0;
     } else {
       idleRounds++;
-      if (idleRounds >= 2) break;
+      // Idle break only when Alchemy already done — otherwise keep Alchemy resume.
+      if (idleRounds >= 3 && alchemyDone(state)) break;
     }
 
     if (uniqueDaysFromState(state) > daysBefore) {
@@ -246,7 +358,7 @@ export async function runWalletSyncBurst(
     if (!state.userOpsComplete && remaining() > 5_000) {
       const uop = await fetchUserOperationActivityWithProgress(address, {
         timeoutMs: Math.min(remaining() - 2_000, 12_000),
-        maxChunks: 8,
+        maxChunks: 12,
         startChunk: state.userOpChunkCursor ?? 0,
       });
       state = mergeActivityIntoState(state, uop.transfers, address);
@@ -270,31 +382,23 @@ export async function runWalletSyncBurst(
         v1SupplementFetched: true,
       };
     }
-
-    if (state.userOpsComplete) {
-      state = { ...state, historyComplete: true, userOpsFetched: true };
-      await saveWalletHistory(address, state);
-    }
   }
 
-  // Soft-complete: address index is dense enough for accurate score/heatmap.
-  // Deeper genesis UserOp scans are not worth multi-minute wall time.
-  if (!state.historyComplete) {
-    const days = uniqueDaysFromState(state);
-    const v2Done = allV2Complete(state.v2StreamStates);
-    const softDone =
-      (v2Done && (state.userOpsComplete || (state.userOpChunkCursor ?? 0) >= 10)) ||
-      (days >= 40 && v2Done) ||
-      (days >= 20 && idleRounds >= 2 && (state.userOpChunkCursor ?? 0) >= 6);
-    if (softDone) {
-      state = {
-        ...state,
-        historyComplete: true,
-        userOpsFetched: true,
-        userOpsComplete: state.userOpsComplete || (state.userOpChunkCursor ?? 0) >= 10,
-      };
-      await saveWalletHistory(address, state);
-    }
+  // Complete only when indexes are exhausted — never by day-count soft cuts.
+  if (
+    !state.historyComplete &&
+    alchemyDone(state) &&
+    allV2Complete(state.v2StreamStates) &&
+    state.userOpsComplete
+  ) {
+    state = {
+      ...state,
+      historyComplete: true,
+      userOpsFetched: true,
+    };
+    await saveWalletHistory(address, state);
+  } else if (!state.historyComplete) {
+    await saveWalletHistory(address, state);
   }
 
   return {

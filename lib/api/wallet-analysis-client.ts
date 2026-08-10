@@ -73,8 +73,8 @@ export async function fetchWalletAnalysis(
   if (refresh) qs.set("refresh", "1");
   return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
     `/api/analyze-wallet?${qs.toString()}`,
-    // Cache miss needs room for Alchemy full-page walk (~14s) + score compute.
-    refresh ? 75_000 : 45_000,
+    // Cache miss needs room for Alchemy full-page walk + score compute.
+    refresh ? 95_000 : 55_000,
     2,
     address
   );
@@ -107,7 +107,10 @@ export async function fetchWalletAnalysisQuick(
   );
 }
 
-/** Server-side history refine — address-only pagination until complete or plateau. */
+/**
+ * Background history refine until the *server* reports historyComplete.
+ * Never soft-completes on day plateaus (that dropped older heatmap days).
+ */
 export async function pollWalletHistorySync(
   address: string,
   callbacks: {
@@ -119,8 +122,7 @@ export async function pollWalletHistorySync(
 ): Promise<boolean> {
   const addr = address.toLowerCase();
   let attempts = 0;
-  // Fewer rounds + longer gaps = less Vercel function time after first usable score.
-  const maxAttempts = 10;
+  const maxAttempts = 48;
   let lastDays = -1;
   let plateauPasses = 0;
   const short = `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -131,8 +133,8 @@ export async function pollWalletHistorySync(
 
     callbacks.onProgress?.(
       attempts === 1
-        ? `Collecting activity for ${short} only…`
-        : `Refining ${short}… (pass ${attempts}/${maxAttempts})`
+        ? `Collecting full history for ${short}…`
+        : `Indexing ${short}… (pass ${attempts}/${maxAttempts})`
     );
 
     try {
@@ -144,12 +146,15 @@ export async function pollWalletHistorySync(
           partial?: boolean;
           sync?: { complete?: boolean; uniqueDays?: number };
         }
-      >(`/api/wallet-sync?${qs.toString()}`, 55_000, 1, addr);
+      >(`/api/wallet-sync?${qs.toString()}`, 95_000, 1, addr);
       if (!data) break;
+
+      const complete =
+        data.historyComplete === true || data.sync?.complete === true;
 
       callbacks.onUpdate({
         ...data,
-        historyComplete: data.historyComplete ?? data.sync?.complete,
+        historyComplete: complete,
       });
 
       const days =
@@ -160,7 +165,7 @@ export async function pollWalletHistorySync(
           : `Indexing transfers for ${short}…`
       );
 
-      if (data.historyComplete === true || data.sync?.complete === true) {
+      if (complete) {
         callbacks.onProgress?.(
           `Ready — ${data.wallet?.uniqueDays ?? days} active days for ${short}`
         );
@@ -173,26 +178,19 @@ export async function pollWalletHistorySync(
         plateauPasses = 0;
         lastDays = days;
       }
-      // Soft-complete earlier once the score is already usable.
-      if (attempts >= 3 && plateauPasses >= 2 && days >= 5) {
+      if (plateauPasses >= 4 && days > 0) {
         callbacks.onProgress?.(
-          `Stable at ${days} active days — background refine finished`
+          `Still refining ${short} (${days} days so far)…`
         );
-        return true;
-      }
-      if (attempts >= 5 && days >= 14) {
-        callbacks.onProgress?.(
-          `Enough history for score (${days} days) — refine finished`
-        );
-        return true;
       }
 
-      await sleep(1_200);
+      await sleep(800);
     } catch {
-      await sleep(2_000);
+      await sleep(1_500);
     }
   }
 
+  // Hard cap without server complete — leave history incomplete for next open.
   return false;
 }
 

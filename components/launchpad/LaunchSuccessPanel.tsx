@@ -44,14 +44,14 @@ export default function LaunchSuccessPanel({
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 mb-3">
           <CheckCircle2 className="text-emerald-400" size={28} />
         </div>
-        <h2 className="text-2xl font-black text-white">${token.symbol} is live</h2>
-        <p className="text-sm text-slate-400 mt-1">{token.name} deployed on Base</p>
+        <h2 className="text-2xl font-black text-[var(--ink)]">${token.symbol} is live</h2>
+        <p className="text-sm text-[var(--ink-muted)] mt-1">{token.name} deployed on Base</p>
       </div>
 
       <div className="glass-panel rounded-3xl overflow-hidden border border-emerald-500/20">
         <div className="h-0.5 bg-[var(--bg-raised)]" />
         <div className="p-6 flex flex-col sm:flex-row gap-5 items-center sm:items-start">
-          <div className="w-24 h-24 rounded-2xl border border-white/10 bg-white/[0.06] overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="w-24 h-24 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden shrink-0 flex items-center justify-center">
             {token.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={token.imageUrl} alt="" className="w-full h-full object-cover" />
@@ -60,10 +60,10 @@ export default function LaunchSuccessPanel({
             )}
           </div>
           <div className="flex-1 text-center sm:text-left min-w-0">
-            <p className="font-black text-white text-xl">{token.name}</p>
+            <p className="font-black text-[var(--ink)] text-xl">{token.name}</p>
             <p className="text-[var(--ink-muted)] font-bold text-lg">${token.symbol}</p>
             {token.description && (
-              <p className="text-sm text-slate-400 mt-2">{token.description}</p>
+              <p className="text-sm text-[var(--ink-muted)] mt-2">{token.description}</p>
             )}
             <div className="mt-3 space-y-2">
               {addressLooksWrong && (
@@ -73,7 +73,7 @@ export default function LaunchSuccessPanel({
                 </p>
               )}
               <p
-                className="font-mono text-xs sm:text-sm text-white break-all select-all leading-relaxed rounded-xl border border-white/10 bg-black/30 px-3 py-2.5"
+                className="font-mono text-xs sm:text-sm text-[var(--ink)] break-all select-all leading-relaxed rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5"
                 title={token.address}
               >
                 {token.address}
@@ -82,7 +82,7 @@ export default function LaunchSuccessPanel({
                 <button
                   type="button"
                   onClick={() => void copyAddr()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-300 hover:text-white"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                 >
                   <Copy size={12} />
                   {copied ? "Copied!" : "Copy contract address"}
@@ -91,7 +91,7 @@ export default function LaunchSuccessPanel({
                   href={tokenUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-[var(--ink)] hover:text-white"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink)] hover:text-[var(--ink)]"
                 >
                   Token on BaseScan <ExternalLink size={12} />
                 </a>
@@ -100,7 +100,7 @@ export default function LaunchSuccessPanel({
                     href={txUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-slate-400 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   >
                     Launch tx <ExternalLink size={12} />
                   </a>
@@ -122,7 +122,7 @@ export default function LaunchSuccessPanel({
         <button
           type="button"
           onClick={onExplore}
-          className="py-3.5 rounded-xl font-black text-sm bg-white/[0.06] border border-white/10 text-white hover:bg-white/[0.1]"
+          className="py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)]"
         >
           Back to explore
         </button>
@@ -143,8 +143,8 @@ export default function LaunchSuccessPanel({
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-        <p className="text-center text-[11px] text-slate-400">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-3">
+        <p className="text-center text-[11px] text-[var(--ink-muted)]">
           Add WETH liquidity to enable swaps in the Trade panel. Auto mode picks the best quote
           between Uniswap and Aerodrome.
         </p>

@@ -38,7 +38,7 @@ export default function ImportTokenBar({
   };
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)] p-4">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] p-4">
       <div className="flex items-center gap-2 mb-1.5">
         <Search size={14} className="text-[var(--ink-dim)]" />
         <p className="text-[13px] font-semibold text-[var(--ink)]">Trade any Base token</p>
@@ -56,7 +56,7 @@ export default function ImportTokenBar({
             if (e.key === "Enter") void submit();
           }}
           placeholder="0x… contract address"
-          className="flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2.5 text-[13px] font-mono text-[var(--ink)] placeholder:text-[var(--ink-dim)] focus:outline-none focus:border-white/25"
+          className="flex-1 input-ink rounded-lg px-3 py-2.5 text-[13px] font-mono"
         />
         <button
           type="button"

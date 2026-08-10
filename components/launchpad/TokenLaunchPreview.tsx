@@ -36,7 +36,7 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
           </p>
 
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl border border-white/10 bg-white/[0.06] overflow-hidden shrink-0 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden shrink-0 flex items-center justify-center">
               {data.imagePreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={data.imagePreview} alt="" className="w-full h-full object-cover" />
@@ -47,11 +47,11 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-black text-white text-xl truncate">{displayName}</h3>
+              <h3 className="font-black text-[var(--ink)] text-xl truncate">{displayName}</h3>
               <p className="text-[var(--ink-muted)] font-bold">${displaySymbol}</p>
-              <p className="text-[10px] text-slate-500 mt-1">Quote: {data.quoteToken ?? "ETH"}</p>
+              <p className="text-[10px] text-[var(--ink-dim)] mt-1">Quote: {data.quoteToken ?? "ETH"}</p>
               {data.description.trim() ? (
-                <p className="text-xs text-slate-400 mt-2 line-clamp-3">{data.description}</p>
+                <p className="text-xs text-[var(--ink-muted)] mt-2 line-clamp-3">{data.description}</p>
               ) : (
                 <p className="text-xs text-slate-600 mt-2 italic">What is this token about?</p>
               )}
@@ -60,12 +60,12 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
 
           <div className="flex gap-2 mt-3">
             {data.website.trim() && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-dim)]">
                 <Globe size={10} /> Website
               </span>
             )}
             {data.twitter.trim() && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[var(--ink-dim)]">
                 <Twitter size={10} /> X
               </span>
             )}
@@ -73,41 +73,41 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-2 text-[11px]">
-        <p className="text-[10px] font-bold text-slate-500 uppercase">Launch summary</p>
-        <div className="flex justify-between text-slate-400">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2 text-[11px]">
+        <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Launch summary</p>
+        <div className="flex justify-between text-[var(--ink-muted)]">
           <span>Fixed supply</span>
-          <span className="text-white font-mono">{data.supplyCap}</span>
+          <span className="text-[var(--ink)] font-mono">{data.supplyCap}</span>
         </div>
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between text-[var(--ink-muted)]">
           <span>Creator wallet</span>
           <span className="text-[var(--ink-muted)] font-mono">
             {data.walletPct}% · {data.mintAmount}
           </span>
         </div>
         {data.poolPct !== undefined && (
-          <div className="flex justify-between text-slate-400">
+          <div className="flex justify-between text-[var(--ink-muted)]">
             <span>Pool seed reserve</span>
-            <span className="text-emerald-300/90 font-mono">{data.poolPct}%</span>
+            <span className="text-emerald-700/90 font-mono">{data.poolPct}%</span>
           </div>
         )}
         {(data.vestedPct ?? 0) > 0 && (
-          <div className="flex justify-between text-slate-400">
+          <div className="flex justify-between text-[var(--ink-muted)]">
             <span>Vested (unminted)</span>
             <span className="text-[var(--ink-muted)] font-mono">{data.vestedPct}%</span>
           </div>
         )}
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between text-[var(--ink-muted)]">
           <span>Vanity address</span>
-          <span className="text-white font-mono">{shortAddr(data.predictedAddress)}</span>
+          <span className="text-[var(--ink)] font-mono">{shortAddr(data.predictedAddress)}</span>
         </div>
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between text-[var(--ink-muted)]">
           <span>Admin</span>
-          <span className="text-emerald-400">Renounced</span>
+          <span className="text-emerald-600">Renounced</span>
         </div>
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between text-[var(--ink-muted)]">
           <span>Standard</span>
-          <span className="text-emerald-400">B20 · Base</span>
+          <span className="text-emerald-600">B20 · Base</span>
         </div>
       </div>
     </div>

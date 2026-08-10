@@ -249,6 +249,80 @@ export interface AlchemyWalletFetchResult {
   outComplete: boolean;
   /** Incoming pagination exhausted. */
   inComplete: boolean;
+  /** Resume cursor when outIncomplete. */
+  outPageKey: string | null;
+  /** Resume cursor when inIncomplete. */
+  inPageKey: string | null;
+}
+
+/**
+ * Paginate one Alchemy address direction until empty, budget, or max pages.
+ * Used for connect fetch and background resume.
+ */
+export async function fetchAlchemyDirection(
+  address: string,
+  addressField: AddressField,
+  options: {
+    budgetMs?: number;
+    maxPages?: number;
+    pageTimeoutMs?: number;
+    startPageKey?: string | null;
+  } = {}
+): Promise<{
+  transfers: AlchemyTransfer[];
+  complete: boolean;
+  pageKey: string | null;
+}> {
+  const key = getAlchemyKey();
+  if (!key) {
+    return { transfers: [], complete: false, pageKey: options.startPageKey ?? null };
+  }
+
+  const budgetMs = options.budgetMs ?? 12_000;
+  const maxPages = options.maxPages ?? 40;
+  const pageTimeoutMs = options.pageTimeoutMs ?? 3_500;
+  const deadline = Date.now() + budgetMs;
+  const rpc = alchemyRpcForKey(key);
+  const addr = address.toLowerCase();
+
+  const all: AlchemyTransfer[] = [];
+  let pageKey: string | undefined = options.startPageKey ?? undefined;
+  // When resuming, startPageKey is the *next* page to fetch.
+  for (let page = 1; page <= maxPages; page++) {
+    if (Date.now() >= deadline) {
+      return {
+        transfers: all,
+        complete: false,
+        pageKey: pageKey ?? null,
+      };
+    }
+    const remain = Math.max(600, Math.min(pageTimeoutMs, deadline - Date.now()));
+    const res = await fetchAssetTransferPage(
+      rpc,
+      addressField,
+      addr,
+      CONNECT_CATEGORIES,
+      pageKey,
+      remain
+    );
+    all.push(...res.transfers);
+    if (res.quotaExceeded) {
+      return {
+        transfers: all,
+        complete: false,
+        pageKey: res.pageKey ?? pageKey ?? null,
+      };
+    }
+    if (!res.pageKey || res.transfers.length === 0) {
+      return { transfers: all, complete: true, pageKey: null };
+    }
+    pageKey = res.pageKey;
+  }
+  return {
+    transfers: all,
+    complete: false,
+    pageKey: pageKey ?? null,
+  };
 }
 
 /**
@@ -261,59 +335,48 @@ export async function fetchAlchemyWalletComplete(
     budgetMs?: number;
     maxPagesPerDirection?: number;
     pageTimeoutMs?: number;
+    outPageKey?: string | null;
+    inPageKey?: string | null;
   } = {}
 ): Promise<AlchemyWalletFetchResult> {
   const key = getAlchemyKey();
   if (!key) {
-    return { transfers: [], outComplete: false, inComplete: false };
+    return {
+      transfers: [],
+      outComplete: false,
+      inComplete: false,
+      outPageKey: null,
+      inPageKey: null,
+    };
   }
 
-  const budgetMs = options.budgetMs ?? 14_000;
+  const budgetMs = options.budgetMs ?? 28_000;
   const maxPages = options.maxPagesPerDirection ?? 100;
   const pageTimeoutMs = options.pageTimeoutMs ?? 3_500;
-  const deadline = Date.now() + budgetMs;
-  const rpc = alchemyRpcForKey(key);
-  const addr = address.toLowerCase();
-
-  async function paginate(
-    addressField: AddressField
-  ): Promise<{ transfers: AlchemyTransfer[]; complete: boolean }> {
-    const all: AlchemyTransfer[] = [];
-    let pageKey: string | undefined;
-    for (let page = 1; page <= maxPages; page++) {
-      if (Date.now() >= deadline) {
-        return { transfers: all, complete: false };
-      }
-      const remain = Math.max(600, Math.min(pageTimeoutMs, deadline - Date.now()));
-      const res = await fetchAssetTransferPage(
-        rpc,
-        addressField,
-        addr,
-        CONNECT_CATEGORIES,
-        pageKey,
-        remain
-      );
-      all.push(...res.transfers);
-      if (res.quotaExceeded) {
-        return { transfers: all, complete: false };
-      }
-      if (!res.pageKey || res.transfers.length === 0) {
-        return { transfers: all, complete: true };
-      }
-      pageKey = res.pageKey;
-    }
-    return { transfers: all, complete: false };
-  }
+  // Give each direction half the wall (parallel).
+  const half = Math.max(4_000, Math.floor(budgetMs / 2));
 
   const [out, inn] = await Promise.all([
-    paginate("fromAddress"),
-    paginate("toAddress"),
+    fetchAlchemyDirection(address, "fromAddress", {
+      budgetMs: half,
+      maxPages,
+      pageTimeoutMs,
+      startPageKey: options.outPageKey,
+    }),
+    fetchAlchemyDirection(address, "toAddress", {
+      budgetMs: half,
+      maxPages,
+      pageTimeoutMs,
+      startPageKey: options.inPageKey,
+    }),
   ]);
 
   return {
     transfers: mergeTransfers([out.transfers, inn.transfers]),
     outComplete: out.complete,
     inComplete: inn.complete,
+    outPageKey: out.pageKey,
+    inPageKey: inn.pageKey,
   };
 }
 

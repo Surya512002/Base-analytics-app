@@ -4,7 +4,7 @@
  * never pauses the deployment.
  */
 
-const FRESH_PREFIX = "ba_analysis_fresh_v1_";
+const FRESH_PREFIX = "ba_analysis_fresh_v2_";
 /** Reuse score for this long before a background re-scan (4 hours). */
 export const ANALYSIS_FRESH_MS = 4 * 60 * 60 * 1000;
 /** History refine can be skipped this long after we marked it complete. */
@@ -83,21 +83,18 @@ export function isAnalysisFresh(
   return Date.now() - f.updatedAt < maxAgeMs;
 }
 
-/** Skip wallet-sync polls for a while after any successful score/refine. */
+/** Skip wallet-sync only after server-confirmed full history is still warm. */
 export function isHistorySyncFresh(
   address: string,
   maxAgeMs = HISTORY_COMPLETE_FRESH_MS
 ): boolean {
   const f = readAnalysisFreshness(address);
-  if (!f || f.score <= 0) return false;
-  if (Date.now() - f.updatedAt >= maxAgeMs) return false;
-  // Full complete, or score warm enough that we already refined this session window.
-  return true;
+  if (!f || f.score <= 0 || !f.historyComplete) return false;
+  return Date.now() - f.updatedAt < maxAgeMs;
 }
 
 /**
- * Background open: skip expensive re-index when local score is still warm.
- * (History soft-completes within the same freshness window.)
+ * Background open: skip re-index only when score is warm *and* history was fully completed.
  */
 export function shouldSkipBackgroundRescan(address: string): boolean {
   return isAnalysisFresh(address) && isHistorySyncFresh(address);

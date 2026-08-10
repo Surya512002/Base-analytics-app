@@ -59,10 +59,10 @@ export default function TokenAnnouncementsPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-5">
       <div className="flex items-center gap-2 mb-4">
         <Megaphone size={16} className="text-[var(--ink-muted)]" />
-        <p className="text-sm font-black text-white">Creator announcements</p>
+        <p className="text-sm font-black text-[var(--ink)]">Creator announcements</p>
       </div>
 
       {isCreator && (
@@ -72,10 +72,10 @@ export default function TokenAnnouncementsPanel({
             onChange={(e) => setBody(e.target.value.slice(0, 500))}
             placeholder="Share an update with your community…"
             rows={3}
-            className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)] resize-none"
+            className="w-full input-ink rounded-xl px-3 py-2.5 text-sm resize-none"
           />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-500">{body.length}/500</span>
+            <span className="text-[10px] text-[var(--ink-dim)]">{body.length}/500</span>
             <button
               type="button"
               onClick={() => void onPost()}
@@ -90,9 +90,9 @@ export default function TokenAnnouncementsPanel({
       )}
 
       {loading ? (
-        <p className="text-[11px] text-slate-500">Loading announcements…</p>
+        <p className="text-[11px] text-[var(--ink-dim)]">Loading announcements…</p>
       ) : announcements.length === 0 ? (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-[var(--ink-dim)]">
           {isCreator
             ? "No announcements yet — post your first update above."
             : "No announcements from the creator yet."}
@@ -102,12 +102,12 @@ export default function TokenAnnouncementsPanel({
           {announcements.map((a) => (
             <li
               key={a.id}
-              className="rounded-xl border border-white/10 bg-black/20 px-4 py-3"
+              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-4 py-3"
             >
-              <p className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed whitespace-pre-wrap">
                 {a.body}
               </p>
-              <p className="text-[9px] text-slate-500 mt-2">{timeAgo(a.createdAt)}</p>
+              <p className="text-[9px] text-[var(--ink-dim)] mt-2">{timeAgo(a.createdAt)}</p>
             </li>
           ))}
         </ul>

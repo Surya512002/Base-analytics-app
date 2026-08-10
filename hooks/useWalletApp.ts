@@ -2316,6 +2316,7 @@ function useWalletAppController() {
         )
           .then((ok) => {
             if (historySyncGen.current !== gen) return;
+            // Only stamp complete when server finished all indexes (Alchemy + v2 + UserOps).
             if (ok) {
               historyCompleteRef.current = true;
               setWallet((prev) => {
@@ -2386,16 +2387,13 @@ function useWalletAppController() {
         }
         if (
           !forceRefresh &&
-          (result.historyComplete === true || isHistorySyncFresh(address))
+          result.historyComplete === true &&
+          isHistorySyncFresh(address)
         ) {
           historyCompleteRef.current = true;
           pendingHistorySyncRef.current = null;
           writeWalletCache(address, { ...result, historyComplete: true }, true);
-          if (
-            result.historyComplete === true &&
-            !syncCompleteToastRef.current &&
-            !background
-          ) {
+          if (!syncCompleteToastRef.current && !background) {
             syncCompleteToastRef.current = true;
             showToast("✓ Full history synced — heatmap is up to date", "");
           }

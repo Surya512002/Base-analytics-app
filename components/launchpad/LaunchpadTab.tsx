@@ -449,7 +449,7 @@ export default function LaunchpadTab({
         <button
           type="button"
           onClick={goExplore}
-          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--ink)] hover:text-white"
+          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--ink)] hover:text-[var(--ink)]"
         >
           <ArrowLeft size={16} /> Back to explore
         </button>
@@ -561,7 +561,7 @@ export default function LaunchpadTab({
               Base ecosystem tokens with live liquidity on Uniswap &amp; Aerodrome.
             </p>
 
-            <div className="flex gap-x-3 sm:gap-x-4 gap-y-1 overflow-x-auto no-scrollbar touch-scroll-x border-b border-white/[0.08] -mx-1 px-1">
+            <div className="flex gap-x-3 sm:gap-x-4 gap-y-1 overflow-x-auto no-scrollbar touch-scroll-x border-b border-[var(--border-subtle)] -mx-1 px-1">
               {(
                 [
                   { id: "all" as const, label: "All" },
@@ -591,7 +591,7 @@ export default function LaunchpadTab({
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-52 rounded-xl bg-[var(--bg-raised)] animate-pulse border border-white/[0.06]"
+                    className="h-52 rounded-xl bg-[var(--bg-raised)] animate-pulse border border-[var(--border-subtle)]"
                   />
                 ))}
               </div>
@@ -617,7 +617,7 @@ export default function LaunchpadTab({
             )}
 
             {!initialLoading && filtered.length === 0 && filter !== "all" && (
-              <p className="text-center text-sm text-slate-500 py-8">
+              <p className="text-center text-sm text-[var(--ink-dim)] py-8">
                 No tokens match this filter yet. Launch the first one on Base.
               </p>
             )}

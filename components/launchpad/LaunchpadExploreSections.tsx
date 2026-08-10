@@ -26,7 +26,7 @@ export default function LaunchpadExploreSections({
   if (movers.length === 0) {
     if (syncing) {
       return (
-        <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)]/40 h-40 animate-pulse" />
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-raised)]/40 h-40 animate-pulse" />
       );
     }
     return null;
@@ -36,7 +36,7 @@ export default function LaunchpadExploreSections({
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="section-eyebrow mb-1 inline-flex items-center gap-1.5 text-emerald-300/90">
+          <p className="section-eyebrow mb-1 inline-flex items-center gap-1.5 text-emerald-700/90">
             <TrendingUp size={12} />
             24h gainers · Base network
           </p>

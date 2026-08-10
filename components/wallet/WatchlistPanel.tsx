@@ -70,7 +70,7 @@ export default function WatchlistPanel({ myAddress }: WatchlistPanelProps) {
           }}
           onKeyDown={(e) => e.key === "Enter" && add()}
           placeholder="0x…"
-          className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-[var(--border-focus)]"
+          className="flex-1 input-ink rounded-xl px-3 py-2 text-xs font-mono"
         />
         <button
           type="button"

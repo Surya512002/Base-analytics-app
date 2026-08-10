@@ -22,16 +22,16 @@ export default function TokenChartPanel({
 
     return (
       <div className="space-y-3">
-        <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/[0.02]">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--surface)]">
+            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-dim)]">
               Live chart · DexScreener
             </p>
             <a
               href={page}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] font-bold text-[var(--ink)] hover:text-white inline-flex items-center gap-1"
+              className="text-[10px] font-bold text-[var(--ink)] hover:text-[var(--ink)] inline-flex items-center gap-1"
             >
               Open full <ExternalLink size={10} />
             </a>

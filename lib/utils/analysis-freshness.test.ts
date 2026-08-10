@@ -67,7 +67,8 @@ describe("analysis-freshness", () => {
       txCount: 50,
     });
     expect(isAnalysisFresh(ADDR)).toBe(true);
-    expect(shouldSkipBackgroundRescan(ADDR)).toBe(true);
+    // Incomplete history must continue refining on reopen.
+    expect(shouldSkipBackgroundRescan(ADDR)).toBe(false);
   });
 
   it("respects max age", () => {

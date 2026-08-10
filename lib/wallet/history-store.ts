@@ -11,7 +11,8 @@ import path from "path";
 
 const TTL_SECONDS = 86_400;
 const TTL_COMPLETE_SECONDS = 604_800;
-const KEY_PREFIX = "wallet-hist:v9";
+/** v10: Alchemy resume cursors + no false historyComplete soft-cuts. */
+const KEY_PREFIX = "wallet-hist:v10";
 const FILE_CACHE_DIR = path.join(process.cwd(), ".cache", "wallet-history");
 
 /** In-process fallback when Redis is unavailable — keeps activity days across connects. */
@@ -78,6 +79,11 @@ export interface StoredWalletHistory {
   /** Progressive ERC-4337 scan cursor (chunk index from latest). */
   userOpChunkCursor: number;
   userOpsComplete: boolean;
+  /** Alchemy fromAddress pagination. */
+  alchemyOutComplete: boolean;
+  alchemyInComplete: boolean;
+  alchemyOutPageKey: string | null;
+  alchemyInPageKey: string | null;
 }
 
 function keyFor(address: string): string {
@@ -103,6 +109,10 @@ export function emptyHistoryState(): StoredWalletHistory {
     updatedAt: 0,
     userOpChunkCursor: 0,
     userOpsComplete: false,
+    alchemyOutComplete: false,
+    alchemyInComplete: false,
+    alchemyOutPageKey: null,
+    alchemyInPageKey: null,
   };
 }
 
@@ -128,7 +138,22 @@ export async function loadOrEmptyHistory(
       ...emptyHistoryState(),
       ...richest,
       dayTxKeys: richest.dayTxKeys ?? [],
+      alchemyOutComplete: richest.alchemyOutComplete ?? false,
+      alchemyInComplete: richest.alchemyInComplete ?? false,
+      alchemyOutPageKey: richest.alchemyOutPageKey ?? null,
+      alchemyInPageKey: richest.alchemyInPageKey ?? null,
     };
+    // Never treat day-count soft-complete as finished if Alchemy never exhausted.
+    if (
+      merged.historyComplete &&
+      !merged.alchemyOutComplete &&
+      !merged.alchemyInComplete &&
+      (merged.alchemyOutPageKey ||
+        merged.alchemyInPageKey ||
+        Object.keys(merged.tpd).length < 90)
+    ) {
+      merged.historyComplete = false;
+    }
     memHistory.set(k, merged);
     return merged;
   }

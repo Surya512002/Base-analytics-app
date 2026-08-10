@@ -32,11 +32,11 @@ export default function VanityAddressCard({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold text-slate-500 uppercase">Vanity address</p>
-          <p className="font-mono text-xs sm:text-sm text-white break-all select-all leading-relaxed">
+          <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Vanity address</p>
+          <p className="font-mono text-xs sm:text-sm text-[var(--ink)] break-all select-all leading-relaxed">
             {address ?? shortVanityAddress(address)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">
+          <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">
             {grinding
               ? "Searching for a clean 0xB200… address…"
               : attempts > 0
@@ -50,7 +50,7 @@ export default function VanityAddressCard({
           <button
             type="button"
             onClick={() => void copyAddress()}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold border border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.06]"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]"
           >
             <Copy size={14} />
             {copied ? "Copied" : "Copy"}
@@ -60,7 +60,7 @@ export default function VanityAddressCard({
           type="button"
           onClick={onRefresh}
           disabled={grinding}
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold border border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.06] disabled:opacity-40"
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] disabled:opacity-40"
         >
           {grinding ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
           Refresh
