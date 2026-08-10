@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Prefer production when crawling; previews are dynamic.
+# (Production still works for link previews / Base mini-app.)
+Sitemap: /sitemap.xml

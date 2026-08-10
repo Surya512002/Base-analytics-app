@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, createContex
 import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
-import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
+import { fetchWalletAnalysis, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
@@ -21,7 +21,16 @@ import {
   readLocalCheckInToday,
   recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
-import { clearWalletCache } from "@/lib/utils/wallet-cache";
+import {
+  clearWalletCache,
+  readWalletCacheAny,
+  writeWalletCache,
+} from "@/lib/utils/wallet-cache";
+import {
+  clearAnalysisFreshness,
+  isHistorySyncFresh,
+  shouldSkipBackgroundRescan,
+} from "@/lib/utils/analysis-freshness";
 import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
@@ -534,8 +543,17 @@ function useWalletAppController() {
         loadX402PremiumState(address);
         setMintedLevels(readPersistedMintedLevels(address));
 
+        const unlocked = readAnalyticsUnlocked(address);
+        const localPack = unlocked ? readWalletCacheAny(address) : null;
+        const canSkipRescan =
+          unlocked &&
+          Boolean(localPack) &&
+          shouldSkipBackgroundRescan(address);
+
         const shell = buildPendingWalletShell(address);
-        historyCompleteRef.current = false;
+        historyCompleteRef.current = Boolean(
+          localPack?.complete || localPack?.result.historyComplete
+        );
         syncCompleteToastRef.current = false;
         pendingHistorySyncRef.current = null;
         historySyncRunningRef.current = false;
@@ -544,45 +562,100 @@ function useWalletAppController() {
         const resumeGen = walletOpGenRef.current;
         balancesLockedRef.current = null;
         setWalletCore(null);
-        setWallet(shell);
-        setWalletRefreshing(true);
+
+        if (localPack?.result.wallet) {
+          const cachedW = localPack.result.wallet;
+          setWallet(mergeWalletMetricsMax(shell, cachedW));
+          lockWalletCore(mergeWalletMetricsMax(shell, cachedW));
+          setWalletRefreshing(false);
+          setAnalyticsSyncing(false);
+          setScanProgress("");
+        } else {
+          setWallet(shell);
+          setWalletRefreshing(true);
+        }
         void refreshSiweSession();
 
+        // Cost guard: warm local score + history → no analyze / no wallet-sync.
+        if (canSkipRescan && localPack) {
+          void resolveBasenameClient(address)
+            .then((name) => {
+              if (!name || walletOpGenRef.current !== resumeGen) return;
+              setWallet((prev) =>
+                prev?.address.toLowerCase() === address.toLowerCase()
+                  ? applyBasenameScore(prev, name)
+                  : prev
+              );
+            })
+            .catch(() => {});
+          void resolveMiniAppIdentity()
+            .then((miniIdentity) => {
+              if (!miniIdentity || walletOpGenRef.current !== resumeGen) return;
+              persistMiniAppIdentity(address, miniIdentity);
+              setMiniAppIdentity(miniIdentity);
+            })
+            .catch(() => {});
+          // Light balance refresh only (no Alchemy history).
+          void fetchWalletBootstrap(address)
+            .then((bootstrap) => {
+              if (!bootstrap || walletOpGenRef.current !== resumeGen) return;
+              setWallet((prev) => {
+                if (prev?.address.toLowerCase() !== address.toLowerCase())
+                  return prev;
+                return {
+                  ...prev,
+                  balance: bootstrap.wallet.balance || prev.balance,
+                  usdcBalance:
+                    bootstrap.wallet.usdcBalance || prev.usdcBalance,
+                  portfolioValueUSD: Math.max(
+                    prev.portfolioValueUSD,
+                    bootstrap.wallet.portfolioValueUSD ?? 0
+                  ),
+                  basename:
+                    bootstrap.wallet.basename || prev.basename || null,
+                };
+              });
+            })
+            .catch(() => {});
+          return;
+        }
+
         void (async () => {
-          const unlocked = readAnalyticsUnlocked(address);
-          // Unpaid: bootstrap shell only (balances / check-in). No analyze/cache/Alchemy.
+          // Unpaid: one bootstrap only. Paid: light shell while single analyze runs.
           const [basename, bootstrap, miniIdentity] = await Promise.all([
             resolveBasenameClient(address).catch(() => null),
             fetchWalletBootstrap(address).catch(() => null),
             resolveMiniAppIdentity().catch(() => null),
           ]);
-          let quick = null as Awaited<ReturnType<typeof fetchWalletAnalysisQuick>>;
-          if (unlocked) {
-            quick = await fetchWalletAnalysisQuick(address, false).catch(() => null);
-          }
           if (walletOpGenRef.current !== resumeGen) return;
           if (miniIdentity) {
             persistMiniAppIdentity(address, miniIdentity);
             setMiniAppIdentity(miniIdentity);
           }
-          const fastWallet = quick?.wallet ?? bootstrap?.wallet;
-          if (!fastWallet) {
-            setWalletRefreshing(false);
-            setScanProgress("");
+          if (!bootstrap?.wallet) {
+            if (!localPack) {
+              setWalletRefreshing(false);
+              setScanProgress("");
+            }
             return;
           }
           const withBasename = {
-            ...fastWallet,
-            basename: basename ?? fastWallet.basename ?? bootstrap?.wallet?.basename ?? null,
+            ...bootstrap.wallet,
+            basename:
+              basename ?? bootstrap.wallet.basename ?? null,
           };
           setWallet((prev) => {
-            if (prev?.address.toLowerCase() !== address.toLowerCase()) return prev;
+            if (prev?.address.toLowerCase() !== address.toLowerCase())
+              return prev;
             return mergeWalletMetricsMax(prev, withBasename);
           });
           lockWalletCore(mergeWalletMetricsMax(shell, withBasename));
         })();
 
-        void analyzeWallet(address, { background: true });
+        if (unlocked) {
+          // Single backend path — no parallel quick+full analyze.
+          void analyzeWallet(address, { background: true });
+        }
       } catch (e) {
         console.warn("[wallet] silent resume failed — clearing stale session", e);
         clearPersistedWalletAddress();
@@ -1011,12 +1084,15 @@ function useWalletAppController() {
             : "✅ Analytics unlocked — indexing only your wallet history…",
           txHash ?? ""
         );
-        // Paid unlock → single analyze pass (starts background refine when needed).
-        // Do NOT start wallet-sync here in parallel — that doubles source load / latency.
+        // Paid unlock → force one full analyze (starts background refine when needed).
         historyCompleteRef.current = false;
         syncCompleteToastRef.current = false;
+        clearAnalysisFreshness(wallet.address);
         setScanProgress("Payment confirmed — collecting your wallet activity…");
-        void analyzeWallet(wallet.address, { background: true });
+        void analyzeWallet(wallet.address, {
+          background: true,
+          forceRefresh: true,
+        });
       } else {
         let errMsg = `HTTP ${res.status}`;
         const text = await res.text().catch(() => "");
@@ -1922,6 +1998,14 @@ function useWalletAppController() {
     void fetchReferralStats(address);
     if (typeof window !== "undefined") {
       localStorage.setItem("base_has_connected", "1");
+      writeWalletCache(
+        address,
+        {
+          ...result,
+          historyComplete: result.historyComplete === true,
+        },
+        result.historyComplete === true
+      );
     }
   }, []);
 
@@ -2082,8 +2166,12 @@ function useWalletAppController() {
   }, []);
 
   const analyzeWallet = useCallback(
-    async (address: string, opts?: { background?: boolean }) => {
+    async (
+      address: string,
+      opts?: { background?: boolean; forceRefresh?: boolean }
+    ) => {
       const background = opts?.background === true;
+      const forceRefresh = opts?.forceRefresh === true;
       const opGen = walletOpGenRef.current;
       const stale = () => walletOpGenRef.current !== opGen;
       if (
@@ -2096,6 +2184,28 @@ function useWalletAppController() {
         return;
       }
       loadX402PremiumState(address);
+
+      // Reconnect cost guard: warm local score + complete history within TTL.
+      if (
+        background &&
+        !forceRefresh &&
+        shouldSkipBackgroundRescan(address)
+      ) {
+        const local = readWalletCacheAny(address);
+        if (local?.result.wallet) {
+          historyCompleteRef.current = true;
+          applyAnalysis({
+            ...local.result,
+            historyComplete: true,
+          });
+          lockWalletCore(local.result.wallet);
+          setLoading(false);
+          setAnalyticsSyncing(false);
+          setWalletRefreshing(false);
+          setScanProgress("");
+          return;
+        }
+      }
 
       let referralRegistered = false;
       const registerReferralOnce = () => {
@@ -2192,11 +2302,41 @@ function useWalletAppController() {
               showToast("✓ Your wallet history is ready", "");
             }
             void fetchCheckInStatus(address).then((ci) => {
-              mergeAndApply(syncResult, ci, priorBasename);
+              mergeAndApply(
+                {
+                  ...syncResult,
+                  historyComplete: true,
+                },
+                ci,
+                priorBasename
+              );
             });
           },
         }
         )
+          .then((ok) => {
+            if (historySyncGen.current !== gen) return;
+            if (ok) {
+              historyCompleteRef.current = true;
+              setWallet((prev) => {
+                if (!prev || prev.address.toLowerCase() !== address.toLowerCase())
+                  return prev;
+                writeWalletCache(
+                  address,
+                  {
+                    wallet: prev,
+                    mintedLevels: {},
+                    boosts: 0,
+                    streak: 0,
+                    checkedToday: false,
+                    historyComplete: true,
+                  },
+                  true
+                );
+                return prev;
+              });
+            }
+          })
           .catch((e) => console.error(e))
           .finally(() => {
             if (historySyncGen.current === gen) {
@@ -2244,9 +2384,27 @@ function useWalletAppController() {
           pendingHistorySyncRef.current = null;
           return;
         }
+        if (
+          !forceRefresh &&
+          (result.historyComplete === true || isHistorySyncFresh(address))
+        ) {
+          historyCompleteRef.current = true;
+          pendingHistorySyncRef.current = null;
+          writeWalletCache(address, { ...result, historyComplete: true }, true);
+          if (
+            result.historyComplete === true &&
+            !syncCompleteToastRef.current &&
+            !background
+          ) {
+            syncCompleteToastRef.current = true;
+            showToast("✓ Full history synced — heatmap is up to date", "");
+          }
+          return;
+        }
         if (result.historyComplete === true) {
           historyCompleteRef.current = true;
           pendingHistorySyncRef.current = null;
+          writeWalletCache(address, { ...result, historyComplete: true }, true);
           if (!syncCompleteToastRef.current) {
             syncCompleteToastRef.current = true;
             showToast("✓ Full history synced — heatmap is up to date", "");
@@ -2278,7 +2436,8 @@ function useWalletAppController() {
         const balancesReady =
           balancesLockedRef.current === address.toLowerCase();
 
-        if (background && !balancesReady) {
+        // On background reconnect, skip extra bootstrap if we already locked balances.
+        if (background && !balancesReady && !forceRefresh) {
           const bootstrap = await fetchWalletBootstrap(address).catch(() => null);
           if (bootstrap) {
             mergeAndApply(bootstrap, ci);
@@ -2320,13 +2479,14 @@ function useWalletAppController() {
           return;
         }
 
-        // Paid unlock — one cache check, then a single connect-rich analyze
-        // (Alchemy full walk for this address + parallel AA UserOps).
+        // Paid unlock — cache check, then at most one connect-rich analyze.
         setScanProgress(
           background ? "Loading your onchain score…" : "Calculating wallet score…"
         );
 
-        const cached = await fetchWalletAnalysis(address, false);
+        const cached = forceRefresh
+          ? null
+          : await fetchWalletAnalysis(address, false);
         if (stale()) return;
         let result = cached;
 
@@ -2357,7 +2517,11 @@ function useWalletAppController() {
               r.wallet.recommendation !== "Fetching onchain data…"
           );
 
-        if (isUsableAnalysis(result) && !analysisNeedsActivityRefresh(result!)) {
+        if (
+          !forceRefresh &&
+          isUsableAnalysis(result) &&
+          !analysisNeedsActivityRefresh(result!)
+        ) {
           if (stale()) return;
           mergeAndApply(result!, ci);
           if (background) lockWalletCore(result!.wallet);
@@ -2372,8 +2536,8 @@ function useWalletAppController() {
           return;
         }
 
-        // Keep any bootstrap shell visible while we index — do not fire quick+full both
-        // (doubled RPC load was a major cause of “forever” scans).
+        // Keep any bootstrap shell visible while we index — single path only
+        // (no parallel quick+full; that doubled RPC / function cost).
         if (!skipBootstrap) {
           const bootstrap = await fetchWalletBootstrap(address).catch(() => null);
           if (stale()) return;
@@ -2494,22 +2658,19 @@ function useWalletAppController() {
 
       void (async () => {
         const unlocked = readAnalyticsUnlocked(addr);
-        // Unpaid: bootstrap only. Full score/history starts after $0.10 analytics unlock.
+        // Single shell path: bootstrap only (no parallel quick analyze).
+        // Paid wallets then run one background analyze below.
         const [basename, bootstrap, miniIdentity] = await Promise.all([
           resolveBasenameClient(addr).catch(() => null),
           fetchWalletBootstrap(addr).catch(() => null),
           resolveMiniAppIdentity().catch(() => null),
         ]);
-        let quick = null as Awaited<ReturnType<typeof fetchWalletAnalysisQuick>>;
-        if (unlocked) {
-          quick = await fetchWalletAnalysisQuick(addr, false).catch(() => null);
-        }
         if (walletOpGenRef.current !== connectGen) return;
         if (miniIdentity) {
           persistMiniAppIdentity(addr, miniIdentity);
           setMiniAppIdentity(miniIdentity);
         }
-        const fastWallet = quick?.wallet ?? bootstrap?.wallet;
+        const fastWallet = bootstrap?.wallet;
         if (!fastWallet) {
           setWalletRefreshing(false);
           setScanProgress("");
@@ -2524,7 +2685,7 @@ function useWalletAppController() {
         }
         const withBasename = {
           ...fastWallet,
-          basename: basename ?? fastWallet.basename ?? bootstrap?.wallet?.basename ?? null,
+          basename: basename ?? fastWallet.basename ?? null,
         };
         setWallet((prev) => {
           if (prev?.address.toLowerCase() !== addr.toLowerCase()) return prev;
@@ -2532,9 +2693,15 @@ function useWalletAppController() {
         });
         const merged = mergeWalletMetricsMax(shell, withBasename);
         lockWalletCore(merged);
+        if (!unlocked) {
+          setAnalyticsSyncing(false);
+          setScanProgress("");
+        }
       })();
 
-      void analyzeWallet(addr, { background: true });
+      if (readAnalyticsUnlocked(addr)) {
+        void analyzeWallet(addr, { background: true });
+      }
     } catch (e) {
       const msg =
         e instanceof Error ? e.message.split("\n")[0] : "Connection failed";

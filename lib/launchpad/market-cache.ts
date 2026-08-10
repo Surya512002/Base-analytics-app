@@ -2,7 +2,8 @@ import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
 const MARKET_CACHE_KEY = "launchpad:market:v2";
 const DISCOVER_CACHE_KEY = "launchpad:discover:v2";
-const TTL_SECONDS = 90;
+/** Longer shared TTL — fewer DexScreener + function burns for Explore. */
+const TTL_SECONDS = 180;
 
 type MarketCachePayload = {
   markets: Record<string, unknown>;

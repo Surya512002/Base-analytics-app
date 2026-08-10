@@ -6,6 +6,11 @@ import { readDiscoverCache, writeDiscoverCache } from "@/lib/launchpad/market-ca
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const CDN_HEADERS = {
+  "Cache-Control":
+    "public, s-maxage=90, stale-while-revalidate=180, max-age=30",
+};
+
 /**
  * Discover tradeable tokens:
  * 1. B20 factory + Gecko + DexScreener (B20 vanity addresses)
@@ -15,7 +20,7 @@ export async function GET() {
   try {
     const cached = await readDiscoverCache();
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers: CDN_HEADERS });
     }
 
     const [b20, trending] = await Promise.all([
@@ -41,7 +46,7 @@ export async function GET() {
     };
 
     await writeDiscoverCache(payload);
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, { headers: CDN_HEADERS });
   } catch (e) {
     console.error("[launchpad/discover]", e);
     return NextResponse.json(

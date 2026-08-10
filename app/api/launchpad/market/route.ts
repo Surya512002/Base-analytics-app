@@ -9,11 +9,16 @@ import { readMarketCache, writeMarketCache } from "@/lib/launchpad/market-cache"
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const CDN_HEADERS = {
+  "Cache-Control":
+    "public, s-maxage=90, stale-while-revalidate=180, max-age=30",
+};
+
 export async function GET() {
   try {
     const cached = await readMarketCache();
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers: CDN_HEADERS });
     }
 
     const tokens = await listLaunchedTokens();
@@ -41,7 +46,7 @@ export async function GET() {
     };
 
     await writeMarketCache(payload);
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, { headers: CDN_HEADERS });
   } catch (e) {
     console.error("[launchpad/market]", e);
     return NextResponse.json(

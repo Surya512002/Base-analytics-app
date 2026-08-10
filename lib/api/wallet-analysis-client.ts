@@ -119,7 +119,8 @@ export async function pollWalletHistorySync(
 ): Promise<boolean> {
   const addr = address.toLowerCase();
   let attempts = 0;
-  const maxAttempts = 24;
+  // Fewer rounds + longer gaps = less Vercel function time after first usable score.
+  const maxAttempts = 10;
   let lastDays = -1;
   let plateauPasses = 0;
   const short = `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -172,17 +173,23 @@ export async function pollWalletHistorySync(
         plateauPasses = 0;
         lastDays = days;
       }
-      // Stop spinning after a few stable passes — score is already usable.
-      if (attempts >= 4 && plateauPasses >= 2 && days >= 7) {
+      // Soft-complete earlier once the score is already usable.
+      if (attempts >= 3 && plateauPasses >= 2 && days >= 5) {
         callbacks.onProgress?.(
           `Stable at ${days} active days — background refine finished`
         );
         return true;
       }
+      if (attempts >= 5 && days >= 14) {
+        callbacks.onProgress?.(
+          `Enough history for score (${days} days) — refine finished`
+        );
+        return true;
+      }
 
-      await sleep(300);
+      await sleep(1_200);
     } catch {
-      await sleep(1500);
+      await sleep(2_000);
     }
   }
 

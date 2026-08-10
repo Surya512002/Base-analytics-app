@@ -2,7 +2,7 @@ import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
 /** Shared analyze snapshot — works across Vercel serverless instances (unlike in-memory). */
-export const ANALYZE_CACHE_TTL_SECONDS = 3600;
+export const ANALYZE_CACHE_TTL_SECONDS = 4 * 60 * 60; // 4h — fewer re-indexes on reconnect
 
 /** Bump when analyze output shape changes — drops stale low-quality snapshots. */
 export const ANALYZE_CACHE_VERSION = "v22";
