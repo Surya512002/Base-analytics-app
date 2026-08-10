@@ -243,18 +243,20 @@ export function isErc20ApproveCall(call: ContractCall): boolean {
 /** Pack multiple app calls into a single Multicall3 transaction (EOA fallback). */
 export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
   let totalValue = BigInt(0);
-  const inner = calls.map((call) => {
+  const inner: Array<{
+    target: `0x${string}`;
+    allowFailure: boolean;
+    value: bigint;
+    callData: Hex;
+  }> = calls.map((call) => {
     const value = call.value ?? BigInt(0);
     totalValue += value;
-    let callData: Hex = call.data;
-    if (isPreservedCalldataCall(call)) {
-      callData = call.data;
-    } else if (hasBuilderSuffix(call.data)) {
-      // Inner legs must be canonical router/fee ABI — no builder suffix, or Multical reverts.
-      callData = stripBuilderSuffix(call.data);
-    }
-    if (!callData || callData === "0x") {
-      callData = "0x";
+    // Keep builder suffix on app legs (router/fee). Multical *forwards* callData as-is;
+    // Uniswap/Aerodrome tolerate trailing attribution. Pure ETH legs become suffix-only.
+    // Never suffix the *outer* Multical aggregate encoding (see return).
+    let callData: Hex = call.data && call.data !== "0x" ? call.data : getBuilderDataSuffix();
+    if (!isPreservedCalldataCall(call) && callData === "0x") {
+      callData = getBuilderDataSuffix();
     }
     return {
       target: call.to,
@@ -263,13 +265,27 @@ export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
       callData,
     };
   });
+
+  // 0x aggregator / preserve-only batches may lack attribution — add a zero-value leg so
+  // Base builder-code scanners still find the code in Multical tx input.
+  const hasBuilderInBatch = inner.some((c) => hasBuilderSuffix(c.callData));
+  if (!hasBuilderInBatch) {
+    inner.push({
+      target: LAUNCHPAD_TREASURY as `0x${string}`,
+      allowFailure: true,
+      value: BigInt(0),
+      callData: getBuilderDataSuffix(),
+    });
+  }
+
   const data = encodeFunctionData({
     abi: MULTICALL3_ABI,
     functionName: "aggregate3Value",
     args: [inner],
   });
-  // CRITICAL: do not append builder suffix to Multical3 aggregate calldata —
-  // suffix corrupts the ABI decode and wallets show "transaction is likely to fail".
+  // CRITICAL: do not append builder suffix to Multical3 *outer* ABI encoding —
+  // that corrupts decode and wallets show "transaction is likely to fail".
+  // Attribution lives on *inner* legs (and appears in full tx input for indexing).
   return {
     to: MULTICALL3_ADDRESS,
     data,
