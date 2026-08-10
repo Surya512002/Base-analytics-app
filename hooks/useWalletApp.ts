@@ -211,6 +211,12 @@ import {
 } from "@/lib/utils/guest-resume";
 import { useSiweAuth } from "@/hooks/useSiweAuth";
 
+/**
+ * Platform fee as one on-chain transfer (treasury only).
+ * Creator/referrer shares stay in the fee ledger API — multi-wallet
+ * fee legs were causing 3 MetaMask/Rabby confirms (creator + platform + swap).
+ * Base App / Coinbase can still atomic-batch; Multicall3 bundles native buy.
+ */
 function pushFeeSplitCalls(
   calls: ReturnType<typeof buildContractCall>[],
   fee: bigint,
@@ -229,31 +235,16 @@ function pushFeeSplitCalls(
   const skipSelf = (to: string) =>
     Boolean(opts.payer && to.toLowerCase() === opts.payer.toLowerCase());
 
-  if (!opts.creator) {
-    if (opts.native) {
-      if (!skipSelf(LAUNCHPAD_TREASURY)) {
-        calls.push(buildNativeTransferCall(LAUNCHPAD_TREASURY, fee));
-      }
-    } else {
-      calls.push(
-        buildContractCall(opts.token, encodeErc20TransferCalldata(LAUNCHPAD_TREASURY, fee))
-      );
-    }
-    return;
-  }
+  // Always one treasury transfer in-wallet — split is recorded off-chain for
+  // creator revenue UI. Prevents 2–3 fee popups before the swap itself.
+  if (skipSelf(LAUNCHPAD_TREASURY)) return;
 
-  const split = splitPlatformFee(fee, {
-    creator: opts.creator,
-    referrer: opts.referrer ?? null,
-    referrerBoostBps: opts.referrerBoostBps,
-  });
-  for (const t of split.transfers) {
-    if (skipSelf(t.to)) continue;
-    if (opts.native) {
-      calls.push(buildNativeTransferCall(t.to, t.amount));
-    } else {
-      calls.push(buildContractCall(opts.token, encodeErc20TransferCalldata(t.to, t.amount)));
-    }
+  if (opts.native) {
+    calls.push(buildNativeTransferCall(LAUNCHPAD_TREASURY, fee));
+  } else {
+    calls.push(
+      buildContractCall(opts.token, encodeErc20TransferCalldata(LAUNCHPAD_TREASURY, fee))
+    );
   }
 }
 

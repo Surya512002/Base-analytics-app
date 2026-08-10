@@ -476,21 +476,35 @@ async function sendCallGroup(
   }
 
   const tryPaymaster = batchCanTryPaymaster(group);
+  const multicallable = opts.atomicBatch && canBundleViaMulticall3(group);
 
+  // Desktop EOAs (MetaMask / Rabby): Multicall3 first → one eth_sendTransaction.
+  // wallet_sendCalls first was failing open / sequentializing into 3 fee+swap prompts.
+  if (multicallable && !opts.preferSendCalls) {
+    try {
+      const bundled = bundleCallsViaMulticall3(group);
+      const hash = await sendViaEthSendTransaction(provider, from, bundled);
+      return waitForOnchainHash(hash);
+    } catch (e) {
+      if (isUserRejection(e)) throw e;
+    }
+  }
+
+  // Base App / Coinbase / Farcaster — true batching + optional paymaster.
   if (opts.preferSendCalls || opts.atomicBatch) {
     try {
       return await sendWalletCallsWithPaymasterFallback(
         provider,
         from,
         group,
-        tryPaymaster
+        tryPaymaster && opts.preferSendCalls
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
     }
   }
 
-  if (opts.atomicBatch && canBundleViaMulticall3(group)) {
+  if (multicallable) {
     try {
       const bundled = bundleCallsViaMulticall3(group);
       const hash = await sendViaEthSendTransaction(provider, from, bundled);

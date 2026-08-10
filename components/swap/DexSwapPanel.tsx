@@ -841,9 +841,9 @@ export default function DexSwapPanel({
       </button>
 
       <p className="dex-swap-foot">
-        {formatPlatformFeeLabel()} platform fee · Search or paste any Base{" "}
-        <span className="font-mono">0x…</span> address · routes via Aerodrome / Uniswap /
-        0x · Base mainnet
+        {formatPlatformFeeLabel()} platform fee · ETH buys usually one wallet confirm ·
+        token sells may need a one-time approve, then one more swap when allowed · Base
+        mainnet via Aerodrome / Uniswap / 0x
       </p>
 
       <TokenPickerDialog
