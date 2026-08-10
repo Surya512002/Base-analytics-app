@@ -29,6 +29,7 @@ import {
 } from "@/lib/constants/contracts";
 import { DEX_ROUTERS } from "@/lib/constants/protocols";
 import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
+import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
@@ -149,18 +150,32 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
 
 if (!wallet) return null;
 
-  const scoreSyncing =
-    wallet.score <= 0 &&
-    (walletRefreshing || analyticsSyncing) &&
-    (wallet.recommendation.includes("Fetching") ||
-      wallet.recommendation.includes("Syncing") ||
-      wallet.recommendation.includes("Refining"));
+  // Keep rank/score in sync with volume cards (partial sync can update metrics first).
+  const scoredWallet = reconcileWalletScore(wallet);
+  const ethVolumeNum = parseFloat(scoredWallet.ethVolume || "0") || 0;
+  const hasIndexedMetrics =
+    scoredWallet.score > 0 ||
+    scoredWallet.txCount > 0 ||
+    scoredWallet.uniqueDays > 0 ||
+    ethVolumeNum > 0 ||
+    (scoredWallet.dexVolumeUSD ?? 0) > 0 ||
+    (scoredWallet.dexTradeCount ?? 0) > 0;
 
-  /** First score pass after unlock — release overlay once we have a real score. */
+  const scoreSyncing =
+    !hasIndexedMetrics &&
+    (walletRefreshing || analyticsSyncing) &&
+    (scoredWallet.recommendation.includes("Fetching") ||
+      scoredWallet.recommendation.includes("Syncing") ||
+      scoredWallet.recommendation.includes("Refining"));
+
+  /**
+   * Drop the full-screen scanning cover once real metrics exist.
+   * Score alone can lag behind volume/tx counts during partial sync.
+   */
   const hasUsableAnalytics =
     analyticsUnlocked &&
-    wallet.score > 0 &&
-    !wallet.recommendation.includes("Fetching onchain data");
+    hasIndexedMetrics &&
+    !scoredWallet.recommendation.includes("Fetching onchain data");
 
   const onchainAnalysisLoading =
     analyticsUnlocked &&
@@ -169,10 +184,10 @@ if (!wallet) return null;
       analyticsSyncing ||
       walletRefreshing ||
       scoreSyncing ||
-      wallet.recommendation.includes("Fetching onchain") ||
-      wallet.recommendation.includes("Syncing full") ||
-      wallet.recommendation.includes("Refining") ||
-      wallet.recommendation.includes("Calculating"));
+      scoredWallet.recommendation.includes("Fetching onchain") ||
+      scoredWallet.recommendation.includes("Syncing full") ||
+      scoredWallet.recommendation.includes("Refining") ||
+      scoredWallet.recommendation.includes("Calculating"));
 
   return (
           <div className="space-y-4">
@@ -221,7 +236,7 @@ if (!wallet) return null;
                 </div>
               )}
               <OnchainScorePanel
-                wallet={wallet}
+                wallet={scoredWallet}
                 streak={streak}
                 doneQuests={doneQuests}
                 selDay={selDay}
@@ -291,7 +306,7 @@ if (!wallet) return null;
                       {wallet.address.slice(0, 8)}…{wallet.address.slice(-4)}
                     </p>
                   )}
-                  <p className="text-[11px] text-[var(--ink-muted)] font-semibold mt-1">{wallet.walletRank}</p>
+                  <p className="text-[11px] text-[var(--ink-muted)] font-semibold mt-1">{scoredWallet.walletRank}</p>
                 </div>
               </div>
             </div>

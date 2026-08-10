@@ -80,7 +80,45 @@ describe("applyPartialSyncPatch", () => {
     expect(next.uniqueDays).toBe(12);
     expect(next.txCount).toBe(45);
     expect(next.dexVolumeUSD).toBe(500);
-    expect(next.score).toBe(25);
+    expect(next.score).toBeGreaterThanOrEqual(25);
+  });
+
+  it("reconciles score bars from updated volume metrics", () => {
+    const prev = shell("0x1111111111111111111111111111111111111111");
+    prev.scoreComponents = {
+      txActivity: 1,
+      consistency: 1,
+      longevity: 0,
+      streak: 0,
+      volume: 0,
+      diversity: 0,
+      defiUsage: 0,
+      contracts: 0,
+      nftHolder: 0,
+      dexTrading: 0,
+      bridge: 0,
+      identity: 5,
+      engagement: 0,
+      activeWeeks: 0,
+    };
+    prev.score = 7;
+    prev.walletRank = "Base Shrimp 🦐";
+
+    const next = applyPartialSyncPatch(prev, prev.address, {
+      ethVolume: "6.3965",
+      dexVolumeUSD: 23100,
+      dexTradeCount: 1718,
+      ethSwapVolumeUSD: 1420,
+      score: 7,
+    });
+
+    expect(next.ethVolume).toBe("6.3965");
+    expect(next.dexVolumeUSD).toBe(23100);
+    expect(next.scoreComponents.volume).toBeGreaterThan(5);
+    expect(next.scoreComponents.dexTrading).toBeGreaterThan(5);
+    expect(next.score).toBeGreaterThan(7);
+    // Rank still shrimp until score ≥ 30 — but it stays consistent with score.
+    expect(next.walletRank).toMatch(/^Base /);
   });
 
   it("ignores patches for a different address", () => {

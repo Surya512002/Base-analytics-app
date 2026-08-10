@@ -1,4 +1,6 @@
 import type { WalletData } from "@/lib/types/wallet";
+import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
+import { maxScoreComponents } from "@/lib/wallet/merge-metrics";
 
 /** Merge incremental history-sync patches without dropping prior activity counts. */
 export function applyPartialSyncPatch(
@@ -12,7 +14,12 @@ export function applyPartialSyncPatch(
   const nextEth = parseFloat(patch.ethVolume ?? prev.ethVolume);
   const prevEth = parseFloat(prev.ethVolume);
 
-  return {
+  const scoreComponents =
+    patch.scoreComponents && prev.scoreComponents
+      ? maxScoreComponents(prev.scoreComponents, patch.scoreComponents)
+      : patch.scoreComponents ?? prev.scoreComponents;
+
+  const merged: WalletData = {
     ...prev,
     uniqueDays: Math.max(prev.uniqueDays, patch.uniqueDays ?? 0),
     txCount: Math.max(prev.txCount, patch.txCount ?? 0),
@@ -37,10 +44,14 @@ export function applyPartialSyncPatch(
     ethVolume: nextEth > prevEth ? (patch.ethVolume ?? prev.ethVolume) : prev.ethVolume,
     activityScore: Math.max(prev.activityScore, patch.activityScore ?? 0),
     score: Math.max(prev.score, patch.score ?? 0),
-    walletRank: (patch.score ?? 0) > prev.score ? (patch.walletRank ?? prev.walletRank) : prev.walletRank,
+    walletRank:
+      (patch.score ?? 0) > prev.score
+        ? (patch.walletRank ?? prev.walletRank)
+        : prev.walletRank,
     bridgeTxCount: Math.max(prev.bridgeTxCount, patch.bridgeTxCount ?? 0),
     defiInteractions: Math.max(prev.defiInteractions, patch.defiInteractions ?? 0),
     uniqueContracts: Math.max(prev.uniqueContracts, patch.uniqueContracts ?? 0),
+    scoreComponents,
     recommendation:
       prev.recommendation.includes("Fetching") || prev.recommendation.includes("Syncing")
         ? (patch.recommendation ?? prev.recommendation)
@@ -55,4 +66,7 @@ export function applyPartialSyncPatch(
       patch.firstTx && patch.firstTx !== "Syncing…" ? patch.firstTx : prev.firstTx,
     lastTx: patch.lastTx && patch.lastTx !== "Syncing…" ? patch.lastTx : prev.lastTx,
   };
+
+  // Re-derive bars + rank from the merged metrics (volume cards and score sidebar stay in sync).
+  return reconcileWalletScore(merged);
 }

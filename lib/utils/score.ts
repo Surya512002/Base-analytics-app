@@ -61,7 +61,8 @@ export interface ScoreInput {
 
 /**
  * Elite-tier scoring — 100 requires excellence across many onchain dimensions.
- * ~50 active days + moderate txs ≈ 8–18 (was ~25–35).
+ * Activity uses the stronger of tx / swap counts so high-volume traders are not
+ * stuck on Base Shrimp when swap legs outnumber generic tx rollups.
  */
 export function computeScoreComponents(input: ScoreInput): ScoreComponents {
   const {
@@ -87,10 +88,13 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
   } = input;
 
   const streakBasis = Math.max(currentStreak, longestStreak * 0.6);
+  // Swap-heavy wallets: dexTradeCount often exceeds generic tx rollups during partial sync.
+  const activityUnits = Math.max(txCount, dexTradeCount);
+  const swapUsd = Math.max(dexVolumeUSD, ethSwapVolumeUSD);
 
   return {
-    // ~3,500 txs to max
-    txActivity: Math.min(SCORE_MAX.txActivity, txCount / 250),
+    // ~2,800 activity units to max (previously 3,500 tx-only)
+    txActivity: Math.min(SCORE_MAX.txActivity, activityUnits / 200),
     // ~300 unique active days to max
     consistency: Math.min(SCORE_MAX.consistency, uniqueDays / 25),
     // ~25 active months to max
@@ -101,23 +105,26 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
     volume: Math.min(SCORE_MAX.volume, Math.sqrt(ethVol + 0.001) * 2.8),
     // ~30 unique tokens to max
     diversity: Math.min(SCORE_MAX.diversity, uniqueTokens / 5),
-    // ~50 DeFi interactions to max
-    defiUsage: Math.min(SCORE_MAX.defiUsage, defiInteractions / 10),
-    // ~200 unique contracts to max
-    contracts: Math.min(SCORE_MAX.contracts, uniqueContracts / 25),
+    // ~50 DeFi interactions to max — swap activity counts as light DeFi usage
+    defiUsage: Math.min(
+      SCORE_MAX.defiUsage,
+      Math.max(defiInteractions, Math.floor(dexTradeCount / 40)) / 10
+    ),
+    // ~200 unique contracts; partial credit from swap venues when contract map is thin
+    contracts: Math.min(
+      SCORE_MAX.contracts,
+      Math.max(uniqueContracts, Math.min(80, Math.floor(dexTradeCount / 25))) / 25
+    ),
     // Holdings + mint/transfer activity (~20 assets or ~24 NFT txs to max)
     nftHolder: Math.min(
       SCORE_MAX.nftHolder,
       Math.min(2.5, nftCount / 4) + Math.min(1.5, nftTxCount / 8)
     ),
-    // Trades + volume (ETH swap legs included in dexVolumeUSD / ethSwapVolumeUSD)
+    // Trades + volume (ETH swap legs included)
     dexTrading: Math.min(
       SCORE_MAX.dexTrading,
-      Math.min(3.5, dexTradeCount / 35) +
-        Math.min(
-          3.5,
-          Math.sqrt(Math.max(dexVolumeUSD, ethSwapVolumeUSD) + 1) / 10
-        )
+      Math.min(3.5, dexTradeCount / 30) +
+        Math.min(3.5, Math.sqrt(swapUsd + 1) / 9)
     ),
     // 1 bridge = 1 pt min · ~24 bridges to max
     bridge:
@@ -140,11 +147,15 @@ export function computeTotalScore(components: ScoreComponents): number {
   );
 }
 
+/**
+ * Rank bands aligned to the elite component curves.
+ * Active traders with maxed volume + swap bars should clear Dolphin (~25+).
+ */
 export function computeWalletRank(score: number): string {
-  if (score >= 85) return "Base God 👑";
-  if (score >= 70) return "Base Whale 🐋";
-  if (score >= 50) return "Base Shark 🦈";
-  if (score >= 30) return "Base Dolphin 🐬";
+  if (score >= 82) return "Base God 👑";
+  if (score >= 65) return "Base Whale 🐋";
+  if (score >= 45) return "Base Shark 🦈";
+  if (score >= 25) return "Base Dolphin 🐬";
   return "Base Shrimp 🦐";
 }
 

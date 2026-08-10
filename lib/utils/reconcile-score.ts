@@ -5,9 +5,23 @@ import {
   computeWalletRank,
   type ScoreComponents,
 } from "@/lib/utils/score";
-import { maxScoreComponents } from "@/lib/wallet/merge-metrics";
 
-/** Recompute onchain score bars from wallet metrics — fixes stale nftHolder/dexTrading zeros. */
+function maxComponents(
+  a: ScoreComponents,
+  b: ScoreComponents
+): ScoreComponents {
+  const keys = new Set([
+    ...Object.keys(a),
+    ...Object.keys(b),
+  ]) as Set<keyof ScoreComponents>;
+  const out = { ...a };
+  for (const k of keys) {
+    out[k] = Math.max(a[k] ?? 0, b[k] ?? 0);
+  }
+  return out;
+}
+
+/** Recompute onchain score bars from wallet metrics — fixes stale volume/swap zeros. */
 export function reconcileWalletScore(wallet: WalletData): WalletData {
   const ethVol = parseFloat(wallet.ethVolume) || 0;
   const swapVolUsd = Math.max(
@@ -38,7 +52,7 @@ export function reconcileWalletScore(wallet: WalletData): WalletData {
   });
 
   const scoreComponents = wallet.scoreComponents
-    ? maxScoreComponents(wallet.scoreComponents, fresh)
+    ? maxComponents(wallet.scoreComponents, fresh)
     : fresh;
 
   const score = Math.max(wallet.score, computeTotalScore(scoreComponents));

@@ -25,6 +25,7 @@ import { clearWalletCache } from "@/lib/utils/wallet-cache";
 import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
+import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
 import { fetchMintedLevelsFromChain } from "@/lib/wallet/minted-badges";
 import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
 import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
@@ -1905,7 +1906,7 @@ function useWalletAppController() {
         ),
       };
       if (!prev || prev.address.toLowerCase() !== base.address.toLowerCase()) {
-        return base;
+        return reconcileWalletScore(base);
       }
       return mergeWalletMetricsMax(prev, base);
     });

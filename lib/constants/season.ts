@@ -6,7 +6,7 @@ export const MONTH_NAMES = [
 ];
 
 export const ACHIEVEMENTS = [
-  { id: "score", baseId: 10, name: "Onchain Rank", icon: "🏅", unit: "Score", thresholds: [10, 30, 60, 75, 85], tierNames: ["Base Shrimp", "Base Dolphin", "Base Shark", "Base Whale", "Base God"], tierIcons: ["🦐", "🐬", "🦈", "🐋", "👑"] },
+  { id: "score", baseId: 10, name: "Onchain Rank", icon: "🏅", unit: "Score", thresholds: [10, 25, 45, 65, 82], tierNames: ["Base Shrimp", "Base Dolphin", "Base Shark", "Base Whale", "Base God"], tierIcons: ["🦐", "🐬", "🦈", "🐋", "👑"] },
   { id: "age", baseId: 20, name: "Pioneer", icon: "📅", unit: "Days", thresholds: [10, 30, 90, 180, 365], tierNames: ["Newcomer", "Explorer", "Settler", "Veteran", "Early Adopter"], tierIcons: ["🥚", "🧭", "⛺", "🎖️", "🛸"] },
   { id: "name", baseId: 30, name: "Identity", icon: "📛", unit: "Basename", thresholds: [1], tierNames: ["Verified"], tierIcons: ["🆔"] },
   { id: "days", baseId: 40, name: "Diamond Hands", icon: "💎", unit: "Days", thresholds: [10, 50, 100, 200, 365], tierNames: ["Tourist", "Resident", "Citizen", "Patriot", "Immortal"], tierIcons: ["🎒", "🏠", "🏛️", "🛡️", "🗿"] },

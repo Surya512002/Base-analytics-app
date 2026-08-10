@@ -17,6 +17,7 @@ import {
   buildVolumeSummary,
   formatVolumeSummary,
 } from "@/lib/analytics/onchain-score";
+import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
 import { SCORE_LABELS, SCORE_MAX, type ScoreComponents } from "@/lib/utils/score";
 import type { WalletData } from "@/lib/types/wallet";
 import type { DayStats } from "@/lib/types/wallet";
@@ -89,7 +90,7 @@ function scoreTone(score: number): {
 }
 
 export default function OnchainScorePanel({
-  wallet,
+  wallet: rawWallet,
   streak,
   doneQuests,
   selDay,
@@ -99,6 +100,8 @@ export default function OnchainScorePanel({
   onGoQuests,
   shareScore,
 }: OnchainScorePanelProps) {
+  // Reconcile metrics → components so volume cards never show high ETH while bars stay at 0.
+  const wallet = reconcileWalletScore(rawWallet);
   const ethPrice =
     wallet.dexVolumeETH > 0
       ? wallet.dexVolumeUSD / wallet.dexVolumeETH
@@ -286,14 +289,11 @@ export default function OnchainScorePanel({
                 </div>
               </div>
               <div className="flex items-baseline gap-1">
+                {/* Solid fill only — gradient+transparent text often renders as a filled
+                    block (looks like an image covering the digits) in Mini App WebViews. */}
                 <span
-                  className="text-7xl sm:text-8xl font-black tracking-tighter leading-none"
-                  style={{
-                    background: `linear-gradient(135deg, ${tone.ring} 0%, #0f172a 70%)`,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
+                  className="text-7xl sm:text-8xl font-black tracking-tighter leading-none tabular-nums text-[var(--ink)]"
+                  style={{ color: tone.ring }}
                 >
                   {wallet.score}
                 </span>

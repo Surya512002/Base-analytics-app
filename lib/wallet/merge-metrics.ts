@@ -1,4 +1,5 @@
 import type { WalletData } from "@/lib/types/wallet";
+import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
 import {
   computeTotalScore,
   computeWalletRank,
@@ -49,13 +50,13 @@ export function mergeWalletMetricsMax(
   prior: WalletData,
   next: WalletData
 ): WalletData {
-  if (isShellWallet(prior)) return next;
+  if (isShellWallet(prior)) return reconcileWalletScore(next);
   if (isDegradedMetricsSnapshot(prior, next)) {
-    return {
+    return reconcileWalletScore({
       ...prior,
       basename: next.basename || prior.basename,
       checkInCount: Math.max(prior.checkInCount, next.checkInCount),
-    };
+    });
   }
 
   const priorHeatmapDays = activeDaysInStats(prior.dailyStats);
@@ -76,7 +77,7 @@ export function mergeWalletMetricsMax(
     computeTotalScore(scoreComponents)
   );
 
-  return {
+  return reconcileWalletScore({
     ...next,
     basename: next.basename || prior.basename,
     balance:
@@ -137,5 +138,5 @@ export function mergeWalletMetricsMax(
       next.paymasterTxCount ?? 0
     ),
     aaTxCount: Math.max(prior.aaTxCount ?? 0, next.aaTxCount ?? 0),
-  };
+  });
 }
