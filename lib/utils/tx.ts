@@ -30,6 +30,14 @@ export function hasBuilderSuffix(data: string): boolean {
   return normalized.endsWith(getBuilderSuffix().toLowerCase());
 }
 
+/** True when calldata (or Multical outer input) contains our builder code bytes. */
+export function calldataIncludesBuilderCode(data: string): boolean {
+  if (!data || data === "0x") return false;
+  const d = data.toLowerCase();
+  if (hasBuilderSuffix(d)) return true;
+  return d.includes(getBuilderSuffix().toLowerCase());
+}
+
 /** Append builder code once — safe to call on already-suffixed calldata. */
 export function withBuilderSuffix(data: Hex): Hex {
   if (!data || data === "0x") {
@@ -46,25 +54,74 @@ export function stripBuilderSuffix(data: Hex): Hex {
   return (`0x${data.slice(2).slice(0, -suffix.length)}`) as Hex;
 }
 
-/** Strip calldata suffix before wallet_sendCalls when wallet appends via capability. */
+export type ContractCall = {
+  to: `0x${string}`;
+  data: Hex;
+  value?: bigint;
+  /** Explicit gas for B20 precompiles when wallets cannot estimate. */
+  gas?: bigint;
+  /** Third-party swap calldata (0x) — must not append builder suffix. */
+  preserveCalldata?: boolean;
+};
+
+/** Returns true when calldata must be sent exactly as quoted (0x AllowanceHolder, etc.). */
+export function isPreservedCalldataCall(call: ContractCall): boolean {
+  return call.preserveCalldata === true || isB20PrecompileAddress(call.to);
+}
+
+export function isMulticall3Address(to: string): boolean {
+  return to.toLowerCase() === MULTICALL3_ADDRESS.toLowerCase();
+}
+
+/**
+ * True when this batch already carries builder attribution (suffix, Multical
+ * payload bytes, or an attribution companion).
+ */
+export function batchCarriesBuilderAttribution(calls: ContractCall[]): boolean {
+  return calls.some((call) => {
+    if (isB20PrecompileAddress(call.to)) return false;
+    return calldataIncludesBuilderCode(call.data);
+  });
+}
+
+/**
+ * wallet_sendCalls can strip in-calldata suffixes and re-apply via dataSuffix
+ * only when every call can accept that rewrite. Mixed 0x / Multical / B20 batches
+ * must keep builder in app legs (or a companion) — capability must not be used
+ * alone after stripping, and must not append onto preserved 0x calldata.
+ */
+export function batchCanUseWalletDataSuffix(calls: ContractCall[]): boolean {
+  if (calls.length === 0) return false;
+  if (calls.some((c) => isB20PrecompileAddress(c.to))) return false;
+  if (calls.some((c) => isPreservedCalldataCall(c))) return false;
+  if (calls.some((c) => isMulticall3Address(c.to))) return false;
+  return true;
+}
+
+/**
+ * Prepare calls for wallet_sendCalls.
+ * - Full strip + wallet dataSuffix only when the entire batch can use the capability.
+ * - Otherwise keep (or restore) builder on every non-preserved, non-B20 leg.
+ */
 export function prepareCallsForWalletSendCalls(
   calls: ContractCall[]
 ): ContractCall[] {
-  const hasB20 = calls.some((c) => isB20PrecompileAddress(c.to));
-  if (hasB20) {
-    return calls.map((call) => {
-      if (isPreservedCalldataCall(call)) return call;
-      if (!hasBuilderSuffix(call.data)) {
-        return { ...call, data: withBuilderSuffix(call.data) };
-      }
-      return call;
-    });
+  if (batchCanUseWalletDataSuffix(calls)) {
+    return calls.map((call) => ({
+      ...call,
+      data: stripBuilderSuffix(call.data),
+    }));
   }
-  return calls.map((call) =>
-    isPreservedCalldataCall(call)
-      ? call
-      : { ...call, data: stripBuilderSuffix(call.data) }
-  );
+
+  return calls.map((call) => {
+    if (isPreservedCalldataCall(call) || isMulticall3Address(call.to)) {
+      return call;
+    }
+    if (!hasBuilderSuffix(call.data)) {
+      return { ...call, data: withBuilderSuffix(call.data) };
+    }
+    return call;
+  });
 }
 
 /** ETH transfer with builder attribution in calldata. */
@@ -76,8 +133,8 @@ export function buildAttributedNativeTransfer(
 }
 
 /**
- * Zero-value companion tx so B20-only batches still earn builder attribution
- * (B20 precompile calldata cannot include the suffix).
+ * Zero-value companion tx so B20-only / 0x-preserve-only batches still earn
+ * builder attribution (those calldatas cannot include the suffix).
  */
 export function buildBuilderAttributionCall(
   to: `0x${string}` = LAUNCHPAD_TREASURY
@@ -85,7 +142,7 @@ export function buildBuilderAttributionCall(
   return buildContractCall(to, "0x");
 }
 
-/** Normalize a batch so every non-B20 call carries builder attribution. */
+/** Normalize a batch so every app batch carries builder attribution. */
 export function finalizeAppTransactionBatch(
   calls: ContractCall[],
   opts?: { skipCompanion?: boolean }
@@ -105,31 +162,12 @@ export function finalizeAppTransactionBatch(
 
   if (opts?.skipCompanion) return normalized;
 
-  const hasB20 = normalized.some((c) => isB20PrecompileAddress(c.to));
-  const hasAttributedNonB20 = normalized.some(
-    (c) => !isB20PrecompileAddress(c.to) && hasBuilderSuffix(c.data)
-  );
-
-  if (hasB20 && !hasAttributedNonB20) {
+  // B20-only, pure 0x, or any batch without attributed legs → companion.
+  if (!batchCarriesBuilderAttribution(normalized)) {
     return [...normalized, buildBuilderAttributionCall()];
   }
 
   return normalized;
-}
-
-export type ContractCall = {
-  to: `0x${string}`;
-  data: Hex;
-  value?: bigint;
-  /** Explicit gas for B20 precompiles when wallets cannot estimate. */
-  gas?: bigint;
-  /** Third-party swap calldata (0x) — must not append builder suffix. */
-  preserveCalldata?: boolean;
-};
-
-/** Returns true when calldata must be sent exactly as quoted (0x AllowanceHolder, etc.). */
-export function isPreservedCalldataCall(call: ContractCall): boolean {
-  return call.preserveCalldata === true || isB20PrecompileAddress(call.to);
 }
 
 export function buildContractCall(
@@ -139,6 +177,14 @@ export function buildContractCall(
 ): ContractCall {
   if (isB20PrecompileAddress(to)) {
     return buildB20Call(to, data, value);
+  }
+  if (isMulticall3Address(to)) {
+    return {
+      to,
+      data,
+      preserveCalldata: true,
+      ...(value !== undefined ? { value } : {}),
+    };
   }
   return {
     to,
@@ -251,11 +297,11 @@ export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
   }> = calls.map((call) => {
     const value = call.value ?? BigInt(0);
     totalValue += value;
-    // Keep builder suffix on app legs (router/fee). Multical *forwards* callData as-is;
-    // Uniswap/Aerodrome tolerate trailing attribution. Pure ETH legs become suffix-only.
+    // Keep builder suffix on app legs. Multical *forwards* callData as-is.
     // Never suffix the *outer* Multical aggregate encoding (see return).
-    let callData: Hex = call.data && call.data !== "0x" ? call.data : getBuilderDataSuffix();
-    if (!isPreservedCalldataCall(call) && callData === "0x") {
+    let callData: Hex =
+      call.data && call.data !== "0x" ? call.data : getBuilderDataSuffix();
+    if (!isPreservedCalldataCall(call) && (!callData || callData === "0x")) {
       callData = getBuilderDataSuffix();
     }
     return {
@@ -266,10 +312,8 @@ export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
     };
   });
 
-  // 0x aggregator / preserve-only batches may lack attribution — add a zero-value leg so
-  // Base builder-code scanners still find the code in Multical tx input.
-  const hasBuilderInBatch = inner.some((c) => hasBuilderSuffix(c.callData));
-  if (!hasBuilderInBatch) {
+  // Guarantee builder code appears in Multical input for Base builder indexing.
+  if (!inner.some((c) => calldataIncludesBuilderCode(c.callData))) {
     inner.push({
       target: LAUNCHPAD_TREASURY as `0x${string}`,
       allowFailure: true,
@@ -283,9 +327,7 @@ export function bundleCallsViaMulticall3(calls: ContractCall[]): ContractCall {
     functionName: "aggregate3Value",
     args: [inner],
   });
-  // CRITICAL: do not append builder suffix to Multical3 *outer* ABI encoding —
-  // that corrupts decode and wallets show "transaction is likely to fail".
-  // Attribution lives on *inner* legs (and appears in full tx input for indexing).
+  // Outer Multical ABI must stay pure — attribution lives on inner legs.
   return {
     to: MULTICALL3_ADDRESS,
     data,

@@ -15,6 +15,7 @@ import {
   bundleCallsViaMulticall3,
   hasBuilderSuffix,
   stripBuilderSuffix,
+  batchCanUseWalletDataSuffix,
   isErc20ApproveCall as isErc20ApproveCallData,
 } from "@/lib/utils/tx";
 import {
@@ -411,16 +412,19 @@ async function sendWalletCallsWithPaymasterFallback(
   provider: Eip1193,
   from: string,
   calls: ContractCall[],
-  tryPaymaster: boolean,
-  stripSuffixForPreserved = false
+  tryPaymaster: boolean
 ): Promise<string> {
+  // Only use wallet dataSuffix capability when every leg can accept rewrite.
+  // Mixed 0x/preserve batches keep builder in-calldata (prepare does not strip).
+  const skipBuilderCap = !batchCanUseWalletDataSuffix(calls);
+
   if (tryPaymaster) {
     try {
       return await sendViaWalletSendCalls(
         provider,
         from,
         calls,
-        getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: false })
+        getSendCallsCapabilities(skipBuilderCap, { skipPaymaster: false })
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
@@ -432,7 +436,7 @@ async function sendWalletCallsWithPaymasterFallback(
     provider,
     from,
     calls,
-    getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: true })
+    getSendCallsCapabilities(skipBuilderCap, { skipPaymaster: true })
   );
 }
 
@@ -442,7 +446,6 @@ async function sendSingleCall(
   call: ContractCall,
   opts: { preferSendCalls: boolean }
 ): Promise<string> {
-  const stripSuffix = isPreservedCalldataCall(call);
   const tryPaymaster = !isB20PrecompileAddress(call.to);
 
   if (opts.preferSendCalls) {
@@ -451,8 +454,7 @@ async function sendSingleCall(
         provider,
         from,
         [call],
-        tryPaymaster,
-        stripSuffix
+        tryPaymaster
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
@@ -709,16 +711,13 @@ export async function sendAppTransactions(
     });
   }
 
-  const stripSuffix = workBatch.some(isPreservedCalldataCall);
-
   if (trySponsored || preferSendCalls) {
     try {
       return await sendWalletCallsWithPaymasterFallback(
         provider,
         from,
         workBatch,
-        batchCanTryPaymaster(workBatch),
-        stripSuffix
+        batchCanTryPaymaster(workBatch)
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
