@@ -37,7 +37,16 @@ type Eip1193 = {
 
 type CallsStatus = {
   status?: string | number;
-  receipts?: Array<{ transactionHash?: string; status?: string }>;
+  statusCode?: number;
+  receipts?: Array<{
+    transactionHash?: string;
+    transaction_hash?: string;
+    hash?: string;
+    status?: string | number;
+  }>;
+  capabilities?: {
+    caip345?: { transactionHashes?: string[] };
+  };
 };
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -134,30 +143,100 @@ function extractCallsId(result: unknown): string | null {
   return null;
 }
 
-function extractTxHashFromStatus(status: CallsStatus): string | null {
-  for (const receipt of status.receipts ?? []) {
-    if (receipt.transactionHash?.startsWith("0x")) {
-      return receipt.transactionHash;
-    }
+function receiptTxHash(receipt: {
+  transactionHash?: string;
+  transaction_hash?: string;
+  hash?: string;
+}): string | null {
+  for (const key of ["transactionHash", "transaction_hash", "hash"] as const) {
+    const v = receipt[key];
+    if (typeof v === "string" && isTxHash(v)) return v;
   }
   return null;
 }
 
-/** EIP-5792 uses numeric codes (100/200/500); some wallets still send strings. */
-function normalizeCallsStatus(
-  status: CallsStatus["status"]
-): "pending" | "confirmed" | "failed" | "unknown" {
-  if (status == null) return "unknown";
+function isReceiptSuccess(status: string | number | undefined): boolean | null {
+  if (status == null) return null;
   if (typeof status === "number") {
-    if (status >= 100 && status < 200) return "pending";
-    if (status >= 200 && status < 300) return "confirmed";
-    if (status >= 400) return "failed";
+    if (status === 1) return true;
+    if (status === 0) return false;
+    return null;
+  }
+  const s = String(status).toLowerCase();
+  if (s === "0x1" || s === "1" || s === "success" || s === "ok") return true;
+  if (s === "0x0" || s === "0" || s === "reverted" || s === "failed") return false;
+  return null;
+}
+
+/** Best successful (or first available) tx hash from a wallet_getCallsStatus payload. */
+function extractTxHashFromStatus(status: CallsStatus): string | null {
+  const hashesFromCaps = status.capabilities?.caip345?.transactionHashes ?? [];
+  for (const h of hashesFromCaps) {
+    if (typeof h === "string" && isTxHash(h)) return h;
+  }
+
+  let first: string | null = null;
+  for (const receipt of status.receipts ?? []) {
+    const hash = receiptTxHash(receipt);
+    if (!hash) continue;
+    if (!first) first = hash;
+    if (isReceiptSuccess(receipt.status) !== false) return hash;
+  }
+  return first;
+}
+
+/**
+ * EIP-5792 numeric codes (100/200/400/500/600) plus legacy string / 1–2 enums
+ * some wallets still return.
+ */
+function normalizeCallsStatus(
+  status: CallsStatus["status"] | undefined,
+  statusCode?: number
+): "pending" | "confirmed" | "failed" | "unknown" {
+  const raw = status ?? statusCode;
+  if (raw == null) return "unknown";
+
+  if (typeof raw === "number") {
+    // Legacy pre-EIP formal codes used by some wallets (1=pending, 2=confirmed).
+    if (raw === 1) return "pending";
+    if (raw === 2) return "confirmed";
+    if (raw >= 100 && raw < 200) return "pending";
+    if (raw >= 200 && raw < 300) return "confirmed";
+    // 4xx offchain / 5xx full / 6xx partial reverts
+    if (raw >= 400) return "failed";
     return "unknown";
   }
-  const s = String(status).toUpperCase();
-  if (s === "PENDING" || s === "100") return "pending";
-  if (s === "CONFIRMED" || s === "200") return "confirmed";
-  if (s === "FAILED" || s === "REVERTED" || s === "500") return "failed";
+
+  const s = String(raw).toUpperCase();
+  if (
+    s === "PENDING" ||
+    s === "100" ||
+    s === "1" ||
+    s === "LOADING" ||
+    s === "EXECUTING"
+  ) {
+    return "pending";
+  }
+  if (
+    s === "CONFIRMED" ||
+    s === "SUCCESS" ||
+    s === "COMPLETE" ||
+    s === "COMPLETED" ||
+    s === "200" ||
+    s === "2"
+  ) {
+    return "confirmed";
+  }
+  if (
+    s === "FAILED" ||
+    s === "REVERTED" ||
+    s === "ERROR" ||
+    s === "400" ||
+    s === "500" ||
+    s === "600"
+  ) {
+    return "failed";
+  }
   return "unknown";
 }
 
@@ -174,20 +253,67 @@ async function assertTxVisibleOnBase(hash: string): Promise<void> {
     } catch {
       /* not indexed yet or RPC hiccup */
     }
+    try {
+      const receipt = await withRpcRetry(() =>
+        pub.getTransactionReceipt({ hash: hash as `0x${string}` })
+      );
+      if (receipt) return;
+    } catch {
+      /* not mined yet */
+    }
     await new Promise((r) => setTimeout(r, 1_500));
   }
   throw new Error(
-    "Launch was not broadcast on Base — reconnect wallet and retry with a new salt"
+    "Transaction was not broadcast on Base — reconnect wallet and check BaseScan"
   );
 }
 
-/** Wait until the tx is mined — more reliable than getTransaction alone for smart wallets. */
-async function waitForOnchainHash(hash: string): Promise<string> {
+/**
+ * Confirm a known submitted hash. Once the wallet returned a hash, never
+ * re-prompt / re-submit — RPC flakiness must not turn a mined swap into "failed".
+ */
+async function waitForOnchainHash(
+  hash: string,
+  opts?: { softOnTimeout?: boolean }
+): Promise<string> {
   if (!isTxHash(hash)) {
     throw new Error("Wallet returned an invalid transaction hash");
   }
-  await assertTxVisibleOnBase(hash);
+
+  const soft = opts?.softOnTimeout === true;
   const pub = createPublicOnlyBaseClient();
+
+  const readReceipt = async () => {
+    try {
+      return await withRpcRetry(() =>
+        pub.getTransactionReceipt({ hash: hash as `0x${string}` })
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  const early = await readReceipt();
+  if (early) {
+    if (early.status === "reverted") {
+      throw new Error("Transaction reverted on Base");
+    }
+    return hash;
+  }
+
+  try {
+    await assertTxVisibleOnBase(hash);
+  } catch (e) {
+    // Hash may still mine soon (smart-wallet bundler lag). Soft path keeps success UX.
+    if (!soft) throw e;
+    const late = await readReceipt();
+    if (late?.status === "reverted") {
+      throw new Error("Transaction reverted on Base");
+    }
+    if (late?.status === "success") return hash;
+    return hash;
+  }
+
   try {
     const receipt = await withRpcRetry(() =>
       pub.waitForTransactionReceipt({
@@ -203,12 +329,21 @@ async function waitForOnchainHash(hash: string): Promise<string> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.toLowerCase().includes("revert")) throw e;
-    if (msg.includes("not broadcast")) throw e;
-    // Do not soft-succeed: sequential approve→LP / auto-seed must wait for a real receipt.
+
+    const final = await readReceipt();
+    if (final?.status === "reverted") {
+      throw new Error("Transaction reverted on Base");
+    }
+    if (final?.status === "success") return hash;
+
+    // Already submitted — do not surface as a hard swap failure for RPC timeouts.
+    if (soft) return hash;
+
     throw new Error(
       msg.includes("Timeout") || msg.toLowerCase().includes("timed out")
         ? "Transaction sent but not confirmed yet — check BaseScan, then retry the next step"
-        : msg.split("\n")[0] || "Could not confirm transaction on Base — retry in a moment"
+        : msg.split("\n")[0] ||
+            "Could not confirm transaction on Base — retry in a moment"
     );
   }
 }
@@ -216,29 +351,75 @@ async function waitForOnchainHash(hash: string): Promise<string> {
 async function pollCallsStatus(provider: Eip1193, id: string): Promise<string> {
   const deadline = Date.now() + CALLS_POLL_MS;
   let confirmedWithoutHashMs = 0;
-  while (Date.now() < deadline) {
-    const raw = (await provider.request({
-      method: "wallet_getCallsStatus",
-      params: [id],
-    })) as CallsStatus & { status?: string | number };
+  let lastSeenHash: string | null = null;
 
-    const state = normalizeCallsStatus(raw?.status);
+  while (Date.now() < deadline) {
+    let raw: CallsStatus;
+    try {
+      raw = (await provider.request({
+        method: "wallet_getCallsStatus",
+        params: [id],
+      })) as CallsStatus;
+    } catch {
+      await new Promise((r) => setTimeout(r, 1200));
+      continue;
+    }
+
+    const hash = extractTxHashFromStatus(raw);
+    if (hash) lastSeenHash = hash;
+
+    const state = normalizeCallsStatus(raw?.status, raw?.statusCode);
+
+    // Receipts with 0x1 win even if the top-level status field is non-standard.
+    if (hash) {
+      const anyFail = (raw.receipts ?? []).some(
+        (r) => isReceiptSuccess(r.status) === false
+      );
+      const anyOk = (raw.receipts ?? []).some(
+        (r) => isReceiptSuccess(r.status) === true
+      );
+      if (anyOk && !anyFail) {
+        return waitForOnchainHash(hash, { softOnTimeout: true });
+      }
+      if (state === "confirmed") {
+        return waitForOnchainHash(hash, { softOnTimeout: true });
+      }
+      if (!anyFail && state === "unknown") {
+        // Some wallets only populate receipts; treat present hash as success path.
+        return waitForOnchainHash(hash, { softOnTimeout: true });
+      }
+    }
+
     if (state === "confirmed") {
-      const hash = extractTxHashFromStatus(raw);
-      if (hash) return hash;
+      if (hash) return waitForOnchainHash(hash, { softOnTimeout: true });
       confirmedWithoutHashMs += 1200;
-      // Confirmed batch without a hash is a dead end — fail before hanging the full timeout.
       if (confirmedWithoutHashMs >= 8_000) {
+        if (lastSeenHash) {
+          return waitForOnchainHash(lastSeenHash, { softOnTimeout: true });
+        }
         throw new Error(
           "Wallet confirmed the batch but returned no transaction hash — reopen wallet and check BaseScan"
         );
       }
     }
+
     if (state === "failed") {
+      // Partial batches can still include a successful swap receipt — prefer that over a hard fail.
+      if (lastSeenHash) {
+        try {
+          return await waitForOnchainHash(lastSeenHash, { softOnTimeout: true });
+        } catch {
+          /* fall through */
+        }
+      }
       throw new Error("Sponsored transaction failed onchain");
     }
 
     await new Promise((r) => setTimeout(r, 1200));
+  }
+
+  if (lastSeenHash) {
+    return waitForOnchainHash(lastSeenHash, { softOnTimeout: true });
   }
   throw new Error("Sponsored transaction timed out waiting for confirmation");
 }
@@ -458,10 +639,15 @@ async function sendSingleCall(
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
+      // Batch was likely accepted — do not double-submit via eth_sendTransaction.
+      if (!isClearlyNotSubmitted(e) && !isSendCallsUnsupported(e)) {
+        throw e;
+      }
     }
   }
 
-  return sendViaEthSendTransaction(provider, from, call);
+  const hash = await sendViaEthSendTransaction(provider, from, call);
+  return waitForOnchainHash(hash, { softOnTimeout: true });
 }
 
 async function simulateContractCall(
@@ -500,17 +686,24 @@ async function sendCallGroup(
   const tryPaymaster = batchCanTryPaymaster(group);
   const multicallable = opts.atomicBatch && canBundleViaMulticall3(group);
 
+  // Once a path has submitted a tx, never fall through to another send path.
+  // Confirmation/RPC failures previously re-prompted and marked successful swaps as failed.
+  const confirmSubmitted = (hash: string) =>
+    waitForOnchainHash(hash, { softOnTimeout: true });
+
   // Desktop EOAs: try Multical only if eth_call simulates clean — never open a doomed prompt.
   if (multicallable && !opts.preferSendCalls) {
+    let submitted: string | null = null;
     try {
       const bundled = bundleCallsViaMulticall3(group);
       const ok = await simulateContractCall(from, bundled);
       if (ok) {
-        const hash = await sendViaEthSendTransaction(provider, from, bundled);
-        return waitForOnchainHash(hash);
+        submitted = await sendViaEthSendTransaction(provider, from, bundled);
+        return await confirmSubmitted(submitted);
       }
     } catch (e) {
       if (isUserRejection(e)) throw e;
+      if (submitted) return confirmSubmitted(submitted);
     }
   }
 
@@ -525,19 +718,26 @@ async function sendCallGroup(
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
+      // Do not re-submit: sendCalls may already be mined while status polling failed.
+      // Only fall through when the wallet clearly never accepted the batch.
+      if (!isSendCallsUnsupported(e) && !isClearlyNotSubmitted(e)) {
+        throw e;
+      }
     }
   }
 
   if (multicallable) {
+    let submitted: string | null = null;
     try {
       const bundled = bundleCallsViaMulticall3(group);
       const ok = await simulateContractCall(from, bundled);
       if (ok) {
-        const hash = await sendViaEthSendTransaction(provider, from, bundled);
-        return waitForOnchainHash(hash);
+        submitted = await sendViaEthSendTransaction(provider, from, bundled);
+        return await confirmSubmitted(submitted);
       }
     } catch (e) {
       if (isUserRejection(e)) throw e;
+      if (submitted) return confirmSubmitted(submitted);
     }
   }
 
@@ -550,9 +750,31 @@ async function sendCallGroup(
     lastHash = await sendSingleCall(provider, from, group[i]!, opts);
     if (i < group.length - 1) {
       await waitForTxMined(lastHash);
+    } else {
+      // Final leg: soft-confirm so a mined swap isn't shown as failed on RPC lag.
+      await waitForOnchainHash(lastHash, { softOnTimeout: true });
     }
   }
   return lastHash;
+}
+
+/** Errors that mean wallet_sendCalls never broadcast a batch. */
+function isClearlyNotSubmitted(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("not supported") ||
+    msg.includes("unsupported") ||
+    msg.includes("method not found") ||
+    msg.includes("unknown method") ||
+    msg.includes("invalid method") ||
+    msg.includes("wallet confirmation timed out") ||
+    msg.includes("did not return a batch id") ||
+    msg.includes("internal error") ||
+    msg.includes("provider not") ||
+    // Pre-submit validation errors from the wallet, not a post-broadcast fail
+    msg.includes("invalid params") ||
+    msg.includes("execution reverted") // simulate before accept
+  );
 }
 
 async function sendGroupedAppCalls(
@@ -721,11 +943,14 @@ export async function sendAppTransactions(
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
-      return sendViaEthSendTransaction(provider, from, workBatch[0]!);
+      if (!isSendCallsUnsupported(e) && !isClearlyNotSubmitted(e)) {
+        throw e;
+      }
     }
   }
 
-  return sendViaEthSendTransaction(provider, from, workBatch[0]!);
+  const hash = await sendViaEthSendTransaction(provider, from, workBatch[0]!);
+  return waitForOnchainHash(hash, { softOnTimeout: true });
 }
 
 /** Sends an app contract call — sponsored via paymaster in Base App / Coinbase Wallet. */
