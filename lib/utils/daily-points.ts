@@ -279,6 +279,11 @@ export function addActivityPoints(
   const room = Math.max(0, DAILY_POINTS_CAP - day.activity);
   const credited = Math.min(points, room);
   day.activity += credited;
+  // Keep tx mirror when only activity is written (legacy paths that skip
+  // recordInAppTransaction still surface consistent daily counts).
+  if (day.txs < getTodayInAppTxCount(address)) {
+    day.txs = getTodayInAppTxCount(address);
+  }
   ledger[today] = day;
   writeWeekLedger(address, ledger);
 
@@ -372,9 +377,39 @@ export function recordConfirmedInAppAction(
   // Delay the UI notify until after PP is written so Quests never refresh
   // against a stale ledger (common in Base App WebViews).
   const txsToday = recordInAppTransaction(address, { notify: false });
-  const { credited, hitCap } = creditActivityFromCount(address, action, nextCount);
+  const synced = readSyncedCount(address, action);
+  // Prefer the caller's weekly counter; if it's missing/stale (0) still credit one.
+  const safeCount =
+    Number.isFinite(nextCount) && nextCount > 0
+      ? Math.floor(nextCount)
+      : synced + 1;
+
+  let { credited, hitCap } = creditActivityFromCount(
+    address,
+    action,
+    safeCount
+  );
+
+  // Repair: counter/sync advanced without PP (Base App storage races). Roll sync
+  // back one step and re-credit while room under the daily cap remains.
+  if (credited === 0 && getTodayPointsSummary(address).remaining > 0) {
+    const againSynced = readSyncedCount(address, action);
+    if (againSynced >= safeCount && safeCount > 0) {
+      writeSyncedCount(address, action, Math.max(0, safeCount - 1));
+      const repaired = creditActivityFromCount(address, action, safeCount);
+      credited = repaired.credited;
+      hitCap = repaired.hitCap;
+    }
+  }
+
   notifyPointsUpdated(address);
-  return { credited, hitCap, txsToday };
+  return {
+    credited,
+    hitCap:
+      hitCap ||
+      (credited === 0 && getTodayPointsSummary(address).remaining === 0),
+    txsToday,
+  };
 }
 
 function creditActionDelta(

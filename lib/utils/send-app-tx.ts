@@ -67,13 +67,43 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const o = err as { message?: unknown; details?: unknown; shortMessage?: unknown };
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.shortMessage === "string" && o.shortMessage) return o.shortMessage;
+    if (typeof o.details === "string" && o.details) return o.details;
+  }
+  return String(err ?? "");
+}
+
+function errorCode(err: unknown): number | null {
+  if (err && typeof err === "object" && "code" in err) {
+    const c = (err as { code?: unknown }).code;
+    if (typeof c === "number") return c;
+    if (typeof c === "string" && /^-?\d+$/.test(c)) return Number(c);
+  }
+  return null;
+}
+
 function isUserRejection(err: unknown): boolean {
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  const code = errorCode(err);
+  if (code === 4001) return true;
+  const msg = errorMessage(err).toLowerCase();
+  // Do NOT match bare "denied" — paymasters often return "request denied".
   return (
-    msg.includes("reject") ||
-    msg.includes("denied") ||
-    msg.includes("cancel") ||
-    msg.includes("4001")
+    msg.includes("user rejected") ||
+    msg.includes("user denied") ||
+    msg.includes("user cancelled") ||
+    msg.includes("user canceled") ||
+    msg.includes("rejected the request") ||
+    msg.includes("rejected by user") ||
+    msg.includes("denied by the user") ||
+    msg.includes("transaction cancelled") ||
+    msg.includes("transaction canceled") ||
+    msg.includes("4001") ||
+    (msg.includes("rejected") && msg.includes("user"))
   );
 }
 
@@ -102,7 +132,8 @@ async function ensureActiveAccount(
 
 function buildLegacyTxParams(
   from: string,
-  call: ContractCall
+  call: ContractCall,
+  opts?: { includeChainId?: boolean }
 ): Record<string, string> {
   const data = isPreservedCalldataCall(call)
     ? call.data
@@ -111,8 +142,12 @@ function buildLegacyTxParams(
     from,
     to: call.to,
     data,
-    chainId: BASE_CHAIN_HEX,
   };
+  // Mini-app hosts (Warpcast / some Base shells) reject eth_sendTransaction when
+  // chainId is present — chain is already set via wallet_switchEthereumChain.
+  if (opts?.includeChainId !== false) {
+    params.chainId = BASE_CHAIN_HEX;
+  }
   if (call.value && call.value > BigInt(0)) {
     params.value = `0x${call.value.toString(16)}`;
   }
@@ -124,14 +159,66 @@ function buildLegacyTxParams(
 }
 
 function isSendCallsUnsupported(err: unknown): boolean {
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  const msg = errorMessage(err).toLowerCase();
+  const code = errorCode(err);
   return (
+    code === 4200 ||
+    code === -32601 ||
     msg.includes("not supported") ||
     msg.includes("unsupported") ||
     msg.includes("method not found") ||
     msg.includes("unknown method") ||
-    msg.includes("invalid method")
+    msg.includes("invalid method") ||
+    msg.includes("does not exist")
   );
+}
+
+/** Errors that mean wallet_sendCalls never broadcast a batch — safe to fall back. */
+function isClearlyNotSubmitted(err: unknown): boolean {
+  if (isSendCallsUnsupported(err)) return true;
+  const code = errorCode(err);
+  // Generic RPC / host bridge errors (Farcaster maps unknown codes → this message).
+  if (
+    code === -32603 ||
+    code === -32602 ||
+    code === -32600 ||
+    code === -32000 ||
+    code === -32001 ||
+    code === -32002 ||
+    code === -32003
+  ) {
+    return true;
+  }
+  const msg = errorMessage(err).toLowerCase();
+  return (
+    msg.includes("unknown provider") ||
+    msg.includes("provider rpc") ||
+    msg.includes("internal json-rpc") ||
+    msg.includes("internal error") ||
+    msg.includes("wallet confirmation timed out") ||
+    msg.includes("did not return a batch id") ||
+    msg.includes("provider not") ||
+    msg.includes("invalid params") ||
+    msg.includes("invalid argument") ||
+    msg.includes("execution reverted") ||
+    msg.includes("must be connected") ||
+    msg.includes("no wallet") ||
+    msg.includes("capabilities") ||
+    // Paymaster / sponsorship refused before send
+    msg.includes("paymaster") ||
+    msg.includes("sponsor") ||
+    msg.includes("request denied") ||
+    msg.includes("not allowlisted")
+  );
+}
+
+function formatWalletError(err: unknown): string {
+  const msg = errorMessage(err).split("\n")[0]!.trim();
+  const lower = msg.toLowerCase();
+  if (lower.includes("unknown provider") || lower === "unknown provider rpc error") {
+    return "Wallet could not send the transaction — reconnect in Farcaster/Base App and try again";
+  }
+  return msg || "Transaction failed";
 }
 
 function extractCallsId(result: unknown): string | null {
@@ -447,49 +534,64 @@ async function sendViaWalletSendCalls(
   });
 
   let lastErr: unknown;
+  const capabilityVariants: Array<Record<string, unknown>> = [capabilities];
+  // Farcaster/Warpcast often reject non-empty capabilities with opaque RPC codes.
+  if (Object.keys(capabilities).length > 0) {
+    capabilityVariants.push({});
+  }
 
   for (const version of ["1.0", "2.0.0"] as const) {
-    try {
-      const result = await withTimeout(
-        provider.request({
-          method: "wallet_sendCalls",
-          params: [
-            {
-              version,
-              chainId: BASE_CHAIN_HEX,
-              from,
-              calls: callPayload,
-              capabilities,
-            },
-          ],
-        }),
-        WALLET_PROMPT_MS,
-        "Wallet confirmation"
-      );
-
-      const id = extractCallsId(result);
-      if (!id) {
-        throw new Error("wallet_sendCalls did not return a batch id");
-      }
-
-      // Some wallets return a tx hash directly instead of a batch id.
-      if (isTxHash(id)) {
-        try {
-          return await pollCallsStatus(provider, id);
-        } catch {
-          return id;
+    for (const caps of capabilityVariants) {
+      try {
+        const paramsBody: Record<string, unknown> = {
+          version,
+          chainId: BASE_CHAIN_HEX,
+          from,
+          calls: callPayload,
+        };
+        if (Object.keys(caps).length > 0) {
+          paramsBody.capabilities = caps;
         }
-      }
+        // EIP-5792 v2 prefers explicit atomicity; ignore if older hosts reject it.
+        if (version === "2.0.0") {
+          paramsBody.atomicRequired = calls.length > 1;
+        }
 
-      return pollCallsStatus(provider, id);
-    } catch (e) {
-      lastErr = e;
-      if (version === "1.0" && isSendCallsUnsupported(e)) continue;
-      throw e;
+        const result = await withTimeout(
+          provider.request({
+            method: "wallet_sendCalls",
+            params: [paramsBody],
+          }),
+          WALLET_PROMPT_MS,
+          "Wallet confirmation"
+        );
+
+        const id = extractCallsId(result);
+        if (!id) {
+          throw new Error("wallet_sendCalls did not return a batch id");
+        }
+
+        // Some wallets return a tx hash directly instead of a batch id.
+        if (isTxHash(id)) {
+          try {
+            return await pollCallsStatus(provider, id);
+          } catch {
+            return id;
+          }
+        }
+
+        return pollCallsStatus(provider, id);
+      } catch (e) {
+        lastErr = e;
+        if (isUserRejection(e)) throw e;
+        // try next capability/version variant
+      }
     }
   }
 
-  throw lastErr instanceof Error ? lastErr : new Error("wallet_sendCalls failed");
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(formatWalletError(lastErr) || "wallet_sendCalls failed");
 }
 
 async function sendViaEthSendTransaction(
@@ -497,19 +599,34 @@ async function sendViaEthSendTransaction(
   from: string,
   call: ContractCall
 ): Promise<string> {
-  const hash = await withTimeout(
-    provider.request({
-      method: "eth_sendTransaction",
-      params: [buildLegacyTxParams(from, call)],
-    }),
-    WALLET_PROMPT_MS,
-    "Wallet confirmation"
-  );
+  const attempt = async (includeChainId: boolean) => {
+    const hash = await withTimeout(
+      provider.request({
+        method: "eth_sendTransaction",
+        params: [buildLegacyTxParams(from, call, { includeChainId })],
+      }),
+      WALLET_PROMPT_MS,
+      "Wallet confirmation"
+    );
+    if (!hash || typeof hash !== "string") {
+      throw new Error("Transaction was not submitted");
+    }
+    return hash;
+  };
 
-  if (!hash || typeof hash !== "string") {
-    throw new Error("Transaction was not submitted");
+  try {
+    // Prefer omitting chainId first — Base/Warpcast mini-app providers reject extras.
+    return await attempt(false);
+  } catch (e) {
+    if (isUserRejection(e)) throw e;
+    try {
+      return await attempt(true);
+    } catch (e2) {
+      if (isUserRejection(e2)) throw e2;
+      const msg = formatWalletError(e2);
+      throw new Error(msg);
+    }
   }
-  return hash;
 }
 
 async function waitForTxMined(hash: string): Promise<void> {
@@ -609,16 +726,30 @@ async function sendWalletCallsWithPaymasterFallback(
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
-      if (!isPaymasterDenied(e)) throw e;
+      // Fall through for paymaster failures AND host RPC errors (Warpcast).
+      if (!isPaymasterDenied(e) && !isClearlyNotSubmitted(e)) {
+        // Unknown post-submit failures should not fall through here — rethrow.
+        // isClearlyNotSubmitted covers opaque pre-submit host errors.
+        throw e;
+      }
     }
   }
 
-  return sendViaWalletSendCalls(
-    provider,
-    from,
-    calls,
-    getSendCallsCapabilities(skipBuilderCap, { skipPaymaster: true })
-  );
+  try {
+    return await sendViaWalletSendCalls(
+      provider,
+      from,
+      calls,
+      getSendCallsCapabilities(skipBuilderCap, { skipPaymaster: true })
+    );
+  } catch (e) {
+    if (isUserRejection(e)) throw e;
+    // Last sendCalls try: bare batch with no capabilities.
+    if (isClearlyNotSubmitted(e) || isSendCallsUnsupported(e)) {
+      return sendViaWalletSendCalls(provider, from, calls, {});
+    }
+    throw e;
+  }
 }
 
 async function sendSingleCall(
@@ -756,25 +887,6 @@ async function sendCallGroup(
     }
   }
   return lastHash;
-}
-
-/** Errors that mean wallet_sendCalls never broadcast a batch. */
-function isClearlyNotSubmitted(err: unknown): boolean {
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return (
-    msg.includes("not supported") ||
-    msg.includes("unsupported") ||
-    msg.includes("method not found") ||
-    msg.includes("unknown method") ||
-    msg.includes("invalid method") ||
-    msg.includes("wallet confirmation timed out") ||
-    msg.includes("did not return a batch id") ||
-    msg.includes("internal error") ||
-    msg.includes("provider not") ||
-    // Pre-submit validation errors from the wallet, not a post-broadcast fail
-    msg.includes("invalid params") ||
-    msg.includes("execution reverted") // simulate before accept
-  );
 }
 
 async function sendGroupedAppCalls(

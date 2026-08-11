@@ -1,5 +1,4 @@
 import { BrowserProvider, Eip1193Provider, JsonRpcSigner } from "ethers";
-import { sdk } from "@farcaster/miniapp-sdk";
 import {
   pickCoinbaseExtensionProvider,
   pickMetaMaskProvider,
@@ -25,8 +24,17 @@ export async function getEip1193Provider(
   } else if (type === "injected") {
     selectedProvider = pickOtherInjectedProvider();
   } else if (type === "farcaster") {
-    if (sdk?.actions?.ready) {
-      await sdk.actions.ready();
+    // Always dynamic-import so we share the same miniapp host channel as detect/connect.
+    const { sdk } = await import("@farcaster/miniapp-sdk");
+    try {
+      if (sdk?.actions?.ready) {
+        await Promise.race([
+          sdk.actions.ready(),
+          new Promise((r) => setTimeout(r, 2_000)),
+        ]);
+      }
+    } catch {
+      // Host may already be ready
     }
 
     if (!sdk?.wallet?.getEthereumProvider) {
@@ -35,7 +43,12 @@ export async function getEip1193Provider(
       );
     }
 
-    const fcProvider = await sdk.wallet.getEthereumProvider();
+    const fcProvider = await Promise.race([
+      sdk.wallet.getEthereumProvider(),
+      new Promise<undefined>((resolve) =>
+        setTimeout(() => resolve(undefined), 5_000)
+      ),
+    ]);
     if (!fcProvider) {
       throw new Error(
         "Mini-app wallet unavailable — open this app inside Base App or Warpcast."

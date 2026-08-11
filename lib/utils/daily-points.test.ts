@@ -103,8 +103,10 @@ describe("creditActivityFromCount", () => {
 });
 
 describe("recordConfirmedInAppAction", () => {
+  let storage: ReturnType<typeof mockBrowserStorage>;
+
   beforeEach(() => {
-    mockBrowserStorage();
+    storage = mockBrowserStorage();
   });
 
   it("increments txs even when PP is already capped", () => {
@@ -126,5 +128,17 @@ describe("recordConfirmedInAppAction", () => {
     expect(out.txsToday).toBe(beforeTxs + 1);
     expect(getTodayPointsSummary(ADDR).txs).toBe(beforeTxs + 1);
     expect(DAILY_POINTS_CAP).toBe(200);
+  });
+
+  it("repairs when sync counter is ahead of activity ledger", () => {
+    const week = getWeekKey(new Date().toISOString());
+    const syncedKey = `base_act_synced_v3_swap_${ADDR}_${week}`;
+    // Synced says 2 swaps already paid, but activity ledger is empty.
+    storage.setRaw(syncedKey, "2");
+    expect(getTodayPointsSummary(ADDR).activity).toBe(0);
+
+    const out = recordConfirmedInAppAction(ADDR, "swap", 2);
+    expect(out.credited).toBe(SWAP_PP);
+    expect(getTodayPointsSummary(ADDR).activity).toBe(SWAP_PP);
   });
 });
