@@ -148,6 +148,12 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     return entry?.rank != null ? `Rank #${entry.rank}` : undefined;
   }, [leaderboard, wallet]);
 
+  useEffect(() => {
+    if (!paidScanActive && !analyticsUnlockLoading) return;
+    const el = document.getElementById("analytics-full-scan");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [paidScanActive, analyticsUnlockLoading]);
+
 if (!wallet) return null;
 
   // Keep rank/score in sync with volume cards (partial sync can update metrics first).
@@ -160,12 +166,6 @@ if (!wallet) return null;
     ethVolumeNum > 0 ||
     (scoredWallet.dexVolumeUSD ?? 0) > 0 ||
     (scoredWallet.dexTradeCount ?? 0) > 0;
-
-  useEffect(() => {
-    if (!paidScanActive && !analyticsUnlockLoading) return;
-    const el = document.getElementById("analytics-full-scan");
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [paidScanActive, analyticsUnlockLoading]);
 
   const scoreSyncing =
     !hasIndexedMetrics &&

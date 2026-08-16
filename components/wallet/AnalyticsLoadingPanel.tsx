@@ -62,15 +62,18 @@ export default function AnalyticsLoadingPanel({
   walletAddress?: string;
 }) {
   const activeStage = stageIndex(scanProgress);
-  const startedAt = useRef(Date.now());
-  const [now, setNow] = useState(() => Date.now());
+  const startedAt = useRef(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 250);
+    startedAt.current = performance.now();
+    const id = window.setInterval(() => {
+      setElapsedMs(performance.now() - startedAt.current);
+    }, 250);
     return () => window.clearInterval(id);
   }, []);
 
-  const elapsedSec = (now - startedAt.current) / 1000;
+  const elapsedSec = elapsedMs / 1000;
   // Keep the bar moving so a long Alchemy walk never looks idle.
   const timePct = Math.min(88, 10 + elapsedSec * 1.05);
   const stagePct = 14 + activeStage * 18;
