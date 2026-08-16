@@ -65,6 +65,23 @@ export function applyPartialSyncPatch(
     firstTx:
       patch.firstTx && patch.firstTx !== "Syncing…" ? patch.firstTx : prev.firstTx,
     lastTx: patch.lastTx && patch.lastTx !== "Syncing…" ? patch.lastTx : prev.lastTx,
+    ethReceived: Math.max(prev.ethReceived ?? 0, patch.ethReceived ?? 0),
+    netETHFlow: (() => {
+      const sent = Math.max(
+        parseFloat(prev.ethVolume) || 0,
+        parseFloat(patch.ethVolume ?? prev.ethVolume) || 0
+      );
+      const received = Math.max(prev.ethReceived ?? 0, patch.ethReceived ?? 0);
+      return parseFloat((received - sent).toFixed(4));
+    })(),
+    uniqueProtocols: Math.max(prev.uniqueProtocols ?? 0, patch.uniqueProtocols ?? 0),
+    aaTxCount: Math.max(prev.aaTxCount ?? 0, patch.aaTxCount ?? 0),
+    paymasterTxCount: Math.max(prev.paymasterTxCount ?? 0, patch.paymasterTxCount ?? 0),
+    contractInteractions: Math.max(
+      prev.contractInteractions ?? 0,
+      patch.contractInteractions ?? 0
+    ),
+    daysOnBase: Math.max(prev.daysOnBase ?? 0, patch.daysOnBase ?? 0),
   };
 
   // Re-derive bars + rank from the merged metrics (volume cards and score sidebar stay in sync).

@@ -69,7 +69,7 @@ export default function DashboardTab({ app }: { app: WalletAppState }) {
     x402Product, setX402Product,
     farcasterUnlocked, farcasterUnlockLoading, handleFarcasterUnlock,
     analyticsUnlocked, analyticsUnlockLoading, handleAnalyticsUnlock,
-    walletRefreshing, scanProgress, analyticsSyncing,
+    walletRefreshing, scanProgress, analyticsSyncing, paidScanActive,
     miniAppIdentity, walletDisplayLabel,
     setTab,
   } = app;
@@ -161,6 +161,12 @@ if (!wallet) return null;
     (scoredWallet.dexVolumeUSD ?? 0) > 0 ||
     (scoredWallet.dexTradeCount ?? 0) > 0;
 
+  useEffect(() => {
+    if (!paidScanActive && !analyticsUnlockLoading) return;
+    const el = document.getElementById("analytics-full-scan");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [paidScanActive, analyticsUnlockLoading]);
+
   const scoreSyncing =
     !hasIndexedMetrics &&
     (walletRefreshing || analyticsSyncing) &&
@@ -169,25 +175,27 @@ if (!wallet) return null;
       scoredWallet.recommendation.includes("Refining"));
 
   /**
-   * Drop the full-screen scanning cover once real metrics exist.
-   * Score alone can lag behind volume/tx counts during partial sync.
+   * Paid first scan stays covered until historyComplete (paidScanActive).
+   * Returning users can see tiles while a later refine runs.
    */
   const hasUsableAnalytics =
     analyticsUnlocked &&
+    !paidScanActive &&
     hasIndexedMetrics &&
     !scoredWallet.recommendation.includes("Fetching onchain data");
 
   const onchainAnalysisLoading =
     analyticsUnlocked &&
-    !hasUsableAnalytics &&
-    (analyticsUnlockLoading ||
-      analyticsSyncing ||
-      walletRefreshing ||
-      scoreSyncing ||
-      scoredWallet.recommendation.includes("Fetching onchain") ||
-      scoredWallet.recommendation.includes("Syncing full") ||
-      scoredWallet.recommendation.includes("Refining") ||
-      scoredWallet.recommendation.includes("Calculating"));
+    (paidScanActive ||
+      analyticsUnlockLoading ||
+      (!hasUsableAnalytics &&
+        (analyticsSyncing ||
+          walletRefreshing ||
+          scoreSyncing ||
+          scoredWallet.recommendation.includes("Fetching onchain") ||
+          scoredWallet.recommendation.includes("Syncing full") ||
+          scoredWallet.recommendation.includes("Refining") ||
+          scoredWallet.recommendation.includes("Calculating"))));
 
   return (
           <div className="space-y-4">
@@ -229,10 +237,14 @@ if (!wallet) return null;
             >
               <div className="space-y-4">
               {analyticsUnlocked && analyticsSyncing && hasUsableAnalytics && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 flex items-center gap-2 text-xs font-semibold text-emerald-900">
-                  <RefreshCcw size={14} className="animate-spin shrink-0 text-emerald-700" />
-                  Refining your history in the background
-                  {scanProgress ? ` — ${scanProgress}` : "…"}
+                <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-4 py-3.5 flex items-center gap-3 text-sm font-bold text-emerald-950 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]">
+                  <RefreshCcw size={18} className="animate-spin shrink-0 text-emerald-700" />
+                  <div className="min-w-0">
+                    <p>Still indexing your wallet…</p>
+                    <p className="text-xs font-semibold text-emerald-800/80 mt-0.5 truncate">
+                      {scanProgress || "Values update as the full history lands."}
+                    </p>
+                  </div>
                 </div>
               )}
               <OnchainScorePanel
@@ -276,12 +288,12 @@ if (!wallet) return null;
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
               {[
-                {label:'Age Percentile',value:wallet.onchainAgePercentile>0?`Top ${Math.min(99,Math.max(1,100-wallet.onchainAgePercentile))}%`:'—',sub:`vs Base median`,icon:<GitBranch size={16} className="analytics-tile-icon"/>,active:wallet.onchainAgePercentile>0},
-                {label:'Total Txs',value:wallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="analytics-tile-icon"/>,active:true},
-                {label:'AA Txs',value:(wallet.aaTxCount??0).toLocaleString(),sub:'Account abstraction (4337)',icon:<Smartphone size={16} className="analytics-tile-icon"/>,active:(wallet.aaTxCount??0)>0},
-                {label:'Base App / gasless',value:wallet.paymasterTxCount.toLocaleString(),sub:'Paymaster · smart wallet',icon:<Droplets size={16} className="analytics-tile-icon"/>,active:wallet.paymasterTxCount>0},
-                {label:'Bridge Txs',value:wallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="analytics-tile-icon"/>,active:wallet.bridgeTxCount>0},
-                {label:'Net ETH Flow',value:`${wallet.netETHFlow>=0?'+':''}${wallet.netETHFlow} Ξ`,sub:wallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={wallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
+                {label:'Age Percentile',value:scoredWallet.onchainAgePercentile>0?`Top ${Math.min(99,Math.max(1,100-scoredWallet.onchainAgePercentile))}%`:'—',sub:`vs Base median`,icon:<GitBranch size={16} className="analytics-tile-icon"/>,active:scoredWallet.onchainAgePercentile>0},
+                {label:'Total Txs',value:scoredWallet.txCount.toLocaleString(),sub:`Lifetime interactions`,icon:<Layers size={16} className="analytics-tile-icon"/>,active:true},
+                {label:'AA Txs',value:(scoredWallet.aaTxCount??0).toLocaleString(),sub:'Account abstraction (4337)',icon:<Smartphone size={16} className="analytics-tile-icon"/>,active:(scoredWallet.aaTxCount??0)>0},
+                {label:'Base App / gasless',value:scoredWallet.paymasterTxCount.toLocaleString(),sub:'Paymaster · smart wallet',icon:<Droplets size={16} className="analytics-tile-icon"/>,active:scoredWallet.paymasterTxCount>0},
+                {label:'Bridge Txs',value:scoredWallet.bridgeTxCount.toString(),sub:'L1 ↔ Base bridge',icon:<Globe size={16} className="analytics-tile-icon"/>,active:scoredWallet.bridgeTxCount>0},
+                {label:'Net ETH Flow',value:`${scoredWallet.netETHFlow>=0?'+':''}${scoredWallet.netETHFlow} Ξ`,sub:scoredWallet.netETHFlow>=0?'Net receiver':'Net sender',icon:<TrendingUp size={16} className={scoredWallet.netETHFlow>=0?'text-green-400':'text-red-400'}/>,active:true},
               ].map((s,i)=>(
                 <div key={i} className={`analytics-tile p-4 ${s.active?'':'opacity-60'}`}>
                   <div className="mb-2 analytics-tile-icon">{s.icon}</div>
@@ -313,60 +325,60 @@ if (!wallet) return null;
 
             <WalletStatsSections
               overview={[
-                { label: "Portfolio", value: `$${wallet.portfolioValueUSD.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
-                { label: "Total Txs", value: wallet.txCount.toLocaleString(), icon: <Layers size={15} className="analytics-tile-icon" /> },
-                { label: "AA txs", value: (wallet.aaTxCount ?? 0).toLocaleString(), icon: <Smartphone size={15} className="analytics-tile-icon" />, dim: (wallet.aaTxCount ?? 0) <= 0 },
-                { label: "Base App / gasless", value: wallet.paymasterTxCount.toLocaleString(), icon: <Droplets size={15} className="analytics-tile-icon" />, dim: wallet.paymasterTxCount <= 0 },
-                { label: "Age percentile", value: wallet.onchainAgePercentile > 0 ? `Top ${Math.min(99, Math.max(1, 100 - wallet.onchainAgePercentile))}%` : "—", icon: <GitBranch size={15} className="analytics-tile-icon" />, dim: wallet.onchainAgePercentile <= 0 },
-                { label: "Net ETH flow", value: `${wallet.netETHFlow >= 0 ? "+" : ""}${wallet.netETHFlow} Ξ`, icon: <TrendingUp size={15} className={wallet.netETHFlow >= 0 ? "text-green-400" : "text-red-400"} /> },
-                { label: "Bridge txs", value: wallet.bridgeTxCount, icon: <Globe size={15} className="analytics-tile-icon" />, dim: wallet.bridgeTxCount <= 0 },
+                { label: "Portfolio", value: `$${scoredWallet.portfolioValueUSD.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
+                { label: "Total Txs", value: scoredWallet.txCount.toLocaleString(), icon: <Layers size={15} className="analytics-tile-icon" /> },
+                { label: "AA txs", value: (scoredWallet.aaTxCount ?? 0).toLocaleString(), icon: <Smartphone size={15} className="analytics-tile-icon" />, dim: (scoredWallet.aaTxCount ?? 0) <= 0 },
+                { label: "Base App / gasless", value: scoredWallet.paymasterTxCount.toLocaleString(), icon: <Droplets size={15} className="analytics-tile-icon" />, dim: scoredWallet.paymasterTxCount <= 0 },
+                { label: "Age percentile", value: scoredWallet.onchainAgePercentile > 0 ? `Top ${Math.min(99, Math.max(1, 100 - scoredWallet.onchainAgePercentile))}%` : "—", icon: <GitBranch size={15} className="analytics-tile-icon" />, dim: scoredWallet.onchainAgePercentile <= 0 },
+                { label: "Net ETH flow", value: `${scoredWallet.netETHFlow >= 0 ? "+" : ""}${scoredWallet.netETHFlow} Ξ`, icon: <TrendingUp size={15} className={scoredWallet.netETHFlow >= 0 ? "text-green-400" : "text-red-400"} /> },
+                { label: "Bridge txs", value: scoredWallet.bridgeTxCount, icon: <Globe size={15} className="analytics-tile-icon" />, dim: scoredWallet.bridgeTxCount <= 0 },
               ]}
               balances={[
-                { label: "ETH balance", value: `${wallet.balance} Ξ`, icon: <CreditCard size={15} className="analytics-tile-icon" /> },
-                { label: "USDC balance", value: `$${wallet.usdcBalance ?? "0.00"}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
+                { label: "ETH balance", value: `${scoredWallet.balance} Ξ`, icon: <CreditCard size={15} className="analytics-tile-icon" /> },
+                { label: "USDC balance", value: `$${scoredWallet.usdcBalance ?? "0.00"}`, icon: <DollarSign size={15} className="analytics-tile-icon" /> },
                 { label: "x402 payments", value: x402PayCount, icon: <Zap size={15} className="analytics-tile-icon" /> },
-                { label: "Days on Base", value: wallet.daysOnBase.toLocaleString(), icon: <Calendar size={15} className="analytics-tile-icon" /> },
+                { label: "Days on Base", value: scoredWallet.daysOnBase.toLocaleString(), icon: <Calendar size={15} className="analytics-tile-icon" /> },
               ]}
               activity={[
-                { label: "Active days", value: wallet.uniqueDays, icon: <Sun size={15} className="analytics-tile-icon" /> },
-                { label: "Active weeks", value: wallet.activeWeeks, icon: <Calendar size={15} className="analytics-tile-icon" /> },
-                { label: "Active months", value: wallet.activeMonths, icon: <Calendar size={15} className="analytics-tile-icon" /> },
-                { label: "Current streak", value: `${wallet.currentStreak}d`, icon: <Flame size={15} className="analytics-tile-icon" /> },
-                { label: "Longest streak", value: `${wallet.longestStreak}d`, icon: <Trophy size={15} className="analytics-tile-icon" /> },
-                { label: "Longest gap", value: `${wallet.longestInactiveDays}d`, icon: <Clock size={15} className="analytics-tile-icon" /> },
-                { label: "Peak day txs", value: wallet.peakDayTxCount, icon: <Gauge size={15} className="analytics-tile-icon" /> },
-                { label: "Peak active day", value: wallet.peakDayDate, icon: <Star size={15} className="analytics-tile-icon" /> },
-                { label: "Avg tx / day", value: wallet.avgTxPerDay, icon: <BarChart3 size={15} className="analytics-tile-icon" /> },
-                { label: "Avg tx / week", value: wallet.weeklyTxAvg, icon: <Activity size={15} className="analytics-tile-icon" /> },
-                { label: "First tx", value: wallet.firstTx, icon: <Star size={15} className="analytics-tile-icon" /> },
-                { label: "Last tx", value: wallet.lastTx, icon: <Clock size={15} className="analytics-tile-icon" /> },
-                { label: "Most active month", value: wallet.mostActiveMonth, icon: <Clock size={15} className="analytics-tile-icon" /> },
+                { label: "Active days", value: scoredWallet.uniqueDays, icon: <Sun size={15} className="analytics-tile-icon" /> },
+                { label: "Active weeks", value: scoredWallet.activeWeeks, icon: <Calendar size={15} className="analytics-tile-icon" /> },
+                { label: "Active months", value: scoredWallet.activeMonths, icon: <Calendar size={15} className="analytics-tile-icon" /> },
+                { label: "Current streak", value: `${scoredWallet.currentStreak}d`, icon: <Flame size={15} className="analytics-tile-icon" /> },
+                { label: "Longest streak", value: `${scoredWallet.longestStreak}d`, icon: <Trophy size={15} className="analytics-tile-icon" /> },
+                { label: "Longest gap", value: `${scoredWallet.longestInactiveDays}d`, icon: <Clock size={15} className="analytics-tile-icon" /> },
+                { label: "Peak day txs", value: scoredWallet.peakDayTxCount, icon: <Gauge size={15} className="analytics-tile-icon" /> },
+                { label: "Peak active day", value: scoredWallet.peakDayDate, icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "Avg tx / day", value: scoredWallet.avgTxPerDay, icon: <BarChart3 size={15} className="analytics-tile-icon" /> },
+                { label: "Avg tx / week", value: scoredWallet.weeklyTxAvg, icon: <Activity size={15} className="analytics-tile-icon" /> },
+                { label: "First tx", value: scoredWallet.firstTx, icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "Last tx", value: scoredWallet.lastTx, icon: <Clock size={15} className="analytics-tile-icon" /> },
+                { label: "Most active month", value: scoredWallet.mostActiveMonth, icon: <Clock size={15} className="analytics-tile-icon" /> },
               ]}
               trading={[
-                { label: "Swap volume", value: formatDexVolumeUsd(wallet.dexVolumeUSD), icon: <TrendingUp size={15} className="analytics-tile-icon" /> },
-                { label: "ETH swap vol", value: formatDexVolumeUsd(wallet.ethSwapVolumeUSD ?? 0), icon: <Coins size={15} className="analytics-tile-icon" /> },
-                { label: "Swap count", value: wallet.dexTradeCount.toLocaleString(), icon: <Repeat2 size={15} className="analytics-tile-icon" /> },
-                { label: "Token swaps", value: wallet.swapCount.toLocaleString(), icon: <ArrowRightLeft size={15} className="analytics-tile-icon" /> },
-                { label: "Unique tokens", value: wallet.tokensSwapped, icon: <Coins size={15} className="analytics-tile-icon" /> },
-                { label: "DeFi interactions", value: wallet.defiInteractions.toLocaleString(), icon: <TrendingUp size={15} className="analytics-tile-icon" /> },
-                { label: "Unique protocols", value: wallet.uniqueProtocols, icon: <Landmark size={15} className="analytics-tile-icon" /> },
-                { label: "Fav protocol", value: wallet.mostUsedProtocol, icon: <Star size={15} className="analytics-tile-icon" /> },
-                { label: "ETH sent", value: `${wallet.ethVolume} Ξ`, icon: <ArrowRightLeft size={15} className="analytics-tile-icon" /> },
-                { label: "ETH received", value: `${wallet.ethReceived} Ξ`, icon: <Gift size={15} className="analytics-tile-icon" /> },
-                { label: "Contract txs", value: wallet.contractInteractions.toLocaleString(), icon: <FileCode size={15} className="analytics-tile-icon" /> },
-                { label: "ERC-20 txs", value: wallet.erc20Txs.toLocaleString(), icon: <Coins size={15} className="analytics-tile-icon" /> },
-                { label: "NFT txs", value: wallet.erc721Txs.toLocaleString(), icon: <Palette size={15} className="analytics-tile-icon" /> },
-                { label: "NFTs held", value: wallet.nftCount.toLocaleString(), icon: <Sparkles size={15} className="analytics-tile-icon" /> },
+                { label: "Swap volume", value: formatDexVolumeUsd(scoredWallet.dexVolumeUSD), icon: <TrendingUp size={15} className="analytics-tile-icon" /> },
+                { label: "ETH swap vol", value: formatDexVolumeUsd(scoredWallet.ethSwapVolumeUSD ?? 0), icon: <Coins size={15} className="analytics-tile-icon" /> },
+                { label: "Swap count", value: scoredWallet.dexTradeCount.toLocaleString(), icon: <Repeat2 size={15} className="analytics-tile-icon" /> },
+                { label: "Token swaps", value: scoredWallet.swapCount.toLocaleString(), icon: <ArrowRightLeft size={15} className="analytics-tile-icon" /> },
+                { label: "Unique tokens", value: scoredWallet.tokensSwapped, icon: <Coins size={15} className="analytics-tile-icon" /> },
+                { label: "DeFi interactions", value: scoredWallet.defiInteractions.toLocaleString(), icon: <TrendingUp size={15} className="analytics-tile-icon" /> },
+                { label: "Unique protocols", value: scoredWallet.uniqueProtocols, icon: <Landmark size={15} className="analytics-tile-icon" /> },
+                { label: "Fav protocol", value: scoredWallet.mostUsedProtocol, icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "ETH sent", value: `${scoredWallet.ethVolume} Ξ`, icon: <ArrowRightLeft size={15} className="analytics-tile-icon" /> },
+                { label: "ETH received", value: `${scoredWallet.ethReceived} Ξ`, icon: <Gift size={15} className="analytics-tile-icon" /> },
+                { label: "Contract txs", value: scoredWallet.contractInteractions.toLocaleString(), icon: <FileCode size={15} className="analytics-tile-icon" /> },
+                { label: "ERC-20 txs", value: scoredWallet.erc20Txs.toLocaleString(), icon: <Coins size={15} className="analytics-tile-icon" /> },
+                { label: "NFT txs", value: scoredWallet.erc721Txs.toLocaleString(), icon: <Palette size={15} className="analytics-tile-icon" /> },
+                { label: "NFTs held", value: scoredWallet.nftCount.toLocaleString(), icon: <Sparkles size={15} className="analytics-tile-icon" /> },
               ]}
               engagement={[
                 { label: "Onchain streak", value: `${streak}d`, icon: <Zap size={15} className="analytics-tile-icon" /> },
-                { label: "Check-ins", value: wallet.checkInCount.toLocaleString(), icon: <Flame size={15} className="analytics-tile-icon" /> },
-                { label: "GM / GN", value: wallet.gmCount.toLocaleString(), icon: <Star size={15} className="analytics-tile-icon" /> },
+                { label: "Check-ins", value: scoredWallet.checkInCount.toLocaleString(), icon: <Flame size={15} className="analytics-tile-icon" /> },
+                { label: "GM / GN", value: scoredWallet.gmCount.toLocaleString(), icon: <Star size={15} className="analytics-tile-icon" /> },
                 { label: "XP boosts", value: boosts, icon: <Rocket size={15} className="analytics-tile-icon" /> },
                 { label: "Minted badges", value: mintedCount, icon: <Trophy size={15} className="analytics-tile-icon" /> },
                 { label: "Weekly XP", value: weeklyXP, icon: <Zap size={15} className="analytics-tile-icon" /> },
-                { label: "Activity score", value: `${wallet.activityScore}/100`, icon: <Activity size={15} className="analytics-tile-icon" /> },
-                { label: "Wallet health", value: `${wallet.walletHealthScore}/100`, icon: <ShieldCheck size={15} className="analytics-tile-icon" /> },
+                { label: "Activity score", value: `${scoredWallet.activityScore}/100`, icon: <Activity size={15} className="analytics-tile-icon" /> },
+                { label: "Wallet health", value: `${scoredWallet.walletHealthScore}/100`, icon: <ShieldCheck size={15} className="analytics-tile-icon" /> },
               ]}
             />
 

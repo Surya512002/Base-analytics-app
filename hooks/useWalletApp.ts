@@ -344,6 +344,12 @@ function useWalletAppController() {
   const [scanProgress, setScanProgress] = useState("");
   const [walletRefreshing, setWalletRefreshing] = useState(false);
   const [analyticsSyncing, setAnalyticsSyncing] = useState(false);
+  const [paidScanActive, setPaidScanActive] = useState(false);
+  const paidScanActiveRef = useRef(false);
+  const markPaidScan = (active: boolean) => {
+    paidScanActiveRef.current = active;
+    setPaidScanActive(active);
+  };
   const [walletCore, setWalletCore] = useState<{
     address: string;
     balance: string;
@@ -1050,7 +1056,8 @@ function useWalletAppController() {
         };
         setAnalyticsUnlocked(true);
         writeAnalyticsUnlocked(wallet.address, data.unlockToken);
-        // Show full-size blurred analysis overlay immediately after payment.
+        // Keep the full-scan card up until historyComplete — not the first partial score.
+        markPaidScan(true);
         setAnalyticsSyncing(true);
         setScanProgress("Payment confirmed — collecting full onchain history…");
         const keys = x402StorageKeys(wallet.address);
@@ -2157,7 +2164,8 @@ function useWalletAppController() {
       basename: w.basename,
     });
     setWalletRefreshing(false);
-    setScanProgress("");
+    // Don't hide the paid full-scan card just because balances locked.
+    if (!paidScanActiveRef.current) setScanProgress("");
   }, []);
 
   const analyzeWallet = useCallback(
@@ -2338,6 +2346,7 @@ function useWalletAppController() {
             if (historySyncGen.current === gen) {
               historySyncRunningRef.current = false;
               setAnalyticsSyncing(false);
+              markPaidScan(false);
               if (tabRef.current === "dashboard") setScanProgress("");
             }
           });
@@ -2366,6 +2375,7 @@ function useWalletAppController() {
         setScanProgress("");
         setWalletRefreshing(false);
         setAnalyticsSyncing(false);
+        markPaidScan(false);
       };
 
       setScanProgress("Calculating wallet score…");
@@ -2387,6 +2397,7 @@ function useWalletAppController() {
         ) {
           historyCompleteRef.current = true;
           pendingHistorySyncRef.current = null;
+          markPaidScan(false);
           writeWalletCache(address, { ...result, historyComplete: true }, true);
           if (!syncCompleteToastRef.current && !background) {
             syncCompleteToastRef.current = true;
@@ -2397,6 +2408,7 @@ function useWalletAppController() {
         if (result.historyComplete === true) {
           historyCompleteRef.current = true;
           pendingHistorySyncRef.current = null;
+          markPaidScan(false);
           writeWalletCache(address, { ...result, historyComplete: true }, true);
           if (!syncCompleteToastRef.current) {
             syncCompleteToastRef.current = true;
@@ -2564,12 +2576,18 @@ function useWalletAppController() {
         mergeAndApply(result, ci);
         if (background) lockWalletCore(result.wallet);
 
+        const stillScanning =
+          paidScanActiveRef.current && result.historyComplete !== true;
+
         if (!background) {
           setLoading(false);
-          setScanProgress("");
-        } else {
+          if (!stillScanning) setScanProgress("");
+        } else if (!stillScanning) {
           setAnalyticsSyncing(false);
           setScanProgress("");
+        } else {
+          setAnalyticsSyncing(true);
+          setScanProgress("Finishing full history for your address…");
         }
 
         maybeStartHistorySync(result);
@@ -2584,10 +2602,12 @@ function useWalletAppController() {
         if (!background) setLoading(false);
         if (!bgSyncStarted && background) {
           setAnalyticsSyncing(false);
-          setScanProgress("");
+          if (!paidScanActiveRef.current) setScanProgress("");
+          if (historyCompleteRef.current) markPaidScan(false);
         } else if (!bgSyncStarted && !background) {
           setWalletRefreshing(false);
-          setScanProgress("");
+          if (!paidScanActiveRef.current) setScanProgress("");
+          if (historyCompleteRef.current) markPaidScan(false);
         }
       }
     },
@@ -2765,6 +2785,7 @@ function useWalletAppController() {
     setFarcasterUnlockLoading(false);
     setAnalyticsUnlocked(false);
     setAnalyticsUnlockLoading(false);
+    markPaidScan(false);
     setMiniAppIdentity(null);
     setX402PayCount(0);
     setX402Product("scan");
@@ -3141,6 +3162,7 @@ function useWalletAppController() {
   const walletScanComplete = Boolean(
     wallet &&
       !loading &&
+      !paidScanActive &&
       wallet.recommendation !== "Fetching onchain data…"
   );
 
@@ -3185,6 +3207,7 @@ function useWalletAppController() {
     scanProgress,
     walletRefreshing,
     analyticsSyncing,
+    paidScanActive,
     walletScanComplete,
     miniAppIdentity,
     walletDisplayLabel: wallet

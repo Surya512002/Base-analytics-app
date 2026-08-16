@@ -35,7 +35,7 @@ export default function AnalyticsPaywall({
 }: {
   unlocked: boolean;
   unlockLoading?: boolean;
-  /** First score pass after paid unlock — not the long background refine. */
+  /** Paid full scan in progress — hide metrics until history is complete. */
   analysisLoading?: boolean;
   onUnlock: () => void;
   children: React.ReactNode;
@@ -46,17 +46,27 @@ export default function AnalyticsPaywall({
   const product = getX402Product("analytics");
   const showPaidScan = unlocked && Boolean(analysisLoading);
 
+  // Standalone card — never overlay a tall dashboard (progress sat mid-page and looked idle).
+  if (showPaidScan) {
+    return (
+      <AnalyticsLoadingPanel
+        variant="hero"
+        scanProgress={scanProgress}
+        walletRefreshing={walletRefreshing || unlockLoading}
+        walletAddress={walletAddress}
+      />
+    );
+  }
+
   return (
-    <div className={`relative w-full ${!unlocked || showPaidScan ? "min-h-[36rem]" : ""}`}>
+    <div className={`relative w-full ${!unlocked ? "min-h-[36rem]" : ""}`}>
       <div
         className={`w-full transition-[filter,opacity] duration-500 ${
           !unlocked
             ? "blur-[8px] opacity-65 pointer-events-none select-none"
-            : showPaidScan
-              ? "blur-[6px] opacity-75 pointer-events-none select-none"
-              : ""
+            : ""
         }`}
-        aria-hidden={!unlocked || showPaidScan}
+        aria-hidden={!unlocked}
       >
         {unlocked ? children : <LockedAnalyticsSilhouette />}
       </div>
@@ -108,16 +118,6 @@ export default function AnalyticsPaywall({
             </p>
           </div>
         </div>
-      )}
-
-      {/* POST-PAY — emerald scanning overlay (visually distinct from lock card). */}
-      {showPaidScan && (
-        <AnalyticsLoadingPanel
-          variant="overlay"
-          scanProgress={scanProgress}
-          walletRefreshing={walletRefreshing || unlockLoading}
-          walletAddress={walletAddress}
-        />
       )}
     </div>
   );

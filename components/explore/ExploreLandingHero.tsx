@@ -46,7 +46,6 @@ export default function ExploreLandingHero({
 
   const chg = spotlight?.market?.priceChange24h ?? 0;
   const isUp = chg >= 0;
-  const tradableCount = tokens.length;
 
   return (
     <section className="explore-hero w-full min-w-0 pb-8 sm:pb-12 space-y-6">
@@ -57,7 +56,9 @@ export default function ExploreLandingHero({
         subtitle={
           marketLoading
             ? "Syncing markets…"
-            : `${tradableCount} tradable tokens${totalVolume24h ? ` · ${formatUsd(totalVolume24h)} 24h volume` : ""}`
+            : totalVolume24h
+              ? `${formatUsd(totalVolume24h)} 24h volume`
+              : "Live markets on Base"
         }
         minHeight="min-h-[220px] sm:min-h-[260px]"
         className="mb-2"

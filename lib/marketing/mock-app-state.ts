@@ -186,6 +186,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     scanProgress: "",
     walletRefreshing: false,
     analyticsSyncing: false,
+    paidScanActive: false,
     walletScanComplete: true,
     miniAppIdentity: null,
     walletDisplayLabel: "demo.base.eth",

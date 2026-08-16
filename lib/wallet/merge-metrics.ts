@@ -138,5 +138,32 @@ export function mergeWalletMetricsMax(
       next.paymasterTxCount ?? 0
     ),
     aaTxCount: Math.max(prior.aaTxCount ?? 0, next.aaTxCount ?? 0),
+    ethReceived: Math.max(prior.ethReceived ?? 0, next.ethReceived ?? 0),
+    netETHFlow: (() => {
+      const sent = Math.max(
+        parseFloat(prior.ethVolume) || 0,
+        parseFloat(next.ethVolume) || 0
+      );
+      const received = Math.max(prior.ethReceived ?? 0, next.ethReceived ?? 0);
+      return parseFloat((received - sent).toFixed(4));
+    })(),
+    uniqueProtocols: Math.max(prior.uniqueProtocols ?? 0, next.uniqueProtocols ?? 0),
+    contractInteractions: Math.max(
+      prior.contractInteractions ?? 0,
+      next.contractInteractions ?? 0
+    ),
+    daysOnBase: Math.max(prior.daysOnBase ?? 0, next.daysOnBase ?? 0),
+    onchainAgePercentile: Math.max(
+      prior.onchainAgePercentile ?? 0,
+      next.onchainAgePercentile ?? 0
+    ),
+    walletHealthScore: Math.max(prior.walletHealthScore, next.walletHealthScore),
+    avgTxPerDay: Math.max(prior.avgTxPerDay ?? 0, next.avgTxPerDay ?? 0),
+    weeklyTxAvg: Math.max(prior.weeklyTxAvg ?? 0, next.weeklyTxAvg ?? 0),
+    peakDayTxCount: Math.max(prior.peakDayTxCount ?? 0, next.peakDayTxCount ?? 0),
+    mostUsedProtocol:
+      (next.uniqueProtocols ?? 0) >= (prior.uniqueProtocols ?? 0)
+        ? next.mostUsedProtocol || prior.mostUsedProtocol
+        : prior.mostUsedProtocol || next.mostUsedProtocol,
   });
 }
