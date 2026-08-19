@@ -22,7 +22,8 @@ export async function GET(req: Request) {
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
   const address = searchParams.get("address")?.trim().toLowerCase();
-  const quick = searchParams.get("quick") === "1";
+    const quick = searchParams.get("quick") === "1";
+    const recent = searchParams.get("recent") === "1";
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
     }
 
     const result = await analyzeWalletAddress(address, {
-      fetchDepth: quick ? "quick" : "connect",
+      fetchDepth: quick ? "quick" : recent ? "recent" : "connect",
     });
     if (!result) {
       return NextResponse.json({ error: "Analysis failed" }, { status: 500 });

@@ -92,6 +92,21 @@ export async function fetchWalletBootstrap(
   );
 }
 
+/** Fast first score from newest activity (~8–12s). */
+export async function fetchWalletAnalysisRecent(
+  address: string,
+  refresh = true
+): Promise<(AnalyzeWalletResult & { cached?: boolean }) | null> {
+  const qs = new URLSearchParams({ address, recent: "1" });
+  if (refresh) qs.set("refresh", "1");
+  return fetchAnalyzeJson<AnalyzeWalletResult & { cached?: boolean }>(
+    `/api/analyze-wallet?${qs.toString()}`,
+    22_000,
+    1,
+    address
+  );
+}
+
 /** Real score + metrics — quick analyze path; uses server cache when warm. */
 export async function fetchWalletAnalysisQuick(
   address: string,
@@ -122,7 +137,7 @@ export async function pollWalletHistorySync(
 ): Promise<boolean> {
   const addr = address.toLowerCase();
   let attempts = 0;
-  const maxAttempts = 48;
+  const maxAttempts = 8;
   let lastDays = -1;
   let plateauPasses = 0;
   const short = `${addr.slice(0, 6)}…${addr.slice(-4)}`;

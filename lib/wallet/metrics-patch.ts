@@ -3,14 +3,20 @@ import {
   type StoredWalletHistory,
   uniqueDaysFromState,
 } from "@/lib/wallet/history-store";
-import { countsTowardActivity, rollupWalletActivity } from "@/lib/utils/wallet-activity";
+import {
+  countContractInteractions,
+  countsTowardActivity,
+  rollupWalletActivity,
+} from "@/lib/utils/wallet-activity";
 import { computeScoreComponents, computeTotalScore, type ScoreComponents } from "@/lib/utils/score";
-import { computeSwapVolume } from "@/lib/utils/swap-volume";
+import { computeEthFlowVolumes, computeSwapVolume } from "@/lib/utils/swap-volume";
 import { fetchNftSnapshot } from "@/lib/api/nft-snapshot";
 import { countNftTxHashesFromTransfers } from "@/lib/utils/nft-stats";
 import { buildDailyStatsFromState } from "@/lib/wallet/sync-engine";
 import { maxScoreComponents } from "@/lib/wallet/merge-metrics";
 import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
+import { countAaActivity } from "@/lib/wallet/aa-activity";
+import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
 
 export interface WalletMetricsPatch {
   uniqueDays: number;
@@ -26,7 +32,16 @@ export interface WalletMetricsPatch {
   dexVolumeETH: number;
   dexTradeCount30d: number;
   dexVolumeUSD30d: number;
+  ethSwapVolumeUSD: number;
   ethVolume: string;
+  ethReceived: number;
+  netETHFlow: number;
+  aaTxCount: number;
+  paymasterTxCount: number;
+  uniqueProtocols: number;
+  defiInteractions: number;
+  uniqueContracts: number;
+  contractInteractions: number;
   nftCount: number;
   erc721Txs: number;
   scoreComponents: Record<string, number>;
@@ -111,6 +126,52 @@ function countTokenStats(
     swapCount,
     ethVol,
   };
+}
+
+/** Lift compact history index onto a prior wallet — never recomputes volume from a last burst. */
+export function applyHistoryIndexToWallet(
+  wallet: WalletData,
+  state: StoredWalletHistory
+): WalletData {
+  const indexDays = uniqueDaysFromState(state);
+  const days = activeDaysFromState(state).sort();
+  const wm = weeksMonthsFromDays(days);
+  const useIndexHeatmap = indexDays >= wallet.uniqueDays;
+  const heatmap = useIndexHeatmap ? buildDailyStatsFromState(state) : wallet.dailyStats;
+  const firstFromDays = days[0];
+  const lastFromDays = days[days.length - 1];
+  let daysOnBase = wallet.daysOnBase;
+  if (firstFromDays) {
+    const span = Math.max(
+      0,
+      Math.ceil(
+        (Date.now() - new Date(`${firstFromDays}T12:00:00Z`).getTime()) /
+          86400000
+      )
+    );
+    daysOnBase = Math.max(daysOnBase, span);
+  }
+
+  return reconcileWalletScore({
+    ...wallet,
+    uniqueDays: Math.max(wallet.uniqueDays, indexDays),
+    txCount: Math.max(wallet.txCount, state.txHashes.length),
+    activeWeeks: Math.max(wallet.activeWeeks, wm.activeWeeks),
+    activeMonths: Math.max(wallet.activeMonths, wm.activeMonths),
+    dailyStats: heatmap,
+    historyDays: Math.max(wallet.historyDays, heatmap.length),
+    tokensSwapped: Math.max(wallet.tokensSwapped, state.tokenAssets.length),
+    erc20Txs: Math.max(wallet.erc20Txs, state.erc20LegCount),
+    firstTx:
+      wallet.firstTx && wallet.firstTx !== "N/A" && wallet.firstTx !== "Syncing…"
+        ? wallet.firstTx
+        : firstFromDays ?? wallet.firstTx,
+    lastTx:
+      wallet.lastTx && wallet.lastTx !== "N/A" && wallet.lastTx !== "Syncing…"
+        ? wallet.lastTx
+        : lastFromDays ?? wallet.lastTx,
+    daysOnBase,
+  });
 }
 
 /** Recompute score bars + swap/token stats from transfer legs. */
@@ -281,6 +342,42 @@ export async function buildWalletMetricsPatch(
       ? Math.max(parseFloat(prior.ethVolume) || 0, tokenStats.ethVol)
       : tokenStats.ethVol;
 
+  const ethFlow = computeEthFlowVolumes(transfers, addr, countsTowardActivity);
+  const aaStats = countAaActivity(transfers, addr);
+  const paymasterHashes = new Set<string>();
+  for (const tx of transfers) {
+    if (tx.category === "useroperation" || tx.metadata?.isUserOperation) {
+      paymasterHashes.add(tx.hash);
+    }
+  }
+  const contracts = countContractInteractions(transfers, addr, paymasterHashes);
+  const ethReceived = Math.max(prior?.ethReceived ?? 0, ethFlow.ethReceived);
+  const aaTxCount =
+    partial && prior
+      ? Math.max(prior.aaTxCount ?? 0, aaStats.aaTxCount)
+      : aaStats.aaTxCount;
+  const paymasterTxCount =
+    partial && prior
+      ? Math.max(prior.paymasterTxCount ?? 0, aaStats.paymasterTxCount)
+      : aaStats.paymasterTxCount;
+  const uniqueProtocols = Math.max(
+    prior?.uniqueProtocols ?? 0,
+    contracts.uProtocols.size
+  );
+  const defiInteractions = Math.max(
+    options.defiInteractions ?? prior?.defiInteractions ?? 0,
+    contracts.defi
+  );
+  const uniqueContracts = Math.max(
+    options.uniqueContracts ?? prior?.uniqueContracts ?? 0,
+    contracts.uniqueContracts.size
+  );
+  const contractInteractions = Math.max(
+    prior?.contractInteractions ?? 0,
+    contracts.contractInteractions
+  );
+  const netETHFlow = parseFloat((ethReceived - ethVolNum).toFixed(4));
+
   const freshScore = computeScoreComponents({
     txCount,
     uniqueDays,
@@ -290,8 +387,8 @@ export async function buildWalletMetricsPatch(
     longestStreak: options.longestStreak ?? prior?.longestStreak ?? 0,
     ethVol: ethVolNum,
     uniqueTokens: tokensSwapped,
-    defiInteractions: options.defiInteractions ?? prior?.defiInteractions ?? 0,
-    uniqueContracts: options.uniqueContracts ?? prior?.uniqueContracts ?? 0,
+    defiInteractions,
+    uniqueContracts,
     nftCount: nftCountComputed,
     nftTxCount: erc721TxsComputed,
     dexTradeCount,
@@ -322,7 +419,19 @@ export async function buildWalletMetricsPatch(
     dexVolumeETH,
     dexTradeCount30d,
     dexVolumeUSD30d,
+    ethSwapVolumeUSD: Math.max(
+      prior?.ethSwapVolumeUSD ?? 0,
+      ethSwapVolumeUSD
+    ),
     ethVolume,
+    ethReceived,
+    netETHFlow,
+    aaTxCount,
+    paymasterTxCount,
+    uniqueProtocols,
+    defiInteractions,
+    uniqueContracts,
+    contractInteractions,
     nftCount: nftCountComputed,
     erc721Txs: erc721TxsComputed,
     scoreComponents,

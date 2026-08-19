@@ -35,7 +35,7 @@ export default function AnalyticsPaywall({
 }: {
   unlocked: boolean;
   unlockLoading?: boolean;
-  /** Paid full scan in progress — hide metrics until history is complete. */
+  /** First paid score pass — remaining history may still refine after this. */
   analysisLoading?: boolean;
   onUnlock: () => void;
   children: React.ReactNode;

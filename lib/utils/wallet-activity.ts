@@ -74,13 +74,9 @@ export function enrichTransferLegs(
     const meta = { ...tx.metadata };
     const paymaster =
       tx.category === "useroperation" ||
-      meta.isUserOperation ||
-      meta.isSponsored ||
-      (tx.category === "internal" && to === w && from !== w) ||
-      (tx.category === "internal" && ethZero(tx) && (from === w || to === w));
+      meta.isUserOperation === true;
 
     if (paymaster) {
-      meta.isSponsored = true;
       meta.walletParticipated = true;
     } else if (meta.walletParticipated || from === w || to === w) {
       meta.walletParticipated = true;
@@ -125,10 +121,6 @@ export function enrichTransferLegs(
   }
 
   return extras.length ? [...enriched, ...extras] : enriched;
-}
-
-function ethZero(tx: AlchemyTransfer): boolean {
-  return !tx.value || tx.value === 0;
 }
 
 export interface ActivityRollup {
@@ -300,14 +292,12 @@ export function countContractInteractions(
     if (!countsTowardActivity(tx, w)) continue;
 
     const fromAddr = normalizeAddr(tx.from);
-    const toAddr = normalizeAddr(tx.to);
     const isOutgoing = fromAddr === w;
-    const isIncoming = toAddr === w;
     const isUserOp = tx.category === "useroperation" && isOutgoing;
     const isSponsored =
       paymasterTxHashes.has(tx.hash) ||
-      tx.metadata?.isSponsored === true ||
-      (tx.category === "internal" && isIncoming);
+      (tx.metadata?.isSponsored === true &&
+        (isUserOp || tx.category === "useroperation"));
 
     const hashHit = tx.hash
       ? appHitsByHash.get(tx.hash.toLowerCase()) ?? null
@@ -349,12 +339,11 @@ export function countContractInteractions(
       ? appHitsByHash.get(tx.hash.toLowerCase()) ?? null
       : null;
     const appHit = hashHit ?? getAppContractHit(tx, w);
-    const isIncoming = toAddr === w;
     const isUserOp = tx.category === "useroperation" && isOutgoing;
     const isSponsored =
       paymasterTxHashes.has(tx.hash) ||
-      tx.metadata?.isSponsored === true ||
-      (tx.category === "internal" && isIncoming);
+      (tx.metadata?.isSponsored === true &&
+        (isUserOp || tx.category === "useroperation"));
 
     if (!(isOutgoing || isSponsored || isUserOp || appHit)) continue;
     if (!interactHashes.has(tx.hash)) continue;

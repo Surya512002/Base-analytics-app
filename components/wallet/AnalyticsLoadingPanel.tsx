@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 
 const PAID_STAGES = [
-  { id: "wallet", label: "Your wallet", icon: User },
-  { id: "history", label: "Your history", icon: History },
-  { id: "score", label: "Score", icon: LineChart },
+  { id: "wallet", label: "Latest tx", icon: User },
+  { id: "history", label: "Score", icon: LineChart },
+  { id: "score", label: "Volume", icon: History },
   { id: "heatmap", label: "Heatmap", icon: Flame },
 ] as const;
 
@@ -147,15 +147,15 @@ export default function AnalyticsLoadingPanel({
         </motion.div>
 
         <h2 className="text-3xl sm:text-4xl font-black text-emerald-950 tracking-tight">
-          Full onchain scan
+          Fetching latest activity
         </h2>
         <p className="text-base text-emerald-900/80 max-w-lg mx-auto leading-relaxed mt-3">
-          Indexing every transfer, UserOp, and swap for{" "}
+          Loading the newest transfers and UserOps for{" "}
           <span className="font-mono font-bold text-emerald-950">
             {short || "your connected address"}
           </span>
-          . Score and volume stay hidden until this pass finishes so you don&apos;t
-          see a partial result.
+          . Score and volume show once that last activity is in — older history
+          keeps filling in after.
         </p>
 
         <AnimatePresence mode="wait">
@@ -166,7 +166,7 @@ export default function AnalyticsLoadingPanel({
             exit={{ opacity: 0 }}
             className="mt-5 text-sm font-black text-emerald-900"
           >
-            {scanProgress || "Collecting your transfers & UserOps…"}
+            {scanProgress || "Fetching your latest onchain activity…"}
           </motion.p>
         </AnimatePresence>
 
@@ -194,7 +194,7 @@ export default function AnalyticsLoadingPanel({
           <p className="mt-3 text-lg sm:text-xl font-black text-emerald-950 tabular-nums">
             {Math.round(pct)}%
             <span className="ml-2 text-sm font-bold text-emerald-800/80">
-              {done ? "Scan complete" : "Scanning your wallet…"}
+              {done ? "Latest activity ready" : "Fetching latest activity…"}
             </span>
           </p>
         </div>

@@ -5,7 +5,7 @@ import { cacheGet, cacheSet } from "@/lib/redis-cache";
 export const ANALYZE_CACHE_TTL_SECONDS = 4 * 60 * 60; // 4h — fewer re-indexes on reconnect
 
 /** Bump when analyze output shape changes — drops stale low-quality snapshots. */
-export const ANALYZE_CACHE_VERSION = "v22";
+export const ANALYZE_CACHE_VERSION = "v24";
 
 /** In-process fallback when Redis is slow/unavailable — instant reconnect in dev. */
 const memAnalyze = new Map<
@@ -60,6 +60,8 @@ export function isUsableAnalyzeCache(
   if (w.recommendation === "Fetching onchain data…") return false;
   if ((w.score ?? 0) <= 0) return false;
   if ((w.uniqueDays ?? 0) === 0 && (w.txCount ?? 0) < 10) return false;
+  const last = (w.lastTx || "").toLowerCase();
+  if (last.includes("sync") || last.includes("fetch") || last === "") return false;
   const txs = w.txCount ?? 0;
   const days = w.uniqueDays ?? 0;
   if (txs > 200 && days > 100) {

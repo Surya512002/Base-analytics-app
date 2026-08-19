@@ -8,13 +8,12 @@ import type { WalletData } from "@/lib/types/wallet";
  */
 export default function PaymasterInsightTile({ wallet }: { wallet: WalletData }) {
   const aaCount = Math.max(wallet.aaTxCount ?? 0, 0);
-  const gaslessCount = Math.max(wallet.paymasterTxCount ?? 0, aaCount);
+  // Gasless is a subset of AA (paymaster-sponsored UserOps). Never lift it to match AA.
+  const gaslessCount = Math.min(Math.max(wallet.paymasterTxCount ?? 0, 0), aaCount);
   const sponsoredShare =
     aaCount > 0
-      ? Math.min(100, Math.round((gaslessCount / Math.max(aaCount, 1)) * 100))
-      : wallet.txCount > 0
-        ? Math.round((gaslessCount / wallet.txCount) * 100)
-        : 0;
+      ? Math.min(100, Math.round((gaslessCount / aaCount) * 100))
+      : 0;
   const ofTotal =
     wallet.txCount > 0
       ? Math.min(100, Math.round((aaCount / wallet.txCount) * 100))
@@ -40,8 +39,8 @@ export default function PaymasterInsightTile({ wallet }: { wallet: WalletData })
             <span className="text-[var(--ink)] font-semibold">
               Other Transactions → AA
             </span>
-            . Counted from your wallet as UserOp sender (including Base App
-            smart-wallet bundles).
+            . AA is UserOps you sent; Base App / gasless is only the subset
+            with a paymaster. A Farcaster or MetaMask EOA is usually 0 / 0.
           </p>
         </div>
       </div>
@@ -69,8 +68,8 @@ export default function PaymasterInsightTile({ wallet }: { wallet: WalletData })
           </p>
           <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">
             {gaslessCount > 0
-              ? "Paymaster · sponsored · smart wallet"
-              : "No paymaster activity yet"}
+              ? `${sponsoredShare}% of AA used a paymaster`
+              : "No sponsored UserOps"}
           </p>
         </div>
       </div>
@@ -85,8 +84,8 @@ export default function PaymasterInsightTile({ wallet }: { wallet: WalletData })
       {aaCount === 0 && (
         <p className="text-[10px] text-[var(--ink-dim)] mt-3 flex items-center gap-1">
           <Sparkles size={10} />
-          Open wallets in Base App often build AA history on check-in, GM, and
-          gasless actions — re-sync after unlocking analytics.
+          No ERC-4337 UserOps from this address. Farcaster / EOA wallets stay
+          at 0 unless they actually sent a UserOp.
         </p>
       )}
     </div>

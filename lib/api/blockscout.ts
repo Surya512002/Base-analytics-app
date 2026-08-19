@@ -35,7 +35,6 @@ function mapInternalTx(tx: BlockscoutInternalTx): AlchemyTransfer {
     metadata: {
       blockTimestamp: new Date(Number(tx.timeStamp) * 1000).toISOString(),
       walletParticipated: true,
-      isSponsored: eth === 0,
     },
   };
 }

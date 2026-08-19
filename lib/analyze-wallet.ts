@@ -1,5 +1,6 @@
 import {
   fetchWalletTransfersConnectRich,
+  fetchWalletTransfersRecent,
   type WalletFetchDepth,
 } from "@/lib/api/fetch-wallet-transfers";
 import {
@@ -21,11 +22,10 @@ import { buildDailyStatsFromTpd } from "@/lib/wallet/sync-engine";
 import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
 import { enrichTransferLegs } from "@/lib/utils/wallet-activity";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { countAaActivity } from "@/lib/wallet/aa-activity";
 import {
   CHECKIN_ABI,
   CHECKIN_CONTRACT,
-  ENTRYPOINT_V06,
-  ENTRYPOINT_V07,
 } from "@/lib/constants/contracts";
 import { BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
 import { MONTH_NAMES } from "@/lib/constants/season";
@@ -119,6 +119,7 @@ async function fetchConnectHistory(
   address: string,
   opts: {
     isQuick: boolean;
+    isRecent?: boolean;
     isComplete: boolean;
     onProgress?: (msg: string) => void;
   }
@@ -129,6 +130,29 @@ async function fetchConnectHistory(
   v2StreamStates: Record<string, { complete: boolean; cursor: string | null }> | undefined;
 }> {
   const stored = await loadOrEmptyHistory(address);
+
+  if (opts.isRecent && !opts.isComplete) {
+    opts.onProgress?.("Fetching your latest activity…");
+    const recent = await fetchWalletTransfersRecent(address);
+    const transfers = enrichTransferLegs(recent.transfers, address.toLowerCase());
+    const merged = mergeActivityIntoState(stored, transfers, address);
+    const next = {
+      ...merged,
+      v2StreamStates: recent.v2StreamStates,
+      alchemyOutComplete: recent.alchemyOutComplete ?? false,
+      alchemyInComplete: recent.alchemyInComplete ?? false,
+      alchemyOutPageKey: recent.alchemyOutPageKey ?? null,
+      alchemyInPageKey: recent.alchemyInPageKey ?? null,
+      historyComplete: false as boolean,
+    };
+    void saveWalletHistory(address, next).catch(() => {});
+    return {
+      transfers,
+      mergedHistory: next,
+      historyComplete: false,
+      v2StreamStates: recent.v2StreamStates,
+    };
+  }
 
   // Connect analyze — rich single-shot fetch (d731448) for accurate heatmap / active days.
   if (!opts.isQuick && !opts.isComplete) {
@@ -215,8 +239,10 @@ export async function analyzeWalletAddress(
   const pub = createBasePublicClient();
   const addrLow = address.toLowerCase();
   const isQuick = options.fetchDepth === "quick";
+  const isRecent = options.fetchDepth === "recent";
+  const lightPass = isQuick || isRecent;
 
-  const bnP = resolveBasename(address, { quick: isQuick });
+  const bnP = resolveBasename(address, { quick: lightPass });
 
   const ethPriceP = fetch(
     "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
@@ -229,7 +255,7 @@ export async function analyzeWalletAddress(
     fetchWalletBalances(address, d?.ethereum?.usd || 3200)
   );
 
-  const nftSnapshotP = fetchNftSnapshot(address, [], { quick: isQuick });
+  const nftSnapshotP = fetchNftSnapshot(address, [], { quick: lightPass });
   const strkP = pub
     .readContract({
       address: CHECKIN_CONTRACT as `0x${string}`,
@@ -248,9 +274,11 @@ export async function analyzeWalletAddress(
     .catch(() => BigInt(0));
 
   onProgress?.(
-    isQuick
-      ? "Calculating wallet score…"
-      : "Fetching onchain history (Blockscout + Alchemy + paymaster)..."
+    isRecent
+      ? "Fetching your latest activity…"
+      : isQuick
+        ? "Calculating wallet score…"
+        : "Fetching onchain history (Blockscout + Alchemy + paymaster)..."
   );
 
   const historyFetchP =
@@ -271,6 +299,7 @@ export async function analyzeWalletAddress(
         })
       : fetchConnectHistory(address, {
           isQuick,
+          isRecent,
           isComplete: options.fetchDepth === "complete",
           onProgress,
         }).catch(() => ({
@@ -355,11 +384,6 @@ export async function analyzeWalletAddress(
   const ms: Record<string, number> = {};
 
   const bridgeTxHashes = new Set<string>();
-  const aaTxIds = new Set<string>();
-  const paymasterTxHashes = new Set<string>();
-  const ep06 = ENTRYPOINT_V06.toLowerCase();
-  const ep07 = ENTRYPOINT_V07.toLowerCase();
-
   for (const tx of allTxs) {
     if (!countsTowardActivity(tx, addrLow)) continue;
     const toAddr = (tx.to || "").toLowerCase();
@@ -370,48 +394,28 @@ export async function analyzeWalletAddress(
     ) {
       bridgeTxHashes.add(tx.hash);
     }
+  }
 
-    const isUserOp =
-      tx.category === "useroperation" ||
-      tx.metadata?.isUserOperation === true ||
-      toAddr === ep06 ||
-      toAddr === ep07;
-
-    if (isUserOp) {
-      const aaId =
-        (tx.metadata?.userOpHash || "").toLowerCase() ||
-        `${tx.hash.toLowerCase()}-${fromAddr}-${toAddr}`;
-      aaTxIds.add(aaId);
-      paymasterTxHashes.add(tx.hash);
-    }
-
-    if (tx.metadata?.isSponsored === true) {
-      paymasterTxHashes.add(tx.hash);
-    }
-    // Inbound internal zero-value legs often mark paymaster-funded execution.
-    if (tx.category === "internal" && toAddr === addrLow) {
-      paymasterTxHashes.add(tx.hash);
-    }
-    if (fromAddr === ep06 || fromAddr === ep07) {
+  const { aaTxCount, paymasterTxCount } = countAaActivity(allTxs, addrLow);
+  const paymasterTxHashes = new Set<string>();
+  for (const tx of allTxs) {
+    if (tx.category === "useroperation" || tx.metadata?.isUserOperation) {
       paymasterTxHashes.add(tx.hash);
     }
   }
 
   const bridgeTxCount = bridgeTxHashes.size;
-  const aaTxCount = aaTxIds.size;
-  // Prefer explicit AA count when higher (userOps only); never drop prior paid signals.
-  const paymasterTxCount = Math.max(paymasterTxHashes.size, aaTxCount);
 
   const ethUSD = ethPriceData?.ethereum?.usd || 3200;
   const {
     dexTradeCount,
-    dexVolumeUSD,
+    dexVolumeUSD: _dexVolumeUSD,
     dexVolumeETH,
     dexTradeCount30d,
     dexVolumeUSD30d,
     ethSwapVolumeUSD,
     totalSwapVolumeUSD,
-  } = await computeSwapVolume(allTxs, addrLow, ethUSD, { quick: isQuick });
+  } = await computeSwapVolume(allTxs, addrLow, ethUSD, { quick: lightPass });
 
   const ethFlow = computeEthFlowVolumes(allTxs, addrLow, countsTowardActivity);
   const ethVol = ethFlow.ethSent;

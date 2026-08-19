@@ -11,7 +11,7 @@ import {
   emptyHistoryState,
 } from "@/lib/wallet/history-store";
 import { runWalletSyncBurst } from "@/lib/wallet/sync-engine";
-import { buildWalletMetricsPatch } from "@/lib/wallet/metrics-patch";
+import { applyHistoryIndexToWallet, buildWalletMetricsPatch } from "@/lib/wallet/metrics-patch";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { buildRecentTxPreview } from "@/lib/utils/wallet-activity";
 import { requireAnalyticsUnlock } from "@/lib/utils/require-analytics-unlock";
@@ -105,27 +105,49 @@ export async function GET(req: Request) {
       return buildPartialSyncResponse(address, transfers, state);
     }
 
+    const cached = await getCachedAnalyze(address);
+
+    // Never re-analyze from this burst's legs — Redis only stores a compact
+    // heatmap index, so a last-page burst would zero out volume / AA / ETH flow.
+    if (cached?.wallet) {
+      const fromIndex = applyHistoryIndexToWallet(cached.wallet, state);
+      const wallet = mergeWalletMetricsMax(cached.wallet, fromIndex);
+      const finalResult = {
+        wallet,
+        mintedLevels: cached.mintedLevels ?? {},
+        boosts: cached.boosts ?? 0,
+        streak: cached.streak ?? 0,
+        checkedToday: cached.checkedToday ?? false,
+        historyComplete: true as const,
+      };
+      await setCachedAnalyze(address, finalResult, ANALYZE_CACHE_TTL);
+      return NextResponse.json({
+        ...finalResult,
+        partial: false,
+        sync: {
+          complete: true,
+          transferLegs: transfers.length,
+          uniqueDays: wallet.uniqueDays,
+          uniqueHashes: wallet.txCount,
+        },
+      });
+    }
+
     if (handlerDeadline - Date.now() < 28_000) {
       return buildPartialSyncResponse(address, transfers, state);
     }
 
-    const cached = await getCachedAnalyze(address);
-    const priorWallet = cached?.wallet;
-
     const result = await analyzeWalletAddress(address, {
       historyComplete: true,
       v2StreamStates: state.v2StreamStates,
-      fetchDepth: "complete",
-      transfers,
+      fetchDepth: "connect",
     });
 
     if (!result) {
       return buildPartialSyncResponse(address, transfers, state);
     }
 
-    const wallet = priorWallet
-      ? mergeWalletMetricsMax(priorWallet, result.wallet)
-      : result.wallet;
+    const wallet = result.wallet;
     const finalResult = {
       ...result,
       wallet,

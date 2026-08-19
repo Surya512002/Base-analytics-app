@@ -384,12 +384,15 @@ export async function runWalletSyncBurst(
     }
   }
 
-  // Complete only when indexes are exhausted — never by day-count soft cuts.
+  // Complete when primary indexes are exhausted. Waiting on every Blockscout v2
+  // page made paid scans run for minutes, then a last-burst re-analyze wiped volume.
+  const indexesReady = getAlchemyKey()
+    ? alchemyDone(state) && Boolean(state.userOpsComplete)
+    : allV2Complete(state.v2StreamStates) && Boolean(state.userOpsComplete);
+
   if (
     !state.historyComplete &&
-    alchemyDone(state) &&
-    allV2Complete(state.v2StreamStates) &&
-    state.userOpsComplete
+    indexesReady
   ) {
     state = {
       ...state,

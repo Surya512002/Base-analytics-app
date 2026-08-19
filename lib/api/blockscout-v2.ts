@@ -218,7 +218,7 @@ function mapInternalTx(item: {
     to: addrHash(item.to) || null,
     metadata: {
       blockTimestamp: item.timestamp,
-      isSponsored: eth === 0 && Boolean(item.from && item.to),
+      isSponsored: false,
       walletParticipated: true,
     },
   };

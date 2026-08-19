@@ -6,6 +6,7 @@ import {
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
+import { isWalletUserOp } from "@/lib/wallet/aa-activity";
 
 export const APP_CONTRACTS = {
   gm: GM_GN_CONTRACT.toLowerCase(),
@@ -104,16 +105,7 @@ export function buildAppActionHitsByHash(
   return hits;
 }
 
-/** True for gasless / paymaster / ERC-4337 activity. */
+/** True only for ERC-4337 UserOps sent by this wallet — not internals or EntryPoint refunds. */
 export function isPaymasterActivity(tx: AlchemyTransfer, wallet: string): boolean {
-  const w = wallet.toLowerCase();
-  const to = (tx.to || "").toLowerCase();
-  return (
-    tx.category === "useroperation" ||
-    tx.metadata?.isSponsored === true ||
-    tx.metadata?.isUserOperation === true ||
-    (tx.category === "internal" &&
-      to === w &&
-      (tx.from || "").toLowerCase() !== w)
-  );
+  return isWalletUserOp(tx, wallet);
 }

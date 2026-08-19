@@ -23,13 +23,12 @@ import {
   BASE_BRIDGE,
   BOOSTER_CONTRACT,
   CHECKIN_CONTRACT,
-  ENTRYPOINT_V06,
-  ENTRYPOINT_V07,
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
 import { DEX_ROUTERS } from "@/lib/constants/protocols";
 import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
 import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
+import { hasIndexedLastActivity } from "@/lib/wallet/last-activity";
 import { ACHIEVEMENTS, SEASON_NAME, WEEKLY_QUESTS } from "@/lib/constants/season";
 import { getLevelStyle, getTargetTokenId } from "@/lib/utils/achievements";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
@@ -175,12 +174,14 @@ if (!wallet) return null;
       scoredWallet.recommendation.includes("Refining"));
 
   /**
-   * Paid first scan stays covered until historyComplete (paidScanActive).
-   * Returning users can see tiles while a later refine runs.
+   * Keep the loading card up until latest activity is indexed, then show
+   * the real score. Older history can still refine behind a banner.
    */
+  const lastActivityReady = hasIndexedLastActivity(scoredWallet);
   const hasUsableAnalytics =
     analyticsUnlocked &&
     !paidScanActive &&
+    lastActivityReady &&
     hasIndexedMetrics &&
     !scoredWallet.recommendation.includes("Fetching onchain data");
 
@@ -396,7 +397,7 @@ if (!wallet) return null;
                   const isLaunch=appHit==='launchpad';
                   const isDEX=DEX_ROUTERS.has(toAddr);
                   const isBridge=toAddr===BASE_BRIDGE.toLowerCase();
-                  const isPaymaster=isPaymasterActivity(tx,wAddr)||toAddr===ENTRYPOINT_V06.toLowerCase()||toAddr===ENTRYPOINT_V07.toLowerCase();
+                  const isPaymaster=isPaymasterActivity(tx,wAddr);
                   let label='Contract Call',badge:string|null=null;
                   let icon=<ArrowRightLeft size={13} className="analytics-tile-icon"/>;
                   if(isGM){label='GM / GN';icon=<Star size={13} className="analytics-tile-icon"/>;badge='☀️ Vibes';}
@@ -406,7 +407,7 @@ if (!wallet) return null;
                   else if(isLaunch){label='Launchpad';icon=<TrendingUp size={13} className="analytics-tile-icon"/>;badge='🚀 Launch';}
                   else if(isDEX){label='DEX Swap';icon=<Repeat2 size={13} className="analytics-tile-icon"/>;badge='🔄 Swap';}
                   else if(isBridge){label='Bridge Tx';icon=<Globe size={13} className="analytics-tile-icon"/>;badge='🌉 Bridge';}
-                  else if(isPaymaster){label=tx.category==='useroperation'||tx.metadata?.isUserOperation?'AA / Base App Tx':'Gasless Tx';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge=tx.metadata?.isSponsored?'⛽ Sponsored':'⚡ AA';}
+                  else if(isPaymaster){label=tx.metadata?.isSponsored?'Base App / gasless':'AA transaction';icon=<Droplets size={13} className="analytics-tile-icon"/>;badge=tx.metadata?.isSponsored?'⛽ Sponsored':'⚡ AA';}
                   else if(tx.category==='erc721'||tx.category==='erc1155'){
                     const isMint=(tx.from||'').toLowerCase()==='0x0000000000000000000000000000000000000000';
                     label=isMint?'NFT Mint':'NFT Transfer';

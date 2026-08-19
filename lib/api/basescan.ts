@@ -73,7 +73,10 @@ function mapInternal(tx: BlockscoutTx): AlchemyTransfer {
 }
 
 /** Map Basescan AA / Other Transactions rows when the API exposes them. */
-function mapAaTx(row: Record<string, unknown>): AlchemyTransfer | null {
+function mapAaTx(
+  row: Record<string, unknown>,
+  wallet: string
+): AlchemyTransfer | null {
   const hash = String(
     row.hash || row.transactionHash || row.userOpHash || row.userOperationHash || ""
   );
@@ -84,6 +87,7 @@ function mapAaTx(row: Record<string, unknown>): AlchemyTransfer | null {
   const ts = Number(row.timeStamp || row.timestamp || 0);
   const from = String(row.from || row.sender || "").toLowerCase() || null;
   const to = String(row.to || row.entryPoint || row.entrypoint || "").toLowerCase() || null;
+  if (!from || from !== wallet.toLowerCase()) return null;
   const paymaster = String(row.paymaster || "").toLowerCase();
   const sponsored =
     Boolean(paymaster) &&
@@ -149,7 +153,7 @@ async function fetchBasescanAction(
         all.push(...(rows as BlockscoutTx[]).map(mapToken));
       } else if (action === "aatxlist") {
         for (const row of rows as Record<string, unknown>[]) {
-          const mapped = mapAaTx(row);
+          const mapped = mapAaTx(row, address);
           if (mapped) all.push(mapped);
         }
       } else {

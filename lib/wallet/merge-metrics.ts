@@ -1,5 +1,6 @@
 import type { WalletData } from "@/lib/types/wallet";
 import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
+import { hasIndexedLastActivity } from "@/lib/wallet/last-activity";
 import {
   computeTotalScore,
   computeWalletRank,
@@ -22,10 +23,7 @@ export function maxScoreComponents(
 }
 
 function isShellWallet(w: WalletData): boolean {
-  return (
-    w.recommendation === "Fetching onchain data…" ||
-    (w.txCount === 0 && w.uniqueDays === 0 && w.score === 0)
-  );
+  return !hasIndexedLastActivity(w);
 }
 
 /** Reject partial quick snapshots that would crush swap/volume score for active wallets. */
@@ -133,11 +131,12 @@ export function mergeWalletMetricsMax(
     defiInteractions: Math.max(prior.defiInteractions, next.defiInteractions),
     uniqueContracts: Math.max(prior.uniqueContracts, next.uniqueContracts),
     bridgeTxCount: Math.max(prior.bridgeTxCount, next.bridgeTxCount),
-    paymasterTxCount: Math.max(
-      prior.paymasterTxCount ?? 0,
-      next.paymasterTxCount ?? 0
-    ),
-    aaTxCount: Math.max(prior.aaTxCount ?? 0, next.aaTxCount ?? 0),
+    paymasterTxCount: hasIndexedLastActivity(next)
+      ? Math.min(next.paymasterTxCount ?? 0, next.aaTxCount ?? 0)
+      : Math.max(prior.paymasterTxCount ?? 0, next.paymasterTxCount ?? 0),
+    aaTxCount: hasIndexedLastActivity(next)
+      ? (next.aaTxCount ?? 0)
+      : Math.max(prior.aaTxCount ?? 0, next.aaTxCount ?? 0),
     ethReceived: Math.max(prior.ethReceived ?? 0, next.ethReceived ?? 0),
     netETHFlow: (() => {
       const sent = Math.max(

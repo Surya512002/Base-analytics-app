@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, createContex
 import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
-import { fetchWalletAnalysis, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
+import { fetchWalletAnalysis, fetchWalletAnalysisRecent, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
@@ -34,6 +34,7 @@ import {
 import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
+import { hasIndexedLastActivity } from "@/lib/wallet/last-activity";
 import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
 import { fetchMintedLevelsFromChain } from "@/lib/wallet/minted-badges";
 import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
@@ -1059,7 +1060,7 @@ function useWalletAppController() {
         // Keep the full-scan card up until historyComplete — not the first partial score.
         markPaidScan(true);
         setAnalyticsSyncing(true);
-        setScanProgress("Payment confirmed — collecting full onchain history…");
+        setScanProgress("Payment confirmed — fetching your latest activity…");
         const keys = x402StorageKeys(wallet.address);
         const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
         const next = prev + 1;
@@ -1086,7 +1087,7 @@ function useWalletAppController() {
         historyCompleteRef.current = false;
         syncCompleteToastRef.current = false;
         clearAnalysisFreshness(wallet.address);
-        setScanProgress("Payment confirmed — collecting your wallet activity…");
+        setScanProgress("Payment confirmed — fetching your latest activity…");
         void analyzeWallet(wallet.address, {
           background: true,
           forceRefresh: true,
@@ -2501,6 +2502,8 @@ function useWalletAppController() {
           if (!r?.wallet?.address) return false;
           const w = r.wallet;
           if (w.recommendation === "Fetching onchain data…") return false;
+          if (!hasIndexedLastActivity(w)) return false;
+          if ((w.score ?? 0) <= 0 && (w.txCount ?? 0) === 0) return true;
           if ((w.score ?? 0) <= 0) return false;
           if ((w.uniqueDays ?? 0) === 0 && (w.txCount ?? 0) < 10) return false;
           const txs = w.txCount ?? 0;
@@ -2537,13 +2540,16 @@ function useWalletAppController() {
             setAnalyticsSyncing(false);
             setScanProgress("");
           }
+          if (paidScanActiveRef.current && hasIndexedLastActivity(result!.wallet)) {
+            markPaidScan(false);
+          }
           maybeStartHistorySync(result!);
           return;
         }
 
-        // Keep any bootstrap shell visible while we index — single path only
-        // (no parallel quick+full; that doubled RPC / function cost).
-        if (!skipBootstrap) {
+        // Keep any bootstrap shell visible while we index — skip on paid
+        // forceRefresh so we don't spend ~8s on a thin shell before the real scan.
+        if (!skipBootstrap && !forceRefresh) {
           const bootstrap = await fetchWalletBootstrap(address).catch(() => null);
           if (stale()) return;
           if (bootstrap && hasFastScore(bootstrap)) {
@@ -2553,14 +2559,22 @@ function useWalletAppController() {
           }
         }
 
-        setScanProgress("Indexing transfers for your address…");
-        result = await fetchWalletAnalysis(address, true);
+        setScanProgress("Fetching your latest onchain activity…");
+        result = forceRefresh
+          ? await fetchWalletAnalysisRecent(address, true)
+          : await fetchWalletAnalysis(address, true);
         if (stale()) return;
 
+        if (!result || !hasIndexedLastActivity(result.wallet)) {
+          setScanProgress("Loading remaining activity…");
+          const richer = await fetchWalletAnalysis(address, true);
+          if (stale()) return;
+          if (richer) result = richer;
+        }
         if (!result) {
           setScanProgress("Retrying wallet scan…");
           await new Promise((r) => setTimeout(r, 400));
-          result = await fetchWalletAnalysis(address, true);
+          result = await fetchWalletAnalysisRecent(address, true);
         }
         if (stale()) return;
 
@@ -2576,18 +2590,22 @@ function useWalletAppController() {
         mergeAndApply(result, ci);
         if (background) lockWalletCore(result.wallet);
 
-        const stillScanning =
-          paidScanActiveRef.current && result.historyComplete !== true;
+        const lastReady = hasIndexedLastActivity(result.wallet);
+        if (paidScanActiveRef.current && lastReady) markPaidScan(false);
 
         if (!background) {
           setLoading(false);
-          if (!stillScanning) setScanProgress("");
-        } else if (!stillScanning) {
+          setScanProgress("");
+        } else if (result.historyComplete === true) {
           setAnalyticsSyncing(false);
           setScanProgress("");
         } else {
           setAnalyticsSyncing(true);
-          setScanProgress("Finishing full history for your address…");
+          setScanProgress(
+            lastReady
+              ? "Indexing older history…"
+              : "Fetching your latest activity…"
+          );
         }
 
         maybeStartHistorySync(result);

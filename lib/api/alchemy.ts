@@ -44,6 +44,7 @@ async function fetchAssetTransferPage(
       maxCount: "0x3e8",
       withMetadata: true,
       excludeZeroValue: false,
+      order: "desc",
     };
     if (pageKey) params.pageKey = pageKey;
     const r = await fetch(rpcUrl, {

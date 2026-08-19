@@ -36,7 +36,7 @@ export interface WalletTxSources {
   uniqueDays: number;
 }
 
-export type WalletFetchDepth = "quick" | "connect" | "complete";
+export type WalletFetchDepth = "quick" | "recent" | "connect" | "complete";
 
 export interface WalletFetchOptions {
   depth?: WalletFetchDepth;
@@ -419,6 +419,110 @@ export async function fetchWalletTransfersConnectRich(
       basescan: basescanTxs.length,
     },
     historyComplete,
+    blockscoutV2.streamStates,
+    {
+      alchemyOutComplete: alchemy.outComplete,
+      alchemyInComplete: alchemy.inComplete,
+      alchemyOutPageKey: alchemy.outPageKey,
+      alchemyInPageKey: alchemy.inPageKey,
+    }
+  );
+}
+
+/**
+ * Fast first score — newest activity only (Alchemy returns desc).
+ * Enough to show last tx, recent list, and a real score in ~8s.
+ * Background wallet-sync resumes older Alchemy pages from the returned cursors.
+ */
+export async function fetchWalletTransfersRecent(
+  address: string
+): Promise<{
+  transfers: AlchemyTransfer[];
+  sources: WalletTxSources;
+  historyComplete: boolean;
+  v2StreamStates: Record<string, V2StreamState>;
+  alchemyOutComplete: boolean;
+  alchemyInComplete: boolean;
+  alchemyOutPageKey: string | null;
+  alchemyInPageKey: string | null;
+}> {
+  const addr = address.toLowerCase();
+  const hasAlchemy = Boolean(getAlchemyKey());
+  const PRIMARY_BUDGET_MS = 8_000;
+
+  const alchemyP = hasAlchemy
+    ? fetchAlchemyWalletComplete(addr, {
+        budgetMs: PRIMARY_BUDGET_MS,
+        maxPagesPerDirection: 8,
+        pageTimeoutMs: 2_400,
+      }).catch(() => ({
+        transfers: [] as AlchemyTransfer[],
+        outComplete: false,
+        inComplete: false,
+        outPageKey: null as string | null,
+        inPageKey: null as string | null,
+      }))
+    : Promise.resolve({
+        transfers: [] as AlchemyTransfer[],
+        outComplete: false,
+        inComplete: false,
+        outPageKey: null as string | null,
+        inPageKey: null as string | null,
+      });
+
+  const userOpsP = fetchUserOperationActivityWithProgress(addr, {
+    timeoutMs: 6_000,
+    maxChunks: 8,
+  }).catch(() => ({
+    transfers: [] as AlchemyTransfer[],
+    chunksScanned: 0,
+    complete: false,
+  }));
+
+  const v2P = fetchBlockscoutV2Activity(addr, {
+    tokenPages: 6,
+    internalPages: 4,
+    externalPages: 4,
+    deadlineMs: 6_000,
+    pageTimeoutMs: 2_200,
+  }).catch(() => ({
+    transfers: [] as AlchemyTransfer[],
+    complete: false,
+    streamStates: EMPTY_V2_STATES,
+  }));
+
+  const basescanP = fetchBasescanAllFast(addr, 4_000, 2).catch(() => []);
+
+  const [alchemy, userOps, blockscoutV2, basescanTxs] = await Promise.all([
+    alchemyP,
+    userOpsP,
+    v2P,
+    basescanP,
+  ]);
+
+  return buildResult(
+    addr,
+    [
+      alchemy.transfers,
+      blockscoutV2.transfers,
+      userOps.transfers,
+      basescanTxs,
+    ],
+    {
+      alchemyOut: alchemy.transfers.filter(
+        (t) => (t.from || "").toLowerCase() === addr
+      ).length,
+      alchemyIn: alchemy.transfers.filter(
+        (t) => (t.to || "").toLowerCase() === addr
+      ).length,
+      blockscoutV1: 0,
+      blockscoutInternalV1: 0,
+      blockscoutTokenV1: 0,
+      blockscoutV2: blockscoutV2.transfers.length,
+      userOperations: userOps.transfers.length,
+      basescan: basescanTxs.length,
+    },
+    false,
     blockscoutV2.streamStates,
     {
       alchemyOutComplete: alchemy.outComplete,
