@@ -2,11 +2,9 @@ import {
   decodeV2Cursor,
   fetchBlockscoutV2Chunk,
   V2_STREAMS,
-  type V2Stream,
 } from "@/lib/api/blockscout-v2";
 import {
   collectWalletFastAll,
-  collectWalletSupplements,
 } from "@/lib/wallet/collect";
 import { fetchUserOperationActivityWithProgress } from "@/lib/api/user-operations";
 import { fetchAlchemyDirection } from "@/lib/api/alchemy";
@@ -18,7 +16,6 @@ import {
   loadOrEmptyHistory,
   mergeActivityIntoState,
   saveWalletHistory,
-  uniqueDaysFromState,
   type StoredWalletHistory,
 } from "@/lib/wallet/history-store";
 
@@ -59,7 +56,7 @@ async function advanceAlchemyScan(
     return { state, legs: [] };
   }
 
-  const half = Math.max(2_500, Math.floor(budgetMs / 2));
+  const dirBudget = Math.max(8_000, budgetMs);
 
   const jobs: Promise<{
     transfers: AlchemyTransfer[];
@@ -71,9 +68,9 @@ async function advanceAlchemyScan(
   if (!state.alchemyOutComplete) {
     jobs.push(
       fetchAlchemyDirection(address, "fromAddress", {
-        budgetMs: half,
-        maxPages: 40,
-        pageTimeoutMs: 3_500,
+        budgetMs: dirBudget,
+        maxPages: 80,
+        pageTimeoutMs: 2_000,
         startPageKey: state.alchemyOutPageKey,
       }).then((r) => ({ ...r, field: "out" as const }))
     );
@@ -81,9 +78,9 @@ async function advanceAlchemyScan(
   if (!state.alchemyInComplete) {
     jobs.push(
       fetchAlchemyDirection(address, "toAddress", {
-        budgetMs: half,
-        maxPages: 40,
-        pageTimeoutMs: 3_500,
+        budgetMs: dirBudget,
+        maxPages: 80,
+        pageTimeoutMs: 2_000,
         startPageKey: state.alchemyInPageKey,
       }).then((r) => ({ ...r, field: "in" as const }))
     );
@@ -291,109 +288,60 @@ export async function runWalletSyncBurst(
 
   if (
     state.historyComplete &&
-    alchemyDone(state) &&
-    Boolean(state.userOpsComplete) &&
-    allV2Complete(state.v2StreamStates)
+    alchemyDone(state)
   ) {
     return { transfers: mergeTransfers([initTransfers, newLegs]), state };
   }
-  // Prior soft-complete without v2 / UserOps / Alchemy — keep refining.
-  if (state.historyComplete) {
+  // Prior complete stamp without Alchemy exhausted — keep paging this address.
+  if (state.historyComplete && !alchemyDone(state)) {
     state = { ...state, historyComplete: false };
   }
 
-  let idleRounds = 0;
-  while (Date.now() < deadline) {
-    // Prefer Alchemy resume — oldest active days usually live on incomplete Alchemy pages.
-    if (!alchemyDone(state)) {
-      const remain = deadline - Date.now();
-      if (remain < 2_500) break;
-      const alc = await advanceAlchemyScan(
-        address,
-        state,
-        Math.min(16_000, remain - 1_000)
-      );
-      state = alc.state;
-      if (alc.legs.length) {
-        newLegs = mergeTransfers([newLegs, alc.legs]);
-        idleRounds = 0;
-      }
-    }
-
-    if (!state.userOpsComplete) {
-      const uop = await advanceUserOpScan(
-        address,
-        state,
-        Math.min(10_000, Math.max(2_500, deadline - Date.now() - 1_000))
-      );
-      state = uop.state;
-      if (uop.legs.length) {
-        newLegs = mergeTransfers([newLegs, uop.legs]);
-        idleRounds = 0;
-      }
-    }
-
-    if (allV2Complete(state.v2StreamStates)) {
-      // Keep looping for Alchemy/UserOps until wall if needed.
-      if (alchemyDone(state) && state.userOpsComplete) break;
-      if (Date.now() >= deadline) break;
-      continue;
-    }
-
-    const daysBefore = uniqueDaysFromState(state);
-    const advanced = await advanceAllV2StreamsSequential(address, state, deadline);
-    state = advanced.state;
-    if (advanced.legs.length) {
-      newLegs = mergeTransfers([newLegs, advanced.legs]);
-      idleRounds = 0;
-    } else {
-      idleRounds++;
-      // Idle break only when Alchemy already done — otherwise keep Alchemy resume.
-      if (idleRounds >= 3 && alchemyDone(state)) break;
-    }
-
-    if (uniqueDaysFromState(state) > daysBefore) {
-      idleRounds = 0;
+  while (Date.now() < deadline && !alchemyDone(state)) {
+    const remain = deadline - Date.now();
+    if (remain < 2_000) break;
+    const alc = await advanceAlchemyScan(address, state, remain - 400);
+    state = alc.state;
+    if (alc.legs.length) {
+      newLegs = mergeTransfers([newLegs, alc.legs]);
     }
   }
 
-  if (allV2Complete(state.v2StreamStates) && !state.userOpsFetched) {
-    const remaining = () => Math.max(0, deadline - Date.now());
-
-    if (!state.userOpsComplete && remaining() > 5_000) {
-      const uop = await fetchUserOperationActivityWithProgress(address, {
-        timeoutMs: Math.min(remaining() - 2_000, 12_000),
-        maxChunks: 12,
-        startChunk: state.userOpChunkCursor ?? 0,
-      });
-      state = mergeActivityIntoState(state, uop.transfers, address);
-      state = {
-        ...state,
-        userOpChunkCursor: uop.chunksScanned,
-        userOpsComplete: uop.complete,
-      };
-      newLegs = mergeTransfers([newLegs, uop.transfers]);
+  // No Alchemy key — Blockscout v2 is the date source.
+  if (!getAlchemyKey()) {
+    while (Date.now() < deadline && !allV2Complete(state.v2StreamStates)) {
+      const advanced = await advanceAllV2StreamsSequential(
+        address,
+        state,
+        deadline
+      );
+      state = advanced.state;
+      if (advanced.legs.length) {
+        newLegs = mergeTransfers([newLegs, advanced.legs]);
+      } else {
+        break;
+      }
     }
-
-    if (remaining() > 4_000) {
-      const sup = await collectWalletSupplements(address, {
-        deadlineMs: Math.min(remaining() - 2_000, 10_000),
-      });
-      state = mergeActivityIntoState(state, sup.transfers, address);
-      newLegs = mergeTransfers([newLegs, sup.transfers]);
-      state = {
-        ...state,
-        userOpsFetched: true,
-        v1SupplementFetched: true,
-      };
+  } else if (
+    !state.userOpsComplete &&
+    deadline - Date.now() > 3_500
+  ) {
+    const uop = await advanceUserOpScan(
+      address,
+      state,
+      Math.min(4_000, deadline - Date.now() - 500)
+    );
+    state = uop.state;
+    if (uop.legs.length) {
+      newLegs = mergeTransfers([newLegs, uop.legs]);
     }
   }
 
-  // Complete when Alchemy, UserOps, and Blockscout v2 are exhausted.
-  const indexesReady =
-    alchemyDone(state) &&
-    Boolean(state.userOpsComplete) &&
-    allV2Complete(state.v2StreamStates);
+  // Complete when this wallet's Alchemy history is exhausted (from+to empty).
+  // Blockscout v2 is a supplement and must not block the scan for minutes.
+  const indexesReady = getAlchemyKey()
+    ? alchemyDone(state)
+    : allV2Complete(state.v2StreamStates);
 
   if (
     !state.historyComplete &&

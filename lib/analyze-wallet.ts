@@ -174,7 +174,7 @@ async function fetchConnectHistory(
     // Only mark complete when Alchemy (if configured) and the fetch path both finished.
     const hasAlchemy = Boolean(getAlchemyKey());
     next.historyComplete = hasAlchemy
-      ? alchemyDone && rich.historyComplete
+      ? alchemyDone
       : Boolean(rich.historyComplete || stored.historyComplete);
     void saveWalletHistory(address, next).catch(() => {});
     return {

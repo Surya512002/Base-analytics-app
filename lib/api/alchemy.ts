@@ -281,7 +281,7 @@ export async function fetchAlchemyDirection(
 
   const budgetMs = options.budgetMs ?? 12_000;
   const maxPages = options.maxPages ?? 40;
-  const pageTimeoutMs = options.pageTimeoutMs ?? 3_500;
+  const pageTimeoutMs = options.pageTimeoutMs ?? 2_000;
   const deadline = Date.now() + budgetMs;
   const rpc = alchemyRpcForKey(key);
   const addr = address.toLowerCase();
@@ -353,19 +353,17 @@ export async function fetchAlchemyWalletComplete(
 
   const budgetMs = options.budgetMs ?? 28_000;
   const maxPages = options.maxPagesPerDirection ?? 100;
-  const pageTimeoutMs = options.pageTimeoutMs ?? 3_500;
-  // Give each direction half the wall (parallel).
-  const half = Math.max(4_000, Math.floor(budgetMs / 2));
-
+  const pageTimeoutMs = options.pageTimeoutMs ?? 2_000;
+  // from + to run in parallel — each gets the full wall, not half.
   const [out, inn] = await Promise.all([
     fetchAlchemyDirection(address, "fromAddress", {
-      budgetMs: half,
+      budgetMs,
       maxPages,
       pageTimeoutMs,
       startPageKey: options.outPageKey,
     }),
     fetchAlchemyDirection(address, "toAddress", {
-      budgetMs: half,
+      budgetMs,
       maxPages,
       pageTimeoutMs,
       startPageKey: options.inPageKey,

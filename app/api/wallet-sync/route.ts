@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { analyzeWalletAddress } from "@/lib/analyze-wallet";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import {
   getCachedAnalyze,
@@ -93,11 +92,10 @@ export async function GET(req: Request) {
       await saveWalletHistory(address, emptyHistoryState());
     }
 
-    // Short bursts so each poll returns a partial for *this* address quickly.
-    // Give Alchemy resume more room per burst (~35s) under the 95s handler wall.
+    // Alchemy resume gets the full remaining wall — no second 30s re-analyze.
     const syncBudget = Math.min(
-      40_000,
-      Math.max(12_000, handlerDeadline - Date.now() - 28_000)
+      70_000,
+      Math.max(20_000, handlerDeadline - Date.now() - 8_000)
     );
     const { transfers, state } = await runWalletSyncBurst(address, syncBudget);
 
@@ -106,41 +104,22 @@ export async function GET(req: Request) {
     }
 
     const cached = await getCachedAnalyze(address);
-
-    // Indexes are exhausted — re-run a full connect analyze so volume / DeFi / AA
-    // / score are rebuilt from history, not frozen from the last-activity preview.
-    if (handlerDeadline - Date.now() < 22_000) {
+    if (!cached?.wallet) {
       return buildPartialSyncResponse(address, transfers, state);
     }
-
-    const result = await analyzeWalletAddress(address, {
-      historyComplete: true,
-      v2StreamStates: state.v2StreamStates,
-      fetchDepth: "connect",
-    });
-
-    if (!result) {
-      return buildPartialSyncResponse(address, transfers, state);
-    }
-
-    const fromIndex = applyHistoryIndexToWallet(result.wallet, state);
-    const wallet = cached?.wallet
-      ? mergeWalletMetricsMax(
-          mergeWalletMetricsMax(cached.wallet, result.wallet),
-          fromIndex
-        )
-      : mergeWalletMetricsMax(result.wallet, fromIndex);
+    const wallet = mergeWalletMetricsMax(
+      cached.wallet,
+      applyHistoryIndexToWallet(cached.wallet, state)
+    );
 
     const finalResult = {
-      ...result,
       wallet,
-      mintedLevels: result.mintedLevels ?? cached?.mintedLevels ?? {},
-      boosts: result.boosts ?? cached?.boosts ?? 0,
-      streak: result.streak ?? cached?.streak ?? 0,
-      checkedToday: result.checkedToday ?? cached?.checkedToday ?? false,
+      mintedLevels: cached?.mintedLevels ?? {},
+      boosts: cached?.boosts ?? 0,
+      streak: cached?.streak ?? 0,
+      checkedToday: cached?.checkedToday ?? false,
       historyComplete: true as const,
     };
-
     await setCachedAnalyze(address, finalResult, ANALYZE_CACHE_TTL);
     return NextResponse.json({
       ...finalResult,

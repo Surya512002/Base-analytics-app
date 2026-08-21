@@ -283,14 +283,14 @@ export async function fetchWalletTransfersConnectRich(
 }> {
   const addr = address.toLowerCase();
   const hasAlchemy = Boolean(getAlchemyKey());
-  /** Longer wall so high-activity wallets capture older Alchemy pages on first scan. */
-  const PRIMARY_BUDGET_MS = 32_000;
+  /** Finish this wallet's Alchemy history in one shot (from+to in parallel). */
+  const PRIMARY_BUDGET_MS = 55_000;
 
   const alchemyP = hasAlchemy
     ? fetchAlchemyWalletComplete(addr, {
         budgetMs: PRIMARY_BUDGET_MS,
-        maxPagesPerDirection: 120,
-        pageTimeoutMs: 3_500,
+        maxPagesPerDirection: 200,
+        pageTimeoutMs: 2_000,
       }).catch(() => ({
         transfers: [] as AlchemyTransfer[],
         outComplete: false,
@@ -307,28 +307,30 @@ export async function fetchWalletTransfersConnectRich(
       });
 
   const userOpsP = fetchUserOperationActivityWithProgress(addr, {
-    timeoutMs: 14_000,
-    maxChunks: 24,
+    timeoutMs: 6_000,
+    maxChunks: 6,
   }).catch(() => ({
     transfers: [] as AlchemyTransfer[],
     chunksScanned: 0,
     complete: false,
   }));
 
-  // Parallel fillers — more pages when Alchemy is on for day coverage.
+  // Short parallel fill — never extends the Alchemy wall.
   const v2P = fetchBlockscoutV2Activity(addr, {
-    tokenPages: hasAlchemy ? 20 : 28,
-    internalPages: hasAlchemy ? 12 : 18,
-    externalPages: hasAlchemy ? 12 : 18,
-    deadlineMs: hasAlchemy ? 14_000 : 16_000,
-    pageTimeoutMs: 3_200,
+    tokenPages: hasAlchemy ? 8 : 20,
+    internalPages: hasAlchemy ? 4 : 12,
+    externalPages: hasAlchemy ? 4 : 12,
+    deadlineMs: hasAlchemy ? 8_000 : 16_000,
+    pageTimeoutMs: 2_200,
   }).catch(() => ({
     transfers: [] as AlchemyTransfer[],
     complete: false,
     streamStates: EMPTY_V2_STATES,
   }));
 
-  const basescanP = fetchBasescanAllFast(addr, 8_000, 4).catch(() => []);
+  const basescanP = hasAlchemy
+    ? Promise.resolve([] as AlchemyTransfer[])
+    : fetchBasescanAllFast(addr, 8_000, 4).catch(() => []);
 
   // Skip heavy v1 multi-endpoint crawl when Alchemy is on; only used as thin fallback.
   const fillV1P = hasAlchemy
@@ -385,11 +387,10 @@ export async function fetchWalletTransfersConnectRich(
   }
 
   const alchemyDone = alchemy.outComplete && alchemy.inComplete;
-  // Full history needs Alchemy + UserOps + Blockscout v2 — never soft-complete
-  // after UserOps alone (that dropped heatmap days and token volume).
+  // Address-filtered Alchemy from+to with no remaining pageKey = full wallet dates.
   const historyComplete = hasAlchemy
-    ? alchemyDone && userOps.complete && blockscoutV2.complete
-    : blockscoutV2.complete && userOps.complete;
+    ? alchemyDone
+    : blockscoutV2.complete;
 
   return buildResult(
     addr,

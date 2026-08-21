@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, createContex
 import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
-import { fetchWalletAnalysis, fetchWalletAnalysisRecent, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
+import { fetchWalletAnalysis, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
 import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
@@ -2560,31 +2560,12 @@ function useWalletAppController() {
           }
         }
 
-        setScanProgress("Fetching your latest onchain activity…");
-        const preview = forceRefresh
-          ? await fetchWalletAnalysisRecent(address, true)
-          : null;
-        if (stale()) return;
-
-        if (preview?.wallet) {
-          mergeAndApply(preview, ci);
-          if (background) lockWalletCore(preview.wallet);
-          if (
-            paidScanActiveRef.current &&
-            hasIndexedLastActivity(preview.wallet)
-          ) {
-            markPaidScan(false);
-          }
-          setAnalyticsSyncing(true);
-          setScanProgress("Scanning full onchain history…");
-        }
-
+        setScanProgress("Scanning full onchain history…");
         result = await fetchWalletAnalysis(address, true);
         if (stale()) return;
 
-        if (!result && preview) result = preview;
         if (!result) {
-          setScanProgress("Retrying full onchain scan…");
+          setScanProgress("Retrying wallet scan…");
           await new Promise((r) => setTimeout(r, 400));
           result = await fetchWalletAnalysis(address, true);
         }
