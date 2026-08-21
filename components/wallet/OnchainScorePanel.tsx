@@ -99,6 +99,8 @@ export default function OnchainScorePanel({
   onGoCheckIn,
   onGoQuests,
   shareScore,
+  syncing = false,
+  scanProgress = "",
 }: OnchainScorePanelProps) {
   // Reconcile metrics → components so volume cards never show high ETH while bars stay at 0.
   const wallet = reconcileWalletScore(rawWallet);
@@ -406,6 +408,11 @@ export default function OnchainScorePanel({
             </div>
           </div>
           <div className="rounded-2xl border border-sky-100 bg-white/70 p-3 sm:p-4">
+            {syncing ? (
+              <p className="text-[10px] font-bold uppercase tracking-wide text-sky-800/80 mb-2">
+                Heatmap still filling older days — {scanProgress || "full onchain history in progress"}
+              </p>
+            ) : null}
             <ActivityHeatmap
               dailyStats={wallet.dailyStats}
               selectedDay={selDay}

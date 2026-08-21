@@ -107,6 +107,20 @@ describe("applyHistoryIndexToWallet", () => {
     expect(next.ethReceived).toBe(5.1);
     expect(next.ethSwapVolumeUSD).toBe(1420);
   });
+
+  it("replaces a thin recent heatmap when the index has more active cells", () => {
+    const prev = shell("0x1111111111111111111111111111111111111111");
+    prev.uniqueDays = 200;
+    prev.dailyStats = [{ date: "2026-08-19", count: 3, intensity: 2 }];
+    const state = emptyHistoryState();
+    for (let i = 0; i < 90; i++) {
+      const d = new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10);
+      state.tpd[d] = 1;
+    }
+    const next = applyHistoryIndexToWallet(prev, state);
+    expect(next.dailyStats.filter((d) => d.count > 0).length).toBeGreaterThan(1);
+    expect(next.uniqueDays).toBeGreaterThanOrEqual(90);
+  });
 });
 
 describe("applyPartialSyncPatch extra fields", () => {

@@ -107,33 +107,9 @@ export async function GET(req: Request) {
 
     const cached = await getCachedAnalyze(address);
 
-    // Never re-analyze from this burst's legs — Redis only stores a compact
-    // heatmap index, so a last-page burst would zero out volume / AA / ETH flow.
-    if (cached?.wallet) {
-      const fromIndex = applyHistoryIndexToWallet(cached.wallet, state);
-      const wallet = mergeWalletMetricsMax(cached.wallet, fromIndex);
-      const finalResult = {
-        wallet,
-        mintedLevels: cached.mintedLevels ?? {},
-        boosts: cached.boosts ?? 0,
-        streak: cached.streak ?? 0,
-        checkedToday: cached.checkedToday ?? false,
-        historyComplete: true as const,
-      };
-      await setCachedAnalyze(address, finalResult, ANALYZE_CACHE_TTL);
-      return NextResponse.json({
-        ...finalResult,
-        partial: false,
-        sync: {
-          complete: true,
-          transferLegs: transfers.length,
-          uniqueDays: wallet.uniqueDays,
-          uniqueHashes: wallet.txCount,
-        },
-      });
-    }
-
-    if (handlerDeadline - Date.now() < 28_000) {
+    // Indexes are exhausted — re-run a full connect analyze so volume / DeFi / AA
+    // / score are rebuilt from history, not frozen from the last-activity preview.
+    if (handlerDeadline - Date.now() < 22_000) {
       return buildPartialSyncResponse(address, transfers, state);
     }
 
@@ -147,15 +123,25 @@ export async function GET(req: Request) {
       return buildPartialSyncResponse(address, transfers, state);
     }
 
-    const wallet = result.wallet;
+    const fromIndex = applyHistoryIndexToWallet(result.wallet, state);
+    const wallet = cached?.wallet
+      ? mergeWalletMetricsMax(
+          mergeWalletMetricsMax(cached.wallet, result.wallet),
+          fromIndex
+        )
+      : mergeWalletMetricsMax(result.wallet, fromIndex);
+
     const finalResult = {
       ...result,
       wallet,
+      mintedLevels: result.mintedLevels ?? cached?.mintedLevels ?? {},
+      boosts: result.boosts ?? cached?.boosts ?? 0,
+      streak: result.streak ?? cached?.streak ?? 0,
+      checkedToday: result.checkedToday ?? cached?.checkedToday ?? false,
       historyComplete: true as const,
     };
 
     await setCachedAnalyze(address, finalResult, ANALYZE_CACHE_TTL);
-
     return NextResponse.json({
       ...finalResult,
       partial: false,

@@ -130,4 +130,33 @@ describe("mergeWalletMetricsMax AA counts", () => {
     expect(merged.aaTxCount).toBe(4);
     expect(merged.paymasterTxCount).toBe(1);
   });
+
+  it("keeps the heatmap with more active days", () => {
+    const prior = base({
+      uniqueDays: 4,
+      dailyStats: [
+        { date: "2026-08-16", count: 1, intensity: 1 },
+        { date: "2026-08-17", count: 1, intensity: 1 },
+        { date: "2026-08-18", count: 1, intensity: 1 },
+        { date: "2026-08-19", count: 2, intensity: 1 },
+      ],
+    });
+    const next = base({
+      uniqueDays: 8,
+      score: 48,
+      dailyStats: [
+        { date: "2026-08-12", count: 1, intensity: 1 },
+        { date: "2026-08-13", count: 1, intensity: 1 },
+        { date: "2026-08-14", count: 1, intensity: 1 },
+        { date: "2026-08-15", count: 1, intensity: 1 },
+        { date: "2026-08-16", count: 1, intensity: 1 },
+        { date: "2026-08-17", count: 1, intensity: 1 },
+        { date: "2026-08-18", count: 1, intensity: 1 },
+        { date: "2026-08-19", count: 2, intensity: 1 },
+      ],
+    });
+    const merged = mergeWalletMetricsMax(prior, next);
+    expect(merged.dailyStats.filter((d) => d.count > 0)).toHaveLength(8);
+    expect(merged.uniqueDays).toBeGreaterThanOrEqual(8);
+  });
 });

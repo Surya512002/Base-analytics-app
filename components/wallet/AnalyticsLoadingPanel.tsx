@@ -147,15 +147,15 @@ export default function AnalyticsLoadingPanel({
         </motion.div>
 
         <h2 className="text-3xl sm:text-4xl font-black text-emerald-950 tracking-tight">
-          Fetching latest activity
+          Scanning full onchain history
         </h2>
         <p className="text-base text-emerald-900/80 max-w-lg mx-auto leading-relaxed mt-3">
-          Loading the newest transfers and UserOps for{" "}
+          First we lock the latest activity for{" "}
           <span className="font-mono font-bold text-emerald-950">
             {short || "your connected address"}
           </span>
-          . Score and volume show once that last activity is in — older history
-          keeps filling in after.
+          , then we walk the rest of the wallet so heatmap days, volume, and
+          score are complete.
         </p>
 
         <AnimatePresence mode="wait">
@@ -194,7 +194,7 @@ export default function AnalyticsLoadingPanel({
           <p className="mt-3 text-lg sm:text-xl font-black text-emerald-950 tabular-nums">
             {Math.round(pct)}%
             <span className="ml-2 text-sm font-bold text-emerald-800/80">
-              {done ? "Latest activity ready" : "Fetching latest activity…"}
+              {done ? "Full history ready" : "Scanning onchain history…"}
             </span>
           </p>
         </div>

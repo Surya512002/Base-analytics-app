@@ -137,7 +137,7 @@ export async function pollWalletHistorySync(
 ): Promise<boolean> {
   const addr = address.toLowerCase();
   let attempts = 0;
-  const maxAttempts = 8;
+  const maxAttempts = 24;
   let lastDays = -1;
   let plateauPasses = 0;
   const short = `${addr.slice(0, 6)}…${addr.slice(-4)}`;

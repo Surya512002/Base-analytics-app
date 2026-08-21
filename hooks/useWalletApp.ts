@@ -1057,7 +1057,8 @@ function useWalletAppController() {
         };
         setAnalyticsUnlocked(true);
         writeAnalyticsUnlocked(wallet.address, data.unlockToken);
-        // Keep the full-scan card up until historyComplete — not the first partial score.
+        // Keep the full-scan card up until latest activity, then keep
+        // indexing the rest of onchain history in the background.
         markPaidScan(true);
         setAnalyticsSyncing(true);
         setScanProgress("Payment confirmed — fetching your latest activity…");
@@ -2560,21 +2561,32 @@ function useWalletAppController() {
         }
 
         setScanProgress("Fetching your latest onchain activity…");
-        result = forceRefresh
+        const preview = forceRefresh
           ? await fetchWalletAnalysisRecent(address, true)
-          : await fetchWalletAnalysis(address, true);
+          : null;
         if (stale()) return;
 
-        if (!result || !hasIndexedLastActivity(result.wallet)) {
-          setScanProgress("Loading remaining activity…");
-          const richer = await fetchWalletAnalysis(address, true);
-          if (stale()) return;
-          if (richer) result = richer;
+        if (preview?.wallet) {
+          mergeAndApply(preview, ci);
+          if (background) lockWalletCore(preview.wallet);
+          if (
+            paidScanActiveRef.current &&
+            hasIndexedLastActivity(preview.wallet)
+          ) {
+            markPaidScan(false);
+          }
+          setAnalyticsSyncing(true);
+          setScanProgress("Scanning full onchain history…");
         }
+
+        result = await fetchWalletAnalysis(address, true);
+        if (stale()) return;
+
+        if (!result && preview) result = preview;
         if (!result) {
-          setScanProgress("Retrying wallet scan…");
+          setScanProgress("Retrying full onchain scan…");
           await new Promise((r) => setTimeout(r, 400));
-          result = await fetchWalletAnalysisRecent(address, true);
+          result = await fetchWalletAnalysis(address, true);
         }
         if (stale()) return;
 
@@ -2603,7 +2615,7 @@ function useWalletAppController() {
           setAnalyticsSyncing(true);
           setScanProgress(
             lastReady
-              ? "Indexing older history…"
+              ? "Scanning full onchain history…"
               : "Fetching your latest activity…"
           );
         }

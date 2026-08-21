@@ -289,11 +289,16 @@ export async function runWalletSyncBurst(
     }
   }
 
-  if (state.historyComplete && alchemyDone(state)) {
+  if (
+    state.historyComplete &&
+    alchemyDone(state) &&
+    Boolean(state.userOpsComplete) &&
+    allV2Complete(state.v2StreamStates)
+  ) {
     return { transfers: mergeTransfers([initTransfers, newLegs]), state };
   }
-  // Prior soft-complete without Alchemy — keep refining.
-  if (state.historyComplete && !alchemyDone(state)) {
+  // Prior soft-complete without v2 / UserOps / Alchemy — keep refining.
+  if (state.historyComplete) {
     state = { ...state, historyComplete: false };
   }
 
@@ -384,11 +389,11 @@ export async function runWalletSyncBurst(
     }
   }
 
-  // Complete when primary indexes are exhausted. Waiting on every Blockscout v2
-  // page made paid scans run for minutes, then a last-burst re-analyze wiped volume.
-  const indexesReady = getAlchemyKey()
-    ? alchemyDone(state) && Boolean(state.userOpsComplete)
-    : allV2Complete(state.v2StreamStates) && Boolean(state.userOpsComplete);
+  // Complete when Alchemy, UserOps, and Blockscout v2 are exhausted.
+  const indexesReady =
+    alchemyDone(state) &&
+    Boolean(state.userOpsComplete) &&
+    allV2Complete(state.v2StreamStates);
 
   if (
     !state.historyComplete &&

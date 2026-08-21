@@ -1,6 +1,6 @@
 import type { WalletData } from "@/lib/types/wallet";
 import { reconcileWalletScore } from "@/lib/utils/reconcile-score";
-import { maxScoreComponents } from "@/lib/wallet/merge-metrics";
+import { maxScoreComponents, heatmapActiveDays } from "@/lib/wallet/merge-metrics";
 
 /** Merge incremental history-sync patches without dropping prior activity counts. */
 export function applyPartialSyncPatch(
@@ -26,6 +26,7 @@ export function applyPartialSyncPatch(
     activeWeeks: Math.max(prev.activeWeeks, patch.activeWeeks ?? 0),
     activeMonths: Math.max(prev.activeMonths, patch.activeMonths ?? 0),
     dailyStats:
+      heatmapActiveDays(patch.dailyStats) >= heatmapActiveDays(prev.dailyStats) ||
       (patch.uniqueDays ?? 0) >= prev.uniqueDays
         ? (patch.dailyStats ?? prev.dailyStats)
         : prev.dailyStats,

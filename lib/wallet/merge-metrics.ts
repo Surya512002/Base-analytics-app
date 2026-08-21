@@ -29,6 +29,10 @@ function isShellWallet(w: WalletData): boolean {
 /** Reject partial quick snapshots that would crush swap/volume score for active wallets. */
 function isDegradedMetricsSnapshot(prior: WalletData, next: WalletData): boolean {
   if (isShellWallet(prior)) return false;
+  if (activeDaysInStats(next.dailyStats) > activeDaysInStats(prior.dailyStats)) {
+    return false;
+  }
+  if ((next.uniqueDays ?? 0) > (prior.uniqueDays ?? 0)) return false;
   const priorEth = parseFloat(prior.ethVolume) || 0;
   const nextEth = parseFloat(next.ethVolume) || 0;
   const priorSwap = prior.dexVolumeUSD ?? 0;
@@ -39,8 +43,12 @@ function isDegradedMetricsSnapshot(prior: WalletData, next: WalletData): boolean
   return false;
 }
 
-function activeDaysInStats(stats: WalletData["dailyStats"]): number {
+function activeDaysInStats(stats: WalletData["dailyStats"] | undefined): number {
   return stats?.filter((d) => d.count > 0).length ?? 0;
+}
+
+export function heatmapActiveDays(stats: WalletData["dailyStats"] | undefined): number {
+  return activeDaysInStats(stats);
 }
 
 /** Merge metrics — keep best counts; never let a thin resync replace a rich snapshot. */

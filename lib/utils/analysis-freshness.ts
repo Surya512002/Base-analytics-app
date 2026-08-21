@@ -4,7 +4,7 @@
  * never pauses the deployment.
  */
 
-const FRESH_PREFIX = "ba_analysis_fresh_v2_";
+const FRESH_PREFIX = "ba_analysis_fresh_v3_";
 /** Reuse score for this long before a background re-scan (4 hours). */
 export const ANALYSIS_FRESH_MS = 4 * 60 * 60 * 1000;
 /** History refine can be skipped this long after we marked it complete. */

@@ -241,9 +241,9 @@ if (!wallet) return null;
                 <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-4 py-3.5 flex items-center gap-3 text-sm font-bold text-emerald-950 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]">
                   <RefreshCcw size={18} className="animate-spin shrink-0 text-emerald-700" />
                   <div className="min-w-0">
-                    <p>Still indexing your wallet…</p>
+                    <p>Scanning full onchain history…</p>
                     <p className="text-xs font-semibold text-emerald-800/80 mt-0.5 truncate">
-                      {scanProgress || "Values update as the full history lands."}
+                      {scanProgress || "Heatmap, volume, and score update as older days land."}
                     </p>
                   </div>
                 </div>

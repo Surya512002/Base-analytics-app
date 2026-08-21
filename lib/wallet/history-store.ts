@@ -11,7 +11,7 @@ import path from "path";
 
 const TTL_SECONDS = 86_400;
 const TTL_COMPLETE_SECONDS = 604_800;
-/** v10: Alchemy resume cursors + no false historyComplete soft-cuts. */
+/** v10: Alchemy resume cursors. Incomplete v2 is reopened in sync-engine. */
 const KEY_PREFIX = "wallet-hist:v10";
 const FILE_CACHE_DIR = path.join(process.cwd(), ".cache", "wallet-history");
 

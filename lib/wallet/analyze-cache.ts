@@ -5,7 +5,7 @@ import { cacheGet, cacheSet } from "@/lib/redis-cache";
 export const ANALYZE_CACHE_TTL_SECONDS = 4 * 60 * 60; // 4h — fewer re-indexes on reconnect
 
 /** Bump when analyze output shape changes — drops stale low-quality snapshots. */
-export const ANALYZE_CACHE_VERSION = "v24";
+export const ANALYZE_CACHE_VERSION = "v25";
 
 /** In-process fallback when Redis is slow/unavailable — instant reconnect in dev. */
 const memAnalyze = new Map<
@@ -44,6 +44,22 @@ export async function setCachedAnalyze(
 ): Promise<void> {
   if (!isUsableAnalyzeCache(result)) return;
   const key = analyzeCacheKey(address);
+  const existing = memAnalyze.get(key)?.data;
+  // Never let a thin incomplete preview replace a fuller snapshot.
+  if (
+    existing &&
+    existing.historyComplete === true &&
+    result.historyComplete !== true
+  ) {
+    return;
+  }
+  if (
+    existing &&
+    result.historyComplete !== true &&
+    (existing.wallet?.uniqueDays ?? 0) > (result.wallet?.uniqueDays ?? 0)
+  ) {
+    return;
+  }
   memAnalyze.set(key, {
     data: result,
     expires: Date.now() + ttlSeconds * 1000,

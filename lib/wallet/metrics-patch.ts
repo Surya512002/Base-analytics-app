@@ -136,8 +136,13 @@ export function applyHistoryIndexToWallet(
   const indexDays = uniqueDaysFromState(state);
   const days = activeDaysFromState(state).sort();
   const wm = weeksMonthsFromDays(days);
-  const useIndexHeatmap = indexDays >= wallet.uniqueDays;
-  const heatmap = useIndexHeatmap ? buildDailyStatsFromState(state) : wallet.dailyStats;
+  const indexHeatmap = buildDailyStatsFromState(state);
+  const indexCells = indexHeatmap.filter((d) => d.count > 0).length;
+  const priorCells = wallet.dailyStats?.filter((d) => d.count > 0).length ?? 0;
+  const heatmap =
+    indexCells >= priorCells || indexDays >= wallet.uniqueDays
+      ? indexHeatmap
+      : wallet.dailyStats;
   const firstFromDays = days[0];
   const lastFromDays = days[days.length - 1];
   let daysOnBase = wallet.daysOnBase;

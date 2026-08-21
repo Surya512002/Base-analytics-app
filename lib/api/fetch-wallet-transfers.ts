@@ -385,11 +385,11 @@ export async function fetchWalletTransfersConnectRich(
   }
 
   const alchemyDone = alchemy.outComplete && alchemy.inComplete;
-  // Only mark complete when Alchemy (or fallbacks) truly exhausted — never day-count soft cuts.
-  const historyComplete =
-    hasAlchemy
-      ? alchemyDone && (userOps.complete || userOps.chunksScanned >= 20)
-      : blockscoutV2.complete && userOps.complete;
+  // Full history needs Alchemy + UserOps + Blockscout v2 — never soft-complete
+  // after UserOps alone (that dropped heatmap days and token volume).
+  const historyComplete = hasAlchemy
+    ? alchemyDone && userOps.complete && blockscoutV2.complete
+    : blockscoutV2.complete && userOps.complete;
 
   return buildResult(
     addr,
