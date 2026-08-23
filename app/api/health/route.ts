@@ -55,9 +55,6 @@ export async function GET() {
     rpc,
     voucherContract: Boolean(process.env.NEXT_PUBLIC_VOUCHER_CONTRACT?.trim()),
     zeroxAggregator: zeroXConfigured(),
-    badgeMarketplace: Boolean(
-      process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT?.trim()
-    ),
     baseNotifications: Boolean(
       process.env.BASE_DASHBOARD_API_KEY?.trim() ||
         process.env.BASE_NOTIFICATIONS_API_KEY?.trim()

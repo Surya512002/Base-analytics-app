@@ -22,7 +22,7 @@ Guests can browse **[/explore](https://base-analytics-app.vercel.app/explore)** 
 - Viem, Wagmi, Coinbase OnchainKit
 - Redis (`KV_REDIS_URL`) — leaderboard, wallet cache, voucher index
 - x402 — micropayments for premium wallet scan
-- Foundry — `BaseVoucher.sol`, optional `BadgeMarketplace`
+- Foundry — `BaseVoucher.sol`
 
 ## Local setup
 
@@ -69,7 +69,6 @@ Copy `.env.example` → `.env.local`. **Never commit secrets.**
 | `CRON_SECRET` | Prod cron | Auth for `/api/cron/price-alerts` |
 | `MCP_API_KEY` | Optional | Auth for `/api/mcp` agent tools |
 | `X402_FACILITATOR_PRIVATE_KEY` | x402 | Premium scan settlement |
-| `NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT` | Optional | On-chain badge listings |
 
 ## Deploy to Vercel
 

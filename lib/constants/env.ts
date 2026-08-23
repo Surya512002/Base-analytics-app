@@ -42,5 +42,3 @@ export const BUILDER_CODE =
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";
 export const VOUCHER_CONTRACT =
   process.env.NEXT_PUBLIC_VOUCHER_CONTRACT || "";
-export const BADGE_MARKETPLACE_CONTRACT =
-  process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT || "";

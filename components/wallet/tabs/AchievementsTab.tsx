@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { fetchAlchemyNftTotalCount } from "@/lib/utils/nft-stats";
 import AchievementsHero from "@/components/wallet/AchievementsHero";
-import BadgeMarketplace from "@/components/wallet/BadgeMarketplace";
 import BadgeCatalogTabs, { type BadgeCatalogTab } from "@/components/wallet/BadgeCatalogTabs";
 import OnchainBadgesSection from "@/components/wallet/OnchainBadgesSection";
 import AppBadgesSection from "@/components/wallet/AppBadgesSection";
@@ -52,10 +51,6 @@ export default function AchievementsTab({ app }: { app: WalletAppState }) {
       ) : (
         <OnchainBadgesSection app={app} getCatValue={getCatValue} />
       )}
-
-      <div className="mt-10">
-        <BadgeMarketplace app={app} />
-      </div>
     </div>
   );
 }
