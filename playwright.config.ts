@@ -5,6 +5,7 @@ export default defineConfig({
   timeout: 60_000,
   /** Marketing asset capture — run via `npm run screenshots:dashboard` only. */
   testIgnore: ["**/capture-dashboard-screenshots.spec.ts"],
+  reporter: "list",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
     trace: "on-first-retry",

@@ -47,9 +47,7 @@ test.describe("Base dashboard screenshots", () => {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
-    await expect(
-      page.getByText(/sell|you pay/i).first().or(page.locator('input[aria-label*="Sell" i]'))
-    ).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("You Pay (Sell)")).toBeVisible({ timeout: 60_000 });
     await page.waitForTimeout(3500);
     await page.screenshot({
       path: "public/screenshots/screenshot-2-dashboard.png",

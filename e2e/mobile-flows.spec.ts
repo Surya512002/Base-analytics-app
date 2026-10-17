@@ -17,12 +17,8 @@ test.describe("mobile viewport flows", () => {
 
   test("explore token page shows swap UI on mobile", async ({ page }) => {
     await page.goto(`${BASE}/explore/token/${WETH}`, { waitUntil: "domcontentloaded" });
-    await expect(
-      page.getByText(/sell|you pay/i).first().or(page.locator('input[aria-label*="Sell" i]'))
-    ).toBeVisible({ timeout: 45_000 });
-    await expect(
-      page.getByText(/buy|you receive/i).first()
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("You Pay (Sell)")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText("You Receive (Buy Estimated)")).toBeVisible({ timeout: 15_000 });
   });
 
   test("explore shows guest banner and connect on mobile", async ({ page }) => {
