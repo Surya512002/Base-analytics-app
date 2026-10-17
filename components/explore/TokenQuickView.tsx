@@ -25,6 +25,7 @@ import {
   isNewToken,
 } from "@/lib/explore/explore-config";
 import { shortAddr, timeAgo } from "@/lib/launchpad/format";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 interface TokenQuickViewProps {
   token: UnifiedToken | null;
@@ -76,18 +77,13 @@ export default function TokenQuickView({
         <div className="p-5 pb-4 border-b border-[var(--border-subtle)] space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              {token.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={token.imageUrl}
-                  alt=""
-                  className="w-12 h-12 rounded-2xl object-cover border border-[var(--border-subtle)] shadow-xs"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-black text-sm text-[var(--ink)] shadow-xs">
-                  {token.symbol.slice(0, 3)}
-                </div>
-              )}
+              <TokenAvatar
+                src={token.imageUrl}
+                address={token.address}
+                symbol={token.symbol}
+                className="w-12 h-12 rounded-2xl shadow-xs"
+                textClassName="text-sm"
+              />
 
               <div>
                 <div className="flex items-center gap-2">

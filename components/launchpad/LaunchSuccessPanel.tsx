@@ -16,6 +16,7 @@ import Link from "next/link";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import { basescanTxUrl } from "@/lib/utils/tx";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 interface LaunchSuccessPanelProps {
   token: LaunchedToken;
@@ -82,14 +83,13 @@ export default function LaunchSuccessPanel({
       {/* Main Success Card */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-          <div className="w-20 h-20 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
-            {token.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={token.imageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <Rocket className="text-[#0052FF]" size={28} />
-            )}
-          </div>
+          <TokenAvatar
+            src={token.imageUrl}
+            address={token.address}
+            symbol={token.symbol}
+            className="w-20 h-20 rounded-2xl shadow-xs"
+            textClassName="text-2xl font-black"
+          />
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
               <h2 className="text-xl font-black text-[var(--ink)]">{token.name}</h2>

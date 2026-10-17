@@ -23,6 +23,7 @@ import {
 } from "@/lib/explore/explore-config";
 import TokenCard from "./TokenCard";
 import { shortAddr } from "@/lib/launchpad/format";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 interface TokenTableProps {
   tokens: UnifiedToken[];
@@ -137,18 +138,13 @@ export default function TokenTable({
                   {/* Token Identity */}
                   <td className="py-3 px-3.5">
                     <div className="flex items-center gap-2.5">
-                      {token.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={token.imageUrl}
-                          alt=""
-                          className="w-8 h-8 rounded-xl object-cover border border-[var(--border-subtle)] shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-black text-xs text-[var(--ink)] shrink-0">
-                          {token.symbol.slice(0, 3)}
-                        </div>
-                      )}
+                      <TokenAvatar
+                        src={token.imageUrl}
+                        address={token.address}
+                        symbol={token.symbol}
+                        className="w-8 h-8 rounded-xl"
+                        textClassName="text-[10px]"
+                      />
 
                       <div className="min-w-0 max-w-[170px]">
                         <div className="flex items-center gap-1.5">

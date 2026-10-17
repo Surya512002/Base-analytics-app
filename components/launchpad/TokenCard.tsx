@@ -12,6 +12,7 @@ import {
   tokenSafetyLabel,
   tokenSafetyLevel,
 } from "@/lib/launchpad/explore-rankings";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 export default function TokenCard({
   token,
@@ -65,18 +66,13 @@ export default function TokenCard({
           )}
 
           <div className="token-card-avatar shrink-0">
-            {token.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={token.imageUrl}
-                alt=""
-                className="h-16 w-16 rounded-2xl object-cover border-2 border-[var(--border-subtle)] bg-[var(--surface-2)] group-hover:border-[var(--brand)] transition-colors sm:h-[4.5rem] sm:w-[4.5rem]"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[var(--border-subtle)] bg-[var(--brand-soft)] text-lg font-black text-[var(--brand-dark)] sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">
-                {token.symbol.slice(0, 2)}
-              </div>
-            )}
+            <TokenAvatar
+              src={token.imageUrl}
+              address={token.address}
+              symbol={token.symbol}
+              className="h-16 w-16 rounded-2xl sm:h-[4.5rem] sm:w-[4.5rem] group-hover:border-[var(--brand)] transition-colors"
+              textClassName="text-base sm:text-lg font-black"
+            />
           </div>
 
           <div className="min-w-0 flex-1">

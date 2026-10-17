@@ -7,6 +7,7 @@ import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
 import { pickB20Spotlight } from "@/lib/launchpad/explore-rankings";
 import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 export default function ExploreLandingHero({
   tokens,
@@ -177,18 +178,13 @@ export default function ExploreLandingHero({
                 {/* Spotlight Header Row */}
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    {spotlight.token.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={spotlight.token.imageUrl}
-                        alt=""
-                        className="w-12 h-12 rounded-xl object-cover border border-[var(--border-strong)] shrink-0 shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-[var(--surface)] border border-[var(--border-strong)] flex items-center justify-center text-lg font-black text-[var(--ink)] shrink-0 shadow-sm">
-                        {spotlight.token.symbol.slice(0, 2)}
-                      </div>
-                    )}
+                    <TokenAvatar
+                      src={spotlight.token.imageUrl}
+                      address={spotlight.token.address}
+                      symbol={spotlight.token.symbol}
+                      className="w-12 h-12 rounded-xl shadow-sm"
+                      textClassName="text-base font-black"
+                    />
                     <div className="min-w-0">
                       <span className="spotlight-badge mb-1 text-[9px] px-2 py-0.5">
                         <span className="live-dot" style={{ width: 5, height: 5 }} />

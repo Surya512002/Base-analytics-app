@@ -8,6 +8,7 @@ import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
 import { buildFeaturedB20Tokens } from "@/lib/launchpad/b20-gainers";
 import { isAppLaunched, tokenBadgeLabel } from "@/lib/launchpad/token-meta";
 import TokenCard, { CreateTokenCard } from "@/components/launchpad/TokenCard";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 export default function B20MarketHero({
   tokens,
@@ -118,18 +119,13 @@ export default function B20MarketHero({
                 <div className="b20-market-spotlight-body">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10">
                     <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
-                      {spotlight.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={spotlight.imageUrl}
-                          alt=""
-                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-[var(--border-strong)] shrink-0"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-strong)] flex items-center justify-center text-xl font-black text-[var(--ink-muted)] shrink-0">
-                          {spotlight.symbol.slice(0, 2)}
-                        </div>
-                      )}
+                      <TokenAvatar
+                        src={spotlight.imageUrl}
+                        address={spotlight.address}
+                        symbol={spotlight.symbol}
+                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl"
+                        textClassName="text-2xl sm:text-3xl font-black"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="b20-market-eyebrow inline-flex !text-[10px]">

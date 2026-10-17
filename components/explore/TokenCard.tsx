@@ -22,6 +22,7 @@ import {
 } from "@/lib/explore/explore-config";
 import { shortAddr } from "@/lib/launchpad/format";
 import { basescanTxUrl } from "@/lib/utils/tx";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 interface TokenCardProps {
   token: UnifiedToken;
@@ -111,18 +112,12 @@ export default function TokenCard({
         {/* Top Header: Logo, Name & Symbol, 24h Change, Watch Star */}
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            {token.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={token.imageUrl}
-                alt=""
-                className="w-10 h-10 rounded-xl object-cover border border-[var(--border-subtle)] shrink-0"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-black text-xs text-[var(--ink)] shrink-0">
-                {token.symbol.slice(0, 3)}
-              </div>
-            )}
+            <TokenAvatar
+              src={token.imageUrl}
+              address={token.address}
+              symbol={token.symbol}
+              className="w-10 h-10 rounded-xl"
+            />
 
             <div className="min-w-0">
               <h3

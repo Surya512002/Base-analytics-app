@@ -4,6 +4,7 @@ import { Rocket } from "lucide-react";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { createdAgo, shortAddr } from "@/lib/launchpad/format";
 import TokenMarketBadge from "@/components/launchpad/TokenMarketBadge";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 export default function MyLaunchedTokens({
   tokens,
@@ -36,14 +37,13 @@ export default function MyLaunchedTokens({
             className="text-left rounded-xl border border-white/10 bg-black/20 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] px-3 py-2.5 transition-colors"
           >
             <div className="flex items-center gap-2">
-              {t.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={t.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover" />
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center text-[10px] font-black text-[var(--ink-muted)]">
-                  {t.symbol.slice(0, 2)}
-                </div>
-              )}
+              <TokenAvatar
+                src={t.imageUrl}
+                address={t.address}
+                symbol={t.symbol}
+                className="w-8 h-8 rounded-lg"
+                textClassName="text-[10px] font-black"
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black text-white truncate">{t.name}</p>
                 <p className="text-[10px] text-[var(--ink-muted)] font-bold">${t.symbol}</p>

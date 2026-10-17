@@ -41,6 +41,7 @@ import {
   warpcast,
 } from "@/lib/utils/share";
 import { basescanTxUrl } from "@/lib/utils/tx";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 import { isAppLaunched, tokenBadgeClass, tokenBadgeLabel } from "@/lib/launchpad/token-meta";
 import {
   createdAgo,
@@ -237,18 +238,13 @@ export default function TokenDetailPanel({
           >
             ← Back
           </button>
-          {token.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={token.imageUrl}
-              alt=""
-              className="w-10 h-10 rounded-xl object-cover border border-[var(--border-subtle)]"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
-              {token.symbol.slice(0, 2)}
-            </div>
-          )}
+          <TokenAvatar
+            src={token.imageUrl}
+            address={token.address}
+            symbol={token.symbol}
+            className="w-10 h-10 rounded-xl"
+            textClassName="text-sm font-black"
+          />
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-[var(--ink)] truncate">
               {token.name}{" "}
@@ -275,18 +271,13 @@ export default function TokenDetailPanel({
 
           <div className="flex flex-col lg:flex-row lg:items-start gap-5">
             <div className="flex items-start gap-4 min-w-0 flex-1">
-              {token.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={token.imageUrl}
-                  alt=""
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-[var(--border-subtle)]"
-                />
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-xl font-black text-[var(--ink-muted)]">
-                  {token.symbol.slice(0, 2)}
-                </div>
-              )}
+              <TokenAvatar
+                src={token.imageUrl}
+                address={token.address}
+                symbol={token.symbol}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl"
+                textClassName="text-xl sm:text-2xl font-black"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl sm:text-3xl font-black text-[var(--ink)] truncate">

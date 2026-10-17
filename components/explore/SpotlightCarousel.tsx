@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { TrendingUp, TrendingDown, ArrowRight, Sparkles } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import { formatCompactUsd, formatExactUsd } from "@/lib/explore/explore-config";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 interface SpotlightCarouselProps {
   tokens: UnifiedToken[];
@@ -88,18 +89,13 @@ export default function SpotlightCarousel({
 
         {/* Token Identity Row */}
         <div className="flex items-center gap-3">
-          {activeToken.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={activeToken.imageUrl}
-              alt=""
-              className="w-12 h-12 rounded-xl object-cover border border-[var(--border-subtle)] shrink-0 shadow-xs"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-black text-sm text-[var(--ink)] shrink-0 shadow-xs">
-              {activeToken.symbol.slice(0, 3)}
-            </div>
-          )}
+          <TokenAvatar
+            src={activeToken.imageUrl}
+            address={activeToken.address}
+            symbol={activeToken.symbol}
+            className="w-12 h-12 rounded-xl shadow-xs"
+            textClassName="text-sm"
+          />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">

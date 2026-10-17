@@ -1,6 +1,7 @@
 "use client";
 
 import type { LaunchedToken } from "@/lib/launchpad/types";
+import TokenAvatar from "@/components/ui/TokenAvatar";
 
 function shortAddr(a: string): string {
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -41,17 +42,13 @@ export default function TokenTerminal({
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  {t.imageUrl ? (
-                    <img
-                      src={t.imageUrl}
-                      alt=""
-                      className="w-8 h-8 rounded-full object-cover border border-white/10"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-black text-[var(--ink-muted)]">
-                      {t.symbol.slice(0, 2)}
-                    </div>
-                  )}
+                  <TokenAvatar
+                    src={t.imageUrl}
+                    address={t.address}
+                    symbol={t.symbol}
+                    className="w-8 h-8 rounded-full"
+                    textClassName="text-[10px] font-black"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-white truncate">
                       {t.name}{" "}
