@@ -38,17 +38,10 @@ export function hrefForAppTab(tab: string): string {
       return "/explore";
     case "swap":
       return "/swap";
-    case "dashboard":
-      return "/?tab=dashboard";
-    case "checkin":
-    case "rewards":
-      return "/?tab=checkin";
-    case "achievements":
-      return "/?tab=achievements";
+    case "lend":
+      return "/lend";
     case "basehub":
       return "/?tab=basehub";
-    case "leaderboard":
-      return "/?tab=checkin";
     case "profile":
       return "/profile";
     default:

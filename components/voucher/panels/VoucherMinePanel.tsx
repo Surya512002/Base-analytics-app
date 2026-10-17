@@ -13,6 +13,9 @@ import {
   formatVoucherAmount,
   formatCardShareText,
   formatBatchShareText,
+  isStockAsset,
+  isVaultShareAsset,
+  getVaultShareBySymbol,
 } from "@/lib/utils/voucher";
 import { buildPayLinkUrl } from "@/lib/utils/voucher-share";
 import SectionCard from "@/components/ui/SectionCard";
@@ -72,7 +75,7 @@ export default function VoucherMinePanel({
             <button
               type="button"
               onClick={() => copyText(buildPayLinkUrl(address), "pay-link")}
-              className="flex items-center justify-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl btn-secondary shrink-0"
+              className="pop-pill flex items-center justify-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl btn-secondary shrink-0 cursor-pointer"
             >
               {copied === "pay-link" ? <CheckCircle size={14} /> : <Copy size={14} />}
               Copy link
@@ -114,7 +117,7 @@ export default function VoucherMinePanel({
               className="w-full input-ink rounded-xl px-3 py-2.5 text-[var(--ink)] font-mono text-xs outline-none"
             />
             {recoverError && (
-              <p className="text-red-400 text-xs font-bold">{recoverError}</p>
+              <p className="text-red-600 dark:text-red-400 text-xs font-bold">{recoverError}</p>
             )}
             <button
               type="button"
@@ -130,20 +133,20 @@ export default function VoucherMinePanel({
 
       {creatorSummary && creatorSummary.batchCount > 0 && (
         <SectionCard bar={false} className="border border-amber-500/25 bg-amber-500/5">
-          <p className="section-eyebrow text-amber-300/80">Creator analytics</p>
+          <p className="section-eyebrow text-amber-700 dark:text-amber-300">Creator analytics</p>
           <div className="grid grid-cols-3 gap-2 mt-2">
             <div>
-              <p className="text-lg font-black text-[var(--ink)]">{creatorSummary.batchCount}</p>
+              <p className="text-lg font-black text-[var(--ink)] tabular-nums">{creatorSummary.batchCount}</p>
               <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Batches</p>
             </div>
             <div>
-              <p className="text-lg font-black text-emerald-300">
+              <p className="text-lg font-black text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {creatorSummary.totalCards - creatorSummary.totalUnredeemed}
               </p>
               <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Redeemed</p>
             </div>
             <div>
-              <p className="text-lg font-black text-amber-300">{creatorSummary.totalUnredeemed}</p>
+              <p className="text-lg font-black text-amber-700 dark:text-amber-400 tabular-nums">{creatorSummary.totalUnredeemed}</p>
               <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Unredeemed</p>
             </div>
           </div>
@@ -171,7 +174,7 @@ export default function VoucherMinePanel({
                 className="w-full input-ink rounded-xl px-3 py-3 text-[var(--ink)] font-mono text-xs outline-none"
               />
               {recoverError && (
-                <p className="text-red-400 text-xs font-bold">{recoverError}</p>
+                <p className="text-red-600 dark:text-red-400 text-xs font-bold">{recoverError}</p>
               )}
               <button
                 type="button"
@@ -208,17 +211,26 @@ export default function VoucherMinePanel({
           };
 
           return (
-            <SectionCard key={b.batchId} bar={false} className="border border-[var(--border-subtle)] overflow-hidden">
+            <SectionCard key={b.batchId} bar={false} className="pop-lg border border-[var(--border-subtle)] overflow-hidden">
               <button
                 type="button"
-                className="w-full text-left"
+                className="w-full text-left cursor-pointer"
                 onClick={toggleBatch}
                 aria-expanded={isExpanded}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-black text-[var(--ink)]">Batch #{b.batchId}</p>
+                      {isVaultShareAsset(b.asset) ? (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
+                          Vault · +{getVaultShareBySymbol(b.asset)?.apy ?? 0}% APY
+                        </span>
+                      ) : isStockAsset(b.asset) ? (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25">
+                          B20 Stock
+                        </span>
+                      ) : null}
                       {hasLocalSecrets && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 uppercase">
                           Secrets saved
@@ -280,7 +292,7 @@ export default function VoucherMinePanel({
                         <button
                           type="button"
                           onClick={() => copyText(formatBatchShareText(b), `batch-${b.batchId}`)}
-                          className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl btn-secondary"
+                          className="pop-pill flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl btn-secondary cursor-pointer"
                         >
                           {copied === `batch-${b.batchId}` ? (
                             <CheckCircle size={14} />
@@ -340,7 +352,7 @@ export default function VoucherMinePanel({
                       ).map((c) => (
                         <div
                           key={c.cardId}
-                          className={`rounded-lg px-3 py-2.5 text-xs font-bold border ${
+                          className={`pop-row rounded-lg px-3 py-2.5 text-xs font-bold border ${
                             c.redeemed
                               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                               : "border-amber-500/30 bg-amber-500/10 text-amber-800"

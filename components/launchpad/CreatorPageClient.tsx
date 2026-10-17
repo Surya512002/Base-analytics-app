@@ -34,13 +34,12 @@ export default function CreatorPageClient({ address }: { address: string }) {
   const openConnect = () => setShowModal(true);
 
   const handleTabChange = (next: AppTab) => {
-    if (guest && next !== "launchpad" && next !== "swap") {
+    if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
       openConnect();
       return;
     }
-    const resolved = next === "rewards" ? "checkin" : next;
-    setTab(resolved);
-    router.push(hrefForAppTab(resolved));
+    setTab(next);
+    router.push(hrefForAppTab(next));
   };
 
   const handleSiweSignIn = async () => {

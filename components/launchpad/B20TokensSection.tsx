@@ -89,7 +89,7 @@ export default function B20TokensSection({
   return (
     <section className="space-y-4 rounded-2xl border border-[var(--base-blue)]/20 bg-[var(--base-blue)]/[0.03] p-4 sm:p-5">
       <div>
-        <p className="section-eyebrow mb-1 text-[#7aa2ff]">B20 on Base</p>
+        <p className="section-eyebrow mb-1 text-[var(--brand)]">B20 on Base</p>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="font-display text-xl font-bold text-[var(--ink)] tracking-tight">
             B20 tokens
@@ -121,12 +121,12 @@ export default function B20TokensSection({
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-52 rounded-xl bg-[var(--bg-raised)] animate-pulse border border-white/[0.06]"
+              className="h-52 rounded-xl skeleton-shimmer border border-[var(--border-subtle)]"
             />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger-grid">
           {!guestMode && <CreateTokenCard onCreate={onCreate} />}
           {filtered.map((t) => (
             <TokenCard

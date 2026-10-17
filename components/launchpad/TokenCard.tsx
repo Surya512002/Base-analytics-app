@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "motion/react";
 import { ArrowUpRight, Rocket, Shield, Star, TrendingDown, TrendingUp } from "lucide-react";
 import CreatorChip from "@/components/launchpad/CreatorChip";
 import type { LaunchedToken } from "@/lib/launchpad/types";
@@ -35,14 +36,14 @@ export default function TokenCard({
   const safetyLabel = tokenSafetyLabel(safety);
 
   return (
-    <article
+    <motion.article
       role="button"
       tabIndex={0}
       onClick={onTrade}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onTrade();
       }}
-      className="token-card group cursor-pointer rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-card)] transition-all hover:border-[var(--brand)] hover:shadow-[0_12px_32px_rgba(26,92,255,0.12)]"
+      className="pop-lg token-card group cursor-pointer rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-card)] flex flex-col justify-between"
     >
       <div className="p-4 sm:p-4.5">
         <div className="flex items-start gap-3.5">
@@ -89,7 +90,7 @@ export default function TokenCard({
                 {tokenBadgeLabel(token)}
               </span>
               {isMine && (
-                <span className="shrink-0 rounded-full border border-emerald-500/35 bg-emerald-500/12 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                <span className="shrink-0 rounded-full border border-emerald-500/35 bg-emerald-500/12 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">
                   Yours
                 </span>
               )}
@@ -97,8 +98,8 @@ export default function TokenCard({
                 <span
                   className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
                     change >= 0
-                      ? "bg-emerald-500/12 text-emerald-700"
-                      : "bg-rose-500/12 text-rose-700"
+                      ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
+                      : "bg-rose-500/12 text-rose-700 dark:text-rose-400"
                   }`}
                 >
                   {change >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
@@ -108,9 +109,9 @@ export default function TokenCard({
               <span
                 className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
                   safety === "pooled"
-                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700"
+                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                     : safety === "low"
-                      ? "border-amber-500/35 bg-amber-500/10 text-amber-800"
+                      ? "border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                       : safety === "new"
                         ? "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)]"
                         : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-dim)]"
@@ -120,7 +121,7 @@ export default function TokenCard({
                 {safetyLabel}
               </span>
             </div>
-            <p className="mt-0.5 text-sm font-bold text-[var(--brand-dark)]">${token.symbol}</p>
+            <p className="mt-0.5 text-sm font-bold text-[var(--brand-dark)] dark:text-[var(--brand)]">${token.symbol}</p>
             <p className="mt-0.5 font-mono text-[11px] text-[var(--ink-dim)]">
               {shortAddr(token.address)}
             </p>
@@ -154,7 +155,7 @@ export default function TokenCard({
               <p className="font-semibold uppercase tracking-wide text-[var(--ink-dim)]">
                 {stat.label}
               </p>
-              <p className="mt-0.5 truncate font-bold font-mono text-[13px] text-[var(--ink)]">
+              <p className="mt-0.5 truncate font-bold font-mono text-[13px] text-[var(--ink)] tabular-nums">
                 {stat.value}
               </p>
             </div>
@@ -167,7 +168,7 @@ export default function TokenCard({
               {isAppLaunched(token) ? createdAgo(token.createdAt) : "External · DexScreener"}
             </p>
             {holdingBalance != null && holdingBalance > 0 && (
-              <p className="mt-0.5 text-[10px] font-bold text-emerald-700">
+              <p className="mt-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
                 You hold {holdingBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
                 {token.symbol}
               </p>
@@ -186,16 +187,18 @@ export default function TokenCard({
           </span>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
 export function CreateTokenCard({ onCreate }: { onCreate: () => void }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onCreate}
-      className="flex h-full min-h-[240px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] p-6 text-center transition-all hover:border-[var(--brand)] hover:bg-[var(--brand-soft)]/40"
+      whileHover={{ y: -3, scale: 1.008, transition: { duration: 0.16 } }}
+      whileTap={{ scale: 0.98 }}
+      className="flex h-full min-h-[240px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] p-6 text-center transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-soft)]/40"
     >
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
         <Rocket size={28} className="text-[var(--brand)]" />
@@ -206,6 +209,6 @@ export function CreateTokenCard({ onCreate }: { onCreate: () => void }) {
           $0 launch · vanity 0xB200… · vesting · anti-snipe · dual DEX
         </p>
       </div>
-    </button>
+    </motion.button>
   );
 }

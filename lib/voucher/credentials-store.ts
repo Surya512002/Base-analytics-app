@@ -1,39 +1,21 @@
-import { Redis } from "ioredis";
+import { getRedisClient } from "@/lib/redis-cache";
 import type { StoredVoucherBatch } from "@/lib/utils/voucher";
 
 const credentialsKey = (creator: string) =>
   `base_voucher_credentials_${creator.toLowerCase()}`;
 
-function createRedis(): Redis | null {
-  const url = process.env.KV_REDIS_URL?.trim();
-  if (!url) return null;
-  const client = new Redis(url, {
-    tls: url.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-    connectTimeout: 8000,
-    commandTimeout: 5000,
-    enableReadyCheck: false,
-  });
-  client.on("error", (e) => console.error("[Voucher Credentials Redis]", e.message));
-  return client;
-}
-
 export async function readCreatorCredentials(
   creator: string
 ): Promise<StoredVoucherBatch[]> {
-  let redis: Redis | null = null;
   try {
-    redis = createRedis();
+    const redis = getRedisClient();
     if (!redis) return [];
-    await redis.connect();
+    if (redis.status !== "ready") await redis.connect();
     const raw = await redis.get(credentialsKey(creator));
     return raw ? (JSON.parse(raw) as StoredVoucherBatch[]) : [];
   } catch (err) {
     console.error("[readCreatorCredentials]", err);
     return [];
-  } finally {
-    if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
   }
 }
 
@@ -41,11 +23,10 @@ export async function upsertCreatorBatch(
   creator: string,
   batch: StoredVoucherBatch
 ): Promise<boolean> {
-  let redis: Redis | null = null;
   try {
-    redis = createRedis();
+    const redis = getRedisClient();
     if (!redis) return false;
-    await redis.connect();
+    if (redis.status !== "ready") await redis.connect();
     const key = credentialsKey(creator);
     const raw = await redis.get(key);
     const existing = raw ? (JSON.parse(raw) as StoredVoucherBatch[]) : [];
@@ -78,7 +59,5 @@ export async function upsertCreatorBatch(
   } catch (err) {
     console.error("[upsertCreatorBatch]", err);
     return false;
-  } finally {
-    if (redis) try { await redis.quit(); } catch { redis.disconnect(); }
   }
 }

@@ -4,9 +4,9 @@ function parseFeeBps(): number {
   const raw =
     process.env.NEXT_PUBLIC_LAUNCHPAD_PLATFORM_FEE_BPS ||
     process.env.LAUNCHPAD_PLATFORM_FEE_BPS ||
-    "25";
+    "50";
   const n = parseInt(String(raw), 10);
-  if (!Number.isFinite(n) || n < 0) return 25;
+  if (!Number.isFinite(n) || n < 0) return 50;
   return Math.min(300, n);
 }
 

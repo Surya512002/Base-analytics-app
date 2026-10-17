@@ -1,8 +1,6 @@
 "use client";
 
 import { Loader2, ShieldCheck } from "lucide-react";
-import { feeShareLabels } from "@/lib/launchpad/fee-split";
-import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 
 export default function SiweSignInBanner({
   walletAddress,
@@ -18,8 +16,6 @@ export default function SiweSignInBanner({
   compact?: boolean;
 }) {
   if (authenticated) return null;
-
-  const shares = feeShareLabels();
 
   if (compact) {
     return (
@@ -52,11 +48,6 @@ export default function SiweSignInBanner({
             </span>
             . Sign a free message (no gas) to secure your profile and fee dashboard.
             launchpad.
-          </p>
-          <p className="mt-2 text-[11px] text-[var(--ink-dim)]">
-            Creators earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of every{" "}
-            {formatPlatformFeeLabel()} swap fee · referrers get {shares.referrer} · paid instantly
-            on each trade.
           </p>
         </div>
         <button

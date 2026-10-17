@@ -5,12 +5,21 @@ export type ScoreTip = {
   title: string;
   detail: string;
   impact: string;
-  action: "checkin" | "swap" | "launch" | "basename" | "badge" | "voucher" | "streak";
+  action: "checkin" | "swap" | "launch" | "basename" | "badge" | "voucher" | "streak" | "lend";
   priority: number;
 };
 
 export function buildScoreImprovementTips(wallet: WalletData): ScoreTip[] {
   const tips: ScoreTip[] = [];
+
+  tips.push({
+    id: "stocks-lending",
+    title: "Supply or Borrow against Tokenized Stocks",
+    detail: "Post Coinbase B20 tokenized stocks into Morpho, Aave, or Euler to maximize capital efficiency and boost onchain DeFi score.",
+    impact: "+8 DeFi pts",
+    action: "lend",
+    priority: 82,
+  });
 
   if (!wallet.basename) {
     tips.push({
@@ -38,8 +47,8 @@ export function buildScoreImprovementTips(wallet: WalletData): ScoreTip[] {
     tips.push({
       id: "swap",
       title: "Complete in-app swaps",
-      detail: "Swap any pooled token via Explore — counts toward DeFi score and weekly quests.",
-      impact: "+Quest XP",
+      detail: "Swap any pooled token or stock via Explore or Swap to build DeFi volume and activity score.",
+      impact: "+DeFi score",
       action: "swap",
       priority: 80,
     });
@@ -49,8 +58,8 @@ export function buildScoreImprovementTips(wallet: WalletData): ScoreTip[] {
     tips.push({
       id: "streak",
       title: "Build your check-in streak",
-      detail: "Daily onchain check-ins compound streak multipliers on weekly XP.",
-      impact: "Medium",
+      detail: "Daily onchain check-ins verify consistent wallet activity and build your habit streak on Base.",
+      impact: "+Streak bonus",
       action: "checkin",
       priority: 75,
     });

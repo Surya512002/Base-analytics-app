@@ -1,10 +1,8 @@
 import {
   ArrowLeftRight,
-  BarChart3,
-  Flame,
+  Coins,
   Gift,
   Rocket,
-  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -23,7 +21,7 @@ export const APP_NAV: AppNavItem[] = [
     id: "launchpad",
     label: "Explore",
     icon: Rocket,
-    hint: "B20 tokens & launch",
+    hint: "Stocks, B20 & launches",
   },
   {
     id: "swap",
@@ -32,28 +30,16 @@ export const APP_NAV: AppNavItem[] = [
     hint: "Trade any token on Base",
   },
   {
-    id: "dashboard",
-    label: "Analytics",
-    icon: BarChart3,
-    hint: "Onchain score & heatmap",
+    id: "lend",
+    label: "Lend & Stake",
+    shortLabel: "Lend",
+    icon: Coins,
+    hint: "Stock loans, Morpho & Aero",
   },
   {
     id: "basehub",
     label: "Vouchers",
     icon: Gift,
     hint: "Crypto gift cards",
-  },
-  {
-    id: "checkin",
-    label: "Quests",
-    shortLabel: "Quests",
-    icon: Flame,
-    hint: "Check-in, quests & stake",
-  },
-  {
-    id: "achievements",
-    label: "Badges",
-    icon: Trophy,
-    hint: "Mint onchain badges",
   },
 ];

@@ -85,7 +85,7 @@ export function buildScoreShareText(
   const identity = wallet.basename ? `@${wallet.basename.replace(/\.base\.eth$/i, "")}` : "my wallet";
   const lines: Record<string, string> = {
     god: `Base God energy onchain.\n\n${wallet.score}/100 · ${wallet.uniqueDays} active days · ${wallet.dexTradeCount} in-app swaps · ${dexVol} volume.\n\nExploring B20 tokens & trading Uniswap/Aerodrome without leaving the app. Beat ${identity}?`,
-    whale: `Whale stats on Base.\n\n${wallet.score}/100 · ${wallet.txCount.toLocaleString()} txs · ${dexVol} swap volume · ${streak}d streak.\n\nLaunch B20 tokens, swap with USD quotes, earn quest XP. What's your score?`,
+    whale: `Whale stats on Base.\n\n${wallet.score}/100 · ${wallet.txCount.toLocaleString()} txs · ${dexVol} swap volume · ${streak}d streak.\n\nTrade tokenized stocks, swap with USD quotes, build onchain streaks. What's your score?`,
     shark: `Hunting alpha on Base.\n\nScore ${wallet.score}/100 · ${mintedCount} badges · ${wallet.uniqueDays} days active.\n\nBase Analytics = B20 explore + in-app DEX + wallet scan. Challenge me.`,
     dolphin: `Climbing on Base.\n\n${wallet.score}/100 · ${wallet.activeMonths} active months · ${wallet.dexTradeCount} swaps in-app.\n\nTrending B20, live liquidity, Uniswap + Aerodrome routes. Scan your wallet free.`,
     shrimp: `Building on Base, one tx at a time.\n\n${wallet.score}/100 · ${wallet.uniqueDays} active days · ${streak}d streak.\n\nExplore tokens, swap in-app, launch B20 — all in one mini-app. Get your rank.`,
@@ -98,7 +98,7 @@ export function buildBadgeShareText(name: string, level: string, wallet: WalletD
 }
 
 export function buildBadgesShareText(count: number, wallet: WalletData): string {
-  return `${count} onchain badges minted gasless on Base.\n\n${wallet.walletRank} · ${wallet.score}/100 · quest XP rolling.\n\nExplore B20, swap Uniswap/Aerodrome in-app, climb the leaderboard.`;
+  return `${count} onchain badges minted gasless on Base.\n\n${wallet.walletRank} · ${wallet.score}/100 · onchain verified.\n\nExplore B20, trade tokenized stocks, maintain your daily habits on Base.`;
 }
 
 export function buildTokenShareText(symbol: string, name: string): string {

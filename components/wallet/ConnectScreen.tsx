@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, RefreshCcw, Wallet } from "lucide-react";
-import AppModeCards from "@/components/ui/AppModeCards";
 import { getDaysLeft, getSeasonPct } from "@/lib/utils/season";
 import { fetchLaunchpadTokens } from "@/lib/api/launchpad-client";
 import { createdAgo } from "@/lib/launchpad/format";
@@ -92,7 +91,7 @@ export default function ConnectScreen({
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#eef3fb]/95 via-[#eef3fb]/85 to-[#eef3fb]/35" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--background)]/95 via-[var(--background)]/80 to-[var(--background)]/35" />
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent" />
           <div className="lane-rail lane-animated absolute bottom-0 left-0 right-0 h-1.5" />
 
@@ -139,8 +138,6 @@ export default function ConnectScreen({
       </div>
 
       <div className="app-container w-full min-w-0 flex-1 space-y-10 py-8 sm:py-10 md:py-12">
-        <AppModeCards />
-
         <div className="grid lg:grid-cols-2 gap-6 items-start">
           <LaunchpadTeaser />
           <div className="card-quiet p-4">

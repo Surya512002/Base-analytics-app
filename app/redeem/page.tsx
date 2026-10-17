@@ -8,11 +8,11 @@ import AppLogo from "@/components/ui/AppLogo";
 import VoucherGiftCard3D from "@/components/wallet/VoucherGiftCard3D";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import { buildRedeemFarcasterUrl } from "@/lib/utils/voucher-share";
+import { parseCurrentUrlClaim, formatClaimLink } from "@/lib/voucher/claim-link-parser";
 
 function RedeemLandingContent() {
-  const searchParams = useSearchParams();
-  const cardFromUrl = searchParams.get("card") || "";
-  const [cardId, setCardId] = useState(cardFromUrl);
+  const [cardId, setCardId] = useState("");
+  const [secret, setSecret] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
     asset: string;
     amountPerCard: string;
@@ -22,8 +22,11 @@ function RedeemLandingContent() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
-    if (cardFromUrl) setCardId(cardFromUrl);
-  }, [cardFromUrl]);
+    if (typeof window === "undefined") return;
+    const { cardId: parsedCard, secret: parsedSecret } = parseCurrentUrlClaim();
+    if (parsedCard) setCardId(parsedCard);
+    if (parsedSecret) setSecret(parsedSecret);
+  }, []);
 
   useEffect(() => {
     const id = cardId.trim();
@@ -40,8 +43,8 @@ function RedeemLandingContent() {
   }, [cardId]);
 
   const appRedeemUrl = cardId.trim()
-    ? `${APP_URL_WEB}/?tab=voucher&card=${encodeURIComponent(cardId.trim())}`
-    : `${APP_URL_WEB}/?tab=voucher`;
+    ? formatClaimLink(cardId.trim(), secret || undefined, { baseUrl: APP_URL_WEB })
+    : `${APP_URL_WEB}/?tab=basehub&view=redeem`;
 
   return (
     <div className="min-h-screen bg-[var(--bg-deep)] text-[var(--ink)] relative overflow-hidden">

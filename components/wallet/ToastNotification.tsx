@@ -1,4 +1,7 @@
-import { BadgeCheck, X } from "lucide-react";
+"use client";
+
+import { motion } from "motion/react";
+import { BadgeCheck, X, ExternalLink } from "lucide-react";
 import { basescanTxUrl } from "@/lib/utils/tx";
 
 interface ToastNotificationProps {
@@ -12,33 +15,40 @@ export default function ToastNotification({
   hash,
   onClose,
 }: ToastNotificationProps) {
-  const url = hash ? basescanTxUrl(hash) : null;
+  const isTxHash = Boolean(hash && hash.startsWith("0x") && hash.length >= 18);
+  const url = isTxHash ? basescanTxUrl(hash) : null;
   const shortHash =
-    hash && hash.startsWith("0x") && hash.length >= 18
-      ? `${hash.slice(0, 10)}…${hash.slice(-6)}`
-      : hash;
+    isTxHash
+      ? `${hash.slice(0, 8)}…${hash.slice(-6)}`
+      : "";
 
   return (
-    <div
-      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-80 z-[180] px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-card)] max-h-[40dvh] overflow-y-auto overscroll-contain"
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 16, scale: 0.96 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed left-3 right-3 sm:left-auto sm:right-6 sm:w-88 z-[180] px-4 py-3.5 rounded-2xl flex items-start gap-3 border border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur-md text-[var(--ink)] shadow-[var(--shadow-card)] max-h-[40dvh] overflow-y-auto overscroll-contain"
       style={{
-        animation: "slideUp 0.3s ease-out",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
       }}
       role="status"
     >
-      <BadgeCheck size={20} className="shrink-0 mt-0.5 text-emerald-600" />
-      <div className="flex-1 min-w-0">
+      <div className="shrink-0 mt-0.5 flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+        <BadgeCheck size={16} />
+      </div>
+      <div className="flex-1 min-w-0 pt-0.5">
         <p className="font-bold text-sm leading-snug break-words text-[var(--ink)]">{msg}</p>
         {url && (
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-x-1 text-[var(--brand-dark)] text-xs font-semibold underline hover:text-[var(--brand)] break-all"
+            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-1 text-[var(--brand-dark)] dark:text-[var(--brand)] text-xs font-semibold hover:underline"
           >
             <span>View on BaseScan</span>
-            {shortHash && <span className="font-mono opacity-90">{shortHash}</span>}
+            {shortHash && <span className="font-mono text-[11px] opacity-80">({shortHash})</span>}
+            <ExternalLink size={11} className="opacity-70" />
           </a>
         )}
       </div>
@@ -50,6 +60,6 @@ export default function ToastNotification({
       >
         <X size={13} />
       </button>
-    </div>
+    </motion.div>
   );
 }

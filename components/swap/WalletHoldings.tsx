@@ -104,12 +104,12 @@ export default function WalletHoldings({
               <CounterAvatar counter={h.counter} size={20} />
               <span className="wallet-holding-info">
                 <span className="wallet-holding-symbol">{h.symbol}</span>
-                <span className="wallet-holding-bal">
+                <span className="wallet-holding-bal tabular-nums">
                   {formatBalance(h.balance)}
                 </span>
               </span>
               {h.usdValue > 0.01 && (
-                <span className="wallet-holding-usd">{formatUsd(h.usdValue)}</span>
+                <span className="wallet-holding-usd tabular-nums">{formatUsd(h.usdValue)}</span>
               )}
             </button>
           ))}

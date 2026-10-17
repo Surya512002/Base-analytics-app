@@ -57,6 +57,42 @@ export const VOUCHER_TEMPLATES: VoucherTemplate[] = [
     message: "From the team — thanks for building on Base together.",
   },
   {
+    id: "nvda-ai",
+    label: "NVIDIA AI stock",
+    emoji: "🤖",
+    total: "1",
+    cards: "1",
+    asset: "NVDAc",
+    message: "Here's 1 share of NVIDIA (NVDA) on Base! Welcome to the AI revolution. 🚀",
+  },
+  {
+    id: "aapl-stock",
+    label: "Apple stock",
+    emoji: "🍏",
+    total: "1",
+    cards: "1",
+    asset: "AAPLc",
+    message: "A share of Apple (AAPL) for you on Base — hold real tokenized equity! 📱",
+  },
+  {
+    id: "tsla-stock",
+    label: "Tesla stock",
+    emoji: "⚡",
+    total: "0.5",
+    cards: "1",
+    asset: "TSLAc",
+    message: "0.5 share of Tesla (TSLA) on Base! To the future. ⚡",
+  },
+  {
+    id: "coin-stock",
+    label: "Coinbase stock",
+    emoji: "🪙",
+    total: "1",
+    cards: "1",
+    asset: "COINc",
+    message: "1 share of Coinbase (COIN) — backing crypto infrastructure on Base. 🛡️",
+  },
+  {
     id: "eth-gm",
     label: "ETH GM",
     emoji: "⚡",
@@ -66,3 +102,4 @@ export const VOUCHER_TEMPLATES: VoucherTemplate[] = [
     message: "GM fren — sent you a little ETH on Base.",
   },
 ];
+

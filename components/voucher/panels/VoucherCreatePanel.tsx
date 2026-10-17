@@ -2,15 +2,20 @@
 
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
 import { base } from "viem/chains";
-import { CheckCircle, Copy, Share2 } from "lucide-react";
+import { CheckCircle, Copy, Share2, TrendingUp, Sparkles, Building2 } from "lucide-react";
 import { MAX_VOUCHER_CARDS } from "@/lib/utils/voucher";
 import {
   formatSplitSummary,
   formatVoucherAmount,
   formatCardShareText,
   formatBatchShareText,
+  isStockAsset,
+  isVaultShareAsset,
+  getVaultShareBySymbol,
 } from "@/lib/utils/voucher";
 import { VOUCHER_TEMPLATES } from "@/lib/constants/voucher-templates";
+import { POPULAR_GIFT_STOCKS, POPULAR_GIFT_VAULTS } from "@/components/voucher/voucher-constants";
+import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import SectionCard from "@/components/ui/SectionCard";
 import VoucherGiftCard3D from "@/components/wallet/VoucherGiftCard3D";
 import VoucherSecurityNotice from "@/components/wallet/VoucherSecurityNotice";
@@ -70,33 +75,184 @@ export default function VoucherCreatePanel({
     loadingBatchDetail,
   } = create;
 
+  const isVault = isVaultShareAsset(asset);
+  const isStock = isStockAsset(asset);
+  const selectedStockInfo = !isVault && isStock ? getBaseStockBySymbol(asset) : null;
+  const selectedVaultInfo = isVault ? getVaultShareBySymbol(asset) : null;
+
   return (
     <SectionCard>
       <div className="space-y-4">
         <div className="page-hero">
           <p className="section-eyebrow">Create gift batch</p>
           <p className="readable-body mt-2">
-            Split USDC or ETH into shareable gift cards. Each recipient redeems with a unique Card ID and secret.
+            Split tokenized stocks (<strong className="text-[var(--ink)]">NVDA, AAPL, TSLA</strong>), yield-bearing Morpho/SuperStocks vault shares, USDC, or ETH into shareable gift cards. Each recipient redeems with a unique Card ID and secret.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {(["USDC", "ETH"] as const).map((a) => (
+        {/* Asset Category / Type Selector */}
+        <div>
+          <label className="section-eyebrow mb-2 block">Choose asset type</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
-              key={a}
               type="button"
               disabled={!!pendingCards}
-              onClick={() => !pendingCards && setAsset(a)}
-              className={`py-3 rounded-xl font-bold text-sm border transition ${
-                asset === a
-                  ? "bg-[var(--brand-soft)] border-[var(--brand)] text-[var(--brand-dark)]"
-                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)]"
+              onClick={() => {
+                if (!pendingCards) {
+                  setAsset("USDC");
+                  setTotalAmount("10");
+                }
+              }}
+              className={`pop-pill py-3 px-2 rounded-xl font-bold text-xs sm:text-sm border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                asset === "USDC"
+                  ? "bg-[var(--brand-soft)] border-[var(--brand)] text-[var(--brand-dark)] shadow-xs"
+                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
               } ${pendingCards ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {a}
+              <span>USDC</span>
             </button>
-          ))}
+
+            <button
+              type="button"
+              disabled={!!pendingCards}
+              onClick={() => {
+                if (!pendingCards) {
+                  setAsset("ETH");
+                  setTotalAmount("0.01");
+                }
+              }}
+              className={`pop-pill py-3 px-2 rounded-xl font-bold text-xs sm:text-sm border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                asset === "ETH"
+                  ? "bg-[var(--brand-soft)] border-[var(--brand)] text-[var(--brand-dark)] shadow-xs"
+                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              } ${pendingCards ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <span>ETH</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!!pendingCards}
+              onClick={() => {
+                if (!pendingCards) {
+                  setAsset("NVDAc");
+                  setTotalAmount("1");
+                }
+              }}
+              className={`pop-pill py-3 px-2 rounded-xl font-bold text-xs sm:text-sm border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                !isVault && isStock
+                  ? "bg-blue-500/15 border-blue-500 text-blue-700 dark:text-blue-400 shadow-xs"
+                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              } ${pendingCards ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <TrendingUp size={14} className="text-blue-600 dark:text-blue-400" />
+              <span>Stocks (B20)</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!!pendingCards}
+              onClick={() => {
+                if (!pendingCards) {
+                  setAsset("mvNVDAc");
+                  setTotalAmount("1");
+                }
+              }}
+              className={`pop-pill py-3 px-2 rounded-xl font-bold text-xs sm:text-sm border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                isVault
+                  ? "bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-400 shadow-xs"
+                  : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              } ${pendingCards ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <Sparkles size={14} className="text-purple-600 dark:text-purple-400" />
+              <span>Yield Vaults</span>
+            </button>
+          </div>
         </div>
+
+        {/* When Yield Vaults is active: Show popular yield vaults */}
+        {isVault && (
+          <div className="rounded-2xl border border-purple-500/25 bg-purple-500/8 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1">
+                <Sparkles size={11} /> Select Yield-Bearing Stock Vault to Gift
+              </span>
+              {selectedVaultInfo && (
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                  +{selectedVaultInfo.apy.toFixed(2)}% APY · {selectedVaultInfo.protocol}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {POPULAR_GIFT_VAULTS.map((v) => (
+                <button
+                  key={v.symbol}
+                  type="button"
+                  disabled={!!pendingCards}
+                  onClick={() => !pendingCards && setAsset(v.symbol)}
+                  className={`pop-pill p-2.5 rounded-xl text-left border transition flex items-center justify-between gap-2 cursor-pointer ${
+                    asset === v.symbol
+                      ? "bg-purple-600 text-white border-purple-600 shadow-xs"
+                      : "bg-[var(--surface)] text-[var(--ink)] border-[var(--border-subtle)] hover:border-purple-400"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{v.icon}</span>
+                    <div>
+                      <p className="text-xs font-black leading-tight">{v.symbol}</p>
+                      <p className={`text-[10px] font-medium leading-tight ${asset === v.symbol ? "text-purple-100" : "text-[var(--ink-muted)]"}`}>
+                        {v.name}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-[11px] font-black shrink-0 ${asset === v.symbol ? "text-emerald-200" : "text-emerald-700 dark:text-emerald-400"}`}>
+                    +{v.apy}% APY
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-[var(--ink-muted)] leading-relaxed">
+              Recipient claims productive yield shares that compound continuously on Base mainnet. Backed by verified Morpho Blue and Superform strategies.
+            </p>
+          </div>
+        )}
+
+        {/* When Stocks is active: Show stock picker chips */}
+        {!isVault && isStock && (
+          <div className="rounded-2xl border border-blue-500/25 bg-blue-500/8 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1">
+                <Sparkles size={11} /> Select Stock to Gift
+              </span>
+              {selectedStockInfo && (
+                <span className="text-[10px] font-bold text-[var(--ink-dim)]">
+                  {selectedStockInfo.name} · 8 decimals
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR_GIFT_STOCKS.map((s) => (
+                <button
+                  key={s.symbol}
+                  type="button"
+                  disabled={!!pendingCards}
+                  onClick={() => !pendingCards && setAsset(s.symbol)}
+                  className={`pop-pill px-3 py-1.5 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                    asset === s.symbol
+                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                      : "bg-[var(--surface)] text-[var(--ink)] border-[var(--border-subtle)] hover:border-blue-400"
+                  }`}
+                >
+                  <span>{s.icon}</span>
+                  <span>{s.symbol}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-[var(--ink-muted)] leading-relaxed">
+              Backed 1:1 by real stock shares in custody · Coinbase B20 standard · Redeemable directly to recipient wallet
+            </p>
+          </div>
+        )}
 
         <div>
           <p className="section-eyebrow mb-2">Occasion templates</p>
@@ -111,7 +267,7 @@ export default function VoucherCreatePanel({
                   setCardCountInput(t.cards);
                   setMessage(t.message);
                 }}
-                className="preset-chip rounded-full px-3 py-2 text-[10px] font-bold"
+                className="pop-pill preset-chip rounded-full px-3 py-2 text-[10px] font-bold cursor-pointer"
               >
                 {t.emoji} {t.label}
               </button>
@@ -132,7 +288,7 @@ export default function VoucherCreatePanel({
                     setTotalAmount(p.total);
                     setCardCountInput(p.cards);
                   }}
-                  className={`preset-chip rounded-full px-4 py-2 text-xs font-bold ${
+                  className={`pop-pill preset-chip rounded-full px-4 py-2 text-xs font-bold cursor-pointer ${
                     activePresetKey === key ? "preset-chip-active" : ""
                   }`}
                 >
@@ -148,21 +304,26 @@ export default function VoucherCreatePanel({
 
         <div>
           <label className="section-eyebrow">
-            Total deposit ({asset === "USDC" ? "USD" : "ETH"})
+            {isStock
+              ? `Total stock shares (${asset}${selectedStockInfo ? ` · ${selectedStockInfo.name}` : ""})`
+              : `Total deposit (${asset === "USDC" ? "USD" : "ETH"})`}
           </label>
           <input
             value={totalAmount}
             onChange={(e) => setTotalAmount(e.target.value)}
-            placeholder={asset === "ETH" ? "0.01" : "10"}
+            placeholder={isStock ? "1.0" : asset === "ETH" ? "0.01" : "10"}
             className="w-full mt-1 input-ink rounded-xl px-3 py-3 font-bold outline-none"
           />
           <p className="readable-body text-[10px] mt-1">
-            e.g. {asset === "USDC" ? "$10 USDC" : "0.01 ETH"} split into {cardCountInput || "…"} cards
+            {isStock
+              ? `e.g. ${totalAmount || "1"} ${asset} shares split into ${cardCountInput || "1"} cards`
+              : `e.g. ${asset === "USDC" ? "$10 USDC" : "0.01 ETH"} split into ${cardCountInput || "…"} cards`}
           </p>
         </div>
 
         <div>
           <label className="section-eyebrow">
+
             Number of cards (max {MAX_VOUCHER_CARDS})
           </label>
           <input
@@ -197,7 +358,7 @@ export default function VoucherCreatePanel({
 
         {split && (
           <div
-            className={`rounded-2xl p-4 border ${
+            className={`pop rounded-2xl p-4 border ${
               split.valid
                 ? "glass-panel-accent border-[var(--border-subtle)]"
                 : "bg-orange-500/8 border-orange-500/30"
@@ -345,13 +506,13 @@ export default function VoucherCreatePanel({
               <button
                 type="button"
                 onClick={() => void refreshUsdcAllowance()}
-                className="w-full py-3.5 rounded-xl font-black bg-amber-500/15 border border-amber-500/35 text-amber-800"
+                className="w-full py-3.5 rounded-xl font-black bg-amber-500/15 border border-amber-500/35 text-amber-700 dark:text-amber-400"
               >
                 Could not read USDC allowance — tap to retry
               </button>
             ) : needsUsdcApproval ? (
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest text-center">
+                <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest text-center">
                   Step 1 of 2 · Approve {exactDepositLabel}
                 </p>
                 <Transaction
@@ -372,7 +533,7 @@ export default function VoucherCreatePanel({
               </div>
             ) : usdcReadyToFund ? (
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest text-center">
+                <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-center">
                   Step 2 of 2 · Deposit {exactDepositLabel}
                 </p>
                 <Transaction
@@ -407,8 +568,8 @@ export default function VoucherCreatePanel({
           >
             {!readyBatchOnCreate.cards.some((c) => c.secret) && (
               <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-                <p className="text-sm font-black text-amber-800">Card ID only — secret not stored</p>
-                <p className="readable-body text-xs text-amber-700 mt-1">
+                <p className="text-sm font-black text-amber-700 dark:text-amber-300">Card ID only — secret not stored</p>
+                <p className="readable-body text-xs text-amber-600 dark:text-amber-400 mt-1">
                   Your deposit is on Base (Batch #{readyBatchOnCreate.batchId}). The app failed to
                   save the secret when your deposit confirmed — this is not from clearing history.
                   If you still have the secret from a screenshot or copy, you can redeem manually.
@@ -417,7 +578,7 @@ export default function VoucherCreatePanel({
             )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 text-emerald-700 font-black text-base sm:text-lg">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-base sm:text-lg">
                   <CheckCircle size={20} /> Your cards are ready!
                 </div>
                 <p className="text-sm text-[var(--ink)] font-bold mt-1">Batch #{readyBatchOnCreate.batchId}</p>
@@ -427,7 +588,7 @@ export default function VoucherCreatePanel({
                     ? ` · ${batchCardStatuses[readyBatchOnCreate.batchId].filter((c) => !c.redeemed).length} not redeemed yet`
                     : " · syncing redemption status…"}
                 </p>
-                <p className="text-xs text-amber-800 font-bold mt-2">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mt-2">
                   Save Card ID + Secret for each card — they cannot be recovered later.
                 </p>
               </div>

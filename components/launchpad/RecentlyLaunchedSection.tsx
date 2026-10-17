@@ -30,7 +30,7 @@ export default function RecentlyLaunchedSection({
   if (recent.length === 0) {
     if (syncing) {
       return (
-        <div className="rounded-xl border border-white/[0.08] bg-[var(--bg-raised)]/40 h-40 animate-pulse" />
+        <div className="rounded-xl border border-[var(--border-subtle)] skeleton-shimmer h-40" />
       );
     }
     return (
@@ -84,7 +84,7 @@ export default function RecentlyLaunchedSection({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 stagger-grid">
         {recent.map((t) => (
           <TokenCard
             key={t.address}

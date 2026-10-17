@@ -17,8 +17,8 @@ const perks = [
   },
   {
     icon: Gift,
-    title: `${feeShareLabels().referrer} referrals`,
-    detail: "Token ?ref= links earn on swaps · stack with Quest XP",
+    title: "Stock & B20 Pairs",
+    detail: "Quote in NVDAc, AAPLc, TSLAc, COINc and unlock stock collateral loans",
   },
   {
     icon: BarChart3,

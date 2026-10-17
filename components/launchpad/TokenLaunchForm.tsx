@@ -1,53 +1,56 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Loader2, Upload, X } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { parseUnits } from "viem";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { computeLaunchSalt, mergeMintAllocations, predictB20Address } from "@/lib/b20/encode";
 import { uploadLaunchpadImage } from "@/lib/api/launchpad-client";
-import {
-  prepareTokenImage,
-  revokePreviewUrl,
-} from "@/lib/launchpad/image-upload";
-import type { LaunchedToken } from "@/lib/launchpad/types";
+import { prepareTokenImage, revokePreviewUrl } from "@/lib/launchpad/image-upload";
+import type { LaunchedToken, LaunchTokenType } from "@/lib/launchpad/types";
 import {
   FIXED_LAUNCH_SUPPLY,
-  poolSeedPct,
-  totalAllocatedPct,
   type InsiderAllocation,
-  type QuoteToken,
   type VestedAllocation,
 } from "@/lib/launchpad/launch-config";
-import { applyLaunchPreset, getLaunchPreset, type LaunchPresetId } from "@/lib/launchpad/launch-presets";
+import type { LaunchPresetId } from "@/lib/launchpad/launch-presets";
 import {
   computeLiquiditySeedAmounts,
   DEFAULT_SEED_LIQUIDITY_ETH,
   MIN_SEED_LIQUIDITY_ETH,
-  SEED_LIQUIDITY_PRESETS,
-  seedEthUsdValue,
   type SeedDex,
 } from "@/lib/launchpad/seed-liquidity";
-import { formatUsd } from "@/lib/launchpad/format";
-import LaunchAdvantageStrip from "@/components/launchpad/LaunchAdvantageStrip";
-import RevenueSharingLaunchBanner from "@/components/launchpad/RevenueSharingLaunchBanner";
-import { BUILDER_CODE } from "@/lib/constants/env";
 import { grindVanityAddress } from "@/lib/launchpad/vanity-salt";
-import LaunchConfigSummary from "@/components/launchpad/LaunchConfigSummary";
-import VanityAddressCard from "@/components/launchpad/VanityAddressCard";
-import LaunchOptionsPanel from "@/components/launchpad/LaunchOptionsPanel";
-import TokenLaunchPreview from "@/components/launchpad/TokenLaunchPreview";
+import { BASE_STOCKS, OPENLAUNCH_LOCKER_BASE, type BaseStock } from "@/lib/stocks/base-stocks";
+import {
+  DEFAULT_STARTING_PRICE_USD,
+  DEFAULT_LOCK_DURATION_DAYS,
+  DEFAULT_ANTI_SNIPE_BLOCKS,
+  type LaunchVenueId,
+  saveLaunchDraft,
+  loadLaunchDraft,
+  clearLaunchDraft,
+} from "@/lib/launchpad/launch-configs";
+
+// Sub-components
+import LaunchHeader from "@/components/launchpad/LaunchHeader";
+import LaunchTypeSelector from "@/components/launchpad/LaunchTypeSelector";
+import QuoteAssetPicker from "@/components/launchpad/QuoteAssetPicker";
+import IdentityStep from "@/components/launchpad/IdentityStep";
+import DistributionStep from "@/components/launchpad/DistributionStep";
+import LiquidityStep from "@/components/launchpad/LiquidityStep";
+import ReviewStep from "@/components/launchpad/ReviewStep";
+import LaunchSummaryPanel from "@/components/launchpad/LaunchSummaryPanel";
 import LaunchSuccessPanel from "@/components/launchpad/LaunchSuccessPanel";
+import WhatYouGetSection from "@/components/launchpad/WhatYouGetSection";
 
-const DEFAULT_START_PRICE = "0.000003918";
-
-function formatCompact(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return "0";
-  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(2)}K`;
-  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-}
+const STEPS = [
+  { id: 1, title: "Type", subtitle: "Select asset model" },
+  { id: 2, title: "Identity", subtitle: "Name, symbol & logo" },
+  { id: 3, title: "Distribution", subtitle: "Token allocations" },
+  { id: 4, title: "Liquidity", subtitle: "Pool & protection" },
+  { id: 5, title: "Review", subtitle: "Verify & launch" },
+];
 
 export default function TokenLaunchForm({
   app,
@@ -60,74 +63,94 @@ export default function TokenLaunchForm({
   onTrade?: (token: LaunchedToken) => void;
   onExplore?: () => void;
 }) {
-  const { wallet, launchLoading, b20Activated, handleLaunchB20, showToast } = app;
-  const fileRef = useRef<HTMLInputElement>(null);
+  const { wallet, launchLoading, b20Activated, handleLaunchB20, showToast, setShowModal } = app;
+  const isConnected = !!wallet?.address;
 
+  // Form State
+  const [currentStep, setCurrentStep] = useState(1);
+  const [launchType, setLaunchType] = useState<LaunchTokenType>("b20");
+  const [selectedStock, setSelectedStock] = useState<BaseStock>(BASE_STOCKS[1]); // NVDAc by default
+  const [stockPrices, setStockPrices] = useState<Record<string, number>>({});
+
+  // Identity
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [description, setDescription] = useState("");
   const [website, setWebsite] = useState("");
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
-  const [discord, setDiscord] = useState("");
-  const [quoteToken, setQuoteToken] = useState<QuoteToken>("ETH");
-  const [startPriceUsd, setStartPriceUsd] = useState(DEFAULT_START_PRICE);
-  const [metadataEditable, setMetadataEditable] = useState(false);
-  const [creatorPct, setCreatorPct] = useState(10);
-  const [insiders, setInsiders] = useState<InsiderAllocation[]>([]);
-  const [vested, setVested] = useState<VestedAllocation[]>([]);
-  const [activePreset, setActivePreset] = useState<LaunchPresetId | null>(null);
-  const [antiSnipeBlocks, setAntiSnipeBlocks] = useState(8);
+  const discord = "";
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | undefined>();
+
+  // Distribution
+  const [creatorPct, setCreatorPct] = useState(10);
+  const [insiders, setInsiders] = useState<InsiderAllocation[]>([]);
+  const [vested, setVested] = useState<VestedAllocation[]>([]);
+  const [activePreset, setActivePreset] = useState<LaunchPresetId | null>("creator");
+
+  // Liquidity & Protection
+  const [autoSeedLiquidity, setAutoSeedLiquidity] = useState(true);
+  const [seedDex, setSeedDex] = useState<LaunchVenueId>("aerodrome");
+  const [seedLiquidityEth, setSeedLiquidityEth] = useState(DEFAULT_SEED_LIQUIDITY_ETH);
+  const [liquidityLocked, setLiquidityLocked] = useState(true);
+  const [lockDurationDays, setLockDurationDays] = useState(DEFAULT_LOCK_DURATION_DAYS);
+  const [antiSnipeBlocks, setAntiSnipeBlocks] = useState(DEFAULT_ANTI_SNIPE_BLOCKS);
+  const [metadataEditable, setMetadataEditable] = useState(false);
+  const startPriceUsd = DEFAULT_STARTING_PRICE_USD;
+
+  // Background Vanity & ETH data
   const [vanitySalt, setVanitySalt] = useState<`0x${string}` | null>(null);
   const [vanityAddress, setVanityAddress] = useState<string | null>(null);
   const [vanityAttempts, setVanityAttempts] = useState(0);
   const [grinding, setGrinding] = useState(false);
   const [ethUsd, setEthUsd] = useState(2500);
+
+  // Success & Error States
   const [launchedToken, setLaunchedToken] = useState<LaunchedToken | null>(null);
-  const [seedLiquidityEth, setSeedLiquidityEth] = useState(DEFAULT_SEED_LIQUIDITY_ETH);
-  const [autoSeedLiquidity, setAutoSeedLiquidity] = useState(true);
-  const [seedDex, setSeedDex] = useState<SeedDex>("aerodrome");
+  const [launchStepStatus, setLaunchStepStatus] = useState<string>("");
+  const [launchError, setLaunchError] = useState<{
+    step: "deploy" | "attribution" | "general";
+    message: string;
+  } | null>(null);
 
-  const decimals = 18;
-  const poolPct = poolSeedPct({ creatorPct, insiderAllocations: insiders, vestedAllocations: vested });
-  const allocated = totalAllocatedPct({
-    creatorPct,
-    insiderAllocations: insiders,
-    vestedAllocations: vested,
-  });
-  const vestedPct = vested.reduce((s, v) => s + (v.pct || 0), 0);
+  // Restore draft on mount
+  useEffect(() => {
+    const draft = loadLaunchDraft();
+    if (draft) {
+      if (draft.step) setCurrentStep(draft.step);
+      if (draft.launchType) setLaunchType(draft.launchType);
+      if (draft.name) setName(draft.name);
+      if (draft.symbol) setSymbol(draft.symbol);
+      if (draft.description) setDescription(draft.description);
+      if (draft.website) setWebsite(draft.website);
+      if (draft.twitter) setTwitter(draft.twitter);
+      if (draft.telegram) setTelegram(draft.telegram);
+      if (draft.creatorPct !== undefined) setCreatorPct(draft.creatorPct);
+      if (draft.insiders) setInsiders(draft.insiders);
+      if (draft.vested) setVested(draft.vested);
+      if (draft.autoSeedLiquidity !== undefined) setAutoSeedLiquidity(draft.autoSeedLiquidity);
+      if (draft.seedLiquidityEth) setSeedLiquidityEth(draft.seedLiquidityEth);
+      if (draft.seedDex) setSeedDex(draft.seedDex);
+      if (draft.liquidityLocked !== undefined) setLiquidityLocked(draft.liquidityLocked);
+      if (draft.lockDurationDays) setLockDurationDays(draft.lockDurationDays);
+      if (draft.antiSnipeBlocks !== undefined) setAntiSnipeBlocks(draft.antiSnipeBlocks);
+      if (draft.metadataEditable !== undefined) setMetadataEditable(draft.metadataEditable);
+      if (draft.selectedStockSymbol) {
+        const found = BASE_STOCKS.find((s) => s.symbol === draft.selectedStockSymbol);
+        if (found) setSelectedStock(found);
+      }
+    }
+  }, []);
 
-  const seedPreview = useMemo(() => {
-    if (!autoSeedLiquidity) return null;
-    return computeLiquiditySeedAmounts({
-      seedEth: seedLiquidityEth,
-      startPriceUsd,
-      ethUsd,
-      decimals: 18,
-    });
-  }, [autoSeedLiquidity, seedLiquidityEth, startPriceUsd, ethUsd]);
-
-  const seedUsd = useMemo(
-    () => seedEthUsdValue(seedLiquidityEth, ethUsd),
-    [seedLiquidityEth, ethUsd]
-  );
-
-  const applyPreset = (id: LaunchPresetId) => {
-    const preset = getLaunchPreset(id);
-    if (!preset) return;
-    const applied = applyLaunchPreset(preset);
-    setActivePreset(id);
-    setCreatorPct(applied.creatorPct);
-    setInsiders(applied.insiders);
-    setVested(applied.vested);
-  };
-
-  const formConfig = useMemo(
-    () => ({
+  // Save draft whenever state changes
+  useEffect(() => {
+    saveLaunchDraft({
+      step: currentStep,
+      launchType,
+      selectedStockSymbol: selectedStock.symbol,
       name,
       symbol,
       description,
@@ -135,34 +158,84 @@ export default function TokenLaunchForm({
       twitter,
       telegram,
       discord,
-      quoteToken,
-      startPriceUsd,
-      metadataEditable,
-      creatorPct,
-      insiderAllocations: insiders,
-      vestedAllocations: vested,
-      vanitySalt,
-      vanityAttempts,
-    }),
-    [
-      name,
-      symbol,
-      description,
-      website,
-      twitter,
-      telegram,
-      discord,
-      quoteToken,
-      startPriceUsd,
-      metadataEditable,
       creatorPct,
       insiders,
       vested,
-      vanitySalt,
-      vanityAttempts,
-    ]
-  );
+      autoSeedLiquidity,
+      seedLiquidityEth,
+      seedDex,
+      liquidityLocked,
+      lockDurationDays,
+      antiSnipeBlocks,
+      metadataEditable,
+      startPriceUsd,
+    });
+  }, [
+    currentStep,
+    launchType,
+    selectedStock.symbol,
+    name,
+    symbol,
+    description,
+    website,
+    twitter,
+    telegram,
+    discord,
+    creatorPct,
+    insiders,
+    vested,
+    autoSeedLiquidity,
+    seedLiquidityEth,
+    seedDex,
+    liquidityLocked,
+    lockDurationDays,
+    antiSnipeBlocks,
+    metadataEditable,
+    startPriceUsd,
+  ]);
 
+  const handleClearDraft = () => {
+    clearLaunchDraft();
+    setName("");
+    setSymbol("");
+    setDescription("");
+    setWebsite("");
+    setTwitter("");
+    setTelegram("");
+    setCreatorPct(10);
+    setInsiders([]);
+    setVested([]);
+    setImagePreview(null);
+    setImageBlob(null);
+    setCurrentStep(1);
+    showToast("Launch form draft cleared", "");
+  };
+
+  // Fetch ETH price
+  useEffect(() => {
+    void fetch("/api/launchpad/eth-price")
+      .then((r) => r.json())
+      .then((d: { ethUsd?: number }) => setEthUsd(d.ethUsd ?? 2500))
+      .catch(() => {});
+  }, []);
+
+  // Fetch stock prices
+  useEffect(() => {
+    void fetch("/api/stocks/markets")
+      .then((r) => r.json())
+      .then((d: { data?: Array<{ symbol: string; nav: number }> }) => {
+        if (d.data && Array.isArray(d.data)) {
+          const map: Record<string, number> = {};
+          d.data.forEach((s) => {
+            map[s.symbol] = s.nav;
+          });
+          setStockPrices(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Run Vanity Grind in background
   const runVanityGrind = useCallback(async () => {
     if (!wallet) return;
     setGrinding(true);
@@ -185,19 +258,11 @@ export default function TokenLaunchForm({
         setVanitySalt(fallback);
         const addr = await predictB20Address(wallet.address as `0x${string}`, fallback);
         setVanityAddress(addr);
-        showToast("Vanity grind timed out — using standard salt", "");
       }
     } finally {
       setGrinding(false);
     }
-  }, [wallet, name, symbol, showToast]);
-
-  useEffect(() => {
-    void fetch("/api/launchpad/eth-price")
-      .then((r) => r.json())
-      .then((d: { ethUsd?: number }) => setEthUsd(d.ethUsd ?? 2500))
-      .catch(() => {});
-  }, []);
+  }, [wallet, name, symbol]);
 
   useEffect(() => {
     if (!wallet) return;
@@ -205,6 +270,7 @@ export default function TokenLaunchForm({
     return () => clearTimeout(t);
   }, [wallet, runVanityGrind]);
 
+  // Image upload
   const onPickImage = async (file: File | null) => {
     if (!file) return;
     try {
@@ -214,27 +280,68 @@ export default function TokenLaunchForm({
       setImageBlob(prepared.blob);
       setImageUrl(undefined);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Invalid image", "");
+      showToast(e instanceof Error ? e.message : "Invalid image format", "");
     }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onRemoveImage = () => {
+    revokePreviewUrl(imagePreview);
+    setImagePreview(null);
+    setImageBlob(null);
+    setImageUrl(undefined);
+  };
+
+  // Allocations calculations
+  const insiderTotalPct = insiders.reduce((s, i) => s + (i.pct || 0), 0);
+  const vestedTotalPct = vested.reduce((s, v) => s + (v.pct || 0), 0);
+  const allocatedPct = creatorPct + insiderTotalPct + vestedTotalPct;
+  const poolReservePct = Math.max(0, 100 - allocatedPct);
+
+  const effectiveQuoteSymbol = launchType === "memestock" ? selectedStock.symbol : "ETH";
+  const effectiveQuoteAddress = launchType === "memestock" ? selectedStock.address : undefined;
+
+  // Validation
+  const validationError = useMemo(() => {
+    if (!name.trim()) return "Token name is required";
+    if (!symbol.trim()) return "Symbol ticker is required";
+    if (allocatedPct > 100) return "Total allocations exceed 100%";
+    if (autoSeedLiquidity && seedLiquidityEth) {
+      const seedNum = parseFloat(seedLiquidityEth);
+      if (!Number.isFinite(seedNum) || seedNum < parseFloat(MIN_SEED_LIQUIDITY_ETH)) {
+        return `Minimum liquidity seed is ${MIN_SEED_LIQUIDITY_ETH} ETH`;
+      }
+    }
+    return null;
+  }, [name, symbol, allocatedPct, autoSeedLiquidity, seedLiquidityEth]);
+
+  const isFormValid = !validationError;
+
+  // Multi-step navigation validation
+  const canGoNextFromStep = (step: number): boolean => {
+    if (step === 1) return true;
+    if (step === 2) return !!name.trim() && !!symbol.trim();
+    if (step === 3) return allocatedPct <= 100;
+    if (step === 4) return true;
+    return true;
+  };
+
+  // Final Launch Action
+  const handleExecuteLaunch = async () => {
     if (!wallet || !vanitySalt) return;
     if (b20Activated === false) {
       showToast("B20 is not activated on Base mainnet yet", "");
       return;
     }
-    if (b20Activated !== true) {
-      showToast("Checking B20 status — try again in a moment", "");
-      return;
-    }
-    if (allocated > 100) {
+    if (allocatedPct > 100) {
       showToast("Allocations cannot exceed 100% of supply", "");
       return;
     }
 
+    setLaunchError(null);
+    setLaunchStepStatus("Uploading metadata & preparing contract…");
+
     const supplyHuman = parseFloat(FIXED_LAUNCH_SUPPLY);
+    const decimals = 18;
     const mints: { to: `0x${string}`; amount: bigint }[] = [];
 
     if (creatorPct > 0) {
@@ -260,44 +367,30 @@ export default function TokenLaunchForm({
     }
 
     if (autoSeedLiquidity && seedLiquidityEth) {
-      const seedEth = parseFloat(seedLiquidityEth);
-      const minSeed = parseFloat(MIN_SEED_LIQUIDITY_ETH);
-      if (!Number.isFinite(seedEth) || seedEth < minSeed) {
-        showToast(`Minimum liquidity seed is ${MIN_SEED_LIQUIDITY_ETH} ETH`, "");
-        return;
-      }
       const seed = computeLiquiditySeedAmounts({
         seedEth: seedLiquidityEth,
         startPriceUsd,
         ethUsd,
         decimals,
       });
-      if (!seed || seed.tokenWei <= BigInt(0)) {
-        showToast("Increase seed ETH or lower start price — not enough tokens for the pool", "");
-        return;
+      if (seed && seed.tokenWei > BigInt(0)) {
+        mints.push({
+          to: wallet.address as `0x${string}`,
+          amount: seed.tokenWei,
+        });
       }
-      mints.push({
-        to: wallet.address as `0x${string}`,
-        amount: seed.tokenWei,
-      });
     }
 
     const mergedMints = mergeMintAllocations(mints);
-    if (mergedMints.length === 0) {
-      showToast("Add at least one allocation or enable liquidity seeding", "");
-      return;
-    }
 
     let finalImageUrl = imageUrl;
     if (imageBlob && !finalImageUrl) {
       setImageUploading(true);
       try {
         finalImageUrl = (await uploadLaunchpadImage(imageBlob)) ?? undefined;
-        if (!finalImageUrl) {
-          showToast("Image upload failed", "");
-          return;
-        }
         setImageUrl(finalImageUrl);
+      } catch {
+        // Continue if image upload fails
       } finally {
         setImageUploading(false);
       }
@@ -312,58 +405,91 @@ export default function TokenLaunchForm({
         vestMonths: v.vestMonths,
       }));
 
-    const result = await handleLaunchB20({
-      name: name.trim(),
-      symbol: symbol.trim().toUpperCase(),
-      decimals,
-      supplyCap: FIXED_LAUNCH_SUPPLY,
-      salt: vanitySalt,
-      predictedAddress: vanityAddress ?? undefined,
-      imageUrl: finalImageUrl,
-      description: description.trim() || undefined,
-      website: website.trim() || undefined,
-      twitter: twitter.trim() || undefined,
-      telegram: telegram.trim() || undefined,
-      discord: discord.trim() || undefined,
-      metadataEditable,
-      mints: mergedMints,
-      poolSeedPct: poolPct,
-      quoteToken,
-      startPriceUsd,
-      launchPreset: activePreset ?? undefined,
-      vestingSchedule: vestingSchedule.length > 0 ? vestingSchedule : undefined,
-      antiSnipeBlocks,
-      seedLiquidityEth: autoSeedLiquidity ? seedLiquidityEth : undefined,
-      autoSeedLiquidity,
-      seedDex: autoSeedLiquidity ? seedDex : undefined,
-      ethUsd,
-    });
-
-    if (result.ok && result.address) {
-      setLaunchedToken({
-        address: result.address,
-        name: result.name ?? name.trim(),
-        symbol: result.symbol ?? symbol.trim().toUpperCase(),
+    try {
+      setLaunchStepStatus("Confirm in your wallet…");
+      const result = await handleLaunchB20({
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
         decimals,
-        creator: wallet.address,
-        txHash: result.txHash ?? "",
-        imageUrl: result.imageUrl ?? finalImageUrl,
+        supplyCap: FIXED_LAUNCH_SUPPLY,
+        salt: vanitySalt,
+        predictedAddress: vanityAddress ?? undefined,
+        imageUrl: finalImageUrl,
         description: description.trim() || undefined,
         website: website.trim() || undefined,
         twitter: twitter.trim() || undefined,
         telegram: telegram.trim() || undefined,
         discord: discord.trim() || undefined,
-        createdAt: Date.now(),
-        supplyCap: FIXED_LAUNCH_SUPPLY,
+        metadataEditable,
+        mints: mergedMints,
+        poolSeedPct: poolReservePct,
+        quoteToken: effectiveQuoteSymbol,
+        startPriceUsd,
         launchPreset: activePreset ?? undefined,
         vestingSchedule: vestingSchedule.length > 0 ? vestingSchedule : undefined,
         antiSnipeBlocks,
-        startPriceUsd,
+        seedLiquidityEth: autoSeedLiquidity ? seedLiquidityEth : undefined,
+        autoSeedLiquidity,
+        seedDex: autoSeedLiquidity ? (seedDex as SeedDex) : undefined,
+        ethUsd,
+        tokenType: launchType,
+        quoteAsset: effectiveQuoteSymbol,
+        quoteAssetAddress: effectiveQuoteAddress,
+        quoteAssetSymbol: effectiveQuoteSymbol,
+        liquidityLocked,
+        lockerAddress: liquidityLocked ? OPENLAUNCH_LOCKER_BASE : undefined,
       });
-      onLaunched?.();
+
+      if (result.ok && result.address) {
+        clearLaunchDraft();
+        setLaunchedToken({
+          address: result.address,
+          name: result.name ?? name.trim(),
+          symbol: result.symbol ?? symbol.trim().toUpperCase(),
+          decimals,
+          creator: wallet.address,
+          txHash: result.txHash ?? "",
+          imageUrl: result.imageUrl ?? finalImageUrl,
+          description: description.trim() || undefined,
+          website: website.trim() || undefined,
+          twitter: twitter.trim() || undefined,
+          telegram: telegram.trim() || undefined,
+          discord: discord.trim() || undefined,
+          createdAt: Date.now(),
+          supplyCap: FIXED_LAUNCH_SUPPLY,
+          launchPreset: activePreset ?? undefined,
+          vestingSchedule: vestingSchedule.length > 0 ? vestingSchedule : undefined,
+          antiSnipeBlocks,
+          startPriceUsd,
+          tokenType: launchType,
+          quoteAsset: effectiveQuoteSymbol,
+          quoteAssetAddress: effectiveQuoteAddress,
+          quoteAssetSymbol: effectiveQuoteSymbol,
+          liquidityLocked,
+          lockerAddress: liquidityLocked ? OPENLAUNCH_LOCKER_BASE : undefined,
+          creatorFeeBps: 25,
+          platformFeeBps: 25,
+        });
+        onLaunched?.();
+      } else {
+        setLaunchError({
+          step: "deploy",
+          message: "Transaction rejected or simulation failed. Please retry.",
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Deployment failed";
+      const isAttribution = msg.toLowerCase().includes("attribution");
+      setLaunchError({
+        step: isAttribution ? "attribution" : "deploy",
+        message: msg,
+      });
+    } finally {
+      setLaunchStepStatus("");
     }
   };
 
+  // If already launched successfully, show Success screen
   if (launchedToken) {
     return (
       <LaunchSuccessPanel
@@ -375,327 +501,242 @@ export default function TokenLaunchForm({
     );
   }
 
-  const creatorTokens = formatCompact((parseFloat(FIXED_LAUNCH_SUPPLY) * creatorPct) / 100);
-
   return (
     <div className="space-y-6">
-      <RevenueSharingLaunchBanner />
-      <LaunchAdvantageStrip />
+      {/* 1. Header with 3 Facts */}
+      <LaunchHeader />
 
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ink-muted)] mb-1">
-          Create a token
-        </p>
-        <h2 className="text-2xl sm:text-3xl font-black text-white max-w-3xl">
-          Launch on Base with more control, lower fees, and dual-DEX trading
-        </h2>
-        <p className="text-sm text-slate-400 mt-2 max-w-3xl">
-          Fixed 1B B20 supply · vanity 0xB200… addresses · liquid + truly locked vesting ·
-          Uniswap + Aerodrome auto-routing · earn points on every launch and swap.
-        </p>
-      </div>
+      {/* 2. Main 5-Step Guided Flow & Sticky Summary Grid */}
+      <div className="grid lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Progress Stepper + Current Step Form */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Step Progress Indicator Bar */}
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              {STEPS.map((s, idx) => {
+                const isCurrent = currentStep === s.id;
+                const isPast = currentStep > s.id;
+                const isClickable = s.id < currentStep || canGoNextFromStep(s.id - 1);
 
-      {b20Activated === null && (
-        <div className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm text-slate-400">
-          Checking B20 activation on Base…
-        </div>
-      )}
-      {b20Activated === false && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-          B20 is not activated on Base mainnet yet.
-        </div>
-      )}
+                return (
+                  <React.Fragment key={s.id}>
+                    <button
+                      type="button"
+                      disabled={!isClickable}
+                      onClick={() => isClickable && setCurrentStep(s.id)}
+                      className={`flex items-center gap-2 group text-left cursor-pointer transition ${
+                        !isClickable ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      <span
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold transition ${
+                          isCurrent
+                            ? "bg-[#0052FF] text-white shadow-xs"
+                            : isPast
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+                              : "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
+                        }`}
+                      >
+                        {isPast ? <Check size={13} strokeWidth={3} /> : s.id}
+                      </span>
+                      <div className="hidden sm:block">
+                        <p
+                          className={`text-xs font-bold leading-none ${
+                            isCurrent ? "text-[var(--ink)]" : "text-[var(--ink-muted)]"
+                          }`}
+                        >
+                          {s.title}
+                        </p>
+                        <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">{s.subtitle}</p>
+                      </div>
+                    </button>
 
-      <LaunchConfigSummary config={formConfig} ethUsd={ethUsd} />
+                    {idx < STEPS.length - 1 && (
+                      <div
+                        className={`flex-1 h-0.5 mx-2 rounded-full transition ${
+                          currentStep > s.id ? "bg-[#0052FF]" : "bg-[var(--border-subtle)]"
+                        }`}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
 
-      <form onSubmit={onSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        <div className="xl:col-span-7 space-y-5">
-          <div className="glass-panel rounded-2xl p-5 space-y-4">
-            <p className="text-[10px] font-bold text-slate-500 uppercase">Token identity</p>
+          {/* Step Content */}
+          <div className="min-h-[420px]">
+            {/* Step 1: Type Selection */}
+            {currentStep === 1 && (
+              <div className="space-y-5 animate-meridian-fade">
+                <LaunchTypeSelector value={launchType} onChange={setLaunchType} />
+                {launchType === "memestock" && (
+                  <QuoteAssetPicker
+                    selectedStock={selectedStock}
+                    onSelectStock={setSelectedStock}
+                    stockPrices={stockPrices}
+                  />
+                )}
+              </div>
+            )}
 
-            <div className="flex gap-4">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => void onPickImage(e.target.files?.[0] ?? null)}
-              />
+            {/* Step 2: Identity & Branding */}
+            {currentStep === 2 && (
+              <div className="animate-meridian-fade">
+                <IdentityStep
+                  name={name}
+                  onNameChange={setName}
+                  symbol={symbol}
+                  onSymbolChange={setSymbol}
+                  description={description}
+                  onDescriptionChange={setDescription}
+                  website={website}
+                  onWebsiteChange={setWebsite}
+                  twitter={twitter}
+                  onTwitterChange={setTwitter}
+                  telegram={telegram}
+                  onTelegramChange={setTelegram}
+                  imagePreview={imagePreview}
+                  onPickImage={onPickImage}
+                  onRemoveImage={onRemoveImage}
+                  imageUploading={imageUploading}
+                />
+              </div>
+            )}
+
+            {/* Step 3: Distribution */}
+            {currentStep === 3 && (
+              <div className="animate-meridian-fade">
+                <DistributionStep
+                  creatorPct={creatorPct}
+                  onCreatorPctChange={setCreatorPct}
+                  insiders={insiders}
+                  onInsidersChange={setInsiders}
+                  vested={vested}
+                  onVestedChange={setVested}
+                  activePreset={activePreset}
+                  onSelectPreset={setActivePreset}
+                />
+              </div>
+            )}
+
+            {/* Step 4: Liquidity & Protection */}
+            {currentStep === 4 && (
+              <div className="animate-meridian-fade">
+                <LiquidityStep
+                  autoSeedLiquidity={autoSeedLiquidity}
+                  onAutoSeedLiquidityChange={setAutoSeedLiquidity}
+                  seedDex={seedDex}
+                  onSeedDexChange={setSeedDex}
+                  seedLiquidityEth={seedLiquidityEth}
+                  onSeedLiquidityEthChange={setSeedLiquidityEth}
+                  liquidityLocked={liquidityLocked}
+                  onLiquidityLockedChange={setLiquidityLocked}
+                  lockDurationDays={lockDurationDays}
+                  onLockDurationDaysChange={setLockDurationDays}
+                  antiSnipeBlocks={antiSnipeBlocks}
+                  onAntiSnipeBlocksChange={setAntiSnipeBlocks}
+                  metadataEditable={metadataEditable}
+                  onMetadataEditableChange={setMetadataEditable}
+                  ethUsd={ethUsd}
+                  startPriceUsd={startPriceUsd}
+                />
+              </div>
+            )}
+
+            {/* Step 5: Review & Deploy */}
+            {currentStep === 5 && (
+              <div className="animate-meridian-fade">
+                <ReviewStep
+                  launchType={launchType}
+                  selectedStock={selectedStock}
+                  name={name}
+                  symbol={symbol}
+                  imagePreview={imagePreview}
+                  creatorPct={creatorPct}
+                  insiderTotalPct={insiderTotalPct}
+                  vestedTotalPct={vestedTotalPct}
+                  poolReservePct={poolReservePct}
+                  autoSeedLiquidity={autoSeedLiquidity}
+                  seedDex={seedDex}
+                  seedLiquidityEth={seedLiquidityEth}
+                  liquidityLocked={liquidityLocked}
+                  lockDurationDays={lockDurationDays}
+                  antiSnipeBlocks={antiSnipeBlocks}
+                  metadataEditable={metadataEditable}
+                  startPriceUsd={startPriceUsd}
+                  ethUsd={ethUsd}
+                  vanityAddress={vanityAddress}
+                  isConnected={isConnected}
+                  onRequestConnect={() => setShowModal(true)}
+                  isLaunching={launchLoading}
+                  launchStateText={launchStepStatus}
+                  launchError={launchError}
+                  onLaunch={() => void handleExecuteLaunch()}
+                  onRetry={() => void handleExecuteLaunch()}
+                  isFormValid={isFormValid}
+                  validationError={validationError}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Stepper Navigation Buttons (Back & Next) */}
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+            <button
+              type="button"
+              disabled={currentStep === 1 || launchLoading}
+              onClick={() => setCurrentStep((p) => Math.max(1, p - 1))}
+              className="py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[#0052FF] hover:border-[#0052FF] transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <ArrowLeft size={14} /> Back
+            </button>
+
+            {currentStep < 5 && (
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
-                className="shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--bg-hover)] hover:bg-[var(--bg-active)] flex flex-col items-center justify-center gap-1 overflow-hidden"
+                disabled={!canGoNextFromStep(currentStep)}
+                onClick={() => setCurrentStep((p) => Math.min(5, p + 1))}
+                className="py-2.5 px-5 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {imagePreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imagePreview} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <>
-                    <ImagePlus size={22} className="text-[var(--ink-muted)]" />
-                    <span className="text-[9px] font-bold text-slate-500">Image</span>
-                  </>
-                )}
+                Next <ArrowRight size={14} />
               </button>
-              {imagePreview && (
-                <button type="button" onClick={() => { revokePreviewUrl(imagePreview); setImagePreview(null); setImageBlob(null); }} className="text-[10px] text-rose-400 self-start">
-                  <X size={12} className="inline" /> Remove
-                </button>
-              )}
-
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="block sm:col-span-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Token name *</span>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    maxLength={32}
-                    placeholder="My Token"
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Symbol *</span>
-                  <input
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    required
-                    maxLength={10}
-                    placeholder="TOKEN"
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Quote token *</span>
-                  <select
-                    value={quoteToken}
-                    onChange={(e) => setQuoteToken(e.target.value as QuoteToken)}
-                    className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]"
-                  >
-                    <option value="ETH">ETH</option>
-                    <option value="USDC">USDC</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <label className="block">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Description</span>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={280}
-                rows={3}
-                placeholder="What is this token about?"
-                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none focus:border-[var(--accent)]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Start price (USD per token)</span>
-              <input
-                value={startPriceUsd}
-                onChange={(e) => setStartPriceUsd(e.target.value)}
-                className="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--accent)]"
-              />
-            </label>
-
-            <p className="text-[10px] font-bold text-slate-500 uppercase">Links (optional)</p>
-            <div className="grid grid-cols-1 gap-2">
-              <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourproject.xyz" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-              <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://x.com/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-              <input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="https://t.me/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-              <input value={discord} onChange={(e) => setDiscord(e.target.value)} placeholder="https://discord.gg/yourproject" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--accent)]" />
-            </div>
+            )}
           </div>
+        </div>
 
-          <VanityAddressCard
-            address={vanityAddress}
-            attempts={vanityAttempts}
-            grinding={grinding}
-            onRefresh={() => void runVanityGrind()}
-          />
-
-          <LaunchOptionsPanel
-            metadataEditable={metadataEditable}
-            onMetadataEditable={setMetadataEditable}
+        {/* Right Column: Sticky Live Preview, Pricing & Summary */}
+        <div className="lg:col-span-4">
+          <LaunchSummaryPanel
+            name={name}
+            symbol={symbol}
+            description={description}
+            imagePreview={imagePreview}
+            website={website}
+            twitter={twitter}
+            telegram={telegram}
+            quoteSymbol={effectiveQuoteSymbol}
+            startPriceUsd={startPriceUsd}
+            launchType={launchType}
             creatorPct={creatorPct}
-            onCreatorPct={(v) => {
-              setActivePreset(null);
-              setCreatorPct(v);
-            }}
-            insiders={insiders}
-            onInsiders={(v) => {
-              setActivePreset(null);
-              setInsiders(v);
-            }}
-            vested={vested}
-            onVested={(v) => {
-              setActivePreset(null);
-              setVested(v);
-            }}
-            poolPct={poolPct}
-            activePreset={activePreset}
-            onPreset={applyPreset}
-            antiSnipeBlocks={antiSnipeBlocks}
-            onAntiSnipeBlocks={setAntiSnipeBlocks}
-          />
-
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoSeedLiquidity}
-                onChange={(e) => setAutoSeedLiquidity(e.target.checked)}
-                className="mt-1"
-              />
-              <span>
-                <span className="text-sm font-bold text-white block">
-                  Auto-seed Aerodrome pool (enables in-app swaps)
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  Mints matching tokens + adds WETH liquidity right after launch.
-                </span>
-              </span>
-            </label>
-            {autoSeedLiquidity && (
-              <>
-              <label className="block">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">
-                  Seed pool on
-                </span>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {(
-                    [
-                      ["aerodrome", "Aerodrome"],
-                      ["uniswap", "Uniswap V3"],
-                      ["both", "Both (50/50 split)"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setSeedDex(id)}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
-                        seedDex === id
-                          ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
-                          : "border-white/10 text-slate-500 hover:text-slate-300"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </label>
-              <label className="block">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">
-                    ETH for initial liquidity
-                  </span>
-                  {seedUsd != null && (
-                    <span className="text-[11px] font-bold text-emerald-300 font-mono tabular-nums">
-                      ≈ {formatUsd(seedUsd)}
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="number"
-                  min={MIN_SEED_LIQUIDITY_ETH}
-                  step="0.00001"
-                  value={seedLiquidityEth}
-                  onChange={(e) => setSeedLiquidityEth(e.target.value)}
-                  className="mt-1 w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[var(--border-focus)]"
-                />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {SEED_LIQUIDITY_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setSeedLiquidityEth(preset)}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
-                        seedLiquidityEth === preset
-                          ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
-                          : "border-white/10 text-slate-500 hover:text-slate-300"
-                      }`}
-                    >
-                      {preset} ETH
-                      {ethUsd > 0 && (
-                        <span className="text-slate-500 font-normal ml-1">
-                          ({formatUsd(parseFloat(preset) * ethUsd)})
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {seedPreview && (
-                  <p className="text-[11px] text-[var(--ink-muted)] mt-2">
-                    ~{formatCompact(seedPreview.tokenHuman)} {symbol || "tokens"} minted to your
-                    wallet for the pool
-                    {seedUsd != null ? ` · ${formatUsd(seedUsd)} liquidity` : ""}
-                  </p>
-                )}
-              </label>
-              </>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={
-              launchLoading ||
-              imageUploading ||
-              !wallet ||
-              b20Activated !== true ||
-              !vanitySalt ||
-              grinding
-            }
-            className="w-full py-4 rounded-2xl font-black text-base bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            {launchLoading || imageUploading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                {imageUploading ? "Uploading image…" : "Confirm in wallet…"}
-              </>
-            ) : (
-              <>
-                <Upload size={18} />
-                Launch token
-              </>
-            )}
-          </button>
-
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            One B20 factory transaction mints liquid allocations atomically. Vested % (
-            {vestedPct}%) and pool seed ({poolPct}%) stay unminted. Gas ~$0.05–$0.15 on Base.
-            Launches include builder code{" "}
-            <span className="font-mono text-[var(--ink-muted)]">{BUILDER_CODE}</span>{" "}
-            via a companion attribution tx (B20 factory calldata stays canonical). Rabby may warn
-            &quot;not a contract&quot; on the B20 factory (
-            <span className="font-mono text-slate-400">0xB20f…</span>) — that is not your token;
-            your token address starts with <span className="font-mono text-emerald-400/90">0xB200…</span>.
-          </p>
-        </div>
-
-        <div className="xl:col-span-5">
-          <TokenLaunchPreview
-            data={{
-              name,
-              symbol,
-              description,
-              imagePreview,
-              website,
-              twitter,
-              supplyCap: "1B",
-              walletPct: creatorPct,
-              mintAmount: creatorTokens,
-              predictedAddress: vanityAddress,
-              poolPct,
-              vestedPct,
-              quoteToken,
-            }}
+            poolReservePct={poolReservePct}
+            vestedTotalPct={vestedTotalPct}
+            vanityAddress={vanityAddress}
+            vanityAttempts={vanityAttempts}
+            grinding={grinding}
+            autoSeedLiquidity={autoSeedLiquidity}
+            seedLiquidityEth={seedLiquidityEth}
+            seedDex={seedDex}
+            liquidityLocked={liquidityLocked}
+            lockDurationDays={lockDurationDays}
+            ethUsd={ethUsd}
+            onClearDraft={handleClearDraft}
           />
         </div>
-      </form>
+      </div>
+
+      {/* 3. Collapsible "What you get" section at the bottom */}
+      <WhatYouGetSection />
     </div>
   );
 }

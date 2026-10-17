@@ -16,39 +16,99 @@ export function parseSupplyCap(raw?: string): number {
   return base;
 }
 
+import { formatUnits } from "viem";
+
 export function formatCompact(n: number, digits = 2): string {
   if (!Number.isFinite(n)) return "—";
   const abs = Math.abs(n);
+  if (abs >= 1e12) return `${(n / 1e12).toFixed(digits)}T`;
   if (abs >= 1e9) return `${(n / 1e9).toFixed(digits)}B`;
   if (abs >= 1e6) return `${(n / 1e6).toFixed(digits)}M`;
   if (abs >= 1e3) return `${(n / 1e3).toFixed(digits)}K`;
   if (abs >= 1) return n.toLocaleString("en-US", { maximumFractionDigits: digits });
-  return n.toPrecision(3);
+  return n.toFixed(digits);
+}
+
+/** Formats token amounts without scientific notation, with commas or K/M/B abbreviations where appropriate. */
+export function formatTokenAmount(
+  amount: bigint | string | number | null | undefined,
+  decimals = 18
+): string {
+  if (amount == null) return "0";
+  let n: number;
+
+  if (typeof amount === "bigint") {
+    const dec = Number.isFinite(decimals) && decimals >= 0 ? decimals : 18;
+    const humanStr = formatUnits(amount, dec);
+    n = parseFloat(humanStr);
+  } else if (typeof amount === "string") {
+    const trimmed = amount.trim();
+    if (!trimmed || trimmed === "0") return "0";
+    if (/^\d+$/.test(trimmed)) {
+      // Raw integer/wei string: convert safely with formatUnits to avoid float overflow
+      const dec = Number.isFinite(decimals) && decimals >= 0 ? decimals : 18;
+      try {
+        n = parseFloat(formatUnits(BigInt(trimmed), dec));
+      } catch {
+        n = parseFloat(trimmed);
+      }
+    } else {
+      n = parseFloat(trimmed);
+    }
+  } else {
+    n = amount;
+  }
+
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}T`;
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e4) return `${(n / 1e3).toFixed(2)}K`;
+  if (n >= 1) {
+    return n.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    });
+  }
+  if (n >= 0.0001) {
+    return n.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+  }
+  // Small token amounts: display clean decimal places, never scientific notation
+  const s = n.toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+  return s === "0" ? "<0.00000001" : s;
 }
 
 export function formatUsd(n: number | undefined | null): string {
   if (n === undefined || n === null || !Number.isFinite(n)) return "—";
+  if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
   if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `$${(n / 1e3).toFixed(2)}K`;
   if (n >= 1) return `$${n.toFixed(2)}`;
   if (n >= 0.01) return `$${n.toFixed(4)}`;
-  return `$${n.toExponential(2)}`;
+  if (n <= 0) return "$0.00";
+  // Small USD numbers: format with subscript or clean decimals, never scientific notation
+  return formatSubscriptPrice(n);
 }
 
 export function formatEth(n: number | undefined | null): string {
   if (n === undefined || n === null || !Number.isFinite(n)) return "—";
   if (n >= 1) return `${n.toFixed(4)} ETH`;
   if (n >= 0.0001) return `${n.toFixed(6)} ETH`;
-  return `${n.toExponential(2)} ETH`;
+  if (n <= 0) return "0 ETH";
+  const s = n.toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+  return `${s === "0" ? "<0.00000001" : s} ETH`;
 }
 
 export function formatSubscriptPrice(usd: number): string {
   if (!Number.isFinite(usd) || usd <= 0) return "—";
   if (usd >= 0.01) return `$${usd.toFixed(4)}`;
-  const str = usd.toFixed(20);
+  const str = usd.toFixed(14);
   const match = str.match(/^0\.(0+)(\d{2,6})/);
-  if (!match) return `$${usd.toExponential(2)}`;
+  if (!match) {
+    const fallback = usd.toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+    return `$${fallback === "0" ? "<0.00000001" : fallback}`;
+  }
   const zeros = match[1].length;
   const sig = match[2];
   const sub = String(zeros)

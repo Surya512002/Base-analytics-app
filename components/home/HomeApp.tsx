@@ -16,10 +16,9 @@ import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import type { LaunchpadShellBridge } from "@/components/launchpad/LaunchpadTab";
-import { syncTabUrl, syncRewardsHubUrl, isRewardsHubTab, type RewardsHubView } from "@/lib/utils/app-url";
+import { syncTabUrl } from "@/lib/utils/app-url";
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
-import type { X402ProductId } from "@/lib/constants/x402-products";
 
 const SwapTab = dynamic(
   () => import("@/components/swap/SwapTab"),
@@ -29,32 +28,24 @@ const LaunchpadTab = dynamic(
   () => import("@/components/launchpad/LaunchpadTab"),
   { loading: () => <TabSkeleton /> }
 );
-const DashboardTab = dynamic(
-  () => import("@/components/wallet/tabs/DashboardTab"),
-  { loading: () => <TabSkeleton /> }
-);
-const RewardsHubTab = dynamic(
-  () => import("@/components/wallet/tabs/RewardsHubTab"),
-  { loading: () => <TabSkeleton /> }
-);
-const AchievementsTab = dynamic(
-  () => import("@/components/wallet/tabs/AchievementsTab"),
-  { loading: () => <TabSkeleton /> }
-);
 const BaseVoucherTab = dynamic(
   () => import("@/components/wallet/tabs/BaseVoucherTab"),
+  { loading: () => <TabSkeleton /> }
+);
+const LendingHub = dynamic(
+  () => import("@/components/lending/LendingHub"),
   { loading: () => <TabSkeleton /> }
 );
 
 function TabSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
-      <div className="h-32 glass-panel rounded-3xl" />
+    <div className="space-y-4 animate-meridian-fade">
+      <div className="h-32 skeleton-shimmer rounded-2xl border border-[var(--border-subtle)]" />
       <div className="grid grid-cols-2 gap-3">
-        <div className="h-24 glass-panel rounded-2xl" />
-        <div className="h-24 glass-panel rounded-2xl" />
+        <div className="h-24 skeleton-shimmer rounded-xl border border-[var(--border-subtle)]" />
+        <div className="h-24 skeleton-shimmer rounded-xl border border-[var(--border-subtle)]" />
       </div>
-      <div className="h-48 glass-panel rounded-3xl" />
+      <div className="h-48 skeleton-shimmer rounded-2xl border border-[var(--border-subtle)]" />
     </div>
   );
 }
@@ -62,9 +53,10 @@ function TabSkeleton() {
 export type HomeAppProps = {
   initialToken?: string | null;
   forceTab?: AppTab;
+  initialLaunchView?: "explore" | "create" | "trade";
 };
 
-export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
+export default function HomeApp({ initialToken, forceTab, initialLaunchView }: HomeAppProps) {
   const router = useRouter();
   const app = useWalletApp();
   const {
@@ -86,8 +78,6 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
     sponsored,
     handleDisconnect,
     walletScanComplete,
-    handlePremiumScan,
-    setX402Product,
     sessionBootstrapped,
     siweAuthenticated,
     siweSessionChecked,
@@ -119,26 +109,20 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   }, [setShowModal]);
 
   const handleTabChange = useCallback(
-    (next: AppTab, opts?: { rewardsView?: RewardsHubView; token?: string | null }) => {
-      if (guest && next !== "launchpad" && next !== "swap") {
+    (next: AppTab, opts?: { token?: string | null }) => {
+      if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
         openConnect();
         return;
       }
-      const resolved = next === "rewards" ? "checkin" : next;
-      // /explore and /swap pin forceTab — leave the route when navigating away.
-      if (forceTab && resolved !== forceTab) {
-        router.push(hrefForAppTab(resolved));
+      if (forceTab && next !== forceTab) {
+        router.push(hrefForAppTab(next));
         return;
       }
-      setTab(resolved);
-      if (resolved === "checkin") {
-        syncRewardsHubUrl(
-          opts?.rewardsView ?? (next === "rewards" ? "stake" : "checkin")
-        );
-      } else if (opts?.token) {
-        syncTabUrl(resolved, { token: opts.token });
+      setTab(next);
+      if (opts?.token) {
+        syncTabUrl(next, { token: opts.token });
       } else {
-        syncTabUrl(resolved);
+        syncTabUrl(next);
       }
     },
     [guest, openConnect, setTab, forceTab, router]
@@ -147,14 +131,6 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
   const handleShellBridge = useCallback((bridge: LaunchpadShellBridge) => {
     setLaunchBridge(bridge);
   }, []);
-
-  const handlePayAgent = useCallback(
-    (productId: X402ProductId) => {
-      setX402Product(productId);
-      void handlePremiumScan(productId);
-    },
-    [handlePremiumScan, setX402Product]
-  );
 
   if (!ready || !sessionBootstrapped) return <LoadingScreen />;
 
@@ -183,7 +159,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
             tab={activeTab}
             onTabChange={handleTabChange}
             walletAddress={wallet?.address}
-            walletRefreshing={walletRefreshing || (analyticsSyncing && activeTab === "dashboard")}
+            walletRefreshing={walletRefreshing}
             scanProgress={scanProgress}
             onDisconnect={handleDisconnect}
             guest={guest}
@@ -231,7 +207,9 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
         {!guest && (
           <>
             <OnboardingTour onNavigate={handleTabChange} ready={walletScanComplete} />
-            <AppFeatureStrip onNavigate={handleTabChange} />
+            {activeTab !== "swap" && activeTab !== "basehub" && activeTab !== "launchpad" && (
+              <AppFeatureStrip onNavigate={handleTabChange} />
+            )}
           </>
         )}
 
@@ -243,7 +221,7 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
               onRequestConnect={openConnect}
               onShellBridge={handleShellBridge}
               onNavigate={handleTabChange}
-              onPayAgent={handlePayAgent}
+              initialView={initialLaunchView}
               isActive
             />
           )}
@@ -255,10 +233,14 @@ export default function HomeApp({ initialToken, forceTab }: HomeAppProps) {
               initialToken={initialToken}
             />
           )}
+          {activeTab === "lend" && (
+            <LendingHub
+              app={app}
+              guestMode={guest}
+              onRequestConnect={openConnect}
+            />
+          )}
           {!guest && activeTab === "basehub" && <BaseVoucherTab app={app} />}
-          {!guest && activeTab === "dashboard" && <DashboardTab app={app} />}
-          {!guest && isRewardsHubTab(activeTab) && <RewardsHubTab app={app} />}
-          {!guest && activeTab === "achievements" && <AchievementsTab app={app} />}
         </div>
 
         <AppFooterNav />

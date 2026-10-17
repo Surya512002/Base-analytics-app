@@ -42,7 +42,7 @@ function CopyField({
         <button
           type="button"
           onClick={() => onCopy(value, copyId)}
-          className="flex items-center gap-1.5 text-[11px] font-black px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-95 transition"
+          className="pop-pill flex items-center gap-1.5 text-[11px] font-black px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-95 transition cursor-pointer"
         >
           {done ? <CheckCircle size={14} /> : <Copy size={14} />}
           {done ? "Copied!" : "Copy"}
@@ -80,7 +80,7 @@ export default function VoucherCredentialCard({
 
   return (
     <div
-      className={`rounded-2xl border-2 p-4 sm:p-5 space-y-4 ${
+      className={`pop-row rounded-2xl border-2 p-4 sm:p-5 space-y-4 ${
         redeemed
           ? "border-slate-500/35 bg-slate-500/8 opacity-75"
           : "border-emerald-500/35 bg-emerald-500/6"
@@ -103,13 +103,14 @@ export default function VoucherCredentialCard({
           ) : (
             <>
               {showAmount && (
-                <span className="text-xs font-black text-emerald-700 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
                   {formatVoucherAmount(asset, amountPerCard)}
                 </span>
               )}
-              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">
+              <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
                 Available
               </span>
+
             </>
           )}
         </div>
@@ -158,7 +159,7 @@ export default function VoucherCredentialCard({
           <button
             type="button"
             onClick={() => onCopy(`${cardId}\n${secret}`, bothId)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition"
+            className="pop-pill flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition cursor-pointer"
           >
             {copied === bothId ? <CheckCircle size={16} /> : <Copy size={16} />}
             {copied === bothId ? "Copied ID + Secret!" : "Copy ID + Secret"}
@@ -168,7 +169,7 @@ export default function VoucherCredentialCard({
           <button
             type="button"
             onClick={() => onCopy(shareText, cardId)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-soft)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition"
+            className="pop-pill flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-soft)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition cursor-pointer"
           >
             {copied === cardId ? <CheckCircle size={16} /> : <Copy size={16} />}
             Copy full card
@@ -177,7 +178,7 @@ export default function VoucherCredentialCard({
         <button
           type="button"
           onClick={() => onCopy(cardId, `id-only-${cardId}`)}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition"
+          className="pop-pill flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition cursor-pointer"
         >
           {copied === `id-only-${cardId}` ? <CheckCircle size={16} /> : <Copy size={16} />}
           Copy Card ID

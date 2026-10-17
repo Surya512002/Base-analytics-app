@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Rocket, Sparkles, Trophy, X } from "lucide-react";
+import { ArrowLeftRight, Coins, Rocket, Sparkles, X } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
-const TOUR_KEY = "base_onboarding_done_v6";
+const TOUR_KEY = "base_onboarding_done_v7";
 
 const STEPS: {
   icon: React.ReactNode;
@@ -19,19 +19,19 @@ const STEPS: {
     tab: "launchpad",
   },
   {
-    icon: <BarChart3 size={20} className="text-[var(--ink-muted)]" />,
-    title: "Your onchain score",
-    body: "Analytics shows your score, heatmap, improvement tips, and shareable challenge links.",
-    tab: "dashboard",
+    icon: <Coins size={20} className="text-blue-400" />,
+    title: "Tokenized Stocks & Lending",
+    body: "Browse Coinbase Tokenized Stocks (NVDAc, AAPLc) and compare Morpho, Aave & Euler loan yields.",
+    tab: "lend",
   },
   {
-    icon: <Trophy size={20} className="text-amber-400" />,
-    title: "Quests & weekly XP",
-    body: "Check in daily, complete weekly quests from swaps and launches, and climb rankings.",
-    tab: "checkin",
+    icon: <ArrowLeftRight size={20} className="text-purple-400" />,
+    title: "Launch with Creator Revenue",
+    body: "Launch B20 vanity tokens, meme coins, or stock-paired memestocks with automatic 0.25% creator fee splits.",
+    tab: "launchpad",
   },
   {
-    icon: <Sparkles size={20} className="text-[var(--ink-muted)]" />,
+    icon: <Sparkles size={20} className="text-amber-400" />,
     title: "Gift crypto with vouchers",
     body: "Create USDC or ETH gift cards on Base — share a link and recipients redeem in one tap.",
     tab: "basehub",

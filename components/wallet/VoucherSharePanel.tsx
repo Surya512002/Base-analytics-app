@@ -51,11 +51,11 @@ export default function VoucherSharePanel({ batch }: VoucherSharePanelProps) {
         </p>
       </div>
 
-      <div className="rounded-xl bg-black/30 border border-white/10 p-3">
-        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">
+      <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3">
+        <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-2">
           Suggested message
         </p>
-        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+        <p className="text-xs text-[var(--ink)] leading-relaxed whitespace-pre-line">
           {buildVoucherCastText(batch)}
         </p>
       </div>
@@ -64,7 +64,7 @@ export default function VoucherSharePanel({ batch }: VoucherSharePanelProps) {
         <button
           type="button"
           onClick={() => copy(copyBatchShareText(batch), "all")}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--surface-3)] transition-colors"
         >
           {copied === "all" ? <CheckCircle size={16} /> : <Copy size={16} />}
           {copied === "all" ? "Copied!" : "Copy all cards"}
@@ -72,7 +72,7 @@ export default function VoucherSharePanel({ batch }: VoucherSharePanelProps) {
         <button
           type="button"
           onClick={() => copy(buildVoucherShareMessage(batch), "msg")}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--surface-3)] transition-colors"
         >
           {copied === "msg" ? <CheckCircle size={16} /> : <Copy size={16} />}
           {copied === "msg" ? "Copied!" : "Copy message"}

@@ -10,11 +10,12 @@ function parseShareBps(key: string, fallback: number): number {
 
 /**
  * Share of the platform fee (bps of fee amount, must sum to 10000).
- * Default favors creators — 60% creator, 20% platform, 20% referrer.
+ * Updated structure: 0.5% total fee split evenly between creator (0.25%) and platform (0.25%).
+ * Referral fee removed (0%).
  */
-export const FEE_SHARE_CREATOR_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_CREATOR_BPS", 6000);
-export const FEE_SHARE_PLATFORM_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_PLATFORM_BPS", 2000);
-export const FEE_SHARE_REFERRER_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_REFERRER_BPS", 2000);
+export const FEE_SHARE_CREATOR_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_CREATOR_BPS", 5000);
+export const FEE_SHARE_PLATFORM_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_PLATFORM_BPS", 5000);
+export const FEE_SHARE_REFERRER_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_REFERRER_BPS", 0);
 
 const FEE_SHARE_SUM =
   FEE_SHARE_CREATOR_BPS + FEE_SHARE_PLATFORM_BPS + FEE_SHARE_REFERRER_BPS;
@@ -108,3 +109,12 @@ export function feeShareLabels() {
     referrer: `${FEE_SHARE_REFERRER_BPS / 100}%`,
   };
 }
+
+export function feeBreakdownLabels() {
+  return {
+    totalFeeLabel: "0.50%",
+    creatorShareLabel: "0.25%",
+    platformShareLabel: "0.25%",
+  };
+}
+

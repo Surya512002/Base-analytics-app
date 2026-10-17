@@ -63,8 +63,16 @@ export function amountFromBalanceFraction(
 /** Display balance in UI hints (wallet row, balance label). */
 export function formatTokenBalanceDisplay(value: number, decimals: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0";
-  if (value >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  if (value >= 1) return value.toFixed(Math.min(4, decimals));
-  if (value >= 0.0001) return value.toFixed(Math.min(6, decimals));
-  return value.toPrecision(4);
+  if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+  if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
+  if (value >= 1) {
+    return value.toLocaleString("en-US", { maximumFractionDigits: Math.min(4, Math.max(decimals, 2)) });
+  }
+  if (value >= 0.0001) {
+    return value.toFixed(Math.min(6, Math.max(decimals, 4))).replace(/0+$/, "").replace(/\.$/, "");
+  }
+  const s = value.toFixed(Math.min(8, Math.max(decimals, 8))).replace(/0+$/, "").replace(/\.$/, "");
+  return s === "0" ? "<0.00000001" : s;
 }

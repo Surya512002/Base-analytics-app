@@ -47,7 +47,7 @@ export default function PayLinkPage() {
             </p>
             <h1 className="text-2xl font-black text-[var(--ink)]">Send on Base</h1>
             <p className="text-sm text-[var(--ink-muted)] mt-2">
-              Gift cards, x402 payments, and wallet analytics — all on Base.
+              Send tokens, crypto gift vouchers, or trade on Base.
             </p>
           </div>
 
@@ -70,33 +70,33 @@ export default function PayLinkPage() {
 
           <div className="space-y-2">
             <Link
-              href={`${APP_URL_WEB}/?tab=voucher`}
+              href={`${APP_URL_WEB}/redeem`}
               className="flex items-center gap-3 w-full p-4 rounded-2xl glass-panel-accent border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition"
             >
               <Gift size={20} className="text-[var(--ink-muted)] shrink-0" />
               <div className="text-left">
                 <p className="font-black text-[var(--ink)] text-sm">Send a Base Voucher</p>
-                <p className="text-[11px] text-[var(--ink-muted)]">ETH or USDC gift cards — from $1</p>
+                <p className="text-[11px] text-[var(--ink-muted)]">ETH or USDC gift cards — redeemable instantly</p>
               </div>
             </Link>
             <Link
-              href={`${APP_URL_WEB}/?tab=dashboard`}
+              href={`${APP_URL_WEB}/swap`}
               className="flex items-center gap-3 w-full p-4 rounded-2xl glass-panel border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition"
             >
               <Zap size={20} className="text-[var(--ink-muted)] shrink-0" />
               <div className="text-left">
-                <p className="font-black text-[var(--ink)] text-sm">x402 Payment</p>
-                <p className="text-[11px] text-[var(--ink-muted)]">Pay from $0.01 USDC — decentralized</p>
+                <p className="font-black text-[var(--ink)] text-sm">Swap &amp; Trade Tokens</p>
+                <p className="text-[11px] text-[var(--ink-muted)]">DEX swaps with 0.5% smart routing</p>
               </div>
             </Link>
             <Link
-              href={`${APP_URL_WEB}/?tab=dashboard`}
+              href={`${APP_URL_WEB}/lend`}
               className="flex items-center gap-3 w-full p-4 rounded-2xl glass-panel border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition"
             >
               <BarChart3 size={20} className="text-[var(--ink-muted)] shrink-0" />
               <div className="text-left">
-                <p className="font-black text-[var(--ink)] text-sm">Free wallet scan</p>
-                <p className="text-[11px] text-[var(--ink-muted)]">Score, badges & leaderboard</p>
+                <p className="font-black text-[var(--ink)] text-sm">Lending &amp; Yield Terminal</p>
+                <p className="text-[11px] text-[var(--ink-muted)]">Compare Aave &amp; Morpho Blue rates on Base</p>
               </div>
             </Link>
           </div>

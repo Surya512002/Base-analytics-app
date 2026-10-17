@@ -127,7 +127,7 @@ export default function ExploreSearchBar({
       </div>
 
       {open && (query || recent.length > 0) && (
-        <div className="absolute z-40 mt-2 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden max-h-[min(360px,50vh)] overflow-y-auto">
+        <div className="absolute z-40 mt-2 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden max-h-[min(360px,50vh)] overflow-y-auto animate-meridian-rise">
           {query && results.length === 0 && (
             <p className="px-4 py-3 text-sm text-[var(--ink-muted)]">No tokens match “{query}”</p>
           )}

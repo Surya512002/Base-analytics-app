@@ -66,9 +66,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${figtree.variable} ${syne.variable}`}>
+    <html lang="en" className={`${figtree.variable} ${syne.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://auth.farcaster.xyz" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");var isDark=t!=="light";if(isDark){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-w-0 w-full bg-[var(--background)] text-[var(--foreground)] antialiased">
         <Providers>{children}</Providers>

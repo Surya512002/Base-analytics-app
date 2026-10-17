@@ -1,5 +1,11 @@
 import { keccak256, toBytes, parseUnits, formatUnits } from "viem";
 import { APP_URL_WEB } from "@/lib/constants/env";
+import {
+  BASE_STOCKS,
+  getBaseStockBySymbol,
+  getBaseStockByAddress,
+  BASE_STOCK_DECIMALS,
+} from "@/lib/stocks/base-stocks";
 
 export const MAX_VOUCHER_CARDS = 50;
 export const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
@@ -7,7 +13,7 @@ export const USDC_DECIMALS = 6;
 
 const CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-export type VoucherAsset = "ETH" | "USDC";
+export type VoucherAsset = "ETH" | "USDC" | string;
 
 export interface VoucherCard {
   batchId: number;
@@ -89,9 +95,117 @@ export function parseUsdcAmount(input: string): bigint | null {
   return parseUnits(n.toFixed(6), USDC_DECIMALS);
 }
 
+export interface VaultShareInfo {
+  symbol: string;
+  name: string;
+  underlyingSymbol: string;
+  address: `0x${string}`;
+  apy: number;
+  protocol: string;
+  icon: string;
+  decimals: number;
+}
+
+export const YIELD_VAULT_SHARES: readonly VaultShareInfo[] = [
+  {
+    symbol: "mvNVDAc",
+    name: "Morpho NVDA Yield Vault",
+    underlyingSymbol: "NVDAc",
+    address: "0xbBBBbbbC7a483B6F67D4fC4b24894e0341773099",
+    apy: 8.45,
+    protocol: "Morpho Blue",
+    icon: "⚡",
+    decimals: 8,
+  },
+  {
+    symbol: "mvAAPLc",
+    name: "Morpho Apple Yield Vault",
+    underlyingSymbol: "AAPLc",
+    address: "0x8888888888a1aB3c473C24E48123281987114888",
+    apy: 6.50,
+    protocol: "Morpho Midnight",
+    icon: "🍏",
+    decimals: 8,
+  },
+  {
+    symbol: "sfNVDAc",
+    name: "SuperStocks NVDA Carry Vault",
+    underlyingSymbol: "NVDAc",
+    address: "0x555555555555AE28F73b88A87B1c1e920aD51871",
+    apy: 13.85,
+    protocol: "Superform",
+    icon: "🔮",
+    decimals: 8,
+  },
+  {
+    symbol: "mvCOINc",
+    name: "Morpho Coinbase Yield Vault",
+    underlyingSymbol: "COINc",
+    address: "0xbBBBbbbC7a483B6F67D4fC4b24894e0341773099",
+    apy: 9.15,
+    protocol: "Morpho Blue",
+    icon: "🪙",
+    decimals: 8,
+  },
+];
+
+export function isVaultShareAsset(asset: string): boolean {
+  return YIELD_VAULT_SHARES.some((v) => v.symbol.toLowerCase() === asset.toLowerCase());
+}
+
+export function getVaultShareBySymbol(symbol: string): VaultShareInfo | null {
+  return YIELD_VAULT_SHARES.find((v) => v.symbol.toLowerCase() === symbol.toLowerCase()) ?? null;
+}
+
+export function getVaultShareByAddress(address: string): VaultShareInfo | null {
+  return YIELD_VAULT_SHARES.find((v) => v.address.toLowerCase() === address.toLowerCase()) ?? null;
+}
+
+export function isStockAsset(asset: string): boolean {
+  return (
+    asset !== "ETH" &&
+    asset !== "USDC" &&
+    (Boolean(getBaseStockBySymbol(asset)) || isVaultShareAsset(asset))
+  );
+}
+
+export function parseStockAmount(input: string, decimals = BASE_STOCK_DECIMALS): bigint | null {
+  const n = parseFloat(input);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return parseUnits(n.toFixed(decimals).replace(/\.?0+$/, "") || "0", decimals);
+}
+
+export function parseAssetAmount(input: string, asset: VoucherAsset): bigint | null {
+  if (asset === "ETH") return parseEthAmount(input);
+  if (asset === "USDC") return parseUsdcAmount(input);
+  return parseStockAmount(input, BASE_STOCK_DECIMALS);
+}
+
 export function formatVoucherAmount(asset: VoucherAsset, wei: bigint): string {
   if (asset === "ETH") return `${formatUnits(wei, 18)} ETH`;
-  return `$${formatUnits(wei, USDC_DECIMALS)} USDC`;
+  if (asset === "USDC") return `$${formatUnits(wei, USDC_DECIMALS)} USDC`;
+  if (isVaultShareAsset(asset)) {
+    const vault = getVaultShareBySymbol(asset);
+    const shares = formatUnits(wei, BASE_STOCK_DECIMALS);
+    const cleanShares = parseFloat(shares).toString();
+    return `${cleanShares} ${asset} Vault Shares (${vault?.name ?? asset} · +${vault?.apy.toFixed(2)}% APY)`;
+  }
+  const stock = getBaseStockBySymbol(asset);
+  const shares = formatUnits(wei, BASE_STOCK_DECIMALS);
+  const cleanShares = parseFloat(shares).toString();
+  return `${cleanShares} ${asset} Share${cleanShares !== "1" ? "s" : ""}${stock ? ` (${stock.name})` : ""}`;
+}
+
+export function assetToToken(asset: VoucherAsset): `0x${string}` {
+  if (asset === "ETH") return "0x0000000000000000000000000000000000000000";
+  if (asset === "USDC") return USDC_BASE;
+  if (isVaultShareAsset(asset)) {
+    const vault = getVaultShareBySymbol(asset);
+    if (vault) return vault.address;
+  }
+  const stock = getBaseStockBySymbol(asset);
+  if (stock) return stock.address;
+  return USDC_BASE;
 }
 
 export function storageKey(address: string): string {
@@ -396,8 +510,7 @@ export function computeSplit(
   cardCount: number,
   asset: VoucherAsset
 ): SplitBreakdown | null {
-  const total =
-    asset === "ETH" ? parseEthAmount(totalInput) : parseUsdcAmount(totalInput);
+  const total = parseAssetAmount(totalInput, asset);
   if (!total || cardCount < 1 || cardCount > MAX_VOUCHER_CARDS) return null;
   const perCard = evenSplit(total, cardCount);
   return {
@@ -416,7 +529,13 @@ export function formatSplitSummary(split: SplitBreakdown): string {
 }
 
 export function tokenToAsset(token: string): VoucherAsset {
-  return token === "0x0000000000000000000000000000000000000000" ? "ETH" : "USDC";
+  if (!token || token === "0x0000000000000000000000000000000000000000") return "ETH";
+  if (token.toLowerCase() === USDC_BASE.toLowerCase()) return "USDC";
+  const vault = getVaultShareByAddress(token);
+  if (vault) return vault.symbol;
+  const stock = getBaseStockByAddress(token);
+  if (stock) return stock.symbol;
+  return "USDC";
 }
 
 export function formatCardShareText(
@@ -425,8 +544,15 @@ export function formatCardShareText(
   appUrl = APP_URL_WEB
 ): string {
   const amount = formatVoucherAmount(batch.asset, BigInt(batch.amountPerCard));
+  const isVault = isVaultShareAsset(batch.asset);
+  const isStock = isStockAsset(batch.asset);
+  const vault = isVault ? getVaultShareBySymbol(batch.asset) : null;
   const lines = [
-    "🎁 Base Voucher — Crypto Gift Card",
+    isVault
+      ? `📈 Yield-Bearing Stock Vault Gift Card — ${vault?.protocol ?? "Vault"} (+${vault?.apy ?? 0}% APY)`
+      : isStock
+        ? `📈 Base Stock Gift Voucher — ${batch.asset} Shares`
+        : "🎁 Base Voucher — Crypto Gift Card",
     "",
     `Card ID: ${card.cardId}`,
     `Secret: ${card.secret}`,
@@ -445,7 +571,14 @@ export function formatBatchShareText(
   batch: StoredVoucherBatch,
   appUrl = APP_URL_WEB
 ): string {
-  const header = `🎁 Base Voucher Batch #${batch.batchId} (${batch.cardCount} cards)`;
+  const isVault = isVaultShareAsset(batch.asset);
+  const isStock = isStockAsset(batch.asset);
+  const vault = isVault ? getVaultShareBySymbol(batch.asset) : null;
+  const header = isVault
+    ? `📈 Yield-Bearing Vault Batch #${batch.batchId} (${batch.cardCount} cards of ${batch.asset} · +${vault?.apy ?? 0}% APY)`
+    : isStock
+      ? `📈 Base Stock Gift Batch #${batch.batchId} (${batch.cardCount} cards of ${batch.asset})`
+      : `🎁 Base Voucher Batch #${batch.batchId} (${batch.cardCount} cards)`;
   const body = batch.cards
     .map((c) => formatCardShareText(c, batch, appUrl))
     .join("\n\n---\n\n");

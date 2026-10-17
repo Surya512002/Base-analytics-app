@@ -1,4 +1,4 @@
-import { Redis } from "ioredis";
+import type { Redis } from "ioredis";
 
 let client: Redis | null = null;
 let redisUnavailable = false;
@@ -38,28 +38,37 @@ function disableRedis(reason: string) {
 }
 
 function getRedis(): Redis | null {
-  if (redisUnavailable) return null;
+  // If running in browser, Redis client is not available (TCP/DNS not in browser)
+  if (typeof window !== "undefined" || redisUnavailable) return null;
   const raw = process.env.KV_REDIS_URL?.trim();
   if (!raw) return null;
 
   if (!client) {
-    const url = normalizeRedisUrl(raw);
-    client = new Redis(url, {
-      tls: url.startsWith("rediss://")
-        ? { rejectUnauthorized: false }
-        : undefined,
-      lazyConnect: true,
-      maxRetriesPerRequest: 0,
-      connectTimeout: 3000,
-      commandTimeout: 2000,
-      enableReadyCheck: false,
-      retryStrategy: () => null,
-    });
-    client.on("error", (e) => {
-      if (AUTH_ERROR.test(e.message)) {
-        disableRedis("check KV_REDIS_URL username/password in Redis Cloud");
-      }
-    });
+    try {
+      // Dynamically require ioredis only on server so webpack never bundles ioredis/dns into client builds
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Redis: RedisConstructor } = require("ioredis") as typeof import("ioredis");
+      const url = normalizeRedisUrl(raw);
+      client = new RedisConstructor(url, {
+        tls: url.startsWith("rediss://")
+          ? { rejectUnauthorized: false }
+          : undefined,
+        lazyConnect: true,
+        maxRetriesPerRequest: 0,
+        connectTimeout: 3000,
+        commandTimeout: 2000,
+        enableReadyCheck: false,
+        retryStrategy: () => null,
+      });
+      client.on("error", (e) => {
+        if (AUTH_ERROR.test(e.message)) {
+          disableRedis("check KV_REDIS_URL username/password in Redis Cloud");
+        }
+      });
+    } catch {
+      disableRedis("ioredis load failed");
+      return null;
+    }
   }
   return client;
 }

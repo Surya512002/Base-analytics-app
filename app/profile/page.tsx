@@ -41,13 +41,12 @@ export default function ProfilePage() {
 
   const handleTabChange = useCallback(
     (next: AppTab) => {
-      if (guest && next !== "launchpad" && next !== "swap") {
+      if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
         setShowModal(true);
         return;
       }
-      const resolved = next === "rewards" ? "checkin" : next;
-      setTab(resolved);
-      router.push(hrefForAppTab(resolved));
+      setTab(next);
+      router.push(hrefForAppTab(next));
     },
     [guest, router, setShowModal, setTab]
   );

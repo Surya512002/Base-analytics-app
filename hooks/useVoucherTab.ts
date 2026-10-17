@@ -52,7 +52,8 @@ import {
 } from "@/lib/utils/paymaster";
 import { bumpWeeklyTxKey } from "@/lib/utils/wallet-session";
 import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
-import { USDC_PRESETS, ETH_PRESETS } from "@/components/voucher/voucher-constants";
+import { USDC_PRESETS, ETH_PRESETS, STOCK_PRESETS } from "@/components/voucher/voucher-constants";
+import { assetToToken, isStockAsset } from "@/lib/utils/voucher";
 import type {
   VoucherView,
   ViewedCard,
@@ -63,6 +64,7 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import { txHashFromLifecycle } from "@/lib/utils/tx-status";
 import type { LifecycleStatus } from "@coinbase/onchainkit/transaction";
 import { APP_URL_WEB } from "@/lib/constants/env";
+import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
 
 export function useVoucherTab(app: WalletAppState) {
   const { showToast, setSponsored, setTab, wallet, setTxKeys, connType, setPointsRevision } = app;
@@ -376,17 +378,25 @@ export function useVoucherTab(app: WalletAppState) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const urlCard = new URLSearchParams(window.location.search).get("card");
-    const stored = localStorage.getItem("base_redeem_card");
-    const card = (urlCard || stored || "").trim();
-    if (!card) return;
+    const { cardId, secret, hasVoucherIntent } = parseCurrentUrlClaim();
+    if (!cardId && !secret && !hasVoucherIntent) return;
     setView("redeem");
-    setRedeemCardId(card);
-    setDebouncedRedeemCardId(card);
-    localStorage.removeItem("base_redeem_card");
+    if (cardId) {
+      setRedeemCardId(cardId);
+      setDebouncedRedeemCardId(cardId);
+    }
+    if (secret) {
+      setRedeemSecret(secret);
+    }
+    try {
+      localStorage.removeItem("base_redeem_card");
+    } catch {
+      // Safe ignore
+    }
   }, []);
 
-  const activePresets = asset === "USDC" ? USDC_PRESETS : ETH_PRESETS;
+  const activePresets =
+    asset === "USDC" ? USDC_PRESETS : asset === "ETH" ? ETH_PRESETS : STOCK_PRESETS;
   const activePresetKey = `${totalAmount}:${cardCountInput}`;
 
   const cardRedeemedMap = useMemo(() => {
@@ -577,7 +587,7 @@ export function useVoucherTab(app: WalletAppState) {
         return;
       }
 
-      const batchAsset = result.asset === "ETH" || result.asset === "USDC" ? result.asset : asset;
+      const batchAsset = result.asset ? result.asset : asset;
 
       if (!result.credentialsSaved) {
         console.warn("[BaseVoucher] Server did not confirm credential save — retrying");
@@ -683,15 +693,16 @@ export function useVoucherTab(app: WalletAppState) {
   );
 
   useEffect(() => {
-    if (!address || !pendingCards || pendingAsset !== "USDC" || !publicClient) {
+    if (!address || !pendingCards || pendingAsset === "ETH" || !publicClient) {
       setUsdcAllowance(null);
       return;
     }
+    const tokenAddr = assetToToken(pendingAsset);
     let cancelled = false;
     setCheckingAllowance(true);
     publicClient
       .readContract({
-        address: USDC_BASE as `0x${string}`,
+        address: tokenAddr,
         abi: ERC20_ABI,
         functionName: "allowance",
         args: [address, VOUCHER_CONTRACT as `0x${string}`],
@@ -724,9 +735,10 @@ export function useVoucherTab(app: WalletAppState) {
   }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
 
   const approveUsdcCall = useMemo(() => {
-    if (!pendingCards || !contractReady || pendingAsset !== "USDC") return [];
+    if (!pendingCards || !contractReady || pendingAsset === "ETH") return [];
+    const tokenAddr = assetToToken(pendingAsset);
     return [
-      encodeContractCall(USDC_BASE as `0x${string}`, ERC20_ABI, "approve", [
+      encodeContractCall(tokenAddr, ERC20_ABI, "approve", [
         VOUCHER_CONTRACT as `0x${string}`,
         pendingTotal,
       ]),
@@ -734,9 +746,21 @@ export function useVoucherTab(app: WalletAppState) {
   }, [pendingCards, contractReady, pendingAsset, pendingTotal]);
 
   const createUsdcCall = useMemo(() => {
-    if (!pendingCards || !contractReady || pendingAsset !== "USDC") return [];
+    if (!pendingCards || !contractReady || pendingAsset === "ETH") return [];
+    if (pendingAsset === "USDC") {
+      return [
+        encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createUsdcBatch", [
+          BigInt(pendingCards.cardCount),
+          pendingHashes,
+          pendingCards.message.trim(),
+          pendingTotal,
+        ]),
+      ];
+    }
+    const tokenAddr = assetToToken(pendingAsset);
     return [
-      encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createUsdcBatch", [
+      encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createTokenBatch", [
+        tokenAddr,
         BigInt(pendingCards.cardCount),
         pendingHashes,
         pendingCards.message.trim(),
@@ -746,7 +770,7 @@ export function useVoucherTab(app: WalletAppState) {
   }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
 
   const usdcAllowanceError =
-    pendingAsset === "USDC" && usdcAllowance === null && !checkingAllowance;
+    pendingAsset !== "ETH" && usdcAllowance === null && !checkingAllowance;
 
   const needsUsdcApproval =
     usdcAllowance !== null &&
@@ -754,15 +778,16 @@ export function useVoucherTab(app: WalletAppState) {
     !usdcApproveCompleted;
 
   const usdcReadyToFund =
-    pendingAsset !== "USDC" ||
+    pendingAsset === "ETH" ||
     usdcApproveCompleted ||
     (usdcAllowance !== null && usdcAllowance >= pendingTotal);
 
   const refreshUsdcAllowance = useCallback(async () => {
-    if (!address || !publicClient || !VOUCHER_CONTRACT) return;
+    if (!address || !publicClient || !VOUCHER_CONTRACT || pendingAsset === "ETH") return;
     try {
+      const tokenAddr = assetToToken(pendingAsset);
       const value = await publicClient.readContract({
-        address: USDC_BASE as `0x${string}`,
+        address: tokenAddr,
         abi: ERC20_ABI,
         functionName: "allowance",
         args: [address, VOUCHER_CONTRACT as `0x${string}`],
@@ -771,7 +796,8 @@ export function useVoucherTab(app: WalletAppState) {
     } catch {
       setUsdcAllowance(null);
     }
-  }, [address, publicClient]);
+  }, [address, publicClient, pendingAsset]);
+
 
   const redeemParsedForTx = useMemo(
     () => parseCardId(redeemCardId.trim()),

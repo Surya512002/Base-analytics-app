@@ -188,20 +188,20 @@ export default function ConnectWalletModal({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/55 backdrop-blur-[6px]"
+        className="absolute inset-0 bg-black/65 backdrop-blur-md animate-meridian-fade"
         onClick={onClose}
         aria-label="Close"
       />
 
       <div
-        className="relative w-full max-w-[340px] rounded-xl border border-white/[0.1] bg-[var(--bg-raised)] overflow-hidden tab-content-enter my-auto"
+        className="relative w-full max-w-[340px] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden shadow-2xl animate-meridian-scale my-auto"
         style={{
           marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
           maxHeight:
             "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem)",
         }}
       >
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.08]">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--border-subtle)]">
           <div>
             <p className="text-[14px] font-semibold text-[var(--ink)]">Connect wallet</p>
             <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">Base mainnet only</p>
@@ -209,7 +209,7 @@ export default function ConnectWalletModal({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-white/[0.06] transition-colors"
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors"
           >
             <X size={14} />
           </button>

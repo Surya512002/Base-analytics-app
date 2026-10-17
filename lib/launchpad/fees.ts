@@ -2,7 +2,21 @@ import {
   LAUNCHPAD_PLATFORM_FEE_BPS,
   formatPlatformFeeLabel,
 } from "@/lib/constants/launchpad";
-import { splitPlatformFee, feeShareLabels } from "@/lib/launchpad/fee-split";
+import {
+  splitPlatformFee,
+  feeShareLabels,
+  FEE_SHARE_CREATOR_BPS,
+  FEE_SHARE_PLATFORM_BPS,
+  FEE_SHARE_REFERRER_BPS,
+} from "@/lib/launchpad/fee-split";
+
+export {
+  splitPlatformFee,
+  feeShareLabels,
+  FEE_SHARE_CREATOR_BPS,
+  FEE_SHARE_PLATFORM_BPS,
+  FEE_SHARE_REFERRER_BPS,
+};
 
 export function computePlatformFee(
   amount: bigint,

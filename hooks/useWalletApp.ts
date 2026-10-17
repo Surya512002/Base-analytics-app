@@ -133,6 +133,7 @@ import {
   syncSessionFromAnalysis,
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
+import { writeLocalBoostTime, writeLocalGmTime, writeLocalGnTime } from "@/lib/utils/daily-actions";
 import { recordCheckInPointsOnce,
   recordConfirmedInAppAction,
   recordInAppTransaction,
@@ -178,6 +179,7 @@ import {
 } from "@/lib/launchpad/slipstream";
 import { dexLabel } from "@/lib/launchpad/dex";
 import type { LaunchDex } from "@/lib/launchpad/dex";
+import type { LaunchTokenType } from "@/lib/launchpad/types";
 import {
   buildSeedLiquidityCalls,
   computeLiquiditySeedAmounts,
@@ -252,17 +254,14 @@ export type WalletAppState = ReturnType<typeof useWalletAppController>;
 export type AppTab =
   | "launchpad"
   | "swap"
-  | "dashboard"
-  | "checkin"
-  | "achievements"
-  | "leaderboard"
+  | "lend"
   | "basehub"
-  | "rewards"
   | "profile";
 
 function resolveInitialTab(): AppTab {
   if (typeof window !== "undefined") {
     if (window.location.pathname.startsWith("/swap")) return "swap";
+    if (window.location.pathname.startsWith("/lend") || window.location.pathname.startsWith("/earn")) return "lend";
     if (window.location.pathname.startsWith("/explore")) return "launchpad";
     if (window.location.pathname.startsWith("/profile") || window.location.pathname.startsWith("/creator")) return "profile";
   }
@@ -591,12 +590,12 @@ function useWalletAppController() {
   }, [ready, sessionBootstrapped]);
 
   useEffect(() => {
-    if (wallet && tab === "dashboard" && scrollRef.current)
+    if (wallet && scrollRef.current)
       setTimeout(() => {
         if (scrollRef.current)
           scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
       }, 100);
-  }, [wallet, tab]);
+  }, [wallet]);
 
   useEffect(() => {
     if (!wallet?.address) {
@@ -618,33 +617,6 @@ function useWalletAppController() {
       alive = false;
     };
   }, [wallet?.address]);
-
-  /** Refresh on-chain badge mint tiers only (Achievements tab — does not touch score). */
-  useEffect(() => {
-    if (!wallet || tab !== "achievements") return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const pub = createBasePublicClient();
-        const chain = await fetchMintedLevelsFromChain(pub, wallet.address);
-        if (cancelled) return;
-        setMintedLevels((prev) => {
-          const merged = mergeMintedLevelsMax(
-            mergeMintedLevelsMax(prev, readPersistedMintedLevels(wallet.address)),
-            chain
-          );
-          writePersistedMintedLevels(wallet.address, merged);
-          syncBadgeMintCountFromLevels(wallet.address, merged);
-          return merged;
-        });
-      } catch {
-        /* RPC optional */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [wallet?.address, tab]);
 
   useEffect(() => {
     tabRef.current = tab;
@@ -678,13 +650,6 @@ function useWalletAppController() {
     return () =>
       window.removeEventListener("ba-analytics-unlock-revoked", onRevoked);
   }, [wallet?.address]);
-
-  useEffect(() => {
-    if (tab !== "dashboard" || !wallet?.address) return;
-    if (!analyticsUnlocked) return;
-    if (historyCompleteRef.current || historySyncRunningRef.current) return;
-    startHistorySyncRef.current?.(wallet.basename);
-  }, [tab, wallet?.address, wallet?.basename, analyticsUnlocked]);
 
   useEffect(() => {
     if (!wallet) return;
@@ -1067,6 +1032,12 @@ function useWalletAppController() {
       autoSeedLiquidity?: boolean;
       seedDex?: SeedDex;
       ethUsd?: number;
+      tokenType?: LaunchTokenType;
+      quoteAsset?: string;
+      quoteAssetAddress?: string;
+      quoteAssetSymbol?: string;
+      liquidityLocked?: boolean;
+      lockerAddress?: string;
     }): Promise<{
       ok: boolean;
       address?: string;
@@ -1250,6 +1221,12 @@ function useWalletAppController() {
           poolOpenBlock: launchBlock ?? undefined,
           startPriceUsd: args.startPriceUsd,
           source: "launched",
+          tokenType: args.tokenType,
+          quoteAsset: args.quoteAsset,
+          quoteAssetAddress: args.quoteAssetAddress,
+          quoteAssetSymbol: args.quoteAssetSymbol,
+          liquidityLocked: args.liquidityLocked,
+          lockerAddress: args.lockerAddress,
         });
         if (!saved) {
           showToast(
@@ -2019,15 +1996,7 @@ function useWalletAppController() {
       notifyPointsUpdated(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
-        if (credited > 0 || streakBonus > 0) {
-          showToast(
-            `✅ Check-in secured! +${credited} activity` +
-              (streakBonus > 0 ? ` · +${streakBonus} weekly streak PP` : ""),
-            txHash
-          );
-        } else {
-          showToast("✅ Onchain check-in secured!", txHash);
-        }
+        showToast("✅ Onchain check-in secured!", txHash);
       }
     },
     [checkedToday, showToast, streak, syncCheckInStatus, wallet]
@@ -2049,15 +2018,10 @@ function useWalletAppController() {
         "boost",
         nextKeys.boost ?? 0
       );
+      writeLocalBoostTime(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
-        if (hitCap && credited === 0) {
-          showToast("Boost recorded — daily point cap reached", txHash);
-        } else if (credited > 0) {
-          showToast(`Boosted! +${credited} pts 🎉`, txHash);
-        } else {
-          showToast("Boosted! 🎉", txHash);
-        }
+        showToast("⚡ Daily boost secured on Base!", txHash);
       }
     },
     [showToast]
@@ -2156,7 +2120,7 @@ function useWalletAppController() {
           {
           reset: false,
           onProgress: (msg) => {
-            if (tabRef.current === "dashboard") setScanProgress(msg);
+            setScanProgress(msg);
           },
           shouldCancel: () => historySyncGen.current !== gen,
           onUpdate: (syncResult: AnalyzeWalletResult & {
@@ -2168,9 +2132,7 @@ function useWalletAppController() {
             if (syncResult.partial && syncResult.wallet) {
               const p = syncResult.wallet;
               const nextDays = Math.max(latestDaysRef.current, p.uniqueDays ?? 0);
-              if (tabRef.current === "dashboard") {
-                setScanProgress(`Syncing full history… ${nextDays} active days`);
-              }
+              setScanProgress(`Syncing full history… ${nextDays} active days`);
               setWallet((prev) =>
                 prev?.address.toLowerCase() === address.toLowerCase()
                   ? applyPartialSyncPatch(prev, address, p)
@@ -2195,7 +2157,7 @@ function useWalletAppController() {
             if (historySyncGen.current === gen) {
               historySyncRunningRef.current = false;
               setAnalyticsSyncing(false);
-              if (tabRef.current === "dashboard") setScanProgress("");
+              setScanProgress("");
             }
           });
         };
@@ -2674,29 +2636,23 @@ function useWalletAppController() {
           "gm",
           nextKeys.gm ?? 0
         );
+        writeLocalGmTime(wallet.address);
         setPointsRevision((n) => n + 1);
-        if (hitCap && credited === 0) {
-          showToast("GM sent — daily point cap reached", hash);
-        } else if (credited > 0) {
-          showToast(`GM on Base! +${credited} pts ☀️`, hash);
-        } else {
-          showToast(successMsg.gm, hash);
+        if (hash) {
+          showToast("☀️ GM on Base recorded!", hash);
         }
       } else if (type === "gn") {
         const nextKeys = bumpWeeklyTxKey(wallet.address, "gn");
         setTxKeys((k) => ({ ...k, ...nextKeys }));
-        const { credited, hitCap } = recordConfirmedInAppAction(
+        recordConfirmedInAppAction(
           wallet.address,
           "gn",
           nextKeys.gn ?? 0
         );
+        writeLocalGnTime(wallet.address);
         setPointsRevision((n) => n + 1);
-        if (hitCap && credited === 0) {
-          showToast("GN sent — daily point cap reached", hash);
-        } else if (credited > 0) {
-          showToast(`GN on Base! +${credited} pts 🌙`, hash);
-        } else {
-          showToast(successMsg.gn, hash);
+        if (hash) {
+          showToast("🌙 GN on Base recorded!", hash);
         }
       }
     } catch (e: unknown) {
@@ -3056,6 +3012,7 @@ function useWalletAppController() {
     handleDisconnect,
     handleCheckInSuccess,
     handleBoostSuccess,
+    syncCheckInStatus,
     doNativeTx,
     doNativeMint,
     doAppBadgeMint,

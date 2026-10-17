@@ -1,9 +1,10 @@
 "use client";
 
-export type TokenCatalogTab = "all" | "b20";
+export type TokenCatalogTab = "all" | "stocks" | "b20";
 
 const SEGMENTS: { id: TokenCatalogTab; label: string }[] = [
   { id: "all", label: "All tokens" },
+  { id: "stocks", label: "Tokenized Stocks" },
   { id: "b20", label: "B20 tokens" },
 ];
 
@@ -15,7 +16,7 @@ export default function ExploreSegmentTabs({
   onChange: (tab: TokenCatalogTab) => void;
 }) {
   return (
-    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar touch-scroll-x border-b border-white/[0.08]">
+    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar touch-scroll-x border-b border-[var(--border-subtle)]">
       <span className="text-[var(--ink-dim)] font-mono text-xs shrink-0 select-none">{"////"}</span>
       {SEGMENTS.map((s) => {
         const isActive = active === s.id;

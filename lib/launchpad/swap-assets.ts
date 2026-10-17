@@ -30,8 +30,8 @@ export function resolveSwapLegs(params: {
 }): ResolvedSwapLegs | null {
   const payAsset = params.payAsset ?? "eth";
   const receiveAsset = params.receiveAsset ?? "eth";
-  const pageDec = params.pageDecimals ?? 18;
-  const counterDec = params.counterDecimals ?? 18;
+  const pageDec = params.pageDecimals && params.pageDecimals > 0 ? params.pageDecimals : 18;
+  const counterDec = params.counterDecimals && params.counterDecimals > 0 ? params.counterDecimals : 18;
 
   if (params.direction === "buy") {
     let sellToken: string;
@@ -53,7 +53,7 @@ export function resolveSwapLegs(params: {
       buyToken: params.pageToken,
       amountDecimals,
       outDecimals: pageDec,
-      canUseDirectDex: payAsset === "eth",
+      canUseDirectDex: payAsset === "eth" || payAsset === "usdc",
       payAsset,
       receiveAsset: "eth",
     };
@@ -79,7 +79,7 @@ export function resolveSwapLegs(params: {
     buyToken,
     amountDecimals: pageDec,
     outDecimals,
-    canUseDirectDex: receiveAsset === "eth",
+    canUseDirectDex: receiveAsset === "eth" || receiveAsset === "usdc",
     payAsset: "eth",
     receiveAsset,
   };

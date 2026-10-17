@@ -43,6 +43,7 @@
   ],
   "exclude": [
     "node_modules",
+    "scratch",
     "e2e",
     "playwright.config.ts",
     "share"

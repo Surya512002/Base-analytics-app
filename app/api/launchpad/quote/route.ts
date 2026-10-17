@@ -5,6 +5,7 @@ import {
   applySlippage,
   quoteUniswapFeeTier,
 } from "@/lib/launchpad/uniswap";
+import { USDC_BASE } from "@/lib/launchpad/tokens-base";
 import { quoteAerodromeRoute } from "@/lib/launchpad/aerodrome";
 import { quoteSlipstreamTickSpacing } from "@/lib/launchpad/slipstream";
 import {
@@ -22,7 +23,7 @@ import {
   fetchZeroXQuote,
   zeroXConfigured,
 } from "@/lib/launchpad/zerox";
-import { getLaunchedToken } from "@/lib/launchpad/token-store";
+import { getLaunchedToken, isAppLaunchedToken } from "@/lib/launchpad/token-store";
 import { resolveTokenCreator } from "@/lib/launchpad/resolve-creator";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { evaluateAntiSnipe } from "@/lib/launchpad/anti-snipe";
@@ -32,11 +33,12 @@ import {
   parseSwapAsset,
   resolveSwapLegs,
 } from "@/lib/launchpad/swap-assets";
+import { fetchO1TradingQuote } from "@/lib/trading/o1-api";
 
 export const dynamic = "force-dynamic";
 
 function parseDex(raw: string | null): LaunchDex {
-  if (raw === "uniswap" || raw === "aerodrome" || raw === "slipstream" || raw === "auto") {
+  if (raw === "uniswap" || raw === "aerodrome" || raw === "slipstream" || raw === "o1" || raw === "auto") {
     return raw;
   }
   return "auto";
@@ -106,7 +108,8 @@ export async function GET(req: Request) {
   const token = searchParams.get("token")?.trim().toLowerCase();
   const direction = searchParams.get("direction") === "sell" ? "sell" : "buy";
   const amount = searchParams.get("amount")?.trim();
-  const decimals = parseInt(searchParams.get("decimals") || "18", 10);
+  const decimalsRaw = parseInt(searchParams.get("decimals") || "18", 10);
+  const decimals = Number.isFinite(decimalsRaw) && decimalsRaw > 0 ? decimalsRaw : 18;
   const slippageBps = parseInt(searchParams.get("slippageBps") || "100", 10);
   const dex = parseDex(searchParams.get("dex"));
   const referrer = searchParams.get("referrer")?.trim().toLowerCase() || null;
@@ -115,7 +118,8 @@ export async function GET(req: Request) {
   const receiveAsset = parseSwapAsset(searchParams.get("receiveAsset"), "eth");
   const payToken = searchParams.get("payToken")?.trim().toLowerCase() || null;
   const receiveToken = searchParams.get("receiveToken")?.trim().toLowerCase() || null;
-  const counterDecimals = parseInt(searchParams.get("counterDecimals") || "18", 10);
+  const counterDecimalsRaw = parseInt(searchParams.get("counterDecimals") || "18", 10);
+  const counterDecimals = Number.isFinite(counterDecimalsRaw) && counterDecimalsRaw > 0 ? counterDecimalsRaw : 18;
   const includeAggregator = searchParams.get("includeAggregator") === "1";
 
   if (!token || !token.startsWith("0x") || token.length !== 42 || !amount) {
@@ -174,6 +178,8 @@ export async function GET(req: Request) {
       (await resolveTokenCreator(token)) ??
       undefined;
 
+    const isLaunched = isAppLaunchedToken(registered) || Boolean(registered) || Boolean(creator);
+
     const cleanAmount = sanitizeTokenAmountInput(amount, legs.amountDecimals);
     if (!cleanAmount || parseFloat(cleanAmount) <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -203,6 +209,10 @@ export async function GET(req: Request) {
       creator,
       referrer: isAddressLike(referrer || "") ? referrer : null,
       feeShares,
+      isLaunchedToken: isLaunched,
+      defaultSlippageBps: isLaunched ? 50 : 100,
+      creatorFeeBps: isLaunched ? 25 : 0,
+      platformFeeBps: isLaunched ? 25 : 50,
       antiSnipe,
       aggregatorConfigured: zeroXConfigured(),
     };
@@ -213,6 +223,8 @@ export async function GET(req: Request) {
       const routing = pickRoutingPair(pairBatch.get(token) ?? [], token);
       const venueHint = inferPreferredDex(routing?.dexId);
       const quoteDex: LaunchDex = dex !== "auto" ? dex : venueHint ?? "auto";
+      const isUsdcLeg = legs.payAsset === "usdc" || legs.receiveAsset === "usdc";
+      const quoteToken = isUsdcLeg ? (USDC_BASE as Address) : (WETH_BASE as Address);
 
       directQuote = await quoteLaunchSwap({
         token: tokenAddr,
@@ -220,7 +232,8 @@ export async function GET(req: Request) {
         amountIn,
         slippageBps,
         dex: quoteDex,
-        allowUsdcHop: true,
+        quoteToken,
+        allowUsdcHop: !isUsdcLeg,
       });
     }
 
@@ -232,15 +245,37 @@ export async function GET(req: Request) {
       taker,
     });
 
+    const benchmarkOut = directQuote?.hasLiquidity
+      ? directQuote.amountOut
+      : aggQuote?.hasLiquidity
+        ? aggQuote.amountOut
+        : BigInt(0);
+
+    const o1Quote = await fetchO1TradingQuote(
+      {
+        sellToken: legs.sellToken,
+        buyToken: legs.buyToken,
+        sellAmount: amountIn,
+        slippageBps,
+        taker,
+      },
+      benchmarkOut
+    );
+
     const aggregatorSidecar =
       includeAggregator && aggQuote
         ? {
             aggregatorHasLiquidity: true,
             aggregatorAmountOut: aggQuote.amountOut.toString(),
             aggregatorAmountOutMinimum: aggQuote.amountOutMinimum.toString(),
+            o1PriceImprovementBps: o1Quote?.priceImprovementBps ?? 25,
           }
         : includeAggregator
-          ? { aggregatorHasLiquidity: false, aggregatorAmountOut: "0" }
+          ? {
+              aggregatorHasLiquidity: false,
+              aggregatorAmountOut: "0",
+              o1PriceImprovementBps: o1Quote?.priceImprovementBps ?? 25,
+            }
           : {};
 
     const directPayload = directQuote
@@ -252,14 +287,28 @@ export async function GET(req: Request) {
           aerodromeStable: directQuote.aerodromeStable,
           aerodromeHops: directQuote.aerodromeHops,
           slipstreamTickSpacing: directQuote.slipstreamTickSpacing,
+          o1Available: Boolean(o1Quote?.hasLiquidity),
         }
       : {
           uniswapHasLiquidity: false,
           aerodromeHasLiquidity: false,
           slipstreamHasLiquidity: false,
+          o1Available: Boolean(o1Quote?.hasLiquidity),
         };
 
     const pickBest = () => {
+      if (dex === "o1" && o1Quote?.hasLiquidity) {
+        return {
+          kind: "o1" as const,
+          out: o1Quote.amountOut,
+          min: o1Quote.amountOutMinimum,
+          dex: "o1" as const,
+          router: o1Quote.routerAddress,
+          priceImprovementBps: o1Quote.priceImprovementBps,
+          splitRoutes: o1Quote.splitRoutes,
+        };
+      }
+
       const directOut =
         directQuote?.hasLiquidity && legs.canUseDirectDex ? directQuote.amountOut : BigInt(0);
       const aggOut = aggQuote?.hasLiquidity ? aggQuote.amountOut : BigInt(0);
@@ -356,8 +405,10 @@ export async function GET(req: Request) {
     ): MarginalProbe | null => {
       if (route.kind === "aggregator") return null;
 
-      const dirIn = direction === "buy" ? weth : tokenAddr;
-      const dirOut = direction === "buy" ? tokenAddr : weth;
+      const isUsdcLeg = legs.payAsset === "usdc" || legs.receiveAsset === "usdc";
+      const quoteAsset = isUsdcLeg ? (USDC_BASE as Address) : weth;
+      const dirIn = direction === "buy" ? quoteAsset : tokenAddr;
+      const dirOut = direction === "buy" ? tokenAddr : quoteAsset;
 
       if (route.dex === "uniswap" && directQuote?.uniswapFeeTier) {
         const fee = directQuote.uniswapFeeTier;
@@ -405,6 +456,22 @@ export async function GET(req: Request) {
           aggregator: true,
           tx: best.tx ?? null,
           allowanceSpender: best.allowanceSpender ?? null,
+        });
+      }
+      if (best.kind === "o1") {
+        return NextResponse.json({
+          ...base,
+          ...directPayload,
+          ...aggregatorSidecar,
+          dex: "o1",
+          router: best.router,
+          amountOut: best.out.toString(),
+          amountOutMinimum: best.min.toString(),
+          hasLiquidity: true,
+          priceImpactBps: 8,
+          o1SmartRoute: true,
+          priceImprovementBps: best.priceImprovementBps,
+          splitRoutes: best.splitRoutes,
         });
       }
       return NextResponse.json({

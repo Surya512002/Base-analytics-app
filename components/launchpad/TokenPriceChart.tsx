@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { RecentSwapRow } from "@/lib/api/launchpad-token-client";
+import { formatUsd } from "@/lib/launchpad/format";
 
 export default function TokenPriceChart({
   swaps,
@@ -90,8 +91,8 @@ export default function TokenPriceChart({
         />
       </svg>
       <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-2">
-        <span>${minY < 0.01 ? minY.toExponential(2) : minY.toFixed(4)}</span>
-        <span>${last < 0.01 ? last.toExponential(2) : last.toFixed(4)}</span>
+        <span>{formatUsd(minY)}</span>
+        <span>{formatUsd(last)}</span>
       </div>
     </div>
   );

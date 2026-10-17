@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { BookOpen, ExternalLink, Zap } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
-import type { X402ProductId } from "@/lib/constants/x402-products";
 import { AGENT_CATALOG } from "@/lib/constants/agent-catalog";
 
 function ServiceCard({
@@ -42,15 +41,13 @@ export default function AgenticMarketplaceRail({
   onNavigate,
   guest,
   onConnect,
-  onPayAgent,
 }: {
   onNavigate?: (tab: AppTab) => void;
   guest?: boolean;
   onConnect?: () => void;
-  onPayAgent?: (productId: X402ProductId) => void;
 }) {
   const openTab = (tab: AppTab) => {
-    if (guest && tab !== "launchpad" && tab !== "swap") {
+    if (guest && tab !== "launchpad" && tab !== "swap" && tab !== "lend") {
       onConnect?.();
       return;
     }
@@ -58,15 +55,6 @@ export default function AgenticMarketplaceRail({
   };
 
   const handleAgent = (entry: (typeof AGENT_CATALOG)[0]) => {
-    if (entry.productId) {
-      if (guest) {
-        onConnect?.();
-        return;
-      }
-      onPayAgent?.(entry.productId);
-      onNavigate?.("dashboard");
-      return;
-    }
     if (entry.tab) openTab(entry.tab);
   };
 
@@ -75,10 +63,10 @@ export default function AgenticMarketplaceRail({
       <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-[15px] font-bold text-[var(--ink)] tracking-tight">
-            Agentic Marketplace
+            Terminal Services &amp; Agents
           </h3>
           <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">
-            AI services · pay per call with x402
+            Trading, lending, launchpad &amp; voucher infrastructure
           </p>
         </div>
         <Link

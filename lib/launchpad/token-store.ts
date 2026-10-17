@@ -73,3 +73,9 @@ export async function patchLaunchedToken(
   await cacheSet(REGISTRY_KEY, sorted, REGISTRY_TTL).catch(() => {});
   return updated;
 }
+
+export function isAppLaunchedToken(token: LaunchedToken | null | undefined): boolean {
+  if (!token) return false;
+  return token.source === "launched" || token.tokenType != null;
+}
+

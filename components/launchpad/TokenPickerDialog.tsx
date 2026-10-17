@@ -63,6 +63,7 @@ export default function TokenPickerDialog({
   excludeAddress?: string | null;
   title?: string;
 }) {
+  const [category, setCategory] = useState<"all" | "crypto" | "stock">("all");
   const [query, setQuery] = useState("");
   const [resolving, setResolving] = useState(false);
   const [resolved, setResolved] = useState<Extract<
@@ -93,16 +94,17 @@ export default function TokenPickerDialog({
   const excluded = excludeAddress?.toLowerCase() ?? null;
 
   const listed = useMemo(() => {
-    const matches = searchCommonTokens(query);
+    const matches = searchCommonTokens(query, category);
     return excluded
       ? matches.filter((t) => t.address.toLowerCase() !== excluded)
       : matches;
-  }, [query, excluded]);
+  }, [query, category, excluded]);
 
   const showEth = useMemo(() => {
+    if (category === "stock") return false;
     const q = query.trim().toLowerCase();
     return !q || "eth".includes(q) || "ethereum".includes(q);
-  }, [query]);
+  }, [query, category]);
 
   /**
    * A pasted address that isn't on the shortlist still needs to be tradeable,
@@ -186,7 +188,7 @@ export default function TokenPickerDialog({
           </button>
         </div>
 
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2">
           <div className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 focus-within:border-[var(--border-focus)] transition-colors">
             <Search size={15} className="text-[var(--ink-dim)] shrink-0" />
             <input
@@ -202,7 +204,44 @@ export default function TokenPickerDialog({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 pb-3">
+        <div className="flex items-center gap-1.5 px-4 pb-3 border-b border-[var(--border-subtle)]">
+          <button
+            type="button"
+            onClick={() => setCategory("all")}
+            className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              category === "all"
+                ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/20 shadow-xs"
+                : "text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-[var(--bg-hover)]"
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategory("crypto")}
+            className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              category === "crypto"
+                ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/20 shadow-xs"
+                : "text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-[var(--bg-hover)]"
+            }`}
+          >
+            Crypto
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategory("stock")}
+            className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              category === "stock"
+                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs"
+                : "text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-[var(--bg-hover)]"
+            }`}
+          >
+            <span>📈</span>
+            Stocks (RWAs)
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2 pb-3 pt-1">
           {showEth && (
             <TokenRow
               counter={ETH_COUNTER}
@@ -253,16 +292,27 @@ function TokenRow({
   name: string;
   onSelect: () => void;
 }) {
+  const isStock =
+    counter.kind === "token" &&
+    counter.address.toLowerCase().startsWith("0xb20");
+
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-hover)] transition-colors text-left"
+      className="pop-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-hover)] transition-colors text-left cursor-pointer"
     >
       <CounterAvatar counter={counter} size={32} />
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-medium text-[var(--ink)]">
-          {counterSymbol(counter)}
+        <span className="flex items-center gap-1.5">
+          <span className="text-[14px] font-semibold text-[var(--ink)]">
+            {counterSymbol(counter)}
+          </span>
+          {isStock && (
+            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
+              Stock RWA
+            </span>
+          )}
         </span>
         <span className="block text-[12px] text-[var(--ink-dim)] truncate">{name}</span>
       </span>

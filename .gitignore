@@ -1,6 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
+node_modules/
 /node_modules
 /.pnp
 .pnp.*
@@ -12,20 +13,33 @@
 
 # testing
 /coverage
+coverage/
 /test-results/
 /playwright-report/
 
 # next.js
 /.next/
+.next/
 /out/
+out/
+/dist/
+dist/
 
-# production
+# production & build output
 /build
+build/
+/forge-out/
+forge-out/
+/cache/
+.cache/
+/broadcast/
+broadcast/
+.anvil/
 
 # misc
 .DS_Store
-.cache/
 *.pem
+*.key
 .cursor/
 *.log
 
@@ -37,18 +51,20 @@ yarn-error.log*
 
 # env files — never commit secrets
 .env
+.env*
 .env.*
 !.env.example
 
 # vercel
+.vercel/
 .vercel
 
-# foundry build artifacts
-/forge-out/
-/cache/
-/broadcast/
+# local keystores & test output
+*.keystore
+*.keystore.json
+keystores/
+.playwright/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-.env*

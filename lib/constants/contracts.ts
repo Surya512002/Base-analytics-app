@@ -281,6 +281,20 @@ export const VOUCHER_ABI = [
     outputs: [],
   },
   {
+    name: "createTokenBatch",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "cardCount", type: "uint256" },
+      { name: "secretHashes", type: "bytes32[]" },
+      { name: "message", type: "string" },
+      { name: "totalAmount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+
+  {
     name: "redeem",
     type: "function",
     stateMutability: "nonpayable",

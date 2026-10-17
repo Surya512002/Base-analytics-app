@@ -57,6 +57,10 @@ export interface ScoreInput {
   hasBasename: boolean;
   gmCount: number;
   checkInCount: number;
+  /** Number of tokenized stock transfers / swaps (Coinbase B20 equities). */
+  stockInteractions?: number;
+  /** Number of lending operations (Morpho Blue, Aave V4, Euler V2, Superform). */
+  lendingInteractions?: number;
 }
 
 /**
@@ -99,10 +103,16 @@ export function computeScoreComponents(input: ScoreInput): ScoreComponents {
     streak: Math.min(SCORE_MAX.streak, streakBasis / 7),
     // ~6+ ETH sent (sqrt curve)
     volume: Math.min(SCORE_MAX.volume, Math.sqrt(ethVol + 0.001) * 2.8),
-    // ~30 unique tokens to max
-    diversity: Math.min(SCORE_MAX.diversity, uniqueTokens / 5),
-    // ~50 DeFi interactions to max
-    defiUsage: Math.min(SCORE_MAX.defiUsage, defiInteractions / 10),
+    // ~30 unique tokens to max — stocks provide extra asset diversification
+    diversity: Math.min(
+      SCORE_MAX.diversity,
+      (uniqueTokens + (input.stockInteractions ? 2 : 0)) / 5
+    ),
+    // ~50 DeFi interactions to max — productive use of Morpho, Aave, Euler, Superform provides accelerated boost
+    defiUsage: Math.min(
+      SCORE_MAX.defiUsage,
+      (defiInteractions + (input.stockInteractions ?? 0) * 1.5 + (input.lendingInteractions ?? 0) * 2) / 10
+    ),
     // ~200 unique contracts to max
     contracts: Math.min(SCORE_MAX.contracts, uniqueContracts / 25),
     // Holdings + mint/transfer activity (~20 assets or ~24 NFT txs to max)

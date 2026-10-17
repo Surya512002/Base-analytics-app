@@ -1,76 +1,47 @@
-import type { X402ProductId } from "@/lib/constants/x402-products";
+import type { AppTab } from "@/hooks/useWalletApp";
 
 export type AgentCatalogEntry = {
   id: string;
   title: string;
   description: string;
   price: string;
-  productId?: X402ProductId;
-  tab?: "dashboard" | "launchpad" | "basehub";
+  tab?: AppTab;
   href?: string;
   tag?: string;
 };
 
 export const AGENT_CATALOG: AgentCatalogEntry[] = [
   {
-    id: "deep-scan",
-    title: "Wallet Deep Scan",
-    description: "Premium onchain insights, portfolio breakdown & benchmarks",
-    price: "$0.01",
-    productId: "scan",
-    tab: "dashboard",
-    tag: "x402",
-  },
-  {
-    id: "export-pack",
-    title: "Export Pack",
-    description: "Full scan + downloadable activity report",
-    price: "$0.05",
-    productId: "export",
-    tab: "dashboard",
-    tag: "Popular",
-  },
-  {
-    id: "compare-pro",
-    title: "Compare Pro",
-    description: "Benchmarks vs Base median + export",
-    price: "$0.10",
-    productId: "compare",
-    tab: "dashboard",
-    tag: "Pro",
-  },
-  {
-    id: "farcaster",
-    title: "Farcaster Analysis",
-    description: "Linked Farcaster identity & cast analytics",
-    price: "$0.10",
-    productId: "farcaster",
-    tab: "dashboard",
-    tag: "Social",
-  },
-  {
-    id: "onchain-analytics",
-    title: "Onchain Analytics",
-    description: "Score, activity heatmap & wallet health status",
-    price: "$0.10",
-    productId: "analytics",
-    tab: "dashboard",
-    tag: "Core",
-  },
-  {
-    id: "voucher-mcp",
-    title: "Voucher MCP",
-    description: "Create & redeem gift cards via agents",
-    price: "Gas only",
-    href: "/docs#api",
-    tag: "MCP",
-  },
-  {
     id: "launch-assistant",
-    title: "Launch Assistant",
-    description: "B20 token deploy on Base with vesting & anti-snipe",
+    title: "Token Launchpad",
+    description: "Launch B20, meme, or stock-paired tokens with 0.25% creator fee splits",
     price: "$0 launch",
     tab: "launchpad",
     tag: "Launch",
+  },
+  {
+    id: "stocks-terminal",
+    title: "Stocks & Lending",
+    description: "Tokenized NVDAc, AAPLc, TSLAc & Morpho/Aave yield comparisons",
+    price: "Free",
+    tab: "lend",
+    tag: "Stocks",
+  },
+  {
+    id: "dex-router",
+    title: "Smart DEX Swap",
+    description: "Dual-DEX Uniswap & Aerodrome aggregator with optimal slippage",
+    price: "DEX Gas",
+    tab: "swap",
+    tag: "Trade",
+  },
+  {
+    id: "voucher-mcp",
+    title: "Voucher MCP Agent",
+    description: "Create & redeem onchain USDC/ETH crypto gift cards programmatically",
+    price: "Gas only",
+    tab: "basehub",
+    href: "/docs#api",
+    tag: "MCP",
   },
 ];

@@ -9,12 +9,16 @@ export const LAUNCHPAD_ADVANTAGES = [
     detail: "Pay Base gas only — no platform cut on deploy",
   },
   {
-    title: `${shares.creator} creator revenue`,
-    detail: `${formatPlatformFeeLabel(LAUNCHPAD_PLATFORM_FEE_BPS)} swap fee · ${shares.creator} to you instantly`,
+    title: "0.25% creator revenue",
+    detail: `${formatPlatformFeeLabel(LAUNCHPAD_PLATFORM_FEE_BPS)} total swap fee · 0.25% straight to creator`,
   },
   {
-    title: `${shares.referrer} referrals`,
-    detail: "Share ?ref= links — earn on every swap through your link",
+    title: "0.25% platform fee",
+    detail: "Transparent 50/50 split — zero referral cuts or hidden fees",
+  },
+  {
+    title: "Stock & B20 Pairs",
+    detail: "Pair with NVDAc, AAPLc, TSLAc, ETH or USDC via Base standards",
   },
   {
     title: "Dual DEX routing",

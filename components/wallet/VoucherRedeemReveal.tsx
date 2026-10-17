@@ -21,6 +21,8 @@ interface VoucherRedeemRevealProps {
   data: VoucherRedeemRevealData | null;
   onClose: () => void;
   onCreateOwn?: () => void;
+  onViewWallet?: () => void;
+  onSwapAsset?: () => void;
 }
 
 const SPARKLES = Array.from({ length: 12 }, (_, i) => ({
@@ -31,7 +33,13 @@ const SPARKLES = Array.from({ length: 12 }, (_, i) => ({
   size: 4 + (i % 2) * 2,
 }));
 
-export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: VoucherRedeemRevealProps) {
+export default function VoucherRedeemReveal({
+  data,
+  onClose,
+  onCreateOwn,
+  onViewWallet,
+  onSwapAsset,
+}: VoucherRedeemRevealProps) {
   const [mounted, setMounted] = useState(false);
   const [settled, setSettled] = useState(false);
   const [phase, setPhase] = useState<"enter" | "flip" | "reveal">("enter");
@@ -224,16 +232,40 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
             <span>Funds sent to your wallet on Base</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-center">
             {txUrl && (
               <a
                 href={txUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-center text-sm font-black px-5 py-3 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
+                className="text-center text-xs font-black px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
               >
                 View on BaseScan ↗
               </a>
+            )}
+            {onViewWallet && (
+              <button
+                type="button"
+                onClick={() => {
+                  onViewWallet();
+                  onClose();
+                }}
+                className="text-center text-xs font-black px-4 py-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 transition"
+              >
+                View in wallet
+              </button>
+            )}
+            {onSwapAsset && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSwapAsset();
+                  onClose();
+                }}
+                className="text-center text-xs font-black px-4 py-3 rounded-xl bg-[#0052FF]/20 border border-[#0052FF]/40 text-[#0052FF] dark:text-[#388bfd] hover:bg-[#0052FF]/30 transition"
+              >
+                Swap this asset
+              </button>
             )}
             {onCreateOwn && (
               <button
@@ -242,17 +274,17 @@ export default function VoucherRedeemReveal({ data, onClose, onCreateOwn }: Vouc
                   onCreateOwn();
                   onClose();
                 }}
-                className="text-center text-sm font-black px-5 py-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--ink)] transition"
+                className="text-center text-xs font-black px-4 py-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition"
               >
-                Create your own gift cards
+                Create your own gift
               </button>
             )}
             <button
               type="button"
               onClick={onClose}
-              className="text-center text-sm font-black px-5 py-3 rounded-xl btn-primary text-white"
+              className="text-center text-xs font-black px-5 py-3 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] transition"
             >
-              Awesome — thanks!
+              Done
             </button>
           </div>
         </div>

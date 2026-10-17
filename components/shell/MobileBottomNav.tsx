@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
-import { isRewardsHubTab } from "@/lib/utils/app-url";
 import { APP_NAV } from "@/lib/nav/app-nav";
 
 const ITEMS = APP_NAV.map((n) => ({
@@ -38,8 +37,8 @@ export default function MobileBottomNav({
     >
       <div className="flex w-full max-w-none items-stretch justify-around px-0.5">
         {ITEMS.map(({ id, icon: Icon, label }) => {
-          const active = tab === id || (id === "checkin" && isRewardsHubTab(tab));
-          const locked = guest && id !== "launchpad" && id !== "swap";
+          const active = tab === id;
+          const locked = guest && id !== "launchpad" && id !== "swap" && id !== "lend";
           return (
             <button
               key={id}

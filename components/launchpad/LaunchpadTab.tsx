@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { motion } from "motion/react";
 import { ArrowLeft } from "lucide-react";
 const TokenLaunchForm = dynamic(
   () => import("@/components/launchpad/TokenLaunchForm"),
-  { loading: () => <div className="h-64 glass-panel rounded-3xl animate-pulse" /> }
+  { loading: () => <div className="h-64 skeleton-shimmer rounded-3xl border border-[var(--border-subtle)]" /> }
 );
 const TokenDetailPanel = dynamic(
   () => import("@/components/launchpad/TokenDetailPanel"),
-  { loading: () => <div className="h-96 glass-panel rounded-3xl animate-pulse" /> }
+  { loading: () => <div className="h-96 skeleton-shimmer rounded-3xl border border-[var(--border-subtle)]" /> }
 );
 import TokenCard, { CreateTokenCard } from "@/components/launchpad/TokenCard";
 import { fetchLaunchpadTokens, fetchDiscoverTokens, resolveTokenByAddress } from "@/lib/api/launchpad-client";
@@ -22,10 +23,10 @@ import { filterCatalogTokens, filterTradableExploreTokens } from "@/lib/launchpa
 import { isAppLaunched, isB20ExploreToken } from "@/lib/launchpad/token-meta";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
+import ExploreHub from "@/components/explore/ExploreHub";
 import MyLaunchedTokens from "@/components/launchpad/MyLaunchedTokens";
 import AgenticMarketplaceRail, { ExploreKnowledgeRail } from "@/components/explore/AgenticMarketplaceRail";
 import ExploreLandingHero from "@/components/explore/ExploreLandingHero";
-import AppModeCards from "@/components/ui/AppModeCards";
 import B20MarketHero from "@/components/explore/B20MarketHero";
 import ExploreSegmentTabs, { type TokenCatalogTab } from "@/components/explore/ExploreSegmentTabs";
 import ExploreSearchBar from "@/components/explore/ExploreSearchBar";
@@ -41,13 +42,14 @@ import LaunchCalendar from "@/components/launchpad/LaunchCalendar";
 import TokenWatchlistRail from "@/components/launchpad/TokenWatchlistRail";
 import GlobalActivityTicker from "@/components/shell/GlobalActivityTicker";
 import LiveMarketStrip from "@/components/shell/LiveMarketStrip";
-import ExploreServicesRail from "@/components/shell/ExploreServicesRail";
+import StocksExploreSection from "@/components/stocks/StocksExploreSection";
+import StockDetailComparisonModal from "@/components/stocks/StockDetailComparisonModal";
+import type { CoinbaseTokenizedStock } from "@/lib/stocks/coinbase-api";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
 } from "@/lib/utils/token-watchlist";
 import { buildExploreTokenPath, syncTabUrl } from "@/lib/utils/app-url";
-import type { X402ProductId } from "@/lib/constants/x402-products";
 
 type View = "explore" | "create" | "trade";
 type Filter =
@@ -108,20 +110,27 @@ export default function LaunchpadTab({
   onRequestConnect,
   onShellBridge,
   onNavigate,
-  onPayAgent,
   isActive = true,
+  initialView,
 }: {
   app: WalletAppState;
   guestMode?: boolean;
   onRequestConnect?: () => void;
   onShellBridge?: (bridge: LaunchpadShellBridge) => void;
   onNavigate?: (tab: AppTab, opts?: { token?: string | null }) => void;
-  onPayAgent?: (productId: X402ProductId) => void;
   isActive?: boolean;
+  initialView?: View;
 }) {
   const { wallet, b20Activated: appB20Activated } = app;
-  const [view, setView] = useState<View>("explore");
+  const [view, setView] = useState<View>(() => {
+    if (initialView) return initialView;
+    if (typeof window !== "undefined" && (window.location.pathname.startsWith("/launch") || window.location.search.includes("create=1"))) {
+      return "create";
+    }
+    return "explore";
+  });
   const [catalogTab, setCatalogTab] = useState<TokenCatalogTab>("all");
+  const [selectedLendingStock, setSelectedLendingStock] = useState<CoinbaseTokenizedStock | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [b20Filter, setB20Filter] = useState<
     "all" | "trending" | "newest" | "gainers" | "volume" | "mine" | "watchlist"
@@ -450,7 +459,7 @@ export default function LaunchpadTab({
         <button
           type="button"
           onClick={goExplore}
-          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--ink)] hover:text-white"
+          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
         >
           <ArrowLeft size={16} /> Back to explore
         </button>
@@ -471,206 +480,34 @@ export default function LaunchpadTab({
   }
 
   return (
-    <div className="space-y-6">
-      <ExploreLandingHero
-        tokens={tradableTokens}
-        b20Tokens={allB20Tokens}
-        markets={markets}
-        marketLoading={initialLoading && tradableTokens.length === 0}
-        guestMode={guestMode}
-        onLaunch={requestCreate}
-        onOpenToken={openSwap}
-        onConnect={onRequestConnect}
-        onBrowseTrending={scrollToGrid}
-        onConnectToTrade={onRequestConnect}
-        totalVolume24h={marketStats.totalVolume24h}
-        totalLiquidity={marketStats.totalLiquidity}
-      />
-
-      <AppModeCards
-        onExplore={scrollToGrid}
-        onSwap={() => onNavigate?.("swap") ?? app.setTab("swap")}
-      />
-
-      <ExploreSearchBar
-        tokens={tradableTokens}
-        onOpenToken={openSwap}
-        onBrowseTrending={scrollToGrid}
-      />
-
-      <LiveMarketStrip
-        tokenCount={tradableTokens.length}
-        b20Live={b20Activated !== false}
-        volume24h={marketStats.totalVolume24h}
-        syncing={syncing}
-      />
-
-      <B20MarketHero
-        tokens={tradableB20}
-        markets={markets}
-        onOpen={openSwap}
-        onLaunch={guestMode ? undefined : requestCreate}
-        loading={initialLoading && tradableB20.length === 0}
-        guestMode={guestMode}
-      />
-
-      <RecentlyLaunchedSection
+    <>
+      <ExploreHub
+        app={app}
         tokens={tokens}
         markets={markets}
-        onOpen={openSwap}
-        onLaunch={guestMode ? undefined : requestCreate}
-        syncing={syncing || (initialLoading && tokens.length === 0)}
-        guestMode={guestMode}
-      />
-
-      <LaunchpadExploreSections
-        tokens={tradableTokens}
-        markets={markets}
-        onOpen={openSwap}
+        marketStats={marketStats}
+        b20Activated={b20Activated}
+        initialLoading={initialLoading}
         syncing={syncing}
+        onTradeToken={(t) => openSwap(t as LaunchedToken)}
+        onRequestCreateToken={requestCreate}
+        guestMode={guestMode}
+        onRequestConnect={onRequestConnect}
+        onRefreshData={() => void refresh()}
       />
 
-      <GlobalActivityTicker onOpenToken={handleActivityToken} />
-
-      <ExploreServicesRail
-        onNavigate={onNavigate ?? ((t) => app.setTab(t))}
-        guest={guestMode}
-        onConnect={onRequestConnect}
-      />
-
-      {watchlist.length > 0 && (
-        <>
-          <TokenWatchlistRail
-            tokens={tradableTokens}
-            markets={markets}
-            watchlist={watchlist}
-            onOpen={openSwap}
-            onToggleWatch={handleToggleWatch}
-            pinned
-            holdings={holdings}
-          />
-          <WatchlistAlertsPanel
-            watchlist={watchlist}
-            tokens={tradableTokens}
-            markets={markets}
-            walletAddress={app.wallet?.address}
-          />
-        </>
-      )}
-
-      <div ref={gridRef} className="space-y-4 scroll-mt-24">
-        <ExploreSegmentTabs active={catalogTab} onChange={setCatalogTab} />
-
-        {catalogTab === "all" ? (
-          <>
-            <p className="text-[12px] text-[var(--ink-dim)]">
-              Base ecosystem tokens with live liquidity on Uniswap &amp; Aerodrome.
-            </p>
-
-            <div className="flex gap-x-3 sm:gap-x-4 gap-y-1 overflow-x-auto no-scrollbar touch-scroll-x border-b border-white/[0.08] -mx-1 px-1">
-              {(
-                [
-                  { id: "all" as const, label: "All" },
-                  { id: "trending" as const, label: "Trending" },
-                  { id: "newest" as const, label: "New" },
-                  { id: "volume" as const, label: "Volume" },
-                  { id: "mcap" as const, label: "Market cap" },
-                  { id: "gainers" as const, label: "Top gainers" },
-                  { id: "losers" as const, label: "Losers" },
-                  { id: "watchlist" as const, label: "Watching" },
-                  { id: "mine" as const, label: "Mine" },
-                ] as const
-              ).map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setFilter(id)}
-                  className={`filter-tab shrink-0 min-h-[40px] touch-manipulation ${filter === id ? "filter-tab-active" : ""}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {initialLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-52 rounded-xl bg-[var(--bg-raised)] animate-pulse border border-white/[0.06]"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {!guestMode && <CreateTokenCard onCreate={requestCreate} />}
-                {filtered.map((t) => (
-                  <TokenCard
-                    key={t.address}
-                    token={t}
-                    market={markets[t.address.toLowerCase()]}
-                    onTrade={() => openSwap(t)}
-                    isMine={
-                      isAppLaunched(t) &&
-                      wallet?.address.toLowerCase() === t.creator.toLowerCase()
-                    }
-                    watched={watchlist.includes(t.address.toLowerCase())}
-                    onToggleWatch={() => handleToggleWatch(t.address)}
-                    holdingBalance={holdings[t.address.toLowerCase()]}
-                  />
-                ))}
-              </div>
-            )}
-
-            {!initialLoading && filtered.length === 0 && filter !== "all" && (
-              <p className="text-center text-sm text-slate-500 py-8">
-                No tokens match this filter yet. Launch the first one on Base.
-              </p>
-            )}
-          </>
-        ) : (
-          <B20TokensSection
-            tokens={tradableB20}
-            allTokens={allB20Tokens}
-            markets={markets}
-            loading={initialLoading}
-            filter={b20Filter}
-            onFilterChange={setB20Filter}
-            onOpen={openSwap}
-            onCreate={requestCreate}
-            guestMode={guestMode}
-            wallet={wallet?.address}
-            watchlist={watchlist}
-            onToggleWatch={handleToggleWatch}
-          />
-        )}
-      </div>
-
-      <LaunchCalendar onOpenToken={handleActivityToken} />
-
-      {wallet && (
-        <MyLaunchedTokens
-          tokens={tokens.filter(isAppLaunched)}
-          wallet={wallet.address}
-          onOpen={openSwap}
+      {selectedLendingStock && (
+        <StockDetailComparisonModal
+          stock={selectedLendingStock}
+          userAddress={wallet?.address}
+          connType={app.connType}
+          onClose={() => setSelectedLendingStock(null)}
+          onRequestConnect={onRequestConnect}
+          onSuccess={() => {
+            app.showToast("Action confirmed on Base!", "success");
+          }}
         />
       )}
-
-      <AgenticMarketplaceRail
-        onNavigate={onNavigate}
-        guest={guestMode}
-        onConnect={onRequestConnect}
-        onPayAgent={onPayAgent}
-      />
-      <ExploreKnowledgeRail />
-
-      <ExploreOnboarding />
-      <ExploreMobileFab
-        onBrowse={scrollToGrid}
-        onLaunch={requestCreate}
-        guest={guestMode}
-        onConnect={onRequestConnect}
-      />
-    </div>
+    </>
   );
 }

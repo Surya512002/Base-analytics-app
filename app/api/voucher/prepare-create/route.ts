@@ -3,7 +3,7 @@ import {
   prepareCreateBatch,
   voucherContractReady,
 } from "@/lib/voucher/agent-api";
-import { MAX_VOUCHER_CARDS, type VoucherAsset } from "@/lib/utils/voucher";
+import { MAX_VOUCHER_CARDS, isStockAsset, type VoucherAsset } from "@/lib/utils/voucher";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ export const runtime = "nodejs";
  * GET /api/voucher/prepare-create
  * Returns unsigned calldata + generated card secrets for Base MCP send_calls.
  *
- * Query: asset=USDC|ETH, total=10, cards=5, message=..., creator=0x... (optional, for USDC allowance)
+ * Query: asset=USDC|ETH|NVDAc|AAPLc, total=10, cards=5, message=..., creator=0x... (optional, for allowance)
  */
 export async function GET(req: Request) {
   if (!voucherContractReady()) {
@@ -23,9 +23,10 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const asset = (searchParams.get("asset") || "USDC").toUpperCase() as VoucherAsset;
-  if (asset !== "USDC" && asset !== "ETH") {
-    return NextResponse.json({ error: "asset must be USDC or ETH" }, { status: 400 });
+  const rawAsset = (searchParams.get("asset") || "USDC").trim();
+  const asset = (rawAsset.toUpperCase() === "ETH" ? "ETH" : rawAsset.toUpperCase() === "USDC" ? "USDC" : rawAsset) as VoucherAsset;
+  if (asset !== "USDC" && asset !== "ETH" && !isStockAsset(asset)) {
+    return NextResponse.json({ error: "asset must be USDC, ETH, or a supported stock (e.g. NVDAc, AAPLc, TSLAc)" }, { status: 400 });
   }
 
   const total = searchParams.get("total") || "";
@@ -81,10 +82,12 @@ export async function POST(req: Request) {
       creator?: string;
     };
 
-    const asset = (body.asset || "USDC").toUpperCase() as VoucherAsset;
-    if (asset !== "USDC" && asset !== "ETH") {
-      return NextResponse.json({ error: "asset must be USDC or ETH" }, { status: 400 });
+    const rawAsset = (body.asset || "USDC").trim();
+    const asset = (rawAsset.toUpperCase() === "ETH" ? "ETH" : rawAsset.toUpperCase() === "USDC" ? "USDC" : rawAsset) as VoucherAsset;
+    if (asset !== "USDC" && asset !== "ETH" && !isStockAsset(asset)) {
+      return NextResponse.json({ error: "asset must be USDC, ETH, or a supported stock (e.g. NVDAc, AAPLc, TSLAc)" }, { status: 400 });
     }
+
 
     const total = body.total?.trim() || "";
     const cards = Number(body.cards);

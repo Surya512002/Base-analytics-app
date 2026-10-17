@@ -122,7 +122,7 @@ export function createMockWallet(): WalletData {
   };
 }
 
-export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
+export function createMockAppState(tab: AppTab = "launchpad"): WalletAppState {
   const wallet = createMockWallet();
   const txCaps = getCapabilities();
   const scrollRef = { current: null } as RefObject<HTMLDivElement | null>;
@@ -218,6 +218,7 @@ export function createMockAppState(tab: AppTab = "dashboard"): WalletAppState {
     handleDisconnect: noop,
     handleCheckInSuccess: noopAsync,
     handleBoostSuccess: noop,
+    syncCheckInStatus: async () => ({ checkedToday: true, streak: 3 }),
     launchLoading: false,
     swapLoading: false,
     b20Activated: true,

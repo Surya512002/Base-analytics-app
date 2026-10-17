@@ -10,6 +10,7 @@ import { getLaunchedToken } from "@/lib/launchpad/token-store";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
+import { getBaseStockByAddress } from "@/lib/stocks/base-stocks";
 
 const B20_FACTORY_ABI = [
   {
@@ -231,6 +232,28 @@ export async function resolveTradeableToken(
 
   if (registered) {
     return { token: { ...registered, source: "launched" }, market };
+  }
+
+  const stock = getBaseStockByAddress(addr);
+  if (stock) {
+    const meta = extractMeta(best as { info?: PairInfo } | null);
+    const stockMarket =
+      market ?? (best ? summarizePair(addr, best) : null);
+    const stockToken: LaunchedToken = {
+      address: stock.address.toLowerCase(),
+      name: stock.name,
+      symbol: stock.symbol,
+      decimals: stock.decimals,
+      creator: "",
+      txHash: "",
+      createdAt: 0,
+      source: "b20",
+      description: `${stock.name} (${stock.symbol}) tokenized US equity on Base mainnet. Backed 1:1 by real stock shares.`,
+      imageUrl: meta.imageUrl ?? (best?.info?.imageUrl || undefined),
+      website: meta.website ?? "https://www.coinbase.com/tokenize",
+      twitter: meta.twitter ?? "https://x.com/coinbase",
+    };
+    return { token: stockToken, market: stockMarket };
   }
 
   const b20OnChain = await resolveB20OnChain(addr as `0x${string}`);

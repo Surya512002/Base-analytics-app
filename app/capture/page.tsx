@@ -11,8 +11,8 @@ import TabBar from "@/components/wallet/TabBar";
 import { createMockAppState } from "@/lib/marketing/mock-app-state";
 import type { AppTab } from "@/hooks/useWalletApp";
 
-const DashboardTab = dynamic(
-  () => import("@/components/wallet/tabs/DashboardTab"),
+const LaunchpadTab = dynamic(
+  () => import("@/components/launchpad/LaunchpadTab"),
   { ssr: false }
 );
 const BaseVoucherTab = dynamic(
@@ -37,7 +37,7 @@ function CaptureContent() {
     );
   }
 
-  const tab: AppTab = screen === "voucher" ? "basehub" : "dashboard";
+  const tab: AppTab = screen === "voucher" ? "basehub" : "launchpad";
   const app = createMockAppState(tab);
 
   return (
@@ -50,9 +50,11 @@ function CaptureContent() {
         onDisconnect={() => {}}
       />
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-6 pb-24">
-        <TabBar tab={tab} doneQuests={app.doneQuests} onTabChange={() => {}} />
+        <TabBar tab={tab} onTabChange={() => {}} />
         <AppFeatureStrip />
-        {tab === "dashboard" && <DashboardTab app={app} />}
+        {tab === "launchpad" && (
+          <LaunchpadTab app={app} isActive />
+        )}
         {tab === "basehub" && <BaseVoucherTab app={app} />}
       </div>
     </main>

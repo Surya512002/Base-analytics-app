@@ -18,14 +18,14 @@ export default function RevenueSharingLaunchBanner() {
             Creator revenue · built in
           </p>
           <h3 className="mt-1 text-base font-bold text-[var(--ink)]">
-            You keep {shares.creator} of swap fees — paid on every trade
+            You keep 0.25% of swap fees — paid on every trade
           </h3>
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--ink-muted)]">
             Launch for <strong className="text-[var(--ink)]">$0</strong> (gas only). When traders
-            swap your token in Base Analytics, a {formatPlatformFeeLabel()} fee splits{" "}
-            <strong className="text-[var(--ink)]">{shares.creator} to you</strong>,{" "}
-            {shares.referrer} to referrers, {shares.platform} to the platform — instantly to your
-            wallet, no claim step.
+            swap your token in Base Analytics, the ultra-low {formatPlatformFeeLabel()} fee splits{" "}
+            <strong className="text-[var(--ink)]">0.25% directly to you</strong> and{" "}
+            0.25% to platform maintenance — zero referral deductions, sent instantly to your
+            wallet with every trade.
           </p>
           <p className="mt-2 text-[11px] text-[var(--ink-dim)]">
             Sign in after connect to manage your public creator profile and fee history.

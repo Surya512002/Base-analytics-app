@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/token-price-alerts";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { LaunchedToken } from "@/lib/launchpad/types";
+import { formatUsd } from "@/lib/launchpad/format";
 
 async function syncServerAlert(input: {
   wallet: string;
@@ -71,7 +72,7 @@ export default function WatchlistAlertsPanel({
             >
               <span className="text-sm font-bold text-white">${t.symbol}</span>
               <span className="text-[10px] text-slate-500 font-mono">
-                now {price > 0 ? `$${price < 0.01 ? price.toExponential(2) : price.toFixed(4)}` : "—"}
+                now {price > 0 ? formatUsd(price) : "—"}
               </span>
               {existing ? (
                 <>

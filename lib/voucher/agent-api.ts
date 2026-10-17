@@ -16,6 +16,8 @@ import {
   generateVoucherCards,
   hashVoucherSecret,
   parseCardId,
+  assetToToken,
+  isStockAsset,
   type StoredVoucherBatch,
   type VoucherAsset,
 } from "@/lib/utils/voucher";
@@ -50,15 +52,23 @@ export async function readNextBatchId(): Promise<number> {
   return Number(id);
 }
 
-export async function readUsdcAllowance(owner: `0x${string}`): Promise<bigint> {
+export async function readTokenAllowance(
+  token: `0x${string}`,
+  owner: `0x${string}`
+): Promise<bigint> {
   const client = createBasePublicClient();
   return client.readContract({
-    address: USDC_BASE as `0x${string}`,
+    address: token,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: [owner, VOUCHER_CONTRACT as `0x${string}`],
   });
 }
+
+export async function readUsdcAllowance(owner: `0x${string}`): Promise<bigint> {
+  return readTokenAllowance(USDC_BASE as `0x${string}`, owner);
+}
+
 
 export interface PrepareCreateInput {
   asset: VoucherAsset;
@@ -184,7 +194,7 @@ export async function prepareCreateBatch(
         split.total
       )
     );
-  } else {
+  } else if (asset === "USDC") {
     const needsApproval =
       !creator || (await readUsdcAllowance(creator)) < split.total;
     if (needsApproval) {
@@ -203,7 +213,29 @@ export async function prepareCreateBatch(
         [BigInt(cards), secretHashes, trimmedMessage, split.total]
       )
     );
+  } else {
+    // Tokenized Stock (RWA)
+    const tokenAddr = assetToToken(asset);
+    const needsApproval =
+      !creator || (await readTokenAllowance(tokenAddr, creator)) < split.total;
+    if (needsApproval) {
+      calls.push(
+        encodeContractCall(tokenAddr, ERC20_ABI, "approve", [
+          VOUCHER_CONTRACT as `0x${string}`,
+          split.total,
+        ])
+      );
+    }
+    calls.push(
+      encodeContractCall(
+        VOUCHER_CONTRACT as `0x${string}`,
+        VOUCHER_ABI,
+        "createTokenBatch",
+        [tokenAddr, BigInt(cards), secretHashes, trimmedMessage, split.total]
+      )
+    );
   }
+
 
   // Server-first: persist secrets by wallet address BEFORE user signs deposit (Base App / web / Farcaster).
   let credentialsSaved = false;

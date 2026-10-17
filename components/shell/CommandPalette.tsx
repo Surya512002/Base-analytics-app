@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Command, Search, ArrowRight, TrendingUp } from "lucide-react";
+import { Command, Search, ArrowRight, Flame } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
-import type { RewardsHubView } from "@/lib/utils/app-url";
-import { isRewardsHubTab } from "@/lib/utils/app-url";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { shortAddr } from "@/lib/launchpad/format";
 import { APP_NAV } from "@/lib/nav/app-nav";
@@ -13,14 +11,10 @@ type CommandPaletteProps = {
   open: boolean;
   onClose: () => void;
   tab: AppTab;
-  onTabChange: (tab: AppTab, opts?: { rewardsView?: RewardsHubView }) => void;
+  onTabChange: (tab: AppTab) => void;
   tokens: LaunchedToken[];
   onOpenToken?: (token: LaunchedToken) => void;
 };
-
-const EXTRA_NAV: { id: AppTab; label: string; hint: string; rewardsView?: RewardsHubView }[] = [
-  { id: "checkin", label: "Stake & earn", hint: "XP / ETH stake boosts", rewardsView: "stake" },
-];
 
 export default function CommandPalette({
   open,
@@ -58,14 +52,19 @@ export default function CommandPalette({
   }, [query, tokens]);
 
   const navItems = useMemo(() => {
-    const base = APP_NAV.map((n) => ({
+    const list = APP_NAV.map((n) => ({
       id: n.id,
       label: n.label,
       hint: n.hint,
       icon: n.icon,
-      rewardsView: undefined as RewardsHubView | undefined,
     }));
-    return [...base, ...EXTRA_NAV.map((e) => ({ ...e, icon: TrendingUp }))];
+    list.push({
+      id: "profile" as AppTab,
+      label: "Daily Actions & Streaks",
+      hint: "Check-in, Daily Boost, GM/GN on Base",
+      icon: Flame,
+    });
+    return list;
   }, []);
 
   const filteredNav = useMemo(() => {
@@ -77,8 +76,8 @@ export default function CommandPalette({
   }, [query, navItems]);
 
   const selectNav = useCallback(
-    (id: AppTab, rewardsView?: RewardsHubView) => {
-      onTabChange(id, rewardsView ? { rewardsView } : undefined);
+    (id: AppTab) => {
+      onTabChange(id);
       onClose();
     },
     [onTabChange, onClose]
@@ -95,11 +94,11 @@ export default function CommandPalette({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/75"
+        className="absolute inset-0 bg-black/75 backdrop-blur-md animate-meridian-fade"
         onClick={onClose}
         aria-label="Close"
       />
-      <div className="command-palette-shell relative flex flex-col overflow-hidden">
+      <div className="command-palette-shell relative flex flex-col overflow-hidden animate-meridian-scale">
         <div className="h-1 bg-[var(--bg-raised)] shrink-0" />
         <div className="flex items-center gap-4 border-b border-[var(--border-subtle)] px-5 sm:px-6 py-4 sm:py-5 shrink-0">
           <Search size={22} className="text-[var(--ink-muted)] shrink-0" />
@@ -124,15 +123,13 @@ export default function CommandPalette({
               <div className="grid sm:grid-cols-2 gap-1.5">
                 {filteredNav.map((item, idx) => {
                   const Icon = item.icon;
-                  const active =
-                    tab === item.id ||
-                    (item.id === "checkin" && isRewardsHubTab(tab) && !item.rewardsView);
+                  const active = tab === item.id;
                   return (
                     <button
                       key={`${item.id}-${item.label}-${idx}`}
                       type="button"
-                      onClick={() => selectNav(item.id, item.rewardsView)}
-                      className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-colors ${
+                      onClick={() => selectNav(item.id)}
+                      className={`pop-row flex items-center gap-3 rounded-xl px-4 py-3.5 text-left cursor-pointer transition-colors ${
                         active
                           ? "bg-[var(--brand-soft)] border border-[var(--brand)] text-[var(--brand-dark)]"
                           : "hover:bg-[var(--surface-2)] border border-transparent text-[var(--ink-soft)]"
@@ -166,7 +163,7 @@ export default function CommandPalette({
                       onOpenToken?.(t);
                       onClose();
                     }}
-                    className="w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left hover:bg-[var(--surface-2)] border border-transparent hover:border-[var(--border-subtle)] transition-colors"
+                    className="pop-row w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left hover:bg-[var(--surface-2)] border border-transparent hover:border-[var(--border-subtle)] transition-colors cursor-pointer"
                   >
                     {t.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element

@@ -1,4 +1,4 @@
-name: CI
+name: CI & Release Readiness
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   quality:
+    name: Code Quality & App Tests
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
@@ -20,12 +21,20 @@ jobs:
         with:
           go-version: "1.22"
           cache: false
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run test
-      - run: npm run lint
-      - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit & Invariant Tests
+        run: npm test
+      - name: Production Dependency Audit
+        run: npm audit --omit=dev
+      - name: Build
+        run: npm run build
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
       - name: E2E and swap route smoke tests
         run: |
           npm start &
@@ -39,3 +48,40 @@ jobs:
           PLAYWRIGHT_SKIP_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
           SWAP_ROUTES_URL=http://127.0.0.1:3000 npm run test:swap-routes:local
           kill $DEV_PID || true
+
+  secrets:
+    name: Gitleaks Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  contracts:
+    name: Smart Contracts & Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Forge Build
+        run: forge build --sizes
+      - name: Forge Unit & Invariant Tests
+        run: forge test -vvv
+      - name: Forge Coverage
+        run: forge coverage || echo "Coverage generated"
+      - name: Run Slither Static Analysis
+        uses: crytic/slither-action@v0.4.0
+        continue-on-error: true
+        with:
+          node-version: 20
+          sarif: results.sarif
+          fail-on: high

@@ -8,6 +8,7 @@ export interface TokenAnnouncement {
 }
 
 export type TokenSource = "launched" | "external" | "b20";
+export type LaunchTokenType = "b20" | "standard" | "memestock";
 
 export interface LaunchedToken {
   address: string;
@@ -25,6 +26,17 @@ export interface LaunchedToken {
   createdAt: number;
   /** App registry launch vs DexScreener / paste-import */
   source?: TokenSource;
+  /** Launch category: B20 vanity, normal ERC-20 meme, or stock-paired memestock */
+  tokenType?: LaunchTokenType;
+  /** Quote asset symbol (e.g. "ETH", "USDC", "NVDAc", "TSLAc", "AAPLc") */
+  quoteAsset?: string;
+  quoteAssetAddress?: string;
+  quoteAssetSymbol?: string;
+  /** Whether liquidity is locked via OpenLaunch locker */
+  liquidityLocked?: boolean;
+  lockerAddress?: string;
+  creatorFeeBps?: number;
+  platformFeeBps?: number;
   supplyCap?: string;
   launchPreset?: string;
   vestingSchedule?: VestingScheduleEntry[];

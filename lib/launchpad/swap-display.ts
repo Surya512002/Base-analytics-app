@@ -80,7 +80,12 @@ export function computeSwapUsd(opts: {
     payUsd = grossFromNet(receiveUsd!);
   }
 
-  return { payUsd, receiveUsd };
+  const sanitizeUsd = (val: number | null): number | null => {
+    if (val == null || !Number.isFinite(val) || val <= 0 || val > 1e15) return null;
+    return val;
+  };
+
+  return { payUsd: sanitizeUsd(payUsd), receiveUsd: sanitizeUsd(receiveUsd) };
 }
 
 /**

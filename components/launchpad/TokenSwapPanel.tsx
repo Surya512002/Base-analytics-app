@@ -27,7 +27,7 @@ import {
 } from "@/lib/launchpad/dex";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { formatSubscriptPrice, formatUsd } from "@/lib/launchpad/format";
+import { formatSubscriptPrice, formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
 import {
   computeSwapUsd,
   impliedTokenPriceUsd,
@@ -86,12 +86,7 @@ function defaultAmountFor(counter: SwapCounter): string {
 }
 
 function formatQuoteOut(amountOut: string, decimals: number): string {
-  const n = Number(amountOut) / 10 ** decimals;
-  if (!Number.isFinite(n) || n <= 0) return "0";
-  if (n >= 1_000_000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  if (n >= 1) return n.toFixed(4);
-  if (n >= 0.0001) return n.toFixed(6);
-  return n.toExponential(2);
+  return formatTokenAmount(amountOut, decimals);
 }
 
 function parseSlippageBps(raw: string): number {
@@ -112,7 +107,7 @@ function TokenAvatar({ symbol, imageUrl }: { symbol: string; imageUrl?: string }
       <img
         src={imageUrl}
         alt=""
-        className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0"
+        className="w-7 h-7 rounded-full object-cover border border-[var(--border-subtle)] shrink-0"
       />
     );
   }
@@ -170,7 +165,7 @@ export default function TokenSwapPanel({
   const [counter, setCounter] = useState<SwapCounter>(ETH_COUNTER);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [amount, setAmount] = useState("0.01");
-  const [slippage, setSlippage] = useState("1");
+  const [slippage, setSlippage] = useState("0.5");
   const [dex, setDex] = useState<LaunchDex>("auto");
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -793,30 +788,30 @@ export default function TokenSwapPanel({
 
         {wallet && !guestMode && (
           <div className="swap-wallet-row swap-wallet-row-multi">
-            <Wallet size={14} className="text-slate-500 shrink-0" />
+            <Wallet size={14} className="text-[var(--ink-muted)] shrink-0" />
             <span>
-              <span className="text-slate-300 font-semibold">{ethBalance.toFixed(4)}</span>{" "}
-              <span className="text-slate-500">ETH</span>
+              <span className="text-[var(--ink)] font-semibold">{ethBalance.toFixed(4)}</span>{" "}
+              <span className="text-[var(--ink-muted)]">ETH</span>
             </span>
             {effectiveCounter.kind === "token" && counterTokenBalance > 0 && (
               <>
-                <span className="text-slate-600">·</span>
+                <span className="text-[var(--border-subtle)]">·</span>
                 <span>
-                  <span className="text-slate-300 font-semibold">
+                  <span className="text-[var(--ink)] font-semibold">
                     {formatTokenBalanceDisplay(counterTokenBalance, counterDecimals)}
                   </span>{" "}
-                  <span className="text-slate-500">{counterLabel}</span>
+                  <span className="text-[var(--ink-muted)]">{counterLabel}</span>
                 </span>
               </>
             )}
             {!isWethToken && tokenBalance > 0 && (
               <>
-                <span className="text-slate-600">·</span>
+                <span className="text-[var(--border-subtle)]">·</span>
                 <span>
-                  <span className="text-slate-300 font-semibold">
+                  <span className="text-[var(--ink)] font-semibold">
                     {formatTokenBalanceDisplay(tokenBalance, tokenDecimals)}
                   </span>{" "}
-                  <span className="text-slate-500">{token.symbol}</span>
+                  <span className="text-[var(--ink-muted)]">{token.symbol}</span>
                 </span>
               </>
             )}
@@ -973,7 +968,9 @@ export default function TokenSwapPanel({
                   Route <strong>{dexLabel(activeDex)}</strong>
                 </span>
                 <span className="swap-summary-dot">·</span>
-                <span>{formatPlatformFeeLabel()} platform fee</span>
+                <span className="text-[var(--accent)] font-medium">
+                  0.50% fee (0.25% Platform + 0.25% Creator)
+                </span>
                 {priceImpactPct != null && (
                   <>
                     <span className="swap-summary-dot">·</span>
@@ -988,6 +985,18 @@ export default function TokenSwapPanel({
                 )}
               </div>
             )}
+
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs text-[var(--ink-secondary)]">
+              <div className="flex items-center gap-2">
+                <Zap size={14} className="text-amber-400 shrink-0" />
+                <span className="font-semibold text-[var(--ink)]">Creator Revenue Sharing</span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[11px]">
+                <span className="text-[var(--accent)] font-semibold">0.25% Creator</span>
+                <span className="text-slate-500">+</span>
+                <span className="text-[var(--ink-secondary)]">0.25% Platform</span>
+              </div>
+            </div>
 
             {(liveTokenPriceUsd != null || poolLiquidityUsd != null) && (
               <p className="swap-meta-line">

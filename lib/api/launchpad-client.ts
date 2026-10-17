@@ -105,6 +105,10 @@ export type SwapQuoteResponse = {
   creator?: string;
   referrer?: string | null;
   feeShares?: { creator: string; platform: string; referrer: string };
+  isLaunchedToken?: boolean;
+  defaultSlippageBps?: number;
+  creatorFeeBps?: number;
+  platformFeeBps?: number;
   antiSnipe?: AntiSnipeStatus;
   aggregator?: boolean;
   aggregatorConfigured?: boolean;

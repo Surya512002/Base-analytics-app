@@ -8,9 +8,9 @@ import {
   Wallet,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
-import { isRewardsHubTab } from "@/lib/utils/app-url";
 import type { WalletData } from "@/lib/types/wallet";
 import { APP_NAV } from "@/lib/nav/app-nav";
+import DailyActionsCard from "@/components/wallet/DailyActionsCard";
 
 const NAV = APP_NAV.map((n) => ({
   id: n.id,
@@ -51,7 +51,7 @@ export default function AppSidebar({
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)] mb-2">
               Portfolio
             </p>
-            <p className="font-display text-3xl font-bold text-[var(--ink)] tracking-tight">$0.00</p>
+            <p className="font-display text-3xl font-bold text-[var(--ink)] tracking-tight tabular-nums">$0.00</p>
             <p className="text-[12px] text-[var(--ink-dim)] mt-1.5">Connect to see your balance</p>
             <div className="mt-4 space-y-2">
               <button
@@ -64,7 +64,7 @@ export default function AppSidebar({
               <button
                 type="button"
                 onClick={() => onTabChange("basehub")}
-                className="w-full py-2 rounded-xl text-[12px] font-medium border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors"
+                className="pop-pill w-full py-2 rounded-xl text-[12px] font-medium border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors cursor-pointer"
               >
                 <ArrowDownToLine size={12} className="inline mr-1.5" />
                 Deposit
@@ -80,7 +80,7 @@ export default function AppSidebar({
                   Portfolio
                 </p>
               </div>
-              <p className="font-display text-3xl font-bold text-[var(--ink)] tracking-tight">
+              <p className="font-display text-3xl font-bold text-[var(--ink)] tracking-tight tabular-nums">
                 {portfolio.portfolioValueUSD > 0
                   ? `$${portfolio.portfolioValueUSD.toFixed(2)}`
                   : parseFloat(portfolio.balance || "0") > 0
@@ -93,19 +93,20 @@ export default function AppSidebar({
               <button
                 type="button"
                 onClick={() => onTabChange("basehub")}
-                className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-medium border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors"
+                className="pop-pill mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-medium border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors cursor-pointer"
               >
                 <ArrowDownToLine size={13} />
                 Deposit
               </button>
             </div>
+            <DailyActionsCard compact onRequestConnect={onConnect} />
           </div>
         ) : null}
 
         <button
           type="button"
           onClick={onCommandPalette}
-          className="w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-left text-[var(--ink-dim)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors"
+          className="pop-pill w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5 text-left text-[var(--ink-dim)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition-colors cursor-pointer"
         >
           <Search size={14} />
           <span className="text-[13px] flex-1">Search…</span>
@@ -120,13 +121,13 @@ export default function AppSidebar({
           </p>
           {NAV.map((item) => {
             const Icon = item.icon;
-            const active = tab === item.id || (item.id === "checkin" && isRewardsHubTab(tab));
+            const active = tab === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
-                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors cursor-pointer ${
                   active
                     ? "bg-[var(--brand-soft)] text-[var(--brand-dark)]"
                     : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]"

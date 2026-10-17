@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowUpRight, ArrowLeftRight, Gift, Rocket, Sparkles, Trophy, BarChart3 } from "lucide-react";
+import { ArrowUpRight, ArrowLeftRight, Gift, Rocket, Sparkles, Coins } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 const SERVICES: {
@@ -14,43 +13,35 @@ const SERVICES: {
   href?: string;
 }[] = [
   {
+    id: "stocks",
+    tab: "lend",
+    label: "Stocks Terminal",
+    desc: "Tokenized stocks · Morpho, Aave & Euler",
+    icon: Coins,
+    accent: "bg-[var(--bg-elevated)] border-blue-500/30",
+  },
+  {
     id: "launch",
     tab: "launchpad",
-    label: "B20 Launchpad",
-    desc: "Create tokens · dual-DEX · 0.5% fees",
+    label: "Token Launchpad",
+    desc: "B20, memes & stock pairs · 0.25% creator revenue",
     icon: Rocket,
     accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
   {
     id: "swap",
     tab: "swap",
-    label: "Swap",
-    desc: "DEX swap · any Base token",
+    label: "DEX Swap",
+    desc: "Optimal DEX routes · any Base token",
     icon: ArrowLeftRight,
-    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
-  },
-  {
-    id: "analytics",
-    tab: "dashboard",
-    label: "Wallet Analytics",
-    desc: "Onchain score · heatmap · portfolio",
-    icon: BarChart3,
     accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
   {
     id: "vouchers",
     tab: "basehub",
     label: "Crypto Vouchers",
-    desc: "Gift USDC & ETH on Base",
+    desc: "Gift USDC & ETH cards on Base",
     icon: Gift,
-    accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
-  },
-  {
-    id: "badges",
-    tab: "achievements",
-    label: "Achievement NFTs",
-    desc: "Mint badges · earn XP",
-    icon: Trophy,
     accent: "bg-[var(--bg-elevated)] border-[var(--border-subtle)]",
   },
 ];
@@ -88,7 +79,7 @@ export default function ExploreServicesRail({
                 key={s.id}
                 type="button"
                 onClick={() => click(s.tab)}
-                className={`group text-left rounded-2xl border ${s.accent} p-4 hover:border-[var(--border-strong)] transition-colors`}
+                className={`pop-lg group text-left rounded-2xl border ${s.accent} p-4 transition-all cursor-pointer`}
               >
                 <Icon size={18} className="text-[var(--ink-muted)] mb-2" />
                 <p className="text-sm font-black text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors">

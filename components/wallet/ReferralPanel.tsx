@@ -35,12 +35,11 @@ export default function ReferralPanel({ address }: ReferralPanelProps) {
     <div className="card overflow-hidden">
       <div className="p-5 sm:p-6">
         <p className="section-eyebrow flex items-center gap-2">
-          <Gift size={12} /> Invite friends
+          <Users size={12} className="text-cyan-400" /> Share &amp; Invite
         </p>
-        <h3 className="text-lg font-bold text-[var(--ink)] mt-1">Earn +25 XP per referral</h3>
+        <h3 className="text-lg font-bold text-[var(--ink)] mt-1">Invite friends to Base Analytics</h3>
         <p className="text-xs text-[var(--ink-muted)] mt-2 leading-relaxed">
-          Friends get +50 XP when they connect. You earn bonus XP for every wallet that joins via
-          your link.
+          Share your referral link with traders and friends to explore tokenized stocks, track daily onchain habits, and inspect deep wallet analytics on Base.
         </p>
 
         <div className="mt-4 flex flex-col sm:flex-row gap-2">
@@ -52,20 +51,23 @@ export default function ReferralPanel({ address }: ReferralPanelProps) {
             onClick={copy}
             className="btn-secondary flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold shrink-0"
           >
-            {copied ? <CheckCircle size={14} className="text-emerald-600" /> : <Copy size={14} />}
+            {copied ? <CheckCircle size={14} className="text-emerald-400" /> : <Copy size={14} />}
             {copied ? "Copied!" : "Copy link"}
           </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mt-4">
           <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center">
-            <Users size={16} className="text-[var(--brand)] mx-auto mb-1" />
+            <Users size={16} className="text-cyan-400 mx-auto mb-1" />
             <p className="text-xl font-black text-[var(--ink)]">{invites}</p>
-            <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Invites</p>
+            <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Wallets Invited</p>
           </div>
           <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center">
-            <p className="text-xl font-black text-amber-600">+{bonusXp}</p>
-            <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Referral XP</p>
+            <Gift size={16} className="text-amber-400 mx-auto mb-1" />
+            <p className="text-xl font-black text-amber-400">
+              {invites > 0 ? "Active" : "Ready"}
+            </p>
+            <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Referral Status</p>
           </div>
         </div>
       </div>

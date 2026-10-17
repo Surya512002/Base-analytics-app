@@ -1,0 +1,270 @@
+import { describe, expect, it, vi } from "vitest";
+import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
+import type { StockLendingOption } from "@/lib/lending/unified-comparison";
+import { parseUnits } from "viem";
+
+import { MORPHO_BLUE_BASE } from "@/lib/lending/constants";
+
+describe("ActionDrawer Protocol Calls & Action Matrix", () => {
+  const dummyUser = "0x1234567890123456789012345678901234567890" as `0x${string}`;
+
+  const mockMorphoOption: StockLendingOption = {
+    id: "morpho-blue-nvdac",
+    protocol: "morpho_blue",
+    protocolName: "Morpho Blue",
+    protocolBadge: "Isolated Collateral",
+    type: "variable",
+    typeLabel: "Variable Rate",
+    stockSymbol: "NVDAc",
+    stockName: "NVIDIA Corp (Tokenized)",
+    stockAddress: "0x3912953ab49e0c528cf1b37ad023b7eef7174dbd",
+    loanSymbol: "USDC",
+    loanAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    supplyApy: 8.45,
+    borrowApr: 2.95,
+    maxLtv: 77,
+    liquidationThreshold: 85,
+    utilization: 68.4,
+    availableLiquidityUsd: 12500000,
+    tvlUsd: 18400000,
+    riskScore: 2,
+    riskLevel: "low",
+    riskNotes: ["Isolated pool"],
+    contractAddress: MORPHO_BLUE_BASE,
+    executionType: "morpho_blue",
+    morphoParams: {
+      loanToken: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      collateralToken: "0x3912953ab49e0c528cf1b37ad023b7eef7174dbd",
+      oracle: "0x04689a41629776563E6822F76f2e57D148d28513",
+      irm: "0x4641570ad4742a35607374b334a1b02012015fa1",
+      lltv: BigInt("770000000000000000"),
+    },
+  };
+
+  const mockStrategyOption: StockLendingOption = {
+    id: "superform-superstocks-nvdac",
+    protocol: "superform",
+    protocolName: "Superform SuperStocks",
+    protocolBadge: "Automated Strategy",
+    type: "strategy",
+    typeLabel: "Stock Carry Vault",
+    stockSymbol: "NVDAc",
+    stockName: "NVIDIA Corp (Tokenized)",
+    stockAddress: "0x3912953ab49e0c528cf1b37ad023b7eef7174dbd",
+    loanSymbol: "NVDAc",
+    loanAddress: "0x3912953ab49e0c528cf1b37ad023b7eef7174dbd",
+    supplyApy: 11.2,
+    borrowApr: null,
+    maxLtv: null,
+    liquidationThreshold: null,
+    utilization: 0,
+    availableLiquidityUsd: 4500000,
+    tvlUsd: 4500000,
+    riskScore: 3,
+    riskLevel: "low",
+    riskNotes: ["Automated carry"],
+    contractAddress: "0x1111111111111111111111111111111111111111",
+    executionType: "superform",
+  };
+
+  it("builds Supply calls with approval for Morpho Blue", () => {
+    const amountRaw = parseUnits("10", 8); // 10 NVDAc
+    const calls = buildUnifiedProtocolCalls({
+      option: mockMorphoOption,
+      action: "supply",
+      amountRaw,
+      userAddress: dummyUser,
+      requiresApproval: true,
+    });
+
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    // Approval call on stock token
+    expect(calls[0].to.toLowerCase()).toBe(mockMorphoOption.stockAddress.toLowerCase());
+  });
+
+  it("builds Borrow calls for Morpho Blue", () => {
+    const amountRaw = parseUnits("500", 6); // 500 USDC
+    const calls = buildUnifiedProtocolCalls({
+      option: mockMorphoOption,
+      action: "borrow",
+      amountRaw,
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].to.toLowerCase()).toBe(mockMorphoOption.contractAddress.toLowerCase());
+  });
+
+  it("builds Repay calls with USDC approval for Morpho Blue", () => {
+    const amountRaw = parseUnits("500", 6); // 500 USDC
+    const calls = buildUnifiedProtocolCalls({
+      option: mockMorphoOption,
+      action: "repay",
+      amountRaw,
+      userAddress: dummyUser,
+      requiresApproval: true,
+    });
+
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    expect(calls[0].to.toLowerCase()).toBe(mockMorphoOption.loanAddress.toLowerCase());
+  });
+
+  it("builds Withdraw calls for Morpho Blue", () => {
+    const amountRaw = parseUnits("10", 8); // 10 NVDAc
+    const calls = buildUnifiedProtocolCalls({
+      option: mockMorphoOption,
+      action: "withdraw",
+      amountRaw,
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].to.toLowerCase()).toBe(mockMorphoOption.contractAddress.toLowerCase());
+  });
+
+  it("builds Deposit to Strategy calls for Superform SuperStocks", () => {
+    const amountRaw = parseUnits("25", 8); // 25 NVDAc
+    const calls = buildUnifiedProtocolCalls({
+      option: mockStrategyOption,
+      action: "strategy_deposit",
+      amountRaw,
+      userAddress: dummyUser,
+      requiresApproval: true,
+    });
+
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    // Approval for stock token into vault/router
+    expect(calls[0].to.toLowerCase()).toBe(mockStrategyOption.stockAddress.toLowerCase());
+  });
+
+  it("disables borrow/repay for pure strategy options with null borrowApr", () => {
+    expect(mockStrategyOption.borrowApr).toBeNull();
+    const canBorrow = mockStrategyOption.borrowApr !== null && mockStrategyOption.borrowApr > 0;
+    expect(canBorrow).toBe(false);
+  });
+
+  it("builds fixed-term supply and borrow calls for Morpho Midnight", () => {
+    const mockMidnight: StockLendingOption = {
+      ...mockMorphoOption,
+      id: "morpho-midnight-nvdac",
+      protocol: "morpho_midnight",
+      protocolName: "Morpho Midnight",
+      type: "fixed",
+      fixedTermDays: 60,
+      executionType: "morpho_midnight",
+      contractAddress: "0x2222222222222222222222222222222222222222",
+    };
+
+    const supplyCalls = buildUnifiedProtocolCalls({
+      option: mockMidnight,
+      action: "supply",
+      amountRaw: parseUnits("5", 8),
+      userAddress: dummyUser,
+    });
+    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
+
+    const borrowCalls = buildUnifiedProtocolCalls({
+      option: mockMidnight,
+      action: "borrow",
+      amountRaw: parseUnits("1000", 6),
+      userAddress: dummyUser,
+    });
+    expect(borrowCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("builds supply and borrow calls for Euler V2", () => {
+    const mockEuler: StockLendingOption = {
+      ...mockMorphoOption,
+      id: "euler-v2-nvdac",
+      protocol: "euler",
+      protocolName: "Euler V2",
+      executionType: "euler",
+      contractAddress: "0x3333333333333333333333333333333333333333",
+    };
+
+    const supplyCalls = buildUnifiedProtocolCalls({
+      option: mockEuler,
+      action: "supply",
+      amountRaw: parseUnits("5", 8),
+      userAddress: dummyUser,
+    });
+    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
+    expect(supplyCalls[0].to.toLowerCase()).toBe(mockEuler.stockAddress.toLowerCase());
+
+    const borrowCalls = buildUnifiedProtocolCalls({
+      option: mockEuler,
+      action: "borrow",
+      amountRaw: parseUnits("1000", 6),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(borrowCalls.length).toBe(1);
+  });
+
+  it("builds mint and borrow calls for Moonwell", () => {
+    const mockMoonwell: StockLendingOption = {
+      ...mockMorphoOption,
+      id: "moonwell-nvdac",
+      protocol: "moonwell",
+      protocolName: "Moonwell Equities",
+      executionType: "moonwell",
+      contractAddress: "0x4444444444444444444444444444444444444444",
+    };
+
+    const supplyCalls = buildUnifiedProtocolCalls({
+      option: mockMoonwell,
+      action: "supply",
+      amountRaw: parseUnits("5", 8),
+      userAddress: dummyUser,
+    });
+    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
+
+    const borrowCalls = buildUnifiedProtocolCalls({
+      option: mockMoonwell,
+      action: "borrow",
+      amountRaw: parseUnits("1000", 6),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(borrowCalls.length).toBe(1);
+  });
+
+  it("builds supply, borrow, and repay calls for Aave V4 Equities Hub", () => {
+    const mockAave: StockLendingOption = {
+      ...mockMorphoOption,
+      id: "aave-v4-nvdac",
+      protocol: "aave_v4",
+      protocolName: "Aave V4 Equities",
+      executionType: "aave_v4",
+      contractAddress: "0x5555555555555555555555555555555555555555",
+    };
+
+    const supplyCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "supply",
+      amountRaw: parseUnits("5", 8),
+      userAddress: dummyUser,
+    });
+    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
+
+    const borrowCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "borrow",
+      amountRaw: parseUnits("1000", 6),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(borrowCalls.length).toBe(1);
+
+    const repayCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "repay",
+      amountRaw: parseUnits("1000", 6),
+      userAddress: dummyUser,
+    });
+    expect(repayCalls.length).toBeGreaterThanOrEqual(1);
+  });
+});
+

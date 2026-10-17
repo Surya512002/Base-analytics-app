@@ -20,7 +20,7 @@ export default function QuickGiftCta({
 
   return (
     <div
-      className={`rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] ${
+      className={`pop rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] ${
         compact ? "p-3" : "p-4"
       } flex flex-col sm:flex-row sm:items-center justify-between gap-3`}
     >
@@ -38,14 +38,14 @@ export default function QuickGiftCta({
           <button
             type="button"
             onClick={onConnect}
-            className="min-h-[40px] px-4 rounded-xl bg-emerald-500/25 border border-emerald-500/40 text-[12px] font-bold text-emerald-100"
+            className="pop-pill min-h-[40px] px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[12px] font-bold text-emerald-800 dark:text-emerald-100 transition-colors cursor-pointer"
           >
             Connect to gift
           </button>
         ) : (
           <Link
             href={href}
-            className="min-h-[40px] px-4 rounded-xl bg-emerald-500/25 border border-emerald-500/40 text-[12px] font-bold text-emerald-100 inline-flex items-center"
+            className="pop-pill min-h-[40px] px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[12px] font-bold text-emerald-800 dark:text-emerald-100 inline-flex items-center transition-colors cursor-pointer"
           >
             Gift $5 USDC
           </Link>
@@ -53,7 +53,7 @@ export default function QuickGiftCta({
         {payHref && (
           <Link
             href={payHref}
-            className="min-h-[40px] px-4 rounded-xl border border-[var(--border-subtle)] text-[12px] font-bold text-[var(--ink-muted)] inline-flex items-center"
+            className="pop-pill min-h-[40px] px-4 rounded-xl border border-[var(--border-subtle)] hover:border-[var(--brand)] text-[12px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] inline-flex items-center transition-colors cursor-pointer"
           >
             Pay link
           </Link>

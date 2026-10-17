@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
 import {
   ChevronDown,
   Loader2,
   Settings2,
   ArrowDownUp,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { formatUnits } from "viem";
 import type { WalletAppState } from "@/hooks/useWalletApp";
@@ -16,8 +19,9 @@ import { captureTokenReferrerFromUrl, readTokenReferrer } from "@/lib/utils/refe
 import { dexLabel, type SwapVenue } from "@/lib/launchpad/dex";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { formatUsd } from "@/lib/launchpad/format";
+import { formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
 import { computeSwapUsd } from "@/lib/launchpad/swap-display";
+import { getStockBaselineNav } from "@/lib/stocks/coinbase-api";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
 import TokenPickerDialog, {
   CounterAvatar,
@@ -44,6 +48,7 @@ import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
+  { id: "o1", label: "o1 Trading API" },
   { id: "aerodrome", label: "Aerodrome" },
   { id: "uniswap", label: "Uniswap" },
   { id: "slipstream", label: "Slipstream" },
@@ -62,12 +67,7 @@ function defaultFromAmount(counter: SwapCounter): string {
 }
 
 function formatQuoteOut(amountOut: string, decimals: number): string {
-  const n = Number(amountOut) / 10 ** decimals;
-  if (!Number.isFinite(n) || n <= 0) return "0";
-  if (n >= 1_000_000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  if (n >= 1) return n.toFixed(4);
-  if (n >= 0.0001) return n.toFixed(6);
-  return n.toExponential(2);
+  return formatTokenAmount(amountOut, decimals);
 }
 
 function isPresetSlippage(value: string): boolean {
@@ -154,6 +154,8 @@ export default function DexSwapPanel({
   const [slippage, setSlippage] = useState("1");
   const [dex, setDex] = useState<LaunchDex>("auto");
   const [showSettings, setShowSettings] = useState(false);
+  const [isLaunchedToken, setIsLaunchedToken] = useState(false);
+  const [creatorAddress, setCreatorAddress] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
@@ -208,6 +210,9 @@ export default function DexSwapPanel({
     }
     setTo(nextTo);
     setAmount(defaultFromAmount(from));
+    setSlippage("0.5");
+    setIsLaunchedToken(true);
+    setCreatorAddress(prefillToken.creator ?? null);
     captureTokenReferrerFromUrl(prefillToken.address);
     setReferrer(readTokenReferrer(prefillToken.address));
   }, [prefillToken?.address]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -257,6 +262,8 @@ export default function DexSwapPanel({
     const sym = from.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(sym)) return 1;
     if (sym === "WETH") return ethUsd;
+    const stockNav = getStockBaselineNav(from.address) ?? getStockBaselineNav(from.symbol);
+    if (stockNav && stockNav > 0) return stockNav;
     return fromTokenUsd;
   }, [from, ethUsd, fromTokenUsd]);
 
@@ -266,6 +273,8 @@ export default function DexSwapPanel({
     const sym = to.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(sym)) return 1;
     if (sym === "WETH") return ethUsd;
+    const stockNav = getStockBaselineNav(to.address) ?? getStockBaselineNav(to.symbol);
+    if (stockNav && stockNav > 0) return stockNav;
     return pageTokenUsd;
   }, [to, ethUsd, pageTokenUsd]);
 
@@ -369,9 +378,18 @@ export default function DexSwapPanel({
     let alive = true;
     void (async () => {
       if (from.kind === "eth") {
-        if (!alive) return;
-        setFromBalance(ethBalance);
-        setFromBalanceRaw(BigInt(0));
+        try {
+          const pub = createBasePublicClient();
+          const wei = await pub.getBalance({ address: wallet.address as `0x${string}` });
+          const human = parseFloat(formatUnits(wei, 18));
+          if (!alive) return;
+          setFromBalance(Number.isFinite(human) ? human : ethBalance);
+          setFromBalanceRaw(wei);
+        } catch {
+          if (!alive) return;
+          setFromBalance(ethBalance);
+          setFromBalanceRaw(BigInt(0));
+        }
         return;
       }
       const bal = await readErc20Balance(from.address as `0x${string}`, fromDecimals);
@@ -428,6 +446,13 @@ export default function DexSwapPanel({
         setActiveDex(q.dex ?? null);
         setQuoteImpactBps(q.priceImpactBps ?? null);
         setAggregatorReady(q.aggregatorConfigured !== false);
+        if (q.isLaunchedToken) {
+          setIsLaunchedToken(true);
+          setSlippage((prev) => (prev === "1" ? "0.5" : prev));
+        }
+        if (q.creator) {
+          setCreatorAddress(q.creator);
+        }
         const outDec =
           q.outDecimals ??
           (route.direction === "buy" ? pageDecimals : route.counterDecimals);
@@ -645,9 +670,7 @@ export default function DexSwapPanel({
       return null;
     }
     const rate = quoteOutNum / payAmountNum;
-    return `1 ${fromLabel} ≈ ${rate.toLocaleString(undefined, {
-      maximumFractionDigits: rate >= 1 ? 4 : 8,
-    })} ${toLabel}`;
+    return `1 ${fromLabel} ≈ ${formatTokenAmount(rate, to ? counterDecimalsOf(to) : 18)} ${toLabel}`;
   }, [to, payAmountNum, quoteOutNum, fromLabel, toLabel]);
 
   const detailsLine = useMemo(() => {
@@ -830,19 +853,59 @@ export default function DexSwapPanel({
         </label>
       )}
 
-      <button
+      {(activeDex === "o1" || (to?.kind === "token" && (to.symbol.endsWith("c") || to.address.toLowerCase().startsWith("0xb20")))) && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/25 text-[11px] text-[var(--teal)] font-medium">
+          <ShieldCheck size={13} className="shrink-0 text-[var(--teal)]" />
+          <span>MEV Protected execution · Permit2 &amp; Direct Equities Settlement</span>
+        </div>
+      )}
+
+      {isLaunchedToken && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500/10 via-[var(--surface-2)] to-purple-500/10 border border-blue-500/25 text-xs text-[var(--ink)] shadow-xs"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-500/15 text-amber-500 border border-amber-500/25 shrink-0">
+              <Zap size={12} />
+            </div>
+            <span className="font-bold text-[var(--ink)]">0.50% Swap Fee Split</span>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-[11px] self-end sm:self-auto">
+            <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 font-bold">
+              0.25% Creator Stream
+            </span>
+            <span className="text-[var(--ink-muted)]">+</span>
+            <span className="px-2 py-0.5 rounded-md bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)] font-medium">
+              0.25% Platform
+            </span>
+          </div>
+        </motion.div>
+      )}
+
+      <motion.button
         type="button"
         onClick={onSwap}
+        whileTap={{ scale: 0.98 }}
         disabled={swapLoading || Boolean(wallet && !guestMode && !canSwap)}
         className="dex-swap-submit"
       >
         {swapLoading && <Loader2 size={18} className="animate-spin" />}
         {ctaLabel}
-      </button>
+      </motion.button>
 
       <p className="dex-swap-foot">
-        {formatPlatformFeeLabel()} platform fee · Paste any{" "}
-        <span className="font-mono">0x…</span> address in the token picker · Base mainnet
+        {isLaunchedToken ? (
+          <>
+            <span className="text-[var(--accent)] font-semibold">0.50% total fee</span> (0.25% Platform + 0.25% Creator revenue share) · 0.5% default slippage · Base mainnet
+          </>
+        ) : (
+          <>
+            {formatPlatformFeeLabel()} platform fee · Paste any{" "}
+            <span className="font-mono">0x…</span> address in the token picker · Base mainnet
+          </>
+        )}
       </p>
 
       <TokenPickerDialog

@@ -18,10 +18,10 @@ import {
   type UniswapFeeTier,
 } from "@/lib/launchpad/uniswap";
 
-export type LaunchDex = "auto" | "uniswap" | "aerodrome" | "slipstream";
+export type LaunchDex = "auto" | "uniswap" | "aerodrome" | "slipstream" | "o1";
 
-/** Venues an executed swap can route through ("aggregator" = 0x fallback). */
-export type SwapVenue = "uniswap" | "aerodrome" | "slipstream" | "aggregator";
+/** Venues an executed swap can route through ("aggregator" = 0x fallback, "o1" = o1 Trading API). */
+export type SwapVenue = "uniswap" | "aerodrome" | "slipstream" | "aggregator" | "o1";
 
 export type DexQuoteResult = {
   dex: SwapVenue;
@@ -44,19 +44,20 @@ export async function quoteLaunchSwap(params: {
   amountIn: bigint;
   slippageBps: number;
   dex?: LaunchDex;
+  quoteToken?: Address;
   /** When true, try Aerodrome WETH↔USDC↔token if direct WETH pool is empty. */
   allowUsdcHop?: boolean;
 }): Promise<DexQuoteResult> {
-  const weth = WETH_BASE as Address;
-  const tokenIn = params.direction === "buy" ? weth : params.token;
-  const tokenOut = params.direction === "buy" ? params.token : weth;
+  const quoteToken = params.quoteToken ?? (WETH_BASE as Address);
+  const tokenIn = params.direction === "buy" ? quoteToken : params.token;
+  const tokenOut = params.direction === "buy" ? params.token : quoteToken;
 
-  const order: Array<Exclude<SwapVenue, "aggregator">> =
-    params.dex && params.dex !== "auto"
+  const order: Array<Exclude<SwapVenue, "aggregator" | "o1">> =
+    params.dex && params.dex !== "auto" && params.dex !== "o1"
       ? [params.dex]
       : ["slipstream", "aerodrome", "uniswap"];
 
-  const quoteVenue = async (venue: Exclude<SwapVenue, "aggregator">) => {
+  const quoteVenue = async (venue: Exclude<SwapVenue, "aggregator" | "o1">) => {
     if (venue === "uniswap") return quoteSwapExactIn(tokenIn, tokenOut, params.amountIn);
     if (venue === "aerodrome") return quoteAerodromeExactIn(tokenIn, tokenOut, params.amountIn);
     return quoteSlipstreamExactIn(tokenIn, tokenOut, params.amountIn);
@@ -68,14 +69,14 @@ export async function quoteLaunchSwap(params: {
     quoteSlipstreamExactIn(tokenIn, tokenOut, params.amountIn),
   ]);
 
-  const routers: Record<Exclude<SwapVenue, "aggregator">, `0x${string}`> = {
+  const routers: Record<Exclude<SwapVenue, "aggregator" | "o1">, `0x${string}`> = {
     uniswap: SWAP_ROUTER_02,
     aerodrome: AERODROME_ROUTER,
     slipstream: SLIPSTREAM_SWAP_ROUTER,
   };
 
   const pick = (
-    dex: Exclude<SwapVenue, "aggregator">,
+    dex: Exclude<SwapVenue, "aggregator" | "o1">,
     extras?: {
       aerodromeHops?: AerodromeHop[];
       amountOut?: bigint;
@@ -103,7 +104,7 @@ export async function quoteLaunchSwap(params: {
   };
 
   const pref = params.dex ?? "auto";
-  if (pref !== "auto") {
+  if (pref !== "auto" && pref !== "o1") {
     const q = await quoteVenue(pref);
     if (q.hasLiquidity) return pick(pref);
     if (pref === "aerodrome" && params.allowUsdcHop !== false) {
@@ -175,5 +176,6 @@ export function dexLabel(dex: SwapVenue): string {
   if (dex === "aerodrome") return "Aerodrome";
   if (dex === "slipstream") return "Slipstream";
   if (dex === "aggregator") return "0x Aggregator";
+  if (dex === "o1") return "o1 Trading API";
   return "Uniswap V3";
 }

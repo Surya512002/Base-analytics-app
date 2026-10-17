@@ -18,10 +18,10 @@ export default function VoucherRedeemStatusBanner({
       role="alert"
       className="rounded-2xl border-2 border-red-400/55 bg-red-500/15 px-4 py-4 flex items-start gap-3"
     >
-      <AlertCircle size={22} className="text-red-300 shrink-0 mt-0.5" />
+      <AlertCircle size={22} className="text-red-600 dark:text-red-300 shrink-0 mt-0.5" />
       <div>
-        <p className="text-base sm:text-lg font-black text-red-100">This card is already redeemed</p>
-        <p className="text-sm text-red-200/85 mt-1 leading-relaxed">
+        <p className="text-base sm:text-lg font-black text-red-800 dark:text-red-100">This card is already redeemed</p>
+        <p className="text-sm text-red-700 dark:text-red-200/85 mt-1 leading-relaxed">
           Card <span className="font-mono font-bold text-[var(--ink)]">{cardId}</span> was already claimed on
           Base. You cannot redeem it again — the funds went to whoever redeemed it first.
         </p>

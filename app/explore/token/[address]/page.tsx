@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HomeApp from "@/components/home/HomeApp";
 import { getAppUrl } from "@/lib/constants/app-url";
 import { OG_VERSION } from "@/lib/og/brand-kit";
+import { formatUsd } from "@/lib/launchpad/format";
 
 const BASE = getAppUrl();
 
@@ -30,9 +31,7 @@ export async function generateMetadata({
     const market = marketData.markets?.[token];
     const sym = found?.symbol ?? "TOKEN";
     const name = found?.name ?? "Base Token";
-    const price = market?.priceUsd
-      ? `$${market.priceUsd < 0.01 ? market.priceUsd.toExponential(2) : market.priceUsd.toFixed(4)}`
-      : "—";
+    const price = market?.priceUsd ? formatUsd(market.priceUsd) : "—";
     const mcap = market?.marketCap
       ? market.marketCap >= 1e6
         ? `$${(market.marketCap / 1e6).toFixed(2)}M`

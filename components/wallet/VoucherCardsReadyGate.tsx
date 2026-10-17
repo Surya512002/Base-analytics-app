@@ -82,8 +82,8 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
       aria-modal="true"
       aria-labelledby="voucher-cards-ready-title"
     >
-      <div className="w-full sm:max-w-lg max-h-[96dvh] sm:max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-emerald-500/30 bg-[#0a0f18] shadow-2xl shadow-emerald-500/10 overflow-hidden">
-        <div className="shrink-0 px-5 pt-5 pb-4 border-b border-white/10 bg-linear-to-b from-emerald-500/12 to-transparent">
+      <div className="w-full sm:max-w-lg max-h-[96dvh] sm:max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-emerald-500/30 bg-[var(--surface)] shadow-2xl shadow-emerald-500/10 overflow-hidden">
+        <div className="shrink-0 px-5 pt-5 pb-4 border-b border-[var(--border-subtle)] bg-linear-to-b from-emerald-500/12 to-transparent">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
               <Gift size={22} className="text-emerald-400" />
@@ -92,14 +92,14 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                 Deposit confirmed
               </p>
-              <h2 id="voucher-cards-ready-title" className="text-lg font-black text-white truncate">
+              <h2 id="voucher-cards-ready-title" className="text-lg font-black text-[var(--ink)] truncate">
                 Your cards are ready
               </h2>
             </div>
             <AppLogo className="w-8 h-8 opacity-60 shrink-0" />
           </div>
-          <p className="text-sm text-slate-300 leading-relaxed">
-            Batch <span className="text-white font-bold">#{batch.batchId}</span>
+          <p className="text-sm text-[var(--ink-muted)] leading-relaxed">
+            Batch <span className="text-[var(--ink)] font-bold">#{batch.batchId}</span>
             {" · "}
             {batch.cardCount} card{batch.cardCount === 1 ? "" : "s"}
             {" · "}
@@ -165,7 +165,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
           </div>
         </div>
 
-        <div className="shrink-0 px-5 py-4 border-t border-white/10 bg-black/40 space-y-3">
+        <div className="shrink-0 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-3">
           {hasSecrets && (
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
@@ -174,7 +174,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
                 onChange={(e) => setAcknowledged(e.target.checked)}
                 className="mt-1 w-4 h-4 rounded border-[var(--border-strong)] accent-[var(--accent)]"
               />
-              <span className="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
+              <span className="text-xs text-[var(--ink-muted)] leading-relaxed group-hover:text-[var(--ink)] transition">
                 I copied or saved every Card ID and Secret. I understand recipients need both to
                 redeem.
               </span>
@@ -189,7 +189,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
                 onChange={(e) => setAcknowledged(e.target.checked)}
                 className="mt-1 w-4 h-4 rounded border-amber-500/50 accent-amber-500"
               />
-              <span className="text-xs text-slate-300 leading-relaxed">
+              <span className="text-xs text-[var(--ink-muted)] leading-relaxed group-hover:text-[var(--ink)] transition">
                 I understand secrets are missing for this batch and may appear in My Cards after
                 refresh.
               </span>
@@ -207,7 +207,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
           </button>
 
           {hasSecrets && !copyAllDone && (
-            <p className="text-[10px] text-center text-slate-500 font-bold">
+            <p className="text-[10px] text-center text-[var(--ink-muted)] font-bold">
               Tap &quot;Copy all Card IDs + Secrets&quot; first, then check the box above.
             </p>
           )}

@@ -1,6 +1,6 @@
 ---
 title: "Base Voucher Plugin"
-description: "Create and redeem ETH/USDC crypto gift cards on Base via Base Voucher MCP or HTTP prepare API → Base MCP send_calls."
+description: "Create and redeem crypto gift cards (ETH, USDC, Tokenized Stocks, Yield Vaults) on Base via Base Voucher MCP or HTTP prepare API → Base MCP send_calls."
 tags: [agent-commerce, payment-cards, gift-cards]
 name: base-voucher
 version: 0.3.0
@@ -25,7 +25,7 @@ risk: [pii, irreversible]
 
 ## Overview
 
-Base Voucher is a decentralized crypto gift card protocol on Base mainnet (ETH and USDC only). Users deposit a total amount, split it evenly into 1–50 cards, and share each card's **Card ID** + **Secret** with recipients who redeem onchain.
+Base Voucher is a decentralized crypto gift card protocol on Base mainnet supporting **ETH, USDC, Coinbase Tokenized Stocks** (NVDAc, AAPLc, etc.), and **Yield Vault Shares** (`mvNVDAc`, `mvAAPLc`, `sfNVDAc`, `mvCOINc`). Users deposit a total amount, split it evenly into 1–50 cards, and share each card's **Card ID** + **Secret** with recipients who redeem onchain.
 
 This plugin has two prepare paths that both return unsigned `calls[]` for Base MCP `send_calls`:
 

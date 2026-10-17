@@ -11,55 +11,66 @@ const TAB_ALIASES: Record<string, AppTab> = {
   dex: "swap",
   predictions: "launchpad",
   predict: "launchpad",
-  dashboard: "dashboard",
-  analytics: "dashboard",
-  checkin: "checkin",
-  "check-in": "checkin",
-  quests: "checkin",
-  rankings: "checkin",
-  leaderboard: "checkin",
+  dashboard: "launchpad",
+  analytics: "launchpad",
+  checkin: "launchpad",
+  "check-in": "launchpad",
+  actions: "launchpad",
+  habits: "launchpad",
+  streaks: "launchpad",
+  quests: "launchpad",
+  rankings: "launchpad",
+  leaderboard: "launchpad",
   voucher: "basehub",
   vouchers: "basehub",
   basehub: "basehub",
-  badges: "achievements",
-  achievements: "achievements",
-  rewards: "checkin",
-  stake: "checkin",
-  staking: "checkin",
+  badges: "launchpad",
+  achievements: "launchpad",
+  rewards: "lend",
+  stake: "lend",
+  staking: "lend",
+  lend: "lend",
+  lending: "lend",
+  borrow: "lend",
+  borrowing: "lend",
+  earn: "lend",
+  vaults: "lend",
 };
 
-export type RewardsHubView = "checkin" | "stake";
-
-export function resolveRewardsViewFromUrl(search?: string): RewardsHubView {
-  if (typeof window === "undefined" && !search) return "checkin";
-  const raw = search ?? window.location.search;
-  const params = new URLSearchParams(raw);
-  const tab = params.get("tab");
-  const view = params.get("view");
-  if (view === "stake") return "stake";
-  if (tab === "rewards" || tab === "stake" || tab === "staking") return "stake";
-  return "checkin";
+export function buildLendPath(): string {
+  return "/lend";
 }
 
-export function syncRewardsHubUrl(view: RewardsHubView) {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  url.searchParams.set("tab", "checkin");
-  if (view === "stake") url.searchParams.set("view", "stake");
-  else url.searchParams.delete("view");
-  url.searchParams.delete("token");
-  window.history.replaceState({}, "", url);
-}
-
-export function isRewardsHubTab(tab: AppTab): boolean {
-  return tab === "checkin" || tab === "rewards";
+export function buildLaunchPath(): string {
+  return "/launch";
 }
 
 export function resolveTabFromUrl(search?: string): AppTab | null {
   if (typeof window === "undefined" && !search) return null;
-  const raw = search ?? window.location.search;
-  const t = new URLSearchParams(raw).get("tab");
-  return t && TAB_ALIASES[t] ? TAB_ALIASES[t] : null;
+  const raw = search ?? (typeof window !== "undefined" ? window.location.search : "");
+  const searchParams = new URLSearchParams(raw);
+  const t = searchParams.get("tab");
+  if (t && TAB_ALIASES[t]) return TAB_ALIASES[t];
+
+  // Infer basehub if voucher claim parameters are present
+  if (
+    searchParams.has("card") ||
+    searchParams.has("cardId") ||
+    searchParams.has("voucher") ||
+    searchParams.has("c")
+  ) {
+    return "basehub";
+  }
+
+  if (typeof window !== "undefined" && window.location.hash) {
+    const hash = window.location.hash.replace(/^#/, "");
+    const hashParams = new URLSearchParams(hash);
+    if (hashParams.has("id") || hashParams.has("card")) {
+      return "basehub";
+    }
+  }
+
+  return null;
 }
 
 export function resolveTokenFromUrl(search?: string): string | null {
@@ -100,25 +111,6 @@ export function buildRedeemDeepLink(cardId: string, secret?: string): string {
   qs.set("card", cardId);
   if (secret) qs.set("secret", secret);
   return `/?${qs.toString()}`;
-}
-
-export function buildQuestDeepLink(questId: string): string {
-  return `/?tab=checkin&quest=${encodeURIComponent(questId)}`;
-}
-
-export function resolveQuestHighlightFromUrl(search?: string): string | null {
-  if (typeof window === "undefined" && !search) return null;
-  const raw = search ?? window.location.search;
-  return new URLSearchParams(raw).get("quest");
-}
-
-export function syncQuestHighlightUrl(questId: string | null) {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  url.searchParams.set("tab", "checkin");
-  if (questId) url.searchParams.set("quest", questId);
-  else url.searchParams.delete("quest");
-  window.history.replaceState({}, "", url);
 }
 
 export function buildGiftVoucherDeepLink(amountUsdc = "5"): string {

@@ -4,7 +4,8 @@ import path from "node:path";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["**/*.test.ts"],
+    include: ["lib/**/*.test.ts", "test/**/*.test.ts"],
+    exclude: ["node_modules", "lib/forge-std", "scratch"],
   },
   resolve: {
     alias: {

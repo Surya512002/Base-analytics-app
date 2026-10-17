@@ -1,11 +1,11 @@
-import { BarChart3, Gift, Rocket, Zap } from "lucide-react";
+import { ArrowLeftRight, Coins, Gift, Rocket } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 const STRIP: { icon: React.ReactNode; label: string; tab?: AppTab; core?: boolean }[] = [
-  { icon: <Rocket size={13} className="text-emerald-400" />, label: "Launchpad", tab: "launchpad", core: true },
-  { icon: <Zap size={13} className="text-amber-400" />, label: "Quests & XP", tab: "checkin" },
-  { icon: <Gift size={13} className="text-[var(--ink-muted)]" />, label: "Base Voucher", tab: "basehub" },
-  { icon: <BarChart3 size={13} className="text-rose-400" />, label: "Wallet Analytics", tab: "dashboard" },
+  { icon: <Coins size={13} className="text-blue-400" />, label: "Tokenized Stocks", tab: "lend", core: true },
+  { icon: <Rocket size={13} className="text-emerald-400" />, label: "Token Launchpad", tab: "launchpad", core: true },
+  { icon: <ArrowLeftRight size={13} className="text-cyan-400" />, label: "DEX Swap", tab: "swap" },
+  { icon: <Gift size={13} className="text-[var(--ink-muted)]" />, label: "Base Vouchers", tab: "basehub" },
 ];
 
 interface AppFeatureStripProps {
@@ -24,7 +24,7 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
           key={s.label}
           type="button"
           onClick={() => s.tab && onNavigate?.(s.tab)}
-          className={`glass-panel-accent rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:border-[var(--border-strong)] transition ${
+          className={`pop-pill glass-panel-accent rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:border-[var(--border-strong)] transition cursor-pointer ${
             s.core ? "border-emerald-500/30" : ""
           }`}
         >

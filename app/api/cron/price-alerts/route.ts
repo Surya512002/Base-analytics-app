@@ -5,6 +5,7 @@ import {
   listActivePriceAlerts,
   markPriceAlertTriggered,
 } from "@/lib/price-alerts/store";
+import { formatUsd } from "@/lib/launchpad/format";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
         title: `$${alert.symbol.slice(0, 10)} alert`,
         message: `${alert.symbol} is ${alert.direction} $${alert.priceUsd.toFixed(
           price < 0.01 ? 6 : 4
-        )} — now $${price < 0.01 ? price.toExponential(2) : price.toFixed(4)}`,
+        )} — now ${formatUsd(price)}`,
         targetPath: `/explore/token/${alert.address}`,
       });
       await markPriceAlertTriggered(alert.id);
