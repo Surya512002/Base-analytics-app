@@ -12,7 +12,7 @@ jobs:
     env:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -53,7 +53,7 @@ jobs:
     name: Gitleaks Secrets Detection
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Run Gitleaks Scanner
@@ -68,7 +68,7 @@ jobs:
     name: Smart Contracts & Security Analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install Foundry
