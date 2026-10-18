@@ -106,7 +106,7 @@ export default function CreatorProfilePanel({
   }, []);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 w-full min-w-0">
       {/* SIWE Sign-In Banner if Owner connected but not signed in */}
       {isOwner && !siweAuthenticated && connectedAddress && onSiweSignIn && (
         <SiweSignInBanner
@@ -123,9 +123,9 @@ export default function CreatorProfilePanel({
       {/* Two-Column Responsive Layout:
           Desktop: Left = Header + Stats + Tabs, Right = Sticky Daily Panel
           Mobile: Stacked (Header, Stats, Tabs, Daily actions) */}
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
+      <div className="grid lg:grid-cols-12 gap-6 items-start w-full min-w-0">
         {/* Main Column */}
-        <div className={isOwner ? "lg:col-span-8 space-y-6" : "lg:col-span-12 space-y-6"}>
+        <div className={isOwner ? "lg:col-span-8 space-y-6 w-full min-w-0" : "lg:col-span-12 space-y-6 w-full min-w-0"}>
           {/* 1. Profile Header (Identity card, avatar, Basename, socials, edit/share) */}
           <ProfileHeader
             address={address}
@@ -159,7 +159,7 @@ export default function CreatorProfilePanel({
 
           {/* Mobile view of Daily Actions (stacked at bottom for owner) */}
           {isOwner && (
-            <div className="block lg:hidden">
+            <div className="block lg:hidden w-full min-w-0">
               <DailyActionsPanel onRequestConnect={onConnect} />
             </div>
           )}
@@ -167,7 +167,7 @@ export default function CreatorProfilePanel({
 
         {/* Right Sticky Column: Daily Actions (Desktop only, for owner) */}
         {isOwner && (
-          <div className="hidden lg:block lg:col-span-4 sticky top-24">
+          <div className="hidden lg:block lg:col-span-4 sticky top-24 w-full min-w-0">
             <DailyActionsPanel onRequestConnect={onConnect} />
           </div>
         )}

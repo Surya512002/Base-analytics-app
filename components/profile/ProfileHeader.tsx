@@ -94,12 +94,12 @@ export default function ProfileHeader({
   const displayName = profile?.displayName?.trim() || basename || shortAddr(address, 6, 4);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       {/* Main Identity Card */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-7 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-5">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-7 shadow-sm w-full min-w-0 overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-5 min-w-0">
           {/* Left: Avatar & Identity Details */}
-          <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+          <div className="flex items-start gap-3.5 sm:gap-5 min-w-0 flex-1">
             <div className="relative shrink-0">
               <CreatorAvatar address={address} profile={profile} size="hero" ring />
             </div>

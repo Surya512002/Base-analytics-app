@@ -83,12 +83,12 @@ export default function ProfileTabs({
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full min-w-0">
       {/* Segmented Tab Bar */}
       <div
         role="tablist"
         aria-label="Profile navigation"
-        className="flex gap-1 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto no-scrollbar"
+        className="flex gap-1 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto no-scrollbar w-full min-w-0"
       >
         {TABS.map((t) => {
           const isSelected = activeTab === t.id;
@@ -185,31 +185,31 @@ export default function ProfileTabs({
             </div>
 
             {/* Quick Metrics */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="pop p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full min-w-0">
+              <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 min-w-0 overflow-hidden">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400 truncate block">
                   Creator Share
                 </span>
-                <p className="font-mono font-black text-xl text-[var(--ink)] mt-0.5">0.25%</p>
-                <p className="text-[10px] text-[var(--ink-dim)]">Every in-app swap</p>
+                <p className="font-mono font-black text-base sm:text-xl text-[var(--ink)] mt-0.5 truncate">0.25%</p>
+                <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Every in-app swap</p>
               </div>
 
-              <div className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)]">
-                <span className="text-[10px] font-bold uppercase text-[var(--ink-muted)]">
+              <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] min-w-0 overflow-hidden">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-[var(--ink-muted)] truncate block">
                   Platform Fee
                 </span>
-                <p className="font-mono font-black text-xl text-[var(--ink)] mt-0.5">0.50%</p>
-                <p className="text-[10px] text-[var(--ink-dim)]">Split 50/50</p>
+                <p className="font-mono font-black text-base sm:text-xl text-[var(--ink)] mt-0.5 truncate">0.50%</p>
+                <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Split 50/50</p>
               </div>
 
-              <div className="pop p-3.5 rounded-xl border border-[#0052FF]/30 bg-[#0052FF]/10">
-                <span className="text-[10px] font-bold uppercase text-[#0052FF]">
+              <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-[#0052FF]/30 bg-[#0052FF]/10 min-w-0 overflow-hidden">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-[#0052FF] truncate block">
                   Payout Status
                 </span>
-                <p className="font-bold text-sm text-[var(--ink)] mt-1 flex items-center gap-1">
-                  <Check size={14} className="text-emerald-500" /> Instant
+                <p className="font-bold text-xs sm:text-sm text-[var(--ink)] mt-1 flex items-center gap-1 truncate">
+                  <Check size={14} className="text-emerald-500 shrink-0" /> Instant
                 </p>
-                <p className="text-[10px] text-[var(--ink-dim)]">Zero lockup</p>
+                <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Zero lockup</p>
               </div>
             </div>
           </div>

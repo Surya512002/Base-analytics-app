@@ -213,7 +213,7 @@ export default function DailyActionsPanel({
   }, [streak]);
 
   return (
-    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-6 shadow-sm space-y-5">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-6 shadow-sm space-y-5 w-full min-w-0 overflow-hidden">
       {/* Header: Title "Daily" & Big Streak */}
       <div className="flex items-start justify-between gap-3">
         <div>

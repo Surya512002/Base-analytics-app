@@ -10,7 +10,7 @@ const SIZES = {
   md: "h-10 w-10 rounded-xl text-xs",
   lg: "h-16 w-16 rounded-2xl text-lg",
   xl: "h-20 w-20 rounded-2xl text-xl sm:h-24 sm:w-24 sm:text-2xl",
-  hero: "h-24 w-24 rounded-2xl text-2xl sm:h-28 sm:w-28 sm:text-3xl",
+  hero: "h-20 w-20 rounded-2xl text-xl sm:h-28 sm:w-28 sm:text-3xl",
 } as const;
 
 export type CreatorAvatarSize = keyof typeof SIZES;

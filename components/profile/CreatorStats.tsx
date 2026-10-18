@@ -66,33 +66,33 @@ export default function CreatorStats({
   return (
     <div className="space-y-3">
       {/* 4 Stat Tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 w-full min-w-0">
         {statItems.map((item) => (
           <div
             key={item.label}
-            className="pop flex flex-col justify-between p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs transition"
+            className="pop flex flex-col justify-between min-w-0 p-3 sm:p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs transition overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
                 {item.label}
               </span>
               {item.isEst && (
                 <span
                   title="Estimated based on 24H volume fee share"
-                  className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-help"
+                  className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-help shrink-0"
                 >
                   est.
                 </span>
               )}
             </div>
 
-            <div className="my-2">
-              <span className="text-xl sm:text-2xl font-black text-[var(--ink)] font-mono tabular-nums tracking-tight">
+            <div className="my-1.5 sm:my-2 min-w-0">
+              <span className="text-base sm:text-xl lg:text-2xl font-black text-[var(--ink)] font-mono tabular-nums tracking-tight truncate block">
                 {item.value}
               </span>
             </div>
 
-            <span className="text-[11px] text-[var(--ink-dim)] truncate">
+            <span className="text-[10px] sm:text-[11px] text-[var(--ink-dim)] truncate block">
               {item.subtext}
             </span>
           </div>

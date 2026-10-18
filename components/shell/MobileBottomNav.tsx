@@ -37,7 +37,7 @@ export default function MobileBottomNav({
     >
       <div className="flex w-full max-w-none items-stretch justify-around px-0.5">
         {ITEMS.map(({ id, icon: Icon, label }) => {
-          const active = tab === id;
+          const active = !profileActive && tab === id;
           const locked = guest && id !== "launchpad" && id !== "swap" && id !== "lend";
           return (
             <button

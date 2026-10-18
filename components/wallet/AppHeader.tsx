@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   RefreshCcw,
   ChevronDown,
@@ -55,6 +56,14 @@ export default function AppHeader({
   siweSigningIn,
   onSiweSignIn,
 }: AppHeaderProps) {
+  const pathname = usePathname();
+  const isProfile = Boolean(
+    pathname && (pathname.startsWith("/profile") || pathname.startsWith("/creator"))
+  );
+  const isLaunch = Boolean(
+    pathname && (pathname === "/launch" || pathname.startsWith("/launch"))
+  );
+
   const profileHref = walletAddress ? `/creator/${walletAddress}` : "/profile";
 
   // Account Menu dropdown state
@@ -95,7 +104,7 @@ export default function AppHeader({
   const navLinks = (
     <>
       {HEADER_NAV.map((item) => {
-        const active = navActive(item.tab, tab);
+        const active = !isProfile && !isLaunch && navActive(item.tab, tab);
         return (
           <button
             key={item.label}
@@ -113,13 +122,23 @@ export default function AppHeader({
       })}
       <Link
         href="/launch"
-        className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)] touch-manipulation"
+        className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer ${
+          isLaunch
+            ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
+            : "text-[var(--muted)] hover:text-[var(--ink)]"
+        }`}
+        aria-current={isLaunch ? "page" : undefined}
       >
         Launch
       </Link>
       <Link
         href={profileHref}
-        className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[var(--muted)] transition hover:text-[var(--ink)] touch-manipulation"
+        className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer ${
+          isProfile
+            ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
+            : "text-[var(--muted)] hover:text-[var(--ink)]"
+        }`}
+        aria-current={isProfile ? "page" : undefined}
       >
         Profile
       </Link>

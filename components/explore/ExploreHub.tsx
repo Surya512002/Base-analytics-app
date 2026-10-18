@@ -12,7 +12,6 @@ import {
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
-import MarketPulse from "./MarketPulse";
 import ExploreHero from "./ExploreHero";
 import DiscoveryRow from "./DiscoveryRow";
 import FilterBar from "./FilterBar";
@@ -113,24 +112,6 @@ export default function ExploreHub({
 
   // Top movers discovery row liquidity toggle
   const [moversHideLowLiquidity, setMoversHideLowLiquidity] = useState(true);
-
-  // Live freshness timer
-  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
-  const [secondsAgo, setSecondsAgo] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsAgo(Math.max(0, Math.floor((Date.now() - lastUpdated) / 1000)));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [lastUpdated]);
-
-  useEffect(() => {
-    if (!syncing) {
-      setLastUpdated(Date.now());
-      setSecondsAgo(0);
-    }
-  }, [syncing, markets]);
 
   // Ref for scrolling to main explorer
   const explorerRef = useRef<HTMLDivElement>(null);
@@ -320,17 +301,7 @@ export default function ExploreHub({
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
       />
 
-      {/* 2. MARKET PULSE STRIP (Single row, each fact shown once) */}
-      <MarketPulse
-        tradableTokensCount={allUnifiedTokens.length}
-        b20LiveCount={b20Activated !== false ? catalogCounts.b20 : 0}
-        totalVolume24h={marketStats.totalVolume24h}
-        totalLiquidity={marketStats.totalLiquidity}
-        lastUpdatedSecondsAgo={secondsAgo}
-        syncing={syncing}
-      />
-
-      {/* 3. DISCOVERY ROWS (Max 8 compact cards, snap-scroll on mobile, grid on desktop) */}
+      {/* 2. DISCOVERY ROWS (Max 8 compact cards, snap-scroll on mobile, grid on desktop) */}
       <div className="space-y-7">
         {/* Row 1: Trending on Base */}
         <DiscoveryRow

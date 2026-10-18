@@ -60,9 +60,9 @@ export default function ProfilePage() {
   }, [siweSignIn, setToast]);
 
   return (
-    <main className="relative min-h-screen font-sans text-[var(--ink)]">
+    <main className="relative min-h-screen font-sans text-[var(--ink)] overflow-x-clip">
       <AppBackground />
-      <div className="relative z-10">
+      <div className="relative z-10 w-full min-w-0">
         <AppHeader
           tab={tab}
           onTabChange={handleTabChange}
@@ -74,7 +74,7 @@ export default function ProfilePage() {
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
         />
-        <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14">
+        <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14 w-full min-w-0">
           {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />

@@ -52,9 +52,9 @@ export default function CreatorPageClient({ address }: { address: string }) {
   };
 
   return (
-    <main className="relative min-h-screen font-sans text-[var(--ink)]">
+    <main className="relative min-h-screen font-sans text-[var(--ink)] overflow-x-clip">
       <AppBackground />
-      <div className="relative z-10">
+      <div className="relative z-10 w-full min-w-0">
         <AppHeader
           tab={tab}
           onTabChange={handleTabChange}
@@ -66,7 +66,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
         />
-        <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8">
+        <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8 w-full min-w-0">
           <Link
             href="/explore"
             className="mb-6 inline-block text-sm font-semibold text-[var(--brand-dark)] hover:text-[var(--brand)]"
