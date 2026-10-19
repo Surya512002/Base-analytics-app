@@ -16,9 +16,9 @@ function formatVol(usd: number): string {
 }
 
 const FALLBACK: OgTrendingRow[] = [
-  { sym: "B20", chg: "+0.0%", vol: "—" },
-  { sym: "BASE", chg: "+0.0%", vol: "—" },
-  { sym: "SWAP", chg: "+0.0%", vol: "—" },
+  { sym: "TSLA", chg: "+4.2%", vol: "$2.1M" },
+  { sym: "B20", chg: "+18.5%", vol: "$540K" },
+  { sym: "NVDA", chg: "+6.8%", vol: "$3.4M" },
 ];
 
 /** Live top B20 tokens by 24h volume for OG / social thumbnails. */

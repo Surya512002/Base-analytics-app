@@ -24,26 +24,33 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Base Analytics — Launch Tokens. Trade on Base.",
+  title: "Base Analytics — Tokenized Stocks, B20 Launches & DEX Swaps on Base",
   description:
-    "Discover liquid assets, route smart swaps across Base, launch B20 tokens, and analyze your onchain activity.",
+    "Trade Coinbase tokenized stocks, launch B20 vanity tokens with 50% creator fee share, route multi-DEX swaps, lend on Morpho, and gift crypto vouchers on Base.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",
   openGraph: {
-    title: "Base Analytics — Launch Tokens. Trade on Base.",
+    title: "Base Analytics — Tokenized Stocks, B20 Launches & DEX Swaps on Base",
     description:
-      "The Base trading terminal: B20 launchpad, smart multi-DEX swaps, wallet analytics, quests and vouchers.",
+      "The Base DeFi terminal: trade tokenized stocks ($TSLA, $NVDA), launch B20 tokens with instant 50% creator fee share, multi-DEX swaps, Morpho stock lending & crypto vouchers.",
     url: APP_URL,
     siteName: "Base Analytics",
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Base Analytics — Launch tokens and trade on Base" }],
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "Base Analytics — Tokenized Stocks, B20 Launches & Swaps on Base",
+      },
+    ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics — Launch Tokens. Trade on Base.",
+    title: "Base Analytics — Tokenized Stocks, B20 Launches & DEX Swaps on Base",
     description:
-      "Discover assets, route swaps across Uniswap, Aerodrome, Slipstream and 0x, launch B20, and analyze your wallet.",
+      "Trade tokenized stocks, launch B20 vanity tokens with 50% creator fees, route swaps across Uniswap & Aerodrome, lend on Morpho, and redeem vouchers on Base.",
     images: [OG_IMAGE],
   },
   other: {
@@ -51,16 +58,24 @@ export const metadata: Metadata = {
       version: "next",
       imageUrl: OG_IMAGE,
       button: {
-        title: "Open App — Free",
+        title: "Launch Base Analytics",
         action: {
           type: "launch_frame",
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#f3f5f9",
+          splashBackgroundColor: "#030712",
         },
       },
     }),
+    "fc:frame:image": OG_IMAGE,
+    "twitter:image": OG_IMAGE,
+    "twitter:image:alt": "Base Analytics — Tokenized Stocks, B20 Launches & Swaps on Base",
+    "og:image": OG_IMAGE,
+    "og:image:secure_url": OG_IMAGE,
+    "og:image:width": "1200",
+    "og:image:height": "630",
+    "og:image:alt": "Base Analytics — Tokenized Stocks, B20 Launches & Swaps on Base",
   },
 };
 
