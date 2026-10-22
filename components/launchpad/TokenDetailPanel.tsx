@@ -531,8 +531,8 @@ export default function TokenDetailPanel({
                 swapsLoading={swaps.length === 0 && !swapsErr}
               />
             </div>
-            <p className="md:hidden text-center text-[11px] text-slate-500">
-              Open the <button type="button" className="text-[var(--ink)] font-bold" onClick={() => setTab("chart")}>Chart</button> tab for live price action.
+            <p className="md:hidden text-center text-[11px] text-[var(--ink-muted)]">
+              Open the <button type="button" className="text-[var(--ink)] font-bold cursor-pointer" onClick={() => setTab("chart")}>Chart</button> tab for live price action.
             </p>
           </div>
         ) : (
@@ -609,7 +609,7 @@ export default function TokenDetailPanel({
                               <div className="text-[var(--ink)] font-mono">{formatEth(ethAmt)}</div>
                               <div className="text-[9px] text-[var(--ink-muted)]">{formatUsd(value)}</div>
                             </td>
-                            <td className="py-2.5 px-2 text-slate-400 font-mono">
+                            <td className="py-2.5 px-2 text-[var(--ink-muted)] font-mono">
                               {isAddressLike(s.trader) ? shortAddr(s.trader) : "—"}
                             </td>
                             <td className="py-2.5 px-4">

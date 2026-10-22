@@ -143,7 +143,7 @@ export default function VoucherMyCards({
         >
           <RefreshCcw
             size={13}
-            className={mineStatusesLoading ? "animate-spin text-[#0052FF]" : ""}
+            className={mineStatusesLoading ? "animate-spin text-[var(--brand-text)]" : ""}
           />
           <span>{mineStatusesLoading ? "Syncing…" : "Refresh"}</span>
         </button>
@@ -153,7 +153,7 @@ export default function VoucherMyCards({
       {myBatches.length === 0 ? (
         <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 sm:p-12 text-center space-y-5 shadow-sm">
           {/* Custom SVG Gift Illustration */}
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20 flex items-center justify-center shadow-inner">
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] flex items-center justify-center shadow-inner">
             <Gift size={36} />
           </div>
 
@@ -186,7 +186,7 @@ export default function VoucherMyCards({
                 value={recoverTxInput}
                 onChange={(e) => setRecoverTxInput(e.target.value.trim())}
                 placeholder="0x… Base transaction hash"
-                className="flex-1 text-xs font-mono rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[#0052FF]"
+                className="flex-1 text-xs font-mono rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
               />
               <button
                 type="button"
@@ -246,7 +246,7 @@ export default function VoucherMyCards({
                     )}
 
                     {hasLocalSecrets && (
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20">
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                         Secrets saved
                       </span>
                     )}
@@ -291,7 +291,7 @@ export default function VoucherMyCards({
                   <button
                     type="button"
                     onClick={() => openBatchDrawer(b)}
-                    className="pop-pill flex items-center gap-1 font-black text-xs text-[#0052FF] hover:underline cursor-pointer shrink-0"
+                    className="pop-pill flex items-center gap-1 font-black text-xs text-[var(--brand-text)] hover:underline cursor-pointer shrink-0"
                   >
                     <span>View Cards &amp; Links</span>
                     <ChevronRight size={14} />
@@ -306,11 +306,11 @@ export default function VoucherMyCards({
       {/* Batch Detail Drawer / Modal */}
       {selectedBatchForDrawer && (
         <div
-          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setSelectedBatchForDrawer(null)}
         >
           <div
-            className="w-full sm:max-w-xl max-h-[88vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200"
+            className="w-full sm:max-w-xl max-h-[88vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer Header */}
@@ -320,7 +320,7 @@ export default function VoucherMyCards({
                   <span className="text-base font-black text-[var(--ink)]">
                     Batch #{selectedBatchForDrawer.batchId} Details
                   </span>
-                  <span className="text-xs font-bold text-[#0052FF] bg-[#0052FF]/10 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold text-[var(--brand-text)] bg-[var(--brand-soft)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full">
                     {selectedBatchForDrawer.asset}
                   </span>
                 </div>
@@ -384,7 +384,7 @@ export default function VoucherMyCards({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-[#0052FF]/10 text-[#0052FF] font-black text-xs flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] font-black text-xs flex items-center justify-center">
                           {idx + 1}
                         </span>
                         <span className="font-mono text-xs font-bold text-[var(--ink)]">
@@ -414,7 +414,7 @@ export default function VoucherMyCards({
                         <button
                           type="button"
                           onClick={() => copyText(claimLink, `drawer-${card.cardId}`)}
-                          className="pop-pill flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#0052FF]/10 text-[#0052FF] hover:bg-[#0052FF]/20 transition shrink-0 cursor-pointer"
+                          className="pop-pill flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--brand-soft)] text-[var(--brand-text)] hover:bg-[var(--brand-soft)] transition shrink-0 cursor-pointer"
                         >
                           {isCopied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
                           <span>{isCopied ? "Copied" : "Copy"}</span>
@@ -445,11 +445,11 @@ export default function VoucherMyCards({
       {/* QR Code Modal for Drawer */}
       {activeQrCard && (
         <div
-          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-[220] flex items-center justify-center bg-[var(--overlay)] p-4"
           onClick={() => setActiveQrCard(null)}
         >
           <div
-            className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 max-w-sm w-full space-y-4 text-center animate-in zoom-in-95"
+            className="rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 max-w-sm w-full space-y-4 text-center animate-in zoom-in-95 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

@@ -49,11 +49,11 @@ export default function ExploreOnboarding() {
   return (
     <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center p-3 sm:p-4 pointer-events-none overflow-y-auto overscroll-contain">
       <div
-        className="absolute inset-0 bg-black/60 pointer-events-auto"
+        className="absolute inset-0 bg-[var(--overlay)] pointer-events-auto"
         onClick={close}
       />
       <div
-        className="relative w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[#080808] shadow-2xl pointer-events-auto tab-content-enter overflow-hidden my-auto"
+        className="relative w-full max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-2xl pointer-events-auto tab-content-enter overflow-hidden my-auto"
         style={{
           marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
           maxHeight:
@@ -79,7 +79,7 @@ export default function ExploreOnboarding() {
             <button
               type="button"
               onClick={close}
-              className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-[var(--ink-muted)]"
+              className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)]"
             >
               Skip
             </button>

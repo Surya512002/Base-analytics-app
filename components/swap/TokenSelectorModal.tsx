@@ -224,7 +224,7 @@ export default function TokenSelectorModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            className="fixed inset-0 bg-[var(--overlay)] backdrop-blur-sm cursor-pointer"
             aria-hidden="true"
           />
 
@@ -234,7 +234,7 @@ export default function TokenSelectorModal({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="relative z-10 w-full sm:max-w-md max-h-[85vh] sm:max-h-[34rem] flex flex-col rounded-t-3xl sm:rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden"
+            className="relative z-10 w-full sm:max-w-md max-h-[85vh] sm:max-h-[34rem] flex flex-col rounded-t-3xl sm:rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-[var(--shadow-card)] overflow-hidden"
           >
             {/* Mobile Sheet Drag Handle */}
             <div className="w-10 h-1 rounded-full bg-[var(--border-strong)] mx-auto mt-2.5 sm:hidden" aria-hidden />
@@ -254,8 +254,8 @@ export default function TokenSelectorModal({
 
             {/* Search Input Box */}
             <div className="px-5 pb-2.5">
-              <div className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 focus-within:border-[var(--brand)] focus-within:ring-2 focus-within:ring-[var(--brand)]/15 transition-all">
-                <Search size={15} className="text-[var(--brand)] shrink-0" />
+              <div className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 focus-within:border-[var(--brand-text)] focus-within:ring-2 focus-within:ring-[var(--brand)]/15 transition-all">
+                <Search size={15} className="text-[var(--brand-text)] shrink-0" />
                 <input
                   ref={inputRef}
                   value={query}
@@ -264,7 +264,7 @@ export default function TokenSelectorModal({
                   className="flex-1 bg-transparent py-2.5 text-xs sm:text-sm font-semibold text-[var(--ink)] placeholder:text-[var(--ink-dim)] placeholder:font-normal outline-none"
                 />
                 {resolving && (
-                  <Loader2 size={15} className="animate-spin text-[var(--brand)] shrink-0" />
+                  <Loader2 size={15} className="animate-spin text-[var(--brand-text)] shrink-0" />
                 )}
                 {query && (
                   <button
@@ -292,7 +292,7 @@ export default function TokenSelectorModal({
                       key={t.kind === "eth" ? "eth" : t.address}
                       type="button"
                       onClick={() => handlePick(t)}
-                      className="pop-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-all cursor-pointer"
+                      className="pop-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:border-[var(--brand-text)] hover:text-[var(--brand-text)] transition-all cursor-pointer"
                     >
                       <CounterAvatar counter={t} size={15} />
                       <span className="font-mono">{counterSymbol(t)}</span>
@@ -351,7 +351,7 @@ export default function TokenSelectorModal({
               {/* Resolved 0x contract token match */}
               {resolved && (
                 <div className="p-1">
-                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                     Resolved Onchain Contract
                   </div>
                   <TokenListItem
@@ -438,7 +438,7 @@ function TokenListItem({
         <CounterAvatar counter={counter} size={32} />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-sm text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
+            <span className="font-bold text-sm text-[var(--ink)] group-hover:text-[var(--brand-text)] transition-colors">
               {sym}
             </span>
             {counter.kind === "token" && counter.symbol.endsWith("c") && (

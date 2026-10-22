@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CoinbaseTokenizedStock, LiquidityHealthTier } from "@/lib/stocks/coinbase-api";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 interface StocksExploreSectionProps {
   onSelectStockLend?: (stock: CoinbaseTokenizedStock) => void;
@@ -305,9 +306,12 @@ export default function StocksExploreSection({
                   {/* Top Bar: Symbol, Name & 24h NAV Change */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-xs font-black text-blue-600 dark:text-blue-400">
-                        {stock.underlyingTicker.slice(0, 4)}
-                      </div>
+                      <TokenLogo
+                        address={stock.address}
+                        symbol={stock.symbol}
+                        size={44}
+                        shape="rounded-xl"
+                      />
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="font-black text-base text-[var(--ink)] tracking-tight leading-tight">
@@ -382,7 +386,7 @@ export default function StocksExploreSection({
                       <button
                         type="button"
                         onClick={() => handleSetAlert(stock)}
-                        className="p-1 rounded text-[var(--ink-muted)] hover:text-blue-600 hover:bg-[var(--surface-2)] transition-colors"
+                        className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--brand-text)] hover:bg-[var(--surface-2)] transition-colors"
                         title="Set Price Alert"
                       >
                         <Bell size={13} />
@@ -431,8 +435,8 @@ export default function StocksExploreSection({
 
       {/* Simple Price Alert Dialog */}
       {activeAlertStock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-md animate-meridian-fade">
-          <div className="w-full max-w-sm rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-2xl space-y-4 animate-meridian-scale">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
+          <div className="w-full max-w-sm rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-5 shadow-2xl space-y-4 animate-meridian-scale">
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
               <div className="flex items-center gap-2">
                 <Bell size={16} className="text-blue-600 dark:text-blue-400" />

@@ -66,12 +66,12 @@ export default function TokenQuickView({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end bg-black/60 backdrop-blur-xs transition-opacity animate-meridian-fade"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end bg-[var(--overlay)] backdrop-blur-xs transition-opacity animate-meridian-fade"
     >
       {/* Drawer Container (Slide-over desktop, bottom sheet on mobile) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md h-[90vh] sm:h-full bg-[var(--surface)] border-t sm:border-l sm:border-t-0 border-[var(--border-subtle)] sm:shadow-2xl flex flex-col justify-between overflow-y-auto rounded-t-3xl sm:rounded-none animate-meridian-rise"
+        className="w-full sm:max-w-md h-[90vh] sm:h-full bg-[var(--surface-3)] border-t sm:border-l sm:border-t-0 border-[var(--border-subtle)] sm:shadow-2xl flex flex-col justify-between overflow-y-auto rounded-t-3xl sm:rounded-none animate-meridian-rise"
       >
         {/* Top Header */}
         <div className="p-5 pb-4 border-b border-[var(--border-subtle)] space-y-4">

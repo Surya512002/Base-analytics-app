@@ -49,7 +49,7 @@ export default function VoucherHowItWorks() {
         aria-expanded={isOpen}
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center font-bold shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center font-bold shrink-0">
             <HelpCircle size={18} />
           </div>
           <div>
@@ -76,12 +76,12 @@ export default function VoucherHowItWorks() {
         <div className="px-5 pb-6 pt-2 border-t border-[var(--border-subtle)] space-y-6 animate-in fade-in duration-200">
           {/* 3 Short Steps */}
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#0052FF] block mb-3">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--brand-text)] block mb-3">
               3 Simple Steps
             </span>
             <div className="grid sm:grid-cols-3 gap-3">
               <div className="pop-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-[#0052FF] text-white flex items-center justify-center font-black text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center font-black text-xs">
                   1
                 </div>
                 <h4 className="text-sm font-black text-[var(--ink)]">
@@ -93,7 +93,7 @@ export default function VoucherHowItWorks() {
               </div>
 
               <div className="pop-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-[#0052FF] text-white flex items-center justify-center font-black text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center font-black text-xs">
                   2
                 </div>
                 <h4 className="text-sm font-black text-[var(--ink)]">
@@ -105,7 +105,7 @@ export default function VoucherHowItWorks() {
               </div>
 
               <div className="pop-lg rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-[#0052FF] text-white flex items-center justify-center font-black text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center font-black text-xs">
                   3
                 </div>
                 <h4 className="text-sm font-black text-[var(--ink)]">
@@ -134,7 +134,7 @@ export default function VoucherHowItWorks() {
                   <button
                     type="button"
                     onClick={() => toggleFaq(idx)}
-                    className="w-full flex items-center justify-between p-3.5 text-left text-xs sm:text-sm font-bold text-[var(--ink)] hover:text-[#0052FF] transition cursor-pointer"
+                    className="w-full flex items-center justify-between p-3.5 text-left text-xs sm:text-sm font-bold text-[var(--ink)] hover:text-[var(--brand-text)] transition cursor-pointer"
                   >
                     <span>{faq.q}</span>
                     <ChevronDown

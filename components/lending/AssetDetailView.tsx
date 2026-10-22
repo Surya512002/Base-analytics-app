@@ -18,6 +18,7 @@ import type { StockLendingComparison, StockLendingOption } from "@/lib/lending/u
 import ProtocolCard from "./ProtocolCard";
 import CompareTable from "./CompareTable";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 interface AssetDetailViewProps {
   comparison: StockLendingComparison;
@@ -117,7 +118,7 @@ export default function AssetDetailView({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-bold text-[var(--ink-muted)] hover:text-[#0052FF] transition cursor-pointer"
+        className="inline-flex items-center gap-2 text-xs font-bold text-[var(--ink-muted)] hover:text-[var(--brand-text)] transition cursor-pointer"
       >
         <ArrowLeft size={14} />
         <span>Back to Markets Overview</span>
@@ -130,15 +131,18 @@ export default function AssetDetailView({
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center font-mono font-black text-base text-[var(--ink)] shrink-0 shadow-xs">
-              {comparison.stockSymbol.slice(0, 4)}
-            </div>
+            <TokenLogo
+              address={comparison.stockAddress}
+              symbol={comparison.stockSymbol}
+              size={56}
+              shape="rounded-xl"
+            />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-black text-[var(--ink)]">
                   {comparison.stockName}
                 </h1>
-                <span className="font-mono text-sm font-bold text-[#0052FF]">
+                <span className="font-mono text-sm font-bold text-[var(--brand-text)]">
                   ${comparison.stockSymbol}
                 </span>
               </div>
@@ -172,7 +176,7 @@ export default function AssetDetailView({
                 <button
                   type="button"
                   onClick={onRequestConnect}
-                  className="text-[#0052FF] font-bold hover:underline"
+                  className="text-[var(--brand-text)] font-bold hover:underline cursor-pointer"
                 >
                   Connect wallet to view balance
                 </button>
@@ -236,7 +240,7 @@ export default function AssetDetailView({
               <button
                 type="button"
                 onClick={() => onOpenBorrow(bestBorrow)}
-                className="pop-pill py-1.5 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-xs hover:border-[#0052FF] hover:text-[#0052FF] transition cursor-pointer self-start"
+                className="pop-pill py-1.5 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-xs hover:border-[var(--brand)] hover:text-[var(--brand-text)] transition cursor-pointer self-start"
               >
                 Borrow USDC
               </button>
@@ -260,7 +264,7 @@ export default function AssetDetailView({
               <button
                 type="button"
                 onClick={() => onOpenDetails(deepest)}
-                className="pop-pill py-1.5 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-xs hover:border-[#0052FF] transition cursor-pointer self-start"
+                className="pop-pill py-1.5 px-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-xs hover:border-[var(--brand)] transition cursor-pointer self-start"
               >
                 View Protocol
               </button>

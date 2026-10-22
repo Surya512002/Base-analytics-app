@@ -186,7 +186,7 @@ export default function AppHeader({
                 <button
                   type="button"
                   onClick={() => setAccountMenuOpen((prev) => !prev)}
-                  className="pop-pill flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[#0052FF]/40 text-xs text-[var(--ink)] font-bold transition shadow-xs cursor-pointer select-none"
+                  className="pop-pill flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]/40 text-xs text-[var(--ink)] font-bold transition shadow-xs cursor-pointer select-none"
                   aria-expanded={accountMenuOpen}
                   aria-label="Account menu"
                 >
@@ -207,7 +207,7 @@ export default function AppHeader({
 
                 {/* Account Dropdown Menu */}
                 {accountMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface)] p-3 shadow-xl z-50 animate-meridian-rise space-y-2.5">
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-3 shadow-xl z-50 animate-meridian-rise space-y-2.5">
                     {/* Wallet Header & Copy */}
                     <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
                       <div className="min-w-0">
@@ -221,7 +221,7 @@ export default function AppHeader({
                       <button
                         type="button"
                         onClick={handleCopyAddress}
-                        className="p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)] transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] transition cursor-pointer"
                         title="Copy address"
                       >
                         {copied ? (
@@ -236,10 +236,10 @@ export default function AppHeader({
                     <div className="space-y-1.5 py-1 text-xs">
                       <div className="flex items-center justify-between px-2 py-1.5 text-[var(--ink-muted)]">
                         <span className="flex items-center gap-1.5">
-                          <Globe size={13} className="text-[#0052FF]" />
+                          <Globe size={13} className="text-[var(--brand-text)]" />
                           <span>Network</span>
                         </span>
-                        <span className="font-bold text-[var(--ink)] bg-[#0052FF]/10 text-[#0052FF] px-2 py-0.5 rounded-full text-[10px]">
+                        <span className="font-bold text-[var(--brand-text)] bg-[var(--brand-soft)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full text-[10px]">
                           Base Mainnet
                         </span>
                       </div>

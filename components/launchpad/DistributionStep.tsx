@@ -100,12 +100,12 @@ export default function DistributionStep({
                 onClick={() => handleApplyPreset(preset.id)}
                 className={`pop-pill p-3 rounded-xl border text-left transition relative cursor-pointer ${
                   isSelected
-                    ? "border-[#0052FF] bg-[var(--surface)] shadow-xs ring-1 ring-[#0052FF]"
+                    ? "border-[var(--brand-text)] bg-[var(--surface)] shadow-xs ring-1 ring-[var(--brand)]"
                     : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:border-[var(--ink-dim)] hover:text-[var(--ink)]"
                 }`}
               >
                 {isSelected && (
-                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#0052FF] text-white flex items-center justify-center">
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[var(--brand)] text-white flex items-center justify-center">
                     <Check size={10} strokeWidth={3} />
                   </span>
                 )}
@@ -135,7 +135,7 @@ export default function DistributionStep({
           {creatorPct > 0 && (
             <div
               style={{ width: `${Math.min(creatorPct, 100)}%` }}
-              className="bg-[#0052FF] h-full transition-all"
+              className="bg-[var(--brand)] h-full transition-all"
               title={`Creator: ${creatorPct}%`}
             />
           )}
@@ -167,7 +167,7 @@ export default function DistributionStep({
         {/* Legend */}
         <div className="flex flex-wrap gap-4 text-xs pt-1">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#0052FF]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)]" />
             <span className="text-[var(--ink-muted)]">Creator:</span>
             <span className="font-mono font-bold text-[var(--ink)]">{creatorPct}%</span>
           </div>
@@ -226,7 +226,7 @@ export default function DistributionStep({
             <div className="space-y-2 pt-4">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[var(--ink)]">Creator Allocation</span>
-                <span className="font-mono font-bold text-[#0052FF]">{creatorPct}%</span>
+                <span className="font-mono font-bold text-[var(--brand-text)]">{creatorPct}%</span>
               </div>
               <input
                 type="range"
@@ -238,7 +238,7 @@ export default function DistributionStep({
                   onCreatorPctChange(parseInt(e.target.value, 10));
                   onSelectPreset("creator" as LaunchPresetId);
                 }}
-                className="w-full accent-[#0052FF] cursor-pointer"
+                className="w-full accent-[var(--brand)] cursor-pointer"
               />
               <p className="text-[11px] text-[var(--ink-muted)]">
                 Minted directly to your connected wallet upon launch. Max 30% recommended for healthy liquidity.
@@ -258,7 +258,7 @@ export default function DistributionStep({
                   <button
                     type="button"
                     onClick={addInsider}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#0052FF] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline"
                   >
                     <Plus size={13} /> Add Insider
                   </button>
@@ -272,7 +272,7 @@ export default function DistributionStep({
                     placeholder="0x… recipient wallet"
                     value={ins.address}
                     onChange={(e) => updateInsider(ins.id, { address: e.target.value })}
-                    className="flex-1 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[#0052FF]"
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
                   />
                   <div className="flex items-center gap-1">
                     <input
@@ -282,7 +282,7 @@ export default function DistributionStep({
                       step={0.5}
                       value={ins.pct}
                       onChange={(e) => updateInsider(ins.id, { pct: parseFloat(e.target.value) || 0 })}
-                      className="w-16 px-2 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[#0052FF]"
+                      className="w-16 px-2 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[var(--brand-text)]"
                     />
                     <span className="text-xs text-[var(--ink-muted)] font-bold">%</span>
                   </div>
@@ -310,7 +310,7 @@ export default function DistributionStep({
                   <button
                     type="button"
                     onClick={addVested}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#0052FF] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline"
                   >
                     <Plus size={13} /> Add Vested Schedule
                   </button>
@@ -325,7 +325,7 @@ export default function DistributionStep({
                       placeholder="0x… beneficiary address"
                       value={v.address}
                       onChange={(e) => updateVested(v.id, { address: e.target.value })}
-                      className="flex-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[#0052FF]"
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
                     />
                     <div className="flex items-center gap-1">
                       <input
@@ -335,7 +335,7 @@ export default function DistributionStep({
                         step={0.5}
                         value={v.pct}
                         onChange={(e) => updateVested(v.id, { pct: parseFloat(e.target.value) || 0 })}
-                        className="w-16 px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[#0052FF]"
+                        className="w-16 px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[var(--brand-text)]"
                       />
                       <span className="text-xs text-[var(--ink-muted)] font-bold">%</span>
                     </div>

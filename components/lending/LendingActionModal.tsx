@@ -14,6 +14,7 @@ import {
   Percent,
 } from "lucide-react";
 import type { LendingMarket, ActionModalType } from "@/lib/lending/types";
+import TokenLogo from "@/components/ui/TokenLogo";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import type { ConnectionType } from "@/lib/types/wallet";
@@ -341,20 +342,23 @@ export default function LendingActionModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-4"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl overflow-hidden"
+        className="w-full max-w-lg rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-2xl overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand-dark)] font-bold">
-              {activeAsset.symbol.slice(0, 2)}
-            </div>
+            <TokenLogo
+              address={activeAsset.address}
+              symbol={activeAsset.symbol}
+              size={40}
+              shape="rounded-xl"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-[var(--ink)] text-base">{market.name}</h3>

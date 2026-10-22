@@ -58,7 +58,7 @@ export default function DiscoveryRow({
                 type="checkbox"
                 checked={hideLowLiquidity}
                 onChange={onToggleLowLiquidity}
-                className="rounded border-[var(--border-subtle)] text-[#0052FF] focus:ring-0 cursor-pointer"
+                className="rounded border-[var(--border-subtle)] text-[var(--brand)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
               />
               <span>Hide &lt; $10K liq</span>
             </label>
@@ -68,7 +68,7 @@ export default function DiscoveryRow({
             <button
               type="button"
               onClick={onViewAll}
-              className="pop-pill text-xs font-bold text-[#0052FF] px-2.5 py-1 rounded-full border border-[#0052FF]/20 bg-[#0052FF]/5 flex items-center gap-1 cursor-pointer shrink-0"
+              className="pop-pill text-xs font-bold text-[var(--brand-text)] px-2.5 py-1 rounded-full border border-[var(--brand)]/20 bg-[var(--brand-soft)] flex items-center gap-1 cursor-pointer shrink-0"
             >
               <span>View all</span>
               <ArrowRight size={13} />

@@ -28,6 +28,7 @@ import {
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatSubscriptPrice, formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
+import TokenLogo from "@/components/ui/TokenLogo";
 import {
   computeSwapUsd,
   impliedTokenPriceUsd,
@@ -100,18 +101,16 @@ function formatUsdSide(value: number | null): string {
   return formatUsd(value);
 }
 
-function TokenAvatar({ symbol, imageUrl }: { symbol: string; imageUrl?: string }) {
-  if (imageUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={imageUrl}
-        alt=""
-        className="w-7 h-7 rounded-full object-cover border border-[var(--border-subtle)] shrink-0"
-      />
-    );
-  }
-  return <span className="swap-eth-icon">{symbol.slice(0, 2)}</span>;
+function TokenAvatar({ symbol, imageUrl, address }: { symbol: string; imageUrl?: string; address?: string }) {
+  return (
+    <TokenLogo
+      address={address}
+      symbol={symbol}
+      src={imageUrl}
+      size={28}
+      shape="circle"
+    />
+  );
 }
 
 /** The counter side is a button: any Base token can sit on it. */
@@ -895,7 +894,7 @@ export default function TokenSwapPanel({
               <div className="swap-amount-row">
                 {direction === "sell" ? (
                   <div className="swap-token-pill">
-                    <TokenAvatar symbol={token.symbol} imageUrl={token.imageUrl} />
+                    <TokenAvatar symbol={token.symbol} imageUrl={token.imageUrl} address={token.address} />
                     <span>{paySymbol}</span>
                   </div>
                 ) : (
@@ -951,7 +950,7 @@ export default function TokenSwapPanel({
               <div className="swap-amount-row">
                 {direction === "buy" ? (
                   <div className="swap-token-pill">
-                    <TokenAvatar symbol={token.symbol} imageUrl={token.imageUrl} />
+                    <TokenAvatar symbol={token.symbol} imageUrl={token.imageUrl} address={token.address} />
                     <span>{receiveSymbol}</span>
                   </div>
                 ) : (

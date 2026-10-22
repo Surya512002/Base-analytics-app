@@ -35,6 +35,7 @@ import {
 import type { CardTheme, VoucherAssetCategory } from "./voucher-types";
 import VoucherCardPreview from "./VoucherCardPreview";
 import VoucherAssetPickerModal from "./VoucherAssetPickerModal";
+import TokenLogo from "@/components/ui/TokenLogo";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 
 type VoucherTab = ReturnType<typeof useVoucherTab>;
@@ -179,7 +180,7 @@ export default function VoucherCreateWizard({
                 onClick={() => setCurrentStep(s.step as 1 | 2 | 3 | 4)}
                 className={`flex flex-col items-center sm:items-start text-center sm:text-left p-2 sm:px-3 sm:py-2.5 rounded-xl transition ${
                   isActive
-                    ? "bg-[#0052FF]/10 border border-[#0052FF]/40 text-[#0052FF]"
+                    ? "bg-[var(--brand-soft)] border border-[var(--brand)]/40 text-[var(--brand-text)]"
                     : isCompleted
                       ? "bg-[var(--surface-2)] text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 cursor-pointer"
                       : "opacity-60 text-[var(--ink-muted)] cursor-pointer"
@@ -219,7 +220,7 @@ export default function VoucherCreateWizard({
           {currentStep === 1 && (
             <div className="space-y-5 animate-in fade-in duration-200">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#0052FF]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-text)]">
                   Step 1 of 4
                 </span>
                 <h2 className="text-xl font-black text-[var(--ink)] mt-0.5">
@@ -273,9 +274,12 @@ export default function VoucherCreateWizard({
               {/* Selected Asset Info Banner */}
               <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#0052FF]/10 text-[#0052FF] font-black flex items-center justify-center text-sm">
-                    {asset.slice(0, 3)}
-                  </div>
+                  <TokenLogo
+                    address={stockInfo?.address || (asset === "USDC" ? "0x833589fCD6eDb6E08f4c7C32D4f71bdA02913" : asset === "ETH" ? "eth" : undefined)}
+                    symbol={asset}
+                    size={40}
+                    shape="rounded-xl"
+                  />
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-black text-sm text-[var(--ink)]">{asset}</span>
@@ -300,7 +304,7 @@ export default function VoucherCreateWizard({
                         category: isStock ? "stock" : "vault",
                       })
                     }
-                    className="pop-pill text-xs font-bold text-[#0052FF] px-3 py-1.5 rounded-lg border border-[#0052FF]/30 hover:bg-[#0052FF]/10 transition cursor-pointer"
+                    className="pop-pill text-xs font-bold text-[var(--brand-text)] px-3 py-1.5 rounded-lg border border-[var(--brand)]/30 hover:bg-[var(--brand-soft)] transition cursor-pointer"
                   >
                     Change
                   </button>
@@ -319,7 +323,7 @@ export default function VoucherCreateWizard({
                   <button
                     type="button"
                     onClick={() => setTotalAmount(String(currentAssetBalance))}
-                    className="pop-pill text-[10px] font-black uppercase text-[#0052FF] bg-[#0052FF]/10 px-2 py-0.5 rounded hover:bg-[#0052FF]/20 transition cursor-pointer"
+                    className="pop-pill text-[10px] font-black uppercase text-[var(--brand-text)] bg-[var(--brand-soft)] px-2 py-0.5 rounded hover:bg-[var(--brand-soft)] transition cursor-pointer"
                   >
                     Use Max
                   </button>
@@ -330,7 +334,7 @@ export default function VoucherCreateWizard({
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition cursor-pointer shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-sm"
               >
                 <span>Continue to Amount & Split</span>
                 <ChevronRight size={16} />
@@ -342,7 +346,7 @@ export default function VoucherCreateWizard({
           {currentStep === 2 && (
             <div className="space-y-5 animate-in fade-in duration-200">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#0052FF]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-text)]">
                   Step 2 of 4
                 </span>
                 <h2 className="text-xl font-black text-[var(--ink)] mt-0.5">
@@ -363,7 +367,7 @@ export default function VoucherCreateWizard({
                     <button
                       type="button"
                       onClick={() => setTotalAmount(String(currentAssetBalance))}
-                      className="text-[10px] font-black uppercase text-[#0052FF] hover:underline"
+                      className="text-[10px] font-black uppercase text-[var(--brand-text)] hover:underline"
                     >
                       Max: {currentAssetBalance.toFixed(4)}
                     </button>
@@ -376,7 +380,7 @@ export default function VoucherCreateWizard({
                     value={totalAmount}
                     onChange={(e) => setTotalAmount(e.target.value)}
                     placeholder={isStock ? "1.0" : asset === "ETH" ? "0.01" : "10"}
-                    className="w-full text-lg sm:text-xl font-black rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-3 text-[var(--ink)] outline-none focus:border-[#0052FF] transition tabular-nums"
+                    className="w-full text-lg sm:text-xl font-black rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-3 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition tabular-nums"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-sm text-[var(--ink-muted)]">
                     {asset}
@@ -421,9 +425,8 @@ export default function VoucherCreateWizard({
                         setCardCountInput(String(MAX_VOUCHER_CARDS));
                       }
                     }}
-                    className="flex-1 text-center text-xl font-black rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] py-3 text-[var(--ink)] outline-none focus:border-[#0052FF] transition tabular-nums"
+                    className="flex-1 text-center text-xl font-black rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] py-3 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition tabular-nums"
                   />
-
                   <button
                     type="button"
                     onClick={incrementCardCount}
@@ -442,7 +445,7 @@ export default function VoucherCreateWizard({
                       onClick={() => setCardCountInput(String(p))}
                       className={`pop-pill flex-1 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
                         cardCountInput === String(p)
-                          ? "bg-[#0052FF] text-white border-[#0052FF]"
+                          ? "bg-[var(--brand)] text-white border-[var(--brand)]"
                           : "bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--border-subtle)] hover:text-[var(--ink)]"
                       }`}
                     >
@@ -484,7 +487,7 @@ export default function VoucherCreateWizard({
                   type="button"
                   disabled={!perCardWei}
                   onClick={() => setCurrentStep(3)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition cursor-pointer shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition cursor-pointer shadow-sm"
                 >
                   <span>Continue to Personalize</span>
                   <ChevronRight size={16} />
@@ -497,7 +500,7 @@ export default function VoucherCreateWizard({
           {currentStep === 3 && (
             <div className="space-y-5 animate-in fade-in duration-200">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#0052FF]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-text)]">
                   Step 3 of 4
                 </span>
                 <h2 className="text-xl font-black text-[var(--ink)] mt-0.5">
@@ -522,7 +525,7 @@ export default function VoucherCreateWizard({
                         setMessage(tmpl.message);
                         setCardTheme(tmpl.theme);
                       }}
-                      className="pop-pill flex items-center gap-2 p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-left hover:border-[#0052FF]/50 transition cursor-pointer"
+                      className="pop-pill flex items-center gap-2 p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-left hover:border-[var(--brand)]/50 transition cursor-pointer"
                     >
                       <span className="text-lg">{tmpl.emoji}</span>
                       <div className="min-w-0">
@@ -553,7 +556,7 @@ export default function VoucherCreateWizard({
                         onClick={() => setCardTheme(themeOpt.id)}
                         className={`pop-pill flex items-center gap-2 p-2.5 rounded-xl border transition cursor-pointer ${
                           isSelected
-                            ? "border-[#0052FF] bg-[#0052FF]/10 text-[#0052FF]"
+                            ? "border-[var(--brand-text)] bg-[var(--brand-soft)] text-[var(--brand-text)]"
                             : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)]"
                         }`}
                       >
@@ -583,7 +586,7 @@ export default function VoucherCreateWizard({
                   onChange={(e) => setMessage(e.target.value.slice(0, 280))}
                   rows={3}
                   placeholder="e.g. Congratulations on shipping! Enjoy your onchain reward."
-                  className="w-full text-sm rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-[var(--ink)] outline-none focus:border-[#0052FF] resize-none transition"
+                  className="w-full text-sm rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] resize-none transition"
                 />
               </div>
 
@@ -600,7 +603,7 @@ export default function VoucherCreateWizard({
                 <button
                   type="button"
                   onClick={() => setCurrentStep(4)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition cursor-pointer shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-sm"
                 >
                   <span>Review & Create</span>
                   <ChevronRight size={16} />
@@ -613,7 +616,7 @@ export default function VoucherCreateWizard({
           {currentStep === 4 && (
             <div className="space-y-5 animate-in fade-in duration-200">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#0052FF]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-text)]">
                   Step 4 of 4
                 </span>
                 <h2 className="text-xl font-black text-[var(--ink)] mt-0.5">
@@ -625,8 +628,8 @@ export default function VoucherCreateWizard({
               </div>
 
               {/* Prominent Info Banner: One Card Per Wallet Rule */}
-              <div className="rounded-xl border border-[#0052FF]/30 bg-[#0052FF]/8 p-3.5 flex items-start gap-2.5">
-                <Info size={18} className="text-[#0052FF] shrink-0 mt-0.5" />
+              <div className="rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] p-3.5 flex items-start gap-2.5">
+                <Info size={18} className="text-[var(--brand-text)] shrink-0 mt-0.5" />
                 <div className="text-xs leading-relaxed">
                   <p className="font-black text-[var(--ink)]">
                     One-card-per-wallet rule
@@ -675,7 +678,7 @@ export default function VoucherCreateWizard({
                     href={`https://basescan.org/address/${VOUCHER_CONTRACT}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#0052FF] hover:underline flex items-center gap-1 font-mono text-[11px]"
+                    className="text-[var(--brand-text)] hover:underline flex items-center gap-1 font-mono text-[11px]"
                   >
                     <span>BaseVoucher Verified</span>
                   </a>
@@ -698,7 +701,7 @@ export default function VoucherCreateWizard({
                       type="button"
                       disabled={!contractReady || creating || !perCardWei}
                       onClick={prepareCreate}
-                      className="w-full py-4 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] disabled:opacity-40 active:scale-[0.98] transition cursor-pointer shadow-md"
+                      className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 disabled:opacity-40 active:scale-[0.98] transition cursor-pointer shadow-md"
                     >
                       {creating ? "Generating Card Secrets…" : "Create Gift Cards"}
                     </button>
@@ -745,7 +748,7 @@ export default function VoucherCreateWizard({
                         onStatus={handleFundTx}
                       >
                         <TransactionButton
-                          className="w-full py-4 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition"
+                          className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition"
                           text={`Deposit ${exactDepositLabel} on Base`}
                         />
                       </Transaction>
@@ -775,7 +778,7 @@ export default function VoucherCreateWizard({
                           onStatus={handleApproveTx}
                         >
                           <TransactionButton
-                            className="w-full py-4 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition"
+                            className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition"
                             text={`Step 1/2 · Approve ${exactDepositLabel}`}
                           />
                         </Transaction>
@@ -793,7 +796,7 @@ export default function VoucherCreateWizard({
                           onStatus={handleFundTx}
                         >
                           <TransactionButton
-                            className="w-full py-4 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition"
+                            className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition"
                             text={`Step 2/2 · Deposit ${exactDepositLabel}`}
                           />
                         </Transaction>
@@ -813,7 +816,7 @@ export default function VoucherCreateWizard({
               <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
                 Live Card Preview
               </span>
-              <span className="text-[10px] font-bold text-[#0052FF] bg-[#0052FF]/10 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold text-[var(--brand-text)] bg-[var(--brand-soft)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full">
                 Interactive 3D
               </span>
             </div>

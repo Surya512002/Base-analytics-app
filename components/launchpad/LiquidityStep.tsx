@@ -113,7 +113,7 @@ export default function LiquidityStep({
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="p-1.5 rounded-lg bg-[#0052FF]/10 text-[#0052FF]">
+            <span className="p-1.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)]">
               <Zap size={16} />
             </span>
             <div>
@@ -131,7 +131,7 @@ export default function LiquidityStep({
               onChange={(e) => onAutoSeedLiquidityChange(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0052FF] border border-[var(--border-subtle)]"></div>
+            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)] border border-[var(--border-subtle)]"></div>
           </label>
         </div>
 
@@ -156,12 +156,12 @@ export default function LiquidityStep({
                       onClick={() => onSeedDexChange(venue.id)}
                       className={`pop-pill p-3 rounded-xl border text-left transition relative cursor-pointer ${
                         isSelected
-                          ? "border-[#0052FF] bg-[var(--surface-2)] shadow-xs ring-1 ring-[#0052FF]"
+                          ? "border-[var(--brand)] bg-[var(--surface-2)] shadow-xs ring-1 ring-[var(--brand)]"
                           : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--ink-dim)] hover:text-[var(--ink)]"
                       }`}
                     >
                       {isSelected && (
-                        <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-[#0052FF] text-white flex items-center justify-center">
+                        <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-[var(--brand)] text-white flex items-center justify-center">
                           <Check size={10} strokeWidth={3} />
                         </span>
                       )}
@@ -197,7 +197,7 @@ export default function LiquidityStep({
                     min="0.00005"
                     value={seedLiquidityEth}
                     onChange={(e) => onSeedLiquidityEthChange(e.target.value)}
-                    className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm font-mono font-bold text-[var(--ink)] focus:outline-none focus:border-[#0052FF]"
+                    className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm font-mono font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
                   />
                 </div>
               </div>
@@ -212,7 +212,7 @@ export default function LiquidityStep({
                     onClick={() => onSeedLiquidityEthChange(preset)}
                     className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-mono transition cursor-pointer ${
                       seedLiquidityEth === preset
-                        ? "bg-[#0052FF] text-white font-bold"
+                        ? "bg-[var(--brand)] text-white font-bold"
                         : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
                     }`}
                   >
@@ -261,7 +261,7 @@ export default function LiquidityStep({
                 <button
                   type="button"
                   onClick={() => setShowLockerInfo((p) => !p)}
-                  className="text-[var(--ink-muted)] hover:text-[#0052FF]"
+                  className="text-[var(--ink-muted)] hover:text-[var(--brand-text)]"
                   title="Locker details"
                 >
                   <Info size={13} />
@@ -280,7 +280,7 @@ export default function LiquidityStep({
               onChange={(e) => onLiquidityLockedChange(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0052FF] border border-[var(--border-subtle)]"></div>
+            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)] border border-[var(--border-subtle)]"></div>
           </label>
         </div>
 
@@ -305,7 +305,7 @@ export default function LiquidityStep({
               <button
                 type="button"
                 onClick={handleCopyLocker}
-                className="p-1 rounded text-[#0052FF]"
+                className="p-1 rounded text-[var(--brand-text)]"
                 title="Copy locker address"
               >
                 <Copy size={12} />
@@ -329,7 +329,7 @@ export default function LiquidityStep({
                     onClick={() => onLockDurationDaysChange(opt.days)}
                     className={`pop-pill py-2 px-3 rounded-xl border text-center text-xs font-bold transition relative cursor-pointer ${
                       isSelected
-                        ? "border-[#0052FF] bg-[#0052FF]/10 text-[#0052FF] ring-1 ring-[#0052FF]"
+                        ? "border-[var(--brand-text)] bg-[var(--brand-soft)] text-[var(--brand-text)] ring-1 ring-[var(--brand)]"
                         : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     }`}
                   >
@@ -351,10 +351,10 @@ export default function LiquidityStep({
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-[#0052FF]" />
+            <ShieldCheck size={16} className="text-[var(--brand-text)]" />
             <h3 className="text-xs font-bold text-[var(--ink)]">Anti-Snipe Block Window</h3>
           </div>
-          <span className="font-mono font-bold text-xs text-[#0052FF]">
+          <span className="font-mono font-bold text-xs text-[var(--brand-text)]">
             {antiSnipeBlocks === 0 ? "Disabled (0 blocks)" : `${antiSnipeBlocks} blocks (~${antiSnipeBlocks * 2}s)`}
           </span>
         </div>
@@ -366,7 +366,7 @@ export default function LiquidityStep({
           step={1}
           value={antiSnipeBlocks}
           onChange={(e) => onAntiSnipeBlocksChange(parseInt(e.target.value, 10))}
-          className="w-full accent-[#0052FF] cursor-pointer"
+          className="w-full accent-[var(--brand)] cursor-pointer"
         />
 
         <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
@@ -383,7 +383,7 @@ export default function LiquidityStep({
             type="checkbox"
             checked={metadataEditable}
             onChange={(e) => onMetadataEditableChange(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded text-[#0052FF] accent-[#0052FF] cursor-pointer"
+            className="mt-1 w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer"
           />
           <div>
             <span className="text-xs font-bold text-[var(--ink)]">

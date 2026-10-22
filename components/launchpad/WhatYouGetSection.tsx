@@ -16,7 +16,7 @@ export default function WhatYouGetSection() {
         aria-expanded={isOpen}
       >
         <div className="flex items-center gap-2.5">
-          <span className="p-1.5 rounded-lg bg-[#0052FF]/10 text-[#0052FF]">
+          <span className="p-1.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)]">
             <ShieldCheck size={18} />
           </span>
           <div>
@@ -33,7 +33,7 @@ export default function WhatYouGetSection() {
         <div className="p-4 sm:p-5 pt-0 border-t border-[var(--border-subtle)]/60 grid sm:grid-cols-2 gap-4 text-xs">
           <div className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-1.5">
             <div className="flex items-center gap-2 text-[var(--ink)] font-bold">
-              <Coins size={15} className="text-[#0052FF]" />
+              <Coins size={15} className="text-[var(--brand-text)]" />
               <span>0.25% Creator Fee Share</span>
             </div>
             <p className="text-[var(--ink-muted)] leading-relaxed">
@@ -73,7 +73,7 @@ export default function WhatYouGetSection() {
 
           <div className="sm:col-span-2 pt-2 flex items-center justify-between text-[11px] text-[var(--ink-muted)]">
             <span>Learn more about creator profiles &amp; vesting schedules</span>
-            <Link href="/profile" className="text-[#0052FF] font-bold inline-flex items-center gap-1 hover:underline">
+            <Link href="/profile" className="text-[var(--brand-text)] font-bold inline-flex items-center gap-1 hover:underline">
               Creator Profile <ArrowRight size={12} />
             </Link>
           </div>

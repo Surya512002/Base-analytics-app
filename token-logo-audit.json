@@ -1,0 +1,709 @@
+{
+  "auditDate": "2026-10-22T07:10:35.609Z",
+  "totalTokensAudited": 50,
+  "coveredBySourcesAtoD": 50,
+  "relyingOnPlaceholderCount": 0,
+  "tokensRelyingOnPlaceholder": [],
+  "tokens": [
+    {
+      "symbol": "NVDAc",
+      "name": "NVIDIA",
+      "address": "0xb20000000000000000000078ee7ce2fE4908108C",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "AAPLc",
+      "name": "Apple",
+      "address": "0xb200000000000000000000C2e324d24d7eEcd1fb",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "TSLAc",
+      "name": "Tesla",
+      "address": "0xb2000000000000000000001e800a7f5189430cD0",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "COINc",
+      "name": "Coinbase",
+      "address": "0xb200000000000000000000c85a31389D71F3ecfb",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "GOOGLc",
+      "name": "Alphabet Inc. (Google)",
+      "address": "0xb2000000000000000000002D0BA3164cc74f58B7",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "MSFTc",
+      "name": "Microsoft Corp",
+      "address": "0xB200000000000000000000Ab99cFa739E253872B",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "AMZNc",
+      "name": "Amazon.com Inc.",
+      "address": "0xb200000000000000000000d9192b6B456483C2E8",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "METAc",
+      "name": "Meta Platforms Inc.",
+      "address": "0xb2000000000000000000008bC8786B856E61707C",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "MSTRc",
+      "name": "MicroStrategy Inc.",
+      "address": "0xb2000000000000000000004884b426556b92883d",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "CRCLc",
+      "name": "Circle Internet Financial",
+      "address": "0xB20000000000000000000019f6E7C675b73C2e4D",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "INTCc",
+      "name": "Intel Corp",
+      "address": "0xB2000000000000000000004AFF16039bA04bdFBc",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "SPCXc",
+      "name": "SpaceX",
+      "address": "0xb2000000000000000000007b9fcbd005511aCBd5",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "SNDKc",
+      "name": "SanDisk / Western Digital",
+      "address": "0xb200000000000000000000397293Cb8cda9a10c5",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "PLTRc",
+      "name": "Palantir Technologies",
+      "address": "0xb2000000000000000000007d16372840dF4dAbbe",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "AMDc",
+      "name": "Advanced Micro Devices",
+      "address": "0xB2000000000000000000000d8Ce462E99ee7A47B",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "ARMc",
+      "name": "Arm Holdings plc",
+      "address": "0xB20000000000000000000026215D755356E5043f",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "NFLXc",
+      "name": "Netflix Inc.",
+      "address": "0xb20000000000000000000058B8c947e44011dFE6",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "RKLBc",
+      "name": "Rocket Lab USA Inc.",
+      "address": "0xb200000000000000000000e8E50CBbb9a3861a3C",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "RDDTc",
+      "name": "Reddit Inc.",
+      "address": "0xb20000000000000000000066242d4067724cB7A1",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "RIVNc",
+      "name": "Rivian Automotive",
+      "address": "0xB2000000000000000000003e4249C65bd6c037d9",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "SOFIc",
+      "name": "SoFi Technologies",
+      "address": "0xB2000000000000000000003eF37a7c863DC1482A",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "PYPLc",
+      "name": "PayPal Holdings Inc.",
+      "address": "0xb200000000000000000000450ad3abE5d4846c6E",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "UBERc",
+      "name": "Uber Technologies Inc.",
+      "address": "0xb200000000000000000000cAE20cb1446462e24c",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "WMTc",
+      "name": "Walmart Inc.",
+      "address": "0xb2000000000000000000008a7508619c717A7106",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "BRK.Bc",
+      "name": "Berkshire Hathaway B",
+      "address": "0xb20000000000000000000024170488e788CBbCb4",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "PFEc",
+      "name": "Pfizer Inc.",
+      "address": "0xB20000000000000000000018FE7eC7d6DfeeB528",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "LLYc",
+      "name": "Eli Lilly and Co.",
+      "address": "0xB200000000000000000000f1a0F91e34892E4718",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "AVGOc",
+      "name": "Broadcom Inc.",
+      "address": "0xB200000000000000000000Fc737aeA6196aB5a4c",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "MARAc",
+      "name": "MARA Holdings Inc.",
+      "address": "0xB200000000000000000000a310e034E09186Fb2d",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "RIOTc",
+      "name": "Riot Platforms Inc.",
+      "address": "0xb200000000000000000000bd0C7627b663c581A6",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "GMEc",
+      "name": "GameStop Corp",
+      "address": "0xb2000000000000000000007790ed6E48e06eD935",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "AMCc",
+      "name": "AMC Entertainment",
+      "address": "0xB200000000000000000000CD7e6b8042cb7c2BB5",
+      "category": "stock",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": true
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "WETH",
+      "name": "Wrapped Ether",
+      "address": "0x4200000000000000000000000000000000000006",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": true
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "cbBTC",
+      "name": "Coinbase Wrapped BTC",
+      "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "cbETH",
+      "name": "Coinbase Wrapped Staked ETH",
+      "address": "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "wstETH",
+      "name": "Wrapped liquid staked Ether",
+      "address": "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "AERO",
+      "name": "Aerodrome",
+      "address": "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": true
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "USDT",
+      "name": "Tether USD",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "DAI",
+      "name": "Dai Stablecoin",
+      "address": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": true,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "EURC",
+      "name": "Euro Coin",
+      "address": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "USDbC",
+      "name": "USD Base Coin",
+      "address": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "MORPHO",
+      "name": "Morpho Token",
+      "address": "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "DEGEN",
+      "name": "Degen",
+      "address": "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": true
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "BRETT",
+      "name": "Brett",
+      "address": "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": true
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "TOSHI",
+      "name": "Toshi",
+      "address": "0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "VIRTUAL",
+      "name": "Virtual Protocol",
+      "address": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "ZORA",
+      "name": "Zora",
+      "address": "0x1111111111166b7FE7bd91427724B487980aFc69",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "HIGHER",
+      "name": "Higher",
+      "address": "0x0578d8A44db98B23BF096A382e016e29a5Ce0ffe",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": false,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "self-hosted",
+      "placeholderUsed": false
+    },
+    {
+      "symbol": "ETH",
+      "name": "Ethereum",
+      "address": "0x0000000000000000000000000000000000000000",
+      "category": "crypto",
+      "sources": {
+        "sourceA_registry": true,
+        "sourceB_selfHosted": true,
+        "sourceC_officialList": false,
+        "sourceD_dexProvider": false
+      },
+      "resolvedSource": "registry",
+      "placeholderUsed": false
+    }
+  ]
+}

@@ -36,7 +36,7 @@ export default function ModeSwitch({ value, onChange }: ModeSwitchProps) {
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
-            <Icon size={14} className={isSelected ? "text-[#0052FF]" : "text-[var(--ink-dim)]"} />
+            <Icon size={14} className={isSelected ? "text-[var(--brand-text)]" : "text-[var(--ink-dim)]"} />
             <span>{opt.label}</span>
           </button>
         );

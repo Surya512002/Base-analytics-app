@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { LaunchTokenType } from "@/lib/launchpad/types";
 import { formatReadablePrice } from "@/lib/launchpad/launch-configs";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 export interface LaunchSummaryPanelProps {
   name: string;
@@ -96,7 +97,7 @@ export default function LaunchSummaryPanel({
                 ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                 : launchType === "standard"
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-[#0052FF]/10 text-[#0052FF]"
+                  : "bg-[var(--brand-soft)] text-[var(--brand-text)]"
             }`}
           >
             {launchType === "memestock"
@@ -108,19 +109,15 @@ export default function LaunchSummaryPanel({
         </div>
 
         <div className="flex items-start gap-3.5">
-          <div className="w-14 h-14 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden shrink-0 flex items-center justify-center">
-            {imagePreview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imagePreview} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-lg font-black text-[var(--ink)]">
-                {displaySymbol.slice(0, 2)}
-              </span>
-            )}
-          </div>
+          <TokenLogo
+            symbol={displaySymbol}
+            src={imagePreview}
+            size={56}
+            shape="rounded-xl"
+          />
           <div className="min-w-0 flex-1">
             <h3 className="font-black text-sm text-[var(--ink)] truncate">{displayName}</h3>
-            <p className="font-mono text-xs font-bold text-[#0052FF]">${displaySymbol}</p>
+            <p className="font-mono text-xs font-bold text-[var(--brand-text)]">${displaySymbol}</p>
             <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
               Pair: <span className="font-mono font-bold text-[var(--ink)]">${displaySymbol} / {quoteSymbol}</span>
             </p>
@@ -225,7 +222,7 @@ export default function LaunchSummaryPanel({
         {/* Estimated Cost Row */}
         <div className="pt-2 border-t border-[var(--border-subtle)]/60 flex justify-between items-center text-xs">
           <span className="font-bold text-[var(--ink)]">Estimated Cost:</span>
-          <span className="font-mono font-bold text-[#0052FF]">
+          <span className="font-mono font-bold text-[var(--brand-text)]">
             {seedEthNum > 0 ? `${seedEthNum} ETH + ` : ""}~$0.04 gas
           </span>
         </div>
@@ -261,9 +258,9 @@ export default function LaunchSummaryPanel({
           className="w-full flex items-center justify-between text-xs font-bold text-[var(--ink)] cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#0052FF]" />
+            <span className="w-2 h-2 rounded-full bg-[var(--brand)]" />
             <span>Live Preview &amp; Summary</span>
-            <span className="text-[11px] font-mono text-[#0052FF]">${displaySymbol}</span>
+            <span className="text-[11px] font-mono text-[var(--brand-text)]">${displaySymbol}</span>
           </div>
           <span className="text-[var(--ink-muted)]">
             {mobileExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

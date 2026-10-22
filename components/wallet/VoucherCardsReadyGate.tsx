@@ -77,12 +77,12 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="voucher-cards-ready-title"
     >
-      <div className="w-full sm:max-w-lg max-h-[96dvh] sm:max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-emerald-500/30 bg-[var(--surface)] shadow-2xl shadow-emerald-500/10 overflow-hidden">
+      <div className="w-full sm:max-w-lg max-h-[96dvh] sm:max-h-[90dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-emerald-500/30 bg-[var(--surface-3)] shadow-2xl shadow-emerald-500/10 overflow-hidden">
         <div className="shrink-0 px-5 pt-5 pb-4 border-b border-[var(--border-subtle)] bg-linear-to-b from-emerald-500/12 to-transparent">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">

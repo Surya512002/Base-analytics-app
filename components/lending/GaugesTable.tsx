@@ -168,7 +168,7 @@ export default function GaugesTable({
                     <button
                       type="button"
                       onClick={onRequestConnect}
-                      className="text-xs font-bold text-[#0052FF] hover:underline cursor-pointer"
+                      className="text-xs font-bold text-[var(--brand-text)] hover:underline cursor-pointer"
                     >
                       Connect
                     </button>
@@ -177,7 +177,7 @@ export default function GaugesTable({
                       <button
                         type="button"
                         onClick={() => onOpenStake?.(gauge)}
-                        className="px-2.5 py-1 rounded-lg bg-[#0052FF] text-white text-[11px] font-bold shadow-xs hover:bg-[#0047e0] transition cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-[var(--brand)] text-white text-[11px] font-bold shadow-xs hover:opacity-90 transition cursor-pointer"
                       >
                         Stake
                       </button>
@@ -216,7 +216,7 @@ export default function GaugesTable({
           className="w-full flex items-center justify-between p-3.5 text-xs font-bold text-[var(--ink)] hover:bg-[var(--surface)] transition cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Coins size={15} className="text-[#0052FF]" />
+            <Coins size={15} className="text-[var(--brand-text)]" />
             <span>How Aerodrome Stock Gauges &amp; Yield Work</span>
           </div>
           <span className="text-[var(--ink-muted)]">

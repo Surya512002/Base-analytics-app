@@ -22,16 +22,16 @@ export default function TokenChartPanel({
 
     return (
       <div className="space-y-3">
-        <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/[0.02]">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--surface-2)]">
+            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
               Live chart · DexScreener
             </p>
             <a
               href={page}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] font-bold text-[var(--ink)] hover:text-white inline-flex items-center gap-1"
+              className="text-[10px] font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-1"
             >
               Open full <ExternalLink size={10} />
             </a>
@@ -39,12 +39,12 @@ export default function TokenChartPanel({
           <iframe
             title="Token price chart"
             src={embed}
-            className="w-full h-[420px] sm:h-[480px] border-0 bg-[#0a0f18]"
+            className="w-full h-[420px] sm:h-[480px] border-0 bg-[var(--surface)]"
             allow="clipboard-write"
             loading="lazy"
           />
         </div>
-        <p className="text-[10px] text-slate-600 text-center">
+        <p className="text-[10px] text-[var(--ink-dim)] text-center">
           Chart data by DexScreener · 15m candles
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function TokenChartPanel({
   return (
     <div className="space-y-3">
       <TokenPriceChart swaps={swaps} loading={swapsLoading} />
-      <p className="text-[10px] text-slate-600 text-center">
+      <p className="text-[10px] text-[var(--ink-dim)] text-center">
         No pool indexed yet — showing swap-derived price when available
       </p>
     </div>

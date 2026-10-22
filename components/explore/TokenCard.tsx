@@ -49,7 +49,7 @@ export default function TokenCard({
   // Badge 1: Token Type
   const typeBadge =
     token.type === "b20"
-      ? { label: "B20", class: "bg-[#0052FF]/10 text-[#0052FF] border-[#0052FF]/20" }
+      ? { label: "B20", class: "bg-[var(--brand-soft)] text-[var(--brand-text)] border-[var(--brand)]/20" }
       : token.type === "stock"
         ? { label: "Stock", class: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" }
         : { label: "Base", class: "bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--border-subtle)]" };
@@ -122,7 +122,7 @@ export default function TokenCard({
             <div className="min-w-0">
               <h3
                 title={token.name}
-                className="font-bold text-sm text-[var(--ink)] leading-snug line-clamp-1 group-hover:text-[#0052FF] transition-colors"
+                className="font-bold text-sm text-[var(--ink)] leading-snug line-clamp-1 group-hover:text-[var(--brand-text)] transition-colors"
               >
                 {token.name}
               </h3>
@@ -268,7 +268,7 @@ export default function TokenCard({
           {menuOpen && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 bottom-full mb-1.5 w-44 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] p-1.5 shadow-xl z-20 space-y-1 text-xs animate-meridian-rise"
+              className="absolute right-0 bottom-full mb-1.5 w-44 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-popover)] p-1.5 shadow-xl z-20 space-y-1 text-xs animate-meridian-rise"
             >
               <a
                 href={token.dexUrl || `https://dexscreener.com/base/${token.address}`}

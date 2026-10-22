@@ -68,10 +68,10 @@ export default function WatchlistAlertsPanel({
           return (
             <div
               key={t.address}
-              className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2"
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2"
             >
-              <span className="text-sm font-bold text-white">${t.symbol}</span>
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-sm font-bold text-[var(--ink)]">${t.symbol}</span>
+              <span className="text-[10px] text-[var(--ink-dim)] font-mono">
                 now {price > 0 ? formatUsd(price) : "—"}
               </span>
               {existing ? (
@@ -88,7 +88,7 @@ export default function WatchlistAlertsPanel({
                       }
                       refresh();
                     }}
-                    className="ml-auto p-1 text-slate-500 hover:text-rose-400"
+                    className="ml-auto p-1 text-[var(--ink-dim)] hover:text-rose-400"
                     aria-label="Remove alert"
                   >
                     <Trash2 size={14} />

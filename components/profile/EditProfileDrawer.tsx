@@ -208,14 +208,14 @@ export default function EditProfileDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-profile-title"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-lg max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200"
+        className="w-full sm:max-w-lg max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-3)] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -295,7 +295,7 @@ export default function EditProfileDrawer({
               maxLength={50}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="e.g. Satoshi Nakamoto"
-              className="w-full text-sm font-bold rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3.5 py-2.5 text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+              className="w-full text-sm font-bold rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3.5 py-2.5 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition"
             />
           </div>
 
@@ -315,7 +315,7 @@ export default function EditProfileDrawer({
               maxLength={280}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell onchain collectors about yourself, what you build, and your tokens."
-              className="w-full text-sm rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-[var(--ink)] outline-none focus:border-[#0052FF] resize-none transition"
+              className="w-full text-sm rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] resize-none transition"
             />
           </div>
 
@@ -337,7 +337,7 @@ export default function EditProfileDrawer({
                     if (fieldErrors.website) setFieldErrors((prev) => ({ ...prev, website: undefined }));
                   }}
                   placeholder="Website URL (https://…)"
-                  className="w-full text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] pl-9 pr-3 py-2.5 text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+                  className="w-full text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] pl-9 pr-3 py-2.5 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition"
                 />
               </div>
               {fieldErrors.website && (
@@ -357,7 +357,7 @@ export default function EditProfileDrawer({
                     if (fieldErrors.twitter) setFieldErrors((prev) => ({ ...prev, twitter: undefined }));
                   }}
                   placeholder="X / Twitter handle (@yourhandle)"
-                  className="w-full text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] pl-9 pr-3 py-2.5 text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+                  className="w-full text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] pl-9 pr-3 py-2.5 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition"
                 />
               </div>
               {fieldErrors.twitter && (
@@ -377,7 +377,7 @@ export default function EditProfileDrawer({
                     if (fieldErrors.telegram) setFieldErrors((prev) => ({ ...prev, telegram: undefined }));
                   }}
                   placeholder="Telegram handle (username or t.me/…)"
-                  className="w-full text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] pl-9 pr-3 py-2.5 text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+                  className="w-full text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] pl-9 pr-3 py-2.5 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition"
                 />
               </div>
               {fieldErrors.telegram && (

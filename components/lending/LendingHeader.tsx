@@ -34,7 +34,7 @@ export default function LendingHeader({
       {/* Title & One-line Subtitle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-bold mb-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] text-xs font-bold mb-1.5">
             <TrendingUp size={13} />
             <span>Base Mainnet Equities &amp; Money Markets</span>
           </div>
@@ -61,10 +61,10 @@ export default function LendingHeader({
               type="button"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="pop-pill p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[#0052FF] transition cursor-pointer disabled:opacity-50"
+              className="pop-pill p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer disabled:opacity-50"
               title="Refresh live rates"
             >
-              <RefreshCw size={14} className={isRefreshing ? "animate-spin text-[#0052FF]" : ""} />
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
             </button>
           )}
         </div>
@@ -106,7 +106,7 @@ export default function LendingHeader({
           <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
             Verified Markets
           </span>
-          <p className="text-lg font-black font-mono text-[#0052FF] mt-0.5">
+          <p className="text-lg font-black font-mono text-[var(--brand-text)] mt-0.5">
             {verifiedPoolsCount} Pools
           </p>
           <span className="text-[10px] text-[var(--ink-dim)]">Morpho, Euler, Moonwell, Aave</span>

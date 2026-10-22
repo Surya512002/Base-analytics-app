@@ -58,7 +58,7 @@ export default function SpotlightCarousel({
       <div className="space-y-3.5">
         {/* Spotlight Eyebrow & Carousel Dots */}
         <div className="flex items-center justify-between">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-[10px] font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] text-[10px] font-bold uppercase tracking-wider">
             <Sparkles size={11} />
             <span>Spotlight #{currentIndex + 1}</span>
           </div>
@@ -77,7 +77,7 @@ export default function SpotlightCarousel({
                   onClick={() => setCurrentIndex(idx)}
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
                     currentIndex === idx
-                      ? "w-4 bg-[#0052FF]"
+                      ? "w-4 bg-[var(--brand)]"
                       : "w-1.5 bg-[var(--ink-dim)] hover:bg-[var(--ink-muted)]"
                   }`}
                   aria-label={`Go to spotlight slide ${idx + 1}`}
@@ -99,7 +99,7 @@ export default function SpotlightCarousel({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-base text-[var(--ink)] truncate group-hover:text-[#0052FF] transition-colors">
+              <h3 className="font-bold text-base text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
                 {activeToken.name}
               </h3>
               <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
@@ -153,7 +153,7 @@ export default function SpotlightCarousel({
       </div>
 
       {/* CTA Button */}
-      <div className="pt-3 mt-3 border-t border-[var(--border-subtle)]/60 flex items-center justify-between text-xs font-bold text-[#0052FF]">
+      <div className="pt-3 mt-3 border-t border-[var(--border-subtle)]/60 flex items-center justify-between text-xs font-bold text-[var(--brand-text)]">
         <span>Trade now with USD routing</span>
         <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
       </div>

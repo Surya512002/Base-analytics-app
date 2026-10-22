@@ -38,7 +38,7 @@ export interface CoinbaseTokenizedStock {
   mcapUsd: number;
   decimals: number; // 8 for B20 stocks
   iconUrl?: string;
-  category: "tech" | "crypto" | "finance" | "aerospace" | "consumer" | "health" | "index";
+  category: "tech" | "crypto" | "finance" | "aerospace" | "consumer" | "health" | "index" | string;
   feedAddress: `0x${string}` | null;
   custodian: string;
   isRegulated: boolean;

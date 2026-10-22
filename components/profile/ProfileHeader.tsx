@@ -110,7 +110,7 @@ export default function ProfileHeader({
                   {displayName}
                 </h1>
                 {basename && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20 flex items-center gap-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] flex items-center gap-1">
                     <ShieldCheck size={11} /> {basename}
                   </span>
                 )}
@@ -132,7 +132,7 @@ export default function ProfileHeader({
                   href={`https://basescan.org/address/${address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="pop-pill p-1 rounded hover:bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[#0052FF] transition cursor-pointer"
+                  className="pop-pill p-1 rounded hover:bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--brand-text)] transition cursor-pointer"
                   title="View on Basescan"
                   aria-label="View on Basescan"
                 >
@@ -159,7 +159,7 @@ export default function ProfileHeader({
                       href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="pop p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:text-[#0052FF] hover:border-[#0052FF]/30 transition cursor-pointer"
+                      className="pop p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)]/30 transition cursor-pointer"
                       title="Website"
                       aria-label="Website"
                     >
@@ -175,7 +175,7 @@ export default function ProfileHeader({
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="pop p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:text-[#0052FF] hover:border-[#0052FF]/30 transition cursor-pointer"
+                      className="pop p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)]/30 transition cursor-pointer"
                       title="X / Twitter"
                       aria-label="X / Twitter"
                     >
@@ -191,7 +191,7 @@ export default function ProfileHeader({
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="pop p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:text-[#0052FF] hover:border-[#0052FF]/30 transition cursor-pointer"
+                      className="pop p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)]/30 transition cursor-pointer"
                       title="Telegram"
                       aria-label="Telegram"
                     >
@@ -234,16 +234,16 @@ export default function ProfileHeader({
           <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-[var(--ink)] flex items-center gap-1.5">
-                <Sparkles size={14} className="text-[#0052FF]" />
+                <Sparkles size={14} className="text-[var(--brand-text)]" />
                 Profile setup completion
               </span>
-              <span className="font-mono font-bold text-[#0052FF]">
+              <span className="font-mono font-bold text-[var(--brand-text)]">
                 {completionPercentage}% complete
               </span>
             </div>
             <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
               <div
-                className="h-full bg-[#0052FF] transition-all duration-300 rounded-full"
+                className="h-full bg-[var(--brand)] transition-all duration-300 rounded-full"
                 style={{ width: `${completionPercentage}%` }}
               />
             </div>

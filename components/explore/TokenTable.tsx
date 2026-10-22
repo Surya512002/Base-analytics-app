@@ -100,27 +100,27 @@ export default function TokenTable({
               // Type badge
               const typeBadge =
                 token.type === "b20"
-                  ? { label: "B20", class: "bg-[#0052FF]/10 text-[#0052FF]" }
+                  ? { label: "B20", class: "bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]" }
                   : token.type === "stock"
-                    ? { label: "Stock", class: "bg-blue-500/10 text-blue-600 dark:text-blue-400" }
-                    : { label: "Base", class: "bg-[var(--surface-2)] text-[var(--ink-muted)]" };
+                    ? { label: "Stock", class: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" }
+                    : { label: "Base", class: "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]" };
 
               // Pool / Risk status
               let statusLabel = "Pooled";
-              let statusClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+              let statusClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
               let statusTooltip = "Has an active liquidity pool on Base DEX.";
 
               if (!token.hasPool) {
                 statusLabel = "No Pool";
-                statusClass = "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25";
+                statusClass = "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25";
                 statusTooltip = "No active liquidity pool detected on DEX.";
               } else if (isLowLiquidity(token)) {
                 statusLabel = "Low Liq";
-                statusClass = "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25";
+                statusClass = "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25";
                 statusTooltip = `Liquidity is below $10,000 (${formatCompactUsd(token.liquidityUsd)}).`;
               } else if (isExtremeMove(token)) {
                 statusLabel = "Volatile";
-                statusClass = "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25";
+                statusClass = "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25";
                 statusTooltip = `24h move exceeds ±50% (${token.priceChange24h.toFixed(1)}%).`;
               }
 
@@ -148,7 +148,7 @@ export default function TokenTable({
 
                       <div className="min-w-0 max-w-[170px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[#0052FF] transition-colors">
+                          <span className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
                             {token.name}
                           </span>
                           <span
@@ -276,7 +276,7 @@ export default function TokenTable({
                       {isMenuOpen && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] p-1.5 shadow-xl z-30 space-y-1 text-xs text-left animate-meridian-rise"
+                          className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-1.5 shadow-xl z-30 space-y-1 text-xs text-left animate-meridian-rise"
                         >
                           <a
                             href={token.dexUrl || `https://dexscreener.com/base/${token.address}`}

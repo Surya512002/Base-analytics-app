@@ -462,7 +462,7 @@ export default function StocksLendingHub({
                     setTimeout(() => searchInputRef.current?.focus(), 60);
                   }}
                   className="h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:text-[var(--brand)] hover:border-[var(--brand)] hover:bg-[var(--surface-3)] transition-all flex items-center gap-2 text-xs font-bold shadow-xs cursor-pointer group"
-                  title="Search 32 tokenized stocks by ticker or name"
+                  title={`Search ${BASE_STOCKS.length} tokenized stocks by ticker or name`}
                 >
                   <Search size={14} className="text-[var(--brand)] group-hover:scale-110 transition-transform" />
                   <span>Search</span>

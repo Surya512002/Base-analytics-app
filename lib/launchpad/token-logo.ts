@@ -39,16 +39,16 @@ const KNOWN_LOGO: Record<string, string> = {
 export const ETH_LOGO_URL =
   "https://assets.coingecko.com/coins/images/279/small/ethereum.png";
 
-export function tokenLogoUrl(address: string): string {
+export function tokenLogoUrl(address: string, symbol?: string): string {
   const key = address.trim().toLowerCase();
   if (KNOWN_LOGO[key]) return KNOWN_LOGO[key];
-  return `https://dd.dexscreener.com/ds-data/tokens/base/${key}.png`;
+  return `/api/token-logo/${key}${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ""}`;
 }
 
-/** Secondary fallback when DexScreener has no art for a token. */
+/** Secondary fallback when primary logo needs local fallback. */
 export function tokenLogoFallbackUrl(address: string): string {
   const key = address.trim().toLowerCase();
-  return `https://tokens.1inch.io/${key}.png`;
+  return `/tokens/${key}.png`;
 }
 
 export function enrichSwapCounter<T extends TokenLike>(counter: T): T {

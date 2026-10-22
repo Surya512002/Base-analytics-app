@@ -93,7 +93,7 @@ export default function LaunchSuccessPanel({
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
               <h2 className="text-xl font-black text-[var(--ink)]">{token.name}</h2>
-              <span className="font-mono text-sm font-bold text-[#0052FF]">${token.symbol}</span>
+              <span className="font-mono text-sm font-bold text-[var(--brand-text)]">${token.symbol}</span>
             </div>
             {token.description && (
               <p className="text-xs text-[var(--ink-muted)] line-clamp-2 leading-relaxed">
@@ -108,7 +108,7 @@ export default function LaunchSuccessPanel({
                 <button
                   type="button"
                   onClick={copyAddress}
-                  className="p-1.5 rounded-lg text-[#0052FF] hover:bg-[var(--surface)] transition shrink-0 cursor-pointer"
+                  className="p-1.5 rounded-lg text-[var(--brand-text)] hover:bg-[var(--surface)] transition shrink-0 cursor-pointer"
                   title="Copy contract address"
                 >
                   <Copy size={14} />
@@ -129,7 +129,7 @@ export default function LaunchSuccessPanel({
             href={tokenBasescanUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[var(--ink-muted)] hover:text-[#0052FF] font-medium"
+            className="inline-flex items-center gap-1.5 text-[var(--ink-muted)] hover:text-[var(--brand-text)] font-medium"
           >
             <span>View on BaseScan</span>
             <ExternalLink size={12} />
@@ -147,7 +147,7 @@ export default function LaunchSuccessPanel({
               href={txUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[var(--ink-muted)] hover:text-[#0052FF] font-medium"
+              className="inline-flex items-center gap-1.5 text-[var(--ink-muted)] hover:text-[var(--brand-text)] font-medium"
             >
               <span>Deployment Tx</span>
               <ExternalLink size={12} />
@@ -168,7 +168,7 @@ export default function LaunchSuccessPanel({
 
           <Link
             href={swapPageUrl}
-            className="pop-pill py-3 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[#0052FF] hover:text-[#0052FF] font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+            className="pop-pill py-3 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--brand)] hover:text-[var(--brand-text)] font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
           >
             <Coins size={14} />
             <span>Trade on Swap Page</span>
@@ -181,7 +181,7 @@ export default function LaunchSuccessPanel({
             href={tweetUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[#0052FF] transition cursor-pointer"
+            className="pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] transition cursor-pointer"
           >
             <Twitter size={13} />
             <span>Share on X</span>
@@ -190,7 +190,7 @@ export default function LaunchSuccessPanel({
           <button
             type="button"
             onClick={copyShareLink}
-            className="pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[#0052FF] transition cursor-pointer"
+            className="pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] transition cursor-pointer"
           >
             <Share2 size={13} />
             <span>{copiedShare ? "Link Copied!" : "Copy Share Link"}</span>
@@ -205,19 +205,19 @@ export default function LaunchSuccessPanel({
         </h3>
         <ul className="text-xs text-[var(--ink-muted)] space-y-2">
           <li className="pop p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex items-start gap-2">
-            <span className="font-bold text-[#0052FF]">1.</span>
+            <span className="font-bold text-[var(--brand-text)]">1.</span>
             <span>
               <strong>Share your token link</strong> with your community on X, Farcaster, and Telegram so traders can swap with low slippage.
             </span>
           </li>
           <li className="pop p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex items-start gap-2">
-            <span className="font-bold text-[#0052FF]">2.</span>
+            <span className="font-bold text-[var(--brand-text)]">2.</span>
             <span>
               <strong>Check your Creator Profile</strong> to track trading volume, total market cap, and accumulated 0.25% revenue share in ETH.
             </span>
           </li>
           <li className="pop p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex items-start gap-2">
-            <span className="font-bold text-[#0052FF]">3.</span>
+            <span className="font-bold text-[var(--brand-text)]">3.</span>
             <span>
               <strong>Add additional pool liquidity</strong> if you wish to deepen trading support on Aerodrome or Uniswap V3.
             </span>
@@ -227,7 +227,7 @@ export default function LaunchSuccessPanel({
         <div className="pt-2 text-right">
           <Link
             href="/profile"
-            className="inline-flex items-center gap-1 text-xs font-bold text-[#0052FF] hover:underline"
+            className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline"
           >
             Go to Creator Profile <ArrowRight size={12} />
           </Link>

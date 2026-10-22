@@ -16,66 +16,107 @@
 .dark,
 [data-theme="dark"] {
   /* ──────────────────────────────────────────────────────────────
-     Professional Base & shadcn Foundation — Dark Mode
-     High-contrast charcoal, official Base Blue, crisp 1px borders
+     Professional Base Design System — Dark Mode Tokens
+     Deep navy-charcoal background, elevated surfaces, crisp borders,
+     WCAG AA-compliant typography and Base Blue accents
      ────────────────────────────────────────────────────────────── */
-  --ink: #f8fafc;
-  --ink-soft: #e2e8f0;
-  --background: #090c15;
-  --foreground: #f8fafc;
-  --surface: #0f1422;
-  --surface-2: #161d30;
-  --surface-3: #1d263e;
-  --brand: #0052ff;
-  --brand-dark: #60a5fa;
-  --brand-hover: #1a62ff;
-  --brand-soft: rgba(0, 82, 255, 0.14);
-  --brand-glow: 0 0 20px -2px rgba(0, 82, 255, 0.25);
-  --teal: #10b981;
-  --teal-soft: rgba(16, 185, 129, 0.12);
-  --lane: linear-gradient(105deg, #0052ff 0%, #2563eb 100%);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
+
+  /* Surfaces & Canvas Hierarchy */
+  --background: #0B0F19;
+  --foreground: #F1F5F9;
+  --surface: #121826;              /* surface-1: cards */
+  --surface-1: #121826;            /* surface-1: cards & primary panels */
+  --surface-2: #182033;            /* surface-2: raised stat tiles, inputs, hover state */
+  --surface-3: #1F2A44;            /* surface-3: popovers, drawers, modals, dropdowns */
+  --surface-popover: #1F2A44;
+  --surface-drawer: #1F2A44;
+
+  /* Text & Typography Hierarchy (WCAG AA compliant across all dark surfaces) */
+  --ink: #F1F5F9;                  /* text-primary (14.7:1 contrast on surface-1) */
+  --text-primary: #F1F5F9;
+  --ink-soft: #B6C2D4;             /* text-secondary (8.9:1 contrast on surface-1) */
+  --text-secondary: #B6C2D4;
+  --ink-muted: #8A97AD;            /* text-muted (5.5:1 contrast on surface-1, meets AA) */
+  --text-muted: #8A97AD;
+  --ink-dim: #7C8BA1;              /* captions, placeholders, small numbers (4.5:1 AA) */
+  --text-dim: #7C8BA1;
+  --muted: #8A97AD;
+
+  /* Brand / Base Blue Foundation */
+  --primary: #0052FF;              /* solid button fill */
+  --primary-foreground: #FFFFFF;   /* text on primary button */
+  --primary-text: #6C9BFF;         /* blue text, links, active tab labels (6.2:1 AA) */
+  --brand: #0052FF;                /* button fills */
+  --brand-text: #6C9BFF;           /* accessible Base Blue for text & icons on dark */
+  --brand-dark: #6C9BFF;           /* active nav labels & tab highlights */
+  --brand-hover: #2F6BFF;          /* button hover fill */
+  --brand-soft: rgba(108, 155, 255, 0.12); /* translucent blue badge/tint */
+  --brand-glow: 0 0 16px -2px rgba(108, 155, 255, 0.25);
+  --teal: #34D399;
+  --teal-soft: rgba(52, 211, 153, 0.12);
+  --lane: linear-gradient(105deg, #0052FF 0%, #2F6BFF 100%);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.10);
+
+  /* Status Colors (WCAG AA compliant with 12% translucent soft backgrounds) */
+  --success: #34D399;
+  --success-text: #34D399;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --success-border: rgba(52, 211, 153, 0.25);
+
+  --danger: #F87171;
+  --danger-text: #F87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --danger-border: rgba(248, 113, 113, 0.25);
+
+  --warning: #FBBF24;
+  --warning-text: #FBBF24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --warning-border: rgba(251, 191, 36, 0.25);
+
+  /* Borders & Dividers */
+  --border: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-focus: #6C9BFF;
+
+  /* Focus, Overlay, & Modals */
+  --ring: #6C9BFF;
+  --ring-offset: #0B0F19;
+  --overlay: rgba(11, 15, 25, 0.80);
+
+  /* Chart & Data Visual Tokens */
+  --chart-1: #6C9BFF;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #A78BFA;
+  --chart-5: #F87171;
+  --chart-grid: rgba(255, 255, 255, 0.08);
 
   /* Hover Pop Interaction Tokens - Dark Mode */
-  --pop-lift: -5px;
-  --pop-scale: 1.03;
-  --pop-duration: 220ms;
+  --pop-lift: -4px;
+  --pop-scale: 1.02;
+  --pop-duration: 200ms;
   --pop-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --pop-border-rest: transparent;
-  --pop-border-hover: rgba(0, 82, 255, 0.45);
+  --pop-border-hover: rgba(108, 155, 255, 0.40);
   --pop-bg-rest: transparent;
   --pop-bg-hover: var(--surface-2);
-  --pop-shadow-hover: 0 14px 32px -6px rgba(0, 0, 0, 0.6), 0 0 16px -2px rgba(0, 82, 255, 0.25);
-  --pop-shadow-lg-hover: 0 20px 40px -8px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(0, 82, 255, 0.3);
-  --pop-shadow-pill-hover: 0 8px 18px -4px rgba(0, 0, 0, 0.5), 0 0 10px -1px rgba(0, 82, 255, 0.22);
+  --pop-shadow-hover: 0 12px 28px -6px rgba(0, 0, 0, 0.65), 0 0 16px -2px rgba(108, 155, 255, 0.25);
+  --pop-shadow-lg-hover: 0 18px 36px -8px rgba(0, 0, 0, 0.75), 0 0 20px -2px rgba(108, 155, 255, 0.30);
+  --pop-shadow-pill-hover: 0 6px 16px -4px rgba(0, 0, 0, 0.5), 0 0 10px -1px rgba(108, 155, 255, 0.22);
 
   /* Mapped app tokens */
   --bg-deep: var(--background);
   --bg-raised: var(--surface);
   --bg-elevated: var(--surface-2);
-  --bg-hover: rgba(0, 82, 255, 0.1);
-  --bg-active: rgba(0, 82, 255, 0.18);
-
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.18);
-  --border-focus: var(--brand);
-  --border: rgba(255, 255, 255, 0.08);
-  --muted: #94a3b8;
-
-  --ink-muted: #94a3b8;
-  --ink-dim: #64748b;
+  --bg-hover: rgba(108, 155, 255, 0.08);
+  --bg-active: rgba(108, 155, 255, 0.16);
 
   --accent: var(--brand);
   --accent-hover: var(--brand-hover);
   --accent-ink: #ffffff;
   --accent-soft: var(--brand-soft);
-
-  --success: #22c55e;
-  --success-soft: rgba(34, 197, 94, 0.14);
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.14);
-  --warning: #f59e0b;
-  --warning-soft: rgba(245, 158, 11, 0.14);
 
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
@@ -85,28 +126,24 @@
   /* Aliases mapped to high-contrast Base tokens */
   --bg-aurora-mid: var(--background);
   --bg-panel: var(--surface);
-  --bg-glass: rgba(15, 20, 34, 0.92);
+  --bg-glass: rgba(18, 24, 38, 0.92);
   --border-glass: var(--border-subtle);
-  --base-blue: #0052ff;
-  --base-blue-soft: #3b82f6;
-  --cyan: #06b6d4;
-  --cyan-soft: rgba(6, 182, 212, 0.14);
-  --violet: #0052ff;
-  --violet-soft: var(--brand-soft);
-  --blue: #0052ff;
+  --base-blue: #0052FF;
+  --base-blue-soft: #6C9BFF;
+  --cyan: #38BDF8;
+  --cyan-soft: rgba(56, 189, 248, 0.12);
+  --violet: #818CF8;
+  --violet-soft: rgba(129, 140, 248, 0.12);
+  --blue: #6C9BFF;
   --emerald: var(--success);
   --trade-yes: var(--success);
-  --trade-yes-soft: #86efac;
+  --trade-yes-soft: #6EE7B7;
   --trade-no: var(--danger);
-  --trade-no-soft: #fca5a5;
+  --trade-no-soft: #FCA5A5;
   --gold: var(--warning);
   --rose: var(--danger);
-  --rose-soft: #fca5a5;
+  --rose-soft: #FCA5A5;
   --signal: var(--danger);
-  --text-primary: var(--ink);
-  --text-secondary: var(--ink-soft);
-  --text-muted: var(--ink-muted);
-  --text-dim: var(--ink-dim);
   --glow-cyan: transparent;
   --glow-violet: transparent;
   --glow-rose: transparent;
@@ -119,18 +156,27 @@
      Professional Base & shadcn Foundation — Light Mode
      Razor-sharp near-black text on crisp white surfaces
      ────────────────────────────────────────────────────────────── */
+  color-scheme: light;
+
   --ink: #090d1a;
   --ink-soft: #1e293b;
   --background: #f8fafc;
   --foreground: #090d1a;
   --surface: #ffffff;
+  --surface-1: #ffffff;
   --surface-2: #f1f5f9;
   --surface-3: #e2e8f0;
+  --surface-popover: #ffffff;
+  --surface-drawer: #ffffff;
   --brand: #0052ff;
+  --brand-text: #0052ff;
   --brand-dark: #0045d8;
   --brand-hover: #0045d8;
   --brand-soft: rgba(0, 82, 255, 0.08);
   --brand-glow: 0 0 16px -2px rgba(0, 82, 255, 0.16);
+  --primary: #0052ff;
+  --primary-foreground: #ffffff;
+  --primary-text: #0052ff;
   --teal: #059669;
   --teal-soft: rgba(5, 150, 105, 0.1);
   --lane: linear-gradient(105deg, #0052ff 0%, #1d4ed8 100%);
@@ -170,11 +216,30 @@
   --accent-soft: var(--brand-soft);
 
   --success: #16a34a;
+  --success-text: #16a34a;
   --success-soft: rgba(22, 163, 74, 0.1);
+  --success-border: rgba(22, 163, 74, 0.25);
+
   --danger: #dc2626;
+  --danger-text: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.1);
+  --danger-border: rgba(220, 38, 38, 0.25);
+
   --warning: #d97706;
+  --warning-text: #d97706;
   --warning-soft: rgba(217, 119, 6, 0.1);
+  --warning-border: rgba(217, 119, 6, 0.25);
+
+  --ring: #0052ff;
+  --ring-offset: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.50);
+
+  --chart-1: #0052ff;
+  --chart-2: #16a34a;
+  --chart-3: #d97706;
+  --chart-4: #7c3aed;
+  --chart-5: #dc2626;
+  --chart-grid: rgba(0, 0, 0, 0.06);
 
   --bg-aurora-mid: var(--background);
   --bg-panel: var(--surface);
@@ -560,16 +625,57 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.05) 50%,
     transparent 100%
   );
   transform: translateX(-100%);
   animation: shimmerSlide 1.8s ease-in-out infinite;
 }
 
+/* Branded text selection */
+::selection {
+  background-color: rgba(108, 155, 255, 0.30);
+  color: #F1F5F9;
+}
+
+.light ::selection,
+[data-theme="light"] ::selection {
+  background-color: rgba(0, 82, 255, 0.20);
+  color: #090d1a;
+}
+
+/* Subtle, polished native scrollbars matching color scheme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.light ::-webkit-scrollbar-thumb,
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.light ::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
 /* Focus state accessibility */
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -1894,9 +2000,9 @@ html.is-scrolling .prism-scene {
   width: min(100%, 56rem);
   max-height: min(78vh, 720px);
   border-radius: 1.25rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
 }
 
 .command-palette-input {

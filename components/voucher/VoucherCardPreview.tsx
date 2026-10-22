@@ -155,7 +155,7 @@ export default function VoucherCardPreview({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 border border-white/10 text-[10px] font-bold text-white">
-                <span className="w-2 h-2 rounded-full bg-[#0052FF]" />
+                <span className="w-2 h-2 rounded-full bg-[var(--brand)]" />
                 Base
               </div>
               <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center p-1">
@@ -180,46 +180,46 @@ export default function VoucherCardPreview({
                 {amountMain}
               </span>
               {isStock && (
-                <span className="text-sm font-bold text-slate-300">Share</span>
+                <span className="text-sm font-bold text-slate-200">Share</span>
               )}
             </div>
-            <p className="text-xs sm:text-sm font-bold text-slate-300/90 mt-1 truncate">
+            <p className="text-xs sm:text-sm font-bold text-slate-200 mt-1 truncate">
               {amountUnit}
             </p>
           </div>
 
           {/* Card Message */}
           {message?.trim() ? (
-            <div className="relative my-3 rounded-xl bg-black/35 border border-white/10 p-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+            <div className="relative my-3 rounded-xl bg-black/40 border border-white/15 p-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-0.5">
                 Message
               </p>
-              <p className="text-xs text-slate-100 italic line-clamp-2 leading-relaxed">
+              <p className="text-xs text-white italic line-clamp-2 leading-relaxed">
                 &quot;{message.trim()}&quot;
               </p>
             </div>
           ) : (
-            <div className="relative my-3 rounded-xl bg-black/20 border border-white/5 p-2 text-center">
-              <p className="text-[11px] text-slate-400 italic">
+            <div className="relative my-3 rounded-xl bg-black/30 border border-white/10 p-2 text-center">
+              <p className="text-[11px] text-slate-300 italic">
                 &quot;Happy day! Enjoy your onchain gift.&quot;
               </p>
             </div>
           )}
 
           {/* Bottom Bar: Status and Card ID */}
-          <div className="relative pt-3 border-t border-white/10 flex items-center justify-between text-[11px]">
+          <div className="relative pt-3 border-t border-white/15 flex items-center justify-between text-[11px]">
             <div className="flex items-center gap-1.5 font-bold">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  redeemed ? "bg-slate-400" : "bg-emerald-400 animate-pulse"
+                  redeemed ? "bg-slate-400" : "bg-[var(--success)] animate-pulse"
                 }`}
               />
-              <span className={redeemed ? "text-slate-400" : "text-emerald-300"}>
+              <span className={redeemed ? "text-slate-300" : "text-emerald-300"}>
                 {redeemed ? "Redeemed" : "Active"}
               </span>
             </div>
 
-            <div className="font-mono text-[10px] text-slate-300/80">
+            <div className="font-mono text-[10px] text-slate-200">
               {cardId ? `ID: ${cardId}` : "Pre-deposit Preview"}
             </div>
           </div>

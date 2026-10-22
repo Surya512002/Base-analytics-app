@@ -72,7 +72,7 @@ export default function FilterBar({
               }
               className={`pop-pill px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition flex items-center gap-2 cursor-pointer ${
                 isActive
-                  ? "bg-[#0052FF] text-white shadow-xs"
+                  ? "bg-[var(--brand)] text-white shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
               }`}
             >
@@ -109,7 +109,7 @@ export default function FilterBar({
                 }
                 className={`pop-pill px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                   isSelected
-                    ? "bg-[var(--surface-2)] border border-[#0052FF]/30 text-[var(--ink)] shadow-xs"
+                    ? "bg-[var(--surface-2)] border border-[var(--brand)]/30 text-[var(--ink)] shadow-xs"
                     : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-transparent"
                 }`}
               >
@@ -157,7 +157,7 @@ export default function FilterBar({
               }
               className={`pop-pill px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border cursor-pointer ${
                 filters.onlyMine
-                  ? "bg-[#0052FF]/10 border-[#0052FF]/30 text-[#0052FF]"
+                  ? "bg-[var(--brand-soft)] border-[var(--brand)]/30 text-[var(--brand-text)]"
                   : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
               title="Filter tokens created by you"
@@ -178,7 +178,7 @@ export default function FilterBar({
                   hideLowLiquidity: e.target.checked,
                 }))
               }
-              className="rounded border-[var(--border-subtle)] text-[#0052FF] focus:ring-0 cursor-pointer"
+              className="rounded border-[var(--border-subtle)] text-[var(--brand)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
             />
             <span>Hide &lt; $10K liq</span>
           </label>

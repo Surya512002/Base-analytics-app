@@ -1,12 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React from "react";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
-import {
-  ETH_LOGO_URL,
-  tokenLogoFallbackUrl,
-  tokenLogoUrl,
-} from "@/lib/launchpad/token-logo";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 export default function TokenIcon({
   counter,
@@ -17,44 +13,21 @@ export default function TokenIcon({
   size?: number;
   className?: string;
 }) {
-  const [failed, setFailed] = useState(0);
-
-  const symbol = counter.kind === "eth" ? "ETH" : counter.symbol;
-  const primarySrc = useMemo(() => {
-    if (counter.kind === "eth") return ETH_LOGO_URL;
-    return counter.imageUrl ?? tokenLogoUrl(counter.address);
-  }, [counter]);
-
-  const src = useMemo(() => {
-    if (failed === 0) return primarySrc;
-    if (failed === 1 && counter.kind === "token") {
-      return tokenLogoFallbackUrl(counter.address);
-    }
-    return null;
-  }, [counter, failed, primarySrc]);
-
-  const style = { width: size, height: size };
-
-  if (!src || failed >= 2) {
-    return (
-      <span
-        className={`swap-eth-icon ${className}`.trim()}
-        style={style}
-        aria-hidden
-      >
-        {symbol.slice(0, 2)}
-      </span>
-    );
-  }
+  const isEth = counter.kind === "eth";
+  const symbol = isEth ? "ETH" : counter.symbol;
+  const address = isEth ? "eth" : counter.address;
+  const src = isEth
+    ? "/tokens/0x0000000000000000000000000000000000000000.png"
+    : counter.imageUrl;
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <TokenLogo
+      address={address}
+      symbol={symbol}
       src={src}
-      alt=""
-      className={`rounded-full object-cover border border-white/10 shrink-0 bg-[#1a1a1a] ${className}`.trim()}
-      style={style}
-      onError={() => setFailed((n) => n + 1)}
+      size={size}
+      className={className}
+      shape="circle"
     />
   );
 }

@@ -32,7 +32,7 @@ export default function ExploreHero({
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--ink)] tracking-tight leading-[1.15]">
               Discover Tokens.{" "}
-              <span className="text-[#0052FF]">Swap in App.</span>
+              <span className="text-[var(--brand-text)]">Swap in App.</span>
             </h1>
             <p className="text-sm sm:text-base text-[var(--ink-muted)] leading-relaxed max-w-xl">
               Live liquidity rails, B20 vanity standards, and Coinbase tokenized equities on Base.
@@ -50,12 +50,12 @@ export default function ExploreHero({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by name, symbol ($AERO, $NVDAc) or 0x address…"
-              className="w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[#0052FF] transition shadow-xs"
+              className="w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand-text)] transition shadow-xs"
             />
             <button
               type="button"
               onClick={onOpenCommandPalette}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[#0052FF] transition cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer"
               title="Open command palette (⌘K)"
             >
               <Command size={11} />
@@ -79,7 +79,7 @@ export default function ExploreHero({
               onClick={onLaunchToken}
               className="px-5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-sm font-bold text-[var(--ink)] transition cursor-pointer flex items-center gap-2"
             >
-              <Rocket size={16} className="text-[#0052FF]" />
+              <Rocket size={16} className="text-[var(--brand-text)]" />
               <span>Launch token</span>
             </button>
           </div>

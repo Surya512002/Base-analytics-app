@@ -428,7 +428,7 @@ export default function ExploreHub({
                     hideLowLiquidity: false,
                   }))
                 }
-                className="mt-2 text-xs font-bold text-[#0052FF] hover:underline cursor-pointer"
+                className="mt-2 text-xs font-bold text-[var(--brand-text)] hover:underline cursor-pointer"
               >
                 Reset filters
               </button>

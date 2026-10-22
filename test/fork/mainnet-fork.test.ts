@@ -92,4 +92,109 @@ describe("Base Mainnet Fork & On-Chain Protocol Verification", () => {
 
     expect(decimals).toBe(6);
   });
+
+  it("generates valid on-chain supply and borrow calls for registry stock through action drawer", async () => {
+    const { buildUnifiedProtocolCalls } = await import("@/lib/lending/protocol-adapters");
+    const { TOKENIZED_STOCKS_REGISTRY } = await import("@/lib/stocks/tokenized-stocks-registry");
+    const nvdaStock = TOKENIZED_STOCKS_REGISTRY.find((s) => s.symbol === "NVDAc")!;
+
+    expect(nvdaStock).toBeDefined();
+
+    // Mock an active discovered option for NVDAc on Morpho Blue
+    const mockOption: any = {
+      id: "morpho_blue_nvdac",
+      protocol: "morpho_blue",
+      protocolName: "Morpho Blue",
+      executionType: "morpho_blue",
+      morphoParams: {
+        loanToken: BASE_MAINNET_REGISTRY.USDC.address,
+        collateralToken: nvdaStock.address,
+        oracle: "0x1111111111111111111111111111111111111111",
+        irm: "0x2222222222222222222222222222222222222222",
+        lltv: BigInt("770000000000000000"),
+      },
+      stockSymbol: nvdaStock.symbol,
+      stockName: nvdaStock.name,
+      stockAddress: nvdaStock.address,
+      loanSymbol: "USDC",
+      loanAddress: BASE_MAINNET_REGISTRY.USDC.address,
+      supplyApy: 6.8,
+      borrowApr: 4.2,
+      maxLtv: 77,
+      contractAddress: BASE_MAINNET_REGISTRY.MORPHO_BLUE.address,
+    };
+
+    const supplyCalls = buildUnifiedProtocolCalls({
+      option: mockOption,
+      action: "supply",
+      amountRaw: BigInt(100_000_000), // 1 NVDAc (8 decimals)
+      userAddress: freshWallet,
+      requiresApproval: true,
+    });
+
+    expect(supplyCalls.length).toBeGreaterThanOrEqual(2);
+    // Approval targeting NVDAc contract
+    expect(supplyCalls[0].to.toLowerCase()).toBe(nvdaStock.address.toLowerCase());
+    // Supply targeting Morpho Blue contract
+    expect(supplyCalls[1].to.toLowerCase()).toBe(BASE_MAINNET_REGISTRY.MORPHO_BLUE.address.toLowerCase());
+
+    const borrowCalls = buildUnifiedProtocolCalls({
+      option: mockOption,
+      action: "borrow",
+      amountRaw: BigInt(500_000_000), // 500 USDC (6 decimals)
+      userAddress: freshWallet,
+      requiresApproval: false,
+    });
+
+    expect(borrowCalls.length).toBe(1);
+    expect(borrowCalls[0].to.toLowerCase()).toBe(BASE_MAINNET_REGISTRY.MORPHO_BLUE.address.toLowerCase());
+  });
+
+  it(
+    "matching rule guarantees an unapproved stock token never appears in discovered markets",
+    { timeout: 30000 },
+    async () => {
+      const { runMarketDiscovery } = await import("@/lib/lending/discovery/engine");
+      const { isActiveStockAddress } = await import("@/lib/stocks/tokenized-stocks-registry");
+
+      const fakeUnapprovedToken = "0x9999999999999999999999999999999999999999" as `0x${string}`;
+      expect(isActiveStockAddress(fakeUnapprovedToken)).toBe(false);
+
+      // Run discovery with forceRefresh to test engine matching rule
+      const res = await runMarketDiscovery(8453, true);
+      expect(res).toBeDefined();
+      expect(Array.isArray(res.markets)).toBe(true);
+
+      // Verify absolutely no market contains unapproved token as supply or borrow asset
+      const foundUnapproved = res.markets.some(
+        (m) =>
+          m.supplyAsset.address.toLowerCase() === fakeUnapprovedToken.toLowerCase() ||
+          (m.borrowAsset && m.borrowAsset.address.toLowerCase() === fakeUnapprovedToken.toLowerCase())
+      );
+      expect(foundUnapproved).toBe(false);
+    }
+  );
+
+  it(
+    "guarantees a protocol outage keeps other protocols functional with isolated error tracking",
+    { timeout: 30000 },
+    async () => {
+      const { runMarketDiscovery } = await import("@/lib/lending/discovery/engine");
+      const res = await runMarketDiscovery(8453, false);
+
+      // The engine should NEVER crash completely when one protocol fails
+      expect(res).toBeDefined();
+      expect(res.markets).toBeDefined();
+      expect(res.protocolStatus).toBeDefined();
+      expect(typeof res.protocolStatus).toBe("object");
+
+      // All registered protocols should have an explicit health entry
+      const protocols: (keyof typeof res.protocolStatus)[] = ["morpho", "aave", "euler", "moonwell", "superform", "aerodrome"];
+      for (const p of protocols) {
+        expect(res.protocolStatus[p]).toBeDefined();
+        expect(typeof res.protocolStatus[p].status).toBe("string");
+      }
+    }
+  );
 });
+

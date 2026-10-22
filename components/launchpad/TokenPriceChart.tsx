@@ -26,13 +26,13 @@ export default function TokenPriceChart({
 
   if (loading) {
     return (
-      <div className="h-48 rounded-2xl bg-white/[0.03] border border-white/10 animate-pulse" />
+      <div className="h-48 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] animate-pulse" />
     );
   }
 
   if (points.length < 2) {
     return (
-      <div className="h-48 rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center text-sm text-slate-500">
+      <div className="h-48 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] flex items-center justify-center text-sm text-[var(--ink-muted)]">
         Not enough swap data for a chart yet
       </div>
     );
@@ -58,13 +58,13 @@ export default function TokenPriceChart({
   const up = change >= 0;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
           Price from recent swaps
         </p>
         <span
-          className={`text-xs font-black font-mono ${up ? "text-emerald-400" : "text-rose-400"}`}
+          className={`text-xs font-black font-mono tabular-nums ${up ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"}`}
         >
           {up ? "+" : ""}
           {change.toFixed(2)}%
@@ -73,8 +73,8 @@ export default function TokenPriceChart({
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-44" preserveAspectRatio="none">
         <defs>
           <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={up ? "#10b981" : "#f43f5e"} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={up ? "#10b981" : "#f43f5e"} stopOpacity="0" />
+            <stop offset="0%" stopColor={up ? "var(--success)" : "var(--danger)"} stopOpacity="0.20" />
+            <stop offset="100%" stopColor={up ? "var(--success)" : "var(--danger)"} stopOpacity="0" />
           </linearGradient>
         </defs>
         <polygon
@@ -83,14 +83,14 @@ export default function TokenPriceChart({
         />
         <polyline
           fill="none"
-          stroke={up ? "#34d399" : "#fb7185"}
+          stroke={up ? "var(--success)" : "var(--danger)"}
           strokeWidth="2.5"
           strokeLinejoin="round"
           strokeLinecap="round"
           points={coords.join(" ")}
         />
       </svg>
-      <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-2">
+      <div className="flex justify-between text-[10px] font-mono text-[var(--ink-dim)] mt-2">
         <span>{formatUsd(minY)}</span>
         <span>{formatUsd(last)}</span>
       </div>

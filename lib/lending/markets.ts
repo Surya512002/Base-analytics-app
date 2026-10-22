@@ -1,4 +1,5 @@
 import type { LendingMarket } from "./types";
+import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import {
   MORPHO_BLUE_BASE,
   AERODROME_ROUTER_BASE,
@@ -13,6 +14,12 @@ import {
   WETH_BASE_ADDRESS,
   CBBTC_BASE_ADDRESS,
 } from "./constants";
+
+function stockAddr(symbol: string): `0x${string}` {
+  const stock = getTokenizedStockBySymbol(symbol);
+  if (!stock) throw new Error(`Missing stock in registry: ${symbol}`);
+  return stock.address;
+}
 
 export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
   // ==========================================
@@ -36,7 +43,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "NVDAc",
       name: "NVIDIA Corp (Coinbase B20)",
-      address: "0xb20000000000000000000078ee7ce2fe4908108c",
+      address: stockAddr("NVDAc"),
       decimals: 8,
       isStock: true,
     },
@@ -72,7 +79,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "AAPLc",
       name: "Apple Inc (Coinbase B20)",
-      address: "0xb200000000000000000000c2e324d24d7eecd1fb",
+      address: stockAddr("AAPLc"),
       decimals: 8,
       isStock: true,
     },
@@ -108,7 +115,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "TSLAc",
       name: "Tesla Inc (Coinbase B20)",
-      address: "0xb2000000000000000000001e800a7f5189430cd0",
+      address: stockAddr("TSLAc"),
       decimals: 8,
       isStock: true,
     },
@@ -144,7 +151,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "COINc",
       name: "Coinbase Global (B20)",
-      address: "0xb200000000000000000000c85a31389d71f3ecfb",
+      address: stockAddr("COINc"),
       decimals: 8,
       isStock: true,
     },
@@ -180,7 +187,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "MSFTc",
       name: "Microsoft Corp (B20)",
-      address: "0xb200000000000000000000ab99cfa739e253872b",
+      address: stockAddr("MSFTc"),
       decimals: 8,
       isStock: true,
     },
@@ -216,7 +223,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "GOOGLc",
       name: "Alphabet Google (B20)",
-      address: "0xb2000000000000000000002d0ba3164cc74f58b7",
+      address: stockAddr("GOOGLc"),
       decimals: 8,
       isStock: true,
     },
@@ -252,7 +259,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "AMZNc",
       name: "Amazon.com (B20)",
-      address: "0xb200000000000000000000d9192b6b456483c2e8",
+      address: stockAddr("AMZNc"),
       decimals: 8,
       isStock: true,
     },
@@ -288,7 +295,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "METAc",
       name: "Meta Platforms (B20)",
-      address: "0xb2000000000000000000008bc8786b856e61707c",
+      address: stockAddr("METAc"),
       decimals: 8,
       isStock: true,
     },
@@ -324,7 +331,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "PLTRc",
       name: "Palantir Tech (B20)",
-      address: "0xb2000000000000000000007d16372840df4dabbe",
+      address: stockAddr("PLTRc"),
       decimals: 8,
       isStock: true,
     },
@@ -360,7 +367,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "MSTRc",
       name: "MicroStrategy (B20)",
-      address: "0xb2000000000000000000004884b426556b92883d",
+      address: stockAddr("MSTRc"),
       decimals: 8,
       isStock: true,
     },
@@ -396,7 +403,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "CRCLc",
       name: "Circle Internet (B20)",
-      address: "0xb20000000000000000000019f6e7c675b73c2e4d",
+      address: stockAddr("CRCLc"),
       decimals: 8,
       isStock: true,
     },
@@ -432,7 +439,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "AMDc",
       name: "Advanced Micro Devices",
-      address: "0xb2000000000000000000000d8ce462e99ee7a47b",
+      address: stockAddr("AMDc"),
       decimals: 8,
       isStock: true,
     },
@@ -468,7 +475,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     collateralAsset: {
       symbol: "SPCXc",
       name: "SpaceX (Pre-IPO B20)",
-      address: "0xb2000000000000000000007b9fcbd005511acbd5",
+      address: stockAddr("SPCXc"),
       decimals: 8,
       isStock: true,
     },
@@ -502,7 +509,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "NVDAc",
       name: "NVIDIA Corp (Coinbase B20)",
-      address: "0xb20000000000000000000078ee7ce2fe4908108c",
+      address: stockAddr("NVDAc"),
       decimals: 8,
       isStock: true,
     },
@@ -531,7 +538,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "TSLAc",
       name: "Tesla Inc (Coinbase B20)",
-      address: "0xb2000000000000000000001e800a7f5189430cd0",
+      address: stockAddr("TSLAc"),
       decimals: 8,
       isStock: true,
     },
@@ -560,7 +567,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "COINc",
       name: "Coinbase Global (B20)",
-      address: "0xb200000000000000000000c85a31389d71f3ecfb",
+      address: stockAddr("COINc"),
       decimals: 8,
       isStock: true,
     },
@@ -589,7 +596,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "AAPLc",
       name: "Apple Inc (Coinbase B20)",
-      address: "0xb200000000000000000000c2e324d24d7eecd1fb",
+      address: stockAddr("AAPLc"),
       decimals: 8,
       isStock: true,
     },
@@ -618,7 +625,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "MSFTc",
       name: "Microsoft Corp (B20)",
-      address: "0xb200000000000000000000ab99cfa739e253872b",
+      address: stockAddr("MSFTc"),
       decimals: 8,
       isStock: true,
     },
@@ -647,7 +654,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "PLTRc",
       name: "Palantir Tech (B20)",
-      address: "0xb2000000000000000000007d16372840df4dabbe",
+      address: stockAddr("PLTRc"),
       decimals: 8,
       isStock: true,
     },
@@ -676,7 +683,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "MSTRc",
       name: "MicroStrategy (B20)",
-      address: "0xb2000000000000000000004884b426556b92883d",
+      address: stockAddr("MSTRc"),
       decimals: 8,
       isStock: true,
     },
@@ -705,7 +712,7 @@ export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
     asset: {
       symbol: "CRCLc",
       name: "Circle Internet (B20)",
-      address: "0xb20000000000000000000019f6e7c675b73c2e4d",
+      address: stockAddr("CRCLc"),
       decimals: 8,
       isStock: true,
     },

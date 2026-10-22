@@ -102,7 +102,7 @@ export default function IdentityStep({
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="w-20 h-20 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[#0052FF] hover:bg-[#0052FF]/5 flex flex-col items-center justify-center gap-1 transition text-[var(--ink-muted)] hover:text-[#0052FF] cursor-pointer"
+                  className="w-20 h-20 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] flex flex-col items-center justify-center gap-1 transition text-[var(--ink-muted)] hover:text-[var(--brand-text)] cursor-pointer"
                 >
                   <ImagePlus size={20} />
                   <span className="text-[10px] font-bold">Upload</span>
@@ -117,7 +117,7 @@ export default function IdentityStep({
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="text-[11px] font-bold text-[#0052FF] hover:underline"
+                  className="text-[11px] font-bold text-[var(--brand-text)] hover:underline"
                 >
                   Change image
                 </button>
@@ -143,7 +143,7 @@ export default function IdentityStep({
               placeholder="e.g. Base Velocity"
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition font-medium"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition font-medium"
             />
           </div>
 
@@ -166,7 +166,7 @@ export default function IdentityStep({
                 placeholder="VELO"
                 value={symbol}
                 onChange={(e) => onSymbolChange(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-                className="w-full pl-7 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] uppercase placeholder-[var(--ink-dim)] focus:outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition font-mono font-bold"
+                className="w-full pl-7 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] uppercase placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition font-mono font-bold"
               />
             </div>
           </div>
@@ -187,7 +187,7 @@ export default function IdentityStep({
             placeholder="What is this token about? Describe the mission or meme..."
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition resize-none leading-relaxed"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition resize-none leading-relaxed"
           />
         </div>
 
@@ -214,7 +214,7 @@ export default function IdentityStep({
                   className={`w-full pl-8 pr-3 py-2 rounded-xl border text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:ring-1 transition ${
                     websiteError
                       ? "border-red-500 bg-red-500/5 focus:border-red-500 focus:ring-red-500"
-                      : "border-[var(--border-subtle)] bg-[var(--surface-2)] focus:border-[#0052FF] focus:ring-[#0052FF]"
+                      : "border-[var(--border-subtle)] bg-[var(--surface-2)] focus:border-[var(--brand-text)] focus:ring-[var(--brand)]"
                   }`}
                 />
               </div>
@@ -235,7 +235,7 @@ export default function IdentityStep({
                 placeholder="https://x.com/username"
                 value={twitter}
                 onChange={(e) => onTwitterChange(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition"
+                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition"
               />
             </div>
 
@@ -249,7 +249,7 @@ export default function IdentityStep({
                 placeholder="https://t.me/channel"
                 value={telegram}
                 onChange={(e) => onTelegramChange(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition"
+                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition"
               />
             </div>
           </div>

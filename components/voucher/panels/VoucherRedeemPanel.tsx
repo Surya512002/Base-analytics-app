@@ -77,7 +77,7 @@ export default function VoucherRedeemPanel({
       {/* Hero / Explanation */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-6 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center font-bold">
             <Gift size={20} />
           </div>
           <div>
@@ -91,8 +91,8 @@ export default function VoucherRedeemPanel({
         </div>
 
         {/* Visible Info Banner: 1 card per wallet per batch rule */}
-        <div className="mt-4 rounded-xl border border-[#0052FF]/30 bg-[#0052FF]/8 p-3.5 flex items-start gap-2.5">
-          <Info size={18} className="text-[#0052FF] shrink-0 mt-0.5" />
+        <div className="mt-4 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] p-3.5 flex items-start gap-2.5">
+          <Info size={18} className="text-[var(--brand-text)] shrink-0 mt-0.5" />
           <div className="text-xs leading-relaxed">
             <p className="font-black text-[var(--ink)]">
               One card per wallet per batch rule
@@ -116,7 +116,7 @@ export default function VoucherRedeemPanel({
             value={redeemCardId}
             onChange={(e) => setRedeemCardId(e.target.value.trim())}
             placeholder="e.g. 12-0"
-            className="w-full text-base font-mono font-bold rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-3 text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+            className="w-full text-base font-mono font-bold rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-3 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition"
           />
           {isInvalidFormat && (
             <p className="text-red-500 text-xs font-bold mt-1">
@@ -136,7 +136,7 @@ export default function VoucherRedeemPanel({
               value={redeemSecret}
               onChange={(e) => setRedeemSecret(e.target.value.toUpperCase())}
               placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-              className="w-full text-base font-mono tracking-wider rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-3 pr-20 text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+              className="w-full text-base font-mono tracking-wider rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-4 py-3 pr-20 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition"
             />
             <button
               type="button"
@@ -148,7 +148,7 @@ export default function VoucherRedeemPanel({
                   /* clipboard access denied */
                 }
               }}
-              className="pop-pill absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-bold rounded-lg bg-[var(--surface)] text-[#0052FF] border border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]/50 transition cursor-pointer"
+              className="pop-pill absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-bold rounded-lg bg-[var(--surface)] text-[var(--brand-text)] border border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]/50 transition cursor-pointer"
             >
               Paste
             </button>
@@ -173,7 +173,7 @@ export default function VoucherRedeemPanel({
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 relative overflow-hidden">
             {redeemPreviewLoading && !redeemPreview ? (
               <div className="py-12 flex flex-col items-center justify-center gap-2 text-[var(--ink-muted)]">
-                <RefreshCcw size={20} className="animate-spin text-[#0052FF]" />
+                <RefreshCcw size={20} className="animate-spin text-[var(--brand-text)]" />
                 <span className="text-xs font-bold">Verifying card on Base…</span>
               </div>
             ) : redeemPreview ? (
@@ -219,7 +219,7 @@ export default function VoucherRedeemPanel({
               onStatus={handleRedeemTx}
             >
               <TransactionButton
-                className="w-full py-4 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition shadow-md"
+                className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition shadow-md"
                 text="Claim to Wallet"
               />
             </Transaction>

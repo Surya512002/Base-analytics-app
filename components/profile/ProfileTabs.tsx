@@ -17,6 +17,7 @@ import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { CreatorRevenueSummary, FeeEvent } from "@/lib/launchpad/fee-ledger";
 import TokenCard from "@/components/launchpad/TokenCard";
 import { shortAddr, timeAgo } from "@/lib/launchpad/format";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 type TabId = "launches" | "revenue" | "vesting" | "activity";
 
@@ -118,7 +119,7 @@ export default function ProfileTabs({
         <section className="space-y-4 animate-in fade-in duration-200">
           {tokens.length === 0 ? (
             <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 sm:p-12 text-center space-y-4 shadow-sm">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center border border-[#0052FF]/20 shadow-inner">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--border-subtle)] shadow-inner">
                 <Rocket size={28} />
               </div>
               <div className="max-w-md mx-auto space-y-1">
@@ -177,7 +178,7 @@ export default function ProfileTabs({
                 href={`https://basescan.org/address/${address}#internaltx`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[#0052FF] transition shrink-0 cursor-pointer"
+                className="pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] transition shrink-0 cursor-pointer"
               >
                 <span>Verify on Basescan</span>
                 <ExternalLink size={12} />
@@ -202,8 +203,8 @@ export default function ProfileTabs({
                 <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Split 50/50</p>
               </div>
 
-              <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-[#0052FF]/30 bg-[#0052FF]/10 min-w-0 overflow-hidden">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-[#0052FF] truncate block">
+              <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] min-w-0 overflow-hidden">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-[var(--brand-text)] truncate block">
                   Payout Status
                 </span>
                 <p className="font-bold text-xs sm:text-sm text-[var(--ink)] mt-1 flex items-center gap-1 truncate">
@@ -246,16 +247,24 @@ export default function ProfileTabs({
                     key={row.tokenAddress}
                     className="pop-row flex items-center justify-between py-3 px-3 rounded-xl text-xs"
                   >
-                    <div>
-                      <Link
-                        href={`/explore/token/${row.tokenAddress}`}
-                        className="font-bold text-sm text-[var(--ink)] hover:text-[#0052FF] transition"
-                      >
-                        ${row.tokenSymbol}
-                      </Link>
-                      <span className="font-mono text-[11px] text-[var(--ink-dim)] block">
-                        {shortAddr(row.tokenAddress, 6, 4)}
-                      </span>
+                    <div className="flex items-center gap-2.5">
+                      <TokenLogo
+                        address={row.tokenAddress}
+                        symbol={row.tokenSymbol}
+                        size={32}
+                        shape="rounded-xl"
+                      />
+                      <div>
+                        <Link
+                          href={`/explore/token/${row.tokenAddress}`}
+                          className="font-bold text-sm text-[var(--ink)] hover:text-[var(--brand-text)] transition"
+                        >
+                          ${row.tokenSymbol}
+                        </Link>
+                        <span className="font-mono text-[11px] text-[var(--ink-dim)] block">
+                          {shortAddr(row.tokenAddress, 6, 4)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="text-right">
@@ -302,6 +311,12 @@ export default function ProfileTabs({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
+                        <TokenLogo
+                          address={schedule.token.address}
+                          symbol={schedule.token.symbol}
+                          size={28}
+                          shape="rounded-lg"
+                        />
                         <span className="font-bold text-sm text-[var(--ink)]">
                           ${schedule.token.symbol}
                         </span>
@@ -331,7 +346,7 @@ export default function ProfileTabs({
                       <div className="w-full h-2 rounded-full bg-[var(--surface)] overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            schedule.isUnlocked ? "bg-emerald-500" : "bg-[#0052FF]"
+                            schedule.isUnlocked ? "bg-emerald-500" : "bg-[var(--brand)]"
                           }`}
                           style={{ width: schedule.isUnlocked ? "100%" : "35%" }}
                         />
@@ -384,7 +399,7 @@ export default function ProfileTabs({
                       href={`https://basescan.org/tx/${ev.txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--ink-muted)] hover:text-[#0052FF]"
+                      className="text-[var(--ink-muted)] hover:text-[var(--brand-text)]"
                     >
                       <ExternalLink size={12} />
                     </a>

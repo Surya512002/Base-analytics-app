@@ -179,12 +179,12 @@ export default function VoucherShareSuccessModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-5 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--overlay)] backdrop-blur-md p-3 sm:p-5 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="success-share-title"
     >
-      <div className="w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-[var(--border-subtle)] bg-emerald-500/10 shrink-0">
           <div className="flex items-center justify-between">
@@ -250,7 +250,7 @@ export default function VoucherShareSuccessModal({
           <button
             type="button"
             onClick={() => handleShareX()}
-            className="pop-pill flex items-center gap-1 text-xs font-bold text-[var(--ink-muted)] hover:text-[#0052FF] px-2 py-1.5 transition cursor-pointer"
+            className="pop-pill flex items-center gap-1 text-xs font-bold text-[var(--ink-muted)] hover:text-[var(--brand-text)] px-2 py-1.5 transition cursor-pointer"
           >
             <span>Announce on X</span>
             <ExternalLink size={12} />
@@ -266,12 +266,12 @@ export default function VoucherShareSuccessModal({
             return (
               <div
                 key={card.cardId}
-                className="pop-row rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 space-y-3 hover:border-[#0052FF]/30 transition"
+                className="pop-row rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 space-y-3 hover:border-[var(--brand)]/30 transition"
               >
                 {/* Top Row: Card Title & Amount */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-[#0052FF]/10 text-[#0052FF] font-black text-xs flex items-center justify-center">
+                    <span className="w-6 h-6 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] font-black text-xs flex items-center justify-center">
                       {idx + 1}
                     </span>
                     <span className="font-mono text-xs font-bold text-[var(--ink)]">
@@ -294,7 +294,7 @@ export default function VoucherShareSuccessModal({
                   <button
                     type="button"
                     onClick={() => handleCopy(claimLink, `link-${card.cardId}`)}
-                    className="pop-pill flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20 hover:bg-[#0052FF]/20 transition shrink-0 cursor-pointer"
+                    className="pop-pill flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand)]/20 hover:bg-[var(--brand-soft)] transition shrink-0 cursor-pointer"
                   >
                     {isCopied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
                     <span>{isCopied ? "Copied" : "Copy Link"}</span>
@@ -341,7 +341,7 @@ export default function VoucherShareSuccessModal({
                       type="button"
                       onClick={() => void handleNativeShare(card)}
                       title="Share link"
-                      className="p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[#0052FF] hover:bg-[var(--surface-2)] transition"
+                      className="p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[var(--brand-text)] hover:bg-[var(--surface-2)] transition"
                     >
                       <Share2 size={16} />
                     </button>
@@ -359,7 +359,7 @@ export default function VoucherShareSuccessModal({
               type="checkbox"
               checked={confirmedSaved}
               onChange={(e) => setConfirmedSaved(e.target.checked)}
-              className="mt-1 w-4 h-4 rounded border-[var(--border-subtle)] accent-[#0052FF]"
+              className="mt-1 w-4 h-4 rounded border-[var(--border-subtle)] accent-[var(--brand)]"
             />
             <span className="text-xs text-[var(--ink)] leading-relaxed">
               <strong>I have copied, saved, or downloaded these claim links.</strong> I understand recipients need the link to redeem their funds.
@@ -381,11 +381,11 @@ export default function VoucherShareSuccessModal({
       {/* QR Code Modal Overlay */}
       {activeQrCard && (
         <div
-          className="fixed inset-0 z-[210] flex items-center justify-center bg-black/75 p-4"
+          className="fixed inset-0 z-[210] flex items-center justify-center bg-[var(--overlay)] p-4"
           onClick={() => setActiveQrCard(null)}
         >
           <div
-            className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 max-w-sm w-full space-y-4 text-center animate-in zoom-in-95"
+            className="rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 max-w-sm w-full space-y-4 text-center animate-in zoom-in-95 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

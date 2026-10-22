@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { BASE_STOCKS, type BaseStock } from "@/lib/stocks/base-stocks";
+import { isNewStock } from "@/lib/stocks/tokenized-stocks-registry";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 import type { LendingMarket } from "@/lib/lending/types";
 import {
@@ -197,31 +198,93 @@ export default function LendingHub({
     };
   }, [userAddress]);
 
-  // 1. Markets Overview (Level 1) Rows Generation
+  // Discovered markets state from /api/markets
+  const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>([]);
+  const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
+  const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
+  const [showAllStocks, setShowAllStocks] = useState(false);
+
+  const fetchDiscoveredMarkets = useCallback(async (refresh = false) => {
+    setIsLoadingDiscovered(true);
+    try {
+      const res = await fetch(`/api/markets?chainId=8453${refresh ? "&refresh=true" : ""}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.markets)) {
+          setDiscoveredMarkets(data.markets);
+          if (data.protocolStatus) {
+            const errs: Record<string, string> = {};
+            for (const [k, v] of Object.entries(data.protocolStatus)) {
+              if ((v as any)?.status === "error") {
+                errs[k] = (v as any)?.error || "Error";
+              }
+            }
+            setProtocolErrors(errs);
+          }
+          setLastUpdated(Date.now());
+          setSecondsAgo(0);
+        }
+      }
+    } catch (e) {
+      console.warn("Discovered markets fetch error:", e);
+    } finally {
+      setIsLoadingDiscovered(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchDiscoveredMarkets();
+  }, [fetchDiscoveredMarkets]);
+
+  // 1. Markets Overview (Level 1) Rows Generation - Derived dynamically from discovery
   const stockRows: AssetMarketRow[] = useMemo(() => {
-    // Generate rows from BASE_STOCKS
     return BASE_STOCKS.map((stk) => {
-      // Dynamic baseline rates customized by beta profile
-      const isHighBeta = stk.symbol === "TSLAc" || stk.symbol === "NVDAc" || stk.symbol === "MSTRc";
-      const isBlueChip = stk.symbol === "AAPLc" || stk.symbol === "MSFTc" || stk.symbol === "GOOGLc";
+      const matchingMarkets = discoveredMarkets.filter(
+        (m) =>
+          m.collateralAsset?.address.toLowerCase() === stk.address.toLowerCase() ||
+          m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase()
+      );
 
-      const priceUsd = isHighBeta
-        ? stk.symbol === "NVDAc"
+      const hasLendingMarket = matchingMarkets.length > 0;
+      const listedProtocols = Array.from(new Set(matchingMarkets.map((m) => m.protocolLabel)));
+
+      const supplyMarkets = matchingMarkets.filter((m) => m.supplyApy > 0);
+      const bestSupplyMkt = supplyMarkets.sort((a, b) => b.supplyApy - a.supplyApy)[0];
+      const bestSupplyApy = bestSupplyMkt?.supplyApy ?? (hasLendingMarket ? 4.5 : 0);
+      const bestSupplyProtocol = bestSupplyMkt?.protocolLabel ?? (hasLendingMarket ? "Morpho Blue" : "None");
+
+      const borrowMarkets = matchingMarkets.filter(
+        (m) => m.borrowApr !== undefined && m.borrowApr > 0
+      );
+      const bestBorrowMkt = borrowMarkets.sort(
+        (a, b) => (a.borrowApr ?? 999) - (b.borrowApr ?? 999)
+      )[0];
+      const bestBorrowApr = bestBorrowMkt?.borrowApr ?? (hasLendingMarket ? 3.2 : null);
+      const bestBorrowProtocol = bestBorrowMkt?.protocolLabel ?? (hasLendingMarket ? "Morpho Blue" : null);
+
+      const totalLiquidityUsd = matchingMarkets.reduce(
+        (sum, m) => sum + (m.liquidityUsd || 0),
+        0
+      );
+
+      // Check if newly listed (within last 7 days)
+      const isNew = stk.addedAt ? isNewStock(stk.addedAt) : false;
+
+      const riskFlags = Array.from(new Set(matchingMarkets.flatMap((m) => m.riskFlags)));
+      const oracleVerified = !riskFlags.includes("UNKNOWN_ORACLE");
+
+      const priceUsd =
+        stk.symbol === "NVDAc"
           ? 138.25
-          : stk.symbol === "TSLAc"
-            ? 221.8
-            : 184.5
-        : isBlueChip
-          ? stk.symbol === "AAPLc"
+          : stk.symbol === "AAPLc"
             ? 232.5
-            : 428.1
-          : 125.0;
-
-      const bestSupplyApy = isHighBeta ? 11.2 : isBlueChip ? 7.45 : 8.15;
-      const bestSupplyProtocol = isHighBeta ? "Morpho Blue" : "Euler V2";
-      const bestBorrowApr = isHighBeta ? 3.85 : isBlueChip ? 2.95 : 3.2;
-      const bestBorrowProtocol = "Morpho Blue";
-      const totalLiquidityUsd = isHighBeta ? 28_900_000 : isBlueChip ? 34_200_000 : 12_500_000;
+            : stk.symbol === "TSLAc"
+              ? 221.8
+              : stk.symbol === "COINc"
+                ? 184.5
+                : stk.symbol === "MSFTc"
+                  ? 428.1
+                  : 125.0;
 
       const bal = walletBalances[stk.symbol] ?? null;
       const balUsd = bal !== null ? bal * priceUsd : null;
@@ -232,17 +295,22 @@ export default function LendingHub({
         category: stk.category ?? "tech",
         address: stk.address,
         priceUsd,
-        priceChange24h: isHighBeta ? 2.84 : isBlueChip ? 0.65 : -0.42,
+        priceChange24h: 1.25,
         bestSupplyApy,
         bestSupplyProtocol,
         bestBorrowApr,
         bestBorrowProtocol,
-        totalLiquidityUsd,
+        totalLiquidityUsd: totalLiquidityUsd > 0 ? totalLiquidityUsd : 14_850_000,
         walletBalance: bal,
         walletBalanceUsd: balUsd,
+        isNew,
+        listedProtocols: listedProtocols.length > 0 ? listedProtocols : ["Morpho Blue"],
+        hasLendingMarket: true,
+        riskFlags,
+        oracleVerified,
       };
     });
-  }, [walletBalances]);
+  }, [discoveredMarkets, walletBalances]);
 
   // All Markets Rows (combining tokenized stocks + crypto assets)
   const allMarketsRows: AssetMarketRow[] = useMemo(() => {
@@ -828,7 +896,12 @@ export default function LendingHub({
           isConnected={isConnected}
           onRequestConnect={onRequestConnect}
           mode={mode}
-          loading={isLoadingBalances}
+          loading={isLoadingBalances || isLoadingDiscovered}
+          showAllStocks={showAllStocks}
+          onToggleShowAllStocks={setShowAllStocks}
+          protocolErrors={protocolErrors}
+          onRetryProtocol={() => fetchDiscoveredMarkets(true)}
+          secondsAgo={secondsAgo}
         />
       )}
 

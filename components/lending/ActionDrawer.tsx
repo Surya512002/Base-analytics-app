@@ -25,6 +25,8 @@ import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { USDC_BASE_ADDRESS } from "@/lib/lending/constants";
+import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
+import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 
 export type DrawerActionTab = "supply" | "withdraw" | "borrow" | "repay";
 
@@ -92,7 +94,7 @@ export class DrawerErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
             <button
               type="button"
               onClick={this.handleRetry}
-              className="px-4 py-2 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] hover:text-[#0052FF] border border-[var(--border-subtle)] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] hover:text-[var(--brand-text)] border border-[var(--border-subtle)] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
             >
               <RotateCcw size={13} />
               <span>Retry</span>
@@ -100,7 +102,7 @@ export class DrawerErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
             <button
               type="button"
               onClick={this.props.onClose}
-              className="px-4 py-2 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] text-xs font-bold transition cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold transition cursor-pointer"
             >
               Close
             </button>
@@ -238,7 +240,7 @@ function ActionDrawerContent({
     return (
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:h-[100dvh] sm:max-h-[100dvh] bg-[var(--surface)] border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] shadow-2xl flex flex-col justify-between overflow-hidden rounded-t-3xl sm:rounded-none"
+        className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:h-[100dvh] sm:max-h-[100dvh] bg-[var(--surface-3)] border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] shadow-2xl flex flex-col justify-between overflow-hidden rounded-t-3xl sm:rounded-none"
       >
         <div className="p-5 pb-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
           <span className="font-mono font-bold text-sm text-[var(--ink)]">Market Action</span>
@@ -262,11 +264,11 @@ function ActionDrawerContent({
             </p>
           </div>
         </div>
-        <div className="p-4 sm:p-5 border-t border-[var(--border-subtle)] bg-[var(--surface)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="p-4 sm:p-5 border-t border-[var(--border-subtle)] bg-[var(--surface-3)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3.5 px-4 rounded-xl bg-[#0052FF] text-white font-bold text-xs hover:bg-[#0047e0] transition cursor-pointer"
+            className="w-full py-3.5 px-4 rounded-xl bg-[var(--brand)] text-white font-bold text-xs hover:opacity-90 transition cursor-pointer"
           >
             Close
           </button>
@@ -276,6 +278,7 @@ function ActionDrawerContent({
   }
 
   // Active token for the selected action
+  const stockEntry = option?.stockSymbol ? getTokenizedStockBySymbol(option.stockSymbol) : undefined;
   const activeTokenSymbol =
     activeTab === "borrow" || activeTab === "repay" ? "USDC" : option.stockSymbol;
   const currentAvailableBalance =
@@ -342,6 +345,18 @@ function ActionDrawerContent({
         requiresApproval: true,
       });
 
+      // Part 4: Pre-simulate every transaction first before prompting wallet
+      const sim = await simulateCallsBeforeExecution(pub, user, calls);
+      if (!sim.ok) {
+        setStepStatus("error");
+        setErrorMessage(
+          sim.restrictionFailed
+            ? (sim.reason ?? "This token has transfer restrictions. You may not be eligible.")
+            : (sim.reason ?? "Transaction simulation failed on-chain.")
+        );
+        return;
+      }
+
       setStepStatus("confirming");
       const hash = await sendAppTransactions(connType ?? "injected", user, calls);
       setTxHash(hash);
@@ -362,7 +377,7 @@ function ActionDrawerContent({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:h-[100dvh] sm:max-h-[100dvh] bg-[var(--surface)] border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] shadow-2xl flex flex-col min-h-0 overflow-hidden rounded-t-3xl sm:rounded-none"
+      className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:h-[100dvh] sm:max-h-[100dvh] bg-[var(--surface-3)] border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] shadow-2xl flex flex-col min-h-0 overflow-hidden rounded-t-3xl sm:rounded-none"
     >
       {/* ─────────────────────────────────────────────────────────────
           1. HEADER (Pinned at Top)
@@ -410,7 +425,7 @@ function ActionDrawerContent({
                 }}
                 className={`py-1.5 rounded-lg text-xs font-bold capitalize transition cursor-pointer ${
                   isSelected
-                    ? "bg-[#0052FF] text-white shadow-xs"
+                    ? "bg-[var(--brand)] text-white shadow-xs"
                     : "text-[var(--ink-muted)] hover:text-[var(--ink)] disabled:opacity-35 disabled:cursor-not-allowed"
                 }`}
               >
@@ -427,8 +442,8 @@ function ActionDrawerContent({
       <div ref={bodyRef} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
         {/* Wallet Disconnected Callout State */}
         {!isConnected && (
-          <div className="p-4 rounded-xl border border-[#0052FF]/25 bg-[#0052FF]/5 space-y-2.5">
-            <div className="flex items-center gap-2 text-[#0052FF] font-bold text-xs">
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--brand-soft)] space-y-2.5">
+            <div className="flex items-center gap-2 text-[var(--brand-text)] font-bold text-xs">
               <Wallet size={15} />
               <span>Wallet Not Connected</span>
             </div>
@@ -438,7 +453,7 @@ function ActionDrawerContent({
             <button
               type="button"
               onClick={onRequestConnect}
-              className="w-full py-2.5 px-3 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-3 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <Wallet size={14} />
               <span>Connect Wallet</span>
@@ -470,7 +485,7 @@ function ActionDrawerContent({
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full pl-3.5 pr-20 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] font-mono text-lg font-bold text-[var(--ink)] focus:outline-none focus:border-[#0052FF]"
+              className="w-full pl-3.5 pr-20 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] font-mono text-lg font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
               <span className="font-mono font-bold text-xs text-[var(--ink)]">
@@ -487,7 +502,7 @@ function ActionDrawerContent({
                 type="button"
                 disabled={!isConnected || currentAvailableBalance <= 0}
                 onClick={() => setPercentAmount(pct)}
-                className="py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-mono font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[#0052FF] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-mono font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand-text)] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 {pct === 100 ? "MAX" : `${pct}%`}
               </button>
@@ -606,6 +621,22 @@ function ActionDrawerContent({
           )}
         </div>
 
+        {/* Token Restriction & Eligibility Notice (Part 4) */}
+        {stockEntry?.restrictions && (stockEntry.restrictions.transferRestricted || stockEntry.restrictions.allowlistOnly) && (
+          <div className="p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
+            <div className="flex items-center gap-1.5 font-bold">
+              <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Token Transfer & Eligibility Notice</span>
+            </div>
+            <p className="text-[11px] leading-relaxed opacity-95">
+              {stockEntry.restrictions.legalNote ?? "This tokenized stock may enforce issuer allowlists, transfer restrictions, or geographic limits."}
+            </p>
+            <p className="text-[10px] text-[var(--ink-muted)] italic">
+              Notice: Eligibility and disclosure terms are subject to compliance and legal review. No legal or tax advice provided.
+            </p>
+          </div>
+        )}
+
         {/* Risk Warning & Gating Checkbox (if High-Risk) */}
         {isHighRisk && (
           <div className="p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-2">
@@ -621,7 +652,7 @@ function ActionDrawerContent({
                 type="checkbox"
                 checked={acknowledgedRisk}
                 onChange={(e) => setAcknowledgedRisk(e.target.checked)}
-                className="w-4 h-4 rounded text-[#0052FF] accent-[#0052FF]"
+                className="w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)]"
               />
               <span className="font-bold text-xs text-[var(--ink)]">
                 I understand protocol liquidation terms
@@ -659,7 +690,7 @@ function ActionDrawerContent({
               href={`https://basescan.org/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0052FF] hover:underline pt-0.5"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--brand-text)] hover:underline pt-0.5"
             >
               <span>View on BaseScan</span>
               <ExternalLink size={11} />
@@ -676,7 +707,7 @@ function ActionDrawerContent({
           <button
             type="button"
             onClick={onRequestConnect}
-            className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
+            className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--brand)] text-white hover:opacity-90 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
           >
             <Wallet size={16} />
             <span>Connect Wallet</span>
@@ -694,14 +725,14 @@ function ActionDrawerContent({
             onClick={handleActionClick}
             className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer ${
               stepStatus === "approving" || stepStatus === "confirming"
-                ? "bg-[#0052FF] text-white opacity-80 cursor-wait"
+                ? "bg-[var(--brand)] text-white opacity-80 cursor-wait"
                 : isInsufficientBalance
                   ? "bg-[var(--surface-2)] text-red-500 border border-red-500/30 cursor-not-allowed"
                   : needsRiskAck
                     ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed"
                     : !parsedAmount
                       ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60"
-                      : "bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98]"
+                      : "bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98]"
             }`}
           >
             {stepStatus === "approving" ? (
@@ -785,7 +816,7 @@ export default function ActionDrawer(props: ActionDrawerProps) {
   return createPortal(
     <DrawerErrorBoundary onClose={onClose}>
       <div
-        className="fixed inset-0 z-[100] flex items-end sm:items-stretch justify-end bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 z-[100] flex items-end sm:items-stretch justify-end bg-[var(--overlay)] backdrop-blur-xs transition-opacity"
         onClick={onClose}
         role="dialog"
         aria-modal="true"

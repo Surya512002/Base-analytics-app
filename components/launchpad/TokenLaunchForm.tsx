@@ -531,7 +531,7 @@ export default function TokenLaunchForm({
                       <span
                         className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold transition ${
                           isCurrent
-                            ? "bg-[#0052FF] text-white shadow-xs"
+                            ? "bg-[var(--brand)] text-white shadow-xs"
                             : isPast
                               ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
                               : "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
@@ -554,7 +554,7 @@ export default function TokenLaunchForm({
                     {idx < STEPS.length - 1 && (
                       <div
                         className={`flex-1 h-0.5 mx-2 rounded-full transition ${
-                          currentStep > s.id ? "bg-[#0052FF]" : "bg-[var(--border-subtle)]"
+                          currentStep > s.id ? "bg-[var(--brand)]" : "bg-[var(--border-subtle)]"
                         }`}
                       />
                     )}
@@ -687,7 +687,7 @@ export default function TokenLaunchForm({
               type="button"
               disabled={currentStep === 1 || launchLoading}
               onClick={() => setCurrentStep((p) => Math.max(1, p - 1))}
-              className="py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[#0052FF] hover:border-[#0052FF] transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)] transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <ArrowLeft size={14} /> Back
             </button>
@@ -697,7 +697,7 @@ export default function TokenLaunchForm({
                 type="button"
                 disabled={!canGoNextFromStep(currentStep)}
                 onClick={() => setCurrentStep((p) => Math.min(5, p + 1))}
-                className="py-2.5 px-5 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="py-2.5 px-5 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Next <ArrowRight size={14} />
               </button>

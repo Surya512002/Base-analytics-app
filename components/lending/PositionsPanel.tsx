@@ -100,7 +100,7 @@ export default function PositionsPanel({
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]/60">
         <div className="flex items-center gap-2.5">
-          <span className="p-1.5 rounded-lg bg-[#0052FF]/10 text-[#0052FF]">
+          <span className="p-1.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)]">
             <ShieldCheck size={18} />
           </span>
           <div>
@@ -153,9 +153,9 @@ export default function PositionsPanel({
               type="button"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="pop-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[#0052FF] transition cursor-pointer"
+              className="pop-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer"
             >
-              <RefreshCw size={11} className={isRefreshing ? "animate-spin text-[#0052FF]" : ""} />
+              <RefreshCw size={11} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
               <span>{lastUpdatedSecondsAgo > 0 ? `${lastUpdatedSecondsAgo}s ago` : "Live"}</span>
             </button>
           )}
@@ -236,7 +236,7 @@ export default function PositionsPanel({
 
         <div className="pop p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
           <span className="text-[11px] text-[var(--ink-muted)]">Active Markets</span>
-          <p className="text-sm font-mono font-black text-[#0052FF] mt-0.5">
+          <p className="text-sm font-mono font-black text-[var(--brand-text)] mt-0.5">
             {positions.length} Positions
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function PositionsPanel({
       {/* A. Not Connected State */}
       {!isConnected ? (
         <div className="p-6 rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)]/40 text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center mx-auto">
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center mx-auto">
             <Wallet size={20} />
           </div>
           <div className="space-y-1">
@@ -262,7 +262,7 @@ export default function PositionsPanel({
             <button
               type="button"
               onClick={onRequestConnect}
-              className="px-4 py-2 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer"
             >
               <Wallet size={14} />
               <span>Connect Wallet</span>
@@ -285,7 +285,7 @@ export default function PositionsPanel({
             <button
               type="button"
               onClick={onSwitchNetwork}
-              className="px-4 py-2 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer"
             >
               <span>Switch to Base</span>
             </button>
@@ -352,7 +352,7 @@ export default function PositionsPanel({
                       href={pos.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--ink-muted)] hover:text-[#0052FF] transition inline-flex items-center"
+                      className="text-[var(--ink-muted)] hover:text-[var(--brand-text)] transition inline-flex items-center"
                       title="View contract on Basescan"
                     >
                       <ExternalLink size={11} />

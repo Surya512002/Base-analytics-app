@@ -10,6 +10,7 @@ import {
 import type { LaunchTokenType } from "@/lib/launchpad/types";
 import type { BaseStock } from "@/lib/stocks/base-stocks";
 import { formatReadablePrice } from "@/lib/launchpad/launch-configs";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 interface ReviewStepProps {
   launchType: LaunchTokenType;
@@ -101,20 +102,16 @@ export default function ReviewStep({
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-4">
         {/* Token Identity Header */}
         <div className="flex items-center gap-3.5 pb-4 border-b border-[var(--border-subtle)]/60">
-          <div className="w-14 h-14 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden shrink-0 flex items-center justify-center">
-            {imagePreview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imagePreview} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xl font-black text-[var(--ink)]">
-                {symbol ? symbol.slice(0, 2) : "TK"}
-              </span>
-            )}
-          </div>
+          <TokenLogo
+            symbol={symbol || "TKN"}
+            src={imagePreview}
+            size={56}
+            shape="rounded-xl"
+          />
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-[var(--ink)]">{name || "Unnamed Token"}</h3>
-              <span className="text-xs font-mono font-bold text-[#0052FF]">
+              <span className="text-xs font-mono font-bold text-[var(--brand-text)]">
                 ${symbol || "TKN"}
               </span>
             </div>
@@ -192,7 +189,7 @@ export default function ReviewStep({
           )}
           <div className="flex justify-between font-bold text-sm text-[var(--ink)] pt-1 border-t border-[var(--border-subtle)]/40">
             <span>Total Estimated Cost</span>
-            <span className="font-mono text-[#0052FF]">
+            <span className="font-mono text-[var(--brand-text)]">
               {seedEthNum > 0 ? `${seedEthNum.toFixed(4)} ETH ` : ""}
               (~${totalEstimatedUsd.toFixed(2)})
             </span>
@@ -204,7 +201,7 @@ export default function ReviewStep({
       {isStockPaired && (
         <div className="p-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-2.5">
           <div className="flex items-center gap-2 font-bold">
-            <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <span>Required Risk Acknowledgement</span>
           </div>
           <p className="text-[11px] leading-relaxed opacity-95">
@@ -215,7 +212,7 @@ export default function ReviewStep({
               type="checkbox"
               checked={acknowledgedRisk}
               onChange={(e) => setAcknowledgedRisk(e.target.checked)}
-              className="w-4 h-4 rounded text-[#0052FF] accent-[#0052FF] cursor-pointer"
+              className="w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer"
             />
             <span className="font-bold text-xs text-[var(--ink)]">
               I understand tokenized stock trading hours and volatility risks

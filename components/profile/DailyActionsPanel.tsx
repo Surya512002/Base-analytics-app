@@ -218,7 +218,7 @@ export default function DailyActionsPanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-[#0052FF]/10 text-[#0052FF]">
+            <span className="p-1.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)]">
               <Flame size={18} />
             </span>
             <h2 className="text-lg font-black text-[var(--ink)]">Daily</h2>
@@ -244,7 +244,7 @@ export default function DailyActionsPanel({
       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3 space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-bold text-[var(--ink)]">7-Day Record</span>
-          <span className="text-[11px] font-bold text-[#0052FF]">{milestoneHint}</span>
+          <span className="text-[11px] font-bold text-[var(--brand-text)]">{milestoneHint}</span>
         </div>
 
         {/* 7 Dots */}
@@ -254,9 +254,9 @@ export default function DailyActionsPanel({
               <span
                 className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
                   isDone
-                    ? "bg-[#0052FF] text-white shadow-xs"
+                    ? "bg-[var(--brand)] text-white shadow-xs"
                     : idx === 6
-                      ? "border-2 border-dashed border-[#0052FF]/50 bg-transparent"
+                      ? "border-2 border-dashed border-[var(--brand)]/50 bg-transparent"
                       : "bg-[var(--border-subtle)]/60"
                 }`}
               >
@@ -314,7 +314,7 @@ export default function DailyActionsPanel({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center shrink-0 mt-0.5">
                     <Icon size={16} />
                   </div>
                   <div className="min-w-0">
@@ -326,7 +326,7 @@ export default function DailyActionsPanel({
                         className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                           isDone
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-[#0052FF]/10 text-[#0052FF]"
+                            : "bg-[var(--brand-soft)] text-[var(--brand-text)]"
                         }`}
                       >
                         {isDone ? "Done today" : "Available"}
@@ -351,7 +351,7 @@ export default function DailyActionsPanel({
                     href={`https://basescan.org/address/${action.contract}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="pop-pill p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[#0052FF] hover:bg-[var(--surface)] transition cursor-pointer"
+                    className="pop-pill p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[var(--brand-text)] hover:bg-[var(--surface)] transition cursor-pointer"
                     title="View contract on Basescan"
                     aria-label="View contract on Basescan"
                   >

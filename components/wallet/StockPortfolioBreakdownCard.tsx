@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { WalletData } from "@/lib/types/wallet";
+import TokenLogo from "@/components/ui/TokenLogo";
 import {
   fetchUserStockPortfolioSummary,
   type UserStockPortfolioSummary,
@@ -256,9 +257,7 @@ export default function StockPortfolioBreakdownCard({
                   className="pop-row flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--brand-soft)] font-bold font-mono text-xs text-[var(--brand-dark)]">
-                      {pos.symbol.slice(0, 3)}
-                    </div>
+                    <TokenLogo symbol={pos.symbol} size={28} shape="rounded-lg" />
                     <div>
                       <p className="font-bold text-[var(--ink)] leading-none">{pos.symbol}</p>
                       <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">
@@ -302,8 +301,8 @@ export default function StockPortfolioBreakdownCard({
 
       {/* Share Score Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
               <h4 className="font-display font-bold text-base text-[var(--ink)]">
                 Share Stock Terminal Score Card
@@ -322,32 +321,32 @@ export default function StockPortfolioBreakdownCard({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-[var(--teal)] animate-pulse" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-teal-400">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--teal)]">
                     Base Equities Terminal
                   </span>
                 </div>
-                <span className="text-xs font-mono font-bold text-slate-400">
+                <span className="text-xs font-mono font-bold text-[var(--ink-muted)]">
                   {wallet.address.slice(0, 6)}…{wallet.address.slice(-4)}
                 </span>
               </div>
 
               <div className="pt-2">
-                <p className="text-[11px] text-slate-400 uppercase font-semibold">Stock &amp; Lending Score</p>
+                <p className="text-[11px] text-[var(--ink-muted)] uppercase font-semibold">Stock &amp; Lending Score</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-black font-mono text-white">{stockScore.score}</span>
-                  <span className="text-sm font-bold text-teal-400">/ 100</span>
+                  <span className="text-sm font-bold text-[var(--teal)]">/ 100</span>
                 </div>
-                <p className="text-sm font-bold text-blue-400 mt-0.5">{stockScore.tier}</p>
+                <p className="text-sm font-bold text-[var(--brand-text)] mt-0.5">{stockScore.tier}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-t border-slate-800 pt-3 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 border-t border-[var(--border-subtle)] pt-3 text-[11px]">
                 <div>
-                  <span className="text-slate-400">Health Factor:</span>
-                  <p className="font-bold text-emerald-400">{(summary?.healthFactor ?? 1.85).toFixed(2)}x Safe</p>
+                  <span className="text-[var(--ink-muted)]">Health Factor:</span>
+                  <p className="font-bold text-[var(--success)]">{(summary?.healthFactor ?? 1.85).toFixed(2)}x Safe</p>
                 </div>
                 <div>
-                  <span className="text-slate-400">Active Protocols:</span>
-                  <p className="font-bold text-slate-200">Morpho · Aave · Euler</p>
+                  <span className="text-[var(--ink-muted)]">Active Protocols:</span>
+                  <p className="font-bold text-[var(--ink-soft)]">Morpho · Aave · Euler</p>
                 </div>
               </div>
             </div>

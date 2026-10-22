@@ -78,9 +78,9 @@ function WalletGridButton({
         href={wallet.installUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-white/[0.06] bg-black/10 text-left opacity-70 hover:opacity-100 hover:border-white/15 transition-colors"
+        className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-left opacity-70 hover:opacity-100 hover:border-[var(--brand)] transition-colors"
       >
-        <span className="w-7 h-7 rounded-md bg-white/90 flex items-center justify-center shrink-0 overflow-hidden grayscale">
+        <span className="w-7 h-7 rounded-md bg-[var(--surface)] dark:bg-white/90 flex items-center justify-center shrink-0 overflow-hidden grayscale border border-[var(--border-subtle)]">
           {wallet.icon}
         </span>
         <span className="min-w-0">
@@ -98,9 +98,9 @@ function WalletGridButton({
       type="button"
       onClick={() => onConnect(wallet.type)}
       disabled={loading || unavailable}
-      className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-white/[0.08] bg-black/20 hover:bg-white/[0.04] hover:border-white/20 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:bg-[var(--surface-2)] hover:border-[var(--brand)] text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
     >
-      <span className="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden">
+      <span className="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden border border-black/10">
         {wallet.icon}
       </span>
       <span className="min-w-0">
@@ -188,13 +188,13 @@ export default function ConnectWalletModal({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/65 backdrop-blur-md animate-meridian-fade"
+        className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade"
         onClick={onClose}
         aria-label="Close"
       />
 
       <div
-        className="relative w-full max-w-[340px] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden shadow-2xl animate-meridian-scale my-auto"
+        className="relative w-full max-w-[340px] rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] overflow-hidden shadow-2xl animate-meridian-scale my-auto"
         style={{
           marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
           maxHeight:

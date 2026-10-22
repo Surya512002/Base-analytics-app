@@ -54,13 +54,13 @@ export default function LaunchTypeSelector({ value, onChange }: LaunchTypeSelect
               onClick={() => onChange(opt.id)}
               className={`pop-lg p-4 rounded-2xl border text-left transition relative cursor-pointer ${
                 isSelected
-                  ? "border-[#0052FF] bg-[var(--surface)] shadow-sm ring-1 ring-[#0052FF]"
+                  ? "border-[var(--brand-text)] bg-[var(--surface)] shadow-sm ring-1 ring-[var(--brand)]"
                   : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:border-[var(--ink-dim)] hover:text-[var(--ink)]"
               }`}
             >
               {/* Checkmark icon for selected */}
               {isSelected && (
-                <span className="absolute top-3.5 right-3.5 w-5 h-5 rounded-full bg-[#0052FF] text-white flex items-center justify-center shadow-xs">
+                <span className="absolute top-3.5 right-3.5 w-5 h-5 rounded-full bg-[var(--brand)] text-white flex items-center justify-center shadow-xs">
                   <Check size={12} strokeWidth={3} />
                 </span>
               )}
@@ -69,7 +69,7 @@ export default function LaunchTypeSelector({ value, onChange }: LaunchTypeSelect
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition ${
                     isSelected
-                      ? "bg-[#0052FF]/10 text-[#0052FF]"
+                      ? "bg-[var(--brand-soft)] text-[var(--brand-text)]"
                       : "bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
                   }`}
                 >

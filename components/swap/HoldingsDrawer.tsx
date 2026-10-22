@@ -61,7 +61,7 @@ export default function HoldingsDrawer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            className="fixed inset-0 bg-[var(--overlay)] backdrop-blur-sm cursor-pointer"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -72,12 +72,12 @@ export default function HoldingsDrawer({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="relative z-10 w-full sm:max-w-md h-full flex flex-col bg-[var(--surface)] border-l border-[var(--border-subtle)] shadow-[var(--shadow-card)] overflow-hidden"
+            className="relative z-10 w-full sm:max-w-md h-full flex flex-col bg-[var(--surface-3)] border-l border-[var(--border-subtle)] shadow-[var(--shadow-card)] overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-[var(--brand-soft)] text-[var(--brand)] flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center">
                   <Wallet size={18} />
                 </div>
                 <div>
@@ -97,7 +97,7 @@ export default function HoldingsDrawer({
                   className="p-2 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50"
                   title="Refresh holdings"
                 >
-                  <RefreshCw size={15} className={loading ? "animate-spin text-[var(--brand)]" : ""} />
+                  <RefreshCw size={15} className={loading ? "animate-spin text-[var(--brand-text)]" : ""} />
                 </button>
                 <button
                   type="button"
@@ -119,7 +119,7 @@ export default function HoldingsDrawer({
                 <button
                   type="button"
                   onClick={onToggleDust}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--brand)] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--brand-text)] hover:underline cursor-pointer"
                 >
                   {showDust ? (
                     <>
@@ -140,7 +140,7 @@ export default function HoldingsDrawer({
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
               {loading && allHoldings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-3 text-xs text-[var(--ink-muted)]">
-                  <Loader2 size={24} className="animate-spin text-[var(--brand)]" />
+                  <Loader2 size={24} className="animate-spin text-[var(--brand-text)]" />
                   <span>Scanning Base balances…</span>
                 </div>
               ) : holdings.length === 0 ? (
@@ -159,13 +159,13 @@ export default function HoldingsDrawer({
                       onSelectToken(h.counter);
                       onClose();
                     }}
-                    className="pop-row w-full flex items-center justify-between p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] transition-all cursor-pointer group text-left"
+                    className="pop-row w-full flex items-center justify-between p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] transition-all cursor-pointer group text-left"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <CounterAvatar counter={h.counter} size={34} />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand)] transition-colors">
+                          <p className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
                             {h.symbol}
                           </p>
                           <span className="text-[10px] text-[var(--ink-dim)] truncate">
@@ -185,7 +185,7 @@ export default function HoldingsDrawer({
                         </p>
                         <p className="text-[10px] text-[var(--ink-dim)] font-medium">Click to sell</p>
                       </div>
-                      <ArrowRight size={14} className="text-[var(--ink-dim)] group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all opacity-0 group-hover:opacity-100" />
+                      <ArrowRight size={14} className="text-[var(--ink-dim)] group-hover:text-[var(--brand-text)] group-hover:translate-x-0.5 transition-all opacity-0 group-hover:opacity-100" />
                     </div>
                   </button>
                 ))

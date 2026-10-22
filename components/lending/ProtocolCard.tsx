@@ -47,7 +47,7 @@ export default function ProtocolCard({
     <div
       className={`pop-lg rounded-2xl border transition relative flex flex-col justify-between p-5 space-y-4 ${
         isBest
-          ? "border-[#0052FF] bg-[var(--surface)] shadow-sm ring-1 ring-[#0052FF]/20"
+          ? "border-[var(--brand)] bg-[var(--surface)] shadow-sm ring-1 ring-[var(--brand)]/20"
           : "border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs"
       }`}
     >
@@ -57,7 +57,7 @@ export default function ProtocolCard({
           <div className="flex items-center gap-2">
             <h3 className="font-black text-sm text-[var(--ink)]">{option.protocolName}</h3>
             {isBest && (
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-[10px] font-bold">
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] text-[10px] font-bold">
                 <Check size={11} strokeWidth={3} /> Best Rate
               </span>
             )}
@@ -80,7 +80,7 @@ export default function ProtocolCard({
         <button
           type="button"
           onClick={onOpenDetails}
-          className="text-[11px] font-bold text-[#0052FF] hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+          className="text-[11px] font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-0.5 cursor-pointer"
         >
           <span>Market details</span>
           <ChevronRight size={11} />
@@ -188,7 +188,7 @@ export default function ProtocolCard({
           <button
             type="button"
             onClick={onOpenSupply}
-            className="py-2.5 px-3 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
+            className="py-2.5 px-3 rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--brand-hover)] font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
           >
             <span>{option.type === "strategy" ? "Deposit to Strategy" : "Supply"}</span>
           </button>
@@ -200,7 +200,7 @@ export default function ProtocolCard({
             onClick={onOpenBorrow}
             className={`pop-pill py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               canBorrow
-                ? "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[#0052FF] hover:text-[#0052FF] cursor-pointer"
+                ? "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--brand)] hover:text-[var(--brand-text)] cursor-pointer"
                 : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-dim)] cursor-not-allowed opacity-50"
             }`}
           >
@@ -214,7 +214,7 @@ export default function ProtocolCard({
             href={`https://basescan.org/address/${option.contractAddress}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-[#0052FF] inline-flex items-center gap-1"
+            className="hover:text-[var(--brand-text)] inline-flex items-center gap-1"
           >
             <span>Contract verified</span>
             <ExternalLink size={9} />

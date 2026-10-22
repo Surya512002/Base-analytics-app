@@ -33,8 +33,10 @@ import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { parseUnits, formatUnits, parseAbi } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
 import { formatTokenAmount } from "@/lib/launchpad/format";
 import { USDC_BASE } from "@/lib/constants/contracts";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 export type ModalActionType =
   | "borrow"
@@ -327,6 +329,19 @@ export default function StockDetailComparisonModal({
         requiresApproval: true,
       });
 
+      // Part 4: Pre-simulate every transaction first
+      const pub = createBasePublicClient();
+      const sim = await simulateCallsBeforeExecution(pub, userAddress as `0x${string}`, calls);
+      if (!sim.ok) {
+        setErrorMessage(
+          sim.restrictionFailed
+            ? (sim.reason ?? "This token has transfer restrictions. You may not be eligible.")
+            : (sim.reason ?? "Transaction simulation failed on-chain.")
+        );
+        setTxStatus("error");
+        return;
+      }
+
       const hash = await sendAppTransactions(connType, userAddress, calls, {
         atomicBatch: true,
       });
@@ -350,20 +365,23 @@ export default function StockDetailComparisonModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-[var(--overlay)] backdrop-blur-md overflow-y-auto"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-4xl rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-7 shadow-2xl my-6 overflow-hidden max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-4xl rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-5 sm:p-7 shadow-2xl my-6 overflow-hidden max-h-[92vh] flex flex-col"
       >
         {/* Top Header */}
         <div className="flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-4 shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/15 to-emerald-500/20 border border-blue-500/30 text-sm font-black text-blue-600 dark:text-blue-400 shadow-xs">
-              {stock.underlyingTicker.slice(0, 4)}
-            </div>
+            <TokenLogo
+              address={stock.address}
+              symbol={stock.symbol}
+              size={48}
+              shape="rounded-xl"
+            />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight truncate">

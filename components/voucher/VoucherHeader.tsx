@@ -15,7 +15,7 @@ export default function VoucherHeader() {
         {/* Left: Title & One-line Description */}
         <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center shrink-0 border border-[#0052FF]/20">
+            <div className="w-8 h-8 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center shrink-0 border border-[var(--border-subtle)]">
               <Gift size={18} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">
@@ -42,7 +42,7 @@ export default function VoucherHeader() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
               Total Gifted
             </span>
-            <span className="text-base font-black text-[#0052FF] dark:text-[#388bfd] tabular-nums mt-0.5">
+            <span className="text-base font-black text-[var(--brand-text)] tabular-nums mt-0.5">
               $18.5K+
             </span>
           </div>
@@ -51,12 +51,12 @@ export default function VoucherHeader() {
             href={basescanUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="pop-pill flex items-center gap-1.5 px-3.5 py-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--ink)] hover:text-[#0052FF] hover:border-[#0052FF]/40 transition group cursor-pointer"
+            className="pop-pill flex items-center gap-1.5 px-3.5 py-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)]/40 transition group cursor-pointer"
             title="View verified BaseVoucher contract on Basescan"
           >
             <ShieldCheck size={15} className="text-emerald-500 shrink-0" />
             <span>Verified Contract</span>
-            <ExternalLink size={12} className="text-[var(--ink-muted)] group-hover:text-[#0052FF] transition shrink-0" />
+            <ExternalLink size={12} className="text-[var(--ink-muted)] group-hover:text-[var(--brand-text)] transition shrink-0" />
           </a>
         </div>
       </div>

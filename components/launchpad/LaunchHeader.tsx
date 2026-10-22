@@ -8,7 +8,7 @@ export default function LaunchHeader() {
     <div className="space-y-4">
       {/* Title & Subtitle */}
       <div>
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#0052FF]/10 text-[#0052FF] text-xs font-bold mb-2">
+        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] text-xs font-bold mb-2">
           <Zap size={13} />
           <span>Base Mainnet Token Factory</span>
         </div>
@@ -33,7 +33,7 @@ export default function LaunchHeader() {
         </div>
 
         <div className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)]">
-          <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center shrink-0">
             <Coins size={16} />
           </div>
           <div>

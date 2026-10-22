@@ -6,6 +6,7 @@ import type { AppTab } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { shortAddr } from "@/lib/launchpad/format";
 import { APP_NAV } from "@/lib/nav/app-nav";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 type CommandPaletteProps = {
   open: boolean;
@@ -94,7 +95,7 @@ export default function CommandPalette({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/75 backdrop-blur-md animate-meridian-fade"
+        className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade"
         onClick={onClose}
         aria-label="Close"
       />
@@ -165,18 +166,13 @@ export default function CommandPalette({
                     }}
                     className="pop-row w-full flex items-center gap-4 rounded-xl px-4 py-3.5 text-left hover:bg-[var(--surface-2)] border border-transparent hover:border-[var(--border-subtle)] transition-colors cursor-pointer"
                   >
-                    {t.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={t.imageUrl}
-                        alt=""
-                        className="w-11 h-11 rounded-xl object-cover border border-[var(--border-subtle)]"
-                      />
-                    ) : (
-                      <div className="w-11 h-11 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-sm font-black text-[var(--ink-muted)]">
-                        {t.symbol.slice(0, 2)}
-                      </div>
-                    )}
+                    <TokenLogo
+                      address={t.address}
+                      symbol={t.symbol}
+                      src={t.imageUrl}
+                      size={44}
+                      shape="rounded-xl"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-bold text-[var(--ink)] truncate">
                         {t.name}{" "}

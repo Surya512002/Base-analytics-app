@@ -18,18 +18,18 @@ export default function TokenTerminal({
 }) {
   if (!tokens.length) {
     return (
-      <div className="glass-panel rounded-2xl p-4 text-center text-sm text-slate-500">
+      <div className="card rounded-2xl p-4 text-center text-sm text-[var(--ink-muted)]">
         No tokens launched yet. Create one in the Launch tab.
       </div>
     );
   }
 
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden max-h-[420px] overflow-y-auto">
-      <div className="px-3 py-2 border-b border-white/10 text-[10px] font-bold text-slate-500 uppercase">
+    <div className="card rounded-2xl overflow-hidden max-h-[420px] overflow-y-auto">
+      <div className="px-3 py-2 border-b border-[var(--border-subtle)] text-[10px] font-bold text-[var(--ink-muted)] uppercase">
         Recent launches
       </div>
-      <ul className="divide-y divide-white/5">
+      <ul className="divide-y divide-[var(--border-subtle)]/60">
         {tokens.map((t) => {
           const active = selected?.address === t.address;
           return (
@@ -37,8 +37,8 @@ export default function TokenTerminal({
               <button
                 type="button"
                 onClick={() => onSelect(t)}
-                className={`w-full text-left px-3 py-3 transition-colors ${
-                  active ? "bg-[var(--bg-hover)]" : "hover:bg-white/[0.04]"
+                className={`w-full text-left px-3 py-3 transition-colors cursor-pointer ${
+                  active ? "bg-[var(--bg-hover)] border-l-2 border-[var(--brand)]" : "hover:bg-[var(--surface-2)]"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -50,11 +50,11 @@ export default function TokenTerminal({
                     textClassName="text-[10px] font-black"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-sm text-white truncate">
+                    <p className="font-bold text-sm text-[var(--ink)] truncate">
                       {t.name}{" "}
                       <span className="text-[var(--ink-muted)]">${t.symbol}</span>
                     </p>
-                    <p className="text-[10px] text-slate-500 font-mono">{shortAddr(t.address)}</p>
+                    <p className="text-[10px] text-[var(--ink-dim)] font-mono">{shortAddr(t.address)}</p>
                   </div>
                 </div>
               </button>

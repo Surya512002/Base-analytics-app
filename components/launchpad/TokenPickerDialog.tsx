@@ -173,9 +173,9 @@ export default function TokenPickerDialog({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-black/70"
+        className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-sm"
       />
-      <div className="relative w-full sm:max-w-md max-h-[85vh] sm:max-h-[32rem] flex flex-col rounded-t-2xl sm:rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-raised)] overflow-hidden">
+      <div className="relative w-full sm:max-w-md max-h-[85vh] sm:max-h-[32rem] flex flex-col rounded-t-2xl sm:rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] overflow-hidden">
         <div className="flex items-center justify-between px-4 pt-4 pb-3">
           <h2 className="text-[15px] font-semibold text-[var(--ink)]">{title}</h2>
           <button

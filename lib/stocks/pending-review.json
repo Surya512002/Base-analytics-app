@@ -1,0 +1,25 @@
+{
+  "lastUpdated": "2026-10-22T06:33:39.803Z",
+  "candidates": [
+    {
+      "symbol": "UNLISTEDc",
+      "name": "Unlisted Stock Token",
+      "underlyingTicker": "UNLISTED",
+      "address": "0x9999999999999999999999999999999999999999",
+      "decimals": 8,
+      "status": "pending",
+      "discoveredAt": "2026-10-22T06:24:53.990Z",
+      "notes": "Automatically discovered in Morpho Blue lending market. Awaiting review before approval."
+    },
+    {
+      "symbol": "deSPXA",
+      "name": "DeFi Janus Henderson Anemoy S&P500® Fund Token",
+      "underlyingTicker": "eSPXA",
+      "address": "0x9c5C365e764829876243d0b289733B9D2b729685",
+      "decimals": 18,
+      "status": "pending",
+      "discoveredAt": "2026-10-22T06:33:39.803Z",
+      "notes": "Automatically discovered in Morpho Blue lending market. Awaiting review before approval."
+    }
+  ]
+}

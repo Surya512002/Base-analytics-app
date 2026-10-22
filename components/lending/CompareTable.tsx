@@ -116,7 +116,7 @@ export default function CompareTable({
                       href={`https://basescan.org/address/${opt.contractAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] text-[var(--ink-muted)] hover:text-[#0052FF] flex items-center gap-0.5 mt-0.5"
+                      className="text-[10px] text-[var(--ink-muted)] hover:text-[var(--brand-text)] flex items-center gap-0.5 mt-0.5"
                     >
                       <span>Contract</span> <ExternalLink size={9} />
                     </a>
@@ -147,7 +147,7 @@ export default function CompareTable({
                   <div className="flex items-center gap-1.5 font-mono font-bold text-sm text-[var(--ink)]">
                     <span>{opt.borrowApr !== null && opt.borrowApr > 0 ? `${opt.borrowApr.toFixed(2)}%` : "—"}</span>
                     {isBestBorrow && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#0052FF]/20 text-[#0052FF] flex items-center justify-center" title="Lowest Borrow APR">
+                      <span className="w-3.5 h-3.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center" title="Lowest Borrow APR">
                         <Check size={9} strokeWidth={3} />
                       </span>
                     )}
@@ -159,7 +159,7 @@ export default function CompareTable({
                   <div className="flex items-center gap-1.5">
                     <span>{opt.maxLtv !== null ? `${opt.maxLtv}%` : "—"}</span>
                     {isHighestLtv && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 flex items-center justify-center" title="Highest LTV">
+                      <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center" title="Highest LTV">
                         <Check size={9} strokeWidth={3} />
                       </span>
                     )}
@@ -200,7 +200,7 @@ export default function CompareTable({
                     <button
                       type="button"
                       onClick={() => onOpenSupply(opt)}
-                      className="px-2.5 py-1 rounded-lg bg-[#0052FF] text-white font-bold text-[11px] shadow-xs hover:bg-[#0047e0] transition cursor-pointer active:scale-[0.98]"
+                      className="px-2.5 py-1 rounded-lg bg-[var(--brand)] text-white font-bold text-[11px] shadow-xs hover:opacity-90 transition cursor-pointer active:scale-[0.98]"
                     >
                       {opt.type === "strategy" ? "Deposit to Strategy" : "Supply"}
                     </button>
@@ -208,7 +208,7 @@ export default function CompareTable({
                       <button
                         type="button"
                         onClick={() => onOpenBorrow(opt)}
-                        className="pop-pill px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] font-bold text-[11px] text-[var(--ink)] hover:border-[#0052FF] cursor-pointer"
+                        className="pop-pill px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] font-bold text-[11px] text-[var(--ink)] hover:border-[var(--brand)] cursor-pointer"
                       >
                         Borrow
                       </button>

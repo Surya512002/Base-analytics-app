@@ -3,6 +3,7 @@
 import { Globe, Twitter } from "lucide-react";
 
 import type { LaunchTokenType } from "@/lib/launchpad/types";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 export interface LaunchPreviewData {
   name: string;
@@ -41,16 +42,12 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
           </p>
 
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden shrink-0 flex items-center justify-center">
-              {data.imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={data.imagePreview} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-2xl font-black text-[var(--ink)]">
-                  {displaySymbol.slice(0, 2)}
-                </span>
-              )}
-            </div>
+            <TokenLogo
+              symbol={displaySymbol}
+              src={data.imagePreview}
+              size={64}
+              shape="rounded-xl"
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="font-black text-[var(--ink)] text-xl truncate">{displayName}</h3>

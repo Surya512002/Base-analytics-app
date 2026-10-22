@@ -10,9 +10,9 @@ export default function LaunchPromoBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:px-4 sm:py-2.5 rounded-xl border border-[#0052FF]/25 bg-[#0052FF]/8 text-xs font-medium text-[var(--ink)] animate-in fade-in duration-200 w-full min-w-0 overflow-hidden">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:px-4 sm:py-2.5 rounded-xl border border-[var(--brand)]/25 bg-[var(--brand-soft)] text-xs font-medium text-[var(--ink)] animate-in fade-in duration-200 w-full min-w-0 overflow-hidden">
       <div className="flex items-center gap-2.5 min-w-0">
-        <span className="p-1 rounded-lg bg-[#0052FF]/15 text-[#0052FF] shrink-0">
+        <span className="p-1 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] shrink-0">
           <Rocket size={14} />
         </span>
         <span className="truncate">
