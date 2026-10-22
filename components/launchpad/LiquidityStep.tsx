@@ -64,7 +64,6 @@ export default function LiquidityStep({
   const [showLockerInfo, setShowLockerInfo] = useState(false);
   const [copiedLocker, setCopiedLocker] = useState(false);
 
-  // Computed seed USD & token amount
   const seedUsd = useMemo(
     () => seedEthUsdValue(seedLiquidityEth, ethUsd),
     [seedLiquidityEth, ethUsd]
@@ -80,10 +79,8 @@ export default function LiquidityStep({
     });
   }, [autoSeedLiquidity, seedLiquidityEth, startPriceUsd, ethUsd]);
 
-  // Is seed amount very low (< $5)
   const isLowSeed = seedUsd !== null && seedUsd < 5;
 
-  // Estimated price impact for $10 buy on this pool
   const priceImpact10Dollar = useMemo(() => {
     if (!seedUsd || seedUsd <= 0) return "100%";
     const impact = (10 / (seedUsd * 2)) * 100;
@@ -100,38 +97,41 @@ export default function LiquidityStep({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-full overflow-hidden">
       {/* Step Header */}
       <div>
-        <h2 className="text-lg font-black text-[var(--ink)]">Liquidity &amp; Protection</h2>
+        <h2 className="text-[clamp(1.125rem,4vw,1.25rem)] font-black text-[var(--ink)]">
+          Liquidity &amp; Protection
+        </h2>
         <p className="text-xs text-[var(--ink-muted)] mt-0.5">
           Configure initial decentralized exchange pool, smart contract locker, and bot protection.
         </p>
       </div>
 
       {/* 1. Auto-Seed Initial Pool Toggle */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)]">
-              <Zap size={16} />
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="p-2 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] shrink-0">
+              <Zap size={18} />
             </span>
-            <div>
-              <h3 className="text-xs font-bold text-[var(--ink)]">Auto-Seed Initial Pool</h3>
-              <p className="text-[11px] text-[var(--ink-muted)]">
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold text-[var(--ink)] truncate">Auto-Seed Initial Pool</h3>
+              <p className="text-[11px] text-[var(--ink-muted)] truncate">
                 Create the trading pair immediately upon token deployment
               </p>
             </div>
           </div>
 
-          <label className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px]">
             <input
               type="checkbox"
               checked={autoSeedLiquidity}
               onChange={(e) => onAutoSeedLiquidityChange(e.target.checked)}
               className="sr-only peer"
+              aria-label="Auto-seed initial pool"
             />
-            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)] border border-[var(--border-subtle)]"></div>
+            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[12px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)] border border-[var(--border-subtle)]"></div>
           </label>
         </div>
 
@@ -146,7 +146,7 @@ export default function LiquidityStep({
               <label className="block text-xs font-bold text-[var(--ink)] mb-2">
                 DEX Trading Venue
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2.5">
                 {VENUE_OPTIONS.map((venue) => {
                   const isSelected = seedDex === venue.id;
                   return (
@@ -154,7 +154,7 @@ export default function LiquidityStep({
                       key={venue.id}
                       type="button"
                       onClick={() => onSeedDexChange(venue.id)}
-                      className={`pop-pill p-3 rounded-xl border text-left transition relative cursor-pointer ${
+                      className={`pop-pill p-3 rounded-xl border text-left transition relative cursor-pointer min-h-[52px] min-w-0 ${
                         isSelected
                           ? "border-[var(--brand)] bg-[var(--surface-2)] shadow-xs ring-1 ring-[var(--brand)]"
                           : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--ink-dim)] hover:text-[var(--ink)]"
@@ -165,8 +165,8 @@ export default function LiquidityStep({
                           <Check size={10} strokeWidth={3} />
                         </span>
                       )}
-                      <p className="text-xs font-black text-[var(--ink)]">{venue.name}</p>
-                      <p className="text-[11px] text-[var(--ink-muted)] mt-1 leading-snug">
+                      <p className="text-xs font-black text-[var(--ink)] truncate pr-4">{venue.name}</p>
+                      <p className="text-[11px] text-[var(--ink-muted)] mt-1 leading-snug break-words">
                         {venue.desc}
                       </p>
                     </button>
@@ -177,7 +177,7 @@ export default function LiquidityStep({
 
             {/* ETH Amount & Presets */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-xs flex-wrap gap-1">
                 <label className="font-bold text-[var(--ink)]">Seed Liquidity (ETH)</label>
                 {seedUsd !== null && (
                   <span className="font-mono text-[var(--ink-muted)]">
@@ -197,20 +197,20 @@ export default function LiquidityStep({
                     min="0.00005"
                     value={seedLiquidityEth}
                     onChange={(e) => onSeedLiquidityEthChange(e.target.value)}
-                    className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm font-mono font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
+                    className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-sm font-mono font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
                   />
                 </div>
               </div>
 
-              {/* Preset Chips */}
-              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+              {/* Preset Chips (flex-wrap, 44px min touch target) */}
+              <div className="flex items-center gap-2 flex-wrap pt-1">
                 <span className="text-[11px] text-[var(--ink-muted)] mr-1">Presets:</span>
                 {SEED_LIQUIDITY_PRESETS.map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => onSeedLiquidityEthChange(preset)}
-                    className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-mono transition cursor-pointer ${
+                    className={`pop-pill px-3 py-2 rounded-xl text-xs font-mono transition cursor-pointer min-h-[44px] flex items-center justify-center ${
                       seedLiquidityEth === preset
                         ? "bg-[var(--brand)] text-white font-bold"
                         : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
@@ -225,10 +225,10 @@ export default function LiquidityStep({
               {isLowSeed && (
                 <div className="p-3 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1 mt-2">
                   <div className="flex items-center gap-1.5 font-bold">
-                    <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />
+                    <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
                     <span>Low initial liquidity hint</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed opacity-95">
+                  <p className="text-[11px] leading-relaxed opacity-95 break-words">
                     Low liquidity means larger price swings for early traders. A $10 swap has an estimated price impact of ~{priceImpact10Dollar}.
                   </p>
                 </div>
@@ -236,7 +236,7 @@ export default function LiquidityStep({
 
               {/* Tokens Minted for Pool Summary */}
               {seedAmounts && (
-                <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--ink-muted)] mt-2">
+                <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-1 text-xs text-[var(--ink-muted)] mt-2">
                   <span>Tokens allocated to pool:</span>
                   <span className="font-mono font-bold text-[var(--ink)]">
                     {seedAmounts.tokenHuman.toLocaleString()} tokens
@@ -249,77 +249,80 @@ export default function LiquidityStep({
       </div>
 
       {/* 2. OpenLaunch Liquidity Lock & Duration */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Lock size={16} />
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Lock size={18} />
             </span>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="text-xs font-bold text-[var(--ink)]">OpenLaunch Liquidity Locker</h3>
                 <button
                   type="button"
                   onClick={() => setShowLockerInfo((p) => !p)}
-                  className="text-[var(--ink-muted)] hover:text-[var(--brand-text)]"
+                  className="text-[var(--ink-muted)] hover:text-[var(--brand-text)] min-h-[32px] min-w-[32px] flex items-center justify-center p-1"
                   title="Locker details"
+                  aria-label="Locker details"
                 >
-                  <Info size={13} />
+                  <Info size={14} />
                 </button>
               </div>
-              <p className="text-[11px] text-[var(--ink-muted)]">
+              <p className="text-[11px] text-[var(--ink-muted)] truncate">
                 Locks initial pool LP tokens in smart contract
               </p>
             </div>
           </div>
 
-          <label className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px]">
             <input
               type="checkbox"
               checked={liquidityLocked}
               onChange={(e) => onLiquidityLockedChange(e.target.checked)}
               className="sr-only peer"
+              aria-label="Lock liquidity"
             />
-            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)] border border-[var(--border-subtle)]"></div>
+            <div className="w-11 h-6 bg-[var(--surface-2)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[12px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)] border border-[var(--border-subtle)]"></div>
           </label>
         </div>
 
         {/* Info Popover for Locker Contract */}
         {showLockerInfo && (
-          <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs space-y-1.5 animate-meridian-fade">
+          <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs space-y-2 animate-meridian-fade">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[var(--ink)]">Verified OpenLaunch Locker</span>
               <button
                 type="button"
                 onClick={() => setShowLockerInfo(false)}
-                className="text-xs text-[var(--ink-muted)]"
+                className="text-xs text-[var(--ink-muted)] min-h-[32px] min-w-[32px] flex items-center justify-center p-1"
+                aria-label="Close locker info"
               >
                 ✕
               </button>
             </div>
-            <p className="text-[11px] text-[var(--ink-muted)]">
+            <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
               LP tokens are transferred to the onchain contract and cannot be withdrawn before the lock expiration.
             </p>
-            <div className="flex items-center justify-between p-1.5 rounded bg-[var(--surface)] border border-[var(--border-subtle)] font-mono text-[10px]">
-              <span>{OPENLAUNCH_LOCKER_BASE}</span>
+            <div className="flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between p-2 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-mono text-[10px] gap-2">
+              <span className="break-all">{OPENLAUNCH_LOCKER_BASE}</span>
               <button
                 type="button"
                 onClick={handleCopyLocker}
-                className="p-1 rounded text-[var(--brand-text)]"
+                className="p-1.5 rounded-md text-[var(--brand-text)] hover:bg-[var(--brand-soft)] transition flex items-center gap-1 font-bold shrink-0 min-h-[36px]"
                 title="Copy locker address"
               >
-                <Copy size={12} />
+                <Copy size={13} />
+                <span>{copiedLocker ? "Copied" : "Copy"}</span>
               </button>
             </div>
-            {copiedLocker && <p className="text-[10px] text-emerald-600 font-bold">Locker address copied!</p>}
           </div>
         )}
 
-        {/* Lock Duration Chips */}
+        {/* Lock Duration Chips (flex-wrap / grid with 44px touch targets) */}
         {liquidityLocked && (
           <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]/60">
             <label className="block text-xs font-bold text-[var(--ink)]">Lock Duration</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 min-[400px]:grid-cols-4 gap-2">
               {LOCK_DURATION_OPTIONS.map((opt) => {
                 const isSelected = lockDurationDays === opt.days;
                 return (
@@ -327,7 +330,7 @@ export default function LiquidityStep({
                     key={opt.days}
                     type="button"
                     onClick={() => onLockDurationDaysChange(opt.days)}
-                    className={`pop-pill py-2 px-3 rounded-xl border text-center text-xs font-bold transition relative cursor-pointer ${
+                    className={`pop-pill py-2.5 px-3 rounded-xl border text-center text-xs font-bold transition relative cursor-pointer min-h-[44px] flex items-center justify-center ${
                       isSelected
                         ? "border-[var(--brand-text)] bg-[var(--brand-soft)] text-[var(--brand-text)] ring-1 ring-[var(--brand)]"
                         : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -347,29 +350,32 @@ export default function LiquidityStep({
         )}
       </div>
 
-      {/* 3. Anti-Snipe Block Window Slider */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-3">
-        <div className="flex items-center justify-between">
+      {/* 3. Anti-Snipe Block Window Slider (Full width with value badge and 44px touch target) */}
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-[var(--brand-text)]" />
+            <ShieldCheck size={18} className="text-[var(--brand-text)] shrink-0" />
             <h3 className="text-xs font-bold text-[var(--ink)]">Anti-Snipe Block Window</h3>
           </div>
-          <span className="font-mono font-bold text-xs text-[var(--brand-text)]">
+          <span className="font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand)]/20">
             {antiSnipeBlocks === 0 ? "Disabled (0 blocks)" : `${antiSnipeBlocks} blocks (~${antiSnipeBlocks * 2}s)`}
           </span>
         </div>
 
-        <input
-          type="range"
-          min={0}
-          max={MAX_ANTI_SNIPE_BLOCKS}
-          step={1}
-          value={antiSnipeBlocks}
-          onChange={(e) => onAntiSnipeBlocksChange(parseInt(e.target.value, 10))}
-          className="w-full accent-[var(--brand)] cursor-pointer"
-        />
+        <div className="min-h-[44px] flex items-center w-full">
+          <input
+            type="range"
+            min={0}
+            max={MAX_ANTI_SNIPE_BLOCKS}
+            step={1}
+            value={antiSnipeBlocks}
+            onChange={(e) => onAntiSnipeBlocksChange(parseInt(e.target.value, 10))}
+            className="w-full h-2 rounded-lg bg-[var(--surface-2)] accent-[var(--brand)] cursor-pointer"
+            aria-label="Anti-snipe block window"
+          />
+        </div>
 
-        <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
+        <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed break-words">
           {antiSnipeBlocks === 0
             ? "Trading opens immediately with zero block delay. Front-running bot protection is off."
             : `Protects against MEV sandwich bots by rate-limiting max buy size during the first ${antiSnipeBlocks} blocks after deployment.`}
@@ -377,19 +383,19 @@ export default function LiquidityStep({
       </div>
 
       {/* 4. Metadata Editable Option */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5">
-        <label className="flex items-start gap-3 cursor-pointer">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5">
+        <label className="flex items-start gap-3 cursor-pointer min-h-[44px]">
           <input
             type="checkbox"
             checked={metadataEditable}
             onChange={(e) => onMetadataEditableChange(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer"
+            className="mt-1 w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer shrink-0"
           />
           <div>
-            <span className="text-xs font-bold text-[var(--ink)]">
+            <span className="text-xs font-bold text-[var(--ink)] block">
               Allow token metadata edits after launch
             </span>
-            <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 leading-relaxed">
+            <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 leading-relaxed break-words">
               Enables you to update the logo, website, and description later. Note: this grants an admin role to your creator wallet in the token factory registry.
             </p>
           </div>

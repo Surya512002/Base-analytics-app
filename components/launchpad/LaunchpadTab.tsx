@@ -450,10 +450,6 @@ export default function LaunchpadTab({
   };
 
   if (view === "create") {
-    if (guestMode) {
-      onRequestConnect?.();
-      return null;
-    }
     return (
       <div className="space-y-4">
         <button

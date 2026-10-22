@@ -61,7 +61,7 @@ export default function AppShell({
     <>
       {header}
 
-      <div className="app-container flex w-full min-w-0 flex-1 flex-col py-5 sm:py-6 md:py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-10 lg:pb-10">
+      <div className="app-container flex w-full min-w-0 flex-1 flex-col py-5 sm:py-6 md:py-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10 lg:pb-10">
         <div className="mb-4 md:hidden">
           <button
             type="button"

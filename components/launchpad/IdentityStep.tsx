@@ -62,20 +62,22 @@ export default function IdentityStep({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-full overflow-hidden">
       {/* Step Header */}
       <div>
-        <h2 className="text-lg font-black text-[var(--ink)]">Token Identity &amp; Branding</h2>
+        <h2 className="text-[clamp(1.125rem,4vw,1.25rem)] font-black text-[var(--ink)]">
+          Token Identity &amp; Branding
+        </h2>
         <p className="text-xs text-[var(--ink-muted)] mt-0.5">
           Define your token&apos;s public metadata, symbol, logo, and community links.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-4">
         {/* Image Upload Row */}
         <div>
           <label className="block text-xs font-bold text-[var(--ink)] mb-2">Token Logo</label>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center gap-3.5">
             <input
               ref={fileRef}
               type="file"
@@ -84,7 +86,7 @@ export default function IdentityStep({
               onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
             />
 
-            <div className="relative group">
+            <div className="relative group shrink-0">
               {imagePreview ? (
                 <div className="w-20 h-20 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -92,10 +94,11 @@ export default function IdentityStep({
                   <button
                     type="button"
                     onClick={onRemoveImage}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black transition"
+                    className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black transition min-h-[28px] min-w-[28px] flex items-center justify-center cursor-pointer"
                     title="Remove image"
+                    aria-label="Remove image"
                   >
-                    <X size={12} />
+                    <X size={14} />
                   </button>
                 </div>
               ) : (
@@ -103,6 +106,7 @@ export default function IdentityStep({
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   className="w-20 h-20 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] flex flex-col items-center justify-center gap-1 transition text-[var(--ink-muted)] hover:text-[var(--brand-text)] cursor-pointer"
+                  aria-label="Upload token logo"
                 >
                   <ImagePlus size={20} />
                   <span className="text-[10px] font-bold">Upload</span>
@@ -110,14 +114,14 @@ export default function IdentityStep({
               )}
             </div>
 
-            <div className="text-xs text-[var(--ink-muted)] space-y-1">
+            <div className="text-xs text-[var(--ink-muted)] space-y-1 min-w-0 flex-1">
               <p className="font-medium text-[var(--ink)]">Square image recommended (512×512px)</p>
               <p className="text-[11px]">Supports PNG, JPG, GIF or WebP up to 5MB.</p>
               {imagePreview && (
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="text-[11px] font-bold text-[var(--brand-text)] hover:underline"
+                  className="text-[11px] font-bold text-[var(--brand-text)] hover:underline inline-block mt-0.5"
                 >
                   Change image
                 </button>
@@ -128,7 +132,7 @@ export default function IdentityStep({
 
         {/* Name & Symbol */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center justify-between mb-1.5">
               <label htmlFor="token-name" className="text-xs font-bold text-[var(--ink)]">
                 Token Name <span className="text-red-500">*</span>
@@ -143,11 +147,11 @@ export default function IdentityStep({
               placeholder="e.g. Base Velocity"
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition font-medium"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition font-medium"
             />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center justify-between mb-1.5">
               <label htmlFor="token-symbol" className="text-xs font-bold text-[var(--ink)]">
                 Symbol / Ticker <span className="text-red-500">*</span>
@@ -166,14 +170,14 @@ export default function IdentityStep({
                 placeholder="VELO"
                 value={symbol}
                 onChange={(e) => onSymbolChange(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-                className="w-full pl-7 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] uppercase placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition font-mono font-bold"
+                className="w-full pl-7 pr-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-sm text-[var(--ink)] uppercase placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition font-mono font-bold"
               />
             </div>
           </div>
         </div>
 
         {/* Description with Character Counter */}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center justify-between mb-1.5">
             <label htmlFor="token-desc" className="text-xs font-bold text-[var(--ink)]">
               Description
@@ -187,17 +191,17 @@ export default function IdentityStep({
             placeholder="What is this token about? Describe the mission or meme..."
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition resize-none leading-relaxed"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-sm text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition resize-none leading-relaxed"
           />
         </div>
 
         {/* Social Links */}
-        <div className="space-y-3 pt-1">
+        <div className="space-y-3 pt-1 min-w-0">
           <label className="block text-xs font-bold text-[var(--ink)]">Community &amp; Social Links</label>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Website */}
-            <div>
+            <div className="min-w-0">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">
                   <Globe size={14} />
@@ -211,7 +215,7 @@ export default function IdentityStep({
                     if (websiteError) setWebsiteError(false);
                   }}
                   onBlur={handleWebsiteBlur}
-                  className={`w-full pl-8 pr-3 py-2 rounded-xl border text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:ring-1 transition ${
+                  className={`w-full pl-8 pr-3 py-2.5 rounded-xl border text-base sm:text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:ring-1 transition ${
                     websiteError
                       ? "border-red-500 bg-red-500/5 focus:border-red-500 focus:ring-red-500"
                       : "border-[var(--border-subtle)] bg-[var(--surface-2)] focus:border-[var(--brand-text)] focus:ring-[var(--brand)]"
@@ -226,31 +230,35 @@ export default function IdentityStep({
             </div>
 
             {/* X / Twitter */}
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">
-                <Twitter size={14} />
-              </span>
-              <input
-                type="text"
-                placeholder="https://x.com/username"
-                value={twitter}
-                onChange={(e) => onTwitterChange(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition"
-              />
+            <div className="min-w-0">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">
+                  <Twitter size={14} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="https://x.com/username"
+                  value={twitter}
+                  onChange={(e) => onTwitterChange(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition"
+                />
+              </div>
             </div>
 
             {/* Telegram */}
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">
-                <Send size={14} />
-              </span>
-              <input
-                type="text"
-                placeholder="https://t.me/channel"
-                value={telegram}
-                onChange={(e) => onTelegramChange(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition"
-              />
+            <div className="min-w-0">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">
+                  <Send size={14} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="https://t.me/channel"
+                  value={telegram}
+                  onChange={(e) => onTelegramChange(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)] focus:ring-1 focus:ring-[var(--brand)] transition"
+                />
+              </div>
             </div>
           </div>
         </div>

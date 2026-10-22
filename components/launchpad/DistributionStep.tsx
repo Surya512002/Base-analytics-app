@@ -76,21 +76,23 @@ export default function DistributionStep({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-full overflow-hidden">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-black text-[var(--ink)]">Supply &amp; Distribution</h2>
+        <h2 className="text-[clamp(1.125rem,4vw,1.25rem)] font-black text-[var(--ink)]">
+          Supply &amp; Distribution
+        </h2>
         <p className="text-xs text-[var(--ink-muted)] mt-0.5">
           Fixed 1,000,000,000 (1B) supply. Choose a quick preset or customize token shares.
         </p>
       </div>
 
-      {/* 1. Quick Presets FIRST */}
+      {/* 1. Quick Presets (1 column on <360px, 2 columns on 360px+, 4 columns on desktop) */}
       <div className="space-y-2.5">
         <label className="text-xs font-black uppercase tracking-wider text-[var(--ink-muted)]">
           Quick Presets
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-2.5">
           {LAUNCH_PRESETS.map((preset) => {
             const isSelected = activePreset === preset.id;
             return (
@@ -98,7 +100,7 @@ export default function DistributionStep({
                 key={preset.id}
                 type="button"
                 onClick={() => handleApplyPreset(preset.id)}
-                className={`pop-pill p-3 rounded-xl border text-left transition relative cursor-pointer ${
+                className={`pop-pill p-3 rounded-xl border text-left transition relative cursor-pointer min-h-[56px] min-w-0 ${
                   isSelected
                     ? "border-[var(--brand-text)] bg-[var(--surface)] shadow-xs ring-1 ring-[var(--brand)]"
                     : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:border-[var(--ink-dim)] hover:text-[var(--ink)]"
@@ -109,8 +111,10 @@ export default function DistributionStep({
                     <Check size={10} strokeWidth={3} />
                   </span>
                 )}
-                <p className="text-xs font-black text-[var(--ink)]">{preset.label}</p>
-                <p className="text-[11px] text-[var(--ink-muted)] mt-1 leading-snug">{preset.tagline}</p>
+                <p className="text-xs font-black text-[var(--ink)] truncate pr-4">{preset.label}</p>
+                <p className="text-[11px] text-[var(--ink-muted)] mt-1 leading-snug break-words">
+                  {preset.tagline}
+                </p>
               </button>
             );
           })}
@@ -118,8 +122,8 @@ export default function DistributionStep({
       </div>
 
       {/* 2. Simple Distribution Bar */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-3.5">
-        <div className="flex items-center justify-between">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <span className="text-xs font-bold text-[var(--ink)]">Allocation Breakdown</span>
           <span
             className={`font-mono font-bold text-xs ${
@@ -165,28 +169,28 @@ export default function DistributionStep({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 text-xs pt-1">
+        <div className="flex flex-wrap gap-3 sm:gap-4 text-xs pt-1">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)] shrink-0" />
             <span className="text-[var(--ink-muted)]">Creator:</span>
             <span className="font-mono font-bold text-[var(--ink)]">{creatorPct}%</span>
           </div>
           {insiderTotalPct > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0" />
               <span className="text-[var(--ink-muted)]">Insiders:</span>
               <span className="font-mono font-bold text-[var(--ink)]">{insiderTotalPct}%</span>
             </div>
           )}
           {vestedTotalPct > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0" />
               <span className="text-[var(--ink-muted)]">Vested:</span>
               <span className="font-mono font-bold text-[var(--ink)]">{vestedTotalPct}%</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
             <span className="text-[var(--ink-muted)]">Pool Reserve:</span>
             <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
               {poolReservePct}%
@@ -207,40 +211,46 @@ export default function DistributionStep({
         <button
           type="button"
           onClick={() => setShowAdvanced((prev) => !prev)}
-          className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--surface-2)]/60 transition cursor-pointer"
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--surface-2)]/60 transition cursor-pointer min-h-[48px]"
+          aria-expanded={showAdvanced}
         >
-          <div>
+          <div className="min-w-0 pr-2">
             <h3 className="text-xs font-bold text-[var(--ink)]">Advanced Distribution &amp; Vesting</h3>
-            <p className="text-[11px] text-[var(--ink-muted)]">
+            <p className="text-[11px] text-[var(--ink-muted)] truncate">
               Creator wallet slider, team allocations ({insiders.length}/{MAX_INSIDERS}) &amp; linear vesting ({vested.length}/{MAX_VESTED})
             </p>
           </div>
-          <span className="text-[var(--ink-muted)]">
+          <span className="text-[var(--ink-muted)] shrink-0">
             {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </span>
         </button>
 
         {showAdvanced && (
           <div className="p-4 pt-0 border-t border-[var(--border-subtle)]/60 space-y-5">
-            {/* Creator Wallet Slider */}
+            {/* Creator Wallet Slider (Full width with value badge and 44px touch target) */}
             <div className="space-y-2 pt-4">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-xs flex-wrap gap-1">
                 <span className="font-bold text-[var(--ink)]">Creator Allocation</span>
-                <span className="font-mono font-bold text-[var(--brand-text)]">{creatorPct}%</span>
+                <span className="font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand)]/20">
+                  {creatorPct}% ({((1_000_000_000 * creatorPct) / 100).toLocaleString()} tokens)
+                </span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={30}
-                step={1}
-                value={creatorPct}
-                onChange={(e) => {
-                  onCreatorPctChange(parseInt(e.target.value, 10));
-                  onSelectPreset("creator" as LaunchPresetId);
-                }}
-                className="w-full accent-[var(--brand)] cursor-pointer"
-              />
-              <p className="text-[11px] text-[var(--ink-muted)]">
+              <div className="min-h-[44px] flex items-center w-full">
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={1}
+                  value={creatorPct}
+                  onChange={(e) => {
+                    onCreatorPctChange(parseInt(e.target.value, 10));
+                    onSelectPreset("creator" as LaunchPresetId);
+                  }}
+                  className="w-full h-2 rounded-lg bg-[var(--surface-2)] accent-[var(--brand)] cursor-pointer"
+                  aria-label="Creator allocation percentage"
+                />
+              </div>
+              <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
                 Minted directly to your connected wallet upon launch. Max 30% recommended for healthy liquidity.
               </p>
             </div>
@@ -258,7 +268,7 @@ export default function DistributionStep({
                   <button
                     type="button"
                     onClick={addInsider}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline min-h-[36px] py-1 px-2 cursor-pointer"
                   >
                     <Plus size={13} /> Add Insider
                   </button>
@@ -266,33 +276,36 @@ export default function DistributionStep({
               </div>
 
               {insiders.map((ins) => (
-                <div key={ins.id} className="flex items-center gap-2">
+                <div key={ins.id} className="flex flex-col min-[420px]:flex-row items-stretch min-[420px]:items-center gap-2">
                   <input
                     type="text"
                     placeholder="0x… recipient wallet"
                     value={ins.address}
                     onChange={(e) => updateInsider(ins.id, { address: e.target.value })}
-                    className="flex-1 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
+                    className="flex-1 px-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
                   />
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min={0.1}
-                      max={20}
-                      step={0.5}
-                      value={ins.pct}
-                      onChange={(e) => updateInsider(ins.id, { pct: parseFloat(e.target.value) || 0 })}
-                      className="w-16 px-2 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[var(--brand-text)]"
-                    />
-                    <span className="text-xs text-[var(--ink-muted)] font-bold">%</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 flex-1 min-[420px]:flex-initial">
+                      <input
+                        type="number"
+                        min={0.1}
+                        max={20}
+                        step={0.5}
+                        value={ins.pct}
+                        onChange={(e) => updateInsider(ins.id, { pct: parseFloat(e.target.value) || 0 })}
+                        className="w-full min-[420px]:w-20 px-2 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[var(--brand-text)]"
+                      />
+                      <span className="text-xs text-[var(--ink-muted)] font-bold">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeInsider(ins.id)}
+                      className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+                      aria-label="Remove insider"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeInsider(ins.id)}
-                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition"
-                  >
-                    <Trash2 size={13} />
-                  </button>
                 </div>
               ))}
             </div>
@@ -310,7 +323,7 @@ export default function DistributionStep({
                   <button
                     type="button"
                     onClick={addVested}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline min-h-[36px] py-1 px-2 cursor-pointer"
                   >
                     <Plus size={13} /> Add Vested Schedule
                   </button>
@@ -319,35 +332,38 @@ export default function DistributionStep({
 
               {vested.map((v) => (
                 <div key={v.id} className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col min-[420px]:flex-row items-stretch min-[420px]:items-center gap-2">
                     <input
                       type="text"
                       placeholder="0x… beneficiary address"
                       value={v.address}
                       onChange={(e) => updateVested(v.id, { address: e.target.value })}
-                      className="flex-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
+                      className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-base sm:text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
                     />
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min={0.5}
-                        max={30}
-                        step={0.5}
-                        value={v.pct}
-                        onChange={(e) => updateVested(v.id, { pct: parseFloat(e.target.value) || 0 })}
-                        className="w-16 px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[var(--brand-text)]"
-                      />
-                      <span className="text-xs text-[var(--ink-muted)] font-bold">%</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 flex-1 min-[420px]:flex-initial">
+                        <input
+                          type="number"
+                          min={0.5}
+                          max={30}
+                          step={0.5}
+                          value={v.pct}
+                          onChange={(e) => updateVested(v.id, { pct: parseFloat(e.target.value) || 0 })}
+                          className="w-full min-[420px]:w-20 px-2 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-base sm:text-xs font-mono text-[var(--ink)] text-right focus:outline-none focus:border-[var(--brand-text)]"
+                        />
+                        <span className="text-xs text-[var(--ink-muted)] font-bold">%</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeVested(v.id)}
+                        className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+                        aria-label="Remove vested allocation"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeVested(v.id)}
-                      className="p-1 rounded-lg text-red-500 hover:bg-red-500/10 transition"
-                    >
-                      <Trash2 size={13} />
-                    </button>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-[var(--ink-muted)]">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-[var(--ink-muted)] pt-1">
                     <div className="flex items-center gap-1.5">
                       <span>Cliff:</span>
                       <input
@@ -356,7 +372,7 @@ export default function DistributionStep({
                         max={24}
                         value={v.cliffMonths}
                         onChange={(e) => updateVested(v.id, { cliffMonths: parseInt(e.target.value, 10) || 0 })}
-                        className="w-12 px-1.5 py-0.5 rounded border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] text-center"
+                        className="w-14 px-2 py-1 rounded border border-[var(--border-subtle)] bg-[var(--surface)] text-base sm:text-xs font-mono text-[var(--ink)] text-center"
                       />
                       <span>mo</span>
                     </div>
@@ -368,7 +384,7 @@ export default function DistributionStep({
                         max={48}
                         value={v.vestMonths}
                         onChange={(e) => updateVested(v.id, { vestMonths: parseInt(e.target.value, 10) || 1 })}
-                        className="w-12 px-1.5 py-0.5 rounded border border-[var(--border-subtle)] bg-[var(--surface)] text-xs font-mono text-[var(--ink)] text-center"
+                        className="w-14 px-2 py-1 rounded border border-[var(--border-subtle)] bg-[var(--surface)] text-base sm:text-xs font-mono text-[var(--ink)] text-center"
                       />
                       <span>mo</span>
                     </div>

@@ -5,7 +5,7 @@ import { ShieldCheck, ExternalLink, Github } from "lucide-react";
 /** High-contrast, theme-adaptive site footer matching Blue Hour Meridian design tokens. */
 export default function AppFooterNav() {
   return (
-    <footer className="mt-auto w-full border-t border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] pb-20 lg:pb-0 transition-colors">
+    <footer className="mt-auto w-full border-t border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] pb-28 md:pb-0 transition-colors">
       <div className="app-container grid gap-8 py-8 md:grid-cols-[1.4fr_1fr] md:py-10">
         <div>
           <div className="flex items-center gap-2.5">

@@ -14,7 +14,7 @@ interface AppFeatureStripProps {
 
 export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
   return (
-    <div className="mb-4 flex flex-wrap gap-2 items-center">
+    <div className="mb-4 hidden md:flex flex-wrap gap-2 items-center">
       <div className="inline-flex items-center gap-2 badge-live rounded-full px-3 py-1.5">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow" />
         <span className="text-[9px] font-black uppercase tracking-widest">B20 launchpad live</span>

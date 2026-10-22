@@ -162,7 +162,7 @@ export default function AppHeader({
           {/* Desktop Navigation Links (inline) */}
           <nav
             aria-label="Main"
-            className="max-lg:!hidden min-w-0 items-center gap-1 overflow-x-auto text-sm no-scrollbar lg:flex"
+            className="hidden md:flex min-w-0 items-center gap-1 overflow-x-auto text-sm no-scrollbar"
           >
             {navLinks}
           </nav>

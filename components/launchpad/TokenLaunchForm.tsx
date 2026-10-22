@@ -507,11 +507,11 @@ export default function TokenLaunchForm({
       <LaunchHeader />
 
       {/* 2. Main 5-Step Guided Flow & Sticky Summary Grid */}
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Progress Stepper + Current Step Form */}
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        {/* Main Column: Progress Stepper + Current Step Form */}
+        <div className="w-full md:col-span-7 lg:col-span-8 space-y-6">
           {/* Step Progress Indicator Bar */}
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 sm:p-4">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5 sm:p-4">
             <div className="flex items-center justify-between">
               {STEPS.map((s, idx) => {
                 const isCurrent = currentStep === s.id;
@@ -527,9 +527,10 @@ export default function TokenLaunchForm({
                       className={`flex items-center gap-2 group text-left cursor-pointer transition ${
                         !isClickable ? "opacity-50 cursor-not-allowed" : ""
                       }`}
+                      aria-label={`Step ${s.id}: ${s.title}`}
                     >
                       <span
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold transition ${
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold transition shrink-0 ${
                           isCurrent
                             ? "bg-[var(--brand)] text-white shadow-xs"
                             : isPast
@@ -553,7 +554,7 @@ export default function TokenLaunchForm({
 
                     {idx < STEPS.length - 1 && (
                       <div
-                        className={`flex-1 h-0.5 mx-2 rounded-full transition ${
+                        className={`flex-1 h-0.5 mx-1 sm:mx-2 rounded-full transition min-w-[6px] ${
                           currentStep > s.id ? "bg-[var(--brand)]" : "bg-[var(--border-subtle)]"
                         }`}
                       />
@@ -561,6 +562,16 @@ export default function TokenLaunchForm({
                   </React.Fragment>
                 );
               })}
+            </div>
+
+            {/* Mobile Current Step Subtitle */}
+            <div className="sm:hidden mt-2 pt-2 border-t border-[var(--border-subtle)]/50 flex items-center justify-between text-xs">
+              <span className="font-bold text-[var(--ink)]">
+                Step {currentStep} of 5: {STEPS[currentStep - 1].title}
+              </span>
+              <span className="text-[11px] text-[var(--ink-muted)]">
+                {STEPS[currentStep - 1].subtitle}
+              </span>
             </div>
           </div>
 
@@ -681,13 +692,43 @@ export default function TokenLaunchForm({
             )}
           </div>
 
+          {/* Mobile Collapsible Live Preview & Launch Summary Panel (above action buttons) */}
+          <div className="block md:hidden pt-3">
+            <LaunchSummaryPanel
+              mobileOnly
+              name={name}
+              symbol={symbol}
+              description={description}
+              imagePreview={imagePreview}
+              website={website}
+              twitter={twitter}
+              telegram={telegram}
+              quoteSymbol={effectiveQuoteSymbol}
+              startPriceUsd={startPriceUsd}
+              launchType={launchType}
+              creatorPct={creatorPct}
+              poolReservePct={poolReservePct}
+              vestedTotalPct={vestedTotalPct}
+              vanityAddress={vanityAddress}
+              vanityAttempts={vanityAttempts}
+              grinding={grinding}
+              autoSeedLiquidity={autoSeedLiquidity}
+              seedLiquidityEth={seedLiquidityEth}
+              seedDex={seedDex}
+              liquidityLocked={liquidityLocked}
+              lockDurationDays={lockDurationDays}
+              ethUsd={ethUsd}
+              onClearDraft={handleClearDraft}
+            />
+          </div>
+
           {/* Stepper Navigation Buttons (Back & Next) */}
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)]">
             <button
               type="button"
               disabled={currentStep === 1 || launchLoading}
               onClick={() => setCurrentStep((p) => Math.max(1, p - 1))}
-              className="py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)] transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="py-2.5 px-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:text-[var(--brand-text)] hover:border-[var(--brand)] transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer min-h-[44px]"
             >
               <ArrowLeft size={14} /> Back
             </button>
@@ -697,7 +738,7 @@ export default function TokenLaunchForm({
                 type="button"
                 disabled={!canGoNextFromStep(currentStep)}
                 onClick={() => setCurrentStep((p) => Math.min(5, p + 1))}
-                className="py-2.5 px-5 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="py-2.5 px-5 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[44px]"
               >
                 Next <ArrowRight size={14} />
               </button>
@@ -705,9 +746,10 @@ export default function TokenLaunchForm({
           </div>
         </div>
 
-        {/* Right Column: Sticky Live Preview, Pricing & Summary */}
-        <div className="lg:col-span-4">
+        {/* Right Column: Desktop Sticky Live Preview, Pricing & Summary */}
+        <div className="hidden md:block md:col-span-5 lg:col-span-4">
           <LaunchSummaryPanel
+            desktopOnly
             name={name}
             symbol={symbol}
             description={description}
