@@ -225,7 +225,7 @@ export async function GET(
   for (const candidateUrl of candidates) {
     const result = await fetchSafeImage(candidateUrl);
     if (result) {
-      return new NextResponse(result.buffer, {
+      return new NextResponse(result.buffer as unknown as BodyInit, {
         status: 200,
         headers: {
           "Content-Type": result.contentType,
