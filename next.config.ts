@@ -80,6 +80,11 @@ const nextConfig: NextConfig = {
         process.cwd(),
         "lib/stubs/async-storage.ts"
       ),
+      "@x402/svm/exact/client": path.resolve(
+        process.cwd(),
+        "lib/stubs/empty.ts"
+      ),
+      "@x402/svm": path.resolve(process.cwd(), "lib/stubs/empty.ts"),
     };
     if (!isServer) {
       config.resolve.alias = {
@@ -108,6 +113,8 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       "@react-native-async-storage/async-storage": "./lib/stubs/async-storage.ts",
       ioredis: "./lib/stubs/ioredis-stub.ts",
+      "@x402/svm/exact/client": "./lib/stubs/empty.ts",
+      "@x402/svm": "./lib/stubs/empty.ts",
     },
   },
   async headers() {
