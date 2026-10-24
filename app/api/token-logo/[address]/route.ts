@@ -28,6 +28,8 @@ const ALLOWED_HOSTS = new Set([
   "basescan.org",
   "res.cloudinary.com",
   "ipfs.io",
+  "assets.parqet.com",
+  "www.google.com",
 ]);
 
 /** Well-known Base token CDN links */
@@ -215,6 +217,16 @@ export async function GET(
 
   if (KNOWN_REMOTE_LOGOS[lowerAddress]) {
     candidates.push(KNOWN_REMOTE_LOGOS[lowerAddress]);
+  }
+
+  // Tokenized Stock brand logo candidates (Parqet & Google domain API)
+  const stockInfo = getTokenizedStockByAddress(lowerAddress);
+  if (stockInfo) {
+    const sym = stockInfo.underlyingTicker === "BRK.B" ? "BRK-B" : stockInfo.underlyingTicker;
+    candidates.push(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(sym)}?format=png`);
+    if (stockInfo.underlyingTicker === "CRCL") {
+      candidates.push("https://www.google.com/s2/favicons?domain=circle.com&sz=128");
+    }
   }
 
   // TrustWallet Base token repository
