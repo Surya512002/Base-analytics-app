@@ -77,7 +77,7 @@ export async function GET(req: Request) {
         usdValue: ethBalance * ethUsd,
         address: null,
         decimals: 18,
-        logo: null,
+        logo: "/tokens/0x0000000000000000000000000000000000000000.png",
       });
     }
 
@@ -108,7 +108,7 @@ export async function GET(req: Request) {
         usdValue,
         address: t.address,
         decimals: t.decimals,
-        logo: null,
+        logo: `/tokens/${t.address.toLowerCase()}.png`,
       });
     }
 

@@ -13,12 +13,15 @@ export const dynamic = "force-dynamic";
 const negativeCache = new Map<string, number>();
 const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+import { SELF_HOSTED_LOGOS } from "@/lib/launchpad/token-logo";
+
 // Allowlist of verified external logo providers
 const ALLOWED_HOSTS = new Set([
   "assets.coingecko.com",
   "coin-images.coingecko.com",
   "raw.githubusercontent.com",
   "dd.dexscreener.com",
+  "cdn.dexscreener.com",
   "tokens.1inch.io",
   "ethereum-optimism.github.io",
   "assets.smold.app",
@@ -164,7 +167,11 @@ export async function GET(
     }
   }
 
-  // 2. Source (a): Tokenized Stock Registry
+  // 2. Source (a): Tokenized Stock Registry & Self-Hosted Assets
+  if (SELF_HOSTED_LOGOS.has(lowerAddress) || lowerAddress.startsWith("0xb200000000000000000000") || isEth) {
+    return NextResponse.redirect(new URL(`/tokens/${lowerAddress}.png`, req.url), 307);
+  }
+
   if (!isEth && isAddress(lowerAddress)) {
     const stock = getTokenizedStockByAddress(lowerAddress);
     if (stock && stock.logo) {
@@ -181,6 +188,7 @@ export async function GET(
             },
           });
         }
+        return NextResponse.redirect(new URL(stock.logo, req.url), 307);
       }
     }
   }
@@ -200,7 +208,7 @@ export async function GET(
   }
 
   // 4. Candidate External Chain:
-  // (c) Official Token Lists (CoinGecko / Uniswap / Superchain)
+  // (c) Official Token Lists (CoinGecko / Uniswap / Superchain / TrustWallet)
   // (d) DEX providers (DexScreener)
   const checksum = isAddress(lowerAddress) ? getAddress(lowerAddress) : lowerAddress;
   const candidates: string[] = [];
@@ -208,6 +216,16 @@ export async function GET(
   if (KNOWN_REMOTE_LOGOS[lowerAddress]) {
     candidates.push(KNOWN_REMOTE_LOGOS[lowerAddress]);
   }
+
+  // TrustWallet Base token repository
+  candidates.push(
+    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/${checksum}/logo.png`
+  );
+
+  // Smoldapp Base token repository
+  candidates.push(
+    `https://assets.smold.app/api/token/8453/${checksum}/logo-128.png`
+  );
 
   if (symbol && symbol !== "TK") {
     candidates.push(
@@ -217,9 +235,6 @@ export async function GET(
     );
   }
 
-  candidates.push(
-    `https://assets.smold.app/api/token/8453/${checksum}/logo-128.png`
-  );
   candidates.push(`https://dd.dexscreener.com/ds-data/tokens/base/${lowerAddress}.png`);
 
   for (const candidateUrl of candidates) {

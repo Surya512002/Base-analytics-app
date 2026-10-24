@@ -249,7 +249,8 @@ export async function resolveTradeableToken(
       createdAt: 0,
       source: "b20",
       description: `${stock.name} (${stock.symbol}) tokenized US equity on Base mainnet. Backed 1:1 by real stock shares.`,
-      imageUrl: meta.imageUrl ?? (best?.info?.imageUrl || undefined),
+      imageUrl:
+        meta.imageUrl ?? (best?.info?.imageUrl || stock.logo || `/tokens/${stock.address.toLowerCase()}.png`),
       website: meta.website ?? "https://www.coinbase.com/tokenize",
       twitter: meta.twitter ?? "https://x.com/coinbase",
     };

@@ -89,10 +89,15 @@ let memoryCache: {
 const CACHE_TTL_MS = 60_000; // 60 seconds
 const REDIS_CACHE_KEY = "base_stocks_catalog_v2";
 
-/** Default stock icons using clean SVG data URIs or brand visuals */
-export function getStockIconUrl(symbol: string): string {
-  const clean = symbol.replace(/c$/, "").toUpperCase();
-  return `https://assets.coingecko.com/coins/images/stock/${clean.toLowerCase()}.png`;
+/** Stock icons using self-hosted canonical token logos */
+export function getStockIconUrl(symbol: string, address?: string): string {
+  if (address) {
+    return `/tokens/${address.toLowerCase()}.png`;
+  }
+  const stock = getBaseStockBySymbol(symbol);
+  if (stock?.logo) return stock.logo;
+  if (stock?.address) return `/tokens/${stock.address.toLowerCase()}.png`;
+  return `/tokens/${symbol.toLowerCase()}.png`;
 }
 
 /** Determine liquidity health indicator based on volume and paused status */
@@ -289,6 +294,7 @@ export function buildStockFromBaseStock(stock: BaseStock): CoinbaseTokenizedStoc
     volume24hUsd: metrics.volume24h,
     mcapUsd: metrics.mcap,
     decimals: stock.decimals,
+    iconUrl: stock.logo || `/tokens/${stock.address.toLowerCase()}.png`,
     category: stock.category ?? "tech",
     feedAddress: stock.feed,
     custodian: "Coinbase Custody / Alpaca (Reg S 1:1 Backed)",
@@ -415,7 +421,7 @@ export async function fetchAllCoinbaseTokenizedStocks(options?: {
           volume24hUsd: volume,
           mcapUsd: mcap,
           decimals: 8,
-          iconUrl: item.icon_url,
+          iconUrl: item.icon_url || existingBase?.logo || (existingBase?.address ? `/tokens/${existingBase.address.toLowerCase()}.png` : undefined),
           category: (item.category as CoinbaseTokenizedStock["category"]) ?? existingBase?.category ?? "tech",
           feedAddress: existingBase?.feed ?? null,
           custodian: "Coinbase Custody / Alpaca (Reg S 1:1 Backed)",

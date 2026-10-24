@@ -141,7 +141,7 @@ export function normalizeBaseStock(
     symbol: stock.symbol,
     decimals: stock.decimals,
     type: "stock",
-    imageUrl: `/stocks/${stock.symbol.toLowerCase().replace("c", "")}.png`,
+    imageUrl: stock.logo || `/tokens/${stock.address.toLowerCase()}.png`,
     description: `Tokenized ${stock.name} US equity on Base backed 1:1 by custody shares.`,
     createdAt: Date.now() - 30 * 86400000,
     creator: "0xb200000000000000000000000000000000000000",
