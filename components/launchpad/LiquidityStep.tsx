@@ -223,12 +223,12 @@ export default function LiquidityStep({
 
               {/* Low Liquidity Non-blocking Info Hint */}
               {isLowSeed && (
-                <div className="p-3 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1 mt-2">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/25 text-xs space-y-1 mt-2">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-300">
+                    <AlertTriangle size={14} className="text-amber-700 dark:text-amber-400 shrink-0" />
                     <span>Low initial liquidity hint</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed opacity-95 break-words">
+                  <p className="text-[11px] leading-relaxed text-amber-950 dark:text-amber-100 font-medium break-words">
                     Low liquidity means larger price swings for early traders. A $10 swap has an estimated price impact of ~{priceImpact10Dollar}.
                   </p>
                 </div>

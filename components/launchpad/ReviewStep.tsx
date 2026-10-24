@@ -201,12 +201,12 @@ export default function ReviewStep({
 
       {/* Stock-Paired Risk Disclosure with Checkbox Gating */}
       {isStockPaired && (
-        <div className="p-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-2.5">
-          <div className="flex items-center gap-2 font-bold">
-            <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/25 text-xs space-y-2.5">
+          <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-300">
+            <AlertTriangle size={16} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
             <span>Required Risk Acknowledgement</span>
           </div>
-          <p className="text-[11px] leading-relaxed opacity-95 break-words">
+          <p className="text-[11px] leading-relaxed text-amber-950 dark:text-amber-100 font-medium break-words">
             You are creating a memestock paired directly against tokenized equity shares ({selectedStock?.symbol}). Equity markets close on weekends and US holidays.
           </p>
           <label className="flex items-start sm:items-center gap-2.5 pt-1 cursor-pointer min-h-[44px]">

@@ -550,18 +550,19 @@ export default function StockQuotePicker({
       </div>
 
       {/* Stock-paired Risk Disclosure */}
-      <div className="p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs leading-relaxed space-y-1.5">
-        <div className="flex items-center gap-1.5 font-bold">
-          <AlertTriangle size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/25 text-xs leading-relaxed space-y-1.5">
+        <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-300">
+          <AlertTriangle size={14} className="shrink-0 text-amber-700 dark:text-amber-400" />
           <span>Stock-Paired Volatility &amp; Issuer Disclosure</span>
         </div>
-        <p className="text-[11px] opacity-95">
+        <p className="text-[11px] leading-relaxed text-amber-950 dark:text-amber-100 font-medium">
           Memestocks paired with tokenized equity trade against real-world custody shares ({selectedStockEntry.issuer}).
           Off-hours liquidity and price discovery may vary when US equity markets are closed.
         </p>
         {selectedStockEntry.restrictions?.legalNote && (
-          <p className="text-[10px] opacity-80 border-t border-amber-500/20 pt-1">
-            <strong>Issuer Note ({selectedStockEntry.issuer}):</strong> {selectedStockEntry.restrictions.legalNote}
+          <p className="text-[10px] leading-normal border-t border-amber-500/25 pt-1.5 text-amber-900 dark:text-amber-200">
+            <strong className="font-semibold text-amber-950 dark:text-amber-100">Issuer Note ({selectedStockEntry.issuer}):</strong>{" "}
+            {selectedStockEntry.restrictions.legalNote}
           </p>
         )}
       </div>
