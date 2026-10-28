@@ -22,6 +22,8 @@ import {
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { formatUsd } from "@/lib/launchpad/format";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const RECENT_STORAGE_KEY = "base_swap_recent_tokens_v2";
@@ -322,6 +324,7 @@ export default function TokenSelectorModal({
                     >
                       <CounterAvatar counter={t} size={15} />
                       <span className="font-mono">{counterSymbol(t)}</span>
+                      {isVerifiedBaseToken(t) && <VerifiedBadge size={11} />}
                     </button>
                   );
                 })}
@@ -501,6 +504,7 @@ function TokenListItem({
             <span className="font-bold text-sm text-[var(--ink)] group-hover:text-[var(--brand-text)] transition-colors">
               {sym}
             </span>
+            {isVerifiedBaseToken(counter) && <VerifiedBadge size={13} />}
             {counter.kind === "token" && counter.symbol.endsWith("c") && (
               <>
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">

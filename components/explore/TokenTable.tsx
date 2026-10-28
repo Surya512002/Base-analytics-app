@@ -24,6 +24,7 @@ import {
 import TokenCard from "./TokenCard";
 import { shortAddr } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface TokenTableProps {
   tokens: UnifiedToken[];
@@ -151,6 +152,7 @@ export default function TokenTable({
                           <span className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
                             {token.name}
                           </span>
+                          {token.isVerified && <VerifiedBadge size={13} />}
                           <span
                             className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded ${typeBadge.class}`}
                           >

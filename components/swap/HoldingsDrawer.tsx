@@ -27,6 +27,7 @@ import { formatUsd } from "@/lib/launchpad/format";
 import type { UseWalletHoldingsReturn, HoldingsFilter } from "@/hooks/useWalletHoldings";
 import type { PortfolioToken } from "@/lib/portfolio/types";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface HoldingsDrawerProps {
   open: boolean;
@@ -452,6 +453,7 @@ export default function HoldingsDrawer({
                             <p className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand)] transition-colors">
                               {t.symbol}
                             </p>
+                            {t.isVerified && <VerifiedBadge size={13} />}
                             {t.isStock && (
                               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
                                 Stock

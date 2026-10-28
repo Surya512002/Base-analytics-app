@@ -11,6 +11,7 @@ import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registr
 import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
 import { ETH_COUNTER, type SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 
 const ERC20_ABI = [
   {
@@ -43,7 +44,7 @@ export interface ResolvedTokenResult {
 }
 
 /**
- * Resolve token by address or symbol ("eth")
+ * Resolve token by address or symbol ("eth", "aero", "usdc", etc.)
  */
 export async function resolveSwapToken(
   addressOrEth: string | null | undefined
@@ -56,33 +57,29 @@ export async function resolveSwapToken(
 
   // 1. Native ETH check
   if (raw === "eth" || raw === "0x0000000000000000000000000000000000000000") {
-    return { counter: ETH_COUNTER, isUnverified: false };
+    return { counter: { ...ETH_COUNTER, isVerified: true, isUnverified: false }, isUnverified: false };
   }
 
-  if (!isAddress(raw)) {
-    return {
-      counter: null,
-      isUnverified: false,
-      error: "Invalid address format",
-    };
-  }
-
-  const checksummed = getAddress(raw);
-
-  // 2. Check Curated Common Base Tokens
+  // 2. Check Curated Common Base Tokens by Address OR Symbol
   const commonMatch = COMMON_BASE_TOKENS.find(
-    (t) => t.address.toLowerCase() === raw
+    (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
   );
   if (commonMatch) {
+    const counter = enrichSwapCounter(commonTokenToCounter(commonMatch));
     return {
-      counter: enrichSwapCounter(commonTokenToCounter(commonMatch)),
+      counter: {
+        ...counter,
+        isUnverified: false,
+        isVerified: true,
+        name: commonMatch.name,
+      },
       isUnverified: false,
     };
   }
 
-  // 3. Check Tokenized Stocks Registry
+  // 3. Check Tokenized Stocks Registry by Address OR Symbol
   const stockMatch = TOKENIZED_STOCKS_REGISTRY.find(
-    (s) => s.address.toLowerCase() === raw
+    (s) => s.address.toLowerCase() === raw || s.symbol.toLowerCase() === raw
   );
   if (stockMatch) {
     const commonStock: CommonToken = {
@@ -94,11 +91,27 @@ export async function resolveSwapToken(
       stockCategory: stockMatch.category,
       underlyingTicker: stockMatch.underlyingTicker,
     };
+    const counter = enrichSwapCounter(commonTokenToCounter(commonStock));
     return {
-      counter: enrichSwapCounter(commonTokenToCounter(commonStock)),
+      counter: {
+        ...counter,
+        isUnverified: false,
+        isVerified: true,
+        name: stockMatch.name,
+      },
       isUnverified: false,
     };
   }
+
+  if (!isAddress(raw)) {
+    return {
+      counter: null,
+      isUnverified: false,
+      error: "Invalid address format",
+    };
+  }
+
+  const checksummed = getAddress(raw);
 
   // 4. Fetch On-Chain Metadata via Multicall
   try {
@@ -134,18 +147,21 @@ export async function resolveSwapToken(
     const name = String(nameRes).trim() || symbol;
     const decimals = Number(decRes) || 18;
 
-    const unverifiedCounter: SwapCounter = {
+    const verified = isVerifiedBaseToken(checksummed) || isVerifiedBaseToken(symbol);
+
+    const resolvedCounter: SwapCounter = {
       kind: "token",
       address: checksummed,
       symbol,
       decimals,
-      isUnverified: true,
+      isUnverified: !verified,
+      isVerified: verified,
       name,
     };
 
     return {
-      counter: enrichSwapCounter(unverifiedCounter),
-      isUnverified: true,
+      counter: enrichSwapCounter(resolvedCounter),
+      isUnverified: !verified,
     };
   } catch {
     return {
@@ -155,3 +171,4 @@ export async function resolveSwapToken(
     };
   }
 }
+

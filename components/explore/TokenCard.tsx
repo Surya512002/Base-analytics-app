@@ -24,6 +24,7 @@ import { shortAddr } from "@/lib/launchpad/format";
 import { basescanTxUrl } from "@/lib/utils/tx";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import { useCompliance } from "@/hooks/useCompliance";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface TokenCardProps {
   token: UnifiedToken;
@@ -132,12 +133,15 @@ export default function TokenCard({
             />
 
             <div className="min-w-0">
-              <h3
-                title={token.name}
-                className="font-bold text-sm text-[var(--ink)] leading-snug line-clamp-1 group-hover:text-[var(--brand-text)] transition-colors"
-              >
-                {token.name}
-              </h3>
+              <div className="flex items-center gap-1">
+                <h3
+                  title={token.name}
+                  className="font-bold text-sm text-[var(--ink)] leading-snug line-clamp-1 group-hover:text-[var(--brand-text)] transition-colors"
+                >
+                  {token.name}
+                </h3>
+                {token.isVerified && <VerifiedBadge size={13} />}
+              </div>
               <p className="font-mono text-xs text-[var(--ink-muted)] truncate">
                 ${token.symbol}
               </p>

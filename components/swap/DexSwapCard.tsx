@@ -57,6 +57,8 @@ import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { useCompliance } from "@/hooks/useCompliance";
 import StockRiskModal from "@/components/compliance/StockRiskModal";
 import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto Best" },
@@ -877,7 +879,10 @@ export default function DexSwapCard({
               className="pop-pill shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] shadow-xs transition-all cursor-pointer"
             >
               <CounterAvatar counter={from} size={24} />
-              <span className="font-bold text-sm text-[var(--ink)]">{counterSymbol(from)}</span>
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-sm text-[var(--ink)]">{counterSymbol(from)}</span>
+                {isVerifiedBaseToken(from) && <VerifiedBadge size={14} />}
+              </div>
               <ChevronDown size={14} className="text-[var(--ink-dim)]" />
             </button>
           </div>
@@ -947,7 +952,10 @@ export default function DexSwapCard({
                 {to ? (
                   <>
                     <CounterAvatar counter={to} size={24} />
-                    <span className="font-bold text-sm text-[var(--ink)]">{counterSymbol(to)}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-bold text-sm text-[var(--ink)]">{counterSymbol(to)}</span>
+                      {isVerifiedBaseToken(to) && <VerifiedBadge size={14} />}
+                    </div>
                   </>
                 ) : (
                   <span className="font-bold text-sm">Select Token</span>
@@ -1073,7 +1081,8 @@ export default function DexSwapCard({
         )}
 
         {/* Unverified Token Warning */}
-        {(to?.isUnverified || from?.isUnverified) && (
+        {((to && !isVerifiedBaseToken(to) && to.isUnverified) ||
+          (from && !isVerifiedBaseToken(from) && from.isUnverified)) && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-medium">
             <AlertTriangle size={14} className="text-amber-500 shrink-0" />
             <span>Unverified token · Imported directly from Base on-chain contract</span>

@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, ArrowRight, Sparkles } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import { formatCompactUsd, formatExactUsd } from "@/lib/explore/explore-config";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface SpotlightCarouselProps {
   tokens: UnifiedToken[];
@@ -102,6 +103,7 @@ export default function SpotlightCarousel({
               <h3 className="font-bold text-base text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
                 {activeToken.name}
               </h3>
+              {activeToken.isVerified && <VerifiedBadge size={14} />}
               <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                 {activeToken.type.toUpperCase()}
               </span>

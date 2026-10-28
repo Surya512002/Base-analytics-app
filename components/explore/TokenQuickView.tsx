@@ -27,6 +27,7 @@ import {
 import { shortAddr, timeAgo } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import { buildSwapLink } from "@/lib/swap/swap-link";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface TokenQuickViewProps {
   token: UnifiedToken | null;
@@ -91,6 +92,7 @@ export default function TokenQuickView({
                   <h2 className="text-lg font-black text-[var(--ink)] tracking-tight">
                     {token.name}
                   </h2>
+                  {token.isVerified && <VerifiedBadge size={16} />}
                   <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                     {token.type.toUpperCase()}
                   </span>

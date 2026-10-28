@@ -11,6 +11,7 @@ export interface UnifiedToken {
   description?: string;
   createdAt?: number;
   creator?: string;
+  isVerified?: boolean;
 
   // Market stats
   priceUsd: number;

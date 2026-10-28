@@ -3,6 +3,7 @@ import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { BaseStock } from "@/lib/stocks/base-stocks";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isAppLaunched, isB20ExploreToken } from "@/lib/launchpad/token-meta";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import type { UnifiedToken } from "./explore-types";
 
 export const EXPLORE_CONFIG = {
@@ -83,6 +84,7 @@ export function normalizeLaunchedToken(
     description: token.description,
     createdAt: token.createdAt,
     creator: token.creator,
+    isVerified: isVerifiedBaseToken(token.address) || isVerifiedBaseToken(token.symbol),
 
     priceUsd: price,
     priceChange24h: market?.priceChange24h ?? 0,
@@ -145,6 +147,7 @@ export function normalizeBaseStock(
     description: `Tokenized ${stock.name} US equity on Base backed 1:1 by custody shares.`,
     createdAt: Date.now() - 30 * 86400000,
     creator: "0xb200000000000000000000000000000000000000",
+    isVerified: true,
 
     priceUsd,
     priceChange24h,

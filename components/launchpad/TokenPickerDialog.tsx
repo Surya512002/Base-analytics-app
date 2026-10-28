@@ -10,10 +10,12 @@ import {
 import { resolveTokenByAddress } from "@/lib/api/launchpad-client";
 import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
 import TokenIcon from "@/components/swap/TokenIcon";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 /** Either native ETH or any Base ERC-20. */
 export type SwapCounter =
-  | { kind: "eth"; isUnverified?: boolean; name?: string }
+  | { kind: "eth"; isUnverified?: boolean; isVerified?: boolean; name?: string }
   | {
       kind: "token";
       address: string;
@@ -21,10 +23,11 @@ export type SwapCounter =
       decimals: number;
       imageUrl?: string;
       isUnverified?: boolean;
+      isVerified?: boolean;
       name?: string;
     };
 
-export const ETH_COUNTER: SwapCounter = { kind: "eth" };
+export const ETH_COUNTER: SwapCounter = { kind: "eth", isVerified: true, isUnverified: false };
 
 export function counterSymbol(counter: SwapCounter): string {
   return counter.kind === "eth" ? "ETH" : counter.symbol;
@@ -310,6 +313,7 @@ function TokenRow({
           <span className="text-[14px] font-semibold text-[var(--ink)]">
             {counterSymbol(counter)}
           </span>
+          {isVerifiedBaseToken(counter) && <VerifiedBadge size={13} />}
           {isStock && (
             <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
               Stock RWA

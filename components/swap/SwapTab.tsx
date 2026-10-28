@@ -7,6 +7,7 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { parseSwapUrlParams } from "@/lib/swap/swap-link";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import { syncTabUrl } from "@/lib/utils/app-url";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
@@ -65,7 +66,12 @@ export default function SwapTab({
       void resolveSwapToken(buyParam).then((res) => {
         setLoadingBuyMetadata(false);
         if (res.counter) {
-          setBuyToken(res.counter);
+          const verified = isVerifiedBaseToken(res.counter);
+          setBuyToken({
+            ...res.counter,
+            isVerified: verified,
+            isUnverified: verified ? false : Boolean(res.counter.isUnverified),
+          });
         } else if (res.error) {
           app.showToast(res.error, "");
         }
@@ -77,7 +83,12 @@ export default function SwapTab({
       void resolveSwapToken(sellParam).then((res) => {
         setLoadingSellMetadata(false);
         if (res.counter) {
-          setFromPick(res.counter);
+          const verified = isVerifiedBaseToken(res.counter);
+          setFromPick({
+            ...res.counter,
+            isVerified: verified,
+            isUnverified: verified ? false : Boolean(res.counter.isUnverified),
+          });
         } else if (res.error) {
           app.showToast(res.error, "");
         }

@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { COMMON_BASE_TOKENS } from "@/lib/launchpad/common-tokens";
 import { commonTokenToCounter } from "@/lib/launchpad/token-logo";
 import { CounterAvatar, type SwapCounter, sameCounter } from "@/components/launchpad/TokenPickerDialog";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const POPULAR_SYMBOLS = ["USDC", "WETH", "cbBTC", "cbETH", "wstETH", "AERO", "USDT"];
 
@@ -52,6 +54,7 @@ export default function PopularChips({
             >
               <CounterAvatar counter={chip.counter} size={15} />
               <span className="font-mono">{chip.symbol}</span>
+              {isVerifiedBaseToken(chip.counter) && <VerifiedBadge size={11} />}
             </button>
           );
         })}
