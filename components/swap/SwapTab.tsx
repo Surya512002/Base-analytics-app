@@ -36,16 +36,13 @@ export default function SwapTab({
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
 
   // Hook for wallet holdings, dust filter, and total USD balance
+  const holdingsState = useWalletHoldings(app.wallet?.address);
   const {
-    holdings,
-    allHoldings,
+    allTokens,
     totalUsd,
-    dustCount,
-    showDust,
-    setShowDust,
+    unpricedTokens,
     loading: holdingsLoading,
-    refresh: refreshHoldings,
-  } = useWalletHoldings(app.wallet?.address);
+  } = holdingsState;
 
   // Ingest URL params reactively whenever searchParams or initialToken changes
   useEffect(() => {
@@ -99,12 +96,19 @@ export default function SwapTab({
           {app.wallet?.address && !guestMode ? (
             <div className="flex items-baseline gap-1.5 truncate">
               <span className="text-xs text-[var(--ink-muted)] font-medium">Portfolio:</span>
-              {holdingsLoading && allHoldings.length === 0 ? (
+              {holdingsLoading && allTokens.length === 0 ? (
                 <span className="text-xs text-[var(--ink-dim)]">Loading…</span>
               ) : (
-                <span className="text-xs font-mono font-black text-[var(--ink)] tabular-nums">
-                  {formatUsd(totalUsd)}
-                </span>
+                <div className="flex items-baseline gap-1.5 truncate">
+                  <span className="text-xs font-mono font-black text-[var(--ink)] tabular-nums">
+                    {formatUsd(totalUsd)}
+                  </span>
+                  {unpricedTokens.length > 0 && (
+                    <span className="text-[10px] text-[var(--ink-dim)] font-medium">
+                      (+{unpricedTokens.length} unpriced)
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           ) : (
@@ -116,11 +120,11 @@ export default function SwapTab({
           <button
             type="button"
             onClick={() => setHoldingsDrawerOpen(true)}
-            className="pop-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-[var(--brand)] hover:bg-[var(--brand-soft)] border border-[var(--brand)]/20 transition-all cursor-pointer"
+            className="pop-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-[var(--brand)] hover:bg-[var(--brand-soft)] border border-[var(--brand)]/20 transition-all cursor-pointer shrink-0"
           >
             <span>View tokens</span>
             <span className="font-mono text-[10px] bg-[var(--surface-2)] text-[var(--ink-dim)] px-1 rounded">
-              {allHoldings.length}
+              {allTokens.length}
             </span>
             <ChevronRight size={13} />
           </button>
@@ -144,7 +148,7 @@ export default function SwapTab({
         onPrefillReceiveApplied={() => setSidebarPick(null)}
         prefillFromCounter={fromPick}
         onPrefillFromApplied={() => setFromPick(null)}
-        holdings={allHoldings}
+        holdings={allTokens}
         currentBuyToken={buyToken}
         onBuyTokenChange={setBuyToken}
         loadingBuyMetadata={loadingBuyMetadata}
@@ -162,18 +166,11 @@ export default function SwapTab({
       <HoldingsDrawer
         open={holdingsDrawerOpen}
         onClose={() => setHoldingsDrawerOpen(false)}
-        holdings={holdings}
-        allHoldings={allHoldings}
-        totalUsd={totalUsd}
-        loading={holdingsLoading}
-        dustCount={dustCount}
-        showDust={showDust}
-        onToggleDust={() => setShowDust((v) => !v)}
+        holdingsState={holdingsState}
         onSelectToken={(counter) => {
           setFromPick(counter);
           setHoldingsDrawerOpen(false);
         }}
-        onRefresh={refreshHoldings}
       />
     </div>
   );
