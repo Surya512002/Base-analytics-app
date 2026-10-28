@@ -43,6 +43,7 @@ import ReviewStep from "@/components/launchpad/ReviewStep";
 import LaunchSummaryPanel from "@/components/launchpad/LaunchSummaryPanel";
 import LaunchSuccessPanel from "@/components/launchpad/LaunchSuccessPanel";
 import WhatYouGetSection from "@/components/launchpad/WhatYouGetSection";
+import { useCompliance } from "@/hooks/useCompliance";
 
 const STEPS = [
   { id: 1, title: "Type", subtitle: "Select asset model" },
@@ -65,12 +66,14 @@ export default function TokenLaunchForm({
 }) {
   const { wallet, launchLoading, b20Activated, handleLaunchB20, showToast, setShowModal } = app;
   const isConnected = !!wallet?.address;
+  const compliance = useCompliance();
 
   // Form State
   const [currentStep, setCurrentStep] = useState(1);
   const [launchType, setLaunchType] = useState<LaunchTokenType>("b20");
   const [selectedStock, setSelectedStock] = useState<BaseStock>(BASE_STOCKS[1]); // NVDAc by default
   const [stockPrices, setStockPrices] = useState<Record<string, number>>({});
+  const [nonImpersonationConfirmed, setNonImpersonationConfirmed] = useState(false);
 
   // Identity
   const [name, setName] = useState("");
@@ -318,8 +321,17 @@ export default function TokenLaunchForm({
 
   // Multi-step navigation validation
   const canGoNextFromStep = (step: number): boolean => {
-    if (step === 1) return true;
-    if (step === 2) return !!name.trim() && !!symbol.trim();
+    if (step === 1) {
+      if (
+        launchType === "memestock" &&
+        (!compliance.status.features["stocks.launchPairs"] ||
+          (compliance.isRestricted && !compliance.canEnter))
+      ) {
+        return false;
+      }
+      return true;
+    }
+    if (step === 2) return !!name.trim() && !!symbol.trim() && nonImpersonationConfirmed;
     if (step === 3) return allocatedPct <= 100;
     if (step === 4) return true;
     return true;
@@ -582,11 +594,21 @@ export default function TokenLaunchForm({
               <div className="space-y-5 animate-meridian-fade">
                 <LaunchTypeSelector value={launchType} onChange={setLaunchType} />
                 {launchType === "memestock" && (
-                  <QuoteAssetPicker
-                    selectedStock={selectedStock}
-                    onSelectStock={setSelectedStock}
-                    stockPrices={stockPrices}
-                  />
+                  (!compliance.status.features["stocks.launchPairs"] ||
+                  (compliance.isRestricted && !compliance.canEnter)) ? (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-200 text-xs space-y-1">
+                      <strong className="block font-bold">Stock-Paired Launches Unavailable</strong>
+                      <span>
+                        Token launches paired against tokenized stocks are not available in your region or are disabled by administrative policy. Standard ETH-paired launches remain fully functional.
+                      </span>
+                    </div>
+                  ) : (
+                    <QuoteAssetPicker
+                      selectedStock={selectedStock}
+                      onSelectStock={setSelectedStock}
+                      stockPrices={stockPrices}
+                    />
+                  )
                 )}
               </div>
             )}
@@ -611,6 +633,8 @@ export default function TokenLaunchForm({
                   onPickImage={onPickImage}
                   onRemoveImage={onRemoveImage}
                   imageUploading={imageUploading}
+                  nonImpersonationConfirmed={nonImpersonationConfirmed}
+                  onNonImpersonationChange={setNonImpersonationConfirmed}
                 />
               </div>
             )}

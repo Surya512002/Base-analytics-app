@@ -35,11 +35,11 @@ export default function StockBorrowSpotlight({
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--ink)]">
-            Borrow against Stocks &amp; Earn Yield on Base
+            Borrow against Stocks &amp; Compare Lending Rates on Base
           </h2>
 
           <p className="text-sm text-[var(--ink-muted)] leading-relaxed">
-            Deposit Coinbase B20 tokenized stocks (<strong className="text-[var(--ink)]">NVDAc, AAPLc, TSLAc, COINc</strong>) as collateral to borrow USDC at sub-3% rates without triggering capital gains taxes. Plus lend stocks for up to 11.2% APY or stake LP in Aerodrome gauges.
+            Deposit tokenized stock assets (B20) as collateral to borrow USDC at variable DeFi market rates. Compare live protocol lending yields across Morpho, Aave, and Aerodrome. Not financial, legal or tax advice. Rates are variable based on live market utilization.
           </p>
 
           {/* Quick Value Props */}
@@ -47,17 +47,17 @@ export default function StockBorrowSpotlight({
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]/80 p-2.5">
               <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs font-bold mb-1">
                 <Lock size={12} />
-                <span className="tabular-nums">Up to 78% LTV</span>
+                <span className="tabular-nums">Up to 77% Max LTV</span>
               </div>
-              <p className="text-[11px] text-[var(--ink-muted)]">Instant USDC loans against top equities</p>
+              <p className="text-[11px] text-[var(--ink-muted)]">Variable-rate USDC loans against top equities</p>
             </div>
 
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]/80 p-2.5">
               <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-1">
                 <TrendingUp size={12} />
-                <span className="tabular-nums">11.2% Stock APY</span>
+                <span className="tabular-nums">Variable Stock Yield</span>
               </div>
-              <p className="text-[11px] text-[var(--ink-muted)]">Securities lending to market makers</p>
+              <p className="text-[11px] text-[var(--ink-muted)]">Decentralized lending market rates</p>
             </div>
 
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]/80 p-2.5">

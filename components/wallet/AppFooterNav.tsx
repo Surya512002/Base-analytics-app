@@ -27,7 +27,7 @@ export default function AppFooterNav() {
           </div>
         </div>
 
-        <nav className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm sm:justify-items-end">
+        <nav className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm sm:justify-items-end">
           <div className="space-y-2.5 flex flex-col">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
               Products
@@ -55,7 +55,25 @@ export default function AppFooterNav() {
             </Link>
           </div>
 
-          <div className="space-y-2.5 flex flex-col col-span-2 sm:col-span-1">
+          <div className="space-y-2.5 flex flex-col">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
+              Legal &amp; Safety
+            </span>
+            <Link href="/restricted-regions" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
+              Restricted Regions
+            </Link>
+            <Link href="/risk-disclosure" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
+              Risk Disclosure
+            </Link>
+            <Link href="/terms" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
+              Privacy Policy
+            </Link>
+          </div>
+
+          <div className="space-y-2.5 flex flex-col">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
               Resources
             </span>
@@ -69,7 +87,7 @@ export default function AppFooterNav() {
               className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium inline-flex items-center gap-1.5"
             >
               <Github size={13} className="shrink-0" />
-              <span>GitHub (Open Source)</span>
+              <span>GitHub</span>
               <ExternalLink size={11} className="opacity-70" />
             </a>
             <a
@@ -101,10 +119,10 @@ export default function AppFooterNav() {
               <ExternalLink size={11} className="opacity-70" />
             </a>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-[var(--ink-dim)]">
-            <span>Low-latency Redis cache</span>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--ink-dim)]">
+            <span>Non-custodial interface</span>
             <span>·</span>
-            <span>Non-custodial execution</span>
+            <span>Not financial, legal or tax advice</span>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import {
   quoteAerodromeExactIn,
   quoteAerodromeUsdcHop,
@@ -12,11 +12,13 @@ import {
 } from "@/lib/launchpad/slipstream";
 import {
   quoteSwapExactIn,
+  quoteUniswapMultiHop,
   applySlippage,
   SWAP_ROUTER_02,
   WETH_BASE,
   type UniswapFeeTier,
 } from "@/lib/launchpad/uniswap";
+import { USDC_BASE } from "@/lib/launchpad/tokens-base";
 
 export type LaunchDex = "auto" | "uniswap" | "aerodrome" | "slipstream" | "o1";
 
@@ -33,6 +35,8 @@ export type DexQuoteResult = {
   aerodromeHasLiquidity: boolean;
   slipstreamHasLiquidity: boolean;
   uniswapFeeTier?: UniswapFeeTier;
+  uniswapPath?: Hex;
+  uniswapMultiHop?: boolean;
   aerodromeStable?: boolean;
   aerodromeHops?: AerodromeHop[];
   slipstreamTickSpacing?: SlipstreamTickSpacing;
@@ -79,6 +83,9 @@ export async function quoteLaunchSwap(params: {
     dex: Exclude<SwapVenue, "aggregator" | "o1">,
     extras?: {
       aerodromeHops?: AerodromeHop[];
+      uniswapPath?: Hex;
+      uniswapMultiHop?: boolean;
+      uniswapFeeTier?: UniswapFeeTier;
       amountOut?: bigint;
       hasLiquidity?: boolean;
       aerodromeStable?: boolean;
@@ -93,10 +100,12 @@ export async function quoteLaunchSwap(params: {
       amountOutMinimum: applySlippage(amountOut, params.slippageBps),
       hasLiquidity,
       router: routers[dex],
-      uniswapHasLiquidity: uni.hasLiquidity,
+      uniswapHasLiquidity: uni.hasLiquidity || Boolean(extras?.uniswapMultiHop),
       aerodromeHasLiquidity: aero.hasLiquidity || Boolean(extras?.aerodromeHops?.length),
       slipstreamHasLiquidity: slip.hasLiquidity,
-      uniswapFeeTier: uni.feeTier,
+      uniswapFeeTier: extras?.uniswapFeeTier ?? uni.feeTier,
+      uniswapPath: extras?.uniswapPath,
+      uniswapMultiHop: extras?.uniswapMultiHop,
       aerodromeStable: extras?.aerodromeStable ?? aero.stable,
       aerodromeHops: extras?.aerodromeHops,
       slipstreamTickSpacing: slip.tickSpacing,
@@ -117,9 +126,27 @@ export async function quoteLaunchSwap(params: {
         });
       }
     }
+    if (pref === "uniswap" && params.allowUsdcHop !== false) {
+      const uniHop = await quoteUniswapMultiHop({
+        tokenIn,
+        intermediateToken: USDC_BASE as Address,
+        tokenOut,
+        amountIn: params.amountIn,
+      });
+      if (uniHop.hasLiquidity && uniHop.path) {
+        return pick("uniswap", {
+          uniswapPath: uniHop.path,
+          uniswapMultiHop: true,
+          uniswapFeeTier: uniHop.fee2 as UniswapFeeTier,
+          amountOut: uniHop.amountOut,
+          hasLiquidity: true,
+        });
+      }
+    }
     return pick(pref);
   }
 
+  // Auto mode: check direct pairs first
   const candidates = [
     { dex: "uniswap" as const, out: uni.hasLiquidity ? uni.amountOut : BigInt(0) },
     { dex: "aerodrome" as const, out: aero.hasLiquidity ? aero.amountOut : BigInt(0) },
@@ -131,14 +158,97 @@ export async function quoteLaunchSwap(params: {
     return pick(candidates[0]!.dex);
   }
 
+  // Multi-hop routing through USDC or WETH if direct pair has no liquidity
   if (params.allowUsdcHop !== false) {
-    const hop = await quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn);
-    if (hop.hasLiquidity) {
-      return pick("aerodrome", {
-        aerodromeHops: hop.hops,
-        amountOut: hop.amountOut,
-        hasLiquidity: true,
+    const isUsdcMid =
+      tokenIn.toLowerCase() !== USDC_BASE.toLowerCase() &&
+      tokenOut.toLowerCase() !== USDC_BASE.toLowerCase();
+    const isWethMid =
+      tokenIn.toLowerCase() !== WETH_BASE.toLowerCase() &&
+      tokenOut.toLowerCase() !== WETH_BASE.toLowerCase();
+
+    const [aeroHop, uniUsdcHop, uniWethHop] = await Promise.all([
+      quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn),
+      isUsdcMid
+        ? quoteUniswapMultiHop({
+            tokenIn,
+            intermediateToken: USDC_BASE as Address,
+            tokenOut,
+            amountIn: params.amountIn,
+          })
+        : Promise.resolve({
+            amountOut: BigInt(0),
+            hasLiquidity: false,
+            path: null as Hex | null,
+            fee1: 500,
+            fee2: 3000,
+          }),
+      isWethMid
+        ? quoteUniswapMultiHop({
+            tokenIn,
+            intermediateToken: WETH_BASE as Address,
+            tokenOut,
+            amountIn: params.amountIn,
+          })
+        : Promise.resolve({
+            amountOut: BigInt(0),
+            hasLiquidity: false,
+            path: null as Hex | null,
+            fee1: 500,
+            fee2: 3000,
+          }),
+    ]);
+
+    const multiCandidates: Array<{
+      dex: "uniswap" | "aerodrome";
+      out: bigint;
+      extras: Parameters<typeof pick>[1];
+    }> = [];
+
+    if (uniUsdcHop.hasLiquidity && uniUsdcHop.path) {
+      multiCandidates.push({
+        dex: "uniswap",
+        out: uniUsdcHop.amountOut,
+        extras: {
+          uniswapPath: uniUsdcHop.path,
+          uniswapMultiHop: true,
+          uniswapFeeTier: uniUsdcHop.fee2 as UniswapFeeTier,
+          amountOut: uniUsdcHop.amountOut,
+          hasLiquidity: true,
+        },
       });
+    }
+
+    if (uniWethHop.hasLiquidity && uniWethHop.path) {
+      multiCandidates.push({
+        dex: "uniswap",
+        out: uniWethHop.amountOut,
+        extras: {
+          uniswapPath: uniWethHop.path,
+          uniswapMultiHop: true,
+          uniswapFeeTier: uniWethHop.fee2 as UniswapFeeTier,
+          amountOut: uniWethHop.amountOut,
+          hasLiquidity: true,
+        },
+      });
+    }
+
+    if (aeroHop.hasLiquidity) {
+      multiCandidates.push({
+        dex: "aerodrome",
+        out: aeroHop.amountOut,
+        extras: {
+          aerodromeHops: aeroHop.hops,
+          amountOut: aeroHop.amountOut,
+          hasLiquidity: true,
+        },
+      });
+    }
+
+    if (multiCandidates.length > 0) {
+      multiCandidates.sort((a, b) => (b.out > a.out ? 1 : b.out < a.out ? -1 : 0));
+      const best = multiCandidates[0]!;
+      return pick(best.dex, best.extras);
     }
   }
 

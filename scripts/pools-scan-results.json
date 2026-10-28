@@ -1,0 +1,445 @@
+[
+  {
+    "symbol": "NVDAc",
+    "name": "NVIDIA",
+    "address": "0xb20000000000000000000078ee7ce2fE4908108C",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "NVDAc/USDC",
+        "feeTier": 500,
+        "pool": "0xD3085c0C2605CEf89F02A742AcDfAc95DcA79BcD",
+        "stockBal": "622",
+        "quoteBal": "2512"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "NVDAc/USDC",
+        "feeTier": 3000,
+        "pool": "0x60661b315553EB81872deEA9a66d567Cf0CCd33B",
+        "stockBal": "2702292880",
+        "quoteBal": "5351610114"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "NVDAc/USDC",
+        "feeTier": 10000,
+        "pool": "0x9778AAd868418FF6c996294Ce62c9Ed2B96896D1",
+        "stockBal": "417",
+        "quoteBal": "25"
+      },
+      {
+        "venue": "Aerodrome V2",
+        "pair": "NVDAc/USDC",
+        "poolType": "volatile",
+        "pool": "0x2e39A9018330c8784956998185D23D9dB503d1F7",
+        "stockBal": "3497",
+        "quoteBal": "7198"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "NVDAc/WETH",
+        "feeTier": 100,
+        "pool": "0xD7f082622aF1601Ac975EeDbF60c469614128f0B",
+        "stockBal": "0",
+        "quoteBal": "1"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "NVDAc/WETH",
+        "feeTier": 3000,
+        "pool": "0x8e740D5Fa742B763cD82159894b9919eD57E4f70",
+        "stockBal": "2412668551",
+        "quoteBal": "5133563026601246740"
+      }
+    ]
+  },
+  {
+    "symbol": "AAPLc",
+    "name": "Apple",
+    "address": "0xb200000000000000000000C2e324d24d7eEcd1fb",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "AAPLc/USDC",
+        "feeTier": 100,
+        "pool": "0x41CC7D3162989a25701CEacd3c7104483b2298aE",
+        "stockBal": "7",
+        "quoteBal": "1"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "AAPLc/USDC",
+        "feeTier": 3000,
+        "pool": "0x97F35d1E92795327614BE000cd18cba1Be2c1931",
+        "stockBal": "653147358",
+        "quoteBal": "27988055611"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "AAPLc/USDC",
+        "feeTier": 10000,
+        "pool": "0x7cB5eB63cef446168EB29f892e5759789B29bFD4",
+        "stockBal": "69",
+        "quoteBal": "39"
+      },
+      {
+        "venue": "Aerodrome V2",
+        "pair": "AAPLc/USDC",
+        "poolType": "volatile",
+        "pool": "0x6b74fC52Dd84bEb8d2D1BE16732749Dee70C45e7",
+        "stockBal": "1518",
+        "quoteBal": "4988"
+      }
+    ]
+  },
+  {
+    "symbol": "TSLAc",
+    "name": "Tesla",
+    "address": "0xb2000000000000000000001e800a7f5189430cD0",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "TSLAc/USDC",
+        "feeTier": 10000,
+        "pool": "0xad6A86333C579d5Bbd150F28e74651006Fa87b3B",
+        "stockBal": "92364",
+        "quoteBal": "26"
+      }
+    ]
+  },
+  {
+    "symbol": "COINc",
+    "name": "Coinbase",
+    "address": "0xb200000000000000000000c85a31389D71F3ecfb",
+    "pools": []
+  },
+  {
+    "symbol": "GOOGLc",
+    "name": "Alphabet Inc. (Google)",
+    "address": "0xb2000000000000000000002D0BA3164cc74f58B7",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "GOOGLc/USDC",
+        "feeTier": 3000,
+        "pool": "0x8634EE4145A63E40E44e12A6Bb1B905Fcb8856a6",
+        "stockBal": "2927725341",
+        "quoteBal": "5743904972"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "GOOGLc/USDC",
+        "feeTier": 10000,
+        "pool": "0x1f52F46BaC657564c31122b12b43A459E09273C8",
+        "stockBal": "16703259844",
+        "quoteBal": "9887921642"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "GOOGLc/WETH",
+        "feeTier": 10000,
+        "pool": "0xC52c7836439E61975cb4445ab3581AfA3Fe9188B",
+        "stockBal": "1",
+        "quoteBal": "1"
+      }
+    ]
+  },
+  {
+    "symbol": "MSFTc",
+    "name": "Microsoft Corp",
+    "address": "0xB200000000000000000000Ab99cFa739E253872B",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "MSFTc/USDC",
+        "feeTier": 10000,
+        "pool": "0xD73cBeCC0F62C7C1704332ED119514d6d84DC607",
+        "stockBal": "516444900",
+        "quoteBal": "4727787719"
+      }
+    ]
+  },
+  {
+    "symbol": "AMZNc",
+    "name": "Amazon.com Inc.",
+    "address": "0xb200000000000000000000d9192b6B456483C2E8",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "AMZNc/USDC",
+        "feeTier": 3000,
+        "pool": "0xeC50990e07792BeB4038DB9F4342a2ed2883B2B9",
+        "stockBal": "27",
+        "quoteBal": "28"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "AMZNc/USDC",
+        "feeTier": 10000,
+        "pool": "0x7F030e5fD657795C0937a3e8af2929Fd90DA91C7",
+        "stockBal": "3601811792",
+        "quoteBal": "7141679621"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "AMZNc/WETH",
+        "feeTier": 3000,
+        "pool": "0x9F46643b48CC80684A5b733C807DCC39a9DD6799",
+        "stockBal": "102",
+        "quoteBal": "132669737"
+      }
+    ]
+  },
+  {
+    "symbol": "METAc",
+    "name": "Meta Platforms Inc.",
+    "address": "0xb2000000000000000000008bC8786B856E61707C",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "METAc/USDC",
+        "feeTier": 100,
+        "pool": "0xe3B613E025f5BECcD64AC800CF87998bD461CC5F",
+        "stockBal": "0",
+        "quoteBal": "1"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "METAc/USDC",
+        "feeTier": 3000,
+        "pool": "0x583919ec1975a1238C50e1940911894ee6912476",
+        "stockBal": "605577789",
+        "quoteBal": "2061139939"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "METAc/WETH",
+        "feeTier": 3000,
+        "pool": "0xaA069cEECa782806656fE031580313a3C7A16E5b",
+        "stockBal": "456231",
+        "quoteBal": "77"
+      }
+    ]
+  },
+  {
+    "symbol": "MSTRc",
+    "name": "MicroStrategy Inc.",
+    "address": "0xb2000000000000000000004884b426556b92883d",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "MSTRc/USDC",
+        "feeTier": 500,
+        "pool": "0x5eE9A870c6c416AEad3C742D56FC31d7e51EAFe4",
+        "stockBal": "161",
+        "quoteBal": "56"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "MSTRc/USDC",
+        "feeTier": 10000,
+        "pool": "0x5237817130DFc43F176A9146D3aE1Be85cBacAFb",
+        "stockBal": "14",
+        "quoteBal": "25"
+      }
+    ]
+  },
+  {
+    "symbol": "CRCLc",
+    "name": "Circle Internet Financial",
+    "address": "0xB20000000000000000000019f6E7C675b73C2e4D",
+    "pools": []
+  },
+  {
+    "symbol": "INTCc",
+    "name": "Intel Corp",
+    "address": "0xB2000000000000000000004AFF16039bA04bdFBc",
+    "pools": []
+  },
+  {
+    "symbol": "SPCXc",
+    "name": "SpaceX",
+    "address": "0xb2000000000000000000007b9fcbd005511aCBd5",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "SPCXc/USDC",
+        "feeTier": 500,
+        "pool": "0x668B2702A77D6fd83f5DF3a41437463A8eA5CF7f",
+        "stockBal": "1",
+        "quoteBal": "491"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "SPCXc/USDC",
+        "feeTier": 3000,
+        "pool": "0xE08e2EDA9ce04009274Cf6E6543F9A234Bd910D2",
+        "stockBal": "12158",
+        "quoteBal": "19022"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "SPCXc/USDC",
+        "feeTier": 10000,
+        "pool": "0x127a12FC0953ab2ab89558c67Ba6D597D7140431",
+        "stockBal": "3343551509",
+        "quoteBal": "4963362362"
+      },
+      {
+        "venue": "Aerodrome V2",
+        "pair": "SPCXc/USDC",
+        "poolType": "volatile",
+        "pool": "0xe06988BF596e4F1f6aD8571D15148095597C86C1",
+        "stockBal": "20084510",
+        "quoteBal": "30149560"
+      },
+      {
+        "venue": "Uniswap V3",
+        "pair": "SPCXc/WETH",
+        "feeTier": 500,
+        "pool": "0x606778bcE9E0E5881d29A1b0120bAFf5cfa27879",
+        "stockBal": "1840471",
+        "quoteBal": "1186019934041737"
+      }
+    ]
+  },
+  {
+    "symbol": "SNDKc",
+    "name": "SanDisk / Western Digital",
+    "address": "0xb200000000000000000000397293Cb8cda9a10c5",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "SNDKc/USDC",
+        "feeTier": 10000,
+        "pool": "0x26fa54cdfc64fAacb5364c09De7Ac2F72308052D",
+        "stockBal": "4410118",
+        "quoteBal": "49650647"
+      }
+    ]
+  },
+  {
+    "symbol": "PLTRc",
+    "name": "Palantir Technologies",
+    "address": "0xb2000000000000000000007d16372840dF4dAbbe",
+    "pools": [
+      {
+        "venue": "Uniswap V3",
+        "pair": "PLTRc/USDC",
+        "feeTier": 10000,
+        "pool": "0x3F466d9dBc030E76Cbf927D48d8551aE25C916A6",
+        "stockBal": "5",
+        "quoteBal": "12"
+      }
+    ]
+  },
+  {
+    "symbol": "AMDc",
+    "name": "Advanced Micro Devices",
+    "address": "0xB2000000000000000000000d8Ce462E99ee7A47B",
+    "pools": []
+  },
+  {
+    "symbol": "ARMc",
+    "name": "Arm Holdings plc",
+    "address": "0xB20000000000000000000026215D755356E5043f",
+    "pools": []
+  },
+  {
+    "symbol": "NFLXc",
+    "name": "Netflix Inc.",
+    "address": "0xb20000000000000000000058B8c947e44011dFE6",
+    "pools": []
+  },
+  {
+    "symbol": "RKLBc",
+    "name": "Rocket Lab USA Inc.",
+    "address": "0xb200000000000000000000e8E50CBbb9a3861a3C",
+    "pools": []
+  },
+  {
+    "symbol": "RDDTc",
+    "name": "Reddit Inc.",
+    "address": "0xb20000000000000000000066242d4067724cB7A1",
+    "pools": []
+  },
+  {
+    "symbol": "RIVNc",
+    "name": "Rivian Automotive",
+    "address": "0xB2000000000000000000003e4249C65bd6c037d9",
+    "pools": []
+  },
+  {
+    "symbol": "SOFIc",
+    "name": "SoFi Technologies",
+    "address": "0xB2000000000000000000003eF37a7c863DC1482A",
+    "pools": []
+  },
+  {
+    "symbol": "PYPLc",
+    "name": "PayPal Holdings Inc.",
+    "address": "0xb200000000000000000000450ad3abE5d4846c6E",
+    "pools": []
+  },
+  {
+    "symbol": "UBERc",
+    "name": "Uber Technologies Inc.",
+    "address": "0xb200000000000000000000cAE20cb1446462e24c",
+    "pools": []
+  },
+  {
+    "symbol": "WMTc",
+    "name": "Walmart Inc.",
+    "address": "0xb2000000000000000000008a7508619c717A7106",
+    "pools": []
+  },
+  {
+    "symbol": "BRK.Bc",
+    "name": "Berkshire Hathaway B",
+    "address": "0xb20000000000000000000024170488e788CBbCb4",
+    "pools": []
+  },
+  {
+    "symbol": "PFEc",
+    "name": "Pfizer Inc.",
+    "address": "0xB20000000000000000000018FE7eC7d6DfeeB528",
+    "pools": []
+  },
+  {
+    "symbol": "LLYc",
+    "name": "Eli Lilly and Co.",
+    "address": "0xB200000000000000000000f1a0F91e34892E4718",
+    "pools": []
+  },
+  {
+    "symbol": "AVGOc",
+    "name": "Broadcom Inc.",
+    "address": "0xB200000000000000000000Fc737aeA6196aB5a4c",
+    "pools": []
+  },
+  {
+    "symbol": "MARAc",
+    "name": "MARA Holdings Inc.",
+    "address": "0xB200000000000000000000a310e034E09186Fb2d",
+    "pools": []
+  },
+  {
+    "symbol": "RIOTc",
+    "name": "Riot Platforms Inc.",
+    "address": "0xb200000000000000000000bd0C7627b663c581A6",
+    "pools": []
+  },
+  {
+    "symbol": "GMEc",
+    "name": "GameStop Corp",
+    "address": "0xb2000000000000000000007790ed6E48e06eD935",
+    "pools": []
+  },
+  {
+    "symbol": "AMCc",
+    "name": "AMC Entertainment",
+    "address": "0xB200000000000000000000CD7e6b8042cb7c2BB5",
+    "pools": []
+  }
+]

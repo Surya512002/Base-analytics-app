@@ -26,6 +26,7 @@ import {
 } from "@/lib/explore/explore-config";
 import { shortAddr, timeAgo } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import { buildSwapLink } from "@/lib/swap/swap-link";
 
 interface TokenQuickViewProps {
   token: UnifiedToken | null;
@@ -57,7 +58,7 @@ export default function TokenQuickView({
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}/swap?token=${token.address}`;
+    const url = `${window.location.origin}${buildSwapLink({ buy: token.address })}`;
     navigator.clipboard.writeText(url);
     setShared(true);
     setTimeout(() => setShared(false), 2000);

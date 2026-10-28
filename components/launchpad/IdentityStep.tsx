@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { X, Globe, Twitter, Send, ImagePlus, AlertCircle } from "lucide-react";
+import { X, Globe, Twitter, Send, ImagePlus, AlertCircle, AlertTriangle, ShieldCheck } from "lucide-react";
+import { checkTrademarkCollision } from "@/lib/launchpad/trademark-check";
 
 interface IdentityStepProps {
   name: string;
@@ -20,6 +21,8 @@ interface IdentityStepProps {
   onPickImage: (file: File | null) => void;
   onRemoveImage: () => void;
   imageUploading?: boolean;
+  nonImpersonationConfirmed?: boolean;
+  onNonImpersonationChange?: (v: boolean) => void;
 }
 
 function isValidHttpUrl(str: string): boolean {
@@ -49,6 +52,8 @@ export default function IdentityStep({
   onPickImage,
   onRemoveImage,
   imageUploading: _imageUploading = false,
+  nonImpersonationConfirmed = false,
+  onNonImpersonationChange,
 }: IdentityStepProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [websiteError, setWebsiteError] = useState(false);
@@ -60,6 +65,8 @@ export default function IdentityStep({
       setWebsiteError(false);
     }
   };
+
+  const trademark = checkTrademarkCollision(name, symbol);
 
   return (
     <div className="space-y-5 max-w-full overflow-hidden">
@@ -176,6 +183,17 @@ export default function IdentityStep({
           </div>
         </div>
 
+        {/* Trademark Collision Notice */}
+        {trademark.hasWarning && (
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2.5">
+            <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <strong className="block font-bold">Trademark &amp; Non-Impersonation Notice</strong>
+              <span>{trademark.warningMessage}</span>
+            </div>
+          </div>
+        )}
+
         {/* Description with Character Counter */}
         <div className="min-w-0">
           <div className="flex items-center justify-between mb-1.5">
@@ -261,6 +279,21 @@ export default function IdentityStep({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Creator Non-Impersonation & Trademark Policy Guardrail */}
+        <div className="pt-3 border-t border-[var(--border-subtle)]">
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] transition cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={nonImpersonationConfirmed}
+              onChange={(e) => onNonImpersonationChange?.(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-[var(--border-subtle)] text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-xs text-[var(--ink)] leading-snug">
+              I confirm that this token name, symbol, logo, and description do not impersonate, infringe, or misuse any existing company, brand, logo, or trademark.
+            </span>
+          </label>
         </div>
       </div>
     </div>

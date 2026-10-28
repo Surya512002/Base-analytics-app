@@ -91,6 +91,8 @@ export type SwapQuoteResponse = {
   aerodromeHasLiquidity?: boolean;
   slipstreamHasLiquidity?: boolean;
   uniswapFeeTier?: number;
+  uniswapPath?: string | null;
+  uniswapMultiHop?: boolean;
   aerodromeStable?: boolean;
   aerodromeHops?: Array<{ from: string; to: string; stable: boolean }>;
   slipstreamTickSpacing?: number;

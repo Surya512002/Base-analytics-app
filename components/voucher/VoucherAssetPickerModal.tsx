@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, X, Sparkles, TrendingUp, Check } from "lucide-react";
+import { Search, X, Sparkles, TrendingUp, Check, AlertTriangle } from "lucide-react";
 import { BASE_STOCKS, type BaseStock } from "@/lib/stocks/base-stocks";
 import { YIELD_VAULT_SHARES, type VaultShareInfo } from "@/lib/utils/voucher";
 import type { VoucherAsset } from "@/lib/utils/voucher";
 import TokenLogo from "@/components/ui/TokenLogo";
+import { useCompliance } from "@/hooks/useCompliance";
 
 interface VoucherAssetPickerModalProps {
   open: boolean;
@@ -26,6 +27,11 @@ export default function VoucherAssetPickerModal({
 }: VoucherAssetPickerModalProps) {
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState<string>("all");
+  const compliance = useCompliance();
+
+  const isStockVoucherDisabled = !compliance.status.features["stocks.vouchers"];
+  const isRegionRestricted = compliance.isRestricted && !compliance.canEnter;
+  const isStockCategoryRestricted = category === "stock" && (isStockVoucherDisabled || isRegionRestricted);
 
   useEffect(() => {
     if (open) {
@@ -175,6 +181,18 @@ export default function VoucherAssetPickerModal({
           )}
         </div>
 
+        {/* Region / Feature Restriction Notice */}
+        {isStockCategoryRestricted && (
+          <div className="mx-4 mt-2 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            <span>
+              {isStockVoucherDisabled
+                ? "Tokenized stock voucher creation is currently paused."
+                : "Tokenized stock features are not available in your region. Stock vouchers cannot be created."}
+            </span>
+          </div>
+        )}
+
         {/* List of items */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1 divide-y divide-[var(--border-subtle)]/30">
           {items.length === 0 ? (
@@ -192,12 +210,16 @@ export default function VoucherAssetPickerModal({
                 <button
                   key={item.symbol}
                   type="button"
+                  disabled={isStockCategoryRestricted}
                   onClick={() => {
+                    if (isStockCategoryRestricted) return;
                     onSelect(symbol);
                     onClose();
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-xl transition text-left cursor-pointer group ${
-                    isSelected
+                    isStockCategoryRestricted
+                      ? "opacity-50 cursor-not-allowed bg-[var(--surface-2)]/50"
+                      : isSelected
                       ? "bg-[var(--brand-soft)] border border-[var(--brand)]/30"
                       : "hover:bg-[var(--surface-2)] border border-transparent"
                   }`}

@@ -343,7 +343,7 @@ export default function StocksLendingHub({
               Compare Lending &amp; Borrowing for {currentStock.name}
             </h2>
             <p className="text-sm text-[var(--ink-muted)] leading-relaxed">
-              Compare live securities lending yields and USDC borrow rates across verified Base protocols for Coinbase tokenized stocks. 1-click execution with real wallet balances.
+              Compare live protocol lending yields and variable USDC borrow rates across verified Base protocols for tokenized stocks. Not financial, legal or tax advice. Rates are variable based on protocol market data.
             </p>
           </div>
 
@@ -373,7 +373,7 @@ export default function StocksLendingHub({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[var(--brand-soft)] text-[var(--brand-dark)]">
               <Sparkles size={13} />
-              Securities Lending Hub
+              Tokenized Stocks Lending Hub
             </span>
 
             {/* Live Real-Time Indicator Badge */}

@@ -28,6 +28,8 @@ import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
 import { computeSwapUsd } from "@/lib/launchpad/swap-display";
 import { getStockBaselineNav } from "@/lib/stocks/coinbase-api";
+import { getStockTradability } from "@/lib/stocks/stock-tradability";
+import { DEFAULT_STOCK_COMPLIANCE } from "@/lib/stocks/compliance";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
 import {
   CounterAvatar,
@@ -52,6 +54,9 @@ import { enrichSwapCounter } from "@/lib/launchpad/token-logo";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 import TokenSelectorModal from "./TokenSelectorModal";
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
+import { useCompliance } from "@/hooks/useCompliance";
+import StockRiskModal from "@/components/compliance/StockRiskModal";
+import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto Best" },
@@ -96,6 +101,9 @@ interface DexSwapCardProps {
   holdings?: TokenHolding[];
   currentBuyToken?: SwapCounter | null;
   onBuyTokenChange?: (counter: SwapCounter | null) => void;
+  loadingBuyMetadata?: boolean;
+  loadingSellMetadata?: boolean;
+  initialAmount?: string | null;
 }
 
 export default function DexSwapCard({
@@ -110,14 +118,23 @@ export default function DexSwapCard({
   holdings = [],
   currentBuyToken,
   onBuyTokenChange,
+  loadingBuyMetadata = false,
+  loadingSellMetadata: _loadingSellMetadata = false,
+  initialAmount,
 }: DexSwapCardProps) {
   const { wallet, walletCore, swapLoading, handleTokenSwap, showToast } = app;
 
   const [from, setFrom] = useState<SwapCounter>(ETH_COUNTER);
   const [to, setTo] = useState<SwapCounter | null>(currentBuyToken ?? null);
   const [pickerSide, setPickerSide] = useState<"from" | "to" | null>(null);
-  const [amount, setAmount] = useState("0.01");
+  const [amount, setAmount] = useState(initialAmount && parseFloat(initialAmount) > 0 ? initialAmount : "0.01");
   const [slippage, setSlippage] = useState("0.5");
+
+  useEffect(() => {
+    if (initialAmount && parseFloat(initialAmount) > 0) {
+      setAmount(initialAmount);
+    }
+  }, [initialAmount]);
   const [dex, setDex] = useState<LaunchDex>("auto");
   const [showSettings, setShowSettings] = useState(false);
   const [showDetails, setShowDetails] = useState(true);
@@ -522,6 +539,30 @@ export default function DexSwapCard({
     payAmountNum > 0 &&
     payAmountNum > fromBalance;
 
+  const stockTradability = useMemo(() => {
+    if (to && to.kind === "token" && to.symbol.endsWith("c")) {
+      return getStockTradability(to.address);
+    }
+    if (from && from.kind === "token" && from.symbol.endsWith("c")) {
+      return getStockTradability(from.address);
+    }
+    return null;
+  }, [to, from]);
+
+  const compliance = useCompliance();
+
+  const isStockToken = useCallback((counter: SwapCounter | null | undefined): boolean => {
+    if (!counter || counter.kind !== "token") return false;
+    return counter.symbol.endsWith("c") || !!getTokenizedStockBySymbol(counter.symbol);
+  }, []);
+
+  const isStockBuy = isStockToken(to);
+  const isStockSell = isStockToken(from);
+  const isStockInvolved = isStockBuy || isStockSell;
+  const isStockSwapDisabled = !compliance.status.features["stocks.swap"];
+  const isStockBuyRestricted =
+    isStockBuy && (isStockSwapDisabled || (compliance.isRestricted && !compliance.canEnter));
+
   // Primary Action Button Label & State
   const buttonState = useMemo(() => {
     if (guestMode || !wallet) {
@@ -529,6 +570,18 @@ export default function DexSwapCard({
     }
     if (!to) {
       return { label: "Select buy token", disabled: true, action: "select_token" };
+    }
+    if (isStockBuyRestricted) {
+      if (isStockSwapDisabled) {
+        return { label: "Stock Swaps Temporarily Disabled", disabled: true, action: "swap_disabled" };
+      }
+      return { label: "Tokenized stock features are not available in your region", disabled: true, action: "region_restricted" };
+    }
+    if (stockTradability && stockTradability.status === "no_pool") {
+      return { label: "No DEX Liquidity Pool Yet", disabled: true, action: "no_pool" };
+    }
+    if (stockTradability && stockTradability.status === "restricted") {
+      return { label: "Transfers Restricted", disabled: true, action: "restricted" };
     }
     if (!amount || payAmountNum <= 0) {
       return { label: "Enter an amount", disabled: true, action: "enter_amount" };
@@ -546,7 +599,22 @@ export default function DexSwapCard({
       return { label: "Confirming in wallet…", disabled: true, action: "confirming" };
     }
     return { label: `Swap ${counterSymbol(from)} → ${counterSymbol(to)}`, disabled: false, action: "swap" };
-  }, [guestMode, wallet, to, amount, payAmountNum, insufficientBalance, quoteLoading, quoteOut, hasLiquidity, swapLoading, from]);
+  }, [
+    guestMode,
+    wallet,
+    to,
+    isStockBuyRestricted,
+    isStockSwapDisabled,
+    stockTradability,
+    amount,
+    payAmountNum,
+    insufficientBalance,
+    quoteLoading,
+    quoteOut,
+    hasLiquidity,
+    swapLoading,
+    from,
+  ]);
 
   // Execute Swap
   const handleSwap = async () => {
@@ -555,6 +623,12 @@ export default function DexSwapCard({
       return;
     }
     if (!route || !to || buttonState.disabled) return;
+
+    // Check risk acknowledgement for stock swaps
+    if (isStockInvolved && !compliance.hasAcknowledged) {
+      compliance.openModal();
+      return;
+    }
 
     const ok = await handleTokenSwap({
       token: route.pageToken.address,
@@ -855,25 +929,32 @@ export default function DexSwapCard({
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setPickerSide("to")}
-              className={`pop-pill shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl shadow-xs transition-all cursor-pointer ${
-                to
-                  ? "bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)]"
-                  : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"
-              }`}
-            >
-              {to ? (
-                <>
-                  <CounterAvatar counter={to} size={24} />
-                  <span className="font-bold text-sm text-[var(--ink)]">{counterSymbol(to)}</span>
-                </>
-              ) : (
-                <span className="font-bold text-sm">Select Token</span>
-              )}
-              <ChevronDown size={14} className={to ? "text-[var(--ink-dim)]" : "text-white/80"} />
-            </button>
+            {loadingBuyMetadata ? (
+              <div className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] shadow-xs animate-pulse">
+                <div className="w-6 h-6 rounded-full bg-[var(--surface-3)]" />
+                <div className="w-16 h-4 rounded bg-[var(--surface-3)]" />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPickerSide("to")}
+                className={`pop-pill shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl shadow-xs transition-all cursor-pointer ${
+                  to
+                    ? "bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)]"
+                    : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"
+                }`}
+              >
+                {to ? (
+                  <>
+                    <CounterAvatar counter={to} size={24} />
+                    <span className="font-bold text-sm text-[var(--ink)]">{counterSymbol(to)}</span>
+                  </>
+                ) : (
+                  <span className="font-bold text-sm">Select Token</span>
+                )}
+                <ChevronDown size={14} className={to ? "text-[var(--ink-dim)]" : "text-white/80"} />
+              </button>
+            )}
           </div>
 
           <div className="mt-1 flex items-center justify-between text-xs text-[var(--ink-dim)] font-mono">
@@ -991,11 +1072,113 @@ export default function DexSwapCard({
           </div>
         )}
 
-        {/* MEV & Equities Settlement Tag */}
-        {to?.kind === "token" && to.symbol.endsWith("c") && (
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-700 dark:text-blue-300 font-medium">
-            <ShieldCheck size={14} className="text-blue-500 shrink-0" />
-            <span>Coinbase Tokenized Stock Settlement · Backed 1:1 by real equities</span>
+        {/* Unverified Token Warning */}
+        {(to?.isUnverified || from?.isUnverified) && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+            <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+            <span>Unverified token · Imported directly from Base on-chain contract</span>
+          </div>
+        )}
+
+        {/* Regulatory / Eligibility Notice */}
+        {((to?.kind === "token" && to.symbol.endsWith("c")) ||
+          (from?.kind === "token" && from.symbol.endsWith("c"))) && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-700 dark:text-blue-300 font-medium">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <ShieldCheck size={14} className="text-blue-500 shrink-0" />
+              <span className="truncate">{DEFAULT_STOCK_COMPLIANCE.neutralNotice}</span>
+            </div>
+            <a
+              href={DEFAULT_STOCK_COMPLIANCE.issuerTermsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-bold shrink-0 inline-flex items-center gap-0.5 hover:opacity-80 text-blue-600 dark:text-blue-400"
+            >
+              <span>Terms</span>
+              <ExternalLink size={10} />
+            </a>
+          </div>
+        )}
+
+        {/* Low Liquidity Stock Warning (Warn, Allow) */}
+        {stockTradability && stockTradability.status === "low_liquidity" && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+              <span>Low on-chain liquidity — higher slippage expected. Trading is enabled.</span>
+            </div>
+            {stockTradability.suggestedAction?.url && (
+              <a
+                href={stockTradability.suggestedAction.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-bold underline shrink-0 hover:opacity-80"
+              >
+                <span>Pool</span>
+                <ExternalLink size={11} />
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Non-Tradable Stock State Details & Alternative Action */}
+        {stockTradability && stockTradability.status === "no_pool" && (
+          <div className="p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between text-xs gap-3">
+            <div className="flex items-center gap-2 text-[var(--ink-muted)]">
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+              <div className="flex flex-col">
+                <span>No DEX liquidity pool deployed on Base yet.</span>
+                {stockTradability.suggestedAction?.url && (
+                  <a
+                    href={stockTradability.suggestedAction.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-[var(--brand)] underline hover:opacity-80 inline-flex items-center gap-1"
+                  >
+                    <span>View token on BaseScan</span>
+                    <ExternalLink size={10} />
+                  </a>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.location.href = "/lend";
+                }
+              }}
+              className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:bg-[var(--brand-dark)] transition-colors shrink-0 cursor-pointer"
+            >
+              Lend &amp; Stake
+            </button>
+          </div>
+        )}
+
+        {stockTradability && stockTradability.status === "restricted" && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+            <div className="flex items-center gap-2 font-bold">
+              <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+              <span>Transfers restricted</span>
+            </div>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              {stockTradability.reason}
+            </p>
+          </div>
+        )}
+
+        {/* Compliance Warning for Stock Buys */}
+        {isStockBuyRestricted && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+            <div className="flex items-center gap-2 font-bold">
+              <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+              <span>{isStockSwapDisabled ? "Stock Swaps Disabled" : "Tokenized stock features are not available in your region"}</span>
+            </div>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              {isStockSwapDisabled
+                ? "Tokenized stock swaps are temporarily paused via safety kill switch."
+                : "Exit-only mode is active: buying tokenized stocks is unavailable in your region, but you can sell existing tokenized stock holdings."}
+            </p>
           </div>
         )}
 
@@ -1081,6 +1264,14 @@ export default function DexSwapCard({
         title={pickerSide === "from" ? "Pay With (Sell)" : "Receive (Buy)"}
         holdings={holdings}
         walletAddress={wallet?.address}
+      />
+
+      {/* Stock Risk Acknowledgement Modal */}
+      <StockRiskModal
+        isOpen={compliance.modalOpen}
+        onClose={compliance.closeModal}
+        onAcknowledge={compliance.acknowledge}
+        issuerTermsUrl={compliance.status.issuerTermsUrl}
       />
     </div>
   );

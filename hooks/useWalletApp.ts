@@ -163,6 +163,8 @@ import {
 import {
   encodeExactInputSingle,
   encodeExactInputSingleToEth,
+  encodeExactInputMultiHop,
+  encodeExactInputMultiHopToEth,
   encodeWethWithdrawCalldata,
   SWAP_ROUTER_02,
   WETH_BASE,
@@ -1401,6 +1403,7 @@ function useWalletAppController() {
         const weth = WETH_BASE as `0x${string}`;
         const minOut = BigInt(quote.amountOutMinimum);
         const uniFee = quote.uniswapFeeTier ?? 3000;
+        const uniPath = quote.uniswapPath as `0x${string}` | undefined;
         const aeroStable = quote.aerodromeStable ?? false;
         const aeroHops = quote.aerodromeHops?.map((h) => ({
           from: h.from as `0x${string}`,
@@ -1519,15 +1522,22 @@ function useWalletAppController() {
                       amountOutMinimum: minOut,
                       tickSpacing: slipTick,
                     })
-                  : encodeExactInputSingle({
-                      tokenIn: weth,
-                      tokenOut: token,
-                      recipient,
-                      amountIn: net,
-                      amountOutMinimum: minOut,
-                      fee: uniFee,
-                    });
-            calls.push(buildContractCall(router, swapData, net));
+                  : uniPath
+                    ? encodeExactInputMultiHop({
+                        path: uniPath,
+                        recipient,
+                        amountIn: net,
+                        amountOutMinimum: minOut,
+                      })
+                    : encodeExactInputSingle({
+                        tokenIn: (payAsset === "usdc" ? USDC_BASE : payAsset === "token" && args.payToken ? args.payToken : weth) as `0x${string}`,
+                        tokenOut: token,
+                        recipient,
+                        amountIn: net,
+                        amountOutMinimum: minOut,
+                        fee: uniFee,
+                      });
+            calls.push(buildContractCall(router, swapData, payIsNative ? net : BigInt(0)));
           }
         } else {
           const gross = parseUnits(args.amount, tokenDecimals);
@@ -1597,13 +1607,36 @@ function useWalletAppController() {
                       amountOutMinimum: minOut,
                       tickSpacing: slipTick,
                     })
-                  : encodeExactInputSingleToEth({
-                      tokenIn: token,
-                      recipient,
-                      amountIn: sellAmount,
-                      amountOutMinimum: minOut,
-                      fee: uniFee,
-                    });
+                  : uniPath
+                    ? (receiveAsset === "eth"
+                        ? encodeExactInputMultiHopToEth({
+                            path: uniPath,
+                            recipient,
+                            amountIn: sellAmount,
+                            amountOutMinimum: minOut,
+                          })
+                        : encodeExactInputMultiHop({
+                            path: uniPath,
+                            recipient,
+                            amountIn: sellAmount,
+                            amountOutMinimum: minOut,
+                          }))
+                    : receiveAsset === "eth"
+                      ? encodeExactInputSingleToEth({
+                          tokenIn: token,
+                          recipient,
+                          amountIn: sellAmount,
+                          amountOutMinimum: minOut,
+                          fee: uniFee,
+                        })
+                      : encodeExactInputSingle({
+                          tokenIn: token,
+                          tokenOut: (receiveAsset === "usdc" ? USDC_BASE : args.receiveToken || USDC_BASE) as `0x${string}`,
+                          recipient,
+                          amountIn: sellAmount,
+                          amountOutMinimum: minOut,
+                          fee: uniFee,
+                        });
             calls.push(buildContractCall(router, swapData));
           }
         }

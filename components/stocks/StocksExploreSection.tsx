@@ -21,6 +21,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { buildSwapLink } from "@/lib/swap/swap-link";
+import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import type { CoinbaseTokenizedStock, LiquidityHealthTier } from "@/lib/stocks/coinbase-api";
 import TokenLogo from "@/components/ui/TokenLogo";
 
@@ -139,7 +141,7 @@ export default function StocksExploreSection({
     if (onTradeStock) {
       onTradeStock(stock);
     } else {
-      router.push(`/swap?token=${stock.address}`);
+      router.push(buildSwapLink({ buy: stock.address }));
     }
   };
 
@@ -320,7 +322,44 @@ export default function StocksExploreSection({
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase">
                             {stock.category}
                           </span>
-                          {renderLiquidityBadge(stock.liquidityHealth)}
+                          {(() => {
+                            const t = getStockTradability(stock.address);
+                            if (t.status === "tradable") {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  Tradable
+                                </span>
+                              );
+                            }
+                            if (t.status === "low_liquidity") {
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"
+                                  title="Low on-chain liquidity — higher slippage expected"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                  Low Liq
+                                </span>
+                              );
+                            }
+                            if (t.status === "no_pool") {
+                              return (
+                                <a
+                                  href={t.suggestedAction?.url || `https://basescan.org/token/${stock.address}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/25 hover:underline"
+                                  title="No DEX pool deployed — View on BaseScan"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                  No Pool
+                                </a>
+                              );
+                            }
+                            return renderLiquidityBadge(stock.liquidityHealth);
+                          })()}
                         </div>
                         <p className="text-xs text-[var(--ink-muted)] font-medium line-clamp-1 mt-0.5">
                           {stock.name}
@@ -415,7 +454,14 @@ export default function StocksExploreSection({
                     className="flex-1 btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-98"
                   >
                     <TrendingUp size={13} />
-                    <span>Trade</span>
+                    <span>
+                      {(() => {
+                        const t = getStockTradability(stock.address);
+                        if (t.status === "low_liquidity") return "Trade (Low Liq)";
+                        if (t.status === "no_pool") return "Swap Info";
+                        return "Trade";
+                      })()}
+                    </span>
                   </button>
 
                   <button

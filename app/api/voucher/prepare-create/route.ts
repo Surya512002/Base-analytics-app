@@ -4,6 +4,11 @@ import {
   voucherContractReady,
 } from "@/lib/voucher/agent-api";
 import { MAX_VOUCHER_CARDS, isStockAsset, type VoucherAsset } from "@/lib/utils/voucher";
+import {
+  complianceConfig,
+  evaluateRegionCompliance,
+  fetchRemoteKillSwitch,
+} from "@/src/config/compliance";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +32,34 @@ export async function GET(req: Request) {
   const asset = (rawAsset.toUpperCase() === "ETH" ? "ETH" : rawAsset.toUpperCase() === "USDC" ? "USDC" : rawAsset) as VoucherAsset;
   if (asset !== "USDC" && asset !== "ETH" && !isStockAsset(asset)) {
     return NextResponse.json({ error: "asset must be USDC, ETH, or a supported stock (e.g. NVDAc, AAPLc, TSLAc)" }, { status: 400 });
+  }
+
+  if (isStockAsset(asset)) {
+    const killSwitch = await fetchRemoteKillSwitch();
+    if (killSwitch) {
+      return NextResponse.json(
+        { error: "Tokenized stock features are temporarily paused via safety kill switch." },
+        { status: 403 }
+      );
+    }
+    if (!complianceConfig.features["stocks.vouchers"]) {
+      return NextResponse.json(
+        { error: "Tokenized stock voucher creation is currently disabled." },
+        { status: 403 }
+      );
+    }
+    const country =
+      req.headers.get("x-vercel-ip-country") ||
+      req.headers.get("cf-ipcountry") ||
+      req.headers.get("x-user-country") ||
+      null;
+    const regionEvaluation = evaluateRegionCompliance(country, "stocks.vouchers");
+    if (regionEvaluation.isRestricted && !regionEvaluation.canEnter) {
+      return NextResponse.json(
+        { error: "Tokenized stock features are not available in your region" },
+        { status: 403 }
+      );
+    }
   }
 
   const total = searchParams.get("total") || "";
@@ -86,6 +119,34 @@ export async function POST(req: Request) {
     const asset = (rawAsset.toUpperCase() === "ETH" ? "ETH" : rawAsset.toUpperCase() === "USDC" ? "USDC" : rawAsset) as VoucherAsset;
     if (asset !== "USDC" && asset !== "ETH" && !isStockAsset(asset)) {
       return NextResponse.json({ error: "asset must be USDC, ETH, or a supported stock (e.g. NVDAc, AAPLc, TSLAc)" }, { status: 400 });
+    }
+
+    if (isStockAsset(asset)) {
+      const killSwitch = await fetchRemoteKillSwitch();
+      if (killSwitch) {
+        return NextResponse.json(
+          { error: "Tokenized stock features are temporarily paused via safety kill switch." },
+          { status: 403 }
+        );
+      }
+      if (!complianceConfig.features["stocks.vouchers"]) {
+        return NextResponse.json(
+          { error: "Tokenized stock voucher creation is currently disabled." },
+          { status: 403 }
+        );
+      }
+      const country =
+        req.headers.get("x-vercel-ip-country") ||
+        req.headers.get("cf-ipcountry") ||
+        req.headers.get("x-user-country") ||
+        null;
+      const regionEvaluation = evaluateRegionCompliance(country, "stocks.vouchers");
+      if (regionEvaluation.isRestricted && !regionEvaluation.canEnter) {
+        return NextResponse.json(
+          { error: "Tokenized stock features are not available in your region" },
+          { status: 403 }
+        );
+      }
     }
 
 

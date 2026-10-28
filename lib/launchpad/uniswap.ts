@@ -1,5 +1,7 @@
 import {
+  getAddress,
   encodeFunctionData,
+  encodePacked,
   parseEther,
   type Address,
   type Hex,
@@ -24,10 +26,10 @@ const ROUTER_ADDRESS_THIS =
   "0x0000000000000000000000000000000000000002" as const;
 
 /** Common Uniswap V3 fee tiers on Base */
-export const UNISWAP_FEE_TIERS = [500, 3000, 10000] as const;
+export const UNISWAP_FEE_TIERS = [100, 500, 3000, 10000] as const;
 export type UniswapFeeTier = (typeof UNISWAP_FEE_TIERS)[number];
 
-const QUOTER_ABI = [
+export const QUOTER_ABI = [
   {
     name: "quoteExactInputSingle",
     type: "function",
@@ -52,9 +54,24 @@ const QUOTER_ABI = [
       { name: "gasEstimate", type: "uint256" },
     ],
   },
+  {
+    name: "quoteExactInput",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "path", type: "bytes" },
+      { name: "amountIn", type: "uint256" },
+    ],
+    outputs: [
+      { name: "amountOut", type: "uint256" },
+      { name: "sqrtPriceX96AfterList", type: "uint160[]" },
+      { name: "initializedTicksCrossedList", type: "uint32[]" },
+      { name: "gasEstimate", type: "uint256" },
+    ],
+  },
 ] as const;
 
-const SWAP_ROUTER_ABI = [
+export const SWAP_ROUTER_ABI = [
   {
     name: "exactInputSingle",
     type: "function",
@@ -71,6 +88,24 @@ const SWAP_ROUTER_ABI = [
           { name: "amountIn", type: "uint256" },
           { name: "amountOutMinimum", type: "uint256" },
           { name: "sqrtPriceLimitX96", type: "uint160" },
+        ],
+      },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+  },
+  {
+    name: "exactInput",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      {
+        name: "params",
+        type: "tuple",
+        components: [
+          { name: "path", type: "bytes" },
+          { name: "recipient", type: "address" },
+          { name: "amountIn", type: "uint256" },
+          { name: "amountOutMinimum", type: "uint256" },
         ],
       },
     ],
@@ -233,6 +268,158 @@ export function encodeExactInputSingleToEth(params: {
   });
 }
 
+/**
+ * Encode Uniswap V3 path for multi-hop swaps:
+ * bytes: tokenIn (20 bytes) + fee1 (3 bytes) + tokenMid (20 bytes) + fee2 (3 bytes) + tokenOut (20 bytes)
+ */
+export function encodeUniswapHopPath(
+  tokenIn: Address,
+  fee1: number,
+  tokenMid: Address,
+  fee2: number,
+  tokenOut: Address
+): Hex {
+  return encodePacked(
+    ["address", "uint24", "address", "uint24", "address"],
+    [getAddress(tokenIn), fee1, getAddress(tokenMid), fee2, getAddress(tokenOut)]
+  );
+}
+
+/**
+ * Quote a two-hop route through an intermediate token (e.g. WETH -> USDC -> Stock).
+ * Tries common fee combinations and returns the best amountOut.
+ */
+export async function quoteUniswapMultiHop(params: {
+  tokenIn: Address;
+  intermediateToken: Address;
+  tokenOut: Address;
+  amountIn: bigint;
+  fee1Candidates?: readonly number[];
+  fee2Candidates?: readonly number[];
+}): Promise<{
+  amountOut: bigint;
+  hasLiquidity: boolean;
+  path: Hex | null;
+  fee1: number;
+  fee2: number;
+}> {
+  if (params.amountIn <= BigInt(0)) {
+    return {
+      amountOut: BigInt(0),
+      hasLiquidity: false,
+      path: null,
+      fee1: 500,
+      fee2: 3000,
+    };
+  }
+
+  const pub = createBasePublicClient();
+  const fee1List = params.fee1Candidates ?? [500, 100, 3000, 10000];
+  const fee2List = params.fee2Candidates ?? [3000, 10000, 500, 100];
+
+  let bestOut = BigInt(0);
+  let bestFee1 = 500;
+  let bestFee2 = 3000;
+  let bestPath: Hex | null = null;
+
+  const quoteAttempts: Array<{ fee1: number; fee2: number; path: Hex }> = [];
+  for (const f1 of fee1List) {
+    for (const f2 of fee2List) {
+      quoteAttempts.push({
+        fee1: f1,
+        fee2: f2,
+        path: encodeUniswapHopPath(
+          params.tokenIn,
+          f1,
+          params.intermediateToken,
+          f2,
+          params.tokenOut
+        ),
+      });
+    }
+  }
+
+  await Promise.all(
+    quoteAttempts.map(async ({ fee1, fee2, path }) => {
+      try {
+        const result = await pub.simulateContract({
+          address: QUOTER_V2,
+          abi: QUOTER_ABI,
+          functionName: "quoteExactInput",
+          args: [path, params.amountIn],
+        });
+        const amountOut = result.result[0];
+        if (amountOut > bestOut) {
+          bestOut = amountOut;
+          bestFee1 = fee1;
+          bestFee2 = fee2;
+          bestPath = path;
+        }
+      } catch {
+        // Pool or route does not exist for this fee combination
+      }
+    })
+  );
+
+  return {
+    amountOut: bestOut,
+    hasLiquidity: bestOut > BigInt(0),
+    path: bestPath,
+    fee1: bestFee1,
+    fee2: bestFee2,
+  };
+}
+
+export function encodeExactInputMultiHop(params: {
+  path: Hex;
+  recipient: Address;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+}): Hex {
+  return encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "exactInput",
+    args: [
+      {
+        path: params.path,
+        recipient: params.recipient,
+        amountIn: params.amountIn,
+        amountOutMinimum: params.amountOutMinimum,
+      },
+    ],
+  });
+}
+
+export function encodeExactInputMultiHopToEth(params: {
+  path: Hex;
+  recipient: Address;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+}): Hex {
+  const swap = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "exactInput",
+    args: [
+      {
+        path: params.path,
+        recipient: ROUTER_ADDRESS_THIS,
+        amountIn: params.amountIn,
+        amountOutMinimum: params.amountOutMinimum,
+      },
+    ],
+  });
+  const unwrap = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "unwrapWETH9",
+    args: [params.amountOutMinimum, params.recipient],
+  });
+  return encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "multicall",
+    args: [[swap, unwrap]],
+  });
+}
+
 const WETH_ABI = [
   {
     name: "withdraw",
@@ -262,5 +449,3 @@ export function applySlippage(amount: bigint, slippageBps: number): bigint {
   const bps = BigInt(Math.min(5000, Math.max(1, slippageBps)));
   return (amount * (BigInt(10000) - bps)) / BigInt(10000);
 }
-
-export { SWAP_ROUTER_ABI };

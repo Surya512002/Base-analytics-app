@@ -72,9 +72,9 @@ export default function ProtocolCard({
         {/* 2-line clamped description with Details button */}
         <p className="text-xs text-[var(--ink-muted)] line-clamp-2 leading-relaxed">
           {option.type === "fixed"
-            ? `Morpho Midnight 60-day fixed duration market for ${option.stockSymbol}. Locks in a guaranteed fixed APR until maturity.`
+            ? `Morpho Midnight 60-day fixed duration market for ${option.stockSymbol}. Fixed term APR until maturity.`
             : option.type === "strategy"
-              ? `Superform SuperStocks automated yield vault. Accumulates securities lending fees and Base rewards automatically.`
+              ? `Superform SuperStocks automated yield vault. Routes stock collateral across verified lending protocols and Base gauges.`
               : `Isolated lending pool on Base mainnet. Deposit ${option.stockSymbol} as collateral to borrow USDC.`}
         </p>
         <button

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { buildSwapLink } from "@/lib/swap/swap-link";
 const TokenLaunchForm = dynamic(
   () => import("@/components/launchpad/TokenLaunchForm"),
   { loading: () => <div className="h-64 skeleton-shimmer rounded-3xl border border-[var(--border-subtle)]" /> }
@@ -117,10 +118,11 @@ export default function LaunchpadTab({
   guestMode?: boolean;
   onRequestConnect?: () => void;
   onShellBridge?: (bridge: LaunchpadShellBridge) => void;
-  onNavigate?: (tab: AppTab, opts?: { token?: string | null }) => void;
+  onNavigate?: (tab: AppTab, opts?: { token?: string | null; buy?: string | null; sell?: string | null; amount?: string | number | null }) => void;
   isActive?: boolean;
   initialView?: View;
 }) {
+  const router = useRouter();
   const { wallet, b20Activated: appB20Activated } = app;
   const [view, setView] = useState<View>(() => {
     if (initialView) return initialView;
@@ -288,12 +290,18 @@ export default function LaunchpadTab({
   }, []);
 
   const openSwap = useCallback(
-    (token: LaunchedToken) => {
-      ensureTokenInCatalog(token);
-      syncTabUrl("swap", { token: token.address });
-      onNavigate?.("swap", { token: token.address });
+    (token: LaunchedToken | { address: string }) => {
+      if ("symbol" in token && "name" in token) {
+        ensureTokenInCatalog(token as LaunchedToken);
+      }
+      syncTabUrl("swap", { buy: token.address });
+      if (onNavigate) {
+        onNavigate("swap", { buy: token.address });
+      } else if (typeof window !== "undefined") {
+        router.push(buildSwapLink({ buy: token.address }));
+      }
     },
-    [ensureTokenInCatalog, onNavigate]
+    [ensureTokenInCatalog, onNavigate, router]
   );
 
   const openTradeByAddress = useCallback(

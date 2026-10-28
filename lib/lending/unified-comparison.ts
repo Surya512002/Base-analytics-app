@@ -233,7 +233,7 @@ export async function getUnifiedStockLendingComparison(
     riskNotes: [
       "Fixed borrow APR locked for 60-day term: zero rate volatility.",
       "Early exit commitment: early loan repayment incurs 0.5% fee.",
-      "Guaranteed lender APY return across maturity date.",
+      "Fixed term lender APR across maturity date subject to protocol solvency.",
     ],
     contractAddress: MORPHO_MIDNIGHT_BASE,
     executionType: "morpho_midnight",

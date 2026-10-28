@@ -73,28 +73,55 @@ export function resolveTabFromUrl(search?: string): AppTab | null {
   return null;
 }
 
+export {
+  buildSwapLink,
+  parseSwapUrlParams,
+  normalizeTokenAddress,
+  type SwapLinkParams,
+  type ParsedSwapParams,
+} from "@/lib/swap/swap-link";
+import { buildSwapLink, parseSwapUrlParams } from "@/lib/swap/swap-link";
+
 export function resolveTokenFromUrl(search?: string): string | null {
   if (typeof window === "undefined" && !search) return null;
   const raw = search ?? window.location.search;
-  const token = new URLSearchParams(raw).get("token")?.trim().toLowerCase();
-  if (!token?.startsWith("0x") || token.length !== 42) return null;
-  return token;
+  const parsed = parseSwapUrlParams(raw);
+  return parsed.buy;
 }
 
-export function syncTabUrl(tab: AppTab, opts?: { token?: string | null }) {
+export function syncTabUrl(tab: AppTab, opts?: { token?: string | null; buy?: string | null; sell?: string | null; amount?: string | number | null }) {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
   url.searchParams.set("tab", tab);
-  if (opts?.token) url.searchParams.set("token", opts.token);
-  else url.searchParams.delete("token");
+  const buyAddr = opts?.buy ?? opts?.token;
+  if (buyAddr) {
+    url.searchParams.set("buy", buyAddr);
+    url.searchParams.delete("token");
+  } else {
+    url.searchParams.delete("buy");
+    url.searchParams.delete("token");
+  }
+  if (opts?.sell) {
+    url.searchParams.set("sell", opts.sell);
+  } else {
+    url.searchParams.delete("sell");
+  }
+  if (opts?.amount) {
+    url.searchParams.set("amount", String(opts.amount));
+  } else {
+    url.searchParams.delete("amount");
+  }
   window.history.replaceState({}, "", url);
 }
 
 export function buildSwapTokenPath(address: string): string {
-  return `/swap/token/${address}`;
+  return buildSwapLink({ buy: address });
 }
 
-export function buildSwapPath(): string {
+export function buildSwapPath(opts?: { buy?: string | null; sell?: string | null; amount?: string | number | null }): string {
+  if (opts?.buy || opts?.sell || opts?.amount) {
+    return buildSwapLink(opts);
+  }
   return "/swap";
 }
 

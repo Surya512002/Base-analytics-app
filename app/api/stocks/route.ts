@@ -48,6 +48,17 @@ export async function GET(request: Request) {
     const paginated = stocks.slice(offset, offset + limit);
     const nextPageToken = offset + limit < total ? String(offset + limit) : null;
 
+    const country =
+      request.headers.get("x-user-country") ||
+      request.headers.get("x-vercel-ip-country") ||
+      request.headers.get("cf-ipcountry") ||
+      request.headers.get("x-mock-country") ||
+      process.env.COMPLIANCE_MOCK_COUNTRY ||
+      null;
+
+    const { evaluateRegionCompliance, getComplianceConfig } = await import("@/src/config/compliance");
+    const compliance = evaluateRegionCompliance(country);
+
     return NextResponse.json(
       {
         stocks: paginated,
@@ -56,6 +67,13 @@ export async function GET(request: Request) {
         next_page_token: nextPageToken,
         has_more: nextPageToken !== null,
         timestamp: Date.now(),
+        compliance: {
+          isRestricted: compliance.isRestricted,
+          mode: compliance.mode,
+          canEnter: compliance.canEnter,
+          canExit: compliance.canExit,
+          country: country === "UNKNOWN" ? null : country,
+        },
       },
       {
         headers: {

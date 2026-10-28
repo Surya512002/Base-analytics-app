@@ -31,13 +31,22 @@ export function isStandaloneWalletRoute(pathname?: string): boolean {
   );
 }
 
-/** Map app tabs to real routes when leaving standalone pages. */
-export function hrefForAppTab(tab: string): string {
+import { buildSwapLink, type SwapLinkParams } from "@/lib/swap/swap-link";
+
+/** Map app tabs to real routes when leaving standalone pages or navigating between tabs. */
+export function hrefForAppTab(
+  tab: string,
+  opts?: SwapLinkParams & { token?: string | null }
+): string {
   switch (tab) {
     case "launchpad":
       return "/explore";
     case "swap":
-      return "/swap";
+      return buildSwapLink({
+        buy: opts?.buy ?? opts?.token,
+        sell: opts?.sell,
+        amount: opts?.amount,
+      });
     case "lend":
       return "/lend";
     case "basehub":
@@ -48,3 +57,4 @@ export function hrefForAppTab(tab: string): string {
       return "/explore";
   }
 }
+

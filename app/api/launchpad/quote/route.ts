@@ -34,6 +34,8 @@ import {
   resolveSwapLegs,
 } from "@/lib/launchpad/swap-assets";
 import { fetchO1TradingQuote } from "@/lib/trading/o1-api";
+import { getTokenizedStockByAddress, isActiveStockAddress } from "@/lib/stocks/tokenized-stocks-registry";
+import { evaluateRegionCompliance, getComplianceConfig } from "@/src/config/compliance";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +135,33 @@ export async function GET(req: Request) {
 
   try {
     const tokenAddr = token as Address;
+    const isStock = isActiveStockAddress(tokenAddr) || Boolean(getTokenizedStockByAddress(tokenAddr));
+
+    if (isStock) {
+      const country =
+        req.headers.get("x-user-country") ||
+        req.headers.get("x-vercel-ip-country") ||
+        req.headers.get("cf-ipcountry") ||
+        req.headers.get("x-mock-country") ||
+        process.env.COMPLIANCE_MOCK_COUNTRY ||
+        null;
+      const compliance = evaluateRegionCompliance(country, "stocks.swap");
+
+      // In exit-only or blocked mode, buying is rejected. Exiting (selling) is allowed.
+      if (direction === "buy" && !compliance.canEnter) {
+        return NextResponse.json(
+          {
+            hasLiquidity: false,
+            error: compliance.reason || "Tokenized stock features are not available in your region.",
+            isRestricted: true,
+            complianceMode: compliance.mode,
+            canExit: compliance.canExit,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const weth = WETH_BASE as Address;
     const pageDecimals = await fetchErc20Decimals(tokenAddr, decimals);
     const registered = await getLaunchedToken(token);
@@ -284,6 +313,8 @@ export async function GET(req: Request) {
           aerodromeHasLiquidity: directQuote.aerodromeHasLiquidity,
           slipstreamHasLiquidity: directQuote.slipstreamHasLiquidity,
           uniswapFeeTier: directQuote.uniswapFeeTier,
+          uniswapPath: directQuote.uniswapPath,
+          uniswapMultiHop: directQuote.uniswapMultiHop,
           aerodromeStable: directQuote.aerodromeStable,
           aerodromeHops: directQuote.aerodromeHops,
           slipstreamTickSpacing: directQuote.slipstreamTickSpacing,
@@ -293,6 +324,8 @@ export async function GET(req: Request) {
           uniswapHasLiquidity: false,
           aerodromeHasLiquidity: false,
           slipstreamHasLiquidity: false,
+          uniswapPath: undefined,
+          uniswapMultiHop: false,
           o1Available: Boolean(o1Quote?.hasLiquidity),
         };
 

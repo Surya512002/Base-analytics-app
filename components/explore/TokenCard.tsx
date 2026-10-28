@@ -23,6 +23,7 @@ import {
 import { shortAddr } from "@/lib/launchpad/format";
 import { basescanTxUrl } from "@/lib/utils/tx";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import { useCompliance } from "@/hooks/useCompliance";
 
 interface TokenCardProps {
   token: UnifiedToken;
@@ -41,6 +42,17 @@ export default function TokenCard({
 }: TokenCardProps) {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const compliance = useCompliance();
+
+  const isStock = Boolean(
+    token.type === "stock" ||
+    token.type === "b20" ||
+    token.symbol.endsWith("c")
+  );
+  const isStockSwapRestricted =
+    isStock &&
+    (!compliance.status.features["stocks.swap"] ||
+      (compliance.isRestricted && !compliance.canEnter));
 
   const isUp = token.priceChange24h >= 0;
   const isZero = token.priceChange24h === 0;
@@ -242,11 +254,22 @@ export default function TokenCard({
         <div className="flex items-center gap-1.5 relative">
           <button
             type="button"
+            disabled={isStockSwapRestricted}
             onClick={(e) => {
               e.stopPropagation();
+              if (isStockSwapRestricted) return;
               onTrade(token);
             }}
-            className="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition active:scale-[0.98]"
+            title={
+              isStockSwapRestricted
+                ? "Tokenized stock features are not available in your region"
+                : "Swap"
+            }
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition active:scale-[0.98] ${
+              isStockSwapRestricted
+                ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60"
+                : "btn-primary cursor-pointer"
+            }`}
           >
             <span>Swap</span>
             <ArrowRight size={12} />

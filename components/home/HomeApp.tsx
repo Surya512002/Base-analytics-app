@@ -109,24 +109,28 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
   }, [setShowModal]);
 
   const handleTabChange = useCallback(
-    (next: AppTab, opts?: { token?: string | null }) => {
+    (
+      next: AppTab,
+      opts?: { token?: string | null; buy?: string | null; sell?: string | null; amount?: string | number | null }
+    ) => {
       if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
         openConnect();
         return;
       }
       if (forceTab && next !== forceTab) {
-        router.push(hrefForAppTab(next));
+        router.push(hrefForAppTab(next, opts));
         return;
       }
       setTab(next);
-      if (opts?.token) {
-        syncTabUrl(next, { token: opts.token });
+      if (opts?.buy || opts?.token || opts?.sell || opts?.amount) {
+        syncTabUrl(next, opts);
       } else {
         syncTabUrl(next);
       }
     },
     [guest, openConnect, setTab, forceTab, router]
   );
+
 
   const handleShellBridge = useCallback((bridge: LaunchpadShellBridge) => {
     setLaunchBridge(bridge);

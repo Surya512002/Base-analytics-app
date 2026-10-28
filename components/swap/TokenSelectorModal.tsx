@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, Search, X, Clock, Check, Sparkles, Coins, Wallet } from "lucide-react";
+import { Loader2, Search, X, Clock, Check, Sparkles, Coins, Wallet, AlertTriangle } from "lucide-react";
+import { useCompliance } from "@/hooks/useCompliance";
 import {
   COMMON_BASE_TOKENS,
   COMMON_STOCK_TOKENS,
@@ -20,9 +21,20 @@ import {
 } from "@/components/launchpad/TokenPickerDialog";
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { formatUsd } from "@/lib/launchpad/format";
+import { getStockTradability } from "@/lib/stocks/stock-tradability";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const RECENT_STORAGE_KEY = "base_swap_recent_tokens_v2";
+
+const STOCK_CATEGORIES = [
+  "All",
+  "Tech",
+  "Finance",
+  "Consumer",
+  "Crypto-related",
+  "Healthcare",
+  "Energy",
+] as const;
 
 type PickerTab = "crypto" | "stocks" | "holdings";
 
@@ -46,12 +58,18 @@ export default function TokenSelectorModal({
   walletAddress,
 }: TokenSelectorModalProps) {
   const [activeTab, setActiveTab] = useState<PickerTab>("crypto");
+  const [stockCategory, setStockCategory] = useState<string>("All");
   const [query, setQuery] = useState("");
   const [resolving, setResolving] = useState(false);
   const [resolved, setResolved] = useState<Extract<SwapCounter, { kind: "token" }> | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [recentTokens, setRecentTokens] = useState<SwapCounter[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const compliance = useCompliance();
+
+  const isStockSwapDisabled = !compliance.status.features["stocks.swap"];
+  const isRegionRestricted = compliance.isRestricted && !compliance.canEnter;
+  const isStocksTabRestricted = activeTab === "stocks" && (isStockSwapDisabled || isRegionRestricted);
 
   // Load recent tokens from localStorage
   useEffect(() => {
@@ -179,7 +197,14 @@ export default function TokenSelectorModal({
         .map((h) => h.counter);
     }
 
-    const baseList = activeTab === "stocks" ? COMMON_STOCK_TOKENS : COMMON_BASE_TOKENS.filter((t) => t.category !== "stock");
+    let baseList =
+      activeTab === "stocks"
+        ? COMMON_STOCK_TOKENS
+        : COMMON_BASE_TOKENS.filter((t) => t.category !== "stock");
+
+    if (activeTab === "stocks" && stockCategory !== "All") {
+      baseList = baseList.filter((t) => t.stockCategory === stockCategory);
+    }
 
     return baseList
       .filter((t) => {
@@ -188,11 +213,12 @@ export default function TokenSelectorModal({
         return (
           t.symbol.toLowerCase().includes(q) ||
           t.name.toLowerCase().includes(q) ||
-          t.address.toLowerCase().includes(q)
+          t.address.toLowerCase().includes(q) ||
+          (t.underlyingTicker && t.underlyingTicker.toLowerCase().includes(q))
         );
       })
       .map(commonTokenToCounter);
-  }, [activeTab, query, excluded, holdings]);
+  }, [activeTab, stockCategory, query, excluded, holdings]);
 
   const showEth = useMemo(() => {
     if (activeTab === "stocks") return false;
@@ -346,7 +372,37 @@ export default function TokenSelectorModal({
               )}
             </div>
 
+            {/* Category Chips for Stocks */}
+            {activeTab === "stocks" && (
+              <div className="flex items-center gap-1.5 px-5 py-2 overflow-x-auto no-scrollbar border-b border-[var(--border-subtle)] bg-[var(--surface-2)]/50">
+                {STOCK_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setStockCategory(cat)}
+                    className={`pop-pill px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      stockCategory === cat
+                        ? "bg-[var(--brand)] text-white shadow-xs"
+                        : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Token List */}
+            {isStocksTabRestricted && (
+              <div className="mx-4 my-2 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+                <span>
+                  {isStockSwapDisabled
+                    ? "Tokenized stock swaps are temporarily paused."
+                    : "Tokenized stock features are not available in your region. You can still select holdings to sell (Exit-Only Mode)."}
+                </span>
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto px-2 py-2 divide-y divide-[var(--border-subtle)]/40">
               {/* Resolved 0x contract token match */}
               {resolved && (
@@ -427,6 +483,10 @@ function TokenListItem({
 }) {
   const sym = counterSymbol(counter);
   const displayName = name ?? (counter.kind === "token" ? (counter as any).name ?? sym : "Ethereum");
+  const tradability =
+    counter.kind === "token" && counter.symbol.endsWith("c")
+      ? getStockTradability(counter.address)
+      : null;
 
   return (
     <button
@@ -437,14 +497,37 @@ function TokenListItem({
       <div className="flex items-center gap-3 min-w-0">
         <CounterAvatar counter={counter} size={32} />
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-bold text-sm text-[var(--ink)] group-hover:text-[var(--brand-text)] transition-colors">
               {sym}
             </span>
             {counter.kind === "token" && counter.symbol.endsWith("c") && (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                Stock
-              </span>
+              <>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  Stock
+                </span>
+                {tradability && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                      tradability.status === "tradable"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : tradability.status === "low_liquidity"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                          : tradability.status === "no_pool"
+                            ? "bg-neutral-500/10 text-neutral-400 border-neutral-500/20"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                    }`}
+                  >
+                    {tradability.status === "tradable"
+                      ? "Tradable"
+                      : tradability.status === "low_liquidity"
+                        ? "Low Liquidity"
+                        : tradability.status === "no_pool"
+                          ? "No Pool"
+                          : "Restricted"}
+                  </span>
+                )}
+              </>
             )}
           </div>
           <p className="text-[11px] text-[var(--ink-dim)] truncate">

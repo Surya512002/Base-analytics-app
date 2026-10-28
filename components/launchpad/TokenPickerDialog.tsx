@@ -13,13 +13,15 @@ import TokenIcon from "@/components/swap/TokenIcon";
 
 /** Either native ETH or any Base ERC-20. */
 export type SwapCounter =
-  | { kind: "eth" }
+  | { kind: "eth"; isUnverified?: boolean; name?: string }
   | {
       kind: "token";
       address: string;
       symbol: string;
       decimals: number;
       imageUrl?: string;
+      isUnverified?: boolean;
+      name?: string;
     };
 
 export const ETH_COUNTER: SwapCounter = { kind: "eth" };

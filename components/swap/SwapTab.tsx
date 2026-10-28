@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Wallet, ChevronRight, Loader2 } from "lucide-react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
-import { resolveTokenByAddress } from "@/lib/api/launchpad-client";
-import { buildSwapTokenPath, resolveTokenFromUrl, syncTabUrl } from "@/lib/utils/app-url";
+import { parseSwapUrlParams } from "@/lib/swap/swap-link";
+import { resolveSwapToken } from "@/lib/swap/token-metadata";
+import { syncTabUrl } from "@/lib/utils/app-url";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import { formatUsd } from "@/lib/launchpad/format";
@@ -24,12 +26,14 @@ export default function SwapTab({
   onRequestConnect?: () => void;
   initialToken?: string | null;
 }) {
-  const [prefill, setPrefill] = useState<LaunchedToken | null>(null);
+  const searchParams = useSearchParams();
   const [sidebarPick, setSidebarPick] = useState<SwapCounter | null>(null);
   const [fromPick, setFromPick] = useState<SwapCounter | null>(null);
   const [buyToken, setBuyToken] = useState<SwapCounter | null>(null);
+  const [loadingBuyMetadata, setLoadingBuyMetadata] = useState(false);
+  const [loadingSellMetadata, setLoadingSellMetadata] = useState(false);
+  const [urlAmount, setUrlAmount] = useState<string | null>(null);
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
-  const resolvingRef = useRef(false);
 
   // Hook for wallet holdings, dust filter, and total USD balance
   const {
@@ -43,37 +47,46 @@ export default function SwapTab({
     refresh: refreshHoldings,
   } = useWalletHoldings(app.wallet?.address);
 
-  const resolveAndPrefill = useCallback(
-    async (addr: string) => {
-      if (resolvingRef.current) return;
-      resolvingRef.current = true;
-      try {
-        const { token } = await resolveTokenByAddress(addr);
-        if (token) {
-          setPrefill(token);
-          syncTabUrl("swap", { token: token.address });
-          if (typeof window !== "undefined" && window.location.pathname.startsWith("/swap")) {
-            window.history.replaceState({}, "", buildSwapTokenPath(token.address));
-          }
-        } else {
-          app.showToast("Token not found on Base — check the address", "");
-        }
-      } finally {
-        resolvingRef.current = false;
-      }
-    },
-    [app]
-  );
-
+  // Ingest URL params reactively whenever searchParams or initialToken changes
   useEffect(() => {
-    const fromProp = initialToken?.trim().toLowerCase();
-    const fromUrl = resolveTokenFromUrl();
-    const addr = fromProp ?? fromUrl;
-    if (!addr?.startsWith("0x") || addr.length !== 42) return;
-    void resolveAndPrefill(addr);
-  }, [initialToken, resolveAndPrefill]);
+    const rawSearch = searchParams?.toString()
+      ? `?${searchParams.toString()}`
+      : typeof window !== "undefined"
+        ? window.location.search
+        : "";
+    const parsed = parseSwapUrlParams(rawSearch);
+    const buyParam = parsed.buy || (initialToken ? initialToken.trim().toLowerCase() : null);
+    const sellParam = parsed.sell;
+    const amountParam = parsed.amount;
 
-  const panelKey = useMemo(() => prefill?.address ?? "default", [prefill?.address]);
+    if (amountParam) {
+      setUrlAmount(amountParam);
+    }
+
+    if (buyParam) {
+      setLoadingBuyMetadata(true);
+      void resolveSwapToken(buyParam).then((res) => {
+        setLoadingBuyMetadata(false);
+        if (res.counter) {
+          setBuyToken(res.counter);
+        } else if (res.error) {
+          app.showToast(res.error, "");
+        }
+      });
+    }
+
+    if (sellParam) {
+      setLoadingSellMetadata(true);
+      void resolveSwapToken(sellParam).then((res) => {
+        setLoadingSellMetadata(false);
+        if (res.counter) {
+          setFromPick(res.counter);
+        } else if (res.error) {
+          app.showToast(res.error, "");
+        }
+      });
+    }
+  }, [searchParams, initialToken, app]);
 
   return (
     <div className="w-full max-w-[480px] mx-auto space-y-3 pb-8">
@@ -124,11 +137,9 @@ export default function SwapTab({
 
       {/* Hero Swap Card */}
       <DexSwapCard
-        key={panelKey}
         app={app}
         guestMode={guestMode}
         onRequestConnect={onRequestConnect}
-        prefillToken={prefill}
         prefillReceiveCounter={sidebarPick}
         onPrefillReceiveApplied={() => setSidebarPick(null)}
         prefillFromCounter={fromPick}
@@ -136,6 +147,9 @@ export default function SwapTab({
         holdings={allHoldings}
         currentBuyToken={buyToken}
         onBuyTokenChange={setBuyToken}
+        loadingBuyMetadata={loadingBuyMetadata}
+        loadingSellMetadata={loadingSellMetadata}
+        initialAmount={urlAmount}
       />
 
       {/* Popular Chips Row below Swap Card */}

@@ -17,6 +17,7 @@ import {
   ExternalLink,
   RotateCcw,
   Wallet,
+  Info,
 } from "lucide-react";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 import type { ConnectionType } from "@/lib/types/wallet";
@@ -27,6 +28,7 @@ import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { USDC_BASE_ADDRESS } from "@/lib/lending/constants";
 import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
 import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
+import { useCompliance } from "@/hooks/useCompliance";
 
 export type DrawerActionTab = "supply" | "withdraw" | "borrow" | "repay";
 
@@ -137,6 +139,7 @@ function ActionDrawerContent({
   const [activeTab, setActiveTab] = useState<DrawerActionTab>(initialTab);
   const [amount, setAmount] = useState("");
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false);
+  const compliance = useCompliance();
 
   // Balances
   const [stockBalance, setStockBalance] = useState<number>(0);
@@ -307,12 +310,22 @@ function ActionDrawerContent({
   const isHighRisk = option.riskLevel === "high";
   const needsRiskAck = isHighRisk && !acknowledgedRisk;
 
+  // Compliance & Exit-Only verification
+  const isStockMarket = !!option.stockSymbol;
+  const isLendDisabled = !compliance.status.features["stocks.lend"];
+  const isRegionRestricted = compliance.isRestricted && !compliance.canEnter;
+  const isRestrictedEntry =
+    isStockMarket &&
+    (activeTab === "supply" || activeTab === "borrow") &&
+    (isLendDisabled || isRegionRestricted);
+
   // Multi-state button logic
   const handleActionClick = async () => {
     if (!isConnected) {
       onRequestConnect?.();
       return;
     }
+    if (isRestrictedEntry) return;
     if (!parsedAmount || parsedAmount <= 0) return;
     if (isInsufficientBalance) return;
     if (needsRiskAck) return;
@@ -621,6 +634,36 @@ function ActionDrawerContent({
           )}
         </div>
 
+        {/* Exit-Only & Compliance Banner */}
+        {isRestrictedEntry && (
+          <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+            <div className="flex items-center gap-1.5 font-bold">
+              <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>{isLendDisabled ? "Stock Lending Disabled" : "Tokenized stock features are not available in your region"}</span>
+            </div>
+            <p className="text-[11px] leading-relaxed opacity-95">
+              {isLendDisabled
+                ? "Tokenized stock lending and borrowing are temporarily paused via safety controls."
+                : "Exit-only mode is active: new deposits and borrows are disabled, but you can withdraw collateral and repay debt at any time."}
+            </p>
+          </div>
+        )}
+
+        {/* Borrow Flow Specific Disclosures */}
+        {activeTab === "borrow" && (
+          <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs space-y-2">
+            <div className="flex items-center gap-1.5 font-bold text-[var(--ink)]">
+              <Info size={14} className="text-[var(--brand)] shrink-0" />
+              <span>Leverage & Liquidation Disclosures</span>
+            </div>
+            <ul className="text-[11px] space-y-1 text-[var(--ink-muted)] list-disc pl-4">
+              <li>Collateral can be liquidated if the loan-to-value ratio exceeds the maximum liquidation threshold.</li>
+              <li>Borrow rates are variable and fluctuate in real-time based on protocol liquidity utilization.</li>
+              <li>Oracle price feeds for tokenized stocks may freeze or experience widened spreads during equity market closures or corporate actions.</li>
+            </ul>
+          </div>
+        )}
+
         {/* Token Restriction & Eligibility Notice (Part 4) */}
         {stockEntry?.restrictions && (stockEntry.restrictions.transferRestricted || stockEntry.restrictions.allowlistOnly) && (
           <div className="p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
@@ -716,6 +759,7 @@ function ActionDrawerContent({
           <button
             type="button"
             disabled={
+              isRestrictedEntry ||
               stepStatus === "approving" ||
               stepStatus === "confirming" ||
               !parsedAmount ||
@@ -724,7 +768,9 @@ function ActionDrawerContent({
             }
             onClick={handleActionClick}
             className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer ${
-              stepStatus === "approving" || stepStatus === "confirming"
+              isRestrictedEntry
+                ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-75"
+                : stepStatus === "approving" || stepStatus === "confirming"
                 ? "bg-[var(--brand)] text-white opacity-80 cursor-wait"
                 : isInsufficientBalance
                   ? "bg-[var(--surface-2)] text-red-500 border border-red-500/30 cursor-not-allowed"
@@ -735,7 +781,9 @@ function ActionDrawerContent({
                       : "bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98]"
             }`}
           >
-            {stepStatus === "approving" ? (
+            {isRestrictedEntry ? (
+              <span>{isLendDisabled ? "Stock Lending Disabled" : "Restricted in Region (Exit-Only Active)"}</span>
+            ) : stepStatus === "approving" ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
                 <span>Approving {activeTokenSymbol}…</span>

@@ -17,6 +17,7 @@ import type { LaunchedToken } from "@/lib/launchpad/types";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import { basescanTxUrl } from "@/lib/utils/tx";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import { buildSwapLink } from "@/lib/swap/swap-link";
 
 interface LaunchSuccessPanelProps {
   token: LaunchedToken;
@@ -37,7 +38,7 @@ export default function LaunchSuccessPanel({
   const txUrl = basescanTxUrl(token.txHash);
   const tokenBasescanUrl = `https://basescan.org/address/${token.address}`;
 
-  const swapPageUrl = `/swap?buy=${token.address}`;
+  const swapPageUrl = buildSwapLink({ buy: token.address });
 
   const copyAddress = async () => {
     const ok = await copyToClipboard(token.address);

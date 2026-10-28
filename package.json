@@ -26,7 +26,7 @@
     "contracts:coverage": "forge coverage || echo 'Foundry coverage runs in GitHub Actions'",
     "contracts:slither": "slither . || echo 'Slither static analysis runs in GitHub Actions'",
     "contracts:deploy:dry-run": "node scripts/deploy-contracts.mjs --dry-run",
-    "test:fork": "vitest run test/fork/mainnet-fork.test.ts",
+    "test:fork": "vitest run test/fork/",
     "verify": "npm run typecheck && npm run lint && npm run audit && npm run secrets:scan && npm test && npm run test:fork",
     "registry:sync": "node scripts/sync-stock-registry.mjs",
     "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh",
