@@ -22,6 +22,8 @@ import {
   Sparkles,
   ArrowUpRight,
   Code2,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -31,6 +33,7 @@ import { APP_URL_WEB, BUILDER_CODE } from "@/lib/constants/env";
 type DocTab =
   | "all"
   | "overview"
+  | "compliance"
   | "stocks"
   | "swap"
   | "launchpad"
@@ -45,7 +48,7 @@ interface ApiEndpoint {
   id: string;
   method: "GET" | "POST";
   path: string;
-  category: "markets" | "launchpad" | "vouchers" | "mcp" | "creator" | "system";
+  category: "markets" | "launchpad" | "vouchers" | "mcp" | "creator" | "system" | "compliance";
   title: string;
   description: string;
   params?: { name: string; type: string; required: boolean; description: string }[];
@@ -366,6 +369,38 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     ),
   },
   {
+    id: "compliance-status",
+    method: "GET",
+    path: "/api/compliance/status",
+    category: "compliance",
+    title: "Compliance Status & Edge Geo-Gating",
+    description:
+      "Returns server-verified visitor compliance state evaluated at Vercel's edge network, including ISO country code, active region mode ('full' | 'exit-only' | 'blocked'), global kill switch state, and active feature flags.",
+    params: [],
+    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/compliance/status'",
+    exampleResponse: JSON.stringify(
+      {
+        country: "DE",
+        isRestricted: false,
+        mode: "full",
+        canEnter: true,
+        canExit: true,
+        globalKillSwitch: false,
+        features: {
+          "stocks.swap": true,
+          "stocks.lend": true,
+          "stocks.launchPairs": true,
+          "stocks.vouchers": true,
+        },
+        notice: "Availability of tokenized stocks may depend on your location and the issuer's terms.",
+        issuerTermsUrl: "https://www.coinbase.com/legal/tokenized-stocks",
+        acknowledgementVersion: "1.0",
+      },
+      null,
+      2
+    ),
+  },
+  {
     id: "health",
     method: "GET",
     path: "/api/health",
@@ -514,6 +549,26 @@ const FAQ_ITEMS = [
     a: "Our public endpoint at /api/mcp implements Anthropic's Model Context Protocol (MCP). Autonomous agents in Claude Desktop, Cursor, and Base MCP can invoke tools like 'voucher_prepare_create' (build batch calldata), 'voucher_prepare_redeem' (build claim calldata), 'voucher_lookup_batch' (inspect live status), and 'voucher_list_by_creator' to gift and commerce autonomously.",
   },
   {
+    category: "Compliance & Product Safeguards",
+    q: "Why do I see 'Tokenized stock features are not available in your region'?",
+    a: "Under our product compliance guardrails, visitor country is detected server-side at Vercel's edge network via x-vercel-ip-country headers. Users in restricted jurisdictions (such as the United States and sanctioned regions pending legal review) operate under Exit-Only Mode. In this mode, new entries (buying stocks, borrowing, launches, stock voucher creation) are disabled to safeguard the platform.",
+  },
+  {
+    category: "Compliance & Product Safeguards",
+    q: "Can I still withdraw my collateral or sell my stocks if my region is restricted?",
+    a: "Yes, absolutely. The Exit-Only Guarantee ensures that product safeguards never lock or trap user funds. You can always withdraw deposited collateral, repay outstanding debt, unstake maturing assets, sell existing tokenized stock holdings into USDC or ETH, and claim/redeem valid crypto gift vouchers.",
+  },
+  {
+    category: "Compliance & Product Safeguards",
+    q: "Does Base Terminal claim to be legally compliant?",
+    a: "No. These controls are product safeguards pending formal legal counsel review, not legal advice. Base Terminal is a non-custodial decentralized interface and never claims to be legally 'compliant' or government-endorsed. Always consult your own legal, tax, and financial advisors.",
+  },
+  {
+    category: "Tokenized Equities & Trading",
+    q: "Why do tokenized stock AMM prices sometimes differ from US equity exchange prices?",
+    a: "Traditional US equity markets trade 24/5 during official exchange hours, whereas onchain AMM pools on Base trade 24/7. When US exchanges are closed on nights and weekends, onchain prices reflect real-time decentralized pool liquidity and supply/demand, and underlying Chainlink oracle feeds may experience wider spreads or freeze until markets reopen.",
+  },
+  {
     category: "Wallet Analytics & Scoring",
     q: "How is the Base Activity Score calculated?",
     a: "The score (0–100) measures your wallet's onchain engagement on Base across 6 dimensions: transaction tenure, active days, protocol diversity (DeFi, NFTs, social, bridging), daily check-in streaks, volume transacted, and smart account (ERC-4337 user ops) adoption.",
@@ -633,6 +688,9 @@ export default function DocumentsClient() {
               <a href="#quick-start" className="btn-primary inline-flex items-center gap-1.5 px-3.5 py-2">
                 <Zap size={14} /> Quick Start
               </a>
+              <a href="#compliance" className="btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2">
+                <ShieldCheck size={14} /> Compliance &amp; Safety
+              </a>
               <a href="#apis" className="btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2">
                 <Terminal size={14} /> Public REST API
               </a>
@@ -677,6 +735,7 @@ export default function DocumentsClient() {
               {(
                 [
                   { id: "all", label: "All Topics" },
+                  { id: "compliance", label: "Compliance & Safety" },
                   { id: "stocks", label: "Stocks" },
                   { id: "swap", label: "Swap" },
                   { id: "launchpad", label: "Launchpad" },
@@ -692,7 +751,7 @@ export default function DocumentsClient() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     activeTab === tab.id
                       ? "bg-[var(--brand)] text-white shadow-sm"
                       : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--border-subtle)]"
@@ -825,6 +884,28 @@ export default function DocumentsClient() {
                 </p>
                 <a href="#mcp" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
                   View MCP specs <ArrowUpRight size={13} />
+                </a>
+              </div>
+
+              <div className="card p-5 hover:border-[var(--brand)] transition group">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-[var(--ink)]">
+                    Compliance &amp; Safety
+                  </h3>
+                </div>
+                <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+                  Configurable product guardrails: Edge geo-gating, Exit-Only guarantee (user funds are never blocked),
+                  first-use risk modal, remote kill switch, and trademark collision protection.
+                </p>
+                <a
+                  href="#compliance"
+                  onClick={() => setActiveTab("compliance")}
+                  className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition cursor-pointer"
+                >
+                  View safety architecture <ArrowUpRight size={13} />
                 </a>
               </div>
             </div>
@@ -1177,6 +1258,100 @@ export default function DocumentsClient() {
                   <pre className="p-3.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] font-mono text-xs text-emerald-600 dark:text-emerald-400 overflow-x-auto max-h-[220px]">
                     {activeEndpoint.exampleResponse}
                   </pre>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Section: Compliance & Product Safeguards */}
+        {(activeTab === "all" || activeTab === "compliance") && (
+          <section id="compliance" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                  Product Safeguards &amp; Legal Disclosures
+                </span>
+                <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1 flex items-center gap-2">
+                  <ShieldCheck size={22} className="text-[var(--brand)]" />
+                  Compliance Guardrails &amp; Exit-Only Architecture
+                </h2>
+              </div>
+              <span className="badge badge-brand text-[10px] font-bold">Product Safeguards</span>
+            </div>
+
+            <div className="card p-6 space-y-5">
+              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-xs text-amber-900 dark:text-amber-200 leading-relaxed space-y-1">
+                <span className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+                  Regulatory Notice &amp; Legal Review Disclaimer
+                </span>
+                <p>
+                  These features are product safeguards pending formal legal counsel review, not legal advice.
+                  Base Terminal is a decentralized, non-custodial interface and never claims to be legally &ldquo;compliant&rdquo;
+                  or government-endorsed. Availability depends on your jurisdiction and the issuer&apos;s regulatory terms.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
+                  <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
+                    <Shield size={14} className="text-[var(--brand)]" />
+                    The Exit-Only Guarantee
+                  </span>
+                  <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+                    Product safeguards <strong>never block users from accessing their own funds</strong>. Users in restricted
+                    regions or under safety pauses can always withdraw collateral, repay loans, unstake assets, sell stock tokens
+                    into USDC/ETH, and redeem existing gift vouchers.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
+                  <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
+                    <Compass size={14} className="text-[var(--brand)]" />
+                    Server-Side Edge Geo-Gating
+                  </span>
+                  <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+                    Visitor countries are detected server-side via edge network headers (<code>x-vercel-ip-country</code>).
+                    Client-supplied headers are never trusted. We transparently disclose that IP geolocation can be bypassed via VPNs
+                    and serves as an application-level product safeguard layer.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
+                  <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
+                    <Zap size={14} className="text-[var(--brand)]" />
+                    Remote Safety Kill Switch
+                  </span>
+                  <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+                    A centralized, typed configuration supported by Vercel Edge Config enables instant, zero-redeploy pausing
+                    of tokenized stock entry points (buys, borrows, launches, voucher creation) with safe local fallback.
+                  </p>
+                </div>
+              </div>
+
+              {/* Legal Pages & Policy Links Row */}
+              <div className="pt-2 border-t border-[var(--border-subtle)]">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-dim)] mb-2.5">
+                  Legal Documents &amp; Policy Schedules
+                </h4>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Link href="/restricted-regions" className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5">
+                    <span>Restricted Regions Policy</span>
+                    <ArrowUpRight size={12} />
+                  </Link>
+                  <Link href="/risk-disclosure" className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5">
+                    <span>Risk Disclosure</span>
+                    <ArrowUpRight size={12} />
+                  </Link>
+                  <Link href="/terms" className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5">
+                    <span>Terms of Service</span>
+                    <ArrowUpRight size={12} />
+                  </Link>
+                  <Link href="/privacy" className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5">
+                    <span>Privacy Policy</span>
+                    <ArrowUpRight size={12} />
+                  </Link>
                 </div>
               </div>
             </div>

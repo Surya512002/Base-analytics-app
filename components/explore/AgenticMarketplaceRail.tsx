@@ -114,11 +114,12 @@ export function ExploreKnowledgeRail() {
           <p className="text-[11px] text-[var(--ink-dim)]">Launch guides, API &amp; disclosures</p>
         </div>
       </div>
-      <div className="p-4 grid sm:grid-cols-3 gap-2">
+      <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {[
           { label: "How to launch B20", href: "/docs" },
           { label: "Fee splits & referrals", href: "/docs" },
           { label: "MCP for agents", href: "/docs#api" },
+          { label: "Compliance & Safety", href: "/docs#compliance" },
         ].map((item) => (
           <Link
             key={item.label}

@@ -80,6 +80,9 @@ export default function AppFooterNav() {
             <Link href="/docs" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
               Documents
             </Link>
+            <Link href="/docs#compliance" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
+              Compliance &amp; Safety Docs
+            </Link>
             <a
               href="https://github.com/Surya512002/Base-analytics-app"
               target="_blank"

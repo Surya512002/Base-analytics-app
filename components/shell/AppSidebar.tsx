@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import {
   ArrowDownToLine,
+  ArrowUpRight,
+  BookOpen,
   Command,
   Plus,
   Search,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -139,6 +143,32 @@ export default function AppSidebar({
             );
           })}
         </nav>
+
+        <div className="pt-3 border-t border-[var(--border-subtle)] space-y-0.5">
+          <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-dim)] mb-1.5">
+            Documentation &amp; Policy
+          </p>
+          <Link
+            href="/docs"
+            className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-left text-[12px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <BookOpen size={14} className="text-[var(--ink-dim)]" />
+              Documents &amp; API
+            </span>
+            <ArrowUpRight size={12} className="opacity-60" />
+          </Link>
+          <Link
+            href="/docs#compliance"
+            className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-left text-[12px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <ShieldCheck size={14} className="text-[var(--ink-dim)]" />
+              Compliance &amp; Safety
+            </span>
+            <ArrowUpRight size={12} className="opacity-60" />
+          </Link>
+        </div>
       </div>
 
       <div className="p-4 border-t border-[var(--border-subtle)]">

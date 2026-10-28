@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Command, Search, ArrowRight, Flame } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Command,
+  Search,
+  ArrowRight,
+  Flame,
+  BookOpen,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { shortAddr } from "@/lib/launchpad/format";
@@ -25,6 +34,7 @@ export default function CommandPalette({
   tokens,
   onOpenToken,
 }: CommandPaletteProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -53,17 +63,37 @@ export default function CommandPalette({
   }, [query, tokens]);
 
   const navItems = useMemo(() => {
-    const list = APP_NAV.map((n) => ({
+    const list: Array<{
+      id: AppTab | string;
+      label: string;
+      hint: string;
+      icon: LucideIcon;
+      href?: string;
+    }> = APP_NAV.map((n) => ({
       id: n.id,
       label: n.label,
       hint: n.hint,
       icon: n.icon,
     }));
     list.push({
-      id: "profile" as AppTab,
+      id: "profile",
       label: "Daily Actions & Streaks",
       hint: "Check-in, Daily Boost, GM/GN on Base",
       icon: Flame,
+    });
+    list.push({
+      id: "docs",
+      label: "Documents & Developer API",
+      hint: "REST endpoints, MCP tools, and smart contracts",
+      icon: BookOpen,
+      href: "/docs",
+    });
+    list.push({
+      id: "compliance",
+      label: "Compliance & Safety Guardrails",
+      hint: "Exit-only invariant, geo-gating, and edge kill switch",
+      icon: ShieldCheck,
+      href: "/docs#compliance",
     });
     return list;
   }, []);
@@ -77,11 +107,15 @@ export default function CommandPalette({
   }, [query, navItems]);
 
   const selectNav = useCallback(
-    (id: AppTab) => {
-      onTabChange(id);
+    (item: (typeof navItems)[number]) => {
+      if (item.href) {
+        router.push(item.href);
+      } else {
+        onTabChange(item.id as AppTab);
+      }
       onClose();
     },
-    [onTabChange, onClose]
+    [onTabChange, onClose, router]
   );
 
   if (!open) return null;
@@ -124,12 +158,12 @@ export default function CommandPalette({
               <div className="grid sm:grid-cols-2 gap-1.5">
                 {filteredNav.map((item, idx) => {
                   const Icon = item.icon;
-                  const active = tab === item.id;
+                  const active = !item.href && tab === item.id;
                   return (
                     <button
                       key={`${item.id}-${item.label}-${idx}`}
                       type="button"
-                      onClick={() => selectNav(item.id)}
+                      onClick={() => selectNav(item)}
                       className={`pop-row flex items-center gap-3 rounded-xl px-4 py-3.5 text-left cursor-pointer transition-colors ${
                         active
                           ? "bg-[var(--brand-soft)] border border-[var(--brand)] text-[var(--brand-dark)]"
