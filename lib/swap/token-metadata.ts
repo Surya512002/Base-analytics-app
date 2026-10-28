@@ -11,7 +11,7 @@ import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registr
 import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
 import { ETH_COUNTER, type SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
-import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import { isVerifiedBaseToken, findVerifiedToken } from "@/lib/swap/verified-tokens";
 
 const ERC20_ABI = [
   {
@@ -99,6 +99,24 @@ export async function resolveSwapToken(
         isVerified: true,
         name: stockMatch.name,
       },
+      isUnverified: false,
+    };
+  }
+
+  // 3b. Check Comprehensive Verified Tokens Registry by Address OR Symbol
+  const verifiedMatch = findVerifiedToken(raw);
+  if (verifiedMatch) {
+    const counter = enrichSwapCounter({
+      kind: "token",
+      address: verifiedMatch.address,
+      symbol: verifiedMatch.symbol,
+      decimals: verifiedMatch.decimals,
+      name: verifiedMatch.name,
+      isVerified: true,
+      isUnverified: false,
+    });
+    return {
+      counter,
       isUnverified: false,
     };
   }

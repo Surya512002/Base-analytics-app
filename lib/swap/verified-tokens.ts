@@ -10,14 +10,19 @@
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
+import verifiedTokensJson from "./verified-base-tokens.json";
 
 export interface VerifiedTokenDef {
   address: `0x${string}`;
   symbol: string;
   name: string;
   decimals: number;
-  category: "crypto" | "stock" | "b20";
+  category?: "crypto" | "stock" | "b20";
+  logoURI?: string | null;
 }
+
+/** Comprehensive list of 3,100+ Base verified tokens from CoinGecko, Superchain, & Coinbase */
+export const ALL_VERIFIED_BASE_TOKENS: VerifiedTokenDef[] = verifiedTokensJson as VerifiedTokenDef[];
 
 export const AERO_BASE_ADDRESS = "0x940181a94A35A4569E4529A3CDfB74e38FD98631" as const;
 export const USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
@@ -69,6 +74,7 @@ const VERIFIED_ADDRESS_SET = new Set<string>([
   "0x0000000000000000000000000000000000000000",
   ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.address.toLowerCase()),
   ...TOKENIZED_STOCKS_REGISTRY.map((s) => s.address.toLowerCase()),
+  ...ALL_VERIFIED_BASE_TOKENS.map((t) => t.address.toLowerCase()),
 ]);
 
 const VERIFIED_SYMBOL_SET = new Set<string>([
@@ -76,7 +82,48 @@ const VERIFIED_SYMBOL_SET = new Set<string>([
   "WETH",
   ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.symbol.toUpperCase()),
   ...TOKENIZED_STOCKS_REGISTRY.map((s) => s.symbol.toUpperCase()),
+  ...ALL_VERIFIED_BASE_TOKENS.map((t) => t.symbol.toUpperCase()),
 ]);
+
+/**
+ * Fast lookup for a verified token by address or symbol
+ */
+export function findVerifiedToken(addressOrSymbol: string): VerifiedTokenDef | undefined {
+  const raw = addressOrSymbol.trim().toLowerCase();
+  return (
+    ALL_VERIFIED_BASE_TOKENS.find(
+      (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
+    ) ||
+    VERIFIED_BASE_CRYPTO_TOKENS.find(
+      (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
+    )
+  );
+}
+
+/**
+ * Searches across all 3,100+ verified Base tokens by symbol, name, or address
+ */
+export function searchVerifiedTokens(query: string, limit = 50): VerifiedTokenDef[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const results: VerifiedTokenDef[] = [];
+  const seen = new Set<string>();
+
+  for (const t of ALL_VERIFIED_BASE_TOKENS) {
+    const addr = t.address.toLowerCase();
+    if (seen.has(addr)) continue;
+    if (
+      t.symbol.toLowerCase().includes(q) ||
+      t.name.toLowerCase().includes(q) ||
+      addr === q
+    ) {
+      seen.add(addr);
+      results.push(t);
+      if (results.length >= limit) break;
+    }
+  }
+  return results;
+}
 
 /**
  * Checks whether an address, SwapCounter, UnifiedToken, or symbol is verified on Base.

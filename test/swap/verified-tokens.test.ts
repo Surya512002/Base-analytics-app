@@ -3,6 +3,9 @@ import {
   isVerifiedBaseToken,
   VERIFIED_BASE_CRYPTO_TOKENS,
   AERO_BASE_ADDRESS,
+  ALL_VERIFIED_BASE_TOKENS,
+  searchVerifiedTokens,
+  findVerifiedToken,
 } from "@/lib/swap/verified-tokens";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
@@ -93,5 +96,44 @@ describe("Verified Base Tokens & Blue Tick Engine", () => {
     expect(res.isUnverified).toBe(false);
     expect(res.counter.isVerified).toBe(true);
     expect(res.counter.isUnverified).toBe(false);
+  });
+
+  it("verifies comprehensive Base tokens registry has 3,000+ tokens matching Coinbase Wallet", () => {
+    expect(ALL_VERIFIED_BASE_TOKENS.length).toBeGreaterThan(3000);
+
+    // Verify widely traded Base ecosystem tokens have blue tick verification
+    expect(isVerifiedBaseToken("CLANKER")).toBe(true);
+    expect(isVerifiedBaseToken("PEPE")).toBe(true);
+    expect(isVerifiedBaseToken("CBDOGE")).toBe(true);
+    expect(isVerifiedBaseToken("SHIB")).toBe(true);
+    expect(isVerifiedBaseToken("MFER")).toBe(true);
+    expect(isVerifiedBaseToken("TYBG")).toBe(true);
+
+    // Check search functionality
+    const clankerMatches = searchVerifiedTokens("clanker", 5);
+    expect(clankerMatches.length).toBeGreaterThan(0);
+    expect(clankerMatches[0].symbol.toUpperCase()).toBe("CLANKER");
+
+    const pepeMatches = searchVerifiedTokens("pepe", 5);
+    expect(pepeMatches.length).toBeGreaterThan(0);
+
+    // Check find by address
+    const clankerAddr = "0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb";
+    const found = findVerifiedToken(clankerAddr);
+    expect(found).toBeDefined();
+    expect(found?.symbol).toBe("CLANKER");
+  });
+
+  it("resolveSwapToken resolves CLANKER from 3,100+ verified registry without RPC errors", async () => {
+    const clankerAddr = "0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb";
+    const res = await resolveSwapToken(clankerAddr);
+    expect(res).not.toBeNull();
+    if (!res?.counter) throw new Error("Expected res.counter to be defined");
+    expect(res.isUnverified).toBe(false);
+    expect(res.counter.isVerified).toBe(true);
+    expect(res.counter.isUnverified).toBe(false);
+    if (res.counter.kind === "token") {
+      expect(res.counter.symbol).toBe("CLANKER");
+    }
   });
 });

@@ -22,7 +22,7 @@ import {
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { formatUsd } from "@/lib/launchpad/format";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
-import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import { isVerifiedBaseToken, searchVerifiedTokens } from "@/lib/swap/verified-tokens";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -206,6 +206,34 @@ export default function TokenSelectorModal({
 
     if (activeTab === "stocks" && stockCategory !== "All") {
       baseList = baseList.filter((t) => t.stockCategory === stockCategory);
+    }
+
+    if (activeTab === "crypto" && q) {
+      const verifiedMatches: CommonToken[] = searchVerifiedTokens(q, 40).map((v) => ({
+        address: v.address,
+        symbol: v.symbol,
+        name: v.name,
+        decimals: v.decimals,
+        category: "crypto" as const,
+      }));
+
+      const seen = new Set<string>();
+      const combined: CommonToken[] = [];
+      for (const item of [...baseList, ...verifiedMatches]) {
+        const lower = item.address.toLowerCase();
+        if (excluded && lower === excluded) continue;
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          if (
+            item.symbol.toLowerCase().includes(q) ||
+            item.name.toLowerCase().includes(q) ||
+            item.address.toLowerCase().includes(q)
+          ) {
+            combined.push(item);
+          }
+        }
+      }
+      return combined.map(commonTokenToCounter);
     }
 
     return baseList

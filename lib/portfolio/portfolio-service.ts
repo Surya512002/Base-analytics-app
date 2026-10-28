@@ -8,6 +8,7 @@ import { batchPriceTokens } from "./pricing";
 import { evaluateTokenSpam, sanitizeTokenString, DUST_USD_THRESHOLD } from "./spam-filter";
 import type { PortfolioResponse, PortfolioToken, DefiPortfolioBreakdown } from "./types";
 import type { SwapCounter } from "../../components/launchpad/TokenPickerDialog";
+import { isVerifiedBaseToken } from "../swap/verified-tokens";
 
 // In-memory server-side cache keyed by address (TTL: 20 seconds)
 const CACHE_TTL_MS = 20_000;
@@ -135,7 +136,7 @@ export async function getWalletPortfolio(
 
     const isStock = STOCK_ADDRESSES.has(lower) || lower.startsWith("0xb200000000000000000000");
     const isB20 = lower.startsWith("0xb20");
-    const isVerified = VERIFIED_ADDRESSES.has(lower) || isStock;
+    const isVerified = isVerifiedBaseToken(item.address) || isVerifiedBaseToken(symbol) || isStock || VERIFIED_ADDRESSES.has(lower);
     const isCustom = validCustomAddrs.some((ca) => ca.toLowerCase() === lower);
 
     // Spam Evaluation
