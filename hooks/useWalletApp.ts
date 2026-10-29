@@ -173,6 +173,7 @@ import { routerHasCode } from "@/lib/launchpad/router-guard";
 import {
   encodeAerodromeBuy,
   encodeAerodromeSell,
+  encodeAerodromeTokensForTokens,
   AERODROME_ROUTER,
 } from "@/lib/launchpad/aerodrome";
 import {
@@ -1432,19 +1433,24 @@ function useWalletAppController() {
           }
         }
         const calls = [];
-        let swapFee = BigInt(0);
-        let swapFeeAsset: "eth" | "usdc" | "token" = "eth";
+        const payIsNative = payAsset === "eth";
+        const grossAmount = parseUnits(
+          args.amount,
+          args.direction === "buy" ? payDecimals : tokenDecimals
+        );
+        const { fee } = splitGrossAmount(grossAmount);
+        const swapFee = fee;
+        const swapFeeAsset: "eth" | "usdc" | "token" =
+          args.direction === "buy"
+            ? (payAsset === "usdc" ? "usdc" : payAsset === "eth" ? "eth" : "token")
+            : "token";
+
+        if (grossAmount <= BigInt(0)) {
+          showToast("Invalid swap amount", "");
+          return false;
+        }
 
         if (args.direction === "buy") {
-          const gross = parseUnits(args.amount, payDecimals);
-          const { net, fee } = splitGrossAmount(gross);
-          swapFee = fee;
-          swapFeeAsset = payAsset === "usdc" ? "usdc" : payAsset === "eth" ? "eth" : "token";
-          if (net <= BigInt(0)) {
-            showToast("Amount too small after platform fee", "");
-            return false;
-          }
-          const payIsNative = payAsset === "eth";
           const payTokenAddr = (
             payAsset === "usdc"
               ? USDC_BASE
@@ -1464,7 +1470,7 @@ function useWalletAppController() {
               functionName: "allowance",
               args: [recipient, spender],
             });
-            if (allowance < gross) {
+            if (allowance < grossAmount) {
               calls.push(
                 buildContractCall(
                   payTokenAddr,
@@ -1472,28 +1478,6 @@ function useWalletAppController() {
                 )
               );
             }
-          }
-
-          if (!payIsNative) {
-            pushFeeSplitCalls(calls, fee, {
-              native: false,
-              token: payTokenAddr,
-              creator,
-              referrer,
-              referrerBoostBps,
-              payer: recipient,
-            });
-          }
-
-          if (payIsNative) {
-            pushFeeSplitCalls(calls, fee, {
-              native: true,
-              token,
-              creator,
-              referrer,
-              referrerBoostBps,
-              payer: recipient,
-            });
           }
 
           if (isAggregator && quote.tx) {
@@ -1507,18 +1491,28 @@ function useWalletAppController() {
           } else if (!isAggregator) {
             const swapData =
               swapDex === "aerodrome"
-                ? encodeAerodromeBuy({
-                    tokenOut: token,
-                    recipient,
-                    amountOutMinimum: minOut,
-                    stable: aeroStable,
-                    hops: aeroHops,
-                  })
+                ? (payIsNative
+                    ? encodeAerodromeBuy({
+                        tokenOut: token,
+                        recipient,
+                        amountOutMinimum: minOut,
+                        stable: aeroStable,
+                        hops: aeroHops,
+                      })
+                    : encodeAerodromeTokensForTokens({
+                        tokenIn: payTokenAddr,
+                        tokenOut: token,
+                        amountIn: grossAmount,
+                        amountOutMinimum: minOut,
+                        recipient,
+                        stable: aeroStable,
+                        hops: aeroHops,
+                      }))
                 : swapDex === "slipstream"
                   ? encodeSlipstreamBuy({
                       tokenOut: token,
                       recipient,
-                      amountIn: net,
+                      amountIn: grossAmount,
                       amountOutMinimum: minOut,
                       tickSpacing: slipTick,
                     })
@@ -1526,32 +1520,21 @@ function useWalletAppController() {
                     ? encodeExactInputMultiHop({
                         path: uniPath,
                         recipient,
-                        amountIn: net,
+                        amountIn: grossAmount,
                         amountOutMinimum: minOut,
                       })
                     : encodeExactInputSingle({
                         tokenIn: (payAsset === "usdc" ? USDC_BASE : payAsset === "token" && args.payToken ? args.payToken : weth) as `0x${string}`,
                         tokenOut: token,
                         recipient,
-                        amountIn: net,
+                        amountIn: grossAmount,
                         amountOutMinimum: minOut,
                         fee: uniFee,
                       });
-            calls.push(buildContractCall(router, swapData, payIsNative ? net : BigInt(0)));
+            calls.push(buildContractCall(router, swapData, payIsNative ? grossAmount : BigInt(0)));
           }
         } else {
-          const gross = parseUnits(args.amount, tokenDecimals);
-          const { net, fee } = splitGrossAmount(gross);
-          swapFee = fee;
-          swapFeeAsset = "token";
-          if (net <= BigInt(0)) {
-            showToast("Amount too small after platform fee", "");
-            return false;
-          }
-          // Quotes and 0x calldata both use `net` tokens. Collect the platform
-          // fee as tokens before the swap so Multicall3 batches never need
-          // upfront native ETH (swap proceeds land on the EOA, not Multicall3).
-          const sellAmount = net;
+          const sellAmount = grossAmount;
           const spender = (
             isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
           ) as `0x${string}` | undefined;
@@ -1572,14 +1555,7 @@ function useWalletAppController() {
               );
             }
           }
-          pushFeeSplitCalls(calls, fee, {
-            native: false,
-            token,
-            creator,
-            referrer,
-            referrerBoostBps,
-            payer: recipient,
-          });
+
           if (isAggregator && quote.tx) {
             calls.push(
               buildExternalSwapCall(
@@ -1591,14 +1567,24 @@ function useWalletAppController() {
           } else {
             const swapData =
               swapDex === "aerodrome"
-                ? encodeAerodromeSell({
-                    tokenIn: token,
-                    recipient,
-                    amountIn: sellAmount,
-                    amountOutMinimum: minOut,
-                    stable: aeroStable,
-                    hops: aeroHops,
-                  })
+                ? (receiveAsset === "eth"
+                    ? encodeAerodromeSell({
+                        tokenIn: token,
+                        recipient,
+                        amountIn: sellAmount,
+                        amountOutMinimum: minOut,
+                        stable: aeroStable,
+                        hops: aeroHops,
+                      })
+                    : encodeAerodromeTokensForTokens({
+                        tokenIn: token,
+                        tokenOut: (receiveAsset === "usdc" ? USDC_BASE : args.receiveToken || USDC_BASE) as `0x${string}`,
+                        amountIn: sellAmount,
+                        amountOutMinimum: minOut,
+                        recipient,
+                        stable: aeroStable,
+                        hops: aeroHops,
+                      }))
                 : swapDex === "slipstream"
                   ? encodeSlipstreamSell({
                       tokenIn: token,

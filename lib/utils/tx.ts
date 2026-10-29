@@ -3,10 +3,16 @@ import { encodeFunctionData, parseAbi, type Abi, type Hex } from "viem";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 import { gasLimitForB20Target } from "@/lib/b20/preflight";
+import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 
 const SUFFIX_TAIL = "0080218021802180218021802180218021";
 
-/** B20 factory + token precompiles reject non-canonical calldata (no builder suffix). */
+/** B20 factory alone rejects non-canonical calldata (no builder suffix). */
+export function isB20FactoryAddress(to: string): boolean {
+  return to.toLowerCase() === B20_FACTORY_ADDRESS.toLowerCase();
+}
+
+/** Legacy helper checking if address starts with 0xb20. */
 export function isB20PrecompileAddress(to: string): boolean {
   return to.toLowerCase().startsWith("0xb20");
 }
@@ -105,9 +111,9 @@ export function finalizeAppTransactionBatch(
 
   if (opts?.skipCompanion) return normalized;
 
-  const hasB20 = normalized.some((c) => isB20PrecompileAddress(c.to));
+  const hasB20 = normalized.some((c) => isB20FactoryAddress(c.to));
   const hasAttributedNonB20 = normalized.some(
-    (c) => !isB20PrecompileAddress(c.to) && hasBuilderSuffix(c.data)
+    (c) => !isB20FactoryAddress(c.to) && hasBuilderSuffix(c.data)
   );
 
   if (hasB20 && !hasAttributedNonB20) {
@@ -129,7 +135,7 @@ export type ContractCall = {
 
 /** Returns true when calldata must be sent exactly as quoted (0x AllowanceHolder, etc.). */
 export function isPreservedCalldataCall(call: ContractCall): boolean {
-  return call.preserveCalldata === true || isB20PrecompileAddress(call.to);
+  return call.preserveCalldata === true || isB20FactoryAddress(call.to);
 }
 
 export function buildContractCall(
@@ -137,7 +143,7 @@ export function buildContractCall(
   data: Hex,
   value?: bigint
 ): ContractCall {
-  if (isB20PrecompileAddress(to)) {
+  if (isB20FactoryAddress(to)) {
     return buildB20Call(to, data, value);
   }
   return {
@@ -219,7 +225,7 @@ const MULTICALL3_ABI = parseAbi([
 /** True when calls can be wrapped in one Multicall3 aggregate3Value tx. */
 export function canBundleViaMulticall3(calls: ContractCall[]): boolean {
   if (calls.length < 2) return false;
-  if (calls.some((c) => isB20PrecompileAddress(c.to))) return false;
+  if (calls.some((c) => isB20FactoryAddress(c.to))) return false;
   // ERC20 transfer(to,amount) uses msg.sender — Multicall3 has no balance.
   // Bundling those legs reverts the whole swap (sells / USDC pays).
   if (calls.some((c) => isErc20TransferCall(c))) return false;

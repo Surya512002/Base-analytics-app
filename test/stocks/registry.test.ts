@@ -61,14 +61,17 @@ describe("Single Source of Truth Tokenized Stock Registry (Base Mainnet)", () =>
         (m.category === "stocks_borrow" &&
           m.collateralAsset?.isStock &&
           m.collateralAsset.symbol.endsWith("c")) ||
-        (m.category === "stocks_lend" && m.asset.isStock && m.asset.symbol.endsWith("c"))
+        (m.category === "stocks_lend" && m.asset.isStock && m.asset.symbol.endsWith("c")) ||
+        (m.category === "stocks_stake" && m.collateralAsset?.isStock && m.collateralAsset.symbol.endsWith("c"))
     );
 
     expect(stockMarkets.length).toBeGreaterThan(0);
 
     for (const market of stockMarkets) {
       const stockAsset =
-        market.category === "stocks_borrow" ? market.collateralAsset : market.asset;
+        market.category === "stocks_borrow" || market.category === "stocks_stake"
+          ? market.collateralAsset
+          : market.asset;
       expect(stockAsset).toBeDefined();
       if (!stockAsset) continue;
 

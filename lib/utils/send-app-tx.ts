@@ -8,6 +8,7 @@ import type { ContractCall } from "@/lib/utils/tx";
 import {
   prepareCallsForWalletSendCalls,
   withBuilderSuffix,
+  isB20FactoryAddress,
   isB20PrecompileAddress,
   isPreservedCalldataCall,
   finalizeAppTransactionBatch,
@@ -105,7 +106,7 @@ function buildLegacyTxParams(
   if (call.value && call.value > BigInt(0)) {
     params.value = `0x${call.value.toString(16)}`;
   }
-  if (isB20PrecompileAddress(call.to)) {
+  if (isB20FactoryAddress(call.to)) {
     const gas = call.gas ?? gasLimitForB20Target(call.to);
     params.gas = `0x${gas.toString(16)}`;
   }
@@ -322,7 +323,7 @@ async function waitForTxMined(hash: string): Promise<void> {
 }
 
 function isErc20ApproveCall(call: ContractCall): boolean {
-  if (isB20PrecompileAddress(call.to)) return false;
+  if (isB20FactoryAddress(call.to)) return false;
   const hex = call.data.toLowerCase();
   return hex.startsWith("0x095ea7b3");
 }
@@ -363,7 +364,7 @@ function isPaymasterDenied(err: unknown): boolean {
   );
 }
 
-/** B20 precompile legs must run first; router/fee legs can be paymaster-sponsored. */
+/** B20 factory launch legs must run first; other legs can be paymaster-sponsored. */
 function partitionB20PreflightCalls(calls: ContractCall[]): {
   preflight: ContractCall[];
   main: ContractCall[];
@@ -371,7 +372,7 @@ function partitionB20PreflightCalls(calls: ContractCall[]): {
   const preflight: ContractCall[] = [];
   const main: ContractCall[] = [];
   for (const call of calls) {
-    if (isB20PrecompileAddress(call.to)) preflight.push(call);
+    if (isB20FactoryAddress(call.to)) preflight.push(call);
     else main.push(call);
   }
   return { preflight, main };
@@ -385,14 +386,14 @@ function isAttributionCompanionBatch(calls: ContractCall[]): boolean {
     return (
       bare === "0x" &&
       (!c.value || c.value === BigInt(0)) &&
-      !isB20PrecompileAddress(c.to)
+      !isB20FactoryAddress(c.to)
     );
   });
 }
 
 function batchCanTryPaymaster(calls: ContractCall[]): boolean {
   if (calls.length === 0) return false;
-  return !calls.every((c) => isB20PrecompileAddress(c.to));
+  return !calls.every((c) => isB20FactoryAddress(c.to));
 }
 
 async function sendWalletCallsWithPaymasterFallback(
@@ -431,7 +432,7 @@ async function sendSingleCall(
   opts: { preferSendCalls: boolean }
 ): Promise<string> {
   const stripSuffix = isPreservedCalldataCall(call);
-  const tryPaymaster = !isB20PrecompileAddress(call.to);
+  const tryPaymaster = !isB20FactoryAddress(call.to);
 
   if (opts.preferSendCalls) {
     try {
@@ -488,11 +489,14 @@ async function sendCallGroup(
     }
   }
 
-  // Sequential fallback: required for ERC20 fee transfers (Multicall3 can't
-  // transferFrom the user's balance via token.transfer), and when wallet_sendCalls fails.
+  // Sequential fallback: wait for each call (such as approve) to be mined
+  // before submitting the next call (such as swap).
   let lastHash = "";
-  for (const call of group) {
-    lastHash = await sendSingleCall(provider, from, call, opts);
+  for (let i = 0; i < group.length; i++) {
+    lastHash = await sendSingleCall(provider, from, group[i]!, opts);
+    if (i < group.length - 1) {
+      await waitForTxMined(lastHash);
+    }
   }
   return lastHash;
 }
@@ -503,7 +507,7 @@ async function sendGroupedAppCalls(
   calls: ContractCall[],
   opts: { preferSendCalls: boolean; atomicBatch: boolean }
 ): Promise<string> {
-  const useAtomic = opts.atomicBatch;
+  const useAtomic = opts.atomicBatch && (opts.preferSendCalls || canBundleViaMulticall3(calls));
   const groups = groupCallsForExecution(calls, useAtomic);
   let lastHash = "";
   for (let g = 0; g < groups.length; g++) {
@@ -608,7 +612,7 @@ export async function sendAppTransactions(
 
   if (preflight.length > 0 && main.length > 0) {
     const b20CreateOnly =
-      preflight.length === 1 && isB20PrecompileAddress(preflight[0]!.to);
+      preflight.length === 1 && isB20FactoryAddress(preflight[0]!.to);
 
     const createHash = b20CreateOnly
       ? await sendB20Launch(provider, from, preflight[0]!, connType, inMiniApp)
@@ -640,7 +644,7 @@ export async function sendAppTransactions(
   }
 
   const b20Only =
-    workBatch.length === 1 && isB20PrecompileAddress(workBatch[0]!.to);
+    workBatch.length === 1 && isB20FactoryAddress(workBatch[0]!.to);
 
   if (b20Only) {
     return sendB20Launch(provider, from, workBatch[0]!, connType, inMiniApp);

@@ -176,14 +176,6 @@ export async function GET(req: Request) {
       direction,
     });
 
-    if (antiSnipe.active) {
-      return NextResponse.json({
-        hasLiquidity: false,
-        error: antiSnipe.message || "Anti-snipe window active — buys temporarily blocked",
-        antiSnipe,
-      });
-    }
-
     const legs = resolveSwapLegs({
       pageToken: tokenAddr,
       direction,
@@ -209,6 +201,17 @@ export async function GET(req: Request) {
 
     const isLaunched = isAppLaunchedToken(registered) || Boolean(registered) || Boolean(creator);
 
+    const isCreatorTaker = Boolean(
+      taker && creator && taker.toLowerCase() === creator.toLowerCase()
+    );
+    if (antiSnipe.active && !isCreatorTaker) {
+      return NextResponse.json({
+        hasLiquidity: false,
+        error: antiSnipe.message || "Anti-snipe window active — buys temporarily blocked",
+        antiSnipe,
+      });
+    }
+
     const cleanAmount = sanitizeTokenAmountInput(amount, legs.amountDecimals);
     if (!cleanAmount || parseFloat(cleanAmount) <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -218,10 +221,12 @@ export async function GET(req: Request) {
     if (gross <= BigInt(0)) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
-    const { net: amountIn, fee: platformFee } = splitGrossAmount(gross);
-    if (amountIn <= BigInt(0)) {
-      return NextResponse.json({ error: "Amount too small after fee" }, { status: 400 });
-    }
+    // Direct DEX swaps execute the full gross amount directly with builder code attribution
+    const amountIn = gross;
+    const { fee: platformFee } = splitGrossAmount(gross);
+
+    // Apply safe default slippage for newly launched tokens to avoid immediate pool volatility reverts
+    const effectiveSlippageBps = isLaunched ? Math.max(slippageBps, 200) : slippageBps;
 
     const base = {
       direction,
@@ -239,7 +244,7 @@ export async function GET(req: Request) {
       referrer: isAddressLike(referrer || "") ? referrer : null,
       feeShares,
       isLaunchedToken: isLaunched,
-      defaultSlippageBps: isLaunched ? 50 : 100,
+      defaultSlippageBps: isLaunched ? 250 : 100,
       creatorFeeBps: isLaunched ? 25 : 0,
       platformFeeBps: isLaunched ? 25 : 50,
       antiSnipe,
@@ -259,7 +264,7 @@ export async function GET(req: Request) {
         token: tokenAddr,
         direction,
         amountIn,
-        slippageBps,
+        slippageBps: effectiveSlippageBps,
         dex: quoteDex,
         quoteToken,
         allowUsdcHop: !isUsdcLeg,
@@ -270,7 +275,7 @@ export async function GET(req: Request) {
       sellToken: legs.sellToken,
       buyToken: legs.buyToken,
       amountIn,
-      slippageBps,
+      slippageBps: effectiveSlippageBps,
       taker,
     });
 

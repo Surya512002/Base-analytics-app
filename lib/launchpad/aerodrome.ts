@@ -76,6 +76,28 @@ const ROUTER_ABI = [
     ],
     outputs: [{ name: "amounts", type: "uint256[]" }],
   },
+  {
+    name: "swapExactTokensForTokens",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      {
+        name: "routes",
+        type: "tuple[]",
+        components: [
+          { name: "from", type: "address" },
+          { name: "to", type: "address" },
+          { name: "stable", type: "bool" },
+          { name: "factory", type: "address" },
+        ],
+      },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" },
+    ],
+    outputs: [{ name: "amounts", type: "uint256[]" }],
+  },
 ] as const;
 
 type Route = {
@@ -254,6 +276,32 @@ export function encodeAerodromeSell(params: {
   return encodeFunctionData({
     abi: ROUTER_ABI,
     functionName: "swapExactTokensForETH",
+    args: [
+      params.amountIn,
+      params.amountOutMinimum,
+      routes,
+      params.recipient,
+      swapDeadline(),
+    ],
+  });
+}
+
+export function encodeAerodromeTokensForTokens(params: {
+  tokenIn: Address;
+  tokenOut: Address;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+  recipient: Address;
+  stable?: boolean;
+  hops?: AerodromeHop[];
+}): Hex {
+  const routes =
+    params.hops && params.hops.length > 0
+      ? buildMultiRoute(params.hops)
+      : buildRoute(params.tokenIn, params.tokenOut, params.stable ?? false);
+  return encodeFunctionData({
+    abi: ROUTER_ABI,
+    functionName: "swapExactTokensForTokens",
     args: [
       params.amountIn,
       params.amountOutMinimum,

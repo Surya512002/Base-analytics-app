@@ -177,7 +177,7 @@ describe("Unified Stock Lending Comparison Matrix", () => {
 
     // Approval + Supply/Deposit = 2 calls
     expect(calls.length).toBe(2);
-    expect(hasBuilderSuffix(calls[0].data)).toBe(false);
+    expect(hasBuilderSuffix(calls[0].data)).toBe(true);
     expect(hasBuilderSuffix(calls[1].data)).toBe(true);
   });
 
