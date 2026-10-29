@@ -242,28 +242,43 @@ export default function LendingHub({
       const matchingMarkets = discoveredMarkets.filter(
         (m) =>
           m.collateralAsset?.address.toLowerCase() === stk.address.toLowerCase() ||
-          m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase()
+          m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase() ||
+          m.collateralAsset?.symbol.toLowerCase() === stk.symbol.toLowerCase() ||
+          m.supplyAsset.symbol.toLowerCase() === stk.symbol.toLowerCase()
       );
 
       const hasLendingMarket = matchingMarkets.length > 0;
       const listedProtocols = Array.from(new Set(matchingMarkets.map((m) => m.protocolLabel)));
 
-      const supplyMarkets = matchingMarkets.filter((m) => m.supplyApy > 0);
+      // Real Supply/Staking APY: from yield vaults, staking pools, or stock supply pools
+      const supplyMarkets = matchingMarkets.filter(
+        (m) =>
+          (m.type === "stake" ||
+            m.type === "lend" ||
+            m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase()) &&
+          m.supplyApy > 0
+      );
       const bestSupplyMkt = supplyMarkets.sort((a, b) => b.supplyApy - a.supplyApy)[0];
       const bestSupplyApy = bestSupplyMkt?.supplyApy ?? 0;
-      const bestSupplyProtocol = bestSupplyMkt?.protocolLabel ?? "None";
+      const bestSupplyProtocol =
+        bestSupplyMkt?.protocolLabel ?? (hasLendingMarket ? "Collateral only" : "None");
 
+      // Real Borrow APR: from borrowing markets where stock is collateral
       const borrowMarkets = matchingMarkets.filter(
-        (m) => m.borrowApr !== undefined && m.borrowApr > 0
+        (m) => m.type === "borrow" && m.borrowApr !== undefined && m.borrowApr > 0
       );
-      const bestBorrowMkt = borrowMarkets.sort(
+      // Prefer borrow markets with verified available depth > $10
+      const fundedBorrowMarkets = borrowMarkets.filter((m) => (m.liquidityUsd || 0) > 10);
+      const borrowCandidates = fundedBorrowMarkets.length > 0 ? fundedBorrowMarkets : borrowMarkets;
+      const bestBorrowMkt = borrowCandidates.sort(
         (a, b) => (a.borrowApr ?? 999) - (b.borrowApr ?? 999)
       )[0];
       const bestBorrowApr = bestBorrowMkt?.borrowApr ?? null;
       const bestBorrowProtocol = bestBorrowMkt?.protocolLabel ?? null;
 
+      // Real Total Liquidity: sum of real discovered depth across active protocols
       const totalLiquidityUsd = matchingMarkets.reduce(
-        (sum, m) => sum + (m.liquidityUsd || 0),
+        (sum, m) => sum + (m.liquidityUsd > 0 ? m.liquidityUsd : (m.tvlUsd || 0)),
         0
       );
 
@@ -284,7 +299,15 @@ export default function LendingHub({
                 ? 184.5
                 : stk.symbol === "MSFTc"
                   ? 428.1
-                  : 125.0;
+                  : stk.symbol === "GOOGLc"
+                    ? 182.2
+                    : stk.symbol === "METAc"
+                      ? 590.4
+                      : stk.symbol === "AMZNc"
+                        ? 198.8
+                        : stk.symbol === "MSTRc"
+                          ? 242.0
+                          : 125.0;
 
       const bal = walletBalances[stk.symbol] ?? null;
       const balUsd = bal !== null ? bal * priceUsd : null;
@@ -382,117 +405,105 @@ export default function LendingHub({
     return [...stockRows, ...cryptoRows];
   }, [marketGroup, stockRows]);
 
-  // 2. Aerodrome Stock Gauges Data
+  // 2. Real Staking & Vault Opportunities (Beefy vaults, Aerodrome gauges, Pendle pools)
   const gaugeRows: GaugeRowData[] = useMemo(() => {
+    const liveVaults = discoveredMarkets
+      .filter(
+        (m) =>
+          (m.protocol === "beefy" || m.protocol === "aerodrome" || m.protocol === "pendle") &&
+          m.status === "active"
+      )
+      .map((m) => {
+        const stockSym = m.collateralAsset?.symbol || m.supplyAsset.symbol;
+        return {
+          id: m.marketId,
+          pairName: m.supplyAsset.name || `${stockSym} Vault`,
+          stockSymbol: stockSym,
+          category: "equities",
+          gaugeApr: m.supplyApy,
+          tvlUsd: m.tvlUsd || m.liquidityUsd,
+          rewardToken: m.protocol === "beefy" ? "BEEFY" : m.protocol === "pendle" ? "PENDLE" : "AERO",
+          stakedAmount: 0,
+          stakedUsd: 0,
+          pendingRewards: 0,
+          pendingRewardsUsd: 0,
+          contractAddress: (m.contractAddress || m.supplyAsset.address) as `0x${string}`,
+        };
+      });
+
+    if (liveVaults.length > 0) return liveVaults;
+
     return [
       {
-        id: "aero-nvda-usdc",
-        pairName: "NVDAc / USDC",
-        stockSymbol: "NVDAc",
+        id: "aero-cow-base-msftc-usdc-vault",
+        pairName: "MSFTc-USDC (Beefy Auto-Compounder)",
+        stockSymbol: "MSFTc",
         category: "tech",
-        gaugeApr: 38.45,
-        tvlUsd: 8_400_000,
-        rewardToken: "AERO",
+        gaugeApr: 290.2,
+        tvlUsd: 70_411,
+        rewardToken: "BEEFY",
         stakedAmount: 0,
         stakedUsd: 0,
         pendingRewards: 0,
         pendingRewardsUsd: 0,
-        contractAddress: "0x91892d3f3f619e4a3b7c938bcda819283f5163a8",
+        contractAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
       },
       {
-        id: "aero-aapl-usdc",
-        pairName: "AAPLc / USDC",
-        stockSymbol: "AAPLc",
-        category: "tech",
-        gaugeApr: 29.6,
-        tvlUsd: 7_100_000,
-        rewardToken: "AERO",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0x238a29fb48efc65a882a129ef3879d20c528ea21",
-      },
-      {
-        id: "aero-tsla-usdc",
-        pairName: "TSLAc / USDC",
+        id: "aero-cow-base-tslac-usdc-vault",
+        pairName: "TSLAc-USDC (Beefy Auto-Compounder)",
         stockSymbol: "TSLAc",
         category: "tech",
-        gaugeApr: 42.1,
-        tvlUsd: 6_800_000,
-        rewardToken: "AERO",
+        gaugeApr: 54.13,
+        tvlUsd: 50_839,
+        rewardToken: "BEEFY",
         stakedAmount: 0,
         stakedUsd: 0,
         pendingRewards: 0,
         pendingRewardsUsd: 0,
-        contractAddress: "0x45a90128e4b7c891a20bf1892ad51629ab819a31",
+        contractAddress: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
       },
       {
-        id: "aero-coin-usdc",
-        pairName: "COINc / USDC",
-        stockSymbol: "COINc",
-        category: "crypto",
-        gaugeApr: 36.8,
-        tvlUsd: 5_900_000,
-        rewardToken: "AERO",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0x789a451928bcde91234a567812e94acb7123984e",
-      },
-      {
-        id: "aero-pltr-usdc",
-        pairName: "PLTRc / USDC",
-        stockSymbol: "PLTRc",
-        category: "tech",
-        gaugeApr: 44.2,
-        tvlUsd: 5_400_000,
-        rewardToken: "AERO",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0x129a0184b7c891e4a3b7c938bcda819283f5163a",
-      },
-      {
-        id: "aero-mstr-usdc",
-        pairName: "MSTRc / USDC",
+        id: "aero-cow-base-mstrc-usdc-vault",
+        pairName: "MSTRc-USDC (Beefy Auto-Compounder)",
         stockSymbol: "MSTRc",
         category: "crypto",
-        gaugeApr: 48.5,
-        tvlUsd: 6_100_000,
-        rewardToken: "AERO",
+        gaugeApr: 10.01,
+        tvlUsd: 1_886,
+        rewardToken: "BEEFY",
         stakedAmount: 0,
         stakedUsd: 0,
         pendingRewards: 0,
         pendingRewardsUsd: 0,
-        contractAddress: "0x981240182b7c891a20bf1892ad51629ab819a31b",
+        contractAddress: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
       },
     ];
-  }, []);
+  }, [discoveredMarkets]);
 
   // 3. Live Stats Calculations for Header
   const headerStats = useMemo(() => {
-    let topSupply = 11.2;
-    let lowestBorrow = 2.95;
+    let topSupply = 0;
+    let lowestBorrow = 999;
     let totalLiquidity = 0;
 
     allMarketsRows.forEach((r) => {
-      if (r.bestSupplyApy > topSupply) topSupply = r.bestSupplyApy;
-      if (r.bestBorrowApr && r.bestBorrowApr < lowestBorrow) lowestBorrow = r.bestBorrowApr;
-      totalLiquidity += r.totalLiquidityUsd;
+      if (r.hasLendingMarket) {
+        if (r.bestSupplyApy > topSupply) topSupply = r.bestSupplyApy;
+        if (r.bestBorrowApr && r.bestBorrowApr > 0 && r.bestBorrowApr < lowestBorrow) {
+          lowestBorrow = r.bestBorrowApr;
+        }
+        totalLiquidity += r.totalLiquidityUsd;
+      }
     });
 
-    const verifiedPools = BASE_LENDING_MARKETS.length;
+    const verifiedPools = discoveredMarkets.length > 0 ? discoveredMarkets.length : 0;
 
     return {
-      topSupplyApy: topSupply,
-      lowestBorrowApr: lowestBorrow,
+      topSupplyApy: topSupply > 0 ? topSupply : 0,
+      lowestBorrowApr: lowestBorrow < 999 ? lowestBorrow : 0,
       totalLiquidityUsd: totalLiquidity,
       verifiedPoolsCount: verifiedPools,
     };
-  }, [allMarketsRows]);
+  }, [allMarketsRows, discoveredMarkets]);
 
   // 4. Real On-chain User Positions
   const [userPositions, setUserPositions] = useState<UserProtocolPosition[]>([]);

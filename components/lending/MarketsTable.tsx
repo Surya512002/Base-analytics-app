@@ -355,6 +355,7 @@ export default function MarketsTable({
                   </td>
 
                   {/* Best Supply APY */}
+                  {/* Best Supply APY */}
                   <td className="py-3 px-3">
                     {hasMarket ? (
                       <div>
@@ -364,7 +365,7 @@ export default function MarketsTable({
                         <p className="text-[10px] text-[var(--ink-muted)]">{row.bestSupplyProtocol}</p>
                       </div>
                     ) : (
-                      <span className="text-[11px] text-[var(--ink-muted)] italic">No lending market yet</span>
+                      <span className="text-[11px] text-[var(--ink-muted)] italic">No pool yet</span>
                     )}
                   </td>
 
@@ -385,7 +386,7 @@ export default function MarketsTable({
                           )}
                         </div>
                         <p className="text-[10px] text-[var(--ink-muted)]">
-                          {row.bestBorrowProtocol ?? "Collateral only"}
+                          {row.bestBorrowProtocol ?? (row.bestSupplyApy > 0 ? "Yield Vault" : "Collateral only")}
                         </p>
                       </div>
                     ) : (
@@ -395,12 +396,12 @@ export default function MarketsTable({
 
                   {/* Liquidity */}
                   <td className="py-3 px-3 font-mono text-[var(--ink)]">
-                    {hasMarket ? formatCompactUsd(row.totalLiquidityUsd) : "—"}
+                    {hasMarket && row.totalLiquidityUsd > 0 ? formatCompactUsd(row.totalLiquidityUsd) : "—"}
                   </td>
 
-                  {/* Protocol Chips ("Listed on: Morpho, Aave, ...") */}
+                  {/* Protocol Chips ("Listed on: Morpho, Beefy, ...") */}
                   <td className="py-3 px-3">
-                    {row.listedProtocols && row.listedProtocols.length > 0 ? (
+                    {hasMarket && row.listedProtocols && row.listedProtocols.length > 0 && row.listedProtocols[0] !== "No Pool" ? (
                       <div className="flex items-center gap-1 flex-wrap max-w-[150px]">
                         {row.listedProtocols.map((p) => (
                           <span
@@ -447,17 +448,21 @@ export default function MarketsTable({
 
                   {/* Action */}
                   <td className="py-3 px-3 text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectAsset(row.symbol);
-                      }}
-                      className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs shadow-xs group-hover:bg-[#0047e0] transition flex items-center gap-1 ml-auto cursor-pointer"
-                    >
-                      <span>Compare</span>
-                      <ChevronRight size={13} />
-                    </button>
+                    {hasMarket ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectAsset(row.symbol);
+                        }}
+                        className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs shadow-xs group-hover:bg-[#0047e0] transition flex items-center gap-1 ml-auto cursor-pointer"
+                      >
+                        <span>Compare</span>
+                        <ChevronRight size={13} />
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-[var(--ink-dim)] italic pr-2">No pool</span>
+                    )}
                   </td>
                 </tr>
               );

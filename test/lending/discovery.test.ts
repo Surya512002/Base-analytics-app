@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { morphoAdapter } from "@/lib/lending/discovery/adapters/morpho";
+import { beefyAdapter } from "@/lib/lending/discovery/adapters/beefy";
+import { pendleAdapter } from "@/lib/lending/discovery/adapters/pendle";
+import { zkfiAdapter } from "@/lib/lending/discovery/adapters/zkfi";
 import { aaveAdapter } from "@/lib/lending/discovery/adapters/aave";
 import { moonwellAdapter } from "@/lib/lending/discovery/adapters/moonwell";
 import { aerodromeAdapter } from "@/lib/lending/discovery/adapters/aerodrome";
@@ -159,6 +162,9 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
       },
     ]);
 
+    const beefySpy = vi.spyOn(beefyAdapter, "discoverMarkets").mockResolvedValue([]);
+    const pendleSpy = vi.spyOn(pendleAdapter, "discoverMarkets").mockResolvedValue([]);
+    const zkfiSpy = vi.spyOn(zkfiAdapter, "discoverMarkets").mockResolvedValue([]);
     const aaveSpy = vi.spyOn(aaveAdapter, "discoverMarkets").mockResolvedValue([]);
     const moonwellSpy = vi.spyOn(moonwellAdapter, "discoverMarkets").mockResolvedValue([]);
     const aeroSpy = vi.spyOn(aerodromeAdapter, "discoverMarkets").mockResolvedValue([]);
@@ -180,6 +186,9 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
       expect(approvedMarket).toBeDefined();
     } finally {
       morphoSpy.mockRestore();
+      beefySpy.mockRestore();
+      pendleSpy.mockRestore();
+      zkfiSpy.mockRestore();
       aaveSpy.mockRestore();
       moonwellSpy.mockRestore();
       aeroSpy.mockRestore();
@@ -228,6 +237,9 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
       },
     ]);
 
+    const beefySpy = vi.spyOn(beefyAdapter, "discoverMarkets").mockResolvedValue([]);
+    const pendleSpy = vi.spyOn(pendleAdapter, "discoverMarkets").mockResolvedValue([]);
+    const zkfiSpy = vi.spyOn(zkfiAdapter, "discoverMarkets").mockResolvedValue([]);
     const aaveSpy = vi.spyOn(aaveAdapter, "discoverMarkets").mockResolvedValue([]);
     const moonwellSpy = vi.spyOn(moonwellAdapter, "discoverMarkets").mockResolvedValue([]);
     const aeroSpy = vi.spyOn(aerodromeAdapter, "discoverMarkets").mockResolvedValue([]);
@@ -242,6 +254,9 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
       expect(m?.riskFlags).toContain("UNKNOWN_ORACLE");
     } finally {
       morphoSpy.mockRestore();
+      beefySpy.mockRestore();
+      pendleSpy.mockRestore();
+      zkfiSpy.mockRestore();
       aaveSpy.mockRestore();
       moonwellSpy.mockRestore();
       aeroSpy.mockRestore();
@@ -285,6 +300,9 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
         status: "active",
       },
     ]);
+    const beefySpy = vi.spyOn(beefyAdapter, "discoverMarkets").mockResolvedValue([]);
+    const pendleSpy = vi.spyOn(pendleAdapter, "discoverMarkets").mockResolvedValue([]);
+    const zkfiSpy = vi.spyOn(zkfiAdapter, "discoverMarkets").mockResolvedValue([]);
     const moonwellSpy = vi.spyOn(moonwellAdapter, "discoverMarkets").mockResolvedValue([]);
     const aeroSpy = vi.spyOn(aerodromeAdapter, "discoverMarkets").mockResolvedValue([]);
     const eulerSpy = vi.spyOn(eulerAdapter, "discoverMarkets").mockResolvedValue([]);
@@ -301,6 +319,78 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
       expect(result.markets.some((m) => m.protocol === "aave")).toBe(true);
     } finally {
       morphoSpy.mockRestore();
+      beefySpy.mockRestore();
+      pendleSpy.mockRestore();
+      zkfiSpy.mockRestore();
+      aaveSpy.mockRestore();
+      moonwellSpy.mockRestore();
+      aeroSpy.mockRestore();
+      eulerSpy.mockRestore();
+      superformSpy.mockRestore();
+    }
+  });
+
+  it("verifies Beefy and Pendle adapters integrate into discovery result", async () => {
+    const nvdaStock = TOKENIZED_STOCKS_REGISTRY[0];
+
+    const beefySpy = vi.spyOn(beefyAdapter, "discoverMarkets").mockResolvedValue([
+      {
+        protocol: "beefy",
+        protocolLabel: "Beefy Finance",
+        marketId: "beefy-nvda-vault",
+        type: "stake",
+        supplyAsset: {
+          symbol: "NVDAc-USDC",
+          name: "NVDAc-USDC Beefy Vault",
+          address: "0x0cbE68943519ebbeb024F20e85DB39f6B51a29ED",
+          decimals: 18,
+          isStock: true,
+        },
+        collateralAsset: {
+          symbol: nvdaStock.symbol,
+          name: nvdaStock.name,
+          address: nvdaStock.address,
+          decimals: nvdaStock.decimals,
+          isStock: true,
+        },
+        supplyApy: 28.5,
+        maxLtv: 0,
+        liquidityUsd: 212000,
+        tvlUsd: 212000,
+        utilization: 100,
+        oracle: { name: "Beefy Oracle", isVerified: true },
+        canSupply: true,
+        canBorrow: false,
+        canUseAsCollateral: false,
+        riskFlags: [],
+        sourceLink: "https://app.beefy.com",
+        lastUpdated: new Date().toISOString(),
+        status: "active",
+      },
+    ]);
+
+    const pendleSpy = vi.spyOn(pendleAdapter, "discoverMarkets").mockResolvedValue([]);
+    const zkfiSpy = vi.spyOn(zkfiAdapter, "discoverMarkets").mockResolvedValue([]);
+    const morphoSpy = vi.spyOn(morphoAdapter, "discoverMarkets").mockResolvedValue([]);
+    const aaveSpy = vi.spyOn(aaveAdapter, "discoverMarkets").mockResolvedValue([]);
+    const moonwellSpy = vi.spyOn(moonwellAdapter, "discoverMarkets").mockResolvedValue([]);
+    const aeroSpy = vi.spyOn(aerodromeAdapter, "discoverMarkets").mockResolvedValue([]);
+    const eulerSpy = vi.spyOn(eulerAdapter, "discoverMarkets").mockResolvedValue([]);
+    const superformSpy = vi.spyOn(superformAdapter, "discoverMarkets").mockResolvedValue([]);
+
+    try {
+      const result = await runMarketDiscovery(8453, true);
+      expect(result.protocolStatus.beefy.status).toBe("ok");
+      expect(result.protocolStatus.pendle.status).toBe("ok");
+      expect(result.protocolStatus.zkfi.status).toBe("ok");
+      const beefyMarket = result.markets.find((m) => m.protocol === "beefy");
+      expect(beefyMarket).toBeDefined();
+      expect(beefyMarket?.supplyApy).toBe(28.5);
+    } finally {
+      morphoSpy.mockRestore();
+      beefySpy.mockRestore();
+      pendleSpy.mockRestore();
+      zkfiSpy.mockRestore();
       aaveSpy.mockRestore();
       moonwellSpy.mockRestore();
       aeroSpy.mockRestore();

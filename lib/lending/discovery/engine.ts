@@ -1,5 +1,3 @@
-import { writeFileSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type {
   DiscoveryProtocol,
   DiscoveryResult,
@@ -8,6 +6,9 @@ import type {
 } from "./types";
 import { DISCOVERY_SAFETY_CONFIG } from "./types";
 import { morphoAdapter } from "./adapters/morpho";
+import { beefyAdapter } from "./adapters/beefy";
+import { pendleAdapter } from "./adapters/pendle";
+import { zkfiAdapter } from "./adapters/zkfi";
 import { aaveAdapter } from "./adapters/aave";
 import { moonwellAdapter } from "./adapters/moonwell";
 import { aerodromeAdapter } from "./adapters/aerodrome";
@@ -43,7 +44,7 @@ function looksLikeStockToken(symbol: string, name: string): boolean {
 }
 
 /**
- * Record an unapproved candidate to pending-review.json
+ * Record an unapproved candidate to pending review log
  */
 function recordPendingCandidate(token: {
   symbol: string;
@@ -53,36 +54,13 @@ function recordPendingCandidate(token: {
   protocol: string;
 }) {
   try {
-    const pendingPath = resolve(process.cwd(), "lib/stocks/pending-review.json");
-    let currentData = { lastUpdated: new Date().toISOString(), candidates: [] as any[] };
-    try {
-      const raw = readFileSync(pendingPath, "utf-8");
-      currentData = JSON.parse(raw);
-    } catch {
-      // fresh
+    // Isomorphic safety: avoid filesystem operations in client bundles
+    if (typeof window !== "undefined") {
+      return;
     }
-
-    const exists = currentData.candidates.some(
-      (c: any) => c.address.toLowerCase() === token.address.toLowerCase()
-    );
-
-    if (!exists) {
-      currentData.candidates.push({
-        symbol: token.symbol,
-        name: token.name,
-        underlyingTicker: token.symbol.replace(/c$|^d/, ""),
-        address: token.address,
-        decimals: token.decimals,
-        status: "pending",
-        discoveredAt: new Date().toISOString(),
-        notes: `Automatically discovered in ${token.protocol} lending market. Awaiting review before approval.`,
-      });
-      currentData.lastUpdated = new Date().toISOString();
-      writeFileSync(pendingPath, JSON.stringify(currentData, null, 2), "utf-8");
-      console.log(`[Discovery Engine] Recorded candidate for review: ${token.symbol} (${token.address})`);
-    }
+    console.log(`[Discovery Engine] Candidate for review: ${token.symbol} (${token.address}) on ${token.protocol}`);
   } catch (err) {
-    console.warn("[Discovery Engine] Could not update pending review file:", err);
+    console.warn("[Discovery Engine] Could not process candidate:", err);
   }
 }
 
@@ -110,6 +88,9 @@ export async function runMarketDiscovery(
 
   const adapters = [
     morphoAdapter,
+    beefyAdapter,
+    pendleAdapter,
+    zkfiAdapter,
     aaveAdapter,
     moonwellAdapter,
     aerodromeAdapter,
@@ -124,6 +105,9 @@ export async function runMarketDiscovery(
   const discoveredRawMarkets: NormalizedMarket[] = [];
   const protocolStatus: Record<DiscoveryProtocol, ProtocolHealthStatus> = {
     morpho: { protocol: "morpho", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
+    beefy: { protocol: "beefy", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
+    pendle: { protocol: "pendle", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
+    zkfi: { protocol: "zkfi", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     aave: { protocol: "aave", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     moonwell: { protocol: "moonwell", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     aerodrome: { protocol: "aerodrome", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },

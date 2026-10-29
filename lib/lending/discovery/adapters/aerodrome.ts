@@ -71,12 +71,19 @@ export const aerodromeAdapter: DiscoveryAdapter = {
       },
     });
 
-    const activeStocks = getActiveTokenizedStocks();
-    const pairedQuotes = [USDC_BASE_ADDRESS, WETH_BASE_ADDRESS];
+    // Filter to top tokenized stocks with DEX pool liquidity on Aerodrome to avoid RPC 429 flooding
+    const prioritySymbols = new Set([
+      "NVDAc", "AAPLc", "TSLAc", "MSFTc", "MSTRc", "COINc", "GOOGLc",
+      "METAc", "AMZNc", "SPCXc", "SNDKc", "PYPLc", "FUNc", "APPc"
+    ]);
+    const targetStocks = getActiveTokenizedStocks().filter(
+      (s) => prioritySymbols.has(s.symbol)
+    );
+    const pairedQuotes = [USDC_BASE_ADDRESS];
     const aeroPriceEstimatedUsd = 0.85;
 
     await Promise.all(
-      activeStocks.map(async (stock) => {
+      targetStocks.map(async (stock) => {
         for (const quote of pairedQuotes) {
           for (const stable of [false, true]) {
             try {

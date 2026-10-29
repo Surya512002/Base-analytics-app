@@ -2,6 +2,9 @@ import type { Address } from "viem";
 
 export type DiscoveryProtocol =
   | "morpho"
+  | "beefy"
+  | "pendle"
+  | "zkfi"
   | "aave"
   | "euler"
   | "moonwell"
@@ -50,6 +53,7 @@ export interface NormalizedMarket {
   lastUpdated: string; // ISO 8601
   status: "active" | "paused" | "cap_reached";
   badgeText?: string;
+  contractAddress?: Address;
   morphoParams?: {
     loanToken: Address;
     collateralToken: Address;

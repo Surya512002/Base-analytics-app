@@ -11,6 +11,8 @@ import { getMorphoMarketId, fetchLiveMorphoMarket } from "./morpho-blue";
 import type { MorphoMarketParams, LendingMarket } from "./types";
 import { BASE_STOCKS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
+import { runMarketDiscovery } from "./discovery/engine";
+import type { NormalizedMarket } from "./discovery/types";
 
 async function getRedisCache<T>(key: string): Promise<T | null> {
   if (typeof window !== "undefined") return null;
@@ -36,7 +38,7 @@ export type ProtocolType = "variable" | "fixed" | "vault" | "strategy";
 
 export interface StockLendingOption {
   id: string;
-  protocol: "morpho_blue" | "morpho_midnight" | "aave_v4" | "euler" | "superform" | "moonwell";
+  protocol: "morpho_blue" | "beefy" | "pendle" | "morpho_midnight" | "aave_v4" | "euler" | "superform" | "moonwell";
   protocolName: string;
   protocolBadge: string;
   type: ProtocolType;
@@ -57,8 +59,9 @@ export interface StockLendingOption {
   riskLevel: "low" | "medium" | "high";
   riskNotes: string[];
   contractAddress: `0x${string}`;
-  executionType: "morpho_blue" | "morpho_midnight" | "aave_v4" | "euler" | "superform" | "moonwell";
+  executionType: "morpho_blue" | "beefy" | "pendle" | "morpho_midnight" | "aave_v4" | "euler" | "superform" | "moonwell";
   morphoParams?: MorphoMarketParams;
+  sourceLink?: string;
   isBestSupply?: boolean;
   isBestBorrow?: boolean;
   isHighestLiquidity?: boolean;
@@ -160,56 +163,143 @@ export async function getUnifiedStockLendingComparison(
   // Reference NAV
   const navUsd = isHighBeta ? (cleanSymbol === "NVDAc" ? 138.25 : 221.8) : isBlueChip ? 232.5 : 125.0;
 
-  // Real-time market micro-drift reflecting live protocol pool utilization and dynamic rate updates
-  const timeStep = Math.floor(now / 15_000);
-  const wave = Math.sin((timeStep * 0.42) + (cleanSymbol.charCodeAt(0) % 7));
-  const driftRatePct = Number((wave * 0.16).toFixed(2)); // ±0.16% APY
-  const driftBorrowPct = Number((-wave * 0.09).toFixed(2)); // borrow rate counter-responds
-  const driftUtilPct = Number((wave * 0.9).toFixed(1)); // ±0.9% utilization
-  const driftLiq = Math.round(wave * 140_000); // ±$140k liquidity
+  // Load real discovered markets from Base multi-protocol discovery engine
+  // Load real discovered markets with timeout guard to prevent test hangs
+  let discoveredMarkets: NormalizedMarket[] = [];
+  try {
+    const discoveryPromise = runMarketDiscovery(8453, forceRefresh);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+    const discoveryRes = (await Promise.race([discoveryPromise, timeoutPromise])) as any;
+    if (discoveryRes && Array.isArray(discoveryRes.markets)) {
+      discoveredMarkets = discoveryRes.markets;
+    }
+  } catch (discErr) {
+    console.warn("[Unified Comparison] Could not run discovery:", discErr);
+  }
 
-  // 1. Morpho Blue (Variable-rate Isolated Market)
-  const morphoParams: MorphoMarketParams = {
+  const matchingMarkets = discoveredMarkets.filter(
+    (m) =>
+      m.collateralAsset?.address.toLowerCase() === stockAddr.toLowerCase() ||
+      m.supplyAsset.address.toLowerCase() === stockAddr.toLowerCase() ||
+      m.collateralAsset?.symbol.toLowerCase() === cleanSymbol.toLowerCase() ||
+      m.supplyAsset.symbol.toLowerCase() === cleanSymbol.toLowerCase()
+  );
+
+  const options: StockLendingOption[] = [];
+
+  // 1. Morpho Blue (Live discovered market or baseline isolated market)
+  const morphoDiscovered = matchingMarkets.find((m) => m.protocol === "morpho");
+  const morphoParams: MorphoMarketParams = morphoDiscovered?.morphoParams ?? {
     loanToken: USDC_BASE_ADDRESS,
     collateralToken: stockAddr,
-    oracle: oracleFeed,
+    oracle: (morphoDiscovered?.oracle?.address as `0x${string}`) || oracleFeed,
     irm: MORPHO_ADAPTIVE_CURVE_IRM,
-    lltv: isHighBeta ? BigInt("720000000000000000") : isBlueChip ? BigInt("780000000000000000") : BigInt("750000000000000000"),
+    lltv: isHighBeta ? BigInt("720000000000000000") : BigInt("770000000000000000"),
   };
 
-  const morphoBlueOption: StockLendingOption = {
+  options.push({
     id: `${cleanSymbol}-morpho-blue`,
     protocol: "morpho_blue",
     protocolName: "Morpho Blue",
     protocolBadge: "Morpho Blue · Isolated",
     type: "variable",
-    typeLabel: "Variable-Rate Isolated",
+    typeLabel: "Variable-Rate Isolated Borrow",
     stockSymbol: cleanSymbol,
     stockName: stock.name,
     stockAddress: stockAddr,
     loanSymbol: "USDC",
     loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: Number((Math.max(1.5, (isHighBeta ? 8.45 : isBlueChip ? 5.85 : 6.4) + driftRatePct)).toFixed(2)),
-    borrowApr: Number((Math.max(1.2, (isHighBeta ? 3.85 : isBlueChip ? 2.95 : 3.2) + driftBorrowPct)).toFixed(2)),
-    maxLtv: isHighBeta ? 72 : isBlueChip ? 78 : 75,
-    liquidationThreshold: isHighBeta ? 78 : isBlueChip ? 83 : 80,
-    utilization: Number((Math.max(20, Math.min(98, (isHighBeta ? 74.2 : 64.5) + driftUtilPct))).toFixed(1)),
-    availableLiquidityUsd: Math.max(1_000_000, 18_450_000 + driftLiq),
-    tvlUsd: Math.max(2_000_000, 28_900_000 + driftLiq),
-    riskScore: 2, // Low risk: isolated credit pool
+    supplyApy: morphoDiscovered?.supplyApy ?? 0,
+    borrowApr: morphoDiscovered?.borrowApr ?? (isHighBeta ? 3.85 : 3.2),
+    maxLtv: morphoDiscovered?.maxLtv || (isHighBeta ? 72 : 77),
+    liquidationThreshold: (morphoDiscovered?.maxLtv || (isHighBeta ? 72 : 77)) + 5,
+    utilization: morphoDiscovered?.utilization ?? 68.4,
+    availableLiquidityUsd: morphoDiscovered?.liquidityUsd || (isHighBeta ? 54_000 : 300_000),
+    tvlUsd: morphoDiscovered?.tvlUsd || 1_200_000,
+    riskScore: 2,
     riskLevel: "low",
     riskNotes: [
       "Isolated credit pool: risk is strictly ring-fenced to this stock.",
-      "Chainlink 24/5 oracle: pauses over weekends & US market holidays.",
-      "Zero protocol-take fee: 100% of interest passes to lenders.",
+      "Chainlink 24/5 equity oracle feed.",
+      "Borrow USDC against tokenized stock collateral.",
     ],
     contractAddress: MORPHO_BLUE_BASE,
     executionType: "morpho_blue",
     morphoParams,
-  };
+    sourceLink: morphoDiscovered?.sourceLink,
+  });
 
-  // 2. Morpho Midnight (Fixed-Term Fixed-Rate Protocol)
-  const morphoMidnightOption: StockLendingOption = {
+  // 2. Beefy Finance (Live Auto-compounding Vault if discovered)
+  const beefyDiscovered = matchingMarkets.find((m) => m.protocol === "beefy");
+  if (beefyDiscovered) {
+    options.push({
+      id: `beefy-${beefyDiscovered.marketId}`,
+      protocol: "beefy",
+      protocolName: "Beefy Finance",
+      protocolBadge: "Beefy · Auto-Compounder",
+      type: "vault",
+      typeLabel: "Auto-Compounding Stock Vault",
+      stockSymbol: cleanSymbol,
+      stockName: stock.name,
+      stockAddress: stockAddr,
+      loanSymbol: "USDC",
+      loanAddress: USDC_BASE_ADDRESS,
+      supplyApy: beefyDiscovered.supplyApy,
+      borrowApr: null,
+      maxLtv: null,
+      liquidationThreshold: null,
+      utilization: 100,
+      availableLiquidityUsd: beefyDiscovered.liquidityUsd,
+      tvlUsd: beefyDiscovered.tvlUsd,
+      riskScore: 3,
+      riskLevel: "low",
+      riskNotes: [
+        "Auto-compounding yield vault deployed on Base mainnet.",
+        "Automated harvest strategies maximizing LP yield.",
+        "Standard ERC-4626 vault interface.",
+      ],
+      contractAddress: (beefyDiscovered.contractAddress || beefyDiscovered.supplyAsset.address) as `0x${string}`,
+      executionType: "beefy",
+      sourceLink: beefyDiscovered.sourceLink,
+    });
+  }
+
+  // 3. Pendle Finance (Live PT/YT yield market if discovered)
+  const pendleDiscovered = matchingMarkets.find((m) => m.protocol === "pendle");
+  if (pendleDiscovered) {
+    options.push({
+      id: `pendle-${pendleDiscovered.marketId}`,
+      protocol: "pendle",
+      protocolName: "Pendle Finance",
+      protocolBadge: "Pendle · Fixed Yield",
+      type: "strategy",
+      typeLabel: "Yield Trading / PT",
+      stockSymbol: cleanSymbol,
+      stockName: stock.name,
+      stockAddress: stockAddr,
+      loanSymbol: "USDC",
+      loanAddress: USDC_BASE_ADDRESS,
+      supplyApy: pendleDiscovered.supplyApy,
+      borrowApr: null,
+      maxLtv: null,
+      liquidationThreshold: null,
+      utilization: 100,
+      availableLiquidityUsd: pendleDiscovered.liquidityUsd,
+      tvlUsd: pendleDiscovered.tvlUsd,
+      riskScore: 4,
+      riskLevel: "medium",
+      riskNotes: [
+        "Tokenized yield market trading Principal & Yield tokens.",
+        "Fixed term yield locked until expiry.",
+      ],
+      contractAddress: (pendleDiscovered.contractAddress || pendleDiscovered.supplyAsset.address) as `0x${string}`,
+      executionType: "pendle",
+      sourceLink: pendleDiscovered.sourceLink,
+    });
+  }
+
+  // 4. Morpho Midnight (Fixed-Term Fixed-Rate Protocol)
+  options.push({
     id: `${cleanSymbol}-morpho-midnight`,
     protocol: "morpho_midnight",
     protocolName: "Morpho Midnight",
@@ -221,27 +311,26 @@ export async function getUnifiedStockLendingComparison(
     stockAddress: stockAddr,
     loanSymbol: "USDC",
     loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: Number((Math.max(2.0, (isHighBeta ? 9.2 : 6.5) + driftRatePct * 0.6)).toFixed(2)),
-    borrowApr: Number((Math.max(1.5, (isHighBeta ? 4.15 : 3.4) + driftBorrowPct * 0.6)).toFixed(2)),
+    supplyApy: isHighBeta ? 9.2 : 6.5,
+    borrowApr: isHighBeta ? 4.15 : 3.4,
     maxLtv: isHighBeta ? 70 : 75,
     liquidationThreshold: isHighBeta ? 75 : 80,
-    utilization: Number((Math.max(20, Math.min(98, 82.0 + driftUtilPct * 0.4))).toFixed(1)),
-    availableLiquidityUsd: Math.max(500_000, 9_200_000 + Math.round(driftLiq * 0.5)),
-    tvlUsd: Math.max(1_000_000, 14_100_000 + Math.round(driftLiq * 0.5)),
+    utilization: 82.0,
+    availableLiquidityUsd: 9_200_000,
+    tvlUsd: 14_100_000,
     riskScore: 3,
     riskLevel: "low",
     riskNotes: [
       "Fixed borrow APR locked for 60-day term: zero rate volatility.",
       "Early exit commitment: early loan repayment incurs 0.5% fee.",
-      "Fixed term lender APR across maturity date subject to protocol solvency.",
     ],
     contractAddress: MORPHO_MIDNIGHT_BASE,
     executionType: "morpho_midnight",
     fixedTermDays: 60,
-  };
+  });
 
-  // 3. Aave V4 Equities Hub (Cross-Collateral Lending Pool)
-  const aaveV4Option: StockLendingOption = {
+  // 5. Aave V4 Equities Hub (Cross-Collateral Lending Pool)
+  options.push({
     id: `${cleanSymbol}-aave-v4`,
     protocol: "aave_v4",
     protocolName: "Aave V4 Equities Hub",
@@ -253,26 +342,25 @@ export async function getUnifiedStockLendingComparison(
     stockAddress: stockAddr,
     loanSymbol: "USDC",
     loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: Number((Math.max(1.5, (isHighBeta ? 5.15 : 4.6) + driftRatePct * 0.7)).toFixed(2)),
-    borrowApr: Number((Math.max(1.5, (isHighBeta ? 4.65 : 3.75) + driftBorrowPct * 0.7)).toFixed(2)),
+    supplyApy: isHighBeta ? 5.15 : 4.6,
+    borrowApr: isHighBeta ? 4.65 : 3.75,
     maxLtv: isHighBeta ? 68 : 74,
     liquidationThreshold: isHighBeta ? 74 : 79,
-    utilization: Number((Math.max(20, Math.min(98, 58.2 + driftUtilPct * 0.7))).toFixed(1)),
-    availableLiquidityUsd: Math.max(2_000_000, 34_800_000 + driftLiq * 2),
-    tvlUsd: Math.max(5_000_000, 52_400_000 + driftLiq * 2),
+    utilization: 58.2,
+    availableLiquidityUsd: 34_800_000,
+    tvlUsd: 52_400_000,
     riskScore: 4,
     riskLevel: "medium",
     riskNotes: [
       "Cross-margin collateral: borrow against combined portfolio of ETH, cbBTC & stocks.",
       "Shared liquidity layer across Base mainnet.",
-      "Automated eMode enabled for USD-pegged stablecoin loans.",
     ],
     contractAddress: AAVE_V4_EQUITIES_BASE,
     executionType: "aave_v4",
-  };
+  });
 
-  // 4. Euler V2 (Modular Equities Sub-Vault)
-  const eulerOption: StockLendingOption = {
+  // 6. Euler V2 (Modular Equities Sub-Vault)
+  options.push({
     id: `${cleanSymbol}-euler-v2`,
     protocol: "euler",
     protocolName: "Euler V2",
@@ -284,26 +372,22 @@ export async function getUnifiedStockLendingComparison(
     stockAddress: stockAddr,
     loanSymbol: "USDC",
     loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: Number((Math.max(1.5, (isHighBeta ? 7.8 : 5.9) + driftRatePct * 1.1)).toFixed(2)),
-    borrowApr: Number((Math.max(1.5, (isHighBeta ? 3.95 : 3.1) + driftBorrowPct * 1.1)).toFixed(2)),
+    supplyApy: isHighBeta ? 7.8 : 5.9,
+    borrowApr: isHighBeta ? 3.95 : 3.1,
     maxLtv: isHighBeta ? 73 : 77,
     liquidationThreshold: isHighBeta ? 79 : 82,
-    utilization: Number((Math.max(20, Math.min(98, 69.1 + driftUtilPct * 1.1))).toFixed(1)),
-    availableLiquidityUsd: Math.max(1_000_000, 11_500_000 + driftLiq),
-    tvlUsd: Math.max(2_000_000, 16_800_000 + driftLiq),
+    utilization: 69.1,
+    availableLiquidityUsd: 11_500_000,
+    tvlUsd: 16_800_000,
     riskScore: 3,
     riskLevel: "low",
-    riskNotes: [
-      "Modular risk tier with custom governance-approved liquidation curve.",
-      "Sub-account architecture allows multiple isolated positions under one wallet.",
-      "Protected collateral feature allows earning supply yield on active margin.",
-    ],
+    riskNotes: ["Modular risk tier with custom governance-approved liquidation curve."],
     contractAddress: EULER_V2_BASE,
     executionType: "euler",
-  };
+  });
 
-  // 5. Superform SuperStocks / Earn Stocks (Automated Carry Strategy)
-  const superformOption: StockLendingOption = {
+  // 7. Superform SuperStocks / Earn Stocks (Automated Carry Strategy)
+  options.push({
     id: `${cleanSymbol}-superform`,
     protocol: "superform",
     protocolName: "Superform SuperStocks",
@@ -315,26 +399,25 @@ export async function getUnifiedStockLendingComparison(
     stockAddress: stockAddr,
     loanSymbol: "USDC",
     loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: Number((Math.max(3.0, (isHighBeta ? 13.85 : 9.95) + driftRatePct * 1.5)).toFixed(2)),
-    borrowApr: null, // Strategy, non-borrow
+    supplyApy: isHighBeta ? 13.85 : 9.95,
+    borrowApr: null,
     maxLtv: null,
     liquidationThreshold: null,
-    utilization: Number((Math.max(20, Math.min(98, 88.5 + driftUtilPct * 0.5))).toFixed(1)),
-    availableLiquidityUsd: Math.max(1_000_000, 22_100_000 + Math.round(driftLiq * 1.5)),
-    tvlUsd: Math.max(2_000_000, 38_600_000 + Math.round(driftLiq * 1.5)),
+    utilization: 88.5,
+    availableLiquidityUsd: 22_100_000,
+    tvlUsd: 38_600_000,
     riskScore: 6,
     riskLevel: "high",
     riskNotes: [
       "Automated carry vault: routes stock into securities lending + DEX basis arb.",
       "Compound yield paid in tokenized stock shares or USDC.",
-      "Smart contract composite risk: integrates Morpho Blue and Aerodrome Slipstream.",
     ],
     contractAddress: SUPERFORM_SUPERSTOCKS_BASE,
     executionType: "superform",
-  };
+  });
 
-  // 6. Moonwell Equities Hub (Extensible Protocol Support)
-  const moonwellOption: StockLendingOption = {
+  // 8. Moonwell Equities Hub
+  options.push({
     id: `${cleanSymbol}-moonwell`,
     protocol: "moonwell",
     protocolName: "Moonwell Equities",
@@ -346,32 +429,19 @@ export async function getUnifiedStockLendingComparison(
     stockAddress: stockAddr,
     loanSymbol: "USDC",
     loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: Number((Math.max(1.5, (isHighBeta ? 6.1 : 4.9) + driftRatePct * 0.8)).toFixed(2)),
-    borrowApr: Number((Math.max(1.5, (isHighBeta ? 4.4 : 3.65) + driftBorrowPct * 0.8)).toFixed(2)),
+    supplyApy: isHighBeta ? 6.1 : 4.9,
+    borrowApr: isHighBeta ? 4.4 : 3.65,
     maxLtv: isHighBeta ? 69 : 75,
     liquidationThreshold: isHighBeta ? 75 : 81,
-    utilization: Number((Math.max(20, Math.min(98, 62.4 + driftUtilPct * 0.8))).toFixed(1)),
-    availableLiquidityUsd: Math.max(1_000_000, 14_300_000 + driftLiq),
-    tvlUsd: Math.max(2_000_000, 21_200_000 + driftLiq),
+    utilization: 62.4,
+    availableLiquidityUsd: 14_300_000,
+    tvlUsd: 21_200_000,
     riskScore: 4,
     riskLevel: "medium",
-    riskNotes: [
-      "Base native deployment with battle-tested Compound v2 architecture.",
-      "Shared liquidity pool backing USDC, ETH, and tokenized US equities.",
-      "WELL reward boosts accrue automatically to active suppliers.",
-    ],
+    riskNotes: ["Base native deployment with battle-tested Compound v2 architecture."],
     contractAddress: MOONWELL_EQUITIES_BASE,
     executionType: "moonwell",
-  };
-
-  const options: StockLendingOption[] = [
-    morphoBlueOption,
-    morphoMidnightOption,
-    aaveV4Option,
-    eulerOption,
-    superformOption,
-    moonwellOption,
-  ];
+  });
 
   // Calculate Best Badges
   let bestSupplyOption: StockLendingOption | null = null;

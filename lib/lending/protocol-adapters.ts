@@ -229,8 +229,10 @@ export function buildUnifiedProtocolCalls(params: {
       break;
     }
 
+    case "beefy":
+    case "pendle":
     case "superform": {
-      // SuperStocks automated carry strategy vault deposit/withdraw
+      // Vault/Strategy deposit/withdraw
       if (action === "supply" || action === "strategy_deposit") {
         calls.push(
           buildAttributedVaultDepositCall(option.contractAddress, amountRaw, userAddress)
