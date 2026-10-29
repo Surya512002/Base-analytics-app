@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Layers } from "lucide-react";
+import { Sparkles, Layers, ArrowLeftRight } from "lucide-react";
 
-export type MarketGroup = "stocks" | "all";
+export type MarketGroup = "stocks" | "compare" | "all";
 
 interface MarketGroupTabsProps {
   value: MarketGroup;
@@ -19,13 +19,13 @@ export default function MarketGroupTabs({
   allCount = 45,
 }: MarketGroupTabsProps) {
   return (
-    <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] w-fit" role="tablist">
+    <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] w-fit flex-wrap" role="tablist">
       <button
         type="button"
         role="tab"
         aria-selected={value === "stocks"}
         onClick={() => onChange("stocks")}
-        className={`pop-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+        className={`pop-pill px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
           value === "stocks"
             ? "bg-[#0052FF] text-white shadow-xs"
             : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
@@ -45,9 +45,31 @@ export default function MarketGroupTabs({
       <button
         type="button"
         role="tab"
+        aria-selected={value === "compare"}
+        onClick={() => onChange("compare")}
+        className={`pop-pill px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          value === "compare"
+            ? "bg-[#0052FF] text-white shadow-xs"
+            : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
+        }`}
+      >
+        <ArrowLeftRight size={15} />
+        <span>Compare Protocols</span>
+        <span
+          className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
+            value === "compare" ? "bg-white/20 text-white" : "bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]"
+          }`}
+        >
+          8 Protocols
+        </span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
         aria-selected={value === "all"}
         onClick={() => onChange("all")}
-        className={`pop-pill px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+        className={`pop-pill px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
           value === "all"
             ? "bg-[#0052FF] text-white shadow-xs"
             : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"

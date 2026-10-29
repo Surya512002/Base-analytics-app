@@ -5,7 +5,10 @@ export type MarketProtocol =
   | "aave"
   | "superform"
   | "dinari"
-  | "ondo";
+  | "ondo"
+  | "beefy"
+  | "euler"
+  | "pendle";
 
 export type MarketCategory =
   | "stocks_borrow" // Borrow cash/crypto against tokenized stock collateral
@@ -50,7 +53,8 @@ export interface LendingMarket {
     | "aerodrome_gauge"
     | "moonwell_mtoken"
     | "aave_v3"
-    | "superform_vault";
+    | "superform_vault"
+    | "beefy_vault";
   builderAttributed: boolean;
   badgeText?: string;
   description?: string;

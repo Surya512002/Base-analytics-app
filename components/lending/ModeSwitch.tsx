@@ -14,11 +14,11 @@ export default function ModeSwitch({ value, onChange }: ModeSwitchProps) {
   const options = [
     { id: "lend" as LendingMode, label: "Lend & Supply", icon: TrendingUp },
     { id: "borrow" as LendingMode, label: "Borrow", icon: Lock },
-    { id: "stake" as LendingMode, label: "Stake & Gauges", icon: Coins },
+    { id: "stake" as LendingMode, label: "Stake & Vaults (Beefy / Gauges)", icon: Coins },
   ];
 
   return (
-    <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] w-fit" role="radiogroup" aria-label="Lending Mode">
+    <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] w-fit flex-wrap" role="radiogroup" aria-label="Lending Mode">
       {options.map((opt) => {
         const isSelected = value === opt.id;
         const Icon = opt.icon;

@@ -229,6 +229,7 @@ export function buildUnifiedProtocolCalls(params: {
       break;
     }
 
+    case "aerodrome":
     case "beefy":
     case "pendle":
     case "superform": {

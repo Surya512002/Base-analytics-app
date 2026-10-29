@@ -67,6 +67,14 @@ export default function MarketsTable({
 }: MarketsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedProtocol, setSelectedProtocol] = useState<string>("all");
+
+  const protocolFilters = [
+    { id: "all", label: "All Protocols" },
+    { id: "beefy", label: "Beefy Finance" },
+    { id: "aerodrome", label: "Aerodrome" },
+    { id: "morpho", label: "Morpho Blue" },
+  ];
   const [onlyHoldings, setOnlyHoldings] = useState(false);
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "liquidity" | "price" | "name">("supply");
   const [sortAsc, setSortAsc] = useState(false);
@@ -132,7 +140,7 @@ export default function MarketsTable({
     });
 
     return result;
-  }, [rows, showAllStocks, searchQuery, selectedCategory, onlyHoldings, sortBy, sortAsc]);
+  }, [rows, showAllStocks, searchQuery, selectedCategory, selectedProtocol, onlyHoldings, sortBy, sortAsc]);
 
   const toggleSort = (field: "supply" | "borrow" | "liquidity" | "price" | "name") => {
     if (sortBy === field) {
@@ -241,22 +249,47 @@ export default function MarketsTable({
           </div>
         </div>
 
-        {/* Category Filter Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 -my-1 px-1 -mx-0.5">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`pop-pill px-3 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
-                selectedCategory === cat.id
-                  ? "bg-[#0052FF] text-white shadow-xs"
-                  : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+        {/* Protocol & Category Filter Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[var(--border-subtle)]">
+          {/* Protocol Filter */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+            <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Protocol:</span>
+            {protocolFilters.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedProtocol(p.id)}
+                className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  selectedProtocol === p.id
+                    ? p.id === "beefy"
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "bg-[#0052FF] text-white shadow-xs"
+                    : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Category Filter Chips */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+            <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Sector:</span>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
+                  selectedCategory === cat.id
+                    ? "bg-[#0052FF] text-white shadow-xs"
+                    : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -112,14 +112,26 @@ export default function CompareTable({
                 <td className="py-3.5 px-4 sticky left-0 z-10 bg-[var(--surface)] group-hover:bg-[var(--surface-2)] shadow-r">
                   <div>
                     <span className="font-bold text-sm text-[var(--ink)]">{opt.protocolName}</span>
-                    <a
-                      href={`https://basescan.org/address/${opt.contractAddress}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-[var(--ink-muted)] hover:text-[var(--brand-text)] flex items-center gap-0.5 mt-0.5"
-                    >
-                      <span>Contract</span> <ExternalLink size={9} />
-                    </a>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <a
+                        href={`https://basescan.org/address/${opt.contractAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-[var(--ink-muted)] hover:text-[var(--brand-text)] flex items-center gap-0.5"
+                      >
+                        <span>Contract</span> <ExternalLink size={9} />
+                      </a>
+                      {opt.sourceLink && (
+                        <a
+                          href={opt.sourceLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-[var(--brand-text)] hover:underline flex items-center gap-0.5 font-semibold"
+                        >
+                          <span>Official App</span> <ExternalLink size={9} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </td>
 

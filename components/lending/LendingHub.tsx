@@ -29,6 +29,7 @@ import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 import MarketsTable, { type AssetMarketRow } from "./MarketsTable";
 import GaugesTable, { type GaugeRowData } from "./GaugesTable";
 import AssetDetailView from "./AssetDetailView";
+import ProtocolCompareHub from "./ProtocolCompareHub";
 import ActionDrawer, { type DrawerActionTab } from "./ActionDrawer";
 import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
@@ -883,6 +884,15 @@ export default function LendingHub({
             handleOpenMarketModal(market, "unstake");
           }}
           onClaim={handleClaimGauge}
+        />
+      ) : marketGroup === "compare" ? (
+        /* REAL MULTI-PROTOCOL TOKENIZED STOCKS COMPARISON TOOL */
+        <ProtocolCompareHub
+          onSelectStock={(symbol) => {
+            setMarketGroup("stocks");
+            setSelectedStockSymbol(symbol);
+          }}
+          onRequestConnect={onRequestConnect}
         />
       ) : selectedStockSymbol && comparison ? (
         /* LEVEL 2: ASSET DETAIL VIEW */
