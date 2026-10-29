@@ -121,19 +121,18 @@ describe("Tokenized Stocks Registry & Base Markets", () => {
     expect(coin?.name).toContain("Coinbase");
   });
 
-  it("Lending markets include tokenized stock borrowing and lending", () => {
+  it("Lending markets include tokenized stock auto-compounding and DEX liquidity pools", () => {
     const stockMarkets = filterMarkets({ onlyStocks: true });
     expect(stockMarkets.length).toBeGreaterThanOrEqual(5);
 
-    const nvdaBorrow = stockMarkets.find((m) => m.id === "stock-borrow-nvda");
-    expect(nvdaBorrow).toBeDefined();
-    expect(nvdaBorrow?.collateralAsset?.symbol).toBe("NVDAc");
-    expect(nvdaBorrow?.asset.symbol).toBe("USDC");
-    expect(nvdaBorrow?.ltv).toBe(77);
-
     const nvdaLend = stockMarkets.find((m) => m.id === "stock-lend-nvda");
     expect(nvdaLend).toBeDefined();
+    expect(nvdaLend?.protocol).toBe("beefy");
     expect(nvdaLend?.supplyApy).toBeGreaterThan(5);
+
+    const msftVault = stockMarkets.find((m) => m.id === "beefy-msftc-usdc");
+    expect(msftVault).toBeDefined();
+    expect(msftVault?.contractAddress).toBe("0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5");
   });
 });
 
@@ -143,10 +142,9 @@ describe("Unified Stock Lending Comparison Matrix", () => {
     const comparison = await getUnifiedStockLendingComparison("NVDAc");
 
     expect(comparison.stockSymbol).toBe("NVDAc");
-    expect(comparison.options.length).toBeGreaterThanOrEqual(3);
+    expect(comparison.options.length).toBeGreaterThanOrEqual(2);
 
     const protocols = comparison.options.map((o) => o.protocol);
-    expect(protocols).toContain("morpho_blue");
     expect(protocols).toContain("beefy");
     expect(protocols).toContain("aerodrome");
 
@@ -167,17 +165,17 @@ describe("Unified Stock Lending Comparison Matrix", () => {
     const { getUnifiedStockLendingComparison } = await import("./unified-comparison");
     const { buildUnifiedProtocolCalls } = await import("./protocol-adapters");
     const comparison = await getUnifiedStockLendingComparison("NVDAc");
-    const morphoOpt = comparison.options.find((o) => o.protocol === "morpho_blue")!;
+    const beefyOpt = comparison.options.find((o) => o.protocol === "beefy")!;
 
     const calls = buildUnifiedProtocolCalls({
-      option: morphoOpt,
+      option: beefyOpt,
       action: "supply",
       amountRaw: BigInt("100000000"), // 1 NVDAc (8 decimals)
       userAddress: "0x3333333333333333333333333333333333333333",
       requiresApproval: true,
     });
 
-    // Approval + Supply collateral = 2 calls
+    // Approval + Supply/Deposit = 2 calls
     expect(calls.length).toBe(2);
     expect(hasBuilderSuffix(calls[0].data)).toBe(false);
     expect(hasBuilderSuffix(calls[1].data)).toBe(true);

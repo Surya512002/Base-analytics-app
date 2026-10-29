@@ -73,7 +73,6 @@ export default function MarketsTable({
     { id: "all", label: "All Protocols" },
     { id: "beefy", label: "Beefy Finance" },
     { id: "aerodrome", label: "Aerodrome" },
-    { id: "morpho", label: "Morpho Blue" },
   ];
   const [onlyHoldings, setOnlyHoldings] = useState(false);
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "liquidity" | "price" | "name">("supply");
@@ -115,6 +114,16 @@ export default function MarketsTable({
     // Category filter
     if (selectedCategory !== "all") {
       result = result.filter((r) => r.category.toLowerCase() === selectedCategory.toLowerCase());
+    }
+
+    // Protocol filter (Beefy Finance vs Aerodrome)
+    if (selectedProtocol !== "all") {
+      result = result.filter(
+        (r) =>
+          (r.listedProtocols?.some((p) => p.toLowerCase().includes(selectedProtocol.toLowerCase())) ?? false) ||
+          r.bestSupplyProtocol.toLowerCase().includes(selectedProtocol.toLowerCase()) ||
+          (r.bestBorrowProtocol ? r.bestBorrowProtocol.toLowerCase().includes(selectedProtocol.toLowerCase()) : false)
+      );
     }
 
     // Only assets user holds

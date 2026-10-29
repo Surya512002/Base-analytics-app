@@ -24,44 +24,8 @@ function stockAddr(symbol: string): `0x${string}` {
 
 export const BASE_LENDING_MARKETS: readonly LendingMarket[] = [
   // ==========================================
-  // TOKENIZED STOCKS: BORROWING AGAINST STOCKS (MORPHO BLUE)
+  // TOKENIZED STOCKS: BEEFY AUTO-COMPOUNDING VAULTS
   // ==========================================
-  {
-    id: "stock-borrow-nvda",
-    name: "Borrow USDC against NVDAc",
-    protocol: "morpho",
-    protocolLabel: "Morpho Blue",
-    protocolBadge: "Morpho Blue · Isolated",
-    protocolAddress: MORPHO_BLUE_BASE,
-    protocolUrl: "https://basescan.org/address/0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-    category: "stocks_borrow",
-    asset: {
-      symbol: "USDC",
-      name: "USD Coin",
-      address: USDC_BASE_ADDRESS,
-      decimals: 6,
-    },
-    collateralAsset: {
-      symbol: "NVDAc",
-      name: "NVIDIA Corp (Coinbase B20)",
-      address: stockAddr("NVDAc"),
-      decimals: 8,
-      isStock: true,
-    },
-    supplyApy: 4.85,
-    borrowApr: 3.20,
-    tvlUsd: 14850000,
-    ltv: 77,
-    liquidationThreshold: 82,
-    utilization: 68.4,
-    oracle: "Chainlink 24/5 Equity Feed (0x0468...)",
-    contractAddress: MORPHO_BLUE_BASE,
-    contractType: "morpho_blue",
-    builderAttributed: true,
-    badgeText: "Top Stock RWA",
-    description: "Deposit NVDAc shares as collateral and borrow liquid USDC instantly without selling equity.",
-    isStockFocus: true,
-  },
   {
     id: "stock-lend-nvda",
     name: "Beefy NVDAc-USDC Auto-Compounder",

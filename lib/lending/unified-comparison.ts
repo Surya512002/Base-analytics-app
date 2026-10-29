@@ -341,52 +341,7 @@ export async function getUnifiedStockLendingComparison(
 
   const options: StockLendingOption[] = [];
 
-  // 1. Morpho Blue (Only if stock has verified live Morpho market on Base)
-  const morphoDiscovered = matchingMarkets.find((m) => m.protocol === "morpho");
-  const morphoVerified = VERIFIED_MORPHO_STOCK_MARKETS[cleanSymbol];
-  if (morphoDiscovered || morphoVerified) {
-    const morphoParams: MorphoMarketParams = morphoDiscovered?.morphoParams ?? {
-      loanToken: USDC_BASE_ADDRESS,
-      collateralToken: stockAddr,
-      oracle: (morphoDiscovered?.oracle?.address as `0x${string}`) || oracleFeed,
-      irm: MORPHO_ADAPTIVE_CURVE_IRM,
-      lltv: isHighBeta ? BigInt("720000000000000000") : BigInt("770000000000000000"),
-    };
-
-    options.push({
-      id: morphoDiscovered ? `morpho-${morphoDiscovered.marketId}` : `${cleanSymbol}-morpho-blue`,
-      protocol: "morpho_blue",
-      protocolName: "Morpho Blue",
-      protocolBadge: "Morpho Blue · Isolated",
-      type: "variable",
-      typeLabel: "Variable-Rate Isolated Borrow",
-      stockSymbol: cleanSymbol,
-      stockName: stock.name,
-      stockAddress: stockAddr,
-      loanSymbol: "USDC",
-      loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: morphoDiscovered?.supplyApy ?? (morphoVerified?.supplyApy ?? 0),
-      borrowApr: morphoDiscovered?.borrowApr ?? (morphoVerified?.borrowApr ?? (isHighBeta ? 3.85 : 3.2)),
-      maxLtv: morphoDiscovered?.maxLtv || (morphoVerified?.maxLtv ?? (isHighBeta ? 72 : 77)),
-      liquidationThreshold: (morphoDiscovered?.maxLtv || (morphoVerified?.maxLtv ?? (isHighBeta ? 72 : 77))) + 5,
-      utilization: morphoDiscovered?.utilization ?? 68.4,
-      availableLiquidityUsd: morphoDiscovered?.liquidityUsd || (morphoVerified?.liquidityUsd ?? (isHighBeta ? 54_000 : 300_000)),
-      tvlUsd: morphoDiscovered?.tvlUsd || (morphoVerified?.tvlUsd ?? 1_200_000),
-      riskScore: 2,
-      riskLevel: "low",
-      riskNotes: [
-        "Isolated credit pool: risk is strictly ring-fenced to this stock.",
-        "Chainlink 24/5 equity oracle feed.",
-        "Borrow USDC against tokenized stock collateral.",
-      ],
-      contractAddress: MORPHO_BLUE_BASE,
-      executionType: "morpho_blue",
-      morphoParams,
-      sourceLink: morphoDiscovered?.sourceLink || `https://app.morpho.org/base/market/${morphoVerified?.marketId || ""}`,
-    });
-  }
-
-  // 2. Beefy Finance (Only if stock has verified live Beefy vault on Base)
+  // 1. Beefy Finance (Only if stock has verified live Beefy vault on Base)
   const beefyDiscovered = matchingMarkets.find((m) => m.protocol === "beefy");
   const beefyVerified = VERIFIED_BEEFY_STOCK_DETAILS[cleanSymbol];
   if (beefyDiscovered || beefyVerified) {

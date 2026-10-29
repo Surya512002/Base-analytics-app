@@ -257,7 +257,7 @@ export default function AssetDetailView({
                 {deepest ? formatCompactUsd(deepest.availableLiquidityUsd) : "—"}
               </p>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                {deepest?.protocolName ?? "Morpho Blue"}
+                {deepest?.protocolName ?? "Beefy Finance"}
               </p>
             </div>
             {deepest && (
@@ -278,7 +278,7 @@ export default function AssetDetailView({
         <div>
           <h2 className="text-base font-black text-[var(--ink)]">Available Protocol Markets</h2>
           <p className="text-xs text-[var(--ink-muted)]">
-            Compare verified Base mainnet contracts across Beefy Finance, Aerodrome, and Morpho Blue
+            Compare verified Base mainnet contracts across Beefy Finance and Aerodrome
           </p>
         </div>
 

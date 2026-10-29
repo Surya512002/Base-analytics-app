@@ -51,7 +51,7 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
 
     expect(protocols).toContain("beefy");
     expect(protocols).toContain("aerodrome");
-    expect(protocols).toContain("morpho_blue");
+    expect(protocols).not.toContain("morpho_blue");
 
     const beefyOpt = comp.options.find((o) => o.protocol === "beefy")!;
     expect(beefyOpt.type).toBe("vault");
@@ -63,15 +63,11 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aeroOpt.type).toBe("strategy");
     expect(aeroOpt.supplyApy).toBeGreaterThan(0);
     expect(aeroOpt.contractAddress).toBe("0xA282064541Bb45Caa046fB9f21a240671aBB7f46");
-
-    const morphoOpt = comp.options.find((o) => o.protocol === "morpho_blue")!;
-    expect(morphoOpt.borrowApr).toBe(3.2);
-    expect(morphoOpt.contractAddress).toBe("0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb");
   });
 
   it("verifies unwhitelisted stocks with zero protocol pools return 0 options without mock fallbacks", async () => {
     const comp = await getUnifiedStockLendingComparison("COINc", undefined, true);
-    // COINc currently has no active Beefy vault, no Aerodrome CoW pool, and no Morpho Blue market on Base
+    // COINc currently has no active Beefy vault or Aerodrome CoW pool on Base
     expect(comp.options.length).toBe(0);
     expect(comp.bestSupplyOption).toBeNull();
     expect(comp.bestBorrowOption).toBeNull();
