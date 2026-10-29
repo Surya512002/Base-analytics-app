@@ -6,6 +6,8 @@ import {
   ALL_VERIFIED_BASE_TOKENS,
   searchVerifiedTokens,
   findVerifiedToken,
+  VERIFIED_LIQUIDITY_USD_THRESHOLD,
+  registerVerifiedLiquidityToken,
 } from "@/lib/swap/verified-tokens";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
@@ -140,5 +142,60 @@ describe("Verified Base Tokens & Blue Tick Engine", () => {
     if (res.counter.kind === "token") {
       expect(res.counter.symbol).toBe("CLANKER");
     }
+  });
+
+  describe("$100,000+ Locked Liquidity Verification Rule", () => {
+    it("gives verified blue tick to any token with >= $100,000 in locked pool liquidity", () => {
+      const communityToken = "0x7777777777777777777777777777777777777777";
+
+      // Without liquidity knowledge, unverified
+      expect(isVerifiedBaseToken(communityToken)).toBe(false);
+
+      // With $150k pool liquidity, verified with blue checkmark
+      expect(isVerifiedBaseToken(communityToken, { liquidityUsd: 150_000 })).toBe(true);
+      expect(
+        isVerifiedBaseToken({
+          kind: "token",
+          address: communityToken,
+          symbol: "COMMUNITY",
+          decimals: 18,
+          liquidityUsd: 120_000,
+        })
+      ).toBe(true);
+
+      // Object with exactly $100k liquidity threshold
+      expect(
+        isVerifiedBaseToken({
+          address: communityToken,
+          liquidityUsd: VERIFIED_LIQUIDITY_USD_THRESHOLD,
+        })
+      ).toBe(true);
+    });
+
+    it("does NOT verify tokens with under $100,000 liquidity if they are not in bluechip/stock registry", () => {
+      const thinToken = "0x8888888888888888888888888888888888888888";
+      expect(isVerifiedBaseToken(thinToken, { liquidityUsd: 45_000 })).toBe(false);
+      expect(
+        isVerifiedBaseToken({
+          kind: "token",
+          address: thinToken,
+          symbol: "THIN",
+          decimals: 18,
+          liquidityUsd: 99_999,
+        })
+      ).toBe(false);
+    });
+
+    it("registerVerifiedLiquidityToken dynamically caches tokens with >= $100k liquidity", () => {
+      const dynamicToken = "0x5555555555555555555555555555555555555555";
+      expect(isVerifiedBaseToken(dynamicToken)).toBe(false);
+
+      const registered = registerVerifiedLiquidityToken(dynamicToken, 250_000);
+      expect(registered).toBe(true);
+
+      // Now recognized as verified by address string
+      expect(isVerifiedBaseToken(dynamicToken)).toBe(true);
+      expect(isVerifiedBaseToken(dynamicToken.toUpperCase())).toBe(true);
+    });
   });
 });

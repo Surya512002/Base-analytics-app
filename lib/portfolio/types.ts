@@ -15,6 +15,7 @@ export interface PortfolioToken {
   priceSource: PriceSource;
   usdValue: number; // 0 if unpriced, otherwise balance * priceUsd
   priceChange24h: number | null; // 24h percentage change
+  liquidityUsd?: number | null; // Available pool liquidity in USD
   logo: string | null;
   isSpam: boolean;
   spamReason?: string;

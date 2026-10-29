@@ -136,30 +136,89 @@ export function searchVerifiedTokens(query: string, limit = 50): VerifiedTokenDe
 }
 
 /**
+ * Minimum locked pool liquidity threshold ($100,000 USD)
+ * Tokens with >= $100k locked DEX liquidity receive the verified blue checkmark.
+ */
+export const VERIFIED_LIQUIDITY_USD_THRESHOLD = 100_000;
+
+/** Dynamic set of tokens confirmed to have >= $100k locked pool liquidity */
+export const DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET = new Set<string>();
+
+/**
+ * Register a token address into the verified set if it meets the $100k liquidity threshold.
+ */
+export function registerVerifiedLiquidityToken(address: string, liquidityUsd: number): boolean {
+  if (liquidityUsd >= VERIFIED_LIQUIDITY_USD_THRESHOLD) {
+    DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET.add(address.toLowerCase());
+    return true;
+  }
+  return false;
+}
+
+/**
  * Checks whether an address, SwapCounter, UnifiedToken, or symbol is verified on Base
- * with the official Coinbase Wallet blue checkmark.
+ * with the verified blue checkmark.
  *
- * ONLY official Coinbase Tokenized Stocks from Base and top high-marketcap Base bluechips
- * and currencies have the blue checkmark.
- * Newly launched coins, unverified tokens, and general B20 launches DO NOT receive the blue checkmark.
+ * Blue Checkmark criteria:
+ * 1. Official Base Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY (265+ stocks)
+ * 2. Curated High-MarketCap Base Bluechips and Currencies (VERIFIED_BASE_CRYPTO_TOKENS & ETH)
+ * 3. Tokens with >= $100k locked DEX pool liquidity (verified via liquidityUsd or dynamic discovery)
  */
 export function isVerifiedBaseToken(
-  tokenOrAddress?: string | SwapCounter | UnifiedToken | null
+  tokenOrAddress?:
+    | string
+    | SwapCounter
+    | UnifiedToken
+    | { address?: string; liquidityUsd?: number | null; isVerified?: boolean }
+    | null,
+  options?: { liquidityUsd?: number | null }
 ): boolean {
   if (!tokenOrAddress) return false;
 
-  // 1. SwapCounter object
+  // Direct option liquidity check ($100k threshold)
+  if (options?.liquidityUsd != null && options.liquidityUsd >= VERIFIED_LIQUIDITY_USD_THRESHOLD) {
+    if (typeof tokenOrAddress === "string" && tokenOrAddress.startsWith("0x")) {
+      DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET.add(tokenOrAddress.toLowerCase());
+    }
+    return true;
+  }
+
+  // 1. SwapCounter, UnifiedToken, or token object with metadata
   if (typeof tokenOrAddress === "object") {
+    // If explicitly marked as verified
+    if ("isVerified" in tokenOrAddress && tokenOrAddress.isVerified === true) {
+      return true;
+    }
+
+    // Check liquidity on the object itself ($100k+ threshold)
+    if ("liquidityUsd" in tokenOrAddress && typeof tokenOrAddress.liquidityUsd === "number") {
+      if (tokenOrAddress.liquidityUsd >= VERIFIED_LIQUIDITY_USD_THRESHOLD) {
+        if ("address" in tokenOrAddress && tokenOrAddress.address) {
+          DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET.add(tokenOrAddress.address.toLowerCase());
+        }
+        return true;
+      }
+    }
+
     if ("kind" in tokenOrAddress) {
       if (tokenOrAddress.kind === "eth") return true;
       if (tokenOrAddress.address) {
-        return BLUE_CHECK_VERIFIED_ADDRESS_SET.has(tokenOrAddress.address.toLowerCase());
+        const addr = tokenOrAddress.address.toLowerCase();
+        return (
+          BLUE_CHECK_VERIFIED_ADDRESS_SET.has(addr) ||
+          DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET.has(addr)
+        );
       }
       return false;
     }
-    // UnifiedToken
+
+    // UnifiedToken / generic token object
     if ("address" in tokenOrAddress && tokenOrAddress.address) {
-      return BLUE_CHECK_VERIFIED_ADDRESS_SET.has(tokenOrAddress.address.toLowerCase());
+      const addr = tokenOrAddress.address.toLowerCase();
+      return (
+        BLUE_CHECK_VERIFIED_ADDRESS_SET.has(addr) ||
+        DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET.has(addr)
+      );
     }
     return false;
   }
@@ -170,12 +229,17 @@ export function isVerifiedBaseToken(
     return true;
   }
 
+  // Check dynamic verified liquidity registry
+  if (DYNAMIC_VERIFIED_LIQUIDITY_ADDRESS_SET.has(raw)) {
+    return true;
+  }
+
   // Check by contract address
   if (raw.startsWith("0x")) {
     return BLUE_CHECK_VERIFIED_ADDRESS_SET.has(raw);
   }
 
-  // If a known bluechip symbol is queried alone (e.g. "USDC", "WETH", "NVDAc")
+  // If a known bluechip symbol is queried alone (e.g. "USDC", "WETH", "NVDAc", "AERO")
   if (BLUE_CHECK_VERIFIED_SYMBOL_SET.has(raw.toUpperCase())) {
     return true;
   }

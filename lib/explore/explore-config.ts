@@ -84,7 +84,7 @@ export function normalizeLaunchedToken(
     description: token.description,
     createdAt: token.createdAt,
     creator: token.creator,
-    isVerified: isVerifiedBaseToken(token.address),
+    isVerified: isVerifiedBaseToken(token.address, { liquidityUsd: market?.liquidityUsd }),
 
     priceUsd: price,
     priceChange24h: market?.priceChange24h ?? 0,

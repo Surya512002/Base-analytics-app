@@ -8,7 +8,7 @@ import { batchPriceTokens } from "./pricing";
 import { evaluateTokenSpam, sanitizeTokenString, DUST_USD_THRESHOLD } from "./spam-filter";
 import type { PortfolioResponse, PortfolioToken, DefiPortfolioBreakdown } from "./types";
 import type { SwapCounter } from "../../components/launchpad/TokenPickerDialog";
-import { isVerifiedBaseToken } from "../swap/verified-tokens";
+import { isVerifiedBaseToken, registerVerifiedLiquidityToken } from "../swap/verified-tokens";
 
 // In-memory server-side cache keyed by address (TTL: 20 seconds)
 const CACHE_TTL_MS = 20_000;
@@ -28,17 +28,23 @@ function buildSwapCounter(
   address: `0x${string}` | null,
   symbol: string,
   decimals: number,
-  logo: string | null
+  logo: string | null,
+  isVerified?: boolean,
+  liquidityUsd?: number | null
 ): SwapCounter {
   if (!address || symbol === "ETH") {
-    return { kind: "eth" };
+    return { kind: "eth", isVerified: true, isUnverified: false };
   }
+  const verified = isVerified ?? isVerifiedBaseToken(address, { liquidityUsd });
   return {
     kind: "token",
     address,
     symbol,
     decimals,
     imageUrl: logo ?? undefined,
+    isVerified: verified,
+    isUnverified: !verified,
+    liquidityUsd: liquidityUsd ?? undefined,
   };
 }
 
@@ -132,11 +138,16 @@ export async function getWalletPortfolio(
 
     const priceInfo = priceMap.get(lower);
     const priceUsd = priceInfo?.priceUsd ?? null;
+    const liquidityUsd = priceInfo?.liquidityUsd ?? null;
     const usdValue = priceUsd != null ? balanceNumber * priceUsd : 0;
+
+    if (liquidityUsd != null && liquidityUsd >= 100_000) {
+      registerVerifiedLiquidityToken(item.address, liquidityUsd);
+    }
 
     const isStock = STOCK_ADDRESSES.has(lower);
     const isB20 = lower.startsWith("0xb20");
-    const isVerified = isVerifiedBaseToken(item.address);
+    const isVerified = isVerifiedBaseToken(item.address, { liquidityUsd });
     const isCustom = validCustomAddrs.some((ca) => ca.toLowerCase() === lower);
 
     // Spam Evaluation
@@ -145,7 +156,7 @@ export async function getWalletPortfolio(
       symbol: rawSym,
       address: item.address,
       hasPool: priceInfo?.hasPool,
-      liquidityUsd: priceInfo?.liquidityUsd,
+      liquidityUsd,
       isFlaggedSpam: item.isSpam,
     });
 
@@ -167,6 +178,7 @@ export async function getWalletPortfolio(
       priceSource: priceInfo?.priceSource ?? "none",
       usdValue,
       priceChange24h: priceInfo?.priceChange24h ?? null,
+      liquidityUsd,
       logo,
       isSpam,
       spamReason: isSpam ? spamCheck.reason : undefined,
@@ -175,7 +187,7 @@ export async function getWalletPortfolio(
       isB20,
       isCustom,
       hasTradeRoute,
-      counter: buildSwapCounter(item.address, symbol, decimals, logo),
+      counter: buildSwapCounter(item.address, symbol, decimals, logo, isVerified, liquidityUsd),
     });
   }
 

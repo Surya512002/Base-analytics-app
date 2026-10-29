@@ -15,7 +15,7 @@ import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 /** Either native ETH or any Base ERC-20. */
 export type SwapCounter =
-  | { kind: "eth"; isUnverified?: boolean; isVerified?: boolean; name?: string }
+  | { kind: "eth"; isUnverified?: boolean; isVerified?: boolean; name?: string; liquidityUsd?: number | null }
   | {
       kind: "token";
       address: string;
@@ -25,6 +25,7 @@ export type SwapCounter =
       isUnverified?: boolean;
       isVerified?: boolean;
       name?: string;
+      liquidityUsd?: number | null;
     };
 
 export const ETH_COUNTER: SwapCounter = { kind: "eth", isVerified: true, isUnverified: false };

@@ -1081,8 +1081,8 @@ export default function DexSwapCard({
         )}
 
         {/* Unverified Token Warning */}
-        {((to && !isVerifiedBaseToken(to) && to.isUnverified) ||
-          (from && !isVerifiedBaseToken(from) && from.isUnverified)) && (
+        {((to && !isVerifiedBaseToken(to, { liquidityUsd: to.liquidityUsd }) && to.isUnverified) ||
+          (from && !isVerifiedBaseToken(from, { liquidityUsd: from.liquidityUsd }) && from.isUnverified)) && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-medium">
             <AlertTriangle size={14} className="text-amber-500 shrink-0" />
             <span>Unverified token · Imported directly from Base on-chain contract</span>

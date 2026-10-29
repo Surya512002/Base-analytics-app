@@ -11,7 +11,12 @@ import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registr
 import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
 import { ETH_COUNTER, type SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
-import { isVerifiedBaseToken, findVerifiedToken } from "@/lib/swap/verified-tokens";
+import {
+  isVerifiedBaseToken,
+  findVerifiedToken,
+  registerVerifiedLiquidityToken,
+} from "@/lib/swap/verified-tokens";
+import { fetchDexScreenerBatch, pickBestPair } from "@/lib/launchpad/dexscreener";
 
 const ERC20_ABI = [
   {
@@ -106,7 +111,24 @@ export async function resolveSwapToken(
   // 3b. Check Comprehensive Verified Tokens Registry by Address OR Symbol
   const verifiedMatch = findVerifiedToken(raw);
   if (verifiedMatch) {
-    const isBlueCheck = isVerifiedBaseToken(verifiedMatch.address);
+    let isBlueCheck = isVerifiedBaseToken(verifiedMatch.address);
+    let tokenLiquidity: number | undefined;
+
+    if (!isBlueCheck) {
+      try {
+        const dexBatch = await fetchDexScreenerBatch([verifiedMatch.address]);
+        const pairs = dexBatch.get(verifiedMatch.address.toLowerCase()) ?? [];
+        const best = pickBestPair(pairs);
+        tokenLiquidity = best?.liquidity?.usd;
+        if (tokenLiquidity && tokenLiquidity >= 100_000) {
+          isBlueCheck = true;
+          registerVerifiedLiquidityToken(verifiedMatch.address, tokenLiquidity);
+        }
+      } catch {
+        // Ignore DexScreener fetch error
+      }
+    }
+
     const counter = enrichSwapCounter({
       kind: "token",
       address: verifiedMatch.address,
@@ -115,6 +137,7 @@ export async function resolveSwapToken(
       name: verifiedMatch.name,
       isVerified: isBlueCheck,
       isUnverified: !isBlueCheck,
+      liquidityUsd: tokenLiquidity,
     });
     return {
       counter,
@@ -132,7 +155,7 @@ export async function resolveSwapToken(
 
   const checksummed = getAddress(raw);
 
-  // 4. Fetch On-Chain Metadata via Multicall
+  // 4. Fetch On-Chain Metadata via Multicall & Verify Pool Liquidity
   try {
     const pub = createPublicOnlyBaseClient();
     const code = await pub.getCode({ address: checksummed });
@@ -144,7 +167,7 @@ export async function resolveSwapToken(
       };
     }
 
-    const [nameRes, symRes, decRes] = await Promise.all([
+    const [nameRes, symRes, decRes, dexBatch] = await Promise.all([
       pub.readContract({
         address: checksummed,
         abi: ERC20_ABI,
@@ -160,13 +183,22 @@ export async function resolveSwapToken(
         abi: ERC20_ABI,
         functionName: "decimals",
       }).catch(() => 18),
+      fetchDexScreenerBatch([checksummed]).catch(() => new Map()),
     ]);
 
     const symbol = String(symRes).trim().toUpperCase() || "TOKEN";
     const name = String(nameRes).trim() || symbol;
     const decimals = Number(decRes) || 18;
 
-    const verified = isVerifiedBaseToken(checksummed);
+    const pairs = dexBatch.get(checksummed.toLowerCase()) ?? [];
+    const best = pickBestPair(pairs);
+    const tokenLiquidity = best?.liquidity?.usd;
+
+    let verified = isVerifiedBaseToken(checksummed, { liquidityUsd: tokenLiquidity });
+    if (tokenLiquidity && tokenLiquidity >= 100_000) {
+      verified = true;
+      registerVerifiedLiquidityToken(checksummed, tokenLiquidity);
+    }
 
     const resolvedCounter: SwapCounter = {
       kind: "token",
@@ -176,6 +208,7 @@ export async function resolveSwapToken(
       isUnverified: !verified,
       isVerified: verified,
       name,
+      liquidityUsd: tokenLiquidity,
     };
 
     return {

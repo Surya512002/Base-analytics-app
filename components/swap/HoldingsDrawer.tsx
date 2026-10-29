@@ -28,6 +28,7 @@ import type { UseWalletHoldingsReturn, HoldingsFilter } from "@/hooks/useWalletH
 import type { PortfolioToken } from "@/lib/portfolio/types";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 
 interface HoldingsDrawerProps {
   open: boolean;
@@ -127,7 +128,12 @@ export default function HoldingsDrawer({
     if (!token.hasTradeRoute) {
       // Still allow selecting, but if unverified, prompt confirmation
     }
-    if (!token.isVerified && !token.isStock) {
+    const isVerified =
+      token.isVerified ||
+      (token.liquidityUsd != null && token.liquidityUsd >= 100_000) ||
+      (token.address ? isVerifiedBaseToken(token.address, { liquidityUsd: token.liquidityUsd }) : false);
+
+    if (!isVerified && !token.isStock) {
       setUnverifiedPendingToken(token);
       return;
     }
@@ -453,22 +459,32 @@ export default function HoldingsDrawer({
                             <p className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand)] transition-colors">
                               {t.symbol}
                             </p>
-                            {t.isVerified && <VerifiedBadge size={13} />}
-                            {t.isStock && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                Stock
-                              </span>
-                            )}
-                            {t.isB20 && !t.isStock && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                                B20
-                              </span>
-                            )}
-                            {!t.isVerified && !t.isStock && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                                Unverified
-                              </span>
-                            )}
+                            {(() => {
+                              const isVerified =
+                                t.isVerified ||
+                                (t.liquidityUsd != null && t.liquidityUsd >= 100_000) ||
+                                (t.address ? isVerifiedBaseToken(t.address, { liquidityUsd: t.liquidityUsd }) : false);
+                              return (
+                                <>
+                                  {isVerified && <VerifiedBadge size={13} />}
+                                  {t.isStock && (
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                      Stock
+                                    </span>
+                                  )}
+                                  {t.isB20 && !t.isStock && (
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                                      B20
+                                    </span>
+                                  )}
+                                  {!isVerified && !t.isStock && (
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                      Unverified
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
                             {t.isSpam && (
                               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
                                 Phishing Risk
