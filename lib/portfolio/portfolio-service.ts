@@ -134,9 +134,9 @@ export async function getWalletPortfolio(
     const priceUsd = priceInfo?.priceUsd ?? null;
     const usdValue = priceUsd != null ? balanceNumber * priceUsd : 0;
 
-    const isStock = STOCK_ADDRESSES.has(lower) || lower.startsWith("0xb200000000000000000000");
+    const isStock = STOCK_ADDRESSES.has(lower);
     const isB20 = lower.startsWith("0xb20");
-    const isVerified = isVerifiedBaseToken(item.address) || isVerifiedBaseToken(symbol) || isStock || VERIFIED_ADDRESSES.has(lower);
+    const isVerified = isVerifiedBaseToken(item.address);
     const isCustom = validCustomAddrs.some((ca) => ca.toLowerCase() === lower);
 
     // Spam Evaluation

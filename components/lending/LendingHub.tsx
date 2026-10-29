@@ -250,8 +250,8 @@ export default function LendingHub({
 
       const supplyMarkets = matchingMarkets.filter((m) => m.supplyApy > 0);
       const bestSupplyMkt = supplyMarkets.sort((a, b) => b.supplyApy - a.supplyApy)[0];
-      const bestSupplyApy = bestSupplyMkt?.supplyApy ?? (hasLendingMarket ? 4.5 : 0);
-      const bestSupplyProtocol = bestSupplyMkt?.protocolLabel ?? (hasLendingMarket ? "Morpho Blue" : "None");
+      const bestSupplyApy = bestSupplyMkt?.supplyApy ?? 0;
+      const bestSupplyProtocol = bestSupplyMkt?.protocolLabel ?? "None";
 
       const borrowMarkets = matchingMarkets.filter(
         (m) => m.borrowApr !== undefined && m.borrowApr > 0
@@ -259,8 +259,8 @@ export default function LendingHub({
       const bestBorrowMkt = borrowMarkets.sort(
         (a, b) => (a.borrowApr ?? 999) - (b.borrowApr ?? 999)
       )[0];
-      const bestBorrowApr = bestBorrowMkt?.borrowApr ?? (hasLendingMarket ? 3.2 : null);
-      const bestBorrowProtocol = bestBorrowMkt?.protocolLabel ?? (hasLendingMarket ? "Morpho Blue" : null);
+      const bestBorrowApr = bestBorrowMkt?.borrowApr ?? null;
+      const bestBorrowProtocol = bestBorrowMkt?.protocolLabel ?? null;
 
       const totalLiquidityUsd = matchingMarkets.reduce(
         (sum, m) => sum + (m.liquidityUsd || 0),
@@ -271,7 +271,7 @@ export default function LendingHub({
       const isNew = stk.addedAt ? isNewStock(stk.addedAt) : false;
 
       const riskFlags = Array.from(new Set(matchingMarkets.flatMap((m) => m.riskFlags)));
-      const oracleVerified = !riskFlags.includes("UNKNOWN_ORACLE");
+      const oracleVerified = matchingMarkets.length > 0 ? !riskFlags.includes("UNKNOWN_ORACLE") : false;
 
       const priceUsd =
         stk.symbol === "NVDAc"
@@ -300,12 +300,12 @@ export default function LendingHub({
         bestSupplyProtocol,
         bestBorrowApr,
         bestBorrowProtocol,
-        totalLiquidityUsd: totalLiquidityUsd > 0 ? totalLiquidityUsd : 14_850_000,
+        totalLiquidityUsd,
         walletBalance: bal,
         walletBalanceUsd: balUsd,
         isNew,
-        listedProtocols: listedProtocols.length > 0 ? listedProtocols : ["Morpho Blue"],
-        hasLendingMarket: true,
+        listedProtocols: listedProtocols.length > 0 ? listedProtocols : ["No Pool"],
+        hasLendingMarket,
         riskFlags,
         oracleVerified,
       };

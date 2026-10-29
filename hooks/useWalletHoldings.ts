@@ -66,7 +66,8 @@ export interface UseWalletHoldingsReturn {
 }
 
 export function useWalletHoldings(
-  walletAddress: string | null | undefined
+  walletAddress: string | null | undefined,
+  extraTokens?: string[]
 ): UseWalletHoldingsReturn {
   const [data, setData] = useState<PortfolioResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -159,7 +160,15 @@ export function useWalletHoldings(
 
     setLoading(true);
     try {
-      const customParam = customTokens.length > 0 ? `&customTokens=${encodeURIComponent(customTokens.join(","))}` : "";
+      const combinedTokens = Array.from(
+        new Set([
+          ...customTokens,
+          ...(extraTokens || [])
+            .map((t) => t?.trim())
+            .filter((t): t is string => Boolean(t && t.startsWith("0x"))),
+        ])
+      );
+      const customParam = combinedTokens.length > 0 ? `&customTokens=${encodeURIComponent(combinedTokens.join(","))}` : "";
       const res = await fetch(`/api/portfolio?address=${encodeURIComponent(normalizedAddress)}${customParam}&defi=true`);
       if (!res.ok) throw new Error("Failed to load portfolio");
       const json = (await res.json()) as PortfolioResponse;
@@ -169,7 +178,7 @@ export function useWalletHoldings(
     } finally {
       setLoading(false);
     }
-  }, [normalizedAddress, customTokens]);
+  }, [normalizedAddress, customTokens, extraTokens]);
 
   // Clear data immediately on address change / disconnect
   useEffect(() => {

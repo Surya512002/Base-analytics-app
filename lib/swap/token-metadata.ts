@@ -106,18 +106,19 @@ export async function resolveSwapToken(
   // 3b. Check Comprehensive Verified Tokens Registry by Address OR Symbol
   const verifiedMatch = findVerifiedToken(raw);
   if (verifiedMatch) {
+    const isBlueCheck = isVerifiedBaseToken(verifiedMatch.address);
     const counter = enrichSwapCounter({
       kind: "token",
       address: verifiedMatch.address,
       symbol: verifiedMatch.symbol,
       decimals: verifiedMatch.decimals,
       name: verifiedMatch.name,
-      isVerified: true,
-      isUnverified: false,
+      isVerified: isBlueCheck,
+      isUnverified: !isBlueCheck,
     });
     return {
       counter,
-      isUnverified: false,
+      isUnverified: !isBlueCheck,
     };
   }
 
@@ -165,7 +166,7 @@ export async function resolveSwapToken(
     const name = String(nameRes).trim() || symbol;
     const decimals = Number(decRes) || 18;
 
-    const verified = isVerifiedBaseToken(checksummed) || isVerifiedBaseToken(symbol);
+    const verified = isVerifiedBaseToken(checksummed);
 
     const resolvedCounter: SwapCounter = {
       kind: "token",

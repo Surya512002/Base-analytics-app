@@ -102,18 +102,25 @@ export async function fetchDexScreenerBatch(
     try {
       const r = await fetch(
         `https://api.dexscreener.com/tokens/v1/base/${chunk.join(",")}`,
-        { cache: "no-store" }
+        { cache: "no-store", signal: AbortSignal.timeout(5_000) }
       );
       if (!r.ok) continue;
       const data = (await r.json()) as DexScreenerPair[] | { pairs?: DexScreenerPair[] };
 
       const pairs = Array.isArray(data) ? data : (data.pairs ?? []);
       for (const pair of pairs) {
-        const addr = (pair.baseToken?.address ?? "").toLowerCase();
-        if (!addr) continue;
-        const existing = result.get(addr) ?? [];
-        existing.push(pair);
-        result.set(addr, existing);
+        const baseAddr = (pair.baseToken?.address ?? "").toLowerCase();
+        const quoteAddr = (pair.quoteToken?.address ?? "").toLowerCase();
+        if (baseAddr) {
+          const existing = result.get(baseAddr) ?? [];
+          existing.push(pair);
+          result.set(baseAddr, existing);
+        }
+        if (quoteAddr && quoteAddr !== baseAddr) {
+          const existing = result.get(quoteAddr) ?? [];
+          existing.push(pair);
+          result.set(quoteAddr, existing);
+        }
       }
     } catch (e) {
       console.error("[dexscreener batch]", e);

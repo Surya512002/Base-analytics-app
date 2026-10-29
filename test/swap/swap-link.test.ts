@@ -84,10 +84,10 @@ describe("Swap URL Contract & Link Helpers (Part 1)", () => {
 });
 
 describe("Tokenized Stocks Tradability Classifier (Part 2)", () => {
-  it("verifies registry contains all 32 stocks", () => {
-    expect(TOKENIZED_STOCKS_REGISTRY.length).toBe(32);
+  it("verifies registry contains all tokenized stocks", () => {
+    expect(TOKENIZED_STOCKS_REGISTRY.length).toBeGreaterThanOrEqual(250);
     const all = getAllStocksTradability();
-    expect(all.length).toBe(32);
+    expect(all.length).toBeGreaterThanOrEqual(250);
   });
 
   it("identifies stocks with verified DEX pools as tradable", () => {

@@ -45,8 +45,8 @@ describe("Verified Base Tokens & Blue Tick Engine", () => {
     }
   });
 
-  it("verifies all 32 Coinbase tokenized equities (RWAs)", () => {
-    expect(TOKENIZED_STOCKS_REGISTRY.length).toBe(32);
+  it("verifies all 250+ Base tokenized stocks from official registry have verified blue tick", () => {
+    expect(TOKENIZED_STOCKS_REGISTRY.length).toBeGreaterThanOrEqual(250);
     for (const stock of TOKENIZED_STOCKS_REGISTRY) {
       expect(isVerifiedBaseToken(stock.address)).toBe(true);
       expect(isVerifiedBaseToken(stock.symbol)).toBe(true);
@@ -54,16 +54,21 @@ describe("Verified Base Tokens & Blue Tick Engine", () => {
     }
   });
 
-  it("verifies any official B20 vanity token address prefix", () => {
-    const sampleB20 = "0xb201234567890abcdef1234567890abcdef1234";
-    expect(isVerifiedBaseToken(sampleB20)).toBe(true);
+  it("does NOT give verified blue tick to newly launched coins or arbitrary B20 vanity tokens", () => {
+    const newlyLaunchedB20 = "0xb201234567890abcdef1234567890abcdef1234";
+    expect(isVerifiedBaseToken(newlyLaunchedB20)).toBe(false);
+    expect(isVerifiedBaseToken({ kind: "token", address: newlyLaunchedB20, symbol: "NEWCOIN", decimals: 18 })).toBe(false);
   });
 
-  it("does not verify unknown or random contracts", () => {
+  it("does not verify unknown or random contracts even if they spoof a bluechip symbol", () => {
     expect(isVerifiedBaseToken("0x0000000000000000000000000000000000000001")).toBe(false);
     expect(isVerifiedBaseToken("0x1234567890123456789012345678901234567890")).toBe(false);
     expect(isVerifiedBaseToken("RANDOM_SHITCOIN")).toBe(false);
     expect(isVerifiedBaseToken({ kind: "token", address: "0x1234567890123456789012345678901234567890", symbol: "FAKE", decimals: 18, isUnverified: true })).toBe(false);
+
+    // Spoofed symbol with fake address
+    expect(isVerifiedBaseToken({ kind: "token", address: "0x1111111111111111111111111111111111111111", symbol: "USDC", decimals: 6 })).toBe(false);
+    expect(isVerifiedBaseToken({ kind: "token", address: "0x2222222222222222222222222222222222222222", symbol: "NVDAc", decimals: 18 })).toBe(false);
   });
 
   it("resolveSwapToken resolves AERO as verified and NOT unverified", async () => {

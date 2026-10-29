@@ -3,6 +3,7 @@ import { createBasePublicClient } from "../utils/base-rpc";
 import { getAlchemyKey, alchemyRpcForKey } from "../constants/env";
 import { COMMON_BASE_TOKENS } from "../launchpad/common-tokens";
 import { TOKENIZED_STOCKS_REGISTRY } from "../stocks/tokenized-stocks-registry";
+import { ALL_VERIFIED_BASE_TOKENS } from "../swap/verified-tokens";
 
 const ERC20_ABI = parseAbi([
   "function balanceOf(address owner) external view returns (uint256)",
@@ -148,6 +149,7 @@ async function fetchBlockscoutTokenBalances(
  * - Native ETH
  * - COMMON_BASE_TOKENS (USDC, WETH, cbBTC, cbETH, AERO, etc.)
  * - All 32 Tokenized Stocks in TOKENIZED_STOCKS_REGISTRY
+ * - ALL 3,100+ Verified Base tokens in ALL_VERIFIED_BASE_TOKENS (includes Fren Pet FP, DEGEN, etc.)
  * - User-specified custom token addresses
  */
 export async function discoverWalletBalances(
@@ -190,7 +192,13 @@ export async function discoverWalletBalances(
 
   // 3. Build comprehensive list of authoritative on-chain registry contracts
   const registryAddrs = new Set<string>();
-  const priorityContracts: { address: `0x${string}`; decimals: number; symbol: string; name: string }[] = [];
+  const priorityContracts: {
+    address: `0x${string}`;
+    decimals: number;
+    symbol: string;
+    name: string;
+    logoURI?: string | null;
+  }[] = [];
 
   // Add COMMON_BASE_TOKENS
   for (const t of COMMON_BASE_TOKENS) {
@@ -234,22 +242,62 @@ export async function discoverWalletBalances(
     }
   }
 
-  // 4. Batch multicall for priority registry tokens (authoritative on-chain check)
-  const onChainBalances = new Map<string, bigint>();
-  try {
-    const results = await client.multicall({
-      contracts: priorityContracts.map((c) => ({
-        address: c.address,
-        abi: ERC20_ABI,
-        functionName: "balanceOf" as const,
-        args: [address] as const,
-      })),
-    });
+  // Add all 3,100+ verified Base ecosystem tokens (ensures tradable tokens like Fren Pet 0xFF0C... are always scanned)
+  for (const vt of ALL_VERIFIED_BASE_TOKENS) {
+    const lower = vt.address.toLowerCase();
+    if (!registryAddrs.has(lower)) {
+      registryAddrs.add(lower);
+      priorityContracts.push({
+        address: vt.address,
+        decimals: vt.decimals,
+        symbol: vt.symbol,
+        name: vt.name,
+        logoURI: vt.logoURI,
+      });
+    }
+  }
 
-    for (let i = 0; i < priorityContracts.length; i++) {
-      const res = results[i];
-      if (res && res.status === "success" && typeof res.result === "bigint" && res.result > BigInt(0)) {
-        onChainBalances.set(priorityContracts[i]!.address.toLowerCase(), res.result);
+  // 4. Batch multicall for priority registry tokens in parallel chunks (350 tokens per chunk)
+  const onChainBalances = new Map<string, bigint>();
+  const CHUNK_SIZE = 350;
+  const contractChunks: typeof priorityContracts[] = [];
+  for (let i = 0; i < priorityContracts.length; i += CHUNK_SIZE) {
+    contractChunks.push(priorityContracts.slice(i, i + CHUNK_SIZE));
+  }
+
+  try {
+    const chunkResults = await Promise.all(
+      contractChunks.map((chunk) =>
+        client
+          .multicall({
+            contracts: chunk.map((c) => ({
+              address: c.address,
+              abi: ERC20_ABI,
+              functionName: "balanceOf" as const,
+              args: [address] as const,
+            })),
+          })
+          .catch((err) => {
+            console.warn("[indexer] Multicall chunk failed, continuing:", err);
+            return [];
+          })
+      )
+    );
+
+    for (let c = 0; c < contractChunks.length; c++) {
+      const chunk = contractChunks[c]!;
+      const results = chunkResults[c] ?? [];
+      for (let i = 0; i < chunk.length; i++) {
+        const res = results[i];
+        if (
+          res &&
+          res.status === "success" &&
+          typeof res.result === "bigint" &&
+          res.result > BigInt(0)
+        ) {
+          const item = chunk[i]!;
+          onChainBalances.set(item.address.toLowerCase(), res.result);
+        }
       }
     }
   } catch {
@@ -275,6 +323,7 @@ export async function discoverWalletBalances(
         decimals: contract.decimals,
         symbol: contract.symbol,
         name: contract.name,
+        logo: contract.logoURI || null,
       });
     } else if (onChainBalances.has(lower) && onChainBalances.get(lower) === BigInt(0)) {
       // If multicall explicitly confirmed 0 balance, remove from merged list

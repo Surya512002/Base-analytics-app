@@ -216,9 +216,11 @@ export async function runMarketDiscovery(
         }
       }
 
-      // Safety Gate 1: Minimum liquidity
+      // Safety Gate 1: Check liquidity and flag low liquidity markets
       if (mkt.liquidityUsd < DISCOVERY_SAFETY_CONFIG.MIN_LIQUIDITY_USD && mkt.tvlUsd < DISCOVERY_SAFETY_CONFIG.MIN_LIQUIDITY_USD) {
-        continue;
+        if (!mkt.riskFlags.includes("LOW_LIQUIDITY")) {
+          mkt.riskFlags.push("LOW_LIQUIDITY");
+        }
       }
 
       // Safety Gate 2: Known Oracle requirement for borrow markets

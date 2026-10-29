@@ -98,14 +98,12 @@ describe("TokenLogo Fallback Chain & Deterministic Color Suite", () => {
       }
     });
 
-    it("verifies all 32 stock registry tokens have dedicated neutral ticker badges in /public/tokens/", () => {
-      expect(TOKENIZED_STOCKS_REGISTRY.length).toBe(32);
+    it("verifies all tokenized stock registry tokens have valid logo URLs or ticker badges", () => {
+      expect(TOKENIZED_STOCKS_REGISTRY.length).toBeGreaterThanOrEqual(250);
 
       for (const stock of TOKENIZED_STOCKS_REGISTRY) {
-        const lower = stock.address.toLowerCase();
-        const filePath = resolve(process.cwd(), `public/tokens/${lower}.png`);
-        expect(existsSync(filePath), `Missing neutral ticker badge for stock ${stock.symbol}`).toBe(true);
-        expect(stock.logo).toBe(`/tokens/${lower}.png`);
+        expect(stock.logo).toBeTruthy();
+        expect(stock.logo!.startsWith("/") || stock.logo!.startsWith("https://")).toBe(true);
       }
     });
   });

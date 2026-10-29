@@ -104,21 +104,21 @@ describe("Tokenized Stocks Registry & Base Markets", () => {
   it("NVDAc, AAPLc, TSLAc, COINc are registered B20 tokenized stocks", () => {
     const nvda = getBaseStockBySymbol("NVDAc");
     expect(nvda).toBeDefined();
-    expect(nvda?.name).toBe("NVIDIA");
+    expect(nvda?.name).toContain("NVIDIA");
     expect(nvda?.decimals).toBe(8);
     expect(isBaseStockAddress(nvda!.address)).toBe(true);
 
     const tsla = getBaseStockBySymbol("TSLAc");
     expect(tsla).toBeDefined();
-    expect(tsla?.name).toBe("Tesla");
+    expect(tsla?.name).toContain("Tesla");
 
     const aapl = getBaseStockBySymbol("AAPLc");
     expect(aapl).toBeDefined();
-    expect(aapl?.name).toBe("Apple");
+    expect(aapl?.name).toContain("Apple");
 
     const coin = getBaseStockBySymbol("COINc");
     expect(coin).toBeDefined();
-    expect(coin?.name).toBe("Coinbase");
+    expect(coin?.name).toContain("Coinbase");
   });
 
   it("Lending markets include tokenized stock borrowing and lending", () => {

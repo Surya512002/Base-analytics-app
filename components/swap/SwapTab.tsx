@@ -36,8 +36,20 @@ export default function SwapTab({
   const [urlAmount, setUrlAmount] = useState<string | null>(null);
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
 
+  const extraTokens = useMemo(() => {
+    const list: string[] = [];
+    if (initialToken && initialToken.startsWith("0x")) list.push(initialToken);
+    const buyParam = searchParams?.get("buy");
+    if (buyParam && buyParam.startsWith("0x")) list.push(buyParam);
+    const sellParam = searchParams?.get("sell");
+    if (sellParam && sellParam.startsWith("0x")) list.push(sellParam);
+    if (buyToken?.kind === "token" && buyToken.address) list.push(buyToken.address);
+    if (fromPick?.kind === "token" && fromPick.address) list.push(fromPick.address);
+    return list;
+  }, [initialToken, searchParams, buyToken, fromPick]);
+
   // Hook for wallet holdings, dust filter, and total USD balance
-  const holdingsState = useWalletHoldings(app.wallet?.address);
+  const holdingsState = useWalletHoldings(app.wallet?.address, extraTokens);
   const {
     allTokens,
     totalUsd,

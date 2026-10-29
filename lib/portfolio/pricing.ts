@@ -191,12 +191,20 @@ export async function batchPriceTokens(
         coins?: Record<string, { price?: number; timestamp?: number }>;
       };
       if (llamaData.coins) {
+        const llamaMap = new Map<string, number>();
+        for (const [key, val] of Object.entries(llamaData.coins)) {
+          const cleanKey = key.toLowerCase().replace(/^base:/i, "");
+          if (val?.price && val.price > 0 && Number.isFinite(val.price)) {
+            llamaMap.set(cleanKey, val.price);
+          }
+        }
+
         for (const addr of remainingAddresses) {
           const lower = addr.toLowerCase();
-          const coin = llamaData.coins[`base:${addr}`] || llamaData.coins[`base:${lower}`];
-          if (coin?.price && coin.price > 0 && Number.isFinite(coin.price)) {
+          const price = llamaMap.get(lower);
+          if (price != null && price > 0) {
             results.set(lower, {
-              priceUsd: coin.price,
+              priceUsd: price,
               priceSource: "defillama",
               priceChange24h: null,
             });
@@ -208,24 +216,27 @@ export async function batchPriceTokens(
     // Proceed to DexScreener
   }
 
-  // Filter addresses still needing pricing
-  const unpricedForDex = remainingAddresses.filter(
-    (addr) => results.get(addr.toLowerCase())?.priceUsd == null
-  );
-
   // 5. DexScreener API with Liquidity Threshold (ignore pools < $500)
-  if (unpricedForDex.length > 0) {
+  // Query all ERC-20 tokens needing prices or liquidity stats
+  const tokensForDex = erc20Addresses.filter((addr) => {
+    const existing = results.get(addr.toLowerCase());
+    return existing?.priceUsd == null || existing.liquidityUsd == null;
+  });
+
+  if (tokensForDex.length > 0) {
     try {
-      const dexBatch = await fetchDexScreenerBatch(unpricedForDex);
-      for (const addr of unpricedForDex) {
+      const dexBatch = await fetchDexScreenerBatch(tokensForDex);
+      for (const addr of tokensForDex) {
         const lower = addr.toLowerCase();
         const pairs = dexBatch.get(lower);
         if (pairs && pairs.length > 0) {
           const best = pickBestPair(pairs);
           const liquidity = best?.liquidity?.usd ?? 0;
           const hasPool = Boolean(best);
+          const existing = results.get(lower);
 
-          if (best?.priceUsd && liquidity >= 500) {
+          // If token not yet priced, set price from DexScreener if liquidity passes threshold ($500)
+          if (existing?.priceUsd == null && best?.priceUsd && liquidity >= 500) {
             const price = parseFloat(best.priceUsd);
             if (price > 0 && Number.isFinite(price)) {
               results.set(lower, {
@@ -239,14 +250,11 @@ export async function batchPriceTokens(
             }
           }
 
-          // Record liquidity / pool status even if price didn't pass threshold
-          const existing = results.get(lower) ?? {
-            priceUsd: null,
-            priceSource: "none",
-            priceChange24h: null,
-          };
+          // Otherwise enrich liquidity & 24h change onto existing price
           results.set(lower, {
-            ...existing,
+            priceUsd: existing?.priceUsd ?? null,
+            priceSource: existing?.priceSource ?? "none",
+            priceChange24h: existing?.priceChange24h ?? best?.priceChange?.h24 ?? null,
             liquidityUsd: liquidity,
             hasPool,
           });

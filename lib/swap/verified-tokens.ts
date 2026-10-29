@@ -2,9 +2,10 @@
  * Verified Base Tokens Registry & Verification Engine
  *
  * Single source of truth for verified Base mainnet tokens matching Coinbase Wallet verification standards:
- * - Curated Base ecosystem tokens (AERO, USDC, cbBTC, cbETH, WETH, MORPHO, DEGEN, VIRTUAL, etc.)
- * - All 32 Coinbase Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY
- * - All official B20 Vanity tokens deployed on Base
+ * - Official Coinbase Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY (32 stocks)
+ * - Curated High-MarketCap Base Bluechips & Major Currencies (ETH, WETH, USDC, cbBTC, cbETH, AERO, DEGEN, BRETT, TOSHI, VIRTUAL, etc.)
+ *
+ * Newly launched coins, unverified tokens, and general B20 vanity launches DO NOT receive the verified blue tickmark.
  */
 
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
@@ -21,14 +22,15 @@ export interface VerifiedTokenDef {
   logoURI?: string | null;
 }
 
-/** Comprehensive list of 3,100+ Base verified tokens from CoinGecko, Superchain, & Coinbase */
+/** Comprehensive list of 3,100+ Base catalog tokens from CoinGecko, Superchain, & Coinbase (used for asset discovery/pricing) */
 export const ALL_VERIFIED_BASE_TOKENS: VerifiedTokenDef[] = verifiedTokensJson as VerifiedTokenDef[];
 
 export const AERO_BASE_ADDRESS = "0x940181a94A35A4569E4529A3CDfB74e38FD98631" as const;
 export const USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
 
 /**
- * Curated list of major Base mainnet tokens verified on Coinbase Wallet & Base official bridge
+ * Curated list of major Base mainnet high-marketcap bluechips & major currencies
+ * matching Coinbase Wallet verified blue tick standard.
  */
 export const VERIFIED_BASE_CRYPTO_TOKENS: VerifiedTokenDef[] = [
   // Major Base Currencies & Wrapped Assets
@@ -44,7 +46,7 @@ export const VERIFIED_BASE_CRYPTO_TOKENS: VerifiedTokenDef[] = [
   { address: "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", symbol: "USDbC", name: "USD Base Coin", decimals: 6, category: "crypto" },
   { address: "0x820C137dD70085fC41C2e2bE20A84D4128A113a2", symbol: "USDS", name: "Sky Dollar", decimals: 18, category: "crypto" },
 
-  // Base Ecosystem & DeFi Bluechips
+  // Base Ecosystem & DeFi Bluechips (Highest Market Cap)
   { address: "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842", symbol: "MORPHO", name: "Morpho Token", decimals: 18, category: "crypto" },
   { address: "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed", symbol: "DEGEN", name: "Degen", decimals: 18, category: "crypto" },
   { address: "0x532f27101965dd16442E59d40670FaF5eBB142E4", symbol: "BRETT", name: "Brett", decimals: 18, category: "crypto" },
@@ -64,44 +66,52 @@ export const VERIFIED_BASE_CRYPTO_TOKENS: VerifiedTokenDef[] = [
   { address: "0x8C9037D1Ef5c6D1f6816278C7AAF5491d24CD527", symbol: "MOXIE", name: "Moxie", decimals: 18, category: "crypto" },
   { address: "0x2D92B34A7538fC1959E758A698f567f4f79f123C", symbol: "PRIME", name: "Echelon Prime", decimals: 18, category: "crypto" },
   { address: "0x9A33406165f57cbD54C7D03d360EF3Eb8c6c9A35", symbol: "TALENT", name: "Talent Protocol", decimals: 18, category: "crypto" },
+  { address: "0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb", symbol: "CLANKER", name: "tokenbot", decimals: 18, category: "crypto" },
+  { address: "0xB4fDe59a779991bfB6a52253B51947828b982be3", symbol: "PEPE", name: "Based Pepe", decimals: 18, category: "crypto" },
+  { address: "0xcbD06E5A2B0C65597161de254AA074E489dEb510", symbol: "CBDOGE", name: "Coinbase Doge", decimals: 18, category: "crypto" },
+  { address: "0xFCa95aeb5bF44aE355806A5ad14659c940dC6BF7", symbol: "SHIB", name: "Shiba Inu", decimals: 18, category: "crypto" },
+  { address: "0xE3086852A4B125803C815a158249ae468A3254Ca", symbol: "MFER", name: "mfercoin", decimals: 18, category: "crypto" },
+  { address: "0x0d97F261b1e88845184f678e2d1e7a98D9FD38dE", symbol: "TYBG", name: "Base God", decimals: 18, category: "crypto" },
 ];
 
 /**
- * Pre-computed lookup set of all verified token addresses (lowercase)
+ * Pre-computed lookup set of official Blue-Check verified token addresses (lowercase)
+ * Matching Coinbase Wallet standards:
+ * 1. Official Coinbase Tokenized US Equities (32 stocks from TOKENIZED_STOCKS_REGISTRY)
+ * 2. Curated High-MarketCap Base Bluechips and Major Currencies (VERIFIED_BASE_CRYPTO_TOKENS)
+ * 3. Native ETH
  */
-const VERIFIED_ADDRESS_SET = new Set<string>([
+export const BLUE_CHECK_VERIFIED_ADDRESS_SET = new Set<string>([
   "eth",
   "0x0000000000000000000000000000000000000000",
-  ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.address.toLowerCase()),
   ...TOKENIZED_STOCKS_REGISTRY.map((s) => s.address.toLowerCase()),
-  ...ALL_VERIFIED_BASE_TOKENS.map((t) => t.address.toLowerCase()),
+  ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.address.toLowerCase()),
 ]);
 
-const VERIFIED_SYMBOL_SET = new Set<string>([
+export const BLUE_CHECK_VERIFIED_SYMBOL_SET = new Set<string>([
   "ETH",
   "WETH",
-  ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.symbol.toUpperCase()),
   ...TOKENIZED_STOCKS_REGISTRY.map((s) => s.symbol.toUpperCase()),
-  ...ALL_VERIFIED_BASE_TOKENS.map((t) => t.symbol.toUpperCase()),
+  ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.symbol.toUpperCase()),
 ]);
 
 /**
- * Fast lookup for a verified token by address or symbol
+ * Fast lookup for a catalog token by address or symbol
  */
 export function findVerifiedToken(addressOrSymbol: string): VerifiedTokenDef | undefined {
   const raw = addressOrSymbol.trim().toLowerCase();
   return (
-    ALL_VERIFIED_BASE_TOKENS.find(
+    VERIFIED_BASE_CRYPTO_TOKENS.find(
       (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
     ) ||
-    VERIFIED_BASE_CRYPTO_TOKENS.find(
+    ALL_VERIFIED_BASE_TOKENS.find(
       (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
     )
   );
 }
 
 /**
- * Searches across all 3,100+ verified Base tokens by symbol, name, or address
+ * Searches across all 3,100+ Base catalog tokens by symbol, name, or address
  */
 export function searchVerifiedTokens(query: string, limit = 50): VerifiedTokenDef[] {
   const q = query.trim().toLowerCase();
@@ -126,7 +136,12 @@ export function searchVerifiedTokens(query: string, limit = 50): VerifiedTokenDe
 }
 
 /**
- * Checks whether an address, SwapCounter, UnifiedToken, or symbol is verified on Base.
+ * Checks whether an address, SwapCounter, UnifiedToken, or symbol is verified on Base
+ * with the official Coinbase Wallet blue checkmark.
+ *
+ * ONLY official Coinbase Tokenized Stocks from Base and top high-marketcap Base bluechips
+ * and currencies have the blue checkmark.
+ * Newly launched coins, unverified tokens, and general B20 launches DO NOT receive the blue checkmark.
  */
 export function isVerifiedBaseToken(
   tokenOrAddress?: string | SwapCounter | UnifiedToken | null
@@ -137,43 +152,31 @@ export function isVerifiedBaseToken(
   if (typeof tokenOrAddress === "object") {
     if ("kind" in tokenOrAddress) {
       if (tokenOrAddress.kind === "eth") return true;
-      if (tokenOrAddress.isVerified === true) return true;
-      const addr = tokenOrAddress.address?.toLowerCase();
-      if (addr) {
-        if (VERIFIED_ADDRESS_SET.has(addr) || addr.startsWith("0xb20")) return true;
-      }
-      if (tokenOrAddress.symbol && VERIFIED_SYMBOL_SET.has(tokenOrAddress.symbol.toUpperCase())) {
-        return true;
+      if (tokenOrAddress.address) {
+        return BLUE_CHECK_VERIFIED_ADDRESS_SET.has(tokenOrAddress.address.toLowerCase());
       }
       return false;
     }
     // UnifiedToken
     if ("address" in tokenOrAddress && tokenOrAddress.address) {
-      const addr = tokenOrAddress.address.toLowerCase();
-      if (VERIFIED_ADDRESS_SET.has(addr) || addr.startsWith("0xb20")) return true;
-      if (tokenOrAddress.symbol && VERIFIED_SYMBOL_SET.has(tokenOrAddress.symbol.toUpperCase())) {
-        return true;
-      }
-      if (tokenOrAddress.type === "stock" || tokenOrAddress.type === "b20") return true;
+      return BLUE_CHECK_VERIFIED_ADDRESS_SET.has(tokenOrAddress.address.toLowerCase());
     }
     return false;
   }
 
-  // 2. String address or sentinel
+  // 2. String address or sentinel or symbol
   const raw = tokenOrAddress.trim().toLowerCase();
   if (raw === "eth" || raw === "0x0000000000000000000000000000000000000000") {
     return true;
   }
 
-  if (VERIFIED_ADDRESS_SET.has(raw)) {
-    return true;
+  // Check by contract address
+  if (raw.startsWith("0x")) {
+    return BLUE_CHECK_VERIFIED_ADDRESS_SET.has(raw);
   }
 
-  if (raw.startsWith("0xb20")) {
-    return true;
-  }
-
-  if (VERIFIED_SYMBOL_SET.has(raw.toUpperCase())) {
+  // If a known bluechip symbol is queried alone (e.g. "USDC", "WETH", "NVDAc")
+  if (BLUE_CHECK_VERIFIED_SYMBOL_SET.has(raw.toUpperCase())) {
     return true;
   }
 
