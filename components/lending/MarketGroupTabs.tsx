@@ -25,9 +25,9 @@ export default function MarketGroupTabs({
         role="tab"
         aria-selected={value === "stocks"}
         onClick={() => onChange("stocks")}
-        className={`pop-pill px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+        className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
           value === "stocks"
-            ? "bg-[#0052FF] text-white shadow-xs"
+            ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
             : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
         }`}
       >
@@ -47,9 +47,9 @@ export default function MarketGroupTabs({
         role="tab"
         aria-selected={value === "compare"}
         onClick={() => onChange("compare")}
-        className={`pop-pill px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+        className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
           value === "compare"
-            ? "bg-[#0052FF] text-white shadow-xs"
+            ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
             : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
         }`}
       >
@@ -69,9 +69,9 @@ export default function MarketGroupTabs({
         role="tab"
         aria-selected={value === "all"}
         onClick={() => onChange("all")}
-        className={`pop-pill px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+        className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
           value === "all"
-            ? "bg-[#0052FF] text-white shadow-xs"
+            ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
             : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
         }`}
       >

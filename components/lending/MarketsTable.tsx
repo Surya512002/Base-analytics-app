@@ -254,41 +254,49 @@ export default function MarketsTable({
           {/* Protocol Filter */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
             <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Protocol:</span>
-            {protocolFilters.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setSelectedProtocol(p.id)}
-                className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  selectedProtocol === p.id
-                    ? p.id === "beefy"
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "bg-[#0052FF] text-white shadow-xs"
-                    : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+            {protocolFilters.map((p) => {
+              const isSelected = selectedProtocol === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedProtocol(p.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                    isSelected
+                      ? p.id === "beefy"
+                        ? "bg-purple-600 text-white hover:bg-purple-700 shadow-sm"
+                        : "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
+                      : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)] border border-[var(--border-subtle)]"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Category Filter Chips */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
             <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Sector:</span>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? "bg-[#0052FF] text-white shadow-xs"
-                    : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap cursor-pointer select-none ${
+                    isSelected
+                      ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
+                      : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)] border border-[var(--border-subtle)]"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

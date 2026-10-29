@@ -136,7 +136,7 @@ export default function GaugesTable({
             <button
               type="button"
               onClick={() => setProtocolFilter("all")}
-              className={`pop-pill px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                 protocolFilter === "all"
                   ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -147,9 +147,9 @@ export default function GaugesTable({
             <button
               type="button"
               onClick={() => setProtocolFilter("beefy")}
-              className={`pop-pill px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 protocolFilter === "beefy"
-                  ? "bg-purple-600 text-white shadow-xs"
+                  ? "bg-purple-600 text-white hover:bg-purple-700 shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
             >
@@ -159,9 +159,9 @@ export default function GaugesTable({
             <button
               type="button"
               onClick={() => setProtocolFilter("aerodrome")}
-              className={`pop-pill px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 protocolFilter === "aerodrome"
-                  ? "bg-[#0052FF] text-white shadow-xs"
+                  ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
             >
@@ -172,20 +172,23 @@ export default function GaugesTable({
 
           {/* Category Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat
-                    ? "bg-[#0052FF] text-white shadow-xs"
-                    : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-                }`}
-              >
-                {cat === "all" ? "All" : cat}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const isSelected = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
+                    isSelected
+                      ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
+                      : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                  }`}
+                >
+                  {cat === "all" ? "All" : cat}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

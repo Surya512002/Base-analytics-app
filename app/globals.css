@@ -3408,7 +3408,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   z-index: 3;
 }
 
-/* Selected states maintain blue border; hover adds shadow only */
+/* Selected states maintain their background; hover adds shadow only (never erases text) */
 .pop[aria-selected="true"]:hover,
 .pop[aria-pressed="true"]:hover,
 .pop[data-state="active"]:hover,
@@ -3417,9 +3417,13 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 .pop-lg[data-state="active"]:hover,
 .pop-pill[aria-selected="true"]:hover,
 .pop-pill[aria-pressed="true"]:hover,
-.pop-pill[data-state="active"]:hover {
+.pop-pill[data-state="active"]:hover,
+.pop[class*="text-white"]:hover,
+.pop-pill[class*="text-white"]:hover,
+.pop-lg[class*="text-white"]:hover {
   border-color: var(--brand, #0052FF) !important;
   box-shadow: var(--pop-shadow-tier);
+  background-color: unset !important;
 }
 
 /* Disabled states & opt-out via data-pop="off" */
