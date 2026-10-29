@@ -9,6 +9,13 @@ export interface TrademarkCheckResult {
   reason?: string;
 }
 
+function hasWordBoundaryMatch(text: string, keyword: string): boolean {
+  if (!keyword || keyword.length < 3) return false;
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(^|\\s|[.,!?;:"'\\/\\-_])${escaped}($|\\s|[.,!?;:"'\\/\\-_])`, "i");
+  return regex.test(text);
+}
+
 /**
  * Checks a proposed token name and symbol against known public equity brands
  * and tickers in the tokenized stock registry to warn creators against trademark misuse.
@@ -39,14 +46,16 @@ export function checkTrademarkCollision(name: string, symbol: string): Trademark
       };
     }
 
-    // Check company name collision
+    // Check company name collision using proper word boundaries to prevent substring false-positives
+    // (e.g. "intelligence" should not falsely match "Intel")
     if (cleanName && cleanName.length >= 4) {
       const stockCoreName = stockNameLower.replace(/\s+(inc\.?|corp\.?|corporation|ltd\.?|co\.?|plc)$/i, "").trim();
       if (
-        cleanName.includes(stockNameLower) ||
-        cleanName.includes(stockCoreName) ||
-        stockNameLower.includes(cleanName) ||
-        stockCoreName.includes(cleanName)
+        cleanName === stockNameLower ||
+        cleanName === stockCoreName ||
+        hasWordBoundaryMatch(cleanName, stockNameLower) ||
+        hasWordBoundaryMatch(cleanName, stockCoreName) ||
+        (cleanName.length >= 5 && hasWordBoundaryMatch(stockNameLower, cleanName))
       ) {
         const msg = `Token name "${name}" resembles registered company name "${stock.name}". Ensure your token branding does not impersonate or mislead users.`;
         return {

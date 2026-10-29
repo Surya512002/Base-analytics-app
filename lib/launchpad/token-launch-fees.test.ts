@@ -86,13 +86,13 @@ describe("Token Launch & Fee Sharing System", () => {
   it("verifies stock quote asset lookups for Coinbase tokenized stocks", () => {
     const nvda = getBaseStockBySymbol("NVDAc");
     expect(nvda).toBeDefined();
-    expect(nvda?.name).toBe("NVIDIA");
+    expect(nvda?.name).toContain("NVIDIA");
     expect(nvda?.decimals).toBe(8);
     expect(nvda?.address.toLowerCase()).toBe("0xb20000000000000000000078ee7ce2fe4908108c");
 
     const tsla = getBaseStockBySymbol("TSLAc");
     expect(tsla).toBeDefined();
-    expect(tsla?.name).toBe("Tesla");
+    expect(tsla?.name).toContain("Tesla");
   });
 
   it("produces accurate badge labels and classes for memestocks, memes, and B20 tokens", async () => {

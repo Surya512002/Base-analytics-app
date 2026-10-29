@@ -278,40 +278,48 @@ export default function AssetDetailView({
         <div>
           <h2 className="text-base font-black text-[var(--ink)]">Available Protocol Markets</h2>
           <p className="text-xs text-[var(--ink-muted)]">
-            Compare live parameters across Superform, Morpho, Euler, Moonwell, and Aave
+            Compare verified Base mainnet contracts across Beefy Finance, Aerodrome, and Morpho Blue
           </p>
         </div>
 
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-          <button
-            type="button"
-            onClick={() => setViewMode("cards")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              viewMode === "cards"
-                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <LayoutGrid size={13} />
-            <span>Cards</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("table")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              viewMode === "table"
-                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <TableIcon size={13} />
-            <span>Compare Table</span>
-          </button>
-        </div>
+        {comparison.options.length > 0 && (
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === "cards"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <LayoutGrid size={13} />
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <TableIcon size={13} />
+              <span>Compare Table</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Protocol Markets Display */}
-      {viewMode === "cards" ? (
+      {comparison.options.length === 0 ? (
+        <CompareTable
+          options={[]}
+          onOpenSupply={onOpenSupply}
+          onOpenBorrow={onOpenBorrow}
+        />
+      ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {comparison.options.map((opt) => (
             <ProtocolCard

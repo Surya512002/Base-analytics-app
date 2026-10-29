@@ -21,6 +21,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ShieldAlert,
 } from "lucide-react";
 import { parseAbi, formatUnits } from "viem";
 import type { WalletAppState } from "@/hooks/useWalletApp";
@@ -696,7 +697,7 @@ export default function StocksLendingHub({
       </div>
 
       {/* Quick Best-in-Class Highlights for Current Stock */}
-      {comparison && (
+      {comparison && comparison.options.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Best Supply APY */}
           <div className="pop rounded-2xl border border-emerald-500/25 bg-emerald-500/8 p-4 flex items-center justify-between gap-3 shadow-xs">
@@ -784,8 +785,25 @@ export default function StocksLendingHub({
             <div key={i} className="h-64 rounded-2xl skeleton-shimmer border border-[var(--border-subtle)]" />
           ))
         ) : sortedAndFilteredOptions.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--ink-muted)]">
-            No lending options found matching the selected filter.
+          <div className="col-span-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-12 text-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
+              <ShieldAlert size={22} />
+            </div>
+            <h4 className="font-bold text-sm text-[var(--ink)]">
+              No Active Lending or Staking Pools for ${selectedStockSymbol}
+            </h4>
+            <p className="text-xs text-[var(--ink-muted)] max-w-md mx-auto leading-relaxed">
+              Protocols (Beefy, Aerodrome, Morpho) have not yet deployed liquidity vaults for this stock on Base mainnet. Only verified on-chain deployments are shown.
+            </p>
+            <div className="pt-2">
+              <a
+                href="/swap"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:opacity-90 transition shadow-xs"
+              >
+                <span>Trade ${selectedStockSymbol} on Swap</span>
+                <ArrowRight size={13} />
+              </a>
+            </div>
           </div>
         ) : (
           sortedAndFilteredOptions.map((opt, idx) => {

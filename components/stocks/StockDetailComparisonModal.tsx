@@ -21,6 +21,7 @@ import {
   ArrowDownToLine,
   ArrowUpRight,
   Wallet,
+  ShieldAlert,
 } from "lucide-react";
 import type { ConnectionType } from "@/lib/types/wallet";
 import type { CoinbaseTokenizedStock } from "@/lib/stocks/coinbase-api";
@@ -417,57 +418,59 @@ export default function StockDetailComparisonModal({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 py-3 border-b border-[var(--border-subtle)] shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--ink-muted)] font-semibold">
-              Comparing <strong>{comparison?.options.length || 6} verified Base protocols</strong>
+              Comparing <strong>{comparison?.options.length ?? 0} verified Base protocols</strong>
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-            <span className="text-[11px] font-bold text-[var(--ink-muted)] mr-1 shrink-0">Sort:</span>
-            <button
-              type="button"
-              onClick={() => setSortBy("best_supply")}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                sortBy === "best_supply"
-                  ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30 shadow-xs"
-                  : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
-              }`}
-            >
-              Highest Supply APY
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortBy("best_borrow")}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                sortBy === "best_borrow"
-                  ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30 shadow-xs"
-                  : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
-              }`}
-            >
-              Lowest Borrow Rate
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortBy("liquidity")}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                sortBy === "liquidity"
-                  ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30 shadow-xs"
-                  : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
-              }`}
-            >
-              Deepest Liquidity
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortBy("lowest_risk")}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                sortBy === "lowest_risk"
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs"
-                  : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
-              }`}
-            >
-              Lowest Risk
-            </button>
-          </div>
+          {sortedOptions.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <span className="text-[11px] font-bold text-[var(--ink-muted)] mr-1 shrink-0">Sort:</span>
+              <button
+                type="button"
+                onClick={() => setSortBy("best_supply")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  sortBy === "best_supply"
+                    ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30 shadow-xs"
+                    : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
+                Highest Supply APY
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortBy("best_borrow")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  sortBy === "best_borrow"
+                    ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30 shadow-xs"
+                    : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
+                Lowest Borrow Rate
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortBy("liquidity")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  sortBy === "liquidity"
+                    ? "bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30 shadow-xs"
+                    : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
+                Deepest Liquidity
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortBy("lowest_risk")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  sortBy === "lowest_risk"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs"
+                    : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
+                Lowest Risk
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scrollable Comparison Content */}
@@ -476,8 +479,29 @@ export default function StockDetailComparisonModal({
             <div className="py-16 text-center space-y-3">
               <Loader2 size={30} className="mx-auto text-[var(--brand)] animate-spin" />
               <p className="text-xs font-semibold text-[var(--ink-muted)]">
-                Querying live onchain rates across Morpho, Aave, Euler, Superform &amp; Moonwell…
+                Querying verified onchain contracts across Morpho Blue, Beefy Finance, and Aerodrome…
               </p>
+            </div>
+          ) : sortedOptions.length === 0 ? (
+            <div className="py-12 px-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] text-center space-y-3 shadow-xs">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
+                <ShieldAlert size={20} />
+              </div>
+              <h4 className="font-bold text-sm text-[var(--ink)]">
+                No Verified Protocol Vaults on Base for {stock.symbol}
+              </h4>
+              <p className="text-xs text-[var(--ink-muted)] max-w-md mx-auto leading-relaxed">
+                Beefy, Aerodrome, and Morpho curators have not yet deployed liquidity vaults for this asset. Only verified on-chain contracts with real liquidity are displayed.
+              </p>
+              <div className="pt-2 flex items-center justify-center gap-3">
+                <a
+                  href="/swap"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:opacity-90 transition shadow-xs"
+                >
+                  <span>Trade {stock.symbol} on Swap</span>
+                  <ArrowRight size={13} />
+                </a>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">

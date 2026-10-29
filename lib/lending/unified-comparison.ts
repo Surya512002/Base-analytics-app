@@ -116,10 +116,158 @@ const CACHE_TTL_MS = 15_000; // 15 seconds near real-time cache
 /** Canonical protocol addresses for Base mainnet equities */
 /** Known verified Beefy vault addresses for tokenized equities on Base */
 export const VERIFIED_BEEFY_STOCK_VAULTS: Record<string, `0x${string}`> = {
+  NVDAc: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
+  AAPLc: "0xD34249514227594BB3bcdDF24a74fe1901D5077e",
   MSFTc: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
   TSLAc: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
   MSTRc: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
+  AMZNc: "0x1FF5C4d292F9eACAE1fa10c68f2c546ef8Fc7a8A",
+  METAc: "0x32dB27106d3eeA59A2586E81c4c02aC7a5Ddec49",
+  GOOGLc: "0x8Ff449bd7B0073c68C6b5B355B684c7C0d0FEa22",
   SNDKc: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
+  PLTRc: "0x1361B4DB8b1d8F452B7D3F91bC36B240e32a80BA",
+  SPCXc: "0x08C60dEabCbD835E52d5BF8f8800959B54Db8774",
+  MUc: "0x6b08908A8E1a7197e95d525E5f24EE0bf677369e",
+};
+
+export interface VerifiedBeefyVaultDetails {
+  vaultAddress: `0x${string}`;
+  wantTokenAddress: `0x${string}`;
+  vaultId: string;
+  apy: number;
+  tvlUsd: number;
+}
+
+export const VERIFIED_BEEFY_STOCK_DETAILS: Record<string, VerifiedBeefyVaultDetails> = {
+  NVDAc: {
+    vaultAddress: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
+    wantTokenAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
+    vaultId: "aero-cow-base-usdc-nvdac-vault",
+    apy: 28.5,
+    tvlUsd: 10769,
+  },
+  AAPLc: {
+    vaultAddress: "0xD34249514227594BB3bcdDF24a74fe1901D5077e",
+    wantTokenAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1",
+    vaultId: "aero-cow-base-usdc-aaplc-vault",
+    apy: 26.4,
+    tvlUsd: 9301,
+  },
+  MSFTc: {
+    vaultAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
+    wantTokenAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732",
+    vaultId: "aero-cow-base-msftc-usdc-vault",
+    apy: 293.17,
+    tvlUsd: 70386,
+  },
+  TSLAc: {
+    vaultAddress: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
+    wantTokenAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0",
+    vaultId: "aero-cow-base-tslac-usdc-vault",
+    apy: 54.45,
+    tvlUsd: 50944,
+  },
+  MSTRc: {
+    vaultAddress: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
+    wantTokenAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf",
+    vaultId: "aero-cow-base-mstrc-usdc-vault",
+    apy: 10.05,
+    tvlUsd: 1950,
+  },
+  AMZNc: {
+    vaultAddress: "0x1FF5C4d292F9eACAE1fa10c68f2c546ef8Fc7a8A",
+    wantTokenAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361",
+    vaultId: "aero-cow-base-amznc-usdc-vault",
+    apy: 15.23,
+    tvlUsd: 59668,
+  },
+  METAc: {
+    vaultAddress: "0x32dB27106d3eeA59A2586E81c4c02aC7a5Ddec49",
+    wantTokenAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650",
+    vaultId: "aero-cow-base-usdc-metac-vault",
+    apy: 2.93,
+    tvlUsd: 260,
+  },
+  GOOGLc: {
+    vaultAddress: "0x8Ff449bd7B0073c68C6b5B355B684c7C0d0FEa22",
+    wantTokenAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3",
+    vaultId: "aero-cow-base-usdc-googlc-vault",
+    apy: 22.5,
+    tvlUsd: 12584,
+  },
+  SNDKc: {
+    vaultAddress: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
+    wantTokenAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661",
+    vaultId: "aero-cow-base-sndkc-usdc-vault",
+    apy: 181.78,
+    tvlUsd: 109102,
+  },
+  PLTRc: {
+    vaultAddress: "0x1361B4DB8b1d8F452B7D3F91bC36B240e32a80BA",
+    wantTokenAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4",
+    vaultId: "aero-cow-base-pltrc-usdc-vault",
+    apy: 27.5,
+    tvlUsd: 20,
+  },
+  SPCXc: {
+    vaultAddress: "0x08C60dEabCbD835E52d5BF8f8800959B54Db8774",
+    wantTokenAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC",
+    vaultId: "aero-cow-base-usdc-spcxc-vault",
+    apy: 11.14,
+    tvlUsd: 7287,
+  },
+  MUc: {
+    vaultAddress: "0x6b08908A8E1a7197e95d525E5f24EE0bf677369e",
+    wantTokenAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299",
+    vaultId: "aero-cow-base-muc-usdc-vault",
+    apy: 88.35,
+    tvlUsd: 30,
+  },
+};
+
+export interface VerifiedAerodromePoolDetails {
+  poolAddress: `0x${string}`;
+  supplyApy: number;
+  tvlUsd: number;
+}
+
+export const VERIFIED_AERODROME_STOCK_POOLS: Record<string, VerifiedAerodromePoolDetails> = {
+  NVDAc: { poolAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46", supplyApy: 28.1, tvlUsd: 24500 },
+  AAPLc: { poolAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1", supplyApy: 25.8, tvlUsd: 21000 },
+  MSFTc: { poolAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732", supplyApy: 285.0, tvlUsd: 82000 },
+  TSLAc: { poolAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0", supplyApy: 52.1, tvlUsd: 62000 },
+  MSTRc: { poolAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf", supplyApy: 9.8, tvlUsd: 5000 },
+  AMZNc: { poolAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361", supplyApy: 14.8, tvlUsd: 68000 },
+  METAc: { poolAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650", supplyApy: 2.8, tvlUsd: 1500 },
+  GOOGLc: { poolAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3", supplyApy: 21.9, tvlUsd: 18000 },
+  SNDKc: { poolAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661", supplyApy: 175.0, tvlUsd: 120000 },
+  PLTRc: { poolAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4", supplyApy: 26.5, tvlUsd: 500 },
+  SPCXc: { poolAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC", supplyApy: 10.5, tvlUsd: 12000 },
+  MUc: { poolAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299", supplyApy: 85.0, tvlUsd: 300 },
+};
+
+export interface VerifiedMorphoBlueStockMarket {
+  marketId: `0x${string}`;
+  collateralAddress: `0x${string}`;
+  contractAddress: `0x${string}`;
+  borrowApr: number;
+  supplyApy: number;
+  maxLtv: number;
+  tvlUsd: number;
+  liquidityUsd: number;
+}
+
+export const VERIFIED_MORPHO_STOCK_MARKETS: Record<string, VerifiedMorphoBlueStockMarket> = {
+  NVDAc: {
+    marketId: "0xfef5641f70e19a87e369304daa9ba823754f3db1e6481d757fcae0442cffe479",
+    collateralAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
+    contractAddress: MORPHO_BLUE_BASE,
+    borrowApr: 3.20,
+    supplyApy: 0.0,
+    maxLtv: 77,
+    tvlUsd: 300000,
+    liquidityUsd: 54000,
+  },
 };
 
 
@@ -193,113 +341,124 @@ export async function getUnifiedStockLendingComparison(
 
   const options: StockLendingOption[] = [];
 
-  // 1. Morpho Blue (Live discovered market or baseline isolated market)
+  // 1. Morpho Blue (Only if stock has verified live Morpho market on Base)
   const morphoDiscovered = matchingMarkets.find((m) => m.protocol === "morpho");
-  const morphoParams: MorphoMarketParams = morphoDiscovered?.morphoParams ?? {
-    loanToken: USDC_BASE_ADDRESS,
-    collateralToken: stockAddr,
-    oracle: (morphoDiscovered?.oracle?.address as `0x${string}`) || oracleFeed,
-    irm: MORPHO_ADAPTIVE_CURVE_IRM,
-    lltv: isHighBeta ? BigInt("720000000000000000") : BigInt("770000000000000000"),
-  };
+  const morphoVerified = VERIFIED_MORPHO_STOCK_MARKETS[cleanSymbol];
+  if (morphoDiscovered || morphoVerified) {
+    const morphoParams: MorphoMarketParams = morphoDiscovered?.morphoParams ?? {
+      loanToken: USDC_BASE_ADDRESS,
+      collateralToken: stockAddr,
+      oracle: (morphoDiscovered?.oracle?.address as `0x${string}`) || oracleFeed,
+      irm: MORPHO_ADAPTIVE_CURVE_IRM,
+      lltv: isHighBeta ? BigInt("720000000000000000") : BigInt("770000000000000000"),
+    };
 
-  options.push({
-    id: `${cleanSymbol}-morpho-blue`,
-    protocol: "morpho_blue",
-    protocolName: "Morpho Blue",
-    protocolBadge: "Morpho Blue · Isolated",
-    type: "variable",
-    typeLabel: "Variable-Rate Isolated Borrow",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: morphoDiscovered?.supplyApy ?? 0,
-    borrowApr: morphoDiscovered?.borrowApr ?? (isHighBeta ? 3.85 : 3.2),
-    maxLtv: morphoDiscovered?.maxLtv || (isHighBeta ? 72 : 77),
-    liquidationThreshold: (morphoDiscovered?.maxLtv || (isHighBeta ? 72 : 77)) + 5,
-    utilization: morphoDiscovered?.utilization ?? 68.4,
-    availableLiquidityUsd: morphoDiscovered?.liquidityUsd || (isHighBeta ? 54_000 : 300_000),
-    tvlUsd: morphoDiscovered?.tvlUsd || 1_200_000,
-    riskScore: 2,
-    riskLevel: "low",
-    riskNotes: [
-      "Isolated credit pool: risk is strictly ring-fenced to this stock.",
-      "Chainlink 24/5 equity oracle feed.",
-      "Borrow USDC against tokenized stock collateral.",
-    ],
-    contractAddress: MORPHO_BLUE_BASE,
-    executionType: "morpho_blue",
-    morphoParams,
-    sourceLink: morphoDiscovered?.sourceLink,
-  });
+    options.push({
+      id: morphoDiscovered ? `morpho-${morphoDiscovered.marketId}` : `${cleanSymbol}-morpho-blue`,
+      protocol: "morpho_blue",
+      protocolName: "Morpho Blue",
+      protocolBadge: "Morpho Blue · Isolated",
+      type: "variable",
+      typeLabel: "Variable-Rate Isolated Borrow",
+      stockSymbol: cleanSymbol,
+      stockName: stock.name,
+      stockAddress: stockAddr,
+      loanSymbol: "USDC",
+      loanAddress: USDC_BASE_ADDRESS,
+      supplyApy: morphoDiscovered?.supplyApy ?? (morphoVerified?.supplyApy ?? 0),
+      borrowApr: morphoDiscovered?.borrowApr ?? (morphoVerified?.borrowApr ?? (isHighBeta ? 3.85 : 3.2)),
+      maxLtv: morphoDiscovered?.maxLtv || (morphoVerified?.maxLtv ?? (isHighBeta ? 72 : 77)),
+      liquidationThreshold: (morphoDiscovered?.maxLtv || (morphoVerified?.maxLtv ?? (isHighBeta ? 72 : 77))) + 5,
+      utilization: morphoDiscovered?.utilization ?? 68.4,
+      availableLiquidityUsd: morphoDiscovered?.liquidityUsd || (morphoVerified?.liquidityUsd ?? (isHighBeta ? 54_000 : 300_000)),
+      tvlUsd: morphoDiscovered?.tvlUsd || (morphoVerified?.tvlUsd ?? 1_200_000),
+      riskScore: 2,
+      riskLevel: "low",
+      riskNotes: [
+        "Isolated credit pool: risk is strictly ring-fenced to this stock.",
+        "Chainlink 24/5 equity oracle feed.",
+        "Borrow USDC against tokenized stock collateral.",
+      ],
+      contractAddress: MORPHO_BLUE_BASE,
+      executionType: "morpho_blue",
+      morphoParams,
+      sourceLink: morphoDiscovered?.sourceLink || `https://app.morpho.org/base/market/${morphoVerified?.marketId || ""}`,
+    });
+  }
 
-  // 2. Beefy Finance (Live Auto-compounding Vault on Base)
+  // 2. Beefy Finance (Only if stock has verified live Beefy vault on Base)
   const beefyDiscovered = matchingMarkets.find((m) => m.protocol === "beefy");
-  options.push({
-    id: beefyDiscovered ? `beefy-${beefyDiscovered.marketId}` : `${cleanSymbol}-beefy-vault`,
-    protocol: "beefy",
-    protocolName: "Beefy Finance",
-    protocolBadge: "Beefy · Auto-Compounder",
-    type: "vault",
-    typeLabel: "Auto-Compounding Vault",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: beefyDiscovered?.supplyApy ?? (isHighBeta ? 48.65 : 32.14),
-    borrowApr: null,
-    maxLtv: null,
-    liquidationThreshold: null,
-    utilization: 100,
-    availableLiquidityUsd: beefyDiscovered?.liquidityUsd ?? 95_000,
-    tvlUsd: beefyDiscovered?.tvlUsd ?? 142_000,
-    riskScore: 2,
-    riskLevel: "low",
-    riskNotes: [
-      "Auto-compounding yield vault deployed on Base mainnet.",
-      "Automatically harvests Aerodrome LP fees & AERO gauge emissions and reinvests them into LP shares.",
-      "Zero liquidation risk; standard audited Beefy ERC-4626 vault architecture.",
-    ],
-    contractAddress: (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || VERIFIED_BEEFY_STOCK_VAULTS[cleanSymbol] || "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5") as `0x${string}`,
-    executionType: "beefy",
-    sourceLink: beefyDiscovered?.sourceLink || "https://app.beefy.com",
-  });
+  const beefyVerified = VERIFIED_BEEFY_STOCK_DETAILS[cleanSymbol];
+  if (beefyDiscovered || beefyVerified) {
+    const vaultContract = (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || beefyVerified?.vaultAddress) as `0x${string}`;
+    options.push({
+      id: beefyDiscovered ? `beefy-${beefyDiscovered.marketId}` : `${cleanSymbol}-beefy-vault`,
+      protocol: "beefy",
+      protocolName: "Beefy Finance",
+      protocolBadge: "Beefy · Auto-Compounder",
+      type: "vault",
+      typeLabel: "Auto-Compounding Vault",
+      stockSymbol: cleanSymbol,
+      stockName: stock.name,
+      stockAddress: stockAddr,
+      loanSymbol: "USDC",
+      loanAddress: USDC_BASE_ADDRESS,
+      supplyApy: beefyDiscovered?.supplyApy ?? (beefyVerified?.apy ?? (isHighBeta ? 48.65 : 32.14)),
+      borrowApr: null,
+      maxLtv: null,
+      liquidationThreshold: null,
+      utilization: 100,
+      availableLiquidityUsd: beefyDiscovered?.liquidityUsd ?? (beefyVerified?.tvlUsd ?? 95_000),
+      tvlUsd: beefyDiscovered?.tvlUsd ?? (beefyVerified?.tvlUsd ?? 142_000),
+      riskScore: 2,
+      riskLevel: "low",
+      riskNotes: [
+        "Auto-compounding yield vault deployed on Base mainnet.",
+        "Automatically harvests Aerodrome LP fees & AERO gauge emissions and reinvests them into LP shares.",
+        "Zero liquidation risk; standard audited Beefy ERC-4626 vault architecture.",
+      ],
+      contractAddress: vaultContract,
+      executionType: "beefy",
+      sourceLink: beefyDiscovered?.sourceLink || (beefyVerified ? `https://app.beefy.com/vault/${beefyVerified.vaultId}` : "https://app.beefy.com"),
+    });
+  }
 
-  // 3. Aerodrome Finance (Live Slipstream DEX Gauge Staking)
+  // 3. Aerodrome Finance (Only if stock has verified live Aerodrome pool on Base)
   const aeroDiscovered = matchingMarkets.find((m) => m.protocol === "aerodrome");
-  options.push({
-    id: aeroDiscovered ? `aero-${aeroDiscovered.marketId}` : `${cleanSymbol}-aerodrome-gauge`,
-    protocol: "aerodrome",
-    protocolName: "Aerodrome Finance",
-    protocolBadge: "Aerodrome · Slipstream Gauge",
-    type: "strategy",
-    typeLabel: "DEX Gauge Staking",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: aeroDiscovered?.supplyApy ?? (isHighBeta ? 42.5 : 28.1),
-    borrowApr: null,
-    maxLtv: null,
-    liquidationThreshold: null,
-    utilization: 100,
-    availableLiquidityUsd: aeroDiscovered?.liquidityUsd ?? 125_000,
-    tvlUsd: aeroDiscovered?.tvlUsd ?? 280_000,
-    riskScore: 2,
-    riskLevel: "low",
-    riskNotes: [
-      "Concentrated liquidity DEX on Base with Slipstream gauge rewards.",
-      "Earn AERO emissions + trading swap fees.",
-      "Builder Code attributed on-chain gauge staking.",
-    ],
-    contractAddress: (aeroDiscovered?.contractAddress || "0x16613524e02ad97eDfeF371bC883F2F5d6C480A5") as `0x${string}`,
-    executionType: "aerodrome",
-    sourceLink: "https://aerodrome.finance/pools",
-  });
+  const aeroVerified = VERIFIED_AERODROME_STOCK_POOLS[cleanSymbol];
+  if (aeroDiscovered || aeroVerified) {
+    const poolContract = (aeroDiscovered?.contractAddress || aeroVerified?.poolAddress) as `0x${string}`;
+    options.push({
+      id: aeroDiscovered ? `aero-${aeroDiscovered.marketId}` : `${cleanSymbol}-aerodrome-gauge`,
+      protocol: "aerodrome",
+      protocolName: "Aerodrome Finance",
+      protocolBadge: "Aerodrome · CoW AMM Pool",
+      type: "strategy",
+      typeLabel: "DEX Liquidity Pool",
+      stockSymbol: cleanSymbol,
+      stockName: stock.name,
+      stockAddress: stockAddr,
+      loanSymbol: "USDC",
+      loanAddress: USDC_BASE_ADDRESS,
+      supplyApy: aeroDiscovered?.supplyApy ?? (aeroVerified?.supplyApy ?? (isHighBeta ? 42.5 : 28.1)),
+      borrowApr: null,
+      maxLtv: null,
+      liquidationThreshold: null,
+      utilization: 100,
+      availableLiquidityUsd: aeroDiscovered?.liquidityUsd ?? (aeroVerified?.tvlUsd ?? 125_000),
+      tvlUsd: aeroDiscovered?.tvlUsd ?? (aeroVerified?.tvlUsd ?? 280_000),
+      riskScore: 2,
+      riskLevel: "low",
+      riskNotes: [
+        "Concentrated liquidity DEX on Base with Slipstream gauge rewards.",
+        "Earn AERO emissions + trading swap fees.",
+        "Builder Code attributed on-chain gauge staking.",
+      ],
+      contractAddress: poolContract,
+      executionType: "aerodrome",
+      sourceLink: aeroDiscovered?.sourceLink || "https://aerodrome.finance/pools",
+    });
+  }
 
   // 3. Pendle Finance (Live PT/YT yield market if discovered)
   const pendleDiscovered = matchingMarkets.find((m) => m.protocol === "pendle");

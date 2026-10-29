@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, ShieldCheck, ArrowUpDown, ChevronRight, ExternalLink } from "lucide-react";
+import { Check, ShieldCheck, ArrowUpDown, ChevronRight, ExternalLink, ShieldAlert, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 
 interface CompareTableProps {
@@ -24,6 +25,40 @@ export default function CompareTable({
 }: CompareTableProps) {
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "ltv" | "liquidity" | "risk">("supply");
   const [sortAsc, setSortAsc] = useState(false);
+
+  // If this stock does not yet have active protocol pools on Base mainnet
+  if (!options || options.length === 0) {
+    return (
+      <div className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 text-center space-y-4 shadow-xs">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
+          <ShieldAlert size={24} />
+        </div>
+        <div className="space-y-1.5 max-w-lg mx-auto">
+          <h3 className="text-base font-bold text-[var(--ink)]">
+            No Verified Lending or Staking Pools on Base
+          </h3>
+          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+            Protocol curators (Beefy, Aerodrome, Morpho) have not yet initialized liquidity pools or lending markets for this stock on Base mainnet. To protect real user funds, only 100% verified on-chain contracts are listed.
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Link
+            href="/swap"
+            className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:opacity-90 transition shadow-xs flex items-center gap-1.5"
+          >
+            <span>Trade on Swap</span>
+            <ArrowRight size={13} />
+          </Link>
+          <Link
+            href="/lend"
+            className="px-4 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] text-xs font-bold hover:border-[var(--brand)] hover:text-[var(--brand-text)] transition"
+          >
+            Explore 12 Supported Stocks
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Identify best-in-column values
   const maxSupply = Math.max(...options.map((o) => o.supplyApy));
