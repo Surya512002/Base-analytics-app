@@ -4082,6 +4082,14 @@ export function isActiveStockAddress(address: string): boolean {
 }
 
 /**
+ * Check if an address is in the registry regardless of status.
+ */
+export function isRegisteredStockAddress(address: string): boolean {
+  if (!address) return false;
+  return STOCKS_BY_ADDRESS_MAP.has(address.trim().toLowerCase());
+}
+
+/**
  * Get category counts for active stocks.
  */
 export function getStockCategoryCounts(): Record<StockCategory | "All", number> {
