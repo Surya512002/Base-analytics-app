@@ -102,10 +102,10 @@ export const BASE_MAINNET_REGISTRY: Record<string, ContractRegistryEntry> = {
     verifiedOnBasescan: true,
     matchesDocs: true,
   },
-  MORPHO_MIDNIGHT: {
-    id: "morpho-midnight",
-    name: "Morpho Blue Midnight Market / Bundler",
-    address: getAddress("0xbBBBbbbC7a483B6F67D4fC4b24894e0341773099"),
+  BEEFY_VAULT_ROUTER: {
+    id: "beefy-vault-router",
+    name: "Beefy Finance Base Treasury & Vault Hub",
+    address: getAddress("0x1A07DceEfeEbBA3D1873e2B92BeF190d2f11C3cB"),
     category: "protocol",
     officialDocsUrl: "https://docs.morpho.org",
     verifiedOnBasescan: true,
@@ -132,7 +132,7 @@ export const BASE_MAINNET_REGISTRY: Record<string, ContractRegistryEntry> = {
   MOONWELL_MUSDC: {
     id: "moonwell-musdc",
     name: "Moonwell mUSDC",
-    address: getAddress("0xeDc817A28E8B93Ca689afb215a5552c41326118B"),
+    address: getAddress("0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22"),
     category: "protocol",
     officialDocsUrl: "https://docs.moonwell.fi/moonwell/protocol-information/contracts-addresses",
     verifiedOnBasescan: true,
@@ -150,7 +150,7 @@ export const BASE_MAINNET_REGISTRY: Record<string, ContractRegistryEntry> = {
   MOONWELL_MCBBTC: {
     id: "moonwell-mcbbtc",
     name: "Moonwell mcbBTC",
-    address: getAddress("0xf783307613576082D25089e9FC0a86b9A89345c2"),
+    address: getAddress("0xF877ACaFA28c19b96727966690b2f44d35aD5976"),
     category: "protocol",
     officialDocsUrl: "https://docs.moonwell.fi/moonwell/protocol-information/contracts-addresses",
     verifiedOnBasescan: true,
@@ -159,7 +159,7 @@ export const BASE_MAINNET_REGISTRY: Record<string, ContractRegistryEntry> = {
   AERODROME_ROUTER: {
     id: "aerodrome-router",
     name: "Aerodrome Router Base",
-    address: getAddress("0xcF77A3ba9A5ca399B7c97c748846942438557642"),
+    address: getAddress("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43"),
     category: "protocol",
     officialDocsUrl: "https://aerodrome.finance/docs",
     verifiedOnBasescan: true,

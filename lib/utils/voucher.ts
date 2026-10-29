@@ -108,44 +108,44 @@ export interface VaultShareInfo {
 
 export const YIELD_VAULT_SHARES: readonly VaultShareInfo[] = [
   {
-    symbol: "mvNVDAc",
-    name: "Morpho NVDA Yield Vault",
-    underlyingSymbol: "NVDAc",
-    address: "0xbBBBbbbC7a483B6F67D4fC4b24894e0341773099",
-    apy: 8.45,
-    protocol: "Morpho Blue",
-    icon: "⚡",
-    decimals: 8,
+    symbol: "bvMSFTc",
+    name: "Beefy MSFTc-USDC Vault",
+    underlyingSymbol: "MSFTc",
+    address: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
+    apy: 32.14,
+    protocol: "Beefy Finance",
+    icon: "🥩",
+    decimals: 18,
   },
   {
-    symbol: "mvAAPLc",
-    name: "Morpho Apple Yield Vault",
-    underlyingSymbol: "AAPLc",
-    address: "0x8888888888a1aB3c473C24E48123281987114888",
-    apy: 6.50,
-    protocol: "Morpho Midnight",
-    icon: "🍏",
-    decimals: 8,
+    symbol: "bvTSLAc",
+    name: "Beefy TSLAc-USDC Vault",
+    underlyingSymbol: "TSLAc",
+    address: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
+    apy: 54.13,
+    protocol: "Beefy Finance",
+    icon: "🥩",
+    decimals: 18,
   },
   {
-    symbol: "sfNVDAc",
-    name: "SuperStocks NVDA Carry Vault",
-    underlyingSymbol: "NVDAc",
-    address: "0x555555555555AE28F73b88A87B1c1e920aD51871",
-    apy: 13.85,
-    protocol: "Superform",
-    icon: "🔮",
-    decimals: 8,
+    symbol: "bvMSTRc",
+    name: "Beefy MSTRc-USDC Vault",
+    underlyingSymbol: "MSTRc",
+    address: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
+    apy: 48.65,
+    protocol: "Beefy Finance",
+    icon: "🥩",
+    decimals: 18,
   },
   {
-    symbol: "mvCOINc",
-    name: "Morpho Coinbase Yield Vault",
-    underlyingSymbol: "COINc",
-    address: "0xbBBBbbbC7a483B6F67D4fC4b24894e0341773099",
-    apy: 9.15,
-    protocol: "Morpho Blue",
-    icon: "🪙",
-    decimals: 8,
+    symbol: "bvSNDKc",
+    name: "Beefy SNDKc-USDC Vault",
+    underlyingSymbol: "SNDKc",
+    address: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
+    apy: 38.20,
+    protocol: "Beefy Finance",
+    icon: "🥩",
+    decimals: 18,
   },
 ];
 
@@ -186,7 +186,7 @@ export function formatVoucherAmount(asset: VoucherAsset, wei: bigint): string {
   if (asset === "USDC") return `$${formatUnits(wei, USDC_DECIMALS)} USDC`;
   if (isVaultShareAsset(asset)) {
     const vault = getVaultShareBySymbol(asset);
-    const shares = formatUnits(wei, BASE_STOCK_DECIMALS);
+    const shares = formatUnits(wei, vault?.decimals ?? BASE_STOCK_DECIMALS);
     const cleanShares = parseFloat(shares).toString();
     return `${cleanShares} ${asset} Vault Shares (${vault?.name ?? asset} · +${vault?.apy.toFixed(2)}% APY)`;
   }

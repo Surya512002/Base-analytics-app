@@ -43,7 +43,7 @@ describe("ActionDrawer Protocol Calls & Action Matrix", () => {
 
   const mockStrategyOption: StockLendingOption = {
     id: "superform-superstocks-nvdac",
-    protocol: "superform",
+    protocol: "beefy",
     protocolName: "Superform SuperStocks",
     protocolBadge: "Automated Strategy",
     type: "strategy",
@@ -64,7 +64,7 @@ describe("ActionDrawer Protocol Calls & Action Matrix", () => {
     riskLevel: "low",
     riskNotes: ["Automated carry"],
     contractAddress: "0x1111111111111111111111111111111111111111",
-    executionType: "superform",
+    executionType: "beefy",
   };
 
   it("builds Supply calls with approval for Morpho Blue", () => {
@@ -145,126 +145,60 @@ describe("ActionDrawer Protocol Calls & Action Matrix", () => {
     expect(canBorrow).toBe(false);
   });
 
-  it("builds fixed-term supply and borrow calls for Morpho Midnight", () => {
-    const mockMidnight: StockLendingOption = {
+  it("builds vault deposit and withdraw calls for Beefy Finance", () => {
+    const mockBeefy: StockLendingOption = {
       ...mockMorphoOption,
-      id: "morpho-midnight-nvdac",
-      protocol: "morpho_midnight",
-      protocolName: "Morpho Midnight",
-      type: "fixed",
-      fixedTermDays: 60,
-      executionType: "morpho_midnight",
-      contractAddress: "0x2222222222222222222222222222222222222222",
+      id: "beefy-msft-vault",
+      protocol: "beefy",
+      protocolName: "Beefy Finance",
+      type: "vault",
+      executionType: "beefy",
+      contractAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
     };
 
-    const supplyCalls = buildUnifiedProtocolCalls({
-      option: mockMidnight,
+    const depositCalls = buildUnifiedProtocolCalls({
+      option: mockBeefy,
       action: "supply",
-      amountRaw: parseUnits("5", 8),
+      amountRaw: parseUnits("5", 18),
       userAddress: dummyUser,
     });
-    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
+    expect(depositCalls.length).toBe(2); // approve + deposit
+    expect(depositCalls[0].to.toLowerCase()).toBe(mockBeefy.stockAddress.toLowerCase());
 
-    const borrowCalls = buildUnifiedProtocolCalls({
-      option: mockMidnight,
-      action: "borrow",
-      amountRaw: parseUnits("1000", 6),
+    const withdrawCalls = buildUnifiedProtocolCalls({
+      option: mockBeefy,
+      action: "withdraw",
+      amountRaw: parseUnits("5", 18),
       userAddress: dummyUser,
     });
-    expect(borrowCalls.length).toBeGreaterThanOrEqual(1);
+    expect(withdrawCalls.length).toBe(1); // withdraw only
   });
 
-  it("builds supply and borrow calls for Euler V2", () => {
-    const mockEuler: StockLendingOption = {
+  it("builds strategy deposit and withdraw calls for Aerodrome Finance", () => {
+    const mockAero: StockLendingOption = {
       ...mockMorphoOption,
-      id: "euler-v2-nvdac",
-      protocol: "euler",
-      protocolName: "Euler V2",
-      executionType: "euler",
-      contractAddress: "0x3333333333333333333333333333333333333333",
+      id: "aero-gauge-staking",
+      protocol: "aerodrome",
+      protocolName: "Aerodrome Finance",
+      type: "strategy",
+      executionType: "aerodrome",
+      contractAddress: "0x16613524e02ad97eDfeF371bC883F2F5d6C480A5",
     };
 
-    const supplyCalls = buildUnifiedProtocolCalls({
-      option: mockEuler,
-      action: "supply",
-      amountRaw: parseUnits("5", 8),
+    const depositCalls = buildUnifiedProtocolCalls({
+      option: mockAero,
+      action: "strategy_deposit",
+      amountRaw: parseUnits("10", 18),
       userAddress: dummyUser,
     });
-    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
-    expect(supplyCalls[0].to.toLowerCase()).toBe(mockEuler.stockAddress.toLowerCase());
+    expect(depositCalls.length).toBe(2); // approve + deposit
 
-    const borrowCalls = buildUnifiedProtocolCalls({
-      option: mockEuler,
-      action: "borrow",
-      amountRaw: parseUnits("1000", 6),
-      userAddress: dummyUser,
-      requiresApproval: false,
-    });
-    expect(borrowCalls.length).toBe(1);
-  });
-
-  it("builds mint and borrow calls for Moonwell", () => {
-    const mockMoonwell: StockLendingOption = {
-      ...mockMorphoOption,
-      id: "moonwell-nvdac",
-      protocol: "moonwell",
-      protocolName: "Moonwell Equities",
-      executionType: "moonwell",
-      contractAddress: "0x4444444444444444444444444444444444444444",
-    };
-
-    const supplyCalls = buildUnifiedProtocolCalls({
-      option: mockMoonwell,
-      action: "supply",
-      amountRaw: parseUnits("5", 8),
+    const withdrawCalls = buildUnifiedProtocolCalls({
+      option: mockAero,
+      action: "strategy_withdraw",
+      amountRaw: parseUnits("10", 18),
       userAddress: dummyUser,
     });
-    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
-
-    const borrowCalls = buildUnifiedProtocolCalls({
-      option: mockMoonwell,
-      action: "borrow",
-      amountRaw: parseUnits("1000", 6),
-      userAddress: dummyUser,
-      requiresApproval: false,
-    });
-    expect(borrowCalls.length).toBe(1);
-  });
-
-  it("builds supply, borrow, and repay calls for Aave V4 Equities Hub", () => {
-    const mockAave: StockLendingOption = {
-      ...mockMorphoOption,
-      id: "aave-v4-nvdac",
-      protocol: "aave_v4",
-      protocolName: "Aave V4 Equities",
-      executionType: "aave_v4",
-      contractAddress: "0x5555555555555555555555555555555555555555",
-    };
-
-    const supplyCalls = buildUnifiedProtocolCalls({
-      option: mockAave,
-      action: "supply",
-      amountRaw: parseUnits("5", 8),
-      userAddress: dummyUser,
-    });
-    expect(supplyCalls.length).toBeGreaterThanOrEqual(1);
-
-    const borrowCalls = buildUnifiedProtocolCalls({
-      option: mockAave,
-      action: "borrow",
-      amountRaw: parseUnits("1000", 6),
-      userAddress: dummyUser,
-      requiresApproval: false,
-    });
-    expect(borrowCalls.length).toBe(1);
-
-    const repayCalls = buildUnifiedProtocolCalls({
-      option: mockAave,
-      action: "repay",
-      amountRaw: parseUnits("1000", 6),
-      userAddress: dummyUser,
-    });
-    expect(repayCalls.length).toBeGreaterThanOrEqual(1);
+    expect(withdrawCalls.length).toBe(1); // withdraw only
   });
 });
-

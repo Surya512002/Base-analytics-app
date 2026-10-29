@@ -138,20 +138,22 @@ describe("Tokenized Stocks Registry & Base Markets", () => {
 });
 
 describe("Unified Stock Lending Comparison Matrix", () => {
-  it("generates side-by-side comparison for NVDAc with all 5 protocols", async () => {
+  it("generates side-by-side comparison for NVDAc with verified Base protocols", async () => {
     const { getUnifiedStockLendingComparison } = await import("./unified-comparison");
     const comparison = await getUnifiedStockLendingComparison("NVDAc");
 
     expect(comparison.stockSymbol).toBe("NVDAc");
-    expect(comparison.options.length).toBeGreaterThanOrEqual(5);
+    expect(comparison.options.length).toBeGreaterThanOrEqual(3);
 
     const protocols = comparison.options.map((o) => o.protocol);
     expect(protocols).toContain("morpho_blue");
-    expect(protocols).toContain("morpho_midnight");
-    expect(protocols).toContain("aave_v4");
-    expect(protocols).toContain("euler");
-    expect(protocols).toContain("superform");
-    expect(protocols).toContain("moonwell");
+    expect(protocols).toContain("beefy");
+    expect(protocols).toContain("aerodrome");
+
+    // Validates that every option has a valid onchain contract address on Base
+    for (const opt of comparison.options) {
+      expect(opt.contractAddress).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    }
 
     // Validates best options highlighting
     expect(comparison.bestSupplyOption).toBeDefined();
@@ -177,82 +179,43 @@ describe("Unified Stock Lending Comparison Matrix", () => {
 
     // Approval + Supply collateral = 2 calls
     expect(calls.length).toBe(2);
-    // B20 precompile tokens reject non-canonical suffix; protocol contract receives builder suffix
     expect(hasBuilderSuffix(calls[0].data)).toBe(false);
     expect(hasBuilderSuffix(calls[1].data)).toBe(true);
   });
 
-  it("builds correct action calls across Aave, Euler, Superform, Moonwell, and Morpho Midnight", async () => {
+  it("builds correct action calls across Beefy and Aerodrome live venues", async () => {
     const { getUnifiedStockLendingComparison } = await import("./unified-comparison");
     const { buildUnifiedProtocolCalls } = await import("./protocol-adapters");
     const comparison = await getUnifiedStockLendingComparison("NVDAc");
     const dummyUser = "0x3333333333333333333333333333333333333333" as const;
 
-    // 1. Aave V4 Supply & Borrow
-    const aaveOpt = comparison.options.find((o) => o.protocol === "aave_v4")!;
-    const aaveSupplyCalls = buildUnifiedProtocolCalls({
-      option: aaveOpt,
+    // 1. Beefy Finance Vault Deposit & Withdraw
+    const beefyOpt = comparison.options.find((o) => o.protocol === "beefy")!;
+    const beefyDepositCalls = buildUnifiedProtocolCalls({
+      option: beefyOpt,
       action: "supply",
       amountRaw: BigInt("100000000"),
       userAddress: dummyUser,
     });
-    expect(aaveSupplyCalls.length).toBe(2); // approve + supply
+    expect(beefyDepositCalls.length).toBe(2); // approve + deposit
 
-    const aaveBorrowCalls = buildUnifiedProtocolCalls({
-      option: aaveOpt,
-      action: "borrow",
-      amountRaw: BigInt("500000000"), // 500 USDC
-      userAddress: dummyUser,
-    });
-    expect(aaveBorrowCalls.length).toBe(1); // borrow only (no approval needed)
-
-    // 2. Euler V2 Deposit & Borrow
-    const eulerOpt = comparison.options.find((o) => o.protocol === "euler")!;
-    const eulerDepositCalls = buildUnifiedProtocolCalls({
-      option: eulerOpt,
-      action: "supply",
-      amountRaw: BigInt("100000000"),
-      userAddress: dummyUser,
-    });
-    expect(eulerDepositCalls.length).toBe(2); // approve + deposit
-
-    // 3. Superform Strategy Deposit & Withdraw
-    const superformOpt = comparison.options.find((o) => o.protocol === "superform")!;
-    const superformDepositCalls = buildUnifiedProtocolCalls({
-      option: superformOpt,
-      action: "strategy_deposit",
-      amountRaw: BigInt("100000000"),
-      userAddress: dummyUser,
-    });
-    expect(superformDepositCalls.length).toBe(2); // approve + deposit
-
-    const superformWithdrawCalls = buildUnifiedProtocolCalls({
-      option: superformOpt,
+    const beefyWithdrawCalls = buildUnifiedProtocolCalls({
+      option: beefyOpt,
       action: "withdraw",
       amountRaw: BigInt("100000000"),
       userAddress: dummyUser,
     });
-    expect(superformWithdrawCalls.length).toBe(1); // withdraw only
+    expect(beefyWithdrawCalls.length).toBe(1); // withdraw only
 
-    // 4. Moonwell Mint & Borrow
-    const moonwellOpt = comparison.options.find((o) => o.protocol === "moonwell")!;
-    const moonwellMintCalls = buildUnifiedProtocolCalls({
-      option: moonwellOpt,
-      action: "supply",
+    // 2. Aerodrome Finance Strategy Deposit
+    const aeroOpt = comparison.options.find((o) => o.protocol === "aerodrome")!;
+    const aeroDepositCalls = buildUnifiedProtocolCalls({
+      option: aeroOpt,
+      action: "strategy_deposit",
       amountRaw: BigInt("100000000"),
       userAddress: dummyUser,
     });
-    expect(moonwellMintCalls.length).toBe(2); // approve + mint
-
-    // 5. Morpho Midnight Supply
-    const midnightOpt = comparison.options.find((o) => o.protocol === "morpho_midnight")!;
-    const midnightSupplyCalls = buildUnifiedProtocolCalls({
-      option: midnightOpt,
-      action: "supply",
-      amountRaw: BigInt("100000000"),
-      userAddress: dummyUser,
-    });
-    expect(midnightSupplyCalls.length).toBe(2); // approve + supplyTerm
+    expect(aeroDepositCalls.length).toBe(2); // approve + deposit
   });
 
   it("o1 Trading API produces price improvement quote over benchmark", async () => {
@@ -320,8 +283,8 @@ describe("Stocks & Yield-Bearing Vault Shares in Vouchers", () => {
     } = await import("@/lib/utils/voucher");
 
     // Vault share detection
-    expect(isVaultShareAsset("mvNVDAc")).toBe(true);
-    expect(isVaultShareAsset("sfNVDAc")).toBe(true);
+    expect(isVaultShareAsset("bvMSFTc")).toBe(true);
+    expect(isVaultShareAsset("bvTSLAc")).toBe(true);
     expect(isVaultShareAsset("ETH")).toBe(false);
 
     // Stock detection
@@ -329,20 +292,20 @@ describe("Stocks & Yield-Bearing Vault Shares in Vouchers", () => {
     expect(isStockAsset("USDC")).toBe(false);
 
     // Metadata resolution
-    const vault = getVaultShareBySymbol("mvNVDAc");
+    const vault = getVaultShareBySymbol("bvMSFTc");
     expect(vault).toBeDefined();
     expect(vault?.apy).toBeGreaterThan(5);
-    expect(vault?.underlyingSymbol).toBe("NVDAc");
+    expect(vault?.underlyingSymbol).toBe("MSFTc");
 
     // Formatting with compounding yield badge (5 NVDAc shares = 500_000_000 raw)
-    const formatted = formatVoucherAmount("mvNVDAc", BigInt(500000000));
-    expect(formatted).toContain("5 mvNVDAc");
+    const formatted = formatVoucherAmount("bvMSFTc", BigInt("5000000000000000000"));
+    expect(formatted).toContain("5 bvMSFTc");
     expect(formatted).toContain("APY");
 
     // Asset to token and token to asset two-way mapping
-    const tokenAddr = assetToToken("mvNVDAc");
+    const tokenAddr = assetToToken("bvMSFTc");
     expect(tokenAddr).toBe(vault?.address);
-    expect(tokenToAsset(tokenAddr)).toBe("mvNVDAc");
+    expect(tokenToAsset(tokenAddr)).toBe("bvMSFTc");
   });
 });
 

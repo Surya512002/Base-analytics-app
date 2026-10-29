@@ -98,7 +98,7 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     typicalApy: "3.2% – 4.8% APY (Factory capability)",
     canBorrowUsdc: true,
     liquidationRisk: "Liquidation if Health Factor < 1.0 (LLTV: 72%–77%)",
-    verifiedContract: "0xBBBBBbbC7A483b6F67d4Fc4b24894e0341773099",
+    verifiedContract: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
     appUrl: "https://app.morpho.org",
     docsUrl: "https://docs.morpho.org",
     description:
@@ -119,7 +119,7 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     typicalApy: "N/A for Stocks (3%–5% for USDC/WETH)",
     canBorrowUsdc: false,
     liquidationRisk: "Standard Compound v2 liquidation curve",
-    verifiedContract: "0xeDc817A28E8B93Ca689afb215a5552c41326118B",
+    verifiedContract: "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C",
     appUrl: "https://moonwell.fi/markets",
     docsUrl: "https://docs.moonwell.fi",
     description:
@@ -161,7 +161,7 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     typicalApy: "N/A for Stocks",
     canBorrowUsdc: false,
     liquidationRisk: "Modular vault risk curve",
-    verifiedContract: "0x27D0cc3761d6E734de628042461D4C617fF3c6B0",
+    verifiedContract: "",
     appUrl: "https://euler.finance",
     docsUrl: "https://docs.euler.finance",
     description:
@@ -203,7 +203,7 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     typicalApy: "N/A for Stocks (8%–10% on USDC)",
     canBorrowUsdc: false,
     liquidationRisk: "Underlying protocol risk pass-through",
-    verifiedContract: "0x8E5f31aE56b19D4B4a3c20054A86F9e6144e1d5A",
+    verifiedContract: "",
     appUrl: "https://superform.xyz",
     docsUrl: "https://docs.superform.xyz",
     description:
@@ -293,7 +293,7 @@ export default function ProtocolCompareHub({
         tvl: "$0 (Uncurated)",
         actionText: "Inspect Morpho Market",
         actionUrl: "https://app.morpho.org",
-        contractAddress: "0xBBBBBbbC7A483b6F67d4Fc4b24894e0341773099",
+        contractAddress: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
         riskScore: "Medium (Liquidation)",
       },
       {
@@ -309,7 +309,7 @@ export default function ProtocolCompareHub({
         tvl: "$0 for Stocks",
         actionText: "Visit Moonwell",
         actionUrl: "https://moonwell.fi/markets",
-        contractAddress: "0xeDc817A28E8B93Ca689afb215a5552c41326118B",
+        contractAddress: "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C",
         riskScore: "N/A",
       },
       {

@@ -3,9 +3,9 @@ import {
   MORPHO_BLUE_BASE,
   MORPHO_ADAPTIVE_CURVE_IRM,
   USDC_BASE_ADDRESS,
-  AAVE_V3_POOL_BASE,
-  SUPERFORM_ROUTER_BASE,
-  MOONWELL_COMPTROLLER_BASE,
+
+
+
 } from "./constants";
 import { getMorphoMarketId, fetchLiveMorphoMarket } from "./morpho-blue";
 import type { MorphoMarketParams, LendingMarket } from "./types";
@@ -38,7 +38,7 @@ export type ProtocolType = "variable" | "fixed" | "vault" | "strategy";
 
 export interface StockLendingOption {
   id: string;
-  protocol: "morpho_blue" | "beefy" | "pendle" | "morpho_midnight" | "aave_v4" | "euler" | "superform" | "moonwell" | "aerodrome";
+  protocol: "morpho_blue" | "beefy" | "aerodrome" | "pendle";
   protocolName: string;
   protocolBadge: string;
   type: ProtocolType;
@@ -59,7 +59,7 @@ export interface StockLendingOption {
   riskLevel: "low" | "medium" | "high";
   riskNotes: string[];
   contractAddress: `0x${string}`;
-  executionType: "morpho_blue" | "beefy" | "pendle" | "morpho_midnight" | "aave_v4" | "euler" | "superform" | "moonwell" | "aerodrome";
+  executionType: "morpho_blue" | "beefy" | "aerodrome" | "pendle";
   morphoParams?: MorphoMarketParams;
   sourceLink?: string;
   isBestSupply?: boolean;
@@ -114,11 +114,17 @@ const comparisonCache = new Map<string, { data: StockLendingComparison; timestam
 const CACHE_TTL_MS = 15_000; // 15 seconds near real-time cache
 
 /** Canonical protocol addresses for Base mainnet equities */
-export const MORPHO_MIDNIGHT_BASE = "0xbBBBbbbC7a483B6F67D4fC4b24894e0341773099" as const;
-export const AAVE_V4_EQUITIES_BASE = "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5" as const;
-export const EULER_V2_BASE = "0x27D0cc3761d6E734de628042461D4C617fF3c6B0" as const;
-export const SUPERFORM_SUPERSTOCKS_BASE = "0x8E5f31aE56b19D4B4a3c20054A86F9e6144e1d5A" as const;
-export const MOONWELL_EQUITIES_BASE = "0xeDc817A28E8B93Ca689afb215a5552c41326118B" as const;
+/** Known verified Beefy vault addresses for tokenized equities on Base */
+export const VERIFIED_BEEFY_STOCK_VAULTS: Record<string, `0x${string}`> = {
+  MSFTc: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
+  TSLAc: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
+  MSTRc: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
+  SNDKc: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
+};
+
+
+
+
 
 /**
  * Generate side-by-side verified lending and borrowing options for any tokenized stock.
@@ -257,7 +263,7 @@ export async function getUnifiedStockLendingComparison(
       "Automatically harvests Aerodrome LP fees & AERO gauge emissions and reinvests them into LP shares.",
       "Zero liquidation risk; standard audited Beefy ERC-4626 vault architecture.",
     ],
-    contractAddress: (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5") as `0x${string}`,
+    contractAddress: (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || VERIFIED_BEEFY_STOCK_VAULTS[cleanSymbol] || "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5") as `0x${string}`,
     executionType: "beefy",
     sourceLink: beefyDiscovered?.sourceLink || "https://app.beefy.com",
   });
@@ -328,151 +334,6 @@ export async function getUnifiedStockLendingComparison(
       sourceLink: pendleDiscovered.sourceLink,
     });
   }
-
-  // 4. Morpho Midnight (Fixed-Term Fixed-Rate Protocol)
-  options.push({
-    id: `${cleanSymbol}-morpho-midnight`,
-    protocol: "morpho_midnight",
-    protocolName: "Morpho Midnight",
-    protocolBadge: "Morpho Midnight · Fixed",
-    type: "fixed",
-    typeLabel: "Fixed-Rate Term (60 Days)",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: isHighBeta ? 9.2 : 6.5,
-    borrowApr: isHighBeta ? 4.15 : 3.4,
-    maxLtv: isHighBeta ? 70 : 75,
-    liquidationThreshold: isHighBeta ? 75 : 80,
-    utilization: 82.0,
-    availableLiquidityUsd: 9_200_000,
-    tvlUsd: 14_100_000,
-    riskScore: 3,
-    riskLevel: "low",
-    riskNotes: [
-      "Fixed borrow APR locked for 60-day term: zero rate volatility.",
-      "Early exit commitment: early loan repayment incurs 0.5% fee.",
-    ],
-    contractAddress: MORPHO_MIDNIGHT_BASE,
-    executionType: "morpho_midnight",
-    fixedTermDays: 60,
-  });
-
-  // 5. Aave V4 Equities Hub (Cross-Collateral Lending Pool)
-  options.push({
-    id: `${cleanSymbol}-aave-v4`,
-    protocol: "aave_v4",
-    protocolName: "Aave V4 Equities Hub",
-    protocolBadge: "Aave V4 · Cross-Pool",
-    type: "variable",
-    typeLabel: "Cross-Collateral Hub",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: isHighBeta ? 5.15 : 4.6,
-    borrowApr: isHighBeta ? 4.65 : 3.75,
-    maxLtv: isHighBeta ? 68 : 74,
-    liquidationThreshold: isHighBeta ? 74 : 79,
-    utilization: 58.2,
-    availableLiquidityUsd: 34_800_000,
-    tvlUsd: 52_400_000,
-    riskScore: 4,
-    riskLevel: "medium",
-    riskNotes: [
-      "Cross-margin collateral: borrow against combined portfolio of ETH, cbBTC & stocks.",
-      "Shared liquidity layer across Base mainnet.",
-    ],
-    contractAddress: AAVE_V4_EQUITIES_BASE,
-    executionType: "aave_v4",
-  });
-
-  // 6. Euler V2 (Modular Equities Sub-Vault)
-  options.push({
-    id: `${cleanSymbol}-euler-v2`,
-    protocol: "euler",
-    protocolName: "Euler V2",
-    protocolBadge: "Euler V2 · Modular",
-    type: "vault",
-    typeLabel: "Modular Stock Vault",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: isHighBeta ? 7.8 : 5.9,
-    borrowApr: isHighBeta ? 3.95 : 3.1,
-    maxLtv: isHighBeta ? 73 : 77,
-    liquidationThreshold: isHighBeta ? 79 : 82,
-    utilization: 69.1,
-    availableLiquidityUsd: 11_500_000,
-    tvlUsd: 16_800_000,
-    riskScore: 3,
-    riskLevel: "low",
-    riskNotes: ["Modular risk tier with custom governance-approved liquidation curve."],
-    contractAddress: EULER_V2_BASE,
-    executionType: "euler",
-  });
-
-  // 7. Superform SuperStocks / Earn Stocks (Automated Carry Strategy)
-  options.push({
-    id: `${cleanSymbol}-superform`,
-    protocol: "superform",
-    protocolName: "Superform SuperStocks",
-    protocolBadge: "Superform · Yield Carry",
-    type: "strategy",
-    typeLabel: "Automated Carry Strategy",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: isHighBeta ? 13.85 : 9.95,
-    borrowApr: null,
-    maxLtv: null,
-    liquidationThreshold: null,
-    utilization: 88.5,
-    availableLiquidityUsd: 22_100_000,
-    tvlUsd: 38_600_000,
-    riskScore: 6,
-    riskLevel: "high",
-    riskNotes: [
-      "Automated carry vault: routes stock into securities lending + DEX basis arb.",
-      "Compound yield paid in tokenized stock shares or USDC.",
-    ],
-    contractAddress: SUPERFORM_SUPERSTOCKS_BASE,
-    executionType: "superform",
-  });
-
-  // 8. Moonwell Equities Hub
-  options.push({
-    id: `${cleanSymbol}-moonwell`,
-    protocol: "moonwell",
-    protocolName: "Moonwell Equities",
-    protocolBadge: "Moonwell · Base Native",
-    type: "variable",
-    typeLabel: "Overcollateralized Pool",
-    stockSymbol: cleanSymbol,
-    stockName: stock.name,
-    stockAddress: stockAddr,
-    loanSymbol: "USDC",
-    loanAddress: USDC_BASE_ADDRESS,
-    supplyApy: isHighBeta ? 6.1 : 4.9,
-    borrowApr: isHighBeta ? 4.4 : 3.65,
-    maxLtv: isHighBeta ? 69 : 75,
-    liquidationThreshold: isHighBeta ? 75 : 81,
-    utilization: 62.4,
-    availableLiquidityUsd: 14_300_000,
-    tvlUsd: 21_200_000,
-    riskScore: 4,
-    riskLevel: "medium",
-    riskNotes: ["Base native deployment with battle-tested Compound v2 architecture."],
-    contractAddress: MOONWELL_EQUITIES_BASE,
-    executionType: "moonwell",
-  });
 
   // Calculate Best Badges
   let bestSupplyOption: StockLendingOption | null = null;

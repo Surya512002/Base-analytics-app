@@ -24,7 +24,7 @@ export const HEALTH_THRESHOLDS = {
 
 export interface UserProtocolPosition {
   id: string;
-  protocol: "morpho_blue" | "morpho_midnight" | "aave" | "euler" | "moonwell" | "superform" | "aerodrome";
+  protocol: "morpho_blue" | "beefy" | "aerodrome" | "aave" | "moonwell" | "pendle";
   protocolName: string;
   protocolBadge: string;
   marketId: string;
