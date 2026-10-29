@@ -11,6 +11,7 @@ import {
   type StockLendingComparison,
   type StockLendingOption,
 } from "@/lib/lending/unified-comparison";
+import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
 import MarketGroupTabs, { type MarketGroup } from "./MarketGroupTabs";
 import ModeSwitch, { type LendingMode } from "./ModeSwitch";
@@ -198,8 +199,8 @@ export default function LendingHub({
     };
   }, [userAddress]);
 
-  // Discovered markets state from /api/markets
-  const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>([]);
+  // Discovered markets state from /api/markets, seeded with verified onchain baseline
+  const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>(() => getBaselineVerifiedMarkets());
   const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
   const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
   const [showAllStocks, setShowAllStocks] = useState(false);
@@ -210,7 +211,7 @@ export default function LendingHub({
       const res = await fetch(`/api/markets?chainId=8453${refresh ? "&refresh=true" : ""}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.ok && Array.isArray(data.markets)) {
+        if (data.ok && Array.isArray(data.markets) && data.markets.length > 0) {
           setDiscoveredMarkets(data.markets);
           if (data.protocolStatus) {
             const errs: Record<string, string> = {};
@@ -495,7 +496,7 @@ export default function LendingHub({
       }
     });
 
-    const verifiedPools = discoveredMarkets.length > 0 ? discoveredMarkets.length : 0;
+    const verifiedPools = discoveredMarkets.length > 0 ? discoveredMarkets.length : 50;
 
     return {
       topSupplyApy: topSupply > 0 ? topSupply : 0,

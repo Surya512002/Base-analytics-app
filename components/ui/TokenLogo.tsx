@@ -177,10 +177,20 @@ export default function TokenLogo({
         );
       }
 
-      // 6. Generic self-hosted fallback
+      // 6. Parqet stock CDN candidate
+      const stockItem = getTokenizedStockByAddress(effectiveAddress);
+      if (stockItem) {
+        const ticker = stockItem.underlyingTicker || stockItem.symbol.replace(/c$/, "");
+        list.push(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}`);
+        if (ticker.includes(".")) {
+          list.push(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker.replace(".", "-"))}`);
+        }
+      }
+
+      // 7. Generic self-hosted fallback
       list.push(`/tokens/${effectiveAddress}.png`);
 
-      // 7. Server-side proxy & cache (/api/token-logo/<effectiveAddress>)
+      // 8. Server-side proxy & cache (/api/token-logo/<effectiveAddress>)
       list.push(
         `/api/token-logo/${effectiveAddress}?symbol=${encodeURIComponent(cleanSymbol)}`
       );

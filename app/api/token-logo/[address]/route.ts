@@ -30,6 +30,7 @@ const ALLOWED_HOSTS = new Set([
   "ipfs.io",
   "assets.parqet.com",
   "www.google.com",
+  "metadata.coinbase.com",
 ]);
 
 /** Well-known Base token CDN links */
@@ -171,7 +172,9 @@ export async function GET(
 
   // 2. Source (a): Tokenized Stock Registry & Self-Hosted Assets
   if (SELF_HOSTED_LOGOS.has(lowerAddress) || lowerAddress.startsWith("0xb200000000000000000000") || isEth) {
-    return NextResponse.redirect(new URL(`/tokens/${lowerAddress}.png`, req.url), 307);
+    if (existsSync(localFile)) {
+      return NextResponse.redirect(new URL(`/tokens/${lowerAddress}.png`, req.url), 307);
+    }
   }
 
   if (!isEth && isAddress(lowerAddress)) {
@@ -190,7 +193,19 @@ export async function GET(
             },
           });
         }
-        return NextResponse.redirect(new URL(stock.logo, req.url), 307);
+      } else if (stock.logo.startsWith("http")) {
+        // Direct remote Coinbase or CDN logo
+        const remoteImg = await fetchSafeImage(stock.logo);
+        if (remoteImg) {
+          return new NextResponse(remoteImg.buffer as unknown as BodyInit, {
+            status: 200,
+            headers: {
+              "Content-Type": remoteImg.contentType,
+              "Cache-Control":
+                "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+            },
+          });
+        }
       }
     }
   }
