@@ -403,6 +403,9 @@ export async function fetchAllCoinbaseTokenizedStocks(options?: {
         const addr = (item.address?.toLowerCase() ?? "") as `0x${string}`;
         const existingBase = getBaseStockByAddress(addr) ?? getBaseStockBySymbol(item.symbol);
 
+        // Strictly retain only the 8 verified canonical stocks supported by the app
+        if (!existingBase) continue;
+
         const nav = typeof item.nav === "number" ? item.nav : parseFloat(String(item.nav || item.price || 0)) || 100;
         const change = typeof item.percent_change_24h === "number" ? item.percent_change_24h : parseFloat(String(item.percent_change_24h || 0));
         const volume = typeof item.volume_24h === "number" ? item.volume_24h : parseFloat(String(item.volume_24h || 0)) || 10_000_000;
@@ -411,19 +414,22 @@ export async function fetchAllCoinbaseTokenizedStocks(options?: {
         const isPaused = Boolean(item.is_paused || item.status === "paused" || item.status === "halted");
         const liquidityHealth = computeLiquidityHealth(volume, isPaused);
 
+        // Prevent duplicate entries
+        if (allStocks.some((s) => s.symbol.toLowerCase() === existingBase.symbol.toLowerCase())) continue;
+
         allStocks.push({
-          symbol: item.symbol.endsWith("c") ? item.symbol : `${item.symbol}c`,
-          underlyingTicker: item.symbol.replace(/c$/, ""),
-          name: item.name || existingBase?.name || item.symbol,
-          address: (existingBase?.address ?? addr) as `0x${string}`,
+          symbol: existingBase.symbol,
+          underlyingTicker: existingBase.symbol.replace(/c$/, ""),
+          name: existingBase.name || item.name || item.symbol,
+          address: existingBase.address,
           nav,
           change24h: change,
           volume24hUsd: volume,
           mcapUsd: mcap,
           decimals: 8,
-          iconUrl: item.icon_url || existingBase?.logo || (existingBase?.address ? `/tokens/${existingBase.address.toLowerCase()}.png` : undefined),
-          category: (item.category as CoinbaseTokenizedStock["category"]) ?? existingBase?.category ?? "tech",
-          feedAddress: existingBase?.feed ?? null,
+          iconUrl: existingBase.logo || item.icon_url || `/tokens/${existingBase.address.toLowerCase()}.png`,
+          category: (existingBase.category as CoinbaseTokenizedStock["category"]) ?? (item.category as CoinbaseTokenizedStock["category"]) ?? "tech",
+          feedAddress: existingBase.feed ?? null,
           custodian: "Coinbase Custody / Alpaca (Reg S 1:1 Backed)",
           isRegulated: true,
           backingRatio: 1.0,
@@ -435,6 +441,9 @@ export async function fetchAllCoinbaseTokenizedStocks(options?: {
         });
       }
 
+      // If we already gathered all active base stocks, exit pagination early
+      if (allStocks.length >= BASE_STOCKS.length) break;
+
       // Handle pagination via page_token or cursor
       currentPageToken =
         data.pagination?.next_page_token ||
@@ -445,21 +454,26 @@ export async function fetchAllCoinbaseTokenizedStocks(options?: {
     // Graceful fallback to verified Base B20 registry
   }
 
-  // If upstream returned empty or failed, use our canonical Base B20 registry
-  if (allStocks.length === 0) {
-    for (const bStock of BASE_STOCKS) {
-      allStocks.push(buildStockFromBaseStock(bStock));
+  // Ensure all 8 canonical Base stocks are present
+  const stockMap = new Map(allStocks.map((s) => [s.symbol.toLowerCase(), s]));
+  const canonical8Stocks: CoinbaseTokenizedStock[] = [];
+  for (const bStock of BASE_STOCKS) {
+    const existing = stockMap.get(bStock.symbol.toLowerCase());
+    if (existing) {
+      canonical8Stocks.push(existing);
+    } else {
+      canonical8Stocks.push(buildStockFromBaseStock(bStock));
     }
   }
 
   // Populate memory cache
   memoryCache = {
-    stocks: allStocks,
+    stocks: canonical8Stocks,
     timestamp: now,
   };
 
   // Populate Redis cache async (60s TTL)
-  void setRedisCache(REDIS_CACHE_KEY, allStocks, 60).catch(() => {});
+  void setRedisCache(REDIS_CACHE_KEY, canonical8Stocks, 60).catch(() => {});
 
-  return allStocks;
+  return canonical8Stocks;
 }

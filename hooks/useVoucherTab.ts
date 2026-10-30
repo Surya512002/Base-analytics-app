@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { encodeContractCall, prepareCallsForWalletSendCalls } from "@/lib/utils/tx";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
+import { maxUint256 } from "viem";
 import { base } from "viem/chains";
 import { usePublicClient } from "wagmi";
+import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import {
   ERC20_ABI,
   USDC_BASE,
@@ -741,10 +743,10 @@ export function useVoucherTab(app: WalletAppState) {
     return [
       encodeContractCall(tokenAddr, ERC20_ABI, "approve", [
         VOUCHER_CONTRACT as `0x${string}`,
-        pendingTotal,
+        maxUint256,
       ]),
     ];
-  }, [pendingCards, contractReady, pendingAsset, pendingTotal]);
+  }, [pendingCards, contractReady, pendingAsset]);
 
   const createUsdcCall = useMemo(() => {
     if (!pendingCards || !contractReady || pendingAsset === "ETH") return [];
@@ -759,15 +761,14 @@ export function useVoucherTab(app: WalletAppState) {
       ];
     }
     const tokenAddr = assetToToken(pendingAsset);
-    return [
-      encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createTokenBatch", [
-        tokenAddr,
-        BigInt(pendingCards.cardCount),
-        pendingHashes,
-        pendingCards.message.trim(),
-        pendingTotal,
-      ]),
-    ];
+    const call = encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "createTokenBatch", [
+      tokenAddr,
+      BigInt(pendingCards.cardCount),
+      pendingHashes,
+      pendingCards.message.trim(),
+      pendingTotal,
+    ]);
+    return [{ ...call, gas: BigInt(350_000) }];
   }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
 
   const usdcAllowanceError =
@@ -1488,8 +1489,23 @@ export function useVoucherTab(app: WalletAppState) {
         address,
         approveUsdcCall
       );
+      if (hash) {
+        showToast(
+          `⏳ Confirming ${pendingAsset !== "ETH" ? pendingAsset : "Token"} approval on Base…`,
+          hash
+        );
+        try {
+          const client = publicClient ?? createPublicOnlyBaseClient();
+          await client.waitForTransactionReceipt({
+            hash: hash as `0x${string}`,
+            timeout: 60_000,
+          });
+        } catch (waitErr) {
+          console.warn("[voucher approve wait receipt]", waitErr);
+        }
+      }
       notifyVoucherTx(
-        `✅ ${pendingAsset !== "ETH" ? pendingAsset : "Token"} approved — now tap Deposit to create your cards`,
+        `✅ ${pendingAsset !== "ETH" ? pendingAsset : "Token"} approved on Base — now tap Step 2 to Deposit`,
         hash
       );
       setUsdcApproveCompleted(true);
@@ -1515,6 +1531,7 @@ export function useVoucherTab(app: WalletAppState) {
     connType,
     notifyVoucherTx,
     pendingAsset,
+    publicClient,
     refreshUsdcAllowance,
     showToast,
   ]);
@@ -1523,6 +1540,28 @@ export function useVoucherTab(app: WalletAppState) {
     if (!address) return;
     const calls = pendingAsset === "ETH" ? createEthCall : createUsdcCall;
     if (!calls.length) return;
+
+    if (pendingAsset !== "ETH") {
+      const tokenAddr = assetToToken(pendingAsset);
+      const client = publicClient ?? createPublicOnlyBaseClient();
+      try {
+        const liveAllowance = await client.readContract({
+          address: tokenAddr,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [address, VOUCHER_CONTRACT as `0x${string}`],
+        });
+        setUsdcAllowance(liveAllowance);
+        if (liveAllowance < pendingTotal) {
+          showToast(`Approval is still confirming on Base. Please wait a moment and try again.`, "");
+          setUsdcApproveCompleted(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("[voucher] pre-deposit allowance check", err);
+      }
+    }
+
     setDirectFunding(true);
     setConfirmingDeposit(true);
     try {
@@ -1576,6 +1615,8 @@ export function useVoucherTab(app: WalletAppState) {
     pendingAsset,
     createEthCall,
     createUsdcCall,
+    publicClient,
+    pendingTotal,
     connType,
     resolvePendingBatch,
     onCreateSuccess,

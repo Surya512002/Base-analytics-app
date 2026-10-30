@@ -13,7 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import {
-  TOKENIZED_STOCKS_REGISTRY,
+  getActiveTokenizedStocks,
   type TokenizedStockEntry,
   type StockCategory,
 } from "@/lib/stocks/tokenized-stocks-registry";
@@ -132,7 +132,7 @@ export default function StockQuotePicker({
   ];
 
   const filteredStocks = useMemo(() => {
-    let list = [...TOKENIZED_STOCKS_REGISTRY];
+    let list = [...getActiveTokenizedStocks()];
 
     if (selectedCategory !== "All") {
       list = list.filter((s) => s.category === selectedCategory);
@@ -167,10 +167,11 @@ export default function StockQuotePicker({
   }, [searchQuery, selectedCategory, favorites, recents]);
 
   const selectedStockEntry = useMemo(() => {
+    const activeStocks = getActiveTokenizedStocks();
     return (
-      TOKENIZED_STOCKS_REGISTRY.find(
+      activeStocks.find(
         (s) => s.address.toLowerCase() === selectedStock.address.toLowerCase()
-      ) ?? TOKENIZED_STOCKS_REGISTRY[1]
+      ) ?? activeStocks[0]!
     );
   }, [selectedStock.address]);
 
@@ -391,7 +392,7 @@ export default function StockQuotePicker({
               <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
                 <div>
                   <h3 className="text-base font-black text-[var(--ink)]">Select Quote Asset</h3>
-                  <p className="text-xs text-[var(--ink-muted)]">32+ tokenized stocks available</p>
+                  <p className="text-xs text-[var(--ink-muted)]">8 verified tokenized stocks available</p>
                 </div>
                 <button
                   type="button"
@@ -473,7 +474,7 @@ export default function StockQuotePicker({
             />
             <input
               type="text"
-              placeholder="Search 32+ stocks by ticker (e.g. NVDAc), company (e.g. Apple), or 0xb20… address"
+              placeholder="Search 8 canonical stocks by ticker (e.g. NVDAc), company (e.g. Apple), or 0xb20… address"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)]"

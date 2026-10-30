@@ -337,7 +337,7 @@ export default function StocksLendingHub({
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-[var(--surface-2)] text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                 <ShieldCheck size={12} className="text-emerald-500" />
-                Morpho · Aave V4 · Euler · Superform · Moonwell
+                Beefy Finance · Aerodrome · Aave Pro · IPOR Fusion
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--ink)]">
@@ -793,7 +793,7 @@ export default function StocksLendingHub({
               No Active Lending or Staking Pools for ${selectedStockSymbol}
             </h4>
             <p className="text-xs text-[var(--ink-muted)] max-w-md mx-auto leading-relaxed">
-              Protocols (Beefy, Aerodrome, Morpho) have not yet deployed liquidity vaults for this stock on Base mainnet. Only verified on-chain deployments are shown.
+              Protocols (Beefy, Aerodrome, Aave Pro, IPOR Fusion) have not yet deployed liquidity vaults for this stock on Base mainnet. Only verified on-chain deployments are shown.
             </p>
             <div className="pt-2">
               <a

@@ -342,75 +342,10 @@ export default function LendingHub({
     });
   }, [discoveredMarkets, walletBalances]);
 
-  // All Markets Rows (combining tokenized stocks + crypto assets)
+  // All Markets Rows (strictly verified tokenized stocks)
   const allMarketsRows: AssetMarketRow[] = useMemo(() => {
-    if (marketGroup === "stocks") return stockRows;
-
-    const cryptoRows: AssetMarketRow[] = [
-      {
-        symbol: "USDC",
-        name: "USD Coin",
-        category: "finance",
-        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        priceUsd: 1.0,
-        priceChange24h: 0.01,
-        bestSupplyApy: 8.95,
-        bestSupplyProtocol: "Superform Omni-Vault",
-        bestBorrowApr: 4.85,
-        bestBorrowProtocol: "Aave v3",
-        totalLiquidityUsd: 180_200_000,
-        walletBalance: null,
-        walletBalanceUsd: null,
-      },
-      {
-        symbol: "WETH",
-        name: "Wrapped Ether",
-        category: "crypto",
-        address: "0x4200000000000000000000000000000000000006",
-        priceUsd: 2640.5,
-        priceChange24h: 1.82,
-        bestSupplyApy: 3.42,
-        bestSupplyProtocol: "Aave v3",
-        bestBorrowApr: 4.1,
-        bestBorrowProtocol: "Aave v3",
-        totalLiquidityUsd: 94_500_000,
-        walletBalance: null,
-        walletBalanceUsd: null,
-      },
-      {
-        symbol: "cbBTC",
-        name: "Coinbase Wrapped BTC",
-        category: "crypto",
-        address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
-        priceUsd: 67800.0,
-        priceChange24h: 2.15,
-        bestSupplyApy: 1.45,
-        bestSupplyProtocol: "Aave v3",
-        bestBorrowApr: 2.6,
-        bestBorrowProtocol: "Aave v3",
-        totalLiquidityUsd: 231_500_000,
-        walletBalance: null,
-        walletBalanceUsd: null,
-      },
-      {
-        symbol: "AERO",
-        name: "Aerodrome Token",
-        category: "crypto",
-        address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
-        priceUsd: 1.28,
-        priceChange24h: 4.35,
-        bestSupplyApy: 52.4,
-        bestSupplyProtocol: "Aerodrome veAERO",
-        bestBorrowApr: null,
-        bestBorrowProtocol: null,
-        totalLiquidityUsd: 94_200_000,
-        walletBalance: null,
-        walletBalanceUsd: null,
-      },
-    ];
-
-    return [...stockRows, ...cryptoRows];
-  }, [marketGroup, stockRows]);
+    return stockRows;
+  }, [stockRows]);
 
   // 2. Real Staking & Vault Opportunities (Beefy vaults, Aerodrome gauges, Pendle pools)
   const gaugeRows: GaugeRowData[] = useMemo(() => {
@@ -733,7 +668,7 @@ export default function LendingHub({
             setSelectedStockSymbol(null);
           }}
           stocksCount={BASE_STOCKS.length}
-          allCount={BASE_STOCKS.length + 4}
+          allCount={BASE_STOCKS.length}
         />
 
         <ModeSwitch

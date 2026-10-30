@@ -16,7 +16,12 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import { formatUnits } from "viem";
+import { formatUnits, maxUint256, parseUnits } from "viem";
+import { SWAP_ROUTER_02 } from "@/lib/launchpad/uniswap";
+import { AERODROME_ROUTER } from "@/lib/launchpad/aerodrome";
+import { sendAppTransactions } from "@/lib/utils/send-app-tx";
+import { buildContractCall } from "@/lib/utils/tx";
+import { encodeB20ApproveCalldata } from "@/lib/b20/encode";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { fetchSwapQuote, type LaunchDex } from "@/lib/api/launchpad-client";
@@ -164,6 +169,7 @@ export default function DexSwapCard({
   const [fromBalance, setFromBalance] = useState(0);
   const [fromBalanceRaw, setFromBalanceRaw] = useState<bigint>(BigInt(0));
   const [fromAllowance, setFromAllowance] = useState<bigint>(BigInt(0));
+  const [isApproving, setIsApproving] = useState(false);
   const [ethUsd, setEthUsd] = useState(2500);
   const [fromTokenUsd, setFromTokenUsd] = useState<number | null>(null);
   const [pageTokenUsd, setPageTokenUsd] = useState<number | null>(null);
@@ -380,10 +386,23 @@ export default function DexSwapCard({
         if (!alive) return;
         setFromBalance(Number.isFinite(human) ? human : 0);
         setFromBalanceRaw(raw);
+
+        // Check allowance for router (SWAP_ROUTER_02 or AERODROME_ROUTER)
+        const targetSpender = (activeDex === "aerodrome" ? AERODROME_ROUTER : SWAP_ROUTER_02) as `0x${string}`;
+        const allowance = await pub.readContract({
+          address: from.address as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [wallet.address as `0x${string}`, targetSpender],
+        }).catch(() => BigInt(0));
+        if (alive) {
+          setFromAllowance(allowance);
+        }
       } catch {
         if (!alive) return;
         setFromBalance(0);
         setFromBalanceRaw(BigInt(0));
+        setFromAllowance(BigInt(0));
       }
     })();
     return () => {
@@ -600,7 +619,25 @@ export default function DexSwapCard({
     if (swapLoading) {
       return { label: "Confirming in wallet…", disabled: true, action: "confirming" };
     }
-    return { label: `Swap ${counterSymbol(from)} → ${counterSymbol(to)}`, disabled: false, action: "swap" };
+
+    // Two-step approval check for non-native tokens in EOA wallets
+    const isEoa = app.connType !== "baseAccount" && app.connType !== "farcaster";
+    const requiredRaw = parseUnits(sanitizeTokenAmountInput(amount, fromDecimals) || "0", fromDecimals);
+    const needsApprove = from.kind !== "eth" && isEoa && fromAllowance < requiredRaw;
+
+    if (needsApprove) {
+      if (isApproving) {
+        return { label: `Approving ${counterSymbol(from)}…`, disabled: true, action: "approving" };
+      }
+      return {
+        label: `Step 1/2 · Approve ${counterSymbol(from)}`,
+        disabled: false,
+        action: "approve",
+      };
+    }
+
+    const swapPrefix = from.kind !== "eth" && isEoa ? "Step 2/2 · " : "";
+    return { label: `${swapPrefix}Swap ${counterSymbol(from)} → ${counterSymbol(to)}`, disabled: false, action: "swap" };
   }, [
     guestMode,
     wallet,
@@ -616,14 +653,47 @@ export default function DexSwapCard({
     hasLiquidity,
     swapLoading,
     from,
+    fromDecimals,
+    fromAllowance,
+    isApproving,
+    app.connType,
   ]);
 
-  // Execute Swap
+  // Execute Swap or Approval
   const handleSwap = async () => {
     if (buttonState.action === "connect") {
       onRequestConnect?.();
       return;
     }
+
+    // Step 1: Explicit ERC-20 approval
+    if (buttonState.action === "approve") {
+      if (!from || from.kind === "eth" || !wallet) return;
+      try {
+        setIsApproving(true);
+        const targetSpender = (activeDex === "aerodrome" ? AERODROME_ROUTER : SWAP_ROUTER_02) as `0x${string}`;
+        const connType = app.connType ?? "injected";
+        const call = buildContractCall(
+          from.address as `0x${string}`,
+          encodeB20ApproveCalldata(targetSpender, maxUint256)
+        );
+        const txHash = await sendAppTransactions(connType, wallet.address, [call]);
+        if (txHash) {
+          setFromAllowance(maxUint256);
+          showToast(`✅ ${counterSymbol(from)} approved! Ready to swap.`, "");
+        }
+      } catch (err: unknown) {
+        console.error("Token approval failed:", err);
+        const msg = err instanceof Error ? err.message : "Approval failed";
+        if (!msg.toLowerCase().includes("reject") && !msg.toLowerCase().includes("denied")) {
+          showToast("Approval failed — retry or check wallet", "");
+        }
+      } finally {
+        setIsApproving(false);
+      }
+      return;
+    }
+
     if (!route || !to || buttonState.disabled) return;
 
     // Check risk acknowledgement for stock swaps
@@ -1202,7 +1272,12 @@ export default function DexSwapCard({
               : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)] shadow-md shadow-blue-500/25 active:scale-98"
           }`}
         >
-          {swapLoading ? (
+          {isApproving ? (
+            <>
+              <Loader2 size={16} className="animate-spin text-white" />
+              <span>Approving {counterSymbol(from)}…</span>
+            </>
+          ) : swapLoading ? (
             <>
               <Loader2 size={16} className="animate-spin text-white" />
               <span>Confirming on Base…</span>
