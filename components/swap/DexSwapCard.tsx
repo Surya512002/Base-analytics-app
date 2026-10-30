@@ -439,7 +439,7 @@ export default function DexSwapCard({
           direction: route.direction,
           amount: quoteAmount,
           decimals: pageDecimals,
-          slippageBps: parseSlippageBps(slippage),
+          slippageBps: isStockInvolved ? Math.max(parseSlippageBps(slippage), 150) : parseSlippageBps(slippage),
           dex,
           referrer,
           taker: wallet?.address,
@@ -630,14 +630,13 @@ export default function DexSwapCard({
         return { label: `Approving ${counterSymbol(from)}…`, disabled: true, action: "approving" };
       }
       return {
-        label: `Step 1/2 · Approve ${counterSymbol(from)}`,
+        label: `Approve ${counterSymbol(from)}`,
         disabled: false,
         action: "approve",
       };
     }
 
-    const swapPrefix = from.kind !== "eth" && isEoa ? "Step 2/2 · " : "";
-    return { label: `${swapPrefix}Swap ${counterSymbol(from)} → ${counterSymbol(to)}`, disabled: false, action: "swap" };
+    return { label: `Swap ${counterSymbol(from)} → ${counterSymbol(to)}`, disabled: false, action: "swap" };
   }, [
     guestMode,
     wallet,
@@ -708,7 +707,7 @@ export default function DexSwapCard({
       decimals: pageDecimals,
       direction: route.direction,
       amount: sanitizeTokenAmountInput(amount, quoteAmountDecimals) || amount,
-      slippageBps: parseSlippageBps(slippage),
+      slippageBps: isStockInvolved ? Math.max(parseSlippageBps(slippage), 150) : parseSlippageBps(slippage),
       dex,
       referrer,
       counterDecimals: route.counterDecimals,

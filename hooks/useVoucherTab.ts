@@ -1079,6 +1079,15 @@ export function useVoucherTab(app: WalletAppState) {
     if (!stored) return;
     if (session && stored.batchId !== session.batchId) return;
 
+    // Discard stale drafts older than 15 minutes
+    const ageMs = Date.now() - (stored.createdAt || session?.startedAt || 0);
+    const isStale = ageMs > 15 * 60 * 1000 || !stored.createdAt;
+    if (isStale) {
+      clearPendingBatch(address);
+      clearCreateSession(address);
+      return;
+    }
+
     pendingBatchRef.current = stored;
     fundTxRef.current = session?.fundTxHash;
     setPendingCards(stored);

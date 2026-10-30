@@ -228,7 +228,9 @@ export default function ProtocolCompareHub({
   const stockYieldMatrix = useMemo(() => {
     const isHighBeta = ["NVDAc", "TSLAc", "MSTRc"].includes(selectedStock.symbol);
     const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(selectedStock.symbol);
-    return [
+    const isIporSupported = ["GOOGLc", "GOOGc", "NVDAc", "AAPLc", "METAc"].includes(selectedStock.symbol);
+
+    const matrix = [
       {
         protocolId: "beefy",
         name: "Beefy Finance",
@@ -281,14 +283,26 @@ export default function ProtocolCompareHub({
         contractAddress: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
         riskScore: isAaveSupported ? "Low (Aave Pool)" : "N/A",
       },
-      {
+    ];
+
+    if (isIporSupported) {
+      const iporApy =
+        selectedStock.symbol === "NVDAc"
+          ? "7.47% APY"
+          : selectedStock.symbol === "AAPLc"
+          ? "6.85% APY"
+          : selectedStock.symbol === "METAc"
+          ? "7.46% APY"
+          : "6.15% APY";
+
+      matrix.push({
         protocolId: "ipor",
         name: "IPOR Fusion",
         type: "Stock Yield & Carry Trade",
         status: "live",
         statusBadge: "🟢 Live on Base",
         badgeColor: "emerald",
-        yieldRate: isHighBeta ? "14.20% APY" : "10.40% APY",
+        yieldRate: iporApy,
         yieldType: "Automated Stock Carry Yield",
         canBorrow: "Yes (Borrow USDC)",
         tvl: "$380,000",
@@ -296,8 +310,10 @@ export default function ProtocolCompareHub({
         actionUrl: "https://app.ipor.io/stocks",
         contractAddress: "0x1455717668fA96534f675856347A973fA907e922",
         riskScore: "Low (Plasma Vault)",
-      },
-    ];
+      });
+    }
+
+    return matrix;
   }, [selectedStock]);
 
   const toggleFaq = (key: string) => {

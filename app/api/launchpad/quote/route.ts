@@ -225,8 +225,9 @@ export async function GET(req: Request) {
     const amountIn = gross;
     const { fee: platformFee } = splitGrossAmount(gross);
 
-    // Apply safe default slippage for newly launched tokens to avoid immediate pool volatility reverts
-    const effectiveSlippageBps = isLaunched ? Math.max(slippageBps, 200) : slippageBps;
+    // Apply safe default slippage for newly launched tokens (200 bps) and tokenized stock multi-hop pools (150 bps)
+    const isStockTrade = isStock || (legs && (isActiveStockAddress(legs.sellToken) || isActiveStockAddress(legs.buyToken)));
+    const effectiveSlippageBps = isLaunched ? Math.max(slippageBps, 200) : isStockTrade ? Math.max(slippageBps, 150) : slippageBps;
 
     const base = {
       direction,

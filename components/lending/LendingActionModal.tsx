@@ -21,6 +21,7 @@ import type { ConnectionType } from "@/lib/types/wallet";
 import { parseUnits, maxUint256, formatUnits, parseAbi } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatTokenAmount } from "@/lib/launchpad/format";
+import { ERC20_ABI } from "@/lib/constants/contracts";
 import {
   buildAttributedApproveCall,
   buildAttributedVaultDepositCall,
@@ -251,11 +252,26 @@ export default function LendingActionModal({
       const calls = [];
       const user = userAddress as `0x${string}`;
 
-      // 1. Approval call for deposits/supplies/stakes/repays
+      // 1. Approval call for deposits/supplies/stakes/repays if allowance is insufficient
       if (action === "supply" || action === "stake" || action === "repay") {
-        calls.push(
-          buildAttributedApproveCall(activeAsset.address, market.contractAddress, maxUint256)
-        );
+        try {
+          const pub = createBasePublicClient();
+          const allowance = await pub.readContract({
+            address: activeAsset.address,
+            abi: ERC20_ABI,
+            functionName: "allowance",
+            args: [user, market.contractAddress],
+          });
+          if (allowance < parsedAmount) {
+            calls.push(
+              buildAttributedApproveCall(activeAsset.address, market.contractAddress, maxUint256)
+            );
+          }
+        } catch {
+          calls.push(
+            buildAttributedApproveCall(activeAsset.address, market.contractAddress, maxUint256)
+          );
+        }
       }
 
       // 2. Action specific call

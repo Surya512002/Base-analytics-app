@@ -170,15 +170,48 @@ export default function VoucherCreateWizard({
     setCardCountInput(String(next));
   };
 
-  // If pendingCards is active, force step 4 (Review & Fund)
-  React.useEffect(() => {
-    if (pendingCards) {
-      setCurrentStep(4);
-    }
-  }, [pendingCards]);
+  const handlePrepareCreate = async () => {
+    await prepareCreate();
+    setCurrentStep(4);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Pending Draft Alert with 1-click Discard / Resume */}
+      {pendingCards && (
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div>
+            <p className="text-xs font-black text-[var(--ink)]">
+              Draft Batch #{pendingCards.batchId} in Progress
+            </p>
+            <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+              Prepared for {exactDepositLabel} · {pendingCards.cardCount} cards. Resume this batch or discard to start fresh with a new amount.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            {currentStep !== 4 && (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(4)}
+                className="pop-pill px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand)] text-white hover:opacity-90 transition cursor-pointer"
+              >
+                Resume Draft →
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                cancelPendingCreate();
+                setCurrentStep(1);
+              }}
+              className="pop-pill px-3.5 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/25 hover:bg-red-500/20 transition cursor-pointer"
+            >
+              Discard &amp; Start Fresh
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4-Step Progress Indicator */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 sm:p-4 shadow-sm">
         <div className="grid grid-cols-4 gap-2">
@@ -734,7 +767,7 @@ export default function VoucherCreateWizard({
                     <button
                       type="button"
                       disabled={!contractReady || creating || !perCardWei}
-                      onClick={prepareCreate}
+                      onClick={handlePrepareCreate}
                       className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 disabled:opacity-40 active:scale-[0.98] transition cursor-pointer shadow-md"
                     >
                       {creating ? "Generating Card Secrets…" : "Create Gift Cards"}

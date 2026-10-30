@@ -259,7 +259,7 @@ export function encodeExactInputSingleToEth(params: {
   const unwrap = encodeFunctionData({
     abi: SWAP_ROUTER_ABI,
     functionName: "unwrapWETH9",
-    args: [params.amountOutMinimum, params.recipient],
+    args: [BigInt(0), params.recipient], // exactInputSingle already strictly enforces amountOutMinimum
   });
   return encodeFunctionData({
     abi: SWAP_ROUTER_ABI,
@@ -411,7 +411,7 @@ export function encodeExactInputMultiHopToEth(params: {
   const unwrap = encodeFunctionData({
     abi: SWAP_ROUTER_ABI,
     functionName: "unwrapWETH9",
-    args: [params.amountOutMinimum, params.recipient],
+    args: [BigInt(0), params.recipient], // exactInputSingle already strictly enforces amountOutMinimum
   });
   return encodeFunctionData({
     abi: SWAP_ROUTER_ABI,
