@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { encodeContractCall, prepareCallsForWalletSendCalls } from "@/lib/utils/tx";
+import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { base } from "viem/chains";
 import { usePublicClient } from "wagmi";
 import {
@@ -1260,7 +1261,7 @@ export function useVoucherTab(app: WalletAppState) {
         return;
       }
       notifyVoucherTx(
-        "✅ USDC approved — now tap Deposit to create your cards",
+        `✅ ${pendingAsset !== "ETH" ? pendingAsset : "Token"} approved — now tap Deposit to create your cards`,
         txHashFromLifecycle(status)
       );
       setUsdcApproveCompleted(true);
@@ -1268,7 +1269,7 @@ export function useVoucherTab(app: WalletAppState) {
       void refreshUsdcAllowance();
       window.setTimeout(() => void refreshUsdcAllowance(), 2500);
     },
-    [notifyVoucherTx, refreshUsdcAllowance]
+    [notifyVoucherTx, refreshUsdcAllowance, pendingAsset]
   );
 
   useEffect(() => {
@@ -1474,6 +1475,226 @@ export function useVoucherTab(app: WalletAppState) {
     [notifyVoucherTx, publicClient, refreshMyBatches, wallet, setTxKeys]
   );
 
+  const [directApproving, setDirectApproving] = useState(false);
+  const [directFunding, setDirectFunding] = useState(false);
+  const [directRedeeming, setDirectRedeeming] = useState(false);
+
+  const executeDirectApprove = useCallback(async () => {
+    if (!address || !approveUsdcCall.length) return;
+    setDirectApproving(true);
+    try {
+      const hash = await sendAppTransactions(
+        connType ?? "injected",
+        address,
+        approveUsdcCall
+      );
+      notifyVoucherTx(
+        `✅ ${pendingAsset !== "ETH" ? pendingAsset : "Token"} approved — now tap Deposit to create your cards`,
+        hash
+      );
+      setUsdcApproveCompleted(true);
+      setUsdcTxKey((k) => k + 1);
+      await refreshUsdcAllowance();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const isCancel =
+        msg.toLowerCase().includes("reject") ||
+        msg.toLowerCase().includes("denied") ||
+        msg.toLowerCase().includes("cancel") ||
+        msg.includes("4001");
+      if (!isCancel) {
+        console.error("[voucher direct approve error]", e);
+        showToast(msg || "Approval failed", "");
+      }
+    } finally {
+      setDirectApproving(false);
+    }
+  }, [
+    address,
+    approveUsdcCall,
+    connType,
+    notifyVoucherTx,
+    pendingAsset,
+    refreshUsdcAllowance,
+    showToast,
+  ]);
+
+  const executeDirectDeposit = useCallback(async () => {
+    if (!address) return;
+    const calls = pendingAsset === "ETH" ? createEthCall : createUsdcCall;
+    if (!calls.length) return;
+    setDirectFunding(true);
+    setConfirmingDeposit(true);
+    try {
+      const hash = await sendAppTransactions(
+        connType ?? "injected",
+        address,
+        calls
+      );
+      const pending = resolvePendingBatch();
+      if (hash && pending) {
+        savePendingBatchForTx(hash, pending);
+        if (address) {
+          void saveWalletCredentials(address, pending);
+          setSessionFundTx(address, hash);
+          saveLastVoucherTx(address, hash);
+        }
+        fundTxRef.current = hash;
+      }
+      const ok = await onCreateSuccess(hash);
+      if (ok) {
+        notifyVoucherTx(
+          `✅ ${pending?.cardCount ?? cardCount} voucher cards ready!`,
+          hash
+        );
+      } else {
+        const recovered = await recoverBatchByTx(hash);
+        if (!recovered) {
+          showToast(
+            "Deposit sent — confirming on Base… keep this tab open until cards appear.",
+            hash
+          );
+        }
+      }
+    } catch (e) {
+      setConfirmingDeposit(false);
+      const msg = e instanceof Error ? e.message : String(e);
+      const isCancel =
+        msg.toLowerCase().includes("reject") ||
+        msg.toLowerCase().includes("denied") ||
+        msg.toLowerCase().includes("cancel") ||
+        msg.includes("4001");
+      if (!isCancel) {
+        console.error("[voucher direct deposit error]", e);
+        showToast(msg || "Deposit failed", "");
+      }
+    } finally {
+      setDirectFunding(false);
+    }
+  }, [
+    address,
+    pendingAsset,
+    createEthCall,
+    createUsdcCall,
+    connType,
+    resolvePendingBatch,
+    onCreateSuccess,
+    notifyVoucherTx,
+    cardCount,
+    recoverBatchByTx,
+    showToast,
+  ]);
+
+  const executeDirectRedeem = useCallback(async () => {
+    if (!address || !redeemCall.length) return;
+    setDirectRedeeming(true);
+    setRedeemError("");
+    try {
+      const hash = await sendAppTransactions(
+        connType ?? "injected",
+        address,
+        redeemCall
+      );
+      notifyVoucherTx("Card redeemed to your wallet!", hash, redeemNotifiedRef);
+
+      const parsed = redeemParsedRef.current;
+      const preview = redeemPreviewRef.current;
+      if (preview) {
+        setRedeemSuccess({
+          cardId: preview.cardId,
+          asset: preview.asset,
+          amountPerCard: preview.amountPerCard,
+          message: preview.message,
+          txHash: hash || undefined,
+        });
+      }
+
+      if (wallet) {
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "redeem");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        recordConfirmedInAppAction(
+          wallet.address,
+          "redeem",
+          nextKeys.redeem ?? 0
+        );
+        setPointsRevision((n) => n + 1);
+      }
+
+      if (parsed) {
+        setBatchCardStatuses((prev) => {
+          const cards = prev[parsed.batchId];
+          const cardId = formatCardId(parsed.batchId, parsed.cardIndex);
+          if (cards) {
+            return {
+              ...prev,
+              [parsed.batchId]: cards.map((c) =>
+                c.cardIndex === parsed.cardIndex ? { ...c, redeemed: true } : c
+              ),
+            };
+          }
+          return {
+            ...prev,
+            [parsed.batchId]: [
+              {
+                cardIndex: parsed.cardIndex,
+                cardId,
+                redeemed: true,
+              },
+            ],
+          };
+        });
+
+        if (publicClient) {
+          try {
+            const result = await publicClient.readContract({
+              address: VOUCHER_CONTRACT as `0x${string}`,
+              abi: VOUCHER_ABI,
+              functionName: "getBatch",
+              args: [BigInt(parsed.batchId)],
+            });
+            setChainStats((prev) => ({
+              ...prev,
+              [parsed.batchId]: Number(result[4]),
+            }));
+            await fetch("/api/vouchers", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                batchId: parsed.batchId,
+                redeemedCount: Number(result[4]),
+              }),
+            });
+          } catch {
+            /* chain read optional */
+          }
+        }
+      }
+      refreshMyBatches();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const isCancel =
+        msg.toLowerCase().includes("reject") ||
+        msg.toLowerCase().includes("denied") ||
+        msg.toLowerCase().includes("cancel") ||
+        msg.includes("4001");
+      if (!isCancel) {
+        setRedeemError("Redeem failed. Card may be used or secret invalid.");
+      }
+    } finally {
+      setDirectRedeeming(false);
+    }
+  }, [
+    address,
+    redeemCall,
+    connType,
+    notifyVoucherTx,
+    wallet,
+    setTxKeys,
+    setPointsRevision,
+    publicClient,
+    refreshMyBatches,
+  ]);
+
   const exactDepositLabel = formatVoucherAmount(pendingAsset, pendingTotal);
 
   return {
@@ -1529,6 +1750,10 @@ export function useVoucherTab(app: WalletAppState) {
       isCardStatusKnown,
       mineStatusesLoading,
       loadingBatchDetail,
+      directApproving,
+      directFunding,
+      executeDirectApprove,
+      executeDirectDeposit,
     },
     redeem: {
       redeemCardId,
@@ -1543,6 +1768,8 @@ export function useVoucherTab(app: WalletAppState) {
       redeemParsedForTx,
       redeemCall,
       handleRedeemTx,
+      directRedeeming,
+      executeDirectRedeem,
     },
     viewLookup: {
       viewCardId,

@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Minus,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
 import { base } from "viem/chains";
@@ -86,6 +87,10 @@ export default function VoucherCreateWizard({
     refreshUsdcAllowance,
     handleApproveTx,
     handleFundTx,
+    directApproving,
+    directFunding,
+    executeDirectApprove,
+    executeDirectDeposit,
   } = create;
 
   // Wizard step state (1 to 4)
@@ -741,65 +746,79 @@ export default function VoucherCreateWizard({
                     )}
 
                     {pendingAsset === "ETH" ? (
-                      <Transaction
-                        chainId={base.id}
-                        calls={prepareOnchainKitCalls(createEthCall)}
-                        capabilities={txCaps}
-                        onStatus={handleFundTx}
+                      <button
+                        type="button"
+                        disabled={directFunding || confirmingDeposit}
+                        onClick={() => void executeDirectDeposit()}
+                        className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
                       >
-                        <TransactionButton
-                          className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition"
-                          text={`Deposit ${exactDepositLabel} on Base`}
-                        />
-                      </Transaction>
+                        {directFunding || confirmingDeposit ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Depositing ETH on Base…</span>
+                          </>
+                        ) : (
+                          <span>Deposit {exactDepositLabel} on Base</span>
+                        )}
+                      </button>
                     ) : checkingAllowance ? (
                       <button
                         type="button"
                         disabled
-                        className="w-full py-4 rounded-xl font-bold text-sm bg-[var(--surface-2)] text-[var(--ink-muted)]"
+                        className="w-full py-4 rounded-xl font-bold text-sm bg-[var(--surface-2)] text-[var(--ink-muted)] flex items-center justify-center gap-2"
                       >
-                        Checking USDC allowance…
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Checking {pendingAsset} allowance…</span>
                       </button>
                     ) : usdcAllowanceError ? (
                       <button
                         type="button"
                         onClick={() => void refreshUsdcAllowance()}
-                        className="w-full py-4 rounded-xl font-bold text-sm bg-amber-500/20 text-amber-600 border border-amber-500/30"
+                        className="w-full py-4 rounded-xl font-bold text-sm bg-amber-500/20 text-amber-600 border border-amber-500/30 cursor-pointer"
                       >
-                        Could not read allowance · Tap to retry
+                        Could not read {pendingAsset} allowance · Tap to retry
                       </button>
                     ) : needsUsdcApproval ? (
                       <div className="space-y-2">
-                        <Transaction
-                          key={`usdc-approve-${pendingCards.batchId}-${usdcTxKey}`}
-                          chainId={base.id}
-                          calls={prepareOnchainKitCalls(approveUsdcCall)}
-                          capabilities={txCaps}
-                          onStatus={handleApproveTx}
+                        <button
+                          type="button"
+                          disabled={directApproving}
+                          onClick={() => void executeDirectApprove()}
+                          className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
                         >
-                          <TransactionButton
-                            className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition"
-                            text={`Step 1/2 · Approve ${exactDepositLabel}`}
-                          />
-                        </Transaction>
+                          {directApproving ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              <span>Approving {pendingAsset} in wallet…</span>
+                            </>
+                          ) : (
+                            <span>Step 1/2 · Approve {exactDepositLabel}</span>
+                          )}
+                        </button>
                         <p className="text-[11px] text-center text-[var(--ink-muted)]">
-                          Approve USDC spending, then complete deposit in Step 2.
+                          Approve {pendingAsset} spending in your wallet, then complete deposit in Step 2.
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <Transaction
-                          key={`usdc-fund-${pendingCards.batchId}-${usdcTxKey}`}
-                          chainId={base.id}
-                          calls={prepareOnchainKitCalls(createUsdcCall)}
-                          capabilities={txCaps}
-                          onStatus={handleFundTx}
+                        <button
+                          type="button"
+                          disabled={directFunding || confirmingDeposit}
+                          onClick={() => void executeDirectDeposit()}
+                          className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
                         >
-                          <TransactionButton
-                            className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition"
-                            text={`Step 2/2 · Deposit ${exactDepositLabel}`}
-                          />
-                        </Transaction>
+                          {directFunding || confirmingDeposit ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              <span>Confirming {pendingAsset} deposit on Base…</span>
+                            </>
+                          ) : (
+                            <span>Step 2/2 · Deposit {exactDepositLabel}</span>
+                          )}
+                        </button>
+                        <p className="text-[11px] text-center text-[var(--ink-muted)]">
+                          Deposit {pendingAsset} to fund batch #{pendingCards.batchId}. Secrets are stored securely.
+                        </p>
                       </div>
                     )}
                   </div>

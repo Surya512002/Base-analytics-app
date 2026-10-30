@@ -5,6 +5,7 @@ import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction
 import { base } from "viem/chains";
 import {
   RefreshCcw,
+  Loader2,
   CheckCircle2,
   ExternalLink,
   Info,
@@ -46,6 +47,8 @@ export default function VoucherRedeemPanel({
     redeemParsedForTx,
     redeemCall,
     handleRedeemTx,
+    directRedeeming,
+    executeDirectRedeem,
   } = redeem;
 
   // Auto-fill from URL fragment, query param, or localStorage via unified parser
@@ -211,18 +214,21 @@ export default function VoucherRedeemPanel({
         {/* Single Primary Action Button */}
         <div className="pt-2">
           {contractReady && redeemCall.length > 0 && !redeemPreview?.redeemed ? (
-            <Transaction
-              key={redeemKey}
-              chainId={base.id}
-              calls={prepareOnchainKitCalls(redeemCall)}
-              capabilities={txCaps}
-              onStatus={handleRedeemTx}
+            <button
+              type="button"
+              disabled={directRedeeming}
+              onClick={() => void executeDirectRedeem()}
+              className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              <TransactionButton
-                className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition shadow-md"
-                text="Claim to Wallet"
-              />
-            </Transaction>
+              {directRedeeming ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Claiming to Wallet…</span>
+                </>
+              ) : (
+                <span>Claim to Wallet</span>
+              )}
+            </button>
           ) : (
             <button
               type="button"
