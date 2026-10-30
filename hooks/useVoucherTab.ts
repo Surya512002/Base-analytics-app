@@ -1545,6 +1545,17 @@ export function useVoucherTab(app: WalletAppState) {
       const tokenAddr = assetToToken(pendingAsset);
       const client = publicClient ?? createPublicOnlyBaseClient();
       try {
+        const liveBalance = await client.readContract({
+          address: tokenAddr,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address],
+        });
+        if (liveBalance < pendingTotal) {
+          showToast(`Insufficient ${pendingAsset} balance for this batch deposit.`, "");
+          return;
+        }
+
         const liveAllowance = await client.readContract({
           address: tokenAddr,
           abi: ERC20_ABI,
@@ -1558,7 +1569,18 @@ export function useVoucherTab(app: WalletAppState) {
           return;
         }
       } catch (err) {
-        console.warn("[voucher] pre-deposit allowance check", err);
+        console.warn("[voucher] pre-deposit balance/allowance check", err);
+      }
+    } else {
+      const client = publicClient ?? createPublicOnlyBaseClient();
+      try {
+        const liveEthBal = await client.getBalance({ address });
+        if (liveEthBal < pendingTotal) {
+          showToast(`Insufficient ETH balance for this batch deposit.`, "");
+          return;
+        }
+      } catch (err) {
+        console.warn("[voucher] pre-deposit eth check", err);
       }
     }
 

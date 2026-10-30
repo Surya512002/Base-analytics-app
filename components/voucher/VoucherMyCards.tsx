@@ -15,6 +15,7 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
+  Key,
 } from "lucide-react";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 import type { StoredVoucherBatch, VoucherCard } from "@/lib/utils/voucher";
@@ -403,6 +404,40 @@ export default function VoucherMyCards({
                       )}
                     </div>
 
+                    {/* Secret Key Display */}
+                    {card.secret ? (
+                      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-2.5 flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex items-center gap-2">
+                          <Key size={13} className="text-[var(--brand-text)] shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+                              Secret Key
+                            </span>
+                            <span className="font-mono text-xs font-bold text-[var(--ink)] select-all truncate block">
+                              {card.secret}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyText(card.secret, `sec-${card.cardId}`)}
+                          className="pop-pill flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--brand-soft)] text-[var(--brand-text)] hover:opacity-90 transition shrink-0 cursor-pointer"
+                        >
+                          {copiedId === `sec-${card.cardId}` ? (
+                            <CheckCircle2 size={13} />
+                          ) : (
+                            <Copy size={13} />
+                          )}
+                          <span>{copiedId === `sec-${card.cardId}` ? "Copied" : "Copy Key"}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        Secret key was not preserved on this device.
+                      </div>
+                    )}
+
+                    {/* Claim Link */}
                     {card.secret && (
                       <div className="flex items-center gap-2">
                         <input
@@ -414,10 +449,10 @@ export default function VoucherMyCards({
                         <button
                           type="button"
                           onClick={() => copyText(claimLink, `drawer-${card.cardId}`)}
-                          className="pop-pill flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--brand-soft)] text-[var(--brand-text)] hover:bg-[var(--brand-soft)] transition shrink-0 cursor-pointer"
+                          className="pop-pill flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--border-subtle)]/50 transition shrink-0 cursor-pointer"
                         >
                           {isCopied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
-                          <span>{isCopied ? "Copied" : "Copy"}</span>
+                          <span>{isCopied ? "Copied Link" : "Copy Link"}</span>
                         </button>
                         <button
                           type="button"
@@ -427,7 +462,7 @@ export default function VoucherMyCards({
                               link: claimLink,
                             })
                           }
-                          className="p-1.5 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition shrink-0"
+                          className="p-1.5 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)] transition shrink-0 cursor-pointer"
                           title="Show QR Code"
                         >
                           <QrCode size={16} />

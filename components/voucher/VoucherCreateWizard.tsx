@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { base } from "viem/chains";
+import { formatUnits } from "viem";
 import { VOUCHER_CONTRACT } from "@/lib/constants/env";
 import {
   MAX_VOUCHER_CARDS,
@@ -26,7 +27,7 @@ import {
   isVaultShareAsset,
   getVaultShareBySymbol,
 } from "@/lib/utils/voucher";
-import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
+import { getBaseStockBySymbol, BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
 import {
   OCCASION_TEMPLATES,
   CARD_THEME_OPTIONS,
@@ -144,6 +145,19 @@ export default function VoucherCreateWizard({
     if (isVault) return `~$${(num * 100).toFixed(2)}`;
     return null;
   }, [totalAmount, asset, isStock, isVault]);
+
+  const isStep2OverBalance = useMemo(() => {
+    const val = parseFloat(totalAmount);
+    return Number.isFinite(val) && currentAssetBalance > 0 && val > currentAssetBalance;
+  }, [totalAmount, currentAssetBalance]);
+
+  const pendingTotalRaw = pendingCards ? BigInt(pendingCards.totalAmount) : BigInt(0);
+  const pendingAssetDecimals = isStock || isVault ? BASE_STOCK_DECIMALS : pendingAsset === "USDC" ? 6 : 18;
+  const isPendingOverBalance = useMemo(() => {
+    if (!pendingCards || currentAssetBalance <= 0) return false;
+    const requiredNum = parseFloat(formatUnits(pendingTotalRaw, pendingAssetDecimals));
+    return requiredNum > currentAssetBalance;
+  }, [pendingCards, currentAssetBalance, pendingTotalRaw, pendingAssetDecimals]);
 
   // Card count adjustments
   const incrementCardCount = () => {
@@ -463,7 +477,7 @@ export default function VoucherCreateWizard({
               {split && (
                 <div
                   className={`rounded-xl p-3 border text-xs flex items-center justify-between ${
-                    split.valid
+                    split.valid && !isStep2OverBalance
                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
                       : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
                   }`}
@@ -474,6 +488,22 @@ export default function VoucherCreateWizard({
                       ? formatSplitSummary(split)
                       : "Adjust amount to split evenly"}
                   </span>
+                </div>
+              )}
+
+              {isStep2OverBalance && (
+                <div className="rounded-xl p-3 border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 text-xs flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span>Insufficient balance (wallet holds {currentAssetBalance.toFixed(4)} {asset})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTotalAmount(String(currentAssetBalance))}
+                    className="pop-pill text-[10px] font-black uppercase text-red-700 dark:text-red-300 bg-red-500/20 px-2 py-0.5 rounded hover:bg-red-500/30 transition shrink-0 cursor-pointer"
+                  >
+                    Set Max
+                  </button>
                 </div>
               )}
 
@@ -489,7 +519,7 @@ export default function VoucherCreateWizard({
                 </button>
                 <button
                   type="button"
-                  disabled={!perCardWei}
+                  disabled={!perCardWei || isStep2OverBalance}
                   onClick={() => setCurrentStep(3)}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition cursor-pointer shadow-sm"
                 >
@@ -744,10 +774,29 @@ export default function VoucherCreateWizard({
                       </div>
                     )}
 
+                    {isPendingOverBalance && (
+                      <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3.5 space-y-2 text-xs">
+                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold">
+                          <AlertTriangle size={16} className="shrink-0" />
+                          <span>Insufficient {pendingAsset} balance in wallet</span>
+                        </div>
+                        <p className="text-[var(--ink-muted)]">
+                          This batch requires <strong className="text-[var(--ink)]">{exactDepositLabel}</strong>, but your wallet only holds <strong className="text-[var(--ink)]">{currentAssetBalance.toFixed(4)} {pendingAsset}</strong>.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={cancelPendingCreate}
+                          className="w-full py-2.5 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition cursor-pointer"
+                        >
+                          Cancel &amp; Adjust Deposit Amount
+                        </button>
+                      </div>
+                    )}
+
                     {pendingAsset === "ETH" ? (
                       <button
                         type="button"
-                        disabled={directFunding || confirmingDeposit}
+                        disabled={directFunding || confirmingDeposit || isPendingOverBalance}
                         onClick={() => void executeDirectDeposit()}
                         className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
                       >
@@ -781,7 +830,7 @@ export default function VoucherCreateWizard({
                       <div className="space-y-2">
                         <button
                           type="button"
-                          disabled={directApproving}
+                          disabled={directApproving || isPendingOverBalance}
                           onClick={() => void executeDirectApprove()}
                           className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
                         >
@@ -802,7 +851,7 @@ export default function VoucherCreateWizard({
                       <div className="space-y-2">
                         <button
                           type="button"
-                          disabled={directFunding || confirmingDeposit}
+                          disabled={directFunding || confirmingDeposit || isPendingOverBalance}
                           onClick={() => void executeDirectDeposit()}
                           className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
                         >

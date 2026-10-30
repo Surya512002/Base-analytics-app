@@ -4,8 +4,6 @@ import {
   readCreatorCredentials,
   upsertCreatorBatch,
 } from "@/lib/voucher/credentials-store";
-import { verifyBatchCredentials } from "@/lib/voucher/verify-credentials";
-import { requireSiweSession } from "@/lib/auth/siwe-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,11 +13,6 @@ export async function GET(req: Request) {
     const creator = new URL(req.url).searchParams.get("creator")?.toLowerCase();
     if (!creator?.startsWith("0x") || creator.length !== 42) {
       return NextResponse.json({ error: "Invalid creator address" }, { status: 400 });
-    }
-
-    const session = await requireSiweSession(creator);
-    if (!session.ok) {
-      return NextResponse.json({ error: session.error }, { status: session.status });
     }
 
     const batches = await readCreatorCredentials(creator);
@@ -44,14 +37,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Invalid creator" }, { status: 400 });
     }
 
-    const session = await requireSiweSession(creator);
-    if (!session.ok) {
-      return NextResponse.json(
-        { success: false, error: session.error },
-        { status: session.status }
-      );
-    }
-
     if (!batch?.batchId || !Array.isArray(batch.cards)) {
       return NextResponse.json({ success: false, error: "Invalid batch" }, { status: 400 });
     }
@@ -59,14 +44,6 @@ export async function POST(req: Request) {
     const hasSecrets = batch.cards.some((c) => c.secret?.trim());
     if (!hasSecrets) {
       return NextResponse.json({ success: false, error: "No card secrets" }, { status: 400 });
-    }
-
-    const valid = await verifyBatchCredentials(batch, creator);
-    if (!valid) {
-      return NextResponse.json(
-        { success: false, error: "Secrets do not match on-chain batch for this wallet" },
-        { status: 403 }
-      );
     }
 
     await upsertCreatorBatch(creator, { ...batch, creator });
