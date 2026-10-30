@@ -101,13 +101,14 @@ function buildLegacyTxParams(
     from,
     to: call.to,
     data,
-    chainId: BASE_CHAIN_HEX,
   };
   if (call.value && call.value > BigInt(0)) {
     params.value = `0x${call.value.toString(16)}`;
   }
-  if (isB20FactoryAddress(call.to)) {
-    const gas = call.gas ?? gasLimitForB20Target(call.to);
+  if (call.gas && call.gas > BigInt(0)) {
+    params.gas = `0x${call.gas.toString(16)}`;
+  } else if (isB20FactoryAddress(call.to)) {
+    const gas = gasLimitForB20Target(call.to);
     params.gas = `0x${gas.toString(16)}`;
   }
   return params;
@@ -193,7 +194,6 @@ async function waitForOnchainHash(hash: string): Promise<string> {
   if (!isTxHash(hash)) {
     throw new Error("Wallet returned an invalid transaction hash");
   }
-  await assertTxVisibleOnBase(hash);
   const pub = createPublicOnlyBaseClient();
   try {
     const receipt = await withRpcRetry(() =>
@@ -470,7 +470,7 @@ async function sendCallGroup(
 
   const tryPaymaster = batchCanTryPaymaster(group);
 
-  if (opts.preferSendCalls || opts.atomicBatch) {
+  if (opts.preferSendCalls) {
     try {
       return await sendWalletCallsWithPaymasterFallback(
         provider,
@@ -563,6 +563,7 @@ async function sendB20Launch(
   for (const attempt of attempts) {
     try {
       const hash = await attempt();
+      await assertTxVisibleOnBase(hash);
       return await waitForOnchainHash(hash);
     } catch (e) {
       if (isUserRejection(e)) throw e;
@@ -606,9 +607,9 @@ export async function sendAppTransactions(
   await ensureBaseNetwork(provider);
   await ensureActiveAccount(provider, from);
 
-  const trySponsored = supportsPaymaster(connType);
   const inMiniApp = Boolean(await detectMiniAppConnType());
   const preferSendCalls = prefersWalletSendCalls(connType, inMiniApp);
+  const trySponsored = preferSendCalls && supportsPaymaster(connType, inMiniApp);
   const atomicBatch = options?.atomicBatch !== false;
 
   const { preflight, main } = partitionB20PreflightCalls(batch);

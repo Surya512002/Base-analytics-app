@@ -103,26 +103,46 @@ export async function inferConnType(
   }
 
   if (typeof window === "undefined") return null;
-  const eth = (
-    window as unknown as {
-      ethereum?: {
-        request: (args: { method: string }) => Promise<unknown>;
-        isMetaMask?: boolean;
-      };
-    }
-  ).ethereum;
-  if (!eth) return null;
+  const w = window as unknown as {
+    ethereum?: {
+      request: (args: { method: string }) => Promise<unknown>;
+      isMetaMask?: boolean;
+      isCoinbaseWallet?: boolean;
+    };
+    coinbaseWalletExtension?: {
+      request: (args: { method: string }) => Promise<unknown>;
+    };
+  };
 
-  try {
-    const accounts = (await eth.request({
-      method: "eth_accounts",
-    })) as string[];
-    const match = accounts?.find(
-      (a) => a?.toLowerCase() === address.toLowerCase()
-    );
-    if (match) return eth.isMetaMask ? "metamask" : "injected";
-  } catch {
-    // ignore
+  if (w.coinbaseWalletExtension) {
+    try {
+      const accounts = (await w.coinbaseWalletExtension.request({
+        method: "eth_accounts",
+      })) as string[];
+      if (accounts?.find((a) => a?.toLowerCase() === address.toLowerCase())) {
+        return "coinbase";
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (w.ethereum) {
+    try {
+      const accounts = (await w.ethereum.request({
+        method: "eth_accounts",
+      })) as string[];
+      const match = accounts?.find(
+        (a) => a?.toLowerCase() === address.toLowerCase()
+      );
+      if (match) {
+        if (w.ethereum.isCoinbaseWallet) return "coinbase";
+        if (w.ethereum.isMetaMask) return "metamask";
+        return "injected";
+      }
+    } catch {
+      // ignore
+    }
   }
   return null;
 }
@@ -146,9 +166,10 @@ type Eip1193 = {
 };
 
 export async function ensureBaseNetwork(provider: Eip1193): Promise<void> {
-  const chainId = (await provider.request({ method: "eth_chainId" })) as string;
-  const normalized = chainId.toLowerCase();
-  if (normalized === BASE_CHAIN_HEX || normalized === "0x2105") return;
+  const rawChainId = (await provider.request({ method: "eth_chainId" })) as string | number;
+  const str = String(rawChainId ?? "").toLowerCase();
+  const num = typeof rawChainId === "number" ? rawChainId : parseInt(str, str.startsWith("0x") ? 16 : 10);
+  if (num === 8453 || str === BASE_CHAIN_HEX || str === "0x2105") return;
 
   try {
     await provider.request({

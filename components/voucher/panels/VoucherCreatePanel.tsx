@@ -1,6 +1,5 @@
 "use client";
 
-import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
 import { base } from "viem/chains";
 import { CheckCircle, Copy, Share2, TrendingUp, Sparkles, Building2, Loader2 } from "lucide-react";
 import { MAX_VOUCHER_CARDS } from "@/lib/utils/voucher";

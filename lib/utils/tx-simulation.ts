@@ -77,7 +77,12 @@ export async function simulateCallsBeforeExecution(
         };
       }
 
-      // Other network / RPC error
+      // Network / RPC infrastructure error — do not block the user, let wallet simulate
+      if (/429|too many requests|fetch failed|network|timeout|connection|rate limit|econnreset|enotfound/i.test(msg)) {
+        console.warn("[tx-simulation] network/rate-limit hiccup during simulation — proceeding to wallet prompt", msg);
+        continue;
+      }
+
       return {
         ok: false,
         reason: msg.split("\n")[0],

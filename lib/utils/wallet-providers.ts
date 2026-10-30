@@ -31,12 +31,21 @@ function win(): WindowWithEthereum | undefined {
 /** All EIP-1193 providers exposed on `window.ethereum` (multi-wallet browsers). */
 export function listInjectedProviders(): InjectedProvider[] {
   const w = win();
-  const eth = w?.ethereum;
-  if (!eth) return [];
-  if (Array.isArray(eth.providers) && eth.providers.length > 0) {
-    return eth.providers;
+  const list: InjectedProvider[] = [];
+  if (w?.coinbaseWalletExtension) {
+    list.push(w.coinbaseWalletExtension);
   }
-  return [eth];
+  const eth = w?.ethereum;
+  if (eth) {
+    if (Array.isArray(eth.providers) && eth.providers.length > 0) {
+      for (const p of eth.providers) {
+        if (!list.includes(p)) list.push(p);
+      }
+    } else if (!list.includes(eth)) {
+      list.push(eth);
+    }
+  }
+  return list;
 }
 
 export function detectBrowserWalletAvailability(): BrowserWalletAvailability {
@@ -60,15 +69,16 @@ export function detectBrowserWalletAvailability(): BrowserWalletAvailability {
 }
 
 export function pickMetaMaskProvider(): InjectedProvider {
-  const mm = listInjectedProviders().find(
-    (p) => p.isMetaMask && !p.isCoinbaseWallet
+  const providers = listInjectedProviders();
+  const mm =
+    providers.find((p) => p.isMetaMask && !p.isCoinbaseWallet) ??
+    providers.find((p) => p.isMetaMask);
+  if (mm) return mm;
+  const eth = win()?.ethereum;
+  if (eth) return eth;
+  throw new Error(
+    "MetaMask not found — install the extension or choose Base Wallet (email/passkey)."
   );
-  if (!mm) {
-    throw new Error(
-      "MetaMask not found — install the extension or choose Base Wallet (email/passkey)."
-    );
-  }
-  return mm;
 }
 
 export function pickCoinbaseExtensionProvider(): InjectedProvider {
@@ -77,16 +87,16 @@ export function pickCoinbaseExtensionProvider(): InjectedProvider {
     w?.coinbaseWalletExtension ??
     listInjectedProviders().find(
       (p) => p.isCoinbaseWallet || p.isCoinbaseBrowser
-    );
-  if (!cb) {
-    throw new Error(
-      "Coinbase Wallet extension not found — install it or use Base Wallet (email/passkey)."
-    );
-  }
-  return cb;
+    ) ??
+    (w?.ethereum?.isCoinbaseWallet ? w.ethereum : undefined);
+  if (cb) return cb;
+  if (w?.ethereum) return w.ethereum;
+  throw new Error(
+    "Coinbase Wallet extension not found — install it or use Base Wallet (email/passkey)."
+  );
 }
 
-/** Prefer Rabby/Rainbow/Brave over MetaMask when user picks “Other wallet”. */
+/** Prefer Rabby/Rainbow/Brave over MetaMask when user picks “Other wallet”, with safe fallbacks. */
 export function pickOtherInjectedProvider(): InjectedProvider {
   const providers = listInjectedProviders();
   const preferred = providers.find(
@@ -97,10 +107,13 @@ export function pickOtherInjectedProvider(): InjectedProvider {
   );
   if (preferred) return preferred;
 
-  const eth = win()?.ethereum;
-  if (eth && !eth.isMetaMask) return eth;
+  // Safe fallback to any available injected provider (Coinbase extension, MetaMask, or standard window.ethereum)
+  const w = win();
+  if (w?.coinbaseWalletExtension) return w.coinbaseWalletExtension;
+  if (w?.ethereum) return w.ethereum;
+  if (providers.length > 0) return providers[0];
 
   throw new Error(
-    "No other browser wallet found — try MetaMask or Base Wallet (email/passkey)."
+    "No browser wallet found — install MetaMask, Coinbase Wallet, or use Base Wallet (email/passkey)."
   );
 }

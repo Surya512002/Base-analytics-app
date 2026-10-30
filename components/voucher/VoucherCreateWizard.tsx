@@ -16,7 +16,6 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
-import { Transaction, TransactionButton } from "@coinbase/onchainkit/transaction";
 import { base } from "viem/chains";
 import { VOUCHER_CONTRACT } from "@/lib/constants/env";
 import {

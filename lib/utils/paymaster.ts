@@ -50,20 +50,24 @@ export function getOnchainKitCapabilities(
 }
 
 export function usesWalletSendCallsAttribution(
-  connType: ConnectionType | null
+  connType: ConnectionType | null,
+  inMiniApp = false
 ): boolean {
   return (
-    connType === "coinbase" ||
     connType === "baseAccount" ||
-    connType === "farcaster"
+    connType === "farcaster" ||
+    (connType === "coinbase" && inMiniApp)
   );
 }
 
-export function supportsPaymaster(connType: ConnectionType): boolean {
+export function supportsPaymaster(
+  connType: ConnectionType,
+  inMiniApp = false
+): boolean {
   return (
     (connType === "farcaster" ||
-      connType === "coinbase" ||
-      connType === "baseAccount") &&
+      connType === "baseAccount" ||
+      (connType === "coinbase" && inMiniApp)) &&
     Boolean(PAYMASTER_URL)
   );
 }
