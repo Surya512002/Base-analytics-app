@@ -12,6 +12,7 @@ import {
   Edit3,
   ShieldCheck,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import type { CreatorProfile } from "@/lib/launchpad/creator-profile-types";
 import { isCreatorProfileComplete } from "@/lib/launchpad/creator-profile-types";
@@ -204,7 +205,16 @@ export default function ProfileHeader({
           </div>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap">
+            {/* Pay / Tip Button */}
+            <a
+              href={`/pay/${address.toLowerCase()}`}
+              className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+            >
+              <Zap size={14} className="text-emerald-500" />
+              <span>{isOwner ? "My Pay Link" : "Pay / Tip"}</span>
+            </a>
+
             {/* Share Profile button */}
             <button
               type="button"
