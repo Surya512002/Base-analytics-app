@@ -12,18 +12,19 @@ export const iporAdapter: DiscoveryAdapter = {
     const markets: NormalizedMarket[] = [];
 
     // Verified stock carry trade vaults on IPOR Fusion (app.ipor.io/stocks)
+    // Exactly 4 verified stocks hosted by Tau Labs / Atomist
     const iporStocks = [
-      { symbol: "NVDAc", apy: 12.85, tvl: 380000, maxLtv: 75 },
-      { symbol: "AAPLc", apy: 9.60, tvl: 260000, maxLtv: 75 },
-      { symbol: "MSFTc", apy: 10.40, tvl: 195000, maxLtv: 75 },
-      { symbol: "TSLAc", apy: 14.20, tvl: 410000, maxLtv: 75 },
-      { symbol: "COINc", apy: 11.50, tvl: 215000, maxLtv: 75 },
-      { symbol: "MSTRc", apy: 15.80, tvl: 340000, maxLtv: 75 },
+      { symbol: "GOOGLc", apy: 6.15, tvl: 49100, maxLtv: 75 },
+      { symbol: "NVDAc", apy: 7.47, tvl: 43700, maxLtv: 75 },
+      { symbol: "AAPLc", apy: 6.85, tvl: 42300, maxLtv: 75 },
+      { symbol: "METAc", apy: 7.46, tvl: 32000, maxLtv: 75 },
     ];
 
     for (const item of iporStocks) {
       const stock = TOKENIZED_STOCKS_REGISTRY.find(
-        (s) => s.symbol.toLowerCase() === item.symbol.toLowerCase()
+        (s) =>
+          s.symbol.toLowerCase() === item.symbol.toLowerCase() ||
+          (item.symbol.toLowerCase() === "googc" && s.symbol.toLowerCase() === "googlc")
       );
       if (!stock) continue;
 

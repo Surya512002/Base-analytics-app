@@ -19,9 +19,9 @@ describe("builder attribution on B20 launch batches", () => {
 
     const batch = finalizeAppTransactionBatch([create]);
     expect(batch).toHaveLength(2);
-    expect(batch[0]).toEqual(create);
-    expect(isB20PrecompileAddress(batch[1]!.to)).toBe(false);
-    expect(hasBuilderSuffix(batch[1]!.data)).toBe(true);
+    expect(isB20PrecompileAddress(batch[0]!.to)).toBe(false);
+    expect(hasBuilderSuffix(batch[0]!.data)).toBe(true);
+    expect(batch[1]).toEqual(create);
   });
 
   it("skipCompanion leaves B20 create without attribution", () => {

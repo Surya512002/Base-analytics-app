@@ -4047,13 +4047,34 @@ for (const entry of TOKENIZED_STOCKS_REGISTRY) {
   if (entry.symbol.endsWith("c") && entry.symbol.length > 1) {
     STOCKS_BY_SYMBOL_MAP.set(entry.symbol.slice(0, -1).toUpperCase(), entry);
   }
+  // Register GOOGc and GOOG alias for Alphabet Inc (GOOGLc)
+  if (entry.symbol.toUpperCase() === "GOOGLC") {
+    STOCKS_BY_SYMBOL_MAP.set("GOOGC", entry);
+    STOCKS_BY_SYMBOL_MAP.set("GOOG", entry);
+  }
 }
 
 /**
- * Get all active tokenized stocks on Base.
+ * The 8 canonical verified tokenized stocks on Base mainnet.
+ * Backed 1:1 by real stock shares held in custody (Coinbase B20 precompiles).
+ * Active with Chainlink 24/5 equity feeds and verified on-chain lending & DEX pools.
+ */
+export const VERIFIED_BASE_STOCKS_8 = [
+  "NVDAc",
+  "AAPLc",
+  "MSFTc",
+  "TSLAc",
+  "GOOGLc",
+  "AMZNc",
+  "METAc",
+  "COINc",
+] as const;
+
+/**
+ * Get all active verified tokenized stocks on Base mainnet (the 8 canonical stocks).
  */
 export function getActiveTokenizedStocks(): TokenizedStockEntry[] {
-  return TOKENIZED_STOCKS_REGISTRY.filter((s) => s.status === "active");
+  return VERIFIED_BASE_STOCKS_8.map((sym) => STOCKS_BY_SYMBOL_MAP.get(sym.toUpperCase())!).filter(Boolean);
 }
 
 /**

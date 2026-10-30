@@ -50,7 +50,7 @@ describe("Real On-Chain Positions Reader (Base Mainnet)", () => {
       const res = await fetchAllUserPositions(dummyWallet);
       expect(res.isMockData).toBe(true);
       expect(res.positions.length).toBeGreaterThan(0);
-      expect(res.positions[0].protocolName).toBe("Morpho Blue");
+      expect(res.positions[0].protocolName).toBe("Beefy Finance");
       expect(res.positions[0].healthFactor).toBeGreaterThan(0);
     } finally {
       process.env.NEXT_PUBLIC_USE_MOCK_POSITIONS = originalEnv;

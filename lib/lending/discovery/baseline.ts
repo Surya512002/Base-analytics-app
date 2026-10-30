@@ -13,11 +13,10 @@ export function getBaselineVerifiedMarkets(): NormalizedMarket[] {
 
     const type = isBorrow ? "borrow" : isStake ? "stake" : "lend";
     const proto = (
-      m.protocol === "morpho" ? "morpho" :
+      m.protocol === "beefy" ? "beefy" :
       m.protocol === "aerodrome" ? "aerodrome" :
-      m.protocol === "moonwell" ? "moonwell" :
-      m.protocol === "aave" ? "aave" :
-      m.protocol === "superform" ? "superform" : "morpho"
+      m.protocol === "ipor" ? "ipor" :
+      m.protocol === "aave" ? "aave" : "aerodrome"
     ) as import("./types").DiscoveryProtocol;
 
     return {

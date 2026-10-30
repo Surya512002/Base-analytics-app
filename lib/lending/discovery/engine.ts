@@ -93,6 +93,7 @@ export async function runMarketDiscovery(
     pendleAdapter,
     zkfiAdapter,
     aaveAdapter,
+    moonwellAdapter,
     iporAdapter,
     aerodromeAdapter,
     eulerAdapter,

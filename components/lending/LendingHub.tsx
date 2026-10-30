@@ -18,13 +18,13 @@ import ModeSwitch, { type LendingMode } from "./ModeSwitch";
 import PositionsPanel from "./PositionsPanel";
 import {
   fetchAllUserPositions,
-  readMorphoBluePositions,
+  readBeefyPositions,
   readAavePositions,
   readIporPositions,
-  readMoonwellPositions,
   readAerodromeGaugePositions,
   type UserProtocolPosition,
 } from "@/lib/lending/user-positions";
+import { AAVE_EQUITIES_SUPPORTED_STOCKS, VERIFIED_IPOR_STOCK_VAULTS } from "@/lib/lending/unified-comparison";
 import { getEip1193Provider } from "@/app/connection";
 import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 import MarketsTable, { type AssetMarketRow } from "./MarketsTable";
@@ -247,11 +247,15 @@ export default function LendingHub({
           m.collateralAsset?.address.toLowerCase() === stk.address.toLowerCase() ||
           m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase() ||
           m.collateralAsset?.symbol.toLowerCase() === stk.symbol.toLowerCase() ||
-          m.supplyAsset.symbol.toLowerCase() === stk.symbol.toLowerCase()
+          m.supplyAsset.symbol.toLowerCase() === stk.symbol.toLowerCase() ||
+          (stk.symbol === "GOOGLc" && (m.supplyAsset.symbol.toLowerCase() === "googc" || m.collateralAsset?.symbol.toLowerCase() === "googc"))
       );
 
-      const hasLendingMarket = matchingMarkets.length > 0;
-      const listedProtocols = Array.from(new Set(matchingMarkets.map((m) => m.protocolLabel)));
+      const hasLendingMarket = matchingMarkets.length > 0 || AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol) || Boolean(VERIFIED_IPOR_STOCK_VAULTS[stk.symbol]);
+      const protocolSet = new Set(matchingMarkets.map((m) => m.protocolLabel));
+      if (AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol)) protocolSet.add("Aave Pro");
+      if (VERIFIED_IPOR_STOCK_VAULTS[stk.symbol] || (stk.symbol === "GOOGLc" && VERIFIED_IPOR_STOCK_VAULTS["GOOGc"])) protocolSet.add("IPOR Fusion");
+      const listedProtocols = Array.from(protocolSet);
 
       // Real Supply/Staking APY: from yield vaults, staking pools, or stock supply pools
       const supplyMarkets = matchingMarkets.filter(
@@ -621,14 +625,12 @@ export default function LendingHub({
     setIsRefreshingPositions(true);
     try {
       let retryPositions: UserProtocolPosition[] = [];
-      if (protocol.toLowerCase().includes("morpho")) {
-        retryPositions = await readMorphoBluePositions(userAddress as `0x${string}`);
+      if (protocol.toLowerCase().includes("beefy")) {
+        retryPositions = await readBeefyPositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("aave")) {
         retryPositions = await readAavePositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("ipor")) {
         retryPositions = await readIporPositions(userAddress as `0x${string}`);
-      } else if (protocol.toLowerCase().includes("moonwell")) {
-        retryPositions = await readMoonwellPositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("aerodrome")) {
         retryPositions = await readAerodromeGaugePositions(userAddress as `0x${string}`);
       }

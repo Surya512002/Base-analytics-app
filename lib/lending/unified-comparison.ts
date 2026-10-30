@@ -268,59 +268,43 @@ export interface VerifiedIporStockVault {
 export const VERIFIED_IPOR_STOCK_VAULTS: Record<string, VerifiedIporStockVault> = {
   NVDAc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb200000000000000000000078ee7ce2fe4908108c",
-    vaultName: "IPOR NVDA Carry Trade",
-    apy: 12.85,
+    stockAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
+    vaultName: "IPOR Nvidia Carry Trade",
+    apy: 7.47,
     borrowApr: 4.5,
-    tvlUsd: 380_000,
+    tvlUsd: 43_700,
   },
   AAPLc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb20000000000000000000049e4983058b73ad6d8",
-    vaultName: "IPOR AAPL Carry Trade",
-    apy: 9.60,
+    stockAddress: "0xb200000000000000000000c2e324d24d7eecd1fb",
+    vaultName: "IPOR Apple Carry Trade",
+    apy: 6.85,
     borrowApr: 4.2,
-    tvlUsd: 260_000,
+    tvlUsd: 42_300,
   },
-  MSFTc: {
+  GOOGLc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb2000000000000000000005d548fbfaee480bbab",
-    vaultName: "IPOR MSFT Carry Trade",
-    apy: 10.40,
-    borrowApr: 4.3,
-    tvlUsd: 195_000,
+    stockAddress: "0xb2000000000000000000002d0ba3164cc74f58b7",
+    vaultName: "IPOR Google Carry Trade",
+    apy: 6.15,
+    borrowApr: 4.2,
+    tvlUsd: 49_100,
   },
-  TSLAc: {
+  GOOGc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb200000000000000000000b5ec1e65fa3695ceae",
-    vaultName: "IPOR TSLA Carry Trade",
-    apy: 14.20,
-    borrowApr: 5.1,
-    tvlUsd: 410_000,
+    stockAddress: "0xb2000000000000000000002d0ba3164cc74f58b7",
+    vaultName: "IPOR Google Carry Trade",
+    apy: 6.15,
+    borrowApr: 4.2,
+    tvlUsd: 49_100,
   },
-};
-
-export interface VerifiedMorphoBlueStockMarket {
-  marketId: `0x${string}`;
-  collateralAddress: `0x${string}`;
-  contractAddress: `0x${string}`;
-  borrowApr: number;
-  supplyApy: number;
-  maxLtv: number;
-  tvlUsd: number;
-  liquidityUsd: number;
-}
-
-export const VERIFIED_MORPHO_STOCK_MARKETS: Record<string, VerifiedMorphoBlueStockMarket> = {
-  NVDAc: {
-    marketId: "0xfef5641f70e19a87e369304daa9ba823754f3db1e6481d757fcae0442cffe479",
-    collateralAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
-    contractAddress: MORPHO_BLUE_BASE,
-    borrowApr: 3.20,
-    supplyApy: 0.0,
-    maxLtv: 77,
-    tvlUsd: 300000,
-    liquidityUsd: 54000,
+  METAc: {
+    vaultAddress: IPOR_FUSION_FACTORY_BASE,
+    stockAddress: "0xb2000000000000000000008bc8786b856e61707c",
+    vaultName: "IPOR Meta Carry Trade",
+    apy: 7.46,
+    borrowApr: 4.4,
+    tvlUsd: 32_000,
   },
 };
 
@@ -504,10 +488,11 @@ export async function getUnifiedStockLendingComparison(
   }
 
   // 4. IPOR Fusion (Stock Carry Trade & Lending Plasma Vaults on Base)
-  // Official app: https://app.ipor.io/stocks
+  // Official app: https://app.ipor.io/stocks (Verified 4 stocks: GOOGc, NVDAc, AAPLc, METAc)
   const iporDiscovered = matchingMarkets.find((m) => m.protocol === "ipor");
-  const iporVerified = VERIFIED_IPOR_STOCK_VAULTS[cleanSymbol];
-  if (iporDiscovered || iporVerified) {
+  const iporVerified = VERIFIED_IPOR_STOCK_VAULTS[cleanSymbol] ?? (cleanSymbol === "GOOGc" ? VERIFIED_IPOR_STOCK_VAULTS["GOOGLc"] : undefined);
+  const isIporSupported = Boolean(iporVerified);
+  if (isIporSupported) {
     const iporContract = (iporDiscovered?.contractAddress || iporVerified?.vaultAddress || IPOR_FUSION_FACTORY_BASE) as `0x${string}`;
     options.push({
       id: iporDiscovered ? `ipor-${iporDiscovered.marketId}` : `${cleanSymbol}-ipor-vault`,
@@ -521,23 +506,23 @@ export async function getUnifiedStockLendingComparison(
       stockAddress: stockAddr,
       loanSymbol: "USDC",
       loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: iporDiscovered?.supplyApy ?? (iporVerified?.apy ?? (isHighBeta ? 13.85 : 10.4)),
-      borrowApr: iporDiscovered?.borrowApr ?? (iporVerified?.borrowApr ?? (isHighBeta ? 4.8 : 4.2)),
+      supplyApy: iporVerified?.apy ?? iporDiscovered?.supplyApy ?? 7.47,
+      borrowApr: iporVerified?.borrowApr ?? iporDiscovered?.borrowApr ?? 4.2,
       maxLtv: 75,
       liquidationThreshold: 80,
       utilization: 68.5,
-      availableLiquidityUsd: iporDiscovered?.liquidityUsd ?? ((iporVerified?.tvlUsd ?? 250_000) * 0.75),
-      tvlUsd: iporDiscovered?.tvlUsd ?? (iporVerified?.tvlUsd ?? 250_000),
+      availableLiquidityUsd: (iporVerified?.tvlUsd ?? 40_000) * 0.75,
+      tvlUsd: iporVerified?.tvlUsd ?? 40_000,
       riskScore: 2,
       riskLevel: "low",
       riskNotes: [
         "Institutional-grade tokenized stock yield & carry-trade vault on Base.",
         "ERC-4626 Plasma Vault architecture routing liquidity to optimal Base credit markets.",
-        "Earn automated stock yield + borrow USDC against stock collateral with Base Builder attribution.",
+        "Earn automated stock yield on IPOR Fusion with Base Builder attribution.",
       ],
       contractAddress: iporContract,
       executionType: "ipor",
-      sourceLink: iporDiscovered?.sourceLink || "https://app.ipor.io/stocks",
+      sourceLink: "https://app.ipor.io/stocks",
     });
   }
 
