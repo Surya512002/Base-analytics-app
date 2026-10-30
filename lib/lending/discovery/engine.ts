@@ -11,6 +11,7 @@ import { pendleAdapter } from "./adapters/pendle";
 import { zkfiAdapter } from "./adapters/zkfi";
 import { aaveAdapter } from "./adapters/aave";
 import { moonwellAdapter } from "./adapters/moonwell";
+import { iporAdapter } from "./adapters/ipor";
 import { aerodromeAdapter } from "./adapters/aerodrome";
 import { eulerAdapter } from "./adapters/euler";
 import { superformAdapter } from "./adapters/superform";
@@ -92,7 +93,7 @@ export async function runMarketDiscovery(
     pendleAdapter,
     zkfiAdapter,
     aaveAdapter,
-    moonwellAdapter,
+    iporAdapter,
     aerodromeAdapter,
     eulerAdapter,
     superformAdapter,
@@ -110,6 +111,7 @@ export async function runMarketDiscovery(
     zkfi: { protocol: "zkfi", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     aave: { protocol: "aave", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     moonwell: { protocol: "moonwell", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
+    ipor: { protocol: "ipor", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     aerodrome: { protocol: "aerodrome", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     euler: { protocol: "euler", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     superform: { protocol: "superform", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },

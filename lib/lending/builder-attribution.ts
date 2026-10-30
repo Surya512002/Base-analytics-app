@@ -1,4 +1,4 @@
-import { encodeFunctionData, type Hex } from "viem";
+import { encodeFunctionData, parseAbi, type Hex } from "viem";
 import { BUILDER_CODE } from "@/lib/constants/env";
 import { buildContractCall, type ContractCall } from "@/lib/utils/tx";
 import {
@@ -63,6 +63,37 @@ export function buildAttributedVaultWithdrawCall(
     abi: ERC4626_VAULT_ABI,
     functionName: "withdraw",
     args: [assets, receiver, owner],
+  });
+  return buildContractCall(vault, data);
+}
+
+const BEEFY_VAULT_ABI = parseAbi([
+  "function deposit(uint256 _amount) external",
+  "function withdraw(uint256 _shares) external",
+]);
+
+/** Attributed Beefy Vault Deposit */
+export function buildAttributedBeefyDepositCall(
+  vault: `0x${string}`,
+  amount: bigint
+): ContractCall {
+  const data = encodeFunctionData({
+    abi: BEEFY_VAULT_ABI,
+    functionName: "deposit",
+    args: [amount],
+  });
+  return buildContractCall(vault, data);
+}
+
+/** Attributed Beefy Vault Withdraw */
+export function buildAttributedBeefyWithdrawCall(
+  vault: `0x${string}`,
+  shares: bigint
+): ContractCall {
+  const data = encodeFunctionData({
+    abi: BEEFY_VAULT_ABI,
+    functionName: "withdraw",
+    args: [shares],
   });
   return buildContractCall(vault, data);
 }

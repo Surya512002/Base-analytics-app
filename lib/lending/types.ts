@@ -8,7 +8,8 @@ export type MarketProtocol =
   | "ondo"
   | "beefy"
   | "euler"
-  | "pendle";
+  | "pendle"
+  | "ipor";
 
 export type MarketCategory =
   | "stocks_borrow" // Borrow cash/crypto against tokenized stock collateral
@@ -54,7 +55,8 @@ export interface LendingMarket {
     | "moonwell_mtoken"
     | "aave_v3"
     | "superform_vault"
-    | "beefy_vault";
+    | "beefy_vault"
+    | "ipor_vault";
   builderAttributed: boolean;
   badgeText?: string;
   description?: string;

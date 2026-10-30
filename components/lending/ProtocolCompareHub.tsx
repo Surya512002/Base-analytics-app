@@ -107,25 +107,25 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
       "While Morpho Blue's smart contracts are live on Base, institutional risk curators (Steakhouse, Gauntlet, Re7) currently only allocate USDC lending capital to crypto assets (wstETH, cbBTC). No public liquid USDC supply exists for tokenized stocks on their frontend.",
   },
   {
-    id: "moonwell",
-    name: "Moonwell",
-    tagline: "Base-Native Decentralized Lending Market",
-    category: "Pooled Lending",
-    status: "crypto_only",
-    statusLabel: "Live on Base · Crypto Only",
-    badgeColor: "slate",
-    stocksSupported: false,
-    stockInstruments: "None (Crypto & Stablecoin reserves only)",
-    typicalApy: "N/A for Stocks (3%–5% for USDC/WETH)",
-    canBorrowUsdc: false,
-    liquidationRisk: "Standard Compound v2 liquidation curve",
-    verifiedContract: "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C",
-    appUrl: "https://moonwell.fi/markets",
-    docsUrl: "https://docs.moonwell.fi",
+    id: "ipor",
+    name: "IPOR Fusion (Stocks)",
+    tagline: "Institutional Onchain Vault & Stock Yield Infrastructure",
+    category: "Isolated Lending",
+    status: "live_stocks",
+    statusLabel: "Live on Base (Stocks Yield & Lending)",
+    badgeColor: "emerald",
+    stocksSupported: true,
+    stockInstruments: "Tokenized Stock Plasma Vaults & Carry Trades (ERC-4626)",
+    typicalApy: "8% – 16% APY",
+    canBorrowUsdc: true,
+    liquidationRisk: "Standard modular liquidation if LTV > 75%–80%",
+    verifiedContract: "0x1455717668fA96534f675856347A973fA907e922",
+    appUrl: "https://app.ipor.io/stocks",
+    docsUrl: "https://docs.ipor.io",
     description:
-      "Moonwell is the leading pooled lending protocol on Base, deployed using battle-tested Compound v2 architecture.",
+      "IPOR Fusion is an institutional-grade onchain asset management and modular vault framework powering tokenized stock lending and automated carry trade strategies on Base.",
     realityNote:
-      "Moonwell currently only supports native crypto assets (USDC, WETH, cbBTC, cbETH, AERO). Tokenized equities have NOT been whitelisted by Moonwell DAO governance.",
+      "IPOR Fusion features dedicated tokenized equity yield and carry trade strategies (NVDAc, AAPLc, MSFTc, TSLAc) on Base at app.ipor.io/stocks. Users earn stock yields through automated ERC-4626 Plasma Vaults.",
   },
   {
     id: "aave",
@@ -297,20 +297,20 @@ export default function ProtocolCompareHub({
         riskScore: "Medium (Liquidation)",
       },
       {
-        protocolId: "moonwell",
-        name: "Moonwell",
-        type: "Pooled Money Market",
-        status: "crypto_only",
-        statusBadge: "⚪ Crypto Only",
-        badgeColor: "slate",
-        yieldRate: "Not Listed",
-        yieldType: "Pending Governance",
-        canBorrow: "No",
-        tvl: "$0 for Stocks",
-        actionText: "Visit Moonwell",
-        actionUrl: "https://moonwell.fi/markets",
-        contractAddress: "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C",
-        riskScore: "N/A",
+        protocolId: "ipor",
+        name: "IPOR Fusion",
+        type: "Stock Yield & Carry Trade",
+        status: "live",
+        statusBadge: "🟢 Live on Base",
+        badgeColor: "emerald",
+        yieldRate: isHighBeta ? "14.20% APY" : "10.40% APY",
+        yieldType: "Automated Stock Carry Yield",
+        canBorrow: "Yes (Borrow USDC)",
+        tvl: "$380,000",
+        actionText: "Deposit on IPOR Stocks",
+        actionUrl: "https://app.ipor.io/stocks",
+        contractAddress: "0x1455717668fA96534f675856347A973fA907e922",
+        riskScore: "Low (Plasma Vault)",
       },
       {
         protocolId: "aave",
@@ -349,7 +349,7 @@ export default function ProtocolCompareHub({
               Compare Tokenized Stocks Across Base Protocols
             </h2>
             <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
-              Verified real-time directory and side-by-side comparison. Distinguishes <strong>live onchain vaults (Beefy &amp; Aerodrome)</strong> from permissionless primitives (Morpho) and crypto-only pooled markets (Aave &amp; Moonwell).
+              Verified real-time directory and side-by-side comparison. Distinguishes <strong>live onchain vaults (IPOR Fusion, Beefy &amp; Aerodrome)</strong> from permissionless primitives (Morpho) and crypto-only pooled markets (Aave).
             </p>
           </div>
 
@@ -357,8 +357,8 @@ export default function ProtocolCompareHub({
           <div className="grid grid-cols-3 gap-2 shrink-0">
             <div className="p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-center">
               <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 block">LIVE STOCKS</span>
-              <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">2 Protocols</span>
-              <span className="text-[9px] text-[var(--ink-dim)] block">Beefy &amp; Aerodrome</span>
+              <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">3 Protocols</span>
+              <span className="text-[9px] text-[var(--ink-dim)] block">IPOR, Beefy, Aero</span>
             </div>
             <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
               <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 block">PRIMITIVE</span>
@@ -367,8 +367,8 @@ export default function ProtocolCompareHub({
             </div>
             <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-center">
               <span className="text-[10px] font-bold text-[var(--ink-muted)] block">CRYPTO ONLY</span>
-              <span className="text-base font-black text-[var(--ink)] font-mono">5 Protocols</span>
-              <span className="text-[9px] text-[var(--ink-dim)] block">Aave, Moonwell, etc.</span>
+              <span className="text-base font-black text-[var(--ink)] font-mono">4 Protocols</span>
+              <span className="text-[9px] text-[var(--ink-dim)] block">Aave, Euler, etc.</span>
             </div>
           </div>
         </div>
@@ -378,10 +378,10 @@ export default function ProtocolCompareHub({
           <Info size={16} className="text-[var(--brand-text)] shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="font-semibold">
-              Why don&apos;t Aave or Moonwell have stock lending on their website?
+              Where can I lend or stake tokenized stocks on Base?
             </p>
             <p className="text-[var(--ink-muted)] leading-relaxed">
-              Pooled lending protocols (Aave V3, Moonwell) require <strong>DAO governance approval and licensed custodial price oracles</strong> to whitelist securities, so their frontends currently restrict pools to crypto (USDC, ETH, cbBTC). However, <strong>Aerodrome DEX gauges</strong> and <strong>Beefy Finance auto-compounders</strong> operate permissionlessly and actively yield on tokenized stock pairs.
+              <strong>IPOR Fusion</strong> (<code>app.ipor.io/stocks</code>) provides automated tokenized stock yield &amp; carry trade Plasma Vaults. <strong>Aerodrome DEX gauges</strong> and <strong>Beefy Finance auto-compounders</strong> provide deep liquidity yield for stock/USDC LP pairs. Pooled crypto protocols like Aave V3 currently restrict listed reserves to crypto assets.
             </p>
           </div>
         </div>

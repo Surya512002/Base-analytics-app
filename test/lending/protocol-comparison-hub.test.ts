@@ -10,7 +10,7 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(protocolIds).toContain("beefy");
     expect(protocolIds).toContain("aerodrome");
     expect(protocolIds).toContain("morpho");
-    expect(protocolIds).toContain("moonwell");
+    expect(protocolIds).toContain("ipor");
     expect(protocolIds).toContain("aave");
     expect(protocolIds).toContain("euler");
     expect(protocolIds).toContain("pendle");
@@ -34,15 +34,16 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aero.category).toBe("DEX & Gauges");
   });
 
-  it("verifies pooled protocols (Aave V3, Moonwell) are transparently categorized as crypto-only for lending", () => {
+  it("verifies pooled protocols (Aave V3) and IPOR Fusion stock support", () => {
     const aave = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "aave")!;
-    const moonwell = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "moonwell")!;
+    const ipor = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "ipor")!;
 
     expect(aave.status).toBe("crypto_only");
     expect(aave.stocksSupported).toBe(false);
 
-    expect(moonwell.status).toBe("crypto_only");
-    expect(moonwell.stocksSupported).toBe(false);
+    expect(ipor.status).toBe("live_stocks");
+    expect(ipor.stocksSupported).toBe(true);
+    expect(ipor.appUrl).toBe("https://app.ipor.io/stocks");
   });
 
   it("verifies unified comparison includes verified protocols for supported stock (NVDAc)", async () => {
@@ -51,6 +52,7 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
 
     expect(protocols).toContain("beefy");
     expect(protocols).toContain("aerodrome");
+    expect(protocols).toContain("ipor");
     expect(protocols).not.toContain("morpho_blue");
 
     const beefyOpt = comp.options.find((o) => o.protocol === "beefy")!;

@@ -7,6 +7,16 @@ export interface SimulationResult {
   reason?: string;
 }
 
+function hasPriorApproval(calls: ContractCall[], currentIndex: number): boolean {
+  for (let j = 0; j < currentIndex; j++) {
+    const data = calls[j]?.data;
+    if (data && data.toLowerCase().startsWith("0x095ea7b3")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Pre-simulates transactions on Base mainnet before prompting user wallet.
  * Catches token transfer restrictions, allowlists, pauses, and blocklists.
@@ -38,6 +48,17 @@ export async function simulateCallsBeforeExecution(
           restrictionFailed: true,
           reason: "This token has transfer restrictions. You may not be eligible.",
         };
+      }
+
+      // If this call follows an approval in the same batch, an isolated eth_call
+      // will fail because the approval state is not yet mined on-chain.
+      // We skip allowance-dependent simulation reverts for post-approval calls.
+      const isAllowanceArtifact =
+        hasPriorApproval(calls, i) &&
+        (/allowance|transfer_from_failed|stf|execution reverted|revert/i.test(msg));
+
+      if (isAllowanceArtifact) {
+        continue;
       }
 
       // Check for custom revert errors or general revert

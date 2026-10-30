@@ -10,6 +10,8 @@ import {
   USDC_BASE_ADDRESS,
   WETH_BASE_ADDRESS,
   CBBTC_BASE_ADDRESS,
+  IPOR_FUSION_FACTORY_BASE,
+  ERC4626_VAULT_ABI,
 } from "./constants";
 import { BASE_LENDING_MARKETS } from "./markets";
 import { getMorphoMarketId } from "./morpho-blue";
@@ -24,7 +26,7 @@ export const HEALTH_THRESHOLDS = {
 
 export interface UserProtocolPosition {
   id: string;
-  protocol: "morpho_blue" | "beefy" | "aerodrome" | "aave" | "moonwell" | "pendle";
+  protocol: "morpho_blue" | "beefy" | "aerodrome" | "aave" | "ipor" | "moonwell" | "pendle";
   protocolName: string;
   protocolBadge: string;
   marketId: string;
@@ -465,6 +467,109 @@ export async function readMoonwellPositions(
 }
 
 /**
+ * 3b. Read real IPOR Fusion stock vault positions on Base (NVDAc, AAPLc, MSFTc, TSLAc)
+ */
+export async function readIporPositions(
+  userAddress: `0x${string}`
+): Promise<UserProtocolPosition[]> {
+  const client = createBasePublicClient();
+  const markets = [
+    {
+      vault: IPOR_FUSION_FACTORY_BASE,
+      symbol: "NVDAc",
+      name: "IPOR NVDA Carry Trade",
+      decimals: 8,
+      priceUsd: 138.25,
+      supplyApy: 12.85,
+    },
+    {
+      vault: IPOR_FUSION_FACTORY_BASE,
+      symbol: "AAPLc",
+      name: "IPOR AAPL Carry Trade",
+      decimals: 8,
+      priceUsd: 232.5,
+      supplyApy: 9.60,
+    },
+    {
+      vault: IPOR_FUSION_FACTORY_BASE,
+      symbol: "MSFTc",
+      name: "IPOR MSFT Carry Trade",
+      decimals: 8,
+      priceUsd: 428.0,
+      supplyApy: 10.40,
+    },
+    {
+      vault: IPOR_FUSION_FACTORY_BASE,
+      symbol: "TSLAc",
+      name: "IPOR TSLA Carry Trade",
+      decimals: 8,
+      priceUsd: 221.8,
+      supplyApy: 14.20,
+    },
+  ];
+
+  const calls = markets.map((m) => ({
+    address: m.vault,
+    abi: ERC4626_VAULT_ABI,
+    functionName: "balanceOf" as const,
+    args: [userAddress],
+  }));
+
+  try {
+    const results = await client.multicall({
+      contracts: calls,
+      allowFailure: true,
+    });
+
+    const positions: UserProtocolPosition[] = [];
+
+    for (let i = 0; i < markets.length; i++) {
+      const m = markets[i]!;
+      const balRes = results[i] as any;
+      const sharesBal = (balRes?.status === "success" && balRes.result ? balRes.result : ZERO_BI) as bigint;
+      if (sharesBal === ZERO_BI) continue;
+
+      const suppliedNum = parseFloat(formatUnits(sharesBal, m.decimals)) || 0;
+      const suppliedUsd = suppliedNum * m.priceUsd;
+
+      positions.push({
+        id: `ipor-${m.symbol.toLowerCase()}`,
+        protocol: "ipor",
+        protocolName: "IPOR Fusion",
+        protocolBadge: "Plasma Vault",
+        marketId: `ipor-${m.symbol.toLowerCase()}-vault`,
+        marketName: m.name,
+        assetSymbol: m.symbol,
+        assetName: m.name,
+        assetAddress: m.vault,
+        type: "supplied",
+        suppliedAmount: suppliedNum,
+        borrowedAmount: 0,
+        suppliedFormatted: `${suppliedNum.toFixed(4)} ${m.symbol}`,
+        borrowedFormatted: "$0.00 USD",
+        suppliedUsd,
+        borrowedUsd: 0,
+        apy: m.supplyApy,
+        apr: 0,
+        healthFactor: null,
+        ltv: null,
+        liquidationPrice: null,
+        explorerUrl: `https://basescan.org/address/${m.vault}`,
+        contractAddress: m.vault,
+        canAdd: true,
+        canWithdraw: true,
+        canBorrow: true,
+        canRepay: false,
+      });
+    }
+
+    return positions;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * 4. Read real Aerodrome Gauge staked positions on Base
  */
 export async function readAerodromeGaugePositions(
@@ -623,10 +728,11 @@ export async function fetchAllUserPositions(
   const errors: Record<string, string> = {};
   const allPositions: UserProtocolPosition[] = [];
 
-  const [morphoRes, aaveRes, moonwellRes, aeroRes] = await Promise.allSettled([
+  const [morphoRes, aaveRes, moonwellRes, iporRes, aeroRes] = await Promise.allSettled([
     readMorphoBluePositions(userAddress),
     readAavePositions(userAddress),
     readMoonwellPositions(userAddress),
+    readIporPositions(userAddress),
     readAerodromeGaugePositions(userAddress),
   ]);
 
@@ -646,6 +752,12 @@ export async function fetchAllUserPositions(
     allPositions.push(...moonwellRes.value);
   } else {
     errors["Moonwell"] = moonwellRes.reason?.message || "Failed to query Moonwell contract";
+  }
+
+  if (iporRes.status === "fulfilled") {
+    allPositions.push(...iporRes.value);
+  } else {
+    errors["IPOR Fusion"] = iporRes.reason?.message || "Failed to query IPOR contract";
   }
 
   if (aeroRes.status === "fulfilled") {

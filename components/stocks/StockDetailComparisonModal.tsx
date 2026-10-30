@@ -37,6 +37,7 @@ import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
 import { formatTokenAmount } from "@/lib/launchpad/format";
 import { USDC_BASE } from "@/lib/constants/contracts";
+import { ERC20_ABI } from "@/lib/lending/constants";
 import TokenLogo from "@/components/ui/TokenLogo";
 
 export type ModalActionType =
@@ -321,17 +322,36 @@ export default function StockDetailComparisonModal({
     try {
       const decimals = isUsdAction ? 6 : stock.decimals;
       const parsedAmount = parseUnits(amount, decimals);
+      const pub = createBasePublicClient();
+
+      const targetToken = isUsdAction
+        ? selectedOption.loanAddress
+        : selectedOption.stockAddress;
+
+      let requiresApproval = false;
+      if (activeAction === "supply" || activeAction === "repay" || activeAction === "strategy_deposit") {
+        try {
+          const allowance = await pub.readContract({
+            address: targetToken,
+            abi: ERC20_ABI,
+            functionName: "allowance",
+            args: [userAddress as `0x${string}`, selectedOption.contractAddress],
+          });
+          requiresApproval = (allowance as bigint) < parsedAmount;
+        } catch {
+          requiresApproval = true;
+        }
+      }
 
       const calls = buildUnifiedProtocolCalls({
         option: selectedOption,
         action: activeAction,
         amountRaw: parsedAmount,
         userAddress: userAddress as `0x${string}`,
-        requiresApproval: true,
+        requiresApproval,
       });
 
       // Part 4: Pre-simulate every transaction first
-      const pub = createBasePublicClient();
       const sim = await simulateCallsBeforeExecution(pub, userAddress as `0x${string}`, calls);
       if (!sim.ok) {
         setErrorMessage(

@@ -20,6 +20,7 @@ import {
   fetchAllUserPositions,
   readMorphoBluePositions,
   readAavePositions,
+  readIporPositions,
   readMoonwellPositions,
   readAerodromeGaugePositions,
   type UserProtocolPosition,
@@ -624,6 +625,8 @@ export default function LendingHub({
         retryPositions = await readMorphoBluePositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("aave")) {
         retryPositions = await readAavePositions(userAddress as `0x${string}`);
+      } else if (protocol.toLowerCase().includes("ipor")) {
+        retryPositions = await readIporPositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("moonwell")) {
         retryPositions = await readMoonwellPositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("aerodrome")) {

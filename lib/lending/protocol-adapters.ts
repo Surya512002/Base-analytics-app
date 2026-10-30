@@ -10,6 +10,10 @@ import {
   buildAttributedMorphoWithdrawCollateralCall,
   buildAttributedVaultDepositCall,
   buildAttributedVaultWithdrawCall,
+  buildAttributedBeefyDepositCall,
+  buildAttributedBeefyWithdrawCall,
+  buildAttributedGaugeDepositCall,
+  buildAttributedGaugeWithdrawCall,
 } from "./builder-attribution";
 import type { StockLendingOption } from "./unified-comparison";
 
@@ -97,10 +101,9 @@ export function buildUnifiedProtocolCalls(params: {
       break;
     }
 
-    case "aerodrome":
-    case "beefy":
+    case "ipor":
     case "pendle": {
-      // Vault/Strategy deposit/withdraw
+      // ERC-4626 standard Plasma Vault / Yield Vault deposit/withdraw
       if (action === "supply" || action === "strategy_deposit") {
         calls.push(
           buildAttributedVaultDepositCall(option.contractAddress, amountRaw, userAddress)
@@ -113,6 +116,34 @@ export function buildUnifiedProtocolCalls(params: {
             userAddress,
             userAddress
           )
+        );
+      }
+      break;
+    }
+
+    case "beefy": {
+      // Beefy Finance Auto-Compounding Vault
+      if (action === "supply" || action === "strategy_deposit") {
+        calls.push(
+          buildAttributedBeefyDepositCall(option.contractAddress, amountRaw)
+        );
+      } else if (action === "withdraw" || action === "strategy_withdraw") {
+        calls.push(
+          buildAttributedBeefyWithdrawCall(option.contractAddress, amountRaw)
+        );
+      }
+      break;
+    }
+
+    case "aerodrome": {
+      // Aerodrome Gauge Staking
+      if (action === "supply" || action === "strategy_deposit") {
+        calls.push(
+          buildAttributedGaugeDepositCall(option.contractAddress, amountRaw)
+        );
+      } else if (action === "withdraw" || action === "strategy_withdraw") {
+        calls.push(
+          buildAttributedGaugeWithdrawCall(option.contractAddress, amountRaw)
         );
       }
       break;

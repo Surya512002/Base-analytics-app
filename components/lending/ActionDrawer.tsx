@@ -25,7 +25,7 @@ import { parseUnits, formatUnits } from "viem";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { USDC_BASE_ADDRESS } from "@/lib/lending/constants";
+import { USDC_BASE_ADDRESS, ERC20_ABI } from "@/lib/lending/constants";
 import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
 import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import { useCompliance } from "@/hooks/useCompliance";
@@ -339,6 +339,26 @@ function ActionDrawerContent({
       const dec = activeTab === "borrow" || activeTab === "repay" ? 6 : 8;
       const amountRaw = parseUnits(amount, dec);
 
+      const targetToken =
+        activeTab === "borrow" || activeTab === "repay"
+          ? option.loanAddress
+          : option.stockAddress;
+
+      let requiresApproval = false;
+      if (activeTab === "supply" || activeTab === "repay") {
+        try {
+          const allowance = await pub.readContract({
+            address: targetToken,
+            abi: ERC20_ABI,
+            functionName: "allowance",
+            args: [user, option.contractAddress],
+          });
+          requiresApproval = (allowance as bigint) < amountRaw;
+        } catch {
+          requiresApproval = true;
+        }
+      }
+
       const calls = buildUnifiedProtocolCalls({
         option,
         action:
@@ -355,7 +375,7 @@ function ActionDrawerContent({
                 : "repay",
         amountRaw,
         userAddress: user,
-        requiresApproval: true,
+        requiresApproval,
       });
 
       // Part 4: Pre-simulate every transaction first before prompting wallet
@@ -453,6 +473,29 @@ function ActionDrawerContent({
           2. BODY (Scrollable flex-1 min-h-0)
           ───────────────────────────────────────────────────────────── */}
       <div ref={bodyRef} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+        {(option.protocol === "beefy" || option.protocol === "aerodrome") && (
+          <div className="p-3.5 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-2 text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
+              <Info size={14} />
+              <span>Liquidity Pool (LP) Strategy</span>
+            </div>
+            <p className="text-[var(--ink-muted)] leading-relaxed">
+              {option.protocolName} yield is derived from <strong>{option.stockSymbol}/USDC</strong> liquidity pool positions on Aerodrome. You can manage or deposit directly on the official app:
+            </p>
+            {option.sourceLink && (
+              <a
+                href={option.sourceLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] border border-[var(--border-subtle)] hover:border-[var(--brand-text)] font-bold text-[11px] transition"
+              >
+                <span>Open {option.protocolName} App</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+        )}
+
         {/* Wallet Disconnected Callout State */}
         {!isConnected && (
           <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--brand-soft)] space-y-2.5">

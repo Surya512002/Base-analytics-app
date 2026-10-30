@@ -9,7 +9,8 @@ export type DiscoveryProtocol =
   | "euler"
   | "moonwell"
   | "superform"
-  | "aerodrome";
+  | "aerodrome"
+  | "ipor";
 
 export type MarketType = "borrow" | "lend" | "stake";
 

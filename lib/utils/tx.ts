@@ -117,7 +117,7 @@ export function finalizeAppTransactionBatch(
   );
 
   if (hasB20 && !hasAttributedNonB20) {
-    return [...normalized, buildBuilderAttributionCall()];
+    return [buildBuilderAttributionCall(), ...normalized];
   }
 
   return normalized;
