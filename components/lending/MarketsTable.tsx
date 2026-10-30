@@ -73,6 +73,8 @@ export default function MarketsTable({
     { id: "all", label: "All Protocols" },
     { id: "beefy", label: "Beefy Finance" },
     { id: "aerodrome", label: "Aerodrome" },
+    { id: "aave", label: "Aave Pro" },
+    { id: "ipor", label: "IPOR Fusion" },
   ];
   const [onlyHoldings, setOnlyHoldings] = useState(false);
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "liquidity" | "price" | "name">("supply");

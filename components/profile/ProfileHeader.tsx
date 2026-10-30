@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   Zap,
+  Users,
 } from "lucide-react";
 import type { CreatorProfile } from "@/lib/launchpad/creator-profile-types";
 import { isCreatorProfileComplete } from "@/lib/launchpad/creator-profile-types";
@@ -20,6 +21,7 @@ import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import { shortAddr } from "@/lib/launchpad/format";
 import CreatorAvatar from "@/components/launchpad/CreatorAvatar";
 import EditProfileDrawer from "./EditProfileDrawer";
+import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 
 interface ProfileHeaderProps {
   address: string;
@@ -44,6 +46,7 @@ export default function ProfileHeader({
   const [copiedLink, setCopiedLink] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [basename, setBasename] = useState<string | null>(null);
+  const { formatted: uniqueUsersFormatted } = useUniqueUsers(address);
 
   // Check Basename resolution on Base mainnet
   useEffect(() => {
@@ -115,6 +118,14 @@ export default function ProfileHeader({
                     <ShieldCheck size={11} /> {basename}
                   </span>
                 )}
+                <span
+                  title="Total verified unique wallet addresses connected and tracked via Redis on Base"
+                  className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1.5 cursor-default"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <Users size={11} />
+                  <span>{uniqueUsersFormatted} Unique Users</span>
+                </span>
               </div>
 
               {/* Wallet Address + Copy + Basescan */}

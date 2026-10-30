@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { Rocket, Info, ArrowRight } from "lucide-react";
+import { Rocket, Info, ArrowRight, Users } from "lucide-react";
+import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import { formatUsd } from "@/lib/launchpad/format";
 
 interface CreatorStatsProps {
@@ -37,6 +38,7 @@ export default function CreatorStats({
     );
   }
 
+  const { formatted: uniqueUsersFormatted } = useUniqueUsers();
   const isAllEmpty = launches === 0 && volume24h === 0 && totalMcap === 0;
 
   const statItems = [
@@ -97,6 +99,30 @@ export default function CreatorStats({
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Community Unique Users Banner */}
+      <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Users size={17} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
+              Base Community &amp; Active App Users
+            </div>
+            <div className="text-[11px] text-[var(--ink-dim)] truncate">
+              Unique wallet addresses connected and tracked via Redis backend
+            </div>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-base sm:text-xl font-black text-[var(--ink)] font-mono tabular-nums flex items-center gap-1.5 justify-end">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {uniqueUsersFormatted}
+          </div>
+          <span className="text-[10px] font-semibold text-[var(--ink-muted)]">Total Connected</span>
+        </div>
       </div>
 
       {/* Guidance Line when empty */}

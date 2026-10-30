@@ -40,7 +40,7 @@ function disableRedis(reason: string) {
 function getRedis(): Redis | null {
   // If running in browser, Redis client is not available (TCP/DNS not in browser)
   if (typeof window !== "undefined" || redisUnavailable) return null;
-  const raw = process.env.KV_REDIS_URL?.trim();
+  const raw = (process.env.KV_REDIS_URL || process.env.REDIS_URL)?.trim();
   if (!raw) return null;
 
   if (!client) {

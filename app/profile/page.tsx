@@ -9,10 +9,13 @@ import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { feeShareLabels } from "@/lib/launchpad/fee-split";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 import { hrefForAppTab, readPersistedWalletAddress } from "@/lib/utils/wallet-persist";
+import { Users } from "lucide-react";
+import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 
 export default function ProfilePage() {
   const router = useRouter();
   const shares = feeShareLabels();
+  const { formatted: totalUsersFormatted } = useUniqueUsers();
   const {
     wallet,
     loading,
@@ -84,6 +87,11 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)] sm:p-8">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-semibold mb-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <Users size={13} />
+                <span>{totalUsersFormatted} Unique Users Connected on Base</span>
+              </div>
               <h1 className="text-2xl font-bold text-[var(--ink)]">Creator profile</h1>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">
                 Connect wallet, then sign in (free, no gas) to create your public profile and track
