@@ -496,6 +496,29 @@ function ActionDrawerContent({
           </div>
         )}
 
+        {option.protocol === "aave" && (
+          <div className="p-3.5 rounded-xl border border-purple-500/20 bg-purple-500/5 space-y-2 text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-purple-600 dark:text-purple-400">
+              <Info size={14} />
+              <span>Aave Pro Equities Collateral Hub</span>
+            </div>
+            <p className="text-[var(--ink-muted)] leading-relaxed">
+              Deposit <strong>{option.stockSymbol}</strong> collateral to borrow USDC at up to 75% Max LTV with Chainlink equity price feeds. Or manage directly on Aave Pro:
+            </p>
+            {option.sourceLink && (
+              <a
+                href={option.sourceLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] border border-[var(--border-subtle)] hover:border-[var(--brand-text)] font-bold text-[11px] transition"
+              >
+                <span>Open Aave Pro App</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+        )}
+
         {/* Wallet Disconnected Callout State */}
         {!isConnected && (
           <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--brand-soft)] space-y-2.5">

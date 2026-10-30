@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_REALITY_REGISTRY } from "@/components/lending/ProtocolCompareHub";
-import { getUnifiedStockLendingComparison } from "@/lib/lending/unified-comparison";
+import {
+  getUnifiedStockLendingComparison,
+  AAVE_EQUITIES_SUPPORTED_STOCKS,
+} from "@/lib/lending/unified-comparison";
 
 describe("Protocol Comparison Hub & Real DeFi Verification", () => {
   it("verifies reality registry audits all 8 major Base protocols", () => {
@@ -34,12 +37,13 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aero.category).toBe("DEX & Gauges");
   });
 
-  it("verifies pooled protocols (Aave V3) and IPOR Fusion stock support", () => {
+  it("verifies pooled protocols (Aave Pro) and IPOR Fusion stock support", () => {
     const aave = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "aave")!;
     const ipor = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "ipor")!;
 
-    expect(aave.status).toBe("crypto_only");
-    expect(aave.stocksSupported).toBe(false);
+    expect(aave.status).toBe("live_stocks");
+    expect(aave.stocksSupported).toBe(true);
+    expect(aave.appUrl).toBe("https://pro.aave.com/explore/borrow");
 
     expect(ipor.status).toBe("live_stocks");
     expect(ipor.stocksSupported).toBe(true);
@@ -53,6 +57,7 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(protocols).toContain("beefy");
     expect(protocols).toContain("aerodrome");
     expect(protocols).toContain("ipor");
+    expect(protocols).toContain("aave");
     expect(protocols).not.toContain("morpho_blue");
 
     const beefyOpt = comp.options.find((o) => o.protocol === "beefy")!;
@@ -65,7 +70,31 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aeroOpt.type).toBe("strategy");
     expect(aeroOpt.supplyApy).toBeGreaterThan(0);
     expect(aeroOpt.contractAddress).toBe("0xA282064541Bb45Caa046fB9f21a240671aBB7f46");
+
+    const aaveOpt = comp.options.find((o) => o.protocol === "aave")!;
+    expect(aaveOpt.type).toBe("variable");
+    expect(aaveOpt.supplyApy).toBeGreaterThan(0);
+    expect(aaveOpt.borrowApr).toBeGreaterThan(0);
+    expect(aaveOpt.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
+    expect(aaveOpt.sourceLink).toContain("pro.aave.com");
   });
+
+  it("verifies Aave Pro Equities supports the 7 collateral stocks and excludes unlisted equities", async () => {
+    expect(AAVE_EQUITIES_SUPPORTED_STOCKS.size).toBe(7);
+    for (const sym of ["NVDAc", "AAPLc", "MSFTc", "TSLAc", "AMZNc", "GOOGLc", "METAc"]) {
+      expect(AAVE_EQUITIES_SUPPORTED_STOCKS.has(sym)).toBe(true);
+    }
+    expect(AAVE_EQUITIES_SUPPORTED_STOCKS.has("COINc")).toBe(false);
+
+    const comp = await getUnifiedStockLendingComparison("AAPLc");
+    const aave = comp.options.find((o) => o.protocol === "aave");
+    expect(aave).toBeDefined();
+    expect(aave?.maxLtv).toBe(75);
+    expect(aave?.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
+
+    const coinComp = await getUnifiedStockLendingComparison("COINc", undefined, true);
+    expect(coinComp.options.find((o) => o.protocol === "aave")).toBeUndefined();
+  }, 10000);
 
   it("verifies unwhitelisted stocks with zero protocol pools return 0 options without mock fallbacks", async () => {
     const comp = await getUnifiedStockLendingComparison("COINc", undefined, true);

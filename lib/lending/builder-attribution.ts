@@ -233,6 +233,20 @@ export function buildAttributedAaveRepayCall(
   return buildContractCall(AAVE_V3_POOL_BASE, data);
 }
 
+/** Attributed Aave v3 / Pro Withdraw */
+export function buildAttributedAaveWithdrawCall(
+  asset: `0x${string}`,
+  amount: bigint,
+  to: `0x${string}`
+): ContractCall {
+  const data = encodeFunctionData({
+    abi: AAVE_V3_POOL_ABI,
+    functionName: "withdraw",
+    args: [asset, amount, to],
+  });
+  return buildContractCall(AAVE_V3_POOL_BASE, data);
+}
+
 /** Attributed Morpho Blue Supply Collateral */
 export function buildAttributedMorphoSupplyCollateralCall(
   marketParams: {

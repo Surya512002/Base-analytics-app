@@ -14,6 +14,10 @@ import {
   buildAttributedBeefyWithdrawCall,
   buildAttributedGaugeDepositCall,
   buildAttributedGaugeWithdrawCall,
+  buildAttributedAaveSupplyCall,
+  buildAttributedAaveBorrowCall,
+  buildAttributedAaveRepayCall,
+  buildAttributedAaveWithdrawCall,
 } from "./builder-attribution";
 import type { StockLendingOption } from "./unified-comparison";
 
@@ -144,6 +148,28 @@ export function buildUnifiedProtocolCalls(params: {
       } else if (action === "withdraw" || action === "strategy_withdraw") {
         calls.push(
           buildAttributedGaugeWithdrawCall(option.contractAddress, amountRaw)
+        );
+      }
+      break;
+    }
+
+    case "aave": {
+      // Aave Pro Equities Collateral Lending Hub on Base
+      if (action === "supply") {
+        calls.push(
+          buildAttributedAaveSupplyCall(option.stockAddress, amountRaw, userAddress)
+        );
+      } else if (action === "borrow") {
+        calls.push(
+          buildAttributedAaveBorrowCall(option.loanAddress, amountRaw, userAddress)
+        );
+      } else if (action === "repay") {
+        calls.push(
+          buildAttributedAaveRepayCall(option.loanAddress, amountRaw, userAddress)
+        );
+      } else if (action === "withdraw") {
+        calls.push(
+          buildAttributedAaveWithdrawCall(option.stockAddress, amountRaw, userAddress)
         );
       }
       break;
