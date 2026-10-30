@@ -6,18 +6,18 @@ import {
 } from "@/lib/lending/unified-comparison";
 
 describe("Protocol Comparison Hub & Real DeFi Verification", () => {
-  it("verifies reality registry audits all 8 major Base protocols", () => {
-    expect(PROTOCOL_REALITY_REGISTRY.length).toBe(8);
+  it("verifies reality registry audits major Base protocols without uncurated primitives", () => {
+    expect(PROTOCOL_REALITY_REGISTRY.length).toBe(7);
 
     const protocolIds = PROTOCOL_REALITY_REGISTRY.map((p) => p.id);
     expect(protocolIds).toContain("beefy");
     expect(protocolIds).toContain("aerodrome");
-    expect(protocolIds).toContain("morpho");
     expect(protocolIds).toContain("ipor");
     expect(protocolIds).toContain("aave");
     expect(protocolIds).toContain("euler");
     expect(protocolIds).toContain("pendle");
     expect(protocolIds).toContain("superform");
+    expect(protocolIds).not.toContain("morpho");
   });
 
   it("verifies Beefy Finance is confirmed live for tokenized stocks auto-compounding", () => {

@@ -273,6 +273,28 @@ export default function StockDetailComparisonModal({
 
     if (!selectedOption) return;
 
+    const isExternalProtocol =
+      selectedOption.protocol === "aave" ||
+      selectedOption.protocol === "ipor" ||
+      selectedOption.protocol === "aerodrome" ||
+      selectedOption.protocol === "beefy";
+
+    if (isExternalProtocol) {
+      const targetUrl =
+        selectedOption.protocol === "aave"
+          ? "https://pro.aave.com/explore/borrow"
+          : selectedOption.protocol === "ipor"
+          ? "https://app.ipor.io/stocks"
+          : selectedOption.protocol === "aerodrome"
+          ? (selectedOption.sourceLink || "https://aerodrome.finance/pools")
+          : (selectedOption.sourceLink || "https://app.beefy.com");
+
+      if (typeof window !== "undefined") {
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
+
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount <= 0) {
       setErrorMessage("Please enter an amount greater than 0");
@@ -974,10 +996,12 @@ export default function StockDetailComparisonModal({
                   onClick={handleExecute}
                   disabled={
                     txStatus === "submitting" ||
-                    (activeAction === "borrow" && maxBorrowCapacityUsd <= 0) ||
-                    ((activeAction === "supply" || activeAction === "strategy_deposit") &&
-                      stockBalance <= 0) ||
-                    (activeAction === "repay" && usdcBalance <= 0)
+                    (!["aave", "ipor", "aerodrome", "beefy"].includes(selectedOption.protocol) && (
+                      (activeAction === "borrow" && maxBorrowCapacityUsd <= 0) ||
+                      ((activeAction === "supply" || activeAction === "strategy_deposit") &&
+                        stockBalance <= 0) ||
+                      (activeAction === "repay" && usdcBalance <= 0)
+                    ))
                   }
                   className="w-full btn-primary py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
@@ -986,6 +1010,30 @@ export default function StockDetailComparisonModal({
                       <Loader2 size={16} className="animate-spin" />
                       <span>Signing &amp; Executing on Base…</span>
                     </>
+                  ) : ["aave", "ipor", "aerodrome", "beefy"].includes(selectedOption.protocol) ? (
+                    <span className="flex items-center gap-1.5 justify-center">
+                      {selectedOption.protocol === "aave" ? (
+                        <>
+                          <span>Open Aave Pro (Borrow against {stock.symbol})</span>
+                          <ExternalLink size={14} />
+                        </>
+                      ) : selectedOption.protocol === "ipor" ? (
+                        <>
+                          <span>Open IPOR Stocks Vault ({selectedOption.supplyApy.toFixed(1)}% APY)</span>
+                          <ExternalLink size={14} />
+                        </>
+                      ) : selectedOption.protocol === "beefy" ? (
+                        <>
+                          <span>Open Beefy Vault (Zap &amp; Stake)</span>
+                          <ExternalLink size={14} />
+                        </>
+                      ) : (
+                        <>
+                          <span>Provide Liquidity on Aerodrome ({selectedOption.supplyApy.toFixed(1)}% APR)</span>
+                          <ExternalLink size={14} />
+                        </>
+                      )}
+                    </span>
                   ) : (
                     <>
                       <span>

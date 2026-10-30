@@ -319,6 +319,12 @@ function ActionDrawerContent({
     (activeTab === "supply" || activeTab === "borrow") &&
     (isLendDisabled || isRegionRestricted);
 
+  const isExternalProtocol =
+    option.protocol === "aave" ||
+    option.protocol === "ipor" ||
+    option.protocol === "aerodrome" ||
+    option.protocol === "beefy";
+
   // Multi-state button logic
   const handleActionClick = async () => {
     if (!isConnected) {
@@ -326,6 +332,23 @@ function ActionDrawerContent({
       return;
     }
     if (isRestrictedEntry) return;
+
+    if (isExternalProtocol) {
+      const targetUrl =
+        option.protocol === "aave"
+          ? "https://pro.aave.com/explore/borrow"
+          : option.protocol === "ipor"
+          ? "https://app.ipor.io/stocks"
+          : option.protocol === "aerodrome"
+          ? (option.sourceLink || "https://aerodrome.finance/pools")
+          : (option.sourceLink || "https://app.beefy.com");
+
+      if (typeof window !== "undefined") {
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
+
     if (!parsedAmount || parsedAmount <= 0) return;
     if (isInsufficientBalance) return;
     if (needsRiskAck) return;
@@ -513,6 +536,29 @@ function ActionDrawerContent({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] border border-[var(--border-subtle)] hover:border-[var(--brand-text)] font-bold text-[11px] transition"
               >
                 <span>Open Aave Pro App</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+        )}
+
+        {option.protocol === "ipor" && (
+          <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2 text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+              <Info size={14} />
+              <span>IPOR Fusion Stocks Plasma Vault</span>
+            </div>
+            <p className="text-[var(--ink-muted)] leading-relaxed">
+              Automated Plasma Vaults &amp; stock carry trade strategies for <strong>{option.stockSymbol}</strong> on Base. Manage deposits and yields directly on IPOR Stocks:
+            </p>
+            {option.sourceLink && (
+              <a
+                href={option.sourceLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] border border-[var(--border-subtle)] hover:border-[var(--brand-text)] font-bold text-[11px] transition"
+              >
+                <span>Open IPOR Stocks App</span>
                 <ExternalLink size={12} />
               </a>
             )}
@@ -828,9 +874,7 @@ function ActionDrawerContent({
               isRestrictedEntry ||
               stepStatus === "approving" ||
               stepStatus === "confirming" ||
-              !parsedAmount ||
-              isInsufficientBalance ||
-              needsRiskAck
+              (!isExternalProtocol && (!parsedAmount || isInsufficientBalance || needsRiskAck))
             }
             onClick={handleActionClick}
             className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer ${
@@ -838,11 +882,11 @@ function ActionDrawerContent({
                 ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-75"
                 : stepStatus === "approving" || stepStatus === "confirming"
                 ? "bg-[var(--brand)] text-white opacity-80 cursor-wait"
-                : isInsufficientBalance
+                : !isExternalProtocol && isInsufficientBalance
                   ? "bg-[var(--surface-2)] text-red-500 border border-red-500/30 cursor-not-allowed"
-                  : needsRiskAck
+                  : !isExternalProtocol && needsRiskAck
                     ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed"
-                    : !parsedAmount
+                    : !isExternalProtocol && !parsedAmount
                       ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60"
                       : "bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98]"
             }`}
@@ -859,6 +903,30 @@ function ActionDrawerContent({
                 <Loader2 size={16} className="animate-spin" />
                 <span>Confirming in Wallet…</span>
               </>
+            ) : isExternalProtocol ? (
+              <span className="flex items-center gap-1.5 justify-center">
+                {option.protocol === "aave" ? (
+                  <>
+                    <span>Open Aave Pro (Borrow against {option.stockSymbol})</span>
+                    <ExternalLink size={14} />
+                  </>
+                ) : option.protocol === "ipor" ? (
+                  <>
+                    <span>Open IPOR Stocks Vault ({supplyApyVal.toFixed(1)}% APY)</span>
+                    <ExternalLink size={14} />
+                  </>
+                ) : option.protocol === "beefy" ? (
+                  <>
+                    <span>Open Beefy Vault (Zap &amp; Stake)</span>
+                    <ExternalLink size={14} />
+                  </>
+                ) : (
+                  <>
+                    <span>Provide Liquidity on Aerodrome ({supplyApyVal.toFixed(1)}% APR)</span>
+                    <ExternalLink size={14} />
+                  </>
+                )}
+              </span>
             ) : isInsufficientBalance ? (
               <span>Insufficient {activeTokenSymbol} Balance</span>
             ) : !parsedAmount ? (

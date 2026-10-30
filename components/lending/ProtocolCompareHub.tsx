@@ -87,27 +87,6 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
       "Aerodrome is the primary venue where tokenized stocks can be traded and staked on Base. Concentrated liquidity pairs allow users to earn swap fees plus gauge rewards.",
   },
   {
-    id: "morpho",
-    name: "Morpho Blue",
-    tagline: "Permissionless Isolated Lending Primitive",
-    category: "Isolated Lending",
-    status: "primitive_no_liq",
-    statusLabel: "Primitive Live · 0 Public Stock Liquidity",
-    badgeColor: "amber",
-    stocksSupported: false,
-    stockInstruments: "Isolated Stock-Collateral Markets (Permissionless Factory)",
-    typicalApy: "3.2% – 4.8% APY (Factory capability)",
-    canBorrowUsdc: true,
-    liquidationRisk: "Liquidation if Health Factor < 1.0 (LLTV: 72%–77%)",
-    verifiedContract: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-    appUrl: "https://app.morpho.org",
-    docsUrl: "https://docs.morpho.org",
-    description:
-      "Morpho Blue is an immutable singleton protocol on Base enabling isolated lending markets with custom oracle feeds and LLTVs.",
-    realityNote:
-      "While Morpho Blue's smart contracts are live on Base, institutional risk curators (Steakhouse, Gauntlet, Re7) currently only allocate USDC lending capital to crypto assets (wstETH, cbBTC). No public liquid USDC supply exists for tokenized stocks on their frontend.",
-  },
-  {
     id: "ipor",
     name: "IPOR Fusion (Stocks)",
     tagline: "Institutional Onchain Vault & Stock Yield Infrastructure",
@@ -229,7 +208,7 @@ export default function ProtocolCompareHub({
   const [faqOpen, setFaqOpen] = useState<Record<string, boolean>>({
     whyDiff: true,
     whereYield: false,
-    howMorpho: false,
+    howIpor: false,
   });
 
   const selectedStock = useMemo(() => {
@@ -317,22 +296,6 @@ export default function ProtocolCompareHub({
         actionUrl: "https://app.ipor.io/stocks",
         contractAddress: "0x1455717668fA96534f675856347A973fA907e922",
         riskScore: "Low (Plasma Vault)",
-      },
-      {
-        protocolId: "morpho",
-        name: "Morpho Blue",
-        type: "Isolated Borrow Market",
-        status: "primitive",
-        statusBadge: "🟡 Factory Live / Low Liq",
-        badgeColor: "amber",
-        yieldRate: isHighBeta ? "3.85% Borrow APR" : "3.20% Borrow APR",
-        yieldType: "USDC Borrow Rate",
-        canBorrow: "Yes (LLTV 77%)",
-        tvl: "$0 (Uncurated)",
-        actionText: "Inspect Morpho Market",
-        actionUrl: "https://app.morpho.org",
-        contractAddress: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-        riskScore: "Medium (Liquidation)",
       },
     ];
   }, [selectedStock]);
@@ -668,19 +631,19 @@ export default function ProtocolCompareHub({
         <div className="border border-[var(--border-subtle)] rounded-xl overflow-hidden">
           <button
             type="button"
-            onClick={() => toggleFaq("howMorpho")}
+            onClick={() => toggleFaq("howIpor")}
             className="w-full p-3.5 bg-[var(--surface-2)] flex items-center justify-between text-left text-xs font-bold text-[var(--ink)] cursor-pointer"
           >
-            <span>Can anyone borrow against stocks on Morpho Blue?</span>
-            {faqOpen.howMorpho ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <span>How does IPOR Fusion work for tokenized stocks?</span>
+            {faqOpen.howIpor ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
-          {faqOpen.howMorpho && (
+          {faqOpen.howIpor && (
             <div className="p-3.5 text-xs text-[var(--ink-muted)] space-y-2 bg-[var(--surface)] border-t border-[var(--border-subtle)] leading-relaxed">
               <p>
-                Morpho Blue is an isolated lending primitive: anyone can deploy a new loan market with stock collateral and an LLTV. However, for borrowers to draw cash, USDC lenders must choose to deposit funds into that specific market.
+                <strong>IPOR Fusion</strong> (<code>app.ipor.io/stocks</code>) hosts automated on-chain Plasma Vaults and yield loop strategies built specifically for Coinbase tokenized equities on Base.
               </p>
               <p>
-                Currently, institutional vault curators on Morpho (Steakhouse, Gauntlet, Re7) allocate USDC solely to crypto-backed markets (wstETH, cbBTC). While the smart contract capability is live, deep public USDC liquidity for equity borrowing has not yet been seeded.
+                Holders of NVDAc, AAPLc, MSFTc, and TSLAc can deposit into automated vaults that optimize yield and carry trade spread without exposing the position to naked liquidation risk.
               </p>
             </div>
           )}

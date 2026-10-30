@@ -34,6 +34,8 @@ import {
   buildAttributedAaveSupplyCall,
   buildAttributedAaveBorrowCall,
   buildAttributedAaveRepayCall,
+  buildAttributedBeefyDepositCall,
+  buildAttributedBeefyWithdrawCall,
   buildAttributedMorphoSupplyCollateralCall,
   buildAttributedMorphoBorrowCall,
   buildAttributedMorphoRepayCall,
@@ -312,6 +314,12 @@ export default function LendingActionModal({
           calls.push(buildAttributedAaveBorrowCall(activeAsset.address, parsedAmount, user));
         } else if (action === "repay") {
           calls.push(buildAttributedAaveRepayCall(activeAsset.address, parsedAmount, user));
+        }
+      } else if (market.contractType === "beefy_vault") {
+        if (action === "supply" || action === "stake") {
+          calls.push(buildAttributedBeefyDepositCall(market.contractAddress, parsedAmount));
+        } else {
+          calls.push(buildAttributedBeefyWithdrawCall(market.contractAddress, parsedAmount));
         }
       } else {
         // Fallback standard vault deposit/stake

@@ -133,10 +133,18 @@ function extractCallsId(result: unknown): string | null {
   return null;
 }
 
-function extractTxHashFromStatus(status: CallsStatus): string | null {
+function extractTxHashFromStatus(
+  status: CallsStatus & { transactionHash?: string; hash?: string; txHash?: string }
+): string | null {
+  if (status.transactionHash?.startsWith("0x")) return status.transactionHash;
+  if (status.hash?.startsWith("0x")) return status.hash;
+  if (status.txHash?.startsWith("0x")) return status.txHash;
   for (const receipt of status.receipts ?? []) {
     if (receipt.transactionHash?.startsWith("0x")) {
       return receipt.transactionHash;
+    }
+    if ((receipt as any)?.hash?.startsWith("0x")) {
+      return (receipt as any).hash;
     }
   }
   return null;
@@ -280,11 +288,7 @@ async function sendViaWalletSendCalls(
 
       // Some wallets return a tx hash directly instead of a batch id.
       if (isTxHash(id)) {
-        try {
-          return await pollCallsStatus(provider, id);
-        } catch {
-          return id;
-        }
+        return id;
       }
 
       return pollCallsStatus(provider, id);
@@ -491,9 +495,10 @@ async function sendCallGroup(
 
   // Sequential fallback: wait for each call (such as approve) to be mined
   // before submitting the next call (such as swap).
+  // Note: Set preferSendCalls to false since wallet_sendCalls already failed or is unsupported.
   let lastHash = "";
   for (let i = 0; i < group.length; i++) {
-    lastHash = await sendSingleCall(provider, from, group[i]!, opts);
+    lastHash = await sendSingleCall(provider, from, group[i]!, { preferSendCalls: false });
     if (i < group.length - 1) {
       await waitForTxMined(lastHash);
     }
@@ -526,8 +531,7 @@ function prefersWalletSendCalls(
   if (inMiniApp) return true;
   return (
     connType === "farcaster" ||
-    connType === "baseAccount" ||
-    connType === "coinbase"
+    connType === "baseAccount"
   );
 }
 
