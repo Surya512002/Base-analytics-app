@@ -60,9 +60,25 @@ contract BaseVoucher {
         require(totalAmount > 0, "No USDC amount");
         require(
             IERC20(USDC).transferFrom(msg.sender, address(this), totalAmount),
-            "USDC transfer failed"
+            "Token transfer failed"
         );
         _createBatch(USDC, cardCount, secretHashes, message, totalAmount);
+    }
+
+    function createTokenBatch(
+        address token,
+        uint256 cardCount,
+        bytes32[] calldata secretHashes,
+        string calldata message,
+        uint256 totalAmount
+    ) external {
+        require(token != address(0), "Invalid token");
+        require(totalAmount > 0, "No token amount");
+        require(
+            IERC20(token).transferFrom(msg.sender, address(this), totalAmount),
+            "Token transfer failed"
+        );
+        _createBatch(token, cardCount, secretHashes, message, totalAmount);
     }
 
     function redeem(uint256 batchId, uint256 cardIndex, string calldata secret) external {

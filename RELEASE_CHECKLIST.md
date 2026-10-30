@@ -139,7 +139,7 @@ All keys must read existing user data with safe defaults (zero destructive schem
 Every contract address and ABI is verified on Base Mainnet (`chainId: 8453`):
 | Contract | Live Address | Bytecode Size | Verified ABI Functions |
 | :--- | :--- | :--- | :--- |
-| **`BaseVoucher`** | `0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25` | 9,516 B | `createBatch`, `redeem`, `getBatch`, `getCardStatus`, `nextBatchId` |
+| **`BaseVoucher`** | `0xc118afff969db6cd6d2de639e2c8ba1223768fce` | 9,516 B | `createBatch`, `redeem`, `getBatch`, `getCardStatus`, `nextBatchId` |
 | **`Predictions`** | `0xdB72435f46B9a5609F59E940b7f37f2cA4d57f78` | 12,212 B | `bet`, `resolveMarket`, `claimPayout`, `getMarket` |
 | **`BOOSTER`** | `0x0d1BE33F8B6a33BeEe7b3bb834DF6f8c168B2e46` | 896 B | `boost`, `boosts(address)` |
 | **`GM_GN`** | `0xdb4f873B33F448aeA8Bb2b3B7e3ab9561329608A` | 1,454 B | `gm`, `gn`, `lastGm`, `lastGn` |

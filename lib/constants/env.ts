@@ -42,7 +42,7 @@ export const BUILDER_CODE =
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";
 export const VOUCHER_CONTRACT =
   process.env.NEXT_PUBLIC_VOUCHER_CONTRACT ||
-  "0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25";
+  "0xc118afff969db6cd6d2de639e2c8ba1223768fce";
 export const XP_STAKE_CONTRACT =
   process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT || "";
 export const BADGE_MARKETPLACE_CONTRACT =
