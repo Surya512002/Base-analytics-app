@@ -1,14 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  BUILDER_CODE,
   buildB20Call,
   buildBuilderAttributionCall,
   finalizeAppTransactionBatch,
+  getBuilderDataSuffix,
+  getBuilderSuffix,
   hasBuilderSuffix,
   isB20PrecompileAddress,
 } from "@/lib/utils/tx";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 
 describe("builder attribution on B20 launch batches", () => {
+  it("encodes builder code bc_4uoh9iu2 to exact ERC-8021 / Base attribution hex suffix", () => {
+    expect(BUILDER_CODE).toBe("bc_4uoh9iu2");
+    expect(getBuilderDataSuffix()).toBe(
+      "0x62635f34756f68396975320b0080218021802180218021802180218021"
+    );
+    expect(getBuilderSuffix()).toBe(
+      "62635f34756f68396975320b0080218021802180218021802180218021"
+    );
+  });
+
   it("B20 factory create alone gets a treasury companion with builder suffix", () => {
     const create = buildB20Call(
       B20_FACTORY_ADDRESS,

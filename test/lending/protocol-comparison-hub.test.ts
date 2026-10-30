@@ -105,6 +105,22 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(comp.highestLiquidityOption).toBeNull();
   });
 
+  it("verifies MSFTc does not have IPOR Fusion and only the 4 canonical stocks have IPOR", async () => {
+    // MSFTc has Beefy, Aerodrome, Aave Pro - but NOT IPOR Fusion (app.ipor.io/stocks hosts 4 stocks only)
+    const msftComp = await getUnifiedStockLendingComparison("MSFTc", undefined, true);
+    const msftProtocols = msftComp.options.map((o) => o.protocol);
+    expect(msftProtocols).not.toContain("ipor");
+    expect(msftProtocols).toContain("beefy");
+    expect(msftProtocols).toContain("aave");
+
+    // Strictly the 4 verified IPOR stocks: NVDAc, AAPLc, GOOGLc, METAc
+    for (const sym of ["NVDAc", "AAPLc", "GOOGLc", "METAc"]) {
+      const comp = await getUnifiedStockLendingComparison(sym, undefined, true);
+      const protos = comp.options.map((o) => o.protocol);
+      expect(protos).toContain("ipor");
+    }
+  }, 20000);
+
   it("verifies all returned contract addresses are non-empty and start with 0x", async () => {
     const comp = await getUnifiedStockLendingComparison("MSFTc");
     expect(comp.options.length).toBeGreaterThanOrEqual(1);

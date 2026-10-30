@@ -109,7 +109,7 @@ export default function LendingHeader({
           <p className="text-lg font-black font-mono text-[var(--brand-text)] mt-0.5">
             {verifiedPoolsCount} Pools
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">Beefy Finance &amp; Aerodrome</span>
+          <span className="text-[10px] text-[var(--ink-dim)]">Beefy, Aerodrome, Aave &amp; IPOR</span>
         </div>
       </div>
 
