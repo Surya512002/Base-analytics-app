@@ -15,6 +15,16 @@ import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
 import { getStockCategoryCounts, type StockCategory } from "@/lib/stocks/tokenized-stocks-registry";
 import TokenLogo from "@/components/ui/TokenLogo";
 
+export interface ProtocolRateInfo {
+  supplyApy: number;
+  borrowApr: number | null;
+  liquidityUsd: number;
+  protocolLabel: string;
+  hasMarket: boolean;
+  borrowLabel?: string;
+  typeLabel?: string;
+}
+
 export interface AssetMarketRow {
   symbol: string;
   name: string;
@@ -34,6 +44,7 @@ export interface AssetMarketRow {
   hasLendingMarket?: boolean;
   riskFlags?: string[];
   oracleVerified?: boolean;
+  protocolRates?: Record<string, ProtocolRateInfo>;
 }
 
 interface MarketsTableProps {
@@ -49,6 +60,8 @@ interface MarketsTableProps {
   protocolErrors?: Record<string, string>;
   onRetryProtocol?: (protocol: string) => void;
   secondsAgo?: number;
+  selectedProtocol?: string;
+  onSelectProtocol?: (protocol: string) => void;
 }
 
 export default function MarketsTable({
@@ -64,10 +77,18 @@ export default function MarketsTable({
   protocolErrors = {},
   onRetryProtocol,
   secondsAgo = 0,
+  selectedProtocol: propSelectedProtocol,
+  onSelectProtocol,
 }: MarketsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedProtocol, setSelectedProtocol] = useState<string>("all");
+  const [internalProtocol, setInternalProtocol] = useState<string>("all");
+  const selectedProtocol = propSelectedProtocol ?? internalProtocol;
+
+  const handleSelectProtocol = (id: string) => {
+    setInternalProtocol(id);
+    onSelectProtocol?.(id);
+  };
 
   const protocolFilters = [
     { id: "all", label: "All Protocols" },
@@ -118,14 +139,17 @@ export default function MarketsTable({
       result = result.filter((r) => r.category.toLowerCase() === selectedCategory.toLowerCase());
     }
 
-    // Protocol filter (Beefy Finance vs Aerodrome)
+    // Protocol filter (Beefy Finance vs Aerodrome vs Aave Pro vs IPOR Fusion)
     if (selectedProtocol !== "all") {
-      result = result.filter(
-        (r) =>
-          (r.listedProtocols?.some((p) => p.toLowerCase().includes(selectedProtocol.toLowerCase())) ?? false) ||
-          r.bestSupplyProtocol.toLowerCase().includes(selectedProtocol.toLowerCase()) ||
-          (r.bestBorrowProtocol ? r.bestBorrowProtocol.toLowerCase().includes(selectedProtocol.toLowerCase()) : false)
-      );
+      result = result.filter((r) => {
+        const rate = r.protocolRates?.[selectedProtocol];
+        const hasOnProtocol = rate
+          ? rate.hasMarket
+          : (r.listedProtocols?.some((p) => p.toLowerCase().includes(selectedProtocol.toLowerCase())) ?? false);
+        // If showAllStocks is checked, keep the stock even if not on this protocol
+        if (showAllStocks) return true;
+        return hasOnProtocol;
+      });
     }
 
     // Only assets user holds
@@ -137,11 +161,33 @@ export default function MarketsTable({
     result.sort((a, b) => {
       let diff = 0;
       if (sortBy === "supply") {
-        diff = b.bestSupplyApy - a.bestSupplyApy;
+        const aSupply = selectedProtocol !== "all"
+          ? (a.protocolRates?.[selectedProtocol]?.hasMarket ? a.protocolRates[selectedProtocol].supplyApy : 0)
+          : a.bestSupplyApy;
+        const bSupply = selectedProtocol !== "all"
+          ? (b.protocolRates?.[selectedProtocol]?.hasMarket ? b.protocolRates[selectedProtocol].supplyApy : 0)
+          : b.bestSupplyApy;
+        diff = bSupply - aSupply;
       } else if (sortBy === "borrow") {
-        diff = (a.bestBorrowApr ?? 999) - (b.bestBorrowApr ?? 999);
+        const aBorrow = selectedProtocol !== "all"
+          ? (a.protocolRates?.[selectedProtocol]?.hasMarket && a.protocolRates[selectedProtocol].borrowApr !== null
+              ? a.protocolRates[selectedProtocol].borrowApr!
+              : 999)
+          : (a.bestBorrowApr ?? 999);
+        const bBorrow = selectedProtocol !== "all"
+          ? (b.protocolRates?.[selectedProtocol]?.hasMarket && b.protocolRates[selectedProtocol].borrowApr !== null
+              ? b.protocolRates[selectedProtocol].borrowApr!
+              : 999)
+          : (b.bestBorrowApr ?? 999);
+        diff = aBorrow - bBorrow;
       } else if (sortBy === "liquidity") {
-        diff = b.totalLiquidityUsd - a.totalLiquidityUsd;
+        const aLiq = selectedProtocol !== "all"
+          ? (a.protocolRates?.[selectedProtocol]?.hasMarket ? a.protocolRates[selectedProtocol].liquidityUsd : 0)
+          : a.totalLiquidityUsd;
+        const bLiq = selectedProtocol !== "all"
+          ? (b.protocolRates?.[selectedProtocol]?.hasMarket ? b.protocolRates[selectedProtocol].liquidityUsd : 0)
+          : b.totalLiquidityUsd;
+        diff = bLiq - aLiq;
       } else if (sortBy === "price") {
         diff = b.priceUsd - a.priceUsd;
       } else if (sortBy === "name") {
@@ -170,6 +216,9 @@ export default function MarketsTable({
   };
 
   const failedProtocols = Object.entries(protocolErrors).filter(([_, err]) => Boolean(err));
+  const activeProtocolObj = protocolFilters.find((p) => p.id === selectedProtocol);
+  const activeProtocolLabel = activeProtocolObj?.label ?? "Protocol";
+  const isProtocolFilter = selectedProtocol !== "all";
 
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden shadow-xs space-y-4 p-4 sm:p-5">
@@ -272,7 +321,7 @@ export default function MarketsTable({
                   key={p.id}
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => setSelectedProtocol(p.id)}
+                  onClick={() => handleSelectProtocol(p.id)}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
                     isSelected
                       ? p.id === "beefy"
@@ -334,20 +383,24 @@ export default function MarketsTable({
                 className="py-3 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
               >
                 <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                  Best Supply APY <ArrowUpDown size={11} />
+                  {isProtocolFilter ? `${activeProtocolLabel} Supply APY` : "Best Supply APY"} <ArrowUpDown size={11} />
                 </span>
               </th>
               <th
                 onClick={() => toggleSort("borrow")}
                 className="py-3 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
               >
-                <span className="inline-flex items-center gap-1">Best Borrow APR <ArrowUpDown size={11} /></span>
+                <span className="inline-flex items-center gap-1">
+                  {isProtocolFilter ? `${activeProtocolLabel} Borrow APR` : "Best Borrow APR"} <ArrowUpDown size={11} />
+                </span>
               </th>
               <th
                 onClick={() => toggleSort("liquidity")}
                 className="py-3 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
               >
-                <span className="inline-flex items-center gap-1">Total Liquidity <ArrowUpDown size={11} /></span>
+                <span className="inline-flex items-center gap-1">
+                  {isProtocolFilter ? `${activeProtocolLabel} Liquidity` : "Total Liquidity"} <ArrowUpDown size={11} />
+                </span>
               </th>
               <th className="py-3 px-3">Listed On</th>
               <th className="py-3 px-3">Your Balance</th>
@@ -355,243 +408,338 @@ export default function MarketsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]/60 text-xs">
-            {filteredRows.map((row) => {
-              const isSelected = selectedSymbol?.toLowerCase() === row.symbol.toLowerCase();
-              const hasMarket = row.hasLendingMarket !== false;
-              const hasOracleWarning = row.riskFlags?.includes("UNKNOWN_ORACLE");
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)]">
+                  <p className="text-sm font-semibold">No assets found matching the selected filters.</p>
+                  <p className="text-xs text-[var(--ink-dim)] mt-1">
+                    Try selecting &quot;All Protocols&quot; or check &quot;Show all stocks&quot;.
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((row) => {
+                const isSelected = selectedSymbol?.toLowerCase() === row.symbol.toLowerCase();
+                const hasOracleWarning = row.riskFlags?.includes("UNKNOWN_ORACLE");
+
+                const protoRate = isProtocolFilter ? row.protocolRates?.[selectedProtocol] : null;
+                const hasThisProtocolMarket = isProtocolFilter
+                  ? (protoRate ? protoRate.hasMarket : false)
+                  : (row.hasLendingMarket !== false);
+
+                const supplyApyToDisplay = isProtocolFilter
+                  ? (protoRate?.supplyApy ?? 0)
+                  : row.bestSupplyApy;
+                const supplyProtocolToDisplay = isProtocolFilter
+                  ? (protoRate?.protocolLabel ?? activeProtocolLabel)
+                  : row.bestSupplyProtocol;
+
+                const borrowAprToDisplay = isProtocolFilter
+                  ? (protoRate?.borrowApr ?? null)
+                  : row.bestBorrowApr;
+                const borrowProtocolToDisplay = isProtocolFilter
+                  ? (protoRate?.borrowLabel ?? (protoRate && protoRate.supplyApy > 0 ? (selectedProtocol === "aerodrome" ? "DEX Pool" : selectedProtocol === "beefy" ? "Yield Vault" : activeProtocolLabel) : "Collateral only"))
+                  : (row.bestBorrowProtocol ?? (row.bestSupplyApy > 0 ? "Yield Vault" : "Collateral only"));
+
+                const liquidityToDisplay = isProtocolFilter
+                  ? (protoRate?.liquidityUsd ?? 0)
+                  : row.totalLiquidityUsd;
+
+                return (
+                  <tr
+                    key={row.symbol}
+                    onClick={() => onSelectAsset(row.symbol)}
+                    className={`pop-row group transition cursor-pointer ${
+                      isSelected ? "bg-[var(--brand-soft)] font-medium" : ""
+                    }`}
+                  >
+                    {/* Asset info + New badge */}
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-3">
+                        <TokenLogo
+                          address={row.address}
+                          symbol={row.symbol}
+                          size={32}
+                          shape="rounded-xl"
+                          className="group-hover:border-[var(--brand)] transition"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
+                            {row.isNew && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                                <Sparkles size={9} /> NEW
+                              </span>
+                            )}
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                              {row.category}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[var(--ink-muted)] truncate max-w-[140px]">{row.name}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Price */}
+                    <td className="py-3 px-3 font-mono font-bold text-[var(--ink)]">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${isMarketOpen ? "bg-emerald-500" : "bg-amber-500"}`}
+                          title={isMarketOpen ? "Chainlink 24/5 Live Feed Active" : "US Market Closed"}
+                        />
+                        <span>${row.priceUsd.toFixed(2)}</span>
+                      </div>
+                    </td>
+
+                    {/* Supply APY */}
+                    <td className="py-3 px-3">
+                      {hasThisProtocolMarket ? (
+                        <div>
+                          <p className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                            {supplyApyToDisplay > 0 ? `${supplyApyToDisplay.toFixed(2)}%` : "—"}
+                          </p>
+                          <p className="text-[10px] text-[var(--ink-muted)]">{supplyProtocolToDisplay}</p>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-[var(--ink-muted)] italic">
+                          {isProtocolFilter ? `Not on ${activeProtocolLabel}` : "No pool yet"}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Borrow APR & Oracle status */}
+                    <td className="py-3 px-3">
+                      {hasThisProtocolMarket ? (
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <p className="font-mono font-bold text-sm text-[var(--ink)]">
+                              {borrowAprToDisplay !== null && borrowAprToDisplay > 0
+                                ? `${borrowAprToDisplay.toFixed(2)}%`
+                                : "—"}
+                            </p>
+                            {hasOracleWarning && (
+                              <span title="Unknown Oracle — Borrowing Disabled">
+                                <AlertTriangle size={13} className="text-amber-500" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[var(--ink-muted)]">
+                            {borrowProtocolToDisplay}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-[var(--ink-muted)]">—</span>
+                      )}
+                    </td>
+
+                    {/* Liquidity */}
+                    <td className="py-3 px-3 font-mono text-[var(--ink)]">
+                      {hasThisProtocolMarket && liquidityToDisplay > 0 ? formatCompactUsd(liquidityToDisplay) : "—"}
+                    </td>
+
+                    {/* Protocol Chips */}
+                    <td className="py-3 px-3">
+                      {hasThisProtocolMarket && row.listedProtocols && row.listedProtocols.length > 0 && row.listedProtocols[0] !== "No Pool" ? (
+                        <div className="flex items-center gap-1 flex-wrap max-w-[150px]">
+                          {row.listedProtocols.map((p) => {
+                            const isCurrent = isProtocolFilter && p.toLowerCase().includes(selectedProtocol.toLowerCase());
+                            return (
+                              <span
+                                key={p}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                  isCurrent
+                                    ? "bg-[var(--brand)] text-white border-[var(--brand)] font-bold shadow-xs"
+                                    : "bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--border-subtle)]"
+                                }`}
+                              >
+                                {p}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-[var(--ink-dim)]">Unlisted</span>
+                      )}
+                    </td>
+
+                    {/* Balance */}
+                    <td className="py-3 px-3">
+                      {!isConnected ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRequestConnect?.();
+                          }}
+                          className="text-[11px] font-bold text-[var(--brand-text)] hover:underline cursor-pointer"
+                        >
+                          Connect
+                        </button>
+                      ) : row.walletBalance !== undefined && row.walletBalance !== null ? (
+                        <div>
+                          <p className="font-mono font-bold text-[var(--ink)]">
+                            {row.walletBalance > 0 ? row.walletBalance.toFixed(3) : "0"}
+                          </p>
+                          {row.walletBalanceUsd !== undefined && row.walletBalanceUsd !== null && row.walletBalanceUsd > 0 && (
+                            <p className="text-[10px] text-[var(--ink-muted)] font-mono">
+                              ${row.walletBalanceUsd.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[var(--ink-dim)]">—</span>
+                      )}
+                    </td>
+
+                    {/* Action */}
+                    <td className="py-3 px-3 text-right">
+                      {hasThisProtocolMarket ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectAsset(row.symbol);
+                          }}
+                          className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs shadow-xs group-hover:bg-[#0047e0] transition flex items-center gap-1 ml-auto cursor-pointer"
+                        >
+                          <span>Compare</span>
+                          <ChevronRight size={13} />
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-[var(--ink-dim)] italic pr-2">No pool</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+
+        {/* Mobile Card List */}
+        <div className="grid grid-cols-1 gap-2.5 md:hidden">
+          {filteredRows.length === 0 ? (
+            <div className="py-10 text-center text-[var(--ink-muted)] p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)]">
+              <p className="text-sm font-semibold">No assets found matching the selected filters.</p>
+              <p className="text-xs text-[var(--ink-dim)] mt-1">Try selecting &quot;All Protocols&quot; or check &quot;Show all stocks&quot;.</p>
+            </div>
+          ) : (
+            filteredRows.map((row) => {
+              const protoRate = isProtocolFilter ? row.protocolRates?.[selectedProtocol] : null;
+              const hasThisProtocolMarket = isProtocolFilter
+                ? (protoRate ? protoRate.hasMarket : false)
+                : (row.hasLendingMarket !== false);
+
+              const supplyApyToDisplay = isProtocolFilter
+                ? (protoRate?.supplyApy ?? 0)
+                : row.bestSupplyApy;
+              const supplyProtocolToDisplay = isProtocolFilter
+                ? (protoRate?.protocolLabel ?? activeProtocolLabel)
+                : row.bestSupplyProtocol;
+
+              const borrowAprToDisplay = isProtocolFilter
+                ? (protoRate?.borrowApr ?? null)
+                : row.bestBorrowApr;
+              const borrowProtocolToDisplay = isProtocolFilter
+                ? (protoRate?.borrowLabel ?? (protoRate && protoRate.supplyApy > 0 ? (selectedProtocol === "aerodrome" ? "DEX Pool" : selectedProtocol === "beefy" ? "Yield Vault" : activeProtocolLabel) : "Collateral only"))
+                : (row.bestBorrowProtocol ?? (row.bestSupplyApy > 0 ? "Yield Vault" : "Collateral only"));
+
+              const liquidityToDisplay = isProtocolFilter
+                ? (protoRate?.liquidityUsd ?? 0)
+                : row.totalLiquidityUsd;
 
               return (
-                <tr
+                <div
                   key={row.symbol}
                   onClick={() => onSelectAsset(row.symbol)}
-                  className={`pop-row group transition cursor-pointer ${
-                    isSelected ? "bg-[var(--brand-soft)] font-medium" : ""
-                  }`}
+                  className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-2.5 transition cursor-pointer"
                 >
-                  {/* Asset info + New badge */}
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
                       <TokenLogo
                         address={row.address}
                         symbol={row.symbol}
-                        size={32}
+                        size={36}
                         shape="rounded-xl"
-                        className="group-hover:border-[var(--brand)] transition"
                       />
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
                           {row.isNew && (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
-                              <Sparkles size={9} /> NEW
+                              <Sparkles size={8} /> NEW
                             </span>
                           )}
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                             {row.category}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[var(--ink-muted)] truncate max-w-[140px]">{row.name}</p>
+                        <p className="text-[11px] text-[var(--ink-muted)]">{row.name}</p>
                       </div>
                     </div>
-                  </td>
 
-                  {/* Price */}
-                  <td className="py-3 px-3 font-mono font-bold text-[var(--ink)]">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${isMarketOpen ? "bg-emerald-500" : "bg-amber-500"}`}
-                        title={isMarketOpen ? "Chainlink 24/5 Live Feed Active" : "US Market Closed"}
-                      />
-                      <span>${row.priceUsd.toFixed(2)}</span>
+                    <div className="text-right">
+                      <p className="font-mono font-bold text-sm text-[var(--ink)]">${row.priceUsd.toFixed(2)}</p>
+                      <span className="text-[10px] text-[var(--ink-muted)]">
+                        {hasThisProtocolMarket && liquidityToDisplay > 0 ? `${formatCompactUsd(liquidityToDisplay)} liq` : "—"}
+                      </span>
                     </div>
-                  </td>
+                  </div>
 
-                  {/* Best Supply APY */}
-                  {/* Best Supply APY */}
-                  <td className="py-3 px-3">
-                    {hasMarket ? (
-                      <div>
-                        <p className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                          {row.bestSupplyApy > 0 ? `${row.bestSupplyApy.toFixed(2)}%` : "—"}
-                        </p>
-                        <p className="text-[10px] text-[var(--ink-muted)]">{row.bestSupplyProtocol}</p>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-[var(--ink-muted)] italic">No pool yet</span>
-                    )}
-                  </td>
-
-                  {/* Best Borrow APR & Oracle status */}
-                  <td className="py-3 px-3">
-                    {hasMarket ? (
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <p className="font-mono font-bold text-sm text-[var(--ink)]">
-                            {row.bestBorrowApr !== null && row.bestBorrowApr > 0
-                              ? `${row.bestBorrowApr.toFixed(2)}%`
-                              : "—"}
-                          </p>
-                          {hasOracleWarning && (
-                            <span title="Unknown Oracle — Borrowing Disabled">
-                              <AlertTriangle size={13} className="text-amber-500" />
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-[var(--ink-muted)]">
-                          {row.bestBorrowProtocol ?? (row.bestSupplyApy > 0 ? "Yield Vault" : "Collateral only")}
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-[var(--ink-muted)]">—</span>
-                    )}
-                  </td>
-
-                  {/* Liquidity */}
-                  <td className="py-3 px-3 font-mono text-[var(--ink)]">
-                    {hasMarket && row.totalLiquidityUsd > 0 ? formatCompactUsd(row.totalLiquidityUsd) : "—"}
-                  </td>
-
-                  {/* Protocol Chips ("Listed on: Morpho, Beefy, ...") */}
-                  <td className="py-3 px-3">
-                    {hasMarket && row.listedProtocols && row.listedProtocols.length > 0 && row.listedProtocols[0] !== "No Pool" ? (
-                      <div className="flex items-center gap-1 flex-wrap max-w-[150px]">
-                        {row.listedProtocols.map((p) => (
+                  {/* Protocol chips */}
+                  {row.listedProtocols && row.listedProtocols.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap text-[10px]">
+                      <span className="text-[var(--ink-muted)]">Listed:</span>
+                      {row.listedProtocols.map((p) => {
+                        const isCurrent = isProtocolFilter && p.toLowerCase().includes(selectedProtocol.toLowerCase());
+                        return (
                           <span
                             key={p}
-                            className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--border-subtle)]"
+                            className={`px-1.5 py-0.2 rounded font-bold ${
+                              isCurrent
+                                ? "bg-[var(--brand)] text-white"
+                                : "bg-[var(--surface)] text-[var(--ink)]"
+                            }`}
                           >
                             {p}
                           </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-[var(--ink-dim)]">Unlisted</span>
-                    )}
-                  </td>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                  {/* Balance */}
-                  <td className="py-3 px-3">
-                    {!isConnected ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRequestConnect?.();
-                        }}
-                        className="text-[11px] font-bold text-[var(--brand-text)] hover:underline cursor-pointer"
-                      >
-                        Connect
-                      </button>
-                    ) : row.walletBalance !== undefined && row.walletBalance !== null ? (
-                      <div>
-                        <p className="font-mono font-bold text-[var(--ink)]">
-                          {row.walletBalance > 0 ? row.walletBalance.toFixed(3) : "0"}
-                        </p>
-                        {row.walletBalanceUsd !== undefined && row.walletBalanceUsd !== null && row.walletBalanceUsd > 0 && (
-                          <p className="text-[10px] text-[var(--ink-muted)] font-mono">
-                            ${row.walletBalanceUsd.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[var(--ink-dim)]">—</span>
-                    )}
-                  </td>
-
-                  {/* Action */}
-                  <td className="py-3 px-3 text-right">
-                    {hasMarket ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectAsset(row.symbol);
-                        }}
-                        className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs shadow-xs group-hover:bg-[#0047e0] transition flex items-center gap-1 ml-auto cursor-pointer"
-                      >
-                        <span>Compare</span>
-                        <ChevronRight size={13} />
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-[var(--ink-dim)] italic pr-2">No pool</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {/* Mobile Card List */}
-        <div className="grid grid-cols-1 gap-2.5 md:hidden">
-          {filteredRows.map((row) => (
-            <div
-              key={row.symbol}
-              onClick={() => onSelectAsset(row.symbol)}
-              className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-2.5 transition cursor-pointer"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2.5">
-                  <TokenLogo
-                    address={row.address}
-                    symbol={row.symbol}
-                    size={36}
-                    shape="rounded-xl"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
-                      {row.isNew && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
-                          <Sparkles size={8} /> NEW
-                        </span>
-                      )}
-                      <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
-                        {row.category}
+                  {/* APY / APR Row */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border-subtle)]/60 text-xs">
+                    <div className="p-2 rounded-lg bg-[var(--surface)]">
+                      <span className="text-[10px] text-[var(--ink-muted)]">
+                        {isProtocolFilter ? `${activeProtocolLabel} APY` : "Supply APY"}
+                      </span>
+                      <p className="font-mono font-black text-emerald-600 dark:text-emerald-400">
+                        {hasThisProtocolMarket && supplyApyToDisplay > 0 ? `${supplyApyToDisplay.toFixed(2)}%` : "—"}
+                      </p>
+                      <span className="text-[9px] text-[var(--ink-dim)]">
+                        {hasThisProtocolMarket ? supplyProtocolToDisplay : `Not on ${activeProtocolLabel}`}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[var(--ink-muted)]">{row.name}</p>
+
+                    <div className="p-2 rounded-lg bg-[var(--surface)]">
+                      <span className="text-[10px] text-[var(--ink-muted)]">
+                        {isProtocolFilter ? `${activeProtocolLabel} Borrow` : "Borrow APR"}
+                      </span>
+                      <p className="font-mono font-bold text-[var(--ink)]">
+                        {hasThisProtocolMarket && borrowAprToDisplay !== null && borrowAprToDisplay > 0
+                          ? `${borrowAprToDisplay.toFixed(2)}%`
+                          : "—"}
+                      </p>
+                      <span className="text-[9px] text-[var(--ink-dim)]">
+                        {hasThisProtocolMarket ? borrowProtocolToDisplay : "—"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <p className="font-mono font-bold text-sm text-[var(--ink)]">${row.priceUsd.toFixed(2)}</p>
-                  <span className="text-[10px] text-[var(--ink-muted)]">{formatCompactUsd(row.totalLiquidityUsd)} liq</span>
-                </div>
-              </div>
-
-              {/* Protocol chips */}
-              {row.listedProtocols && row.listedProtocols.length > 0 && (
-                <div className="flex items-center gap-1 flex-wrap text-[10px]">
-                  <span className="text-[var(--ink-muted)]">Listed:</span>
-                  {row.listedProtocols.map((p) => (
-                    <span key={p} className="px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink)] font-bold">
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* APY / APR Row */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border-subtle)]/60 text-xs">
-                <div className="p-2 rounded-lg bg-[var(--surface)]">
-                  <span className="text-[10px] text-[var(--ink-muted)]">Supply APY</span>
-                  <p className="font-mono font-black text-emerald-600 dark:text-emerald-400">
-                    {row.bestSupplyApy > 0 ? `${row.bestSupplyApy.toFixed(2)}%` : "—"}
-                  </p>
-                  <span className="text-[9px] text-[var(--ink-dim)]">{row.bestSupplyProtocol}</span>
-                </div>
-
-                <div className="p-2 rounded-lg bg-[var(--surface)]">
-                  <span className="text-[10px] text-[var(--ink-muted)]">Borrow APR</span>
-                  <p className="font-mono font-bold text-[var(--ink)]">
-                    {row.bestBorrowApr !== null && row.bestBorrowApr > 0 ? `${row.bestBorrowApr.toFixed(2)}%` : "—"}
-                  </p>
-                  <span className="text-[9px] text-[var(--ink-dim)]">{row.bestBorrowProtocol ?? "Collateral only"}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </div>
     </div>
