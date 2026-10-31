@@ -138,6 +138,7 @@ export default function CreatorProfilePanel({
 
           {/* 2. Stats Row (4 tiles: Launches, Earnings, 24h Volume, Total Mcap) */}
           <CreatorStats
+            address={address}
             loading={loading}
             launches={stats.launches}
             earningsDisplay={earningsDisplay}

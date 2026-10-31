@@ -2,11 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { Rocket, Info, ArrowRight, Users } from "lucide-react";
+import { Rocket, Users } from "lucide-react";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import { formatUsd } from "@/lib/launchpad/format";
 
 interface CreatorStatsProps {
+  address?: string;
   loading?: boolean;
   launches: number;
   earningsDisplay: string;
@@ -17,6 +18,7 @@ interface CreatorStatsProps {
 }
 
 export default function CreatorStats({
+  address,
   loading = false,
   launches,
   earningsDisplay,
@@ -38,7 +40,7 @@ export default function CreatorStats({
     );
   }
 
-  const { formatted: uniqueUsersFormatted } = useUniqueUsers();
+  const { formatted: uniqueUsersFormatted } = useUniqueUsers(address);
   const isAllEmpty = launches === 0 && volume24h === 0 && totalMcap === 0;
 
   const statItems = [
