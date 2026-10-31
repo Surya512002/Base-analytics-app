@@ -220,6 +220,7 @@ export default function ProfileHeader({
             {/* Pay / Tip Button */}
             <a
               href={`/pay/${address.toLowerCase()}`}
+              title={isOwner ? "View & share your personal Pay Link" : "Pay or tip this creator on Base"}
               className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
             >
               <Zap size={14} className="text-emerald-500" />

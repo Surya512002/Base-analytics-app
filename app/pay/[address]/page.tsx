@@ -14,6 +14,9 @@ import {
   User,
   ShieldCheck,
   Send,
+  Share2,
+  Twitter,
+  Info,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { parseUnits, parseEther, encodeFunctionData } from "viem";
@@ -25,7 +28,6 @@ import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { buildContractCall } from "@/lib/utils/tx";
 import { USDC_BASE_ADDRESS } from "@/lib/lending/constants";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
 const ERC20_TRANSFER_ABI = [
   {
@@ -54,7 +56,14 @@ export default function PayLinkPage() {
   const { wallet, connType, showModal, setShowModal, loading, handleConnect } = app;
   const isConnected = !!wallet?.address;
 
+  // Determine if connected user is the recipient (creator viewing their own pay link)
+  const isSelf = useMemo(() => {
+    if (!isConnected || !wallet?.address || !address) return false;
+    return wallet.address.toLowerCase() === address.toLowerCase();
+  }, [isConnected, wallet?.address, address]);
+
   const [copied, setCopied] = useState(false);
+  const [copiedShareUrl, setCopiedShareUrl] = useState(false);
   const [basename, setBasename] = useState<string | null>(null);
 
   // Pay form state
@@ -80,10 +89,35 @@ export default function PayLinkPage() {
 
   const copy = () => {
     if (!address) return;
-    navigator.clipboard.writeText(address);
+    void navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const shareUrl = useMemo(() => {
+    if (!address) return "";
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/pay/${address.toLowerCase()}`;
+    }
+    return `${APP_URL_WEB}/pay/${address.toLowerCase()}`;
+  }, [address]);
+
+  const copyShareUrl = () => {
+    if (!shareUrl) return;
+    void navigator.clipboard.writeText(shareUrl);
+    setCopiedShareUrl(true);
+    setTimeout(() => setCopiedShareUrl(false), 2000);
+  };
+
+  const twitterShareUrl = useMemo(() => {
+    const text = `Support my work or send me tips on @base!\n\nPay link: ${shareUrl}`;
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  }, [shareUrl]);
+
+  const warpcastShareUrl = useMemo(() => {
+    const text = `Support my work or send me tips on Base!\n\n${shareUrl}`;
+    return `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`;
+  }, [shareUrl]);
 
   if (!address) {
     return (
@@ -94,6 +128,11 @@ export default function PayLinkPage() {
   }
 
   const handlePay = async () => {
+    if (isSelf) {
+      setPayError("You cannot send payments to your own wallet.");
+      return;
+    }
+
     if (!isConnected) {
       setShowModal(true);
       return;
@@ -167,24 +206,44 @@ export default function PayLinkPage() {
         {/* Hero Card */}
         <div className="hero-card rounded-3xl p-5 sm:p-7 space-y-5 border border-[var(--border-subtle)] bg-[var(--surface)] shadow-lg">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold mb-2">
-              <Zap size={13} />
-              <span>Tap &amp; Pay on Base</span>
-            </div>
+            {isSelf ? (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold mb-2 border border-blue-500/20">
+                <ShieldCheck size={13} />
+                <span>Your Personal Pay Link</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold mb-2">
+                <Zap size={13} />
+                <span>Tap &amp; Pay on Base</span>
+              </div>
+            )}
+
             <h1 className="text-2xl font-black text-[var(--ink)] tracking-tight">
-              Pay or Tip {basename ? basename : shorten(address)}
+              {isSelf
+                ? `Your Pay Link (${basename ? basename : shorten(address)})`
+                : `Pay or Tip ${basename ? basename : shorten(address)}`}
             </h1>
             <p className="text-xs sm:text-sm text-[var(--ink-muted)] mt-1">
-              Send instant payments with Base Builder Code attribution.
+              {isSelf
+                ? "Share this link with your audience, supporters, or clients to receive instant ETH and USDC payments directly on Base."
+                : "Send instant payments with Base Builder Code attribution."}
             </p>
           </div>
 
           {/* Recipient Pill */}
           <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3.5 flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[9px] font-black text-[var(--ink-dim)] uppercase tracking-wider">
-                Recipient
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[9px] font-black text-[var(--ink-dim)] uppercase tracking-wider">
+                  Recipient
+                </p>
+                {isSelf && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    You (Connected)
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 {basename && (
                   <span className="text-xs font-bold text-[var(--brand-text)] flex items-center gap-1 truncate">
@@ -218,8 +277,74 @@ export default function PayLinkPage() {
             </div>
           </div>
 
+          {/* Dedicated Creator Share & Promotion Card (Shown when viewing own pay link) */}
+          {isSelf && (
+            <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
+                    <Share2 size={13} className="text-[#0052FF]" />
+                    Share Your Personal Pay Link
+                  </p>
+                  <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                    Send this URL to collectors, supporters, or clients to receive tips with zero platform cuts.
+                  </p>
+                </div>
+              </div>
+
+              {/* URL copy box */}
+              <div className="flex items-center gap-2 p-1.5 pl-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
+                <span className="font-mono text-xs text-[var(--ink)] truncate flex-1 select-all">
+                  {shareUrl}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyShareUrl}
+                  className="px-3 py-1.5 rounded-lg bg-[#0052FF] text-white font-sans text-xs font-bold hover:bg-[#0047e0] transition shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  {copiedShareUrl ? <CheckCircle size={13} /> : <Copy size={13} />}
+                  <span>{copiedShareUrl ? "Copied!" : "Copy Link"}</span>
+                </button>
+              </div>
+
+              {/* Social Share Buttons */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <a
+                  href={twitterShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 px-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Twitter size={13} />
+                  <span>Share on X</span>
+                </a>
+                <a
+                  href={warpcastShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 px-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Share2 size={13} />
+                  <span>Warpcast</span>
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Interactive Tap & Pay Box */}
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 p-4 space-y-4">
+            {isSelf && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+                <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold">Supporter Preview Mode</p>
+                  <p className="text-[11px] text-[var(--ink-muted)]">
+                    You are viewing your own Pay Link. Self-tipping is disabled to avoid unnecessary gas fees. This interactive preview shows what your supporters see.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[var(--ink)]">Select Currency</span>
               <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--border-subtle)]">
@@ -293,35 +418,61 @@ export default function PayLinkPage() {
             </div>
 
             {/* Pay Action Button */}
-            <button
-              type="button"
-              disabled={isSending}
-              onClick={handlePay}
-              className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                !isConnected
-                  ? "bg-[#0052FF] text-white hover:bg-[#0047e0]"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-              }`}
-            >
-              {isSending ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Submitting to Base…</span>
-                </>
-              ) : !isConnected ? (
-                <>
-                  <Wallet size={16} />
-                  <span>Connect Wallet to Pay</span>
-                </>
-              ) : (
-                <>
-                  <Send size={15} />
-                  <span>
-                    Send {amount} {asset} to {basename || shorten(address)}
-                  </span>
-                </>
-              )}
-            </button>
+            {isSelf ? (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] cursor-not-allowed opacity-80"
+                >
+                  <ShieldCheck size={16} className="text-[#0052FF]" />
+                  <span>Self-Payment Disabled (You are the recipient)</span>
+                </button>
+                <p className="text-center text-[11px] text-[var(--ink-muted)]">
+                  Want to test tipping?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      app.handleDisconnect();
+                      setShowModal(true);
+                    }}
+                    className="font-bold text-[#0052FF] dark:text-[#3B82F6] hover:underline cursor-pointer"
+                  >
+                    Connect a different wallet
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={isSending}
+                onClick={handlePay}
+                className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                  !isConnected
+                    ? "bg-[#0052FF] text-white hover:bg-[#0047e0]"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                }`}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Submitting to Base…</span>
+                  </>
+                ) : !isConnected ? (
+                  <>
+                    <Wallet size={16} />
+                    <span>Connect Wallet to Pay</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={15} />
+                    <span>
+                      Send {amount} {asset} to {basename || shorten(address)}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
 
             {/* Success State */}
             {txSuccessHash && (
