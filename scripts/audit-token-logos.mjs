@@ -6,13 +6,13 @@
  * verifies availability across sources a-d:
  *   a) Registry or token metadata logo
  *   b) Self-hosted logos in /public/tokens/<address>.png
- *   c) Official token lists (Uniswap & CoinGecko Base lists)
+ *   c) Official token lists (Uniswap, Superchain & CoinGecko Base lists)
  *   d) DEX data providers (DexScreener)
  *
  * Reports which tokens rely on (e) Generated Placeholder, and writes the results to `token-logo-audit.json`.
  */
 
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,11 +27,18 @@ async function main() {
   const { TOKENIZED_STOCKS_REGISTRY } = await import(
     "../lib/stocks/tokenized-stocks-registry.ts"
   );
-  const { COMMON_BASE_TOKENS } = await import(
-    "../lib/launchpad/common-tokens.ts"
+  const verifiedTokens = JSON.parse(
+    readFileSync(resolve(ROOT_DIR, "lib/swap/verified-base-tokens.json"), "utf-8")
   );
 
-  // Combine unique tokens
+  const verifiedMap = new Map();
+  for (const t of verifiedTokens) {
+    if (t.address) {
+      verifiedMap.set(t.address.toLowerCase(), t);
+    }
+  }
+
+  // Combine unique tokens for audit scope: all 265 stocks + canonical crypto bluechips + native ETH
   const tokenMap = new Map();
 
   for (const stock of TOKENIZED_STOCKS_REGISTRY) {
@@ -46,20 +53,31 @@ async function main() {
     });
   }
 
-  for (const tok of COMMON_BASE_TOKENS) {
-    const lower = tok.address.toLowerCase();
-    if (!tokenMap.has(lower)) {
-      tokenMap.set(lower, {
-        address: tok.address,
-        symbol: tok.symbol,
-        name: tok.name,
-        category: tok.category || "crypto",
-        registryLogo: null,
-      });
+  // Top curated Base crypto bluechips
+  const TOP_CRYPTO_SYMBOLS = [
+    "USDC", "WETH", "cbBTC", "cbETH", "wstETH", "AERO", "USDT", "DAI",
+    "EURC", "USDbC", "USDS", "MORPHO", "DEGEN", "BRETT", "TOSHI", "VIRTUAL",
+    "ZORA", "HIGHER", "AIXBT", "WELL", "AAVE", "SEAM", "COMP", "SNX",
+    "UNI", "LINK", "KEYCAT", "MOXIE", "PRIME", "TALENT", "CLANKER", "PEPE",
+    "CBDOGE", "SHIB", "MFER", "TYBG"
+  ];
+
+  for (const t of verifiedTokens) {
+    if (TOP_CRYPTO_SYMBOLS.includes(t.symbol)) {
+      const lower = t.address.toLowerCase();
+      if (!tokenMap.has(lower)) {
+        tokenMap.set(lower, {
+          address: t.address,
+          symbol: t.symbol,
+          name: t.name,
+          category: "crypto",
+          registryLogo: t.logoURI || null,
+        });
+      }
     }
   }
 
-  // Also include native ETH
+  // Native ETH
   tokenMap.set("0x0000000000000000000000000000000000000000", {
     address: "0x0000000000000000000000000000000000000000",
     symbol: "ETH",
@@ -85,24 +103,18 @@ async function main() {
     const selfHostedPath = resolve(TOKENS_DIR, `${lower}.png`);
     const hasSourceB = existsSync(selfHostedPath);
 
-    // Source c: Official token lists (CoinGecko Base / Superchain)
-    const hasSourceC = [
-      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
-      "0x4200000000000000000000000000000000000006", // WETH
-      "0x940181a94a35a4569e4529a3cdfb74e38fd98631", // AERO
-      "0x50c5725949a6f0c72e6c4a641f24049a917db0cb", // DAI
-      "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22", // cbETH
-      "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", // cbBTC
-      "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452", // wstETH
-    ].includes(lower);
+    // Source c: Official token lists (CoinGecko Base / Superchain / verified-base-tokens.json)
+    const verifiedEntry = verifiedMap.get(lower);
+    const hasSourceC = Boolean(verifiedEntry?.logoURI && verifiedEntry.logoURI.startsWith("http"));
 
     // Source d: DEX providers (DexScreener top liquid pairs)
     const hasSourceD = [
-      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-      "0x4200000000000000000000000000000000000006",
-      "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
-      "0x532f27101965dd16442e59d40670faf5ebb142e4",
-      "0x4ed4e862860bed51a9570b96d89af5e1b0efefed",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+      "0x4200000000000000000000000000000000000006", // WETH
+      "0x940181a94a35a4569e4529a3cdfb74e38fd98631", // AERO
+      "0x532f27101965dd16442e59d40670faf5ebb142e4", // BRETT
+      "0x4ed4e862860bed51a9570b96d89af5e1b0efefed", // DEGEN
+      "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b", // VIRTUAL
     ].includes(lower);
 
     let resolvedSource = "placeholder";

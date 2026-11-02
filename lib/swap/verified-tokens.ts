@@ -95,19 +95,49 @@ export const BLUE_CHECK_VERIFIED_SYMBOL_SET = new Set<string>([
   ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.symbol.toUpperCase()),
 ]);
 
+// Fast O(1) indexed lookup maps for 3,100+ Base catalog tokens
+const VERIFIED_TOKENS_BY_ADDRESS = new Map<string, VerifiedTokenDef>();
+const VERIFIED_TOKENS_BY_SYMBOL = new Map<string, VerifiedTokenDef>();
+
+for (const t of ALL_VERIFIED_BASE_TOKENS) {
+  const addr = t.address.toLowerCase();
+  const sym = t.symbol.toLowerCase();
+  if (!VERIFIED_TOKENS_BY_ADDRESS.has(addr)) {
+    VERIFIED_TOKENS_BY_ADDRESS.set(addr, t);
+  }
+  if (!VERIFIED_TOKENS_BY_SYMBOL.has(sym)) {
+    VERIFIED_TOKENS_BY_SYMBOL.set(sym, t);
+  }
+}
+
+for (const t of VERIFIED_BASE_CRYPTO_TOKENS) {
+  const addr = t.address.toLowerCase();
+  const sym = t.symbol.toLowerCase();
+  const existing = VERIFIED_TOKENS_BY_ADDRESS.get(addr);
+  const merged: VerifiedTokenDef = {
+    ...t,
+    logoURI: t.logoURI || existing?.logoURI || null,
+  };
+  VERIFIED_TOKENS_BY_ADDRESS.set(addr, merged);
+  VERIFIED_TOKENS_BY_SYMBOL.set(sym, merged);
+}
+
 /**
  * Fast lookup for a catalog token by address or symbol
  */
 export function findVerifiedToken(addressOrSymbol: string): VerifiedTokenDef | undefined {
+  if (!addressOrSymbol) return undefined;
   const raw = addressOrSymbol.trim().toLowerCase();
-  return (
-    VERIFIED_BASE_CRYPTO_TOKENS.find(
-      (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
-    ) ||
-    ALL_VERIFIED_BASE_TOKENS.find(
-      (t) => t.address.toLowerCase() === raw || t.symbol.toLowerCase() === raw
-    )
-  );
+  return VERIFIED_TOKENS_BY_ADDRESS.get(raw) || VERIFIED_TOKENS_BY_SYMBOL.get(raw);
+}
+
+/**
+ * Direct logo URL resolver from verified 3,100+ Base token catalog
+ */
+export function getVerifiedTokenLogo(addressOrSymbol?: string | null): string | null {
+  if (!addressOrSymbol) return null;
+  const found = findVerifiedToken(addressOrSymbol);
+  return found?.logoURI || null;
 }
 
 /**

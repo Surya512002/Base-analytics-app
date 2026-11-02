@@ -6,7 +6,9 @@ import {
   getDeterministicTokenInitials,
   generateTokenPlaceholderSvg,
 } from "@/lib/utils/token-color";
-import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
+import { TOKENIZED_STOCKS_REGISTRY, getTokenizedStockBySymbol, getTokenizedStockByAddress } from "@/lib/stocks/tokenized-stocks-registry";
+import { SELF_HOSTED_LOGOS, tokenLogoUrl } from "@/lib/launchpad/token-logo";
+import { getVerifiedTokenLogo, findVerifiedToken } from "@/lib/swap/verified-tokens";
 
 describe("TokenLogo Fallback Chain & Deterministic Color Suite", () => {
   const ADDRESS_A = "0x833589fCD6eDb6E08f4c7C32D4f71bdA02913";
@@ -105,6 +107,49 @@ describe("TokenLogo Fallback Chain & Deterministic Color Suite", () => {
         expect(stock.logo).toBeTruthy();
         expect(stock.logo!.startsWith("/") || stock.logo!.startsWith("https://")).toBe(true);
       }
+    });
+
+    it("verifies all 265 tokenized stocks are registered in SELF_HOSTED_LOGOS", () => {
+      for (const stock of TOKENIZED_STOCKS_REGISTRY) {
+        const lower = stock.address.toLowerCase();
+        expect(SELF_HOSTED_LOGOS.has(lower), `Stock ${stock.symbol} (${lower}) should be in SELF_HOSTED_LOGOS`).toBe(true);
+        const localPath = resolve(process.cwd(), `public/tokens/${lower}.png`);
+        expect(existsSync(localPath), `Stock PNG for ${stock.symbol} must exist on disk`).toBe(true);
+      }
+    });
+  });
+
+  describe("Verified Token & Stock Resolution Suite", () => {
+    it("resolves verified crypto tokens by symbol and address", () => {
+      const usdc = findVerifiedToken("USDC");
+      expect(usdc).not.toBeNull();
+      expect(usdc?.symbol).toBe("USDC");
+      expect(getVerifiedTokenLogo("USDC")).toBeTruthy();
+
+      const aero = findVerifiedToken("0x940181a94a35a4569e4529a3cdfb74e38fd98631");
+      expect(aero).not.toBeNull();
+      expect(aero?.symbol).toBe("AERO");
+      expect(getVerifiedTokenLogo("0x940181a94a35a4569e4529a3cdfb74e38fd98631")).toBeTruthy();
+    });
+
+    it("resolves tokenLogoUrl correctly for stocks and native assets", () => {
+      expect(tokenLogoUrl("ETH")).toBe("/tokens/0x0000000000000000000000000000000000000000.png");
+      expect(tokenLogoUrl("0x0000000000000000000000000000000000000000")).toBe(
+        "/tokens/0x0000000000000000000000000000000000000000.png"
+      );
+
+      // Stock address resolves directly to local PNG
+      const nvdaStock = getTokenizedStockBySymbol("NVDAc");
+      expect(nvdaStock).toBeDefined();
+      expect(tokenLogoUrl(nvdaStock!.address)).toBe(`/tokens/${nvdaStock!.address.toLowerCase()}.png`);
+    });
+
+    it("resolves compound stock tickers properly", () => {
+      const nvdaFromClean = getTokenizedStockBySymbol("NVDAc");
+      const nvdaFromPlain = getTokenizedStockBySymbol("NVDA");
+      expect(nvdaFromClean).toBeDefined();
+      expect(nvdaFromPlain).toBeDefined();
+      expect(nvdaFromClean?.address).toBe(nvdaFromPlain?.address);
     });
   });
 });

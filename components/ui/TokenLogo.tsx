@@ -11,7 +11,8 @@ import {
 } from "@/lib/stocks/tokenized-stocks-registry";
 import { COMMON_BASE_TOKENS } from "@/lib/launchpad/common-tokens";
 import { SELF_HOSTED_LOGOS } from "@/lib/launchpad/token-logo";
-import { getAddress, isAddress } from "viem";
+import { getVerifiedTokenLogo, findVerifiedToken } from "@/lib/swap/verified-tokens";
+import { isAddress } from "viem";
 
 export interface TokenLogoProps {
   address?: string | null;
@@ -56,10 +57,13 @@ const KNOWN_REMOTE_LOGOS: Record<string, string> = {
 /**
  * Standardized, bulletproof TokenLogo component.
  * Fallback chain:
- * 1. Explicit src / registry logo / self-hosted PNG in /tokens/<address>.png
- * 2. TrustWallet & Smoldapp Base token asset lists
- * 3. Server-side proxy & cache (/api/token-logo/<address>)
- * 4. Deterministic HSL avatar badge (never blank, never shifts layout)
+ * 1. Self-hosted local PNG in /tokens/<effectiveAddress>.png (0ms latency, zero CDN fail)
+ * 2. Explicit src / registry logo
+ * 3. Verified token catalog logos (3,100+ Base tokens from CoinGecko/Superchain)
+ * 4. DexScreener Base CDN
+ * 5. Parqet stock CDN
+ * 6. Server-side proxy & cache (/api/token-logo/<effectiveAddress>)
+ * 7. Deterministic HSL avatar badge (never blank, never shifts layout)
  */
 export default function TokenLogo({
   address,
@@ -76,32 +80,70 @@ export default function TokenLogo({
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  const cleanSymbol = (symbol || "TK").trim();
+  // Clean symbol: strip leading dollar signs and trim
+  const rawSymbol = (symbol || "TK").trim();
+  const cleanSymbol = rawSymbol.replace(/^\$/, "").trim() || "TK";
+  // Extract base ticker for compound symbols (e.g. "NVDAc-USDC" -> "NVDAc", "WETH/USDC" -> "WETH")
+  const baseTicker = cleanSymbol.split(/[-/_ ]/)[0] || cleanSymbol;
 
-  // Bidirectional resolution: Normalize address or look up by symbol
+  // Stock resolution from symbol or baseTicker
+  const stockInfo = useMemo(() => {
+    try {
+      if (address) {
+        const byAddr = getTokenizedStockByAddress(address.trim().toLowerCase());
+        if (byAddr) return byAddr;
+      }
+      return (
+        getTokenizedStockBySymbol(cleanSymbol) ||
+        getTokenizedStockBySymbol(baseTicker) ||
+        getTokenizedStockBySymbol(`${cleanSymbol}c`) ||
+        getTokenizedStockBySymbol(`${baseTicker}c`) ||
+        getTokenizedStockBySymbol(cleanSymbol.replace(/c$/i, "")) ||
+        getTokenizedStockBySymbol(baseTicker.replace(/c$/i, "")) ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  }, [address, cleanSymbol, baseTicker]);
+
+  // Bidirectional resolution: Normalize address or look up by symbol/ticker
   const effectiveAddress = useMemo(() => {
     if (address) {
       const trimmed = address.trim().toLowerCase();
       if (trimmed === "eth" || trimmed === "0x0000000000000000000000000000000000000000") {
         return "0x0000000000000000000000000000000000000000";
       }
+      // If address is in SELF_HOSTED_LOGOS or known stock, use it directly
+      if (SELF_HOSTED_LOGOS.has(trimmed) || trimmed.startsWith("0xb200000000000000000000")) {
+        return trimmed;
+      }
+      // If address is an unrecognized vault/pool address, but stock or verified token matches ticker:
+      if (stockInfo) {
+        return stockInfo.address.toLowerCase();
+      }
+      const vTok = findVerifiedToken(cleanSymbol) || findVerifiedToken(baseTicker);
+      if (vTok && !isAddress(trimmed)) {
+        return vTok.address.toLowerCase();
+      }
       return trimmed;
     }
 
     // Address missing: resolve from symbol
-    if (cleanSymbol.toUpperCase() === "ETH") {
+    if (cleanSymbol.toUpperCase() === "ETH" || baseTicker.toUpperCase() === "ETH") {
       return "0x0000000000000000000000000000000000000000";
     }
 
+    if (stockInfo) return stockInfo.address.toLowerCase();
+
     try {
-      const stock =
-        getTokenizedStockBySymbol(cleanSymbol) ||
-        getTokenizedStockBySymbol(`${cleanSymbol}c`) ||
-        getTokenizedStockBySymbol(cleanSymbol.replace(/c$/i, ""));
-      if (stock) return stock.address.toLowerCase();
+      const verified = findVerifiedToken(cleanSymbol) || findVerifiedToken(baseTicker);
+      if (verified) return verified.address.toLowerCase();
 
       const common = COMMON_BASE_TOKENS.find(
-        (t) => t.symbol.toLowerCase() === cleanSymbol.toLowerCase()
+        (t) =>
+          t.symbol.toLowerCase() === cleanSymbol.toLowerCase() ||
+          t.symbol.toLowerCase() === baseTicker.toLowerCase()
       );
       if (common) return common.address.toLowerCase();
     } catch {
@@ -109,24 +151,36 @@ export default function TokenLogo({
     }
 
     return null;
-  }, [address, cleanSymbol]);
+  }, [address, cleanSymbol, baseTicker, stockInfo]);
 
   // Registry stock logo lookup if available
   const registryLogo = useMemo(() => {
     try {
+      if (stockInfo?.logo) return stockInfo.logo;
       if (effectiveAddress) {
         const stock = getTokenizedStockByAddress(effectiveAddress);
         if (stock?.logo) return stock.logo;
       }
-      const stockBySym =
-        getTokenizedStockBySymbol(cleanSymbol) ||
-        getTokenizedStockBySymbol(`${cleanSymbol}c`) ||
-        getTokenizedStockBySymbol(cleanSymbol.replace(/c$/i, ""));
-      return stockBySym?.logo || null;
+      return null;
     } catch {
       return null;
     }
-  }, [effectiveAddress, cleanSymbol]);
+  }, [effectiveAddress, stockInfo]);
+
+  // Verified catalog logo (3,108 Base tokens)
+  const verifiedCatalogLogo = useMemo(() => {
+    try {
+      if (effectiveAddress) {
+        const l = getVerifiedTokenLogo(effectiveAddress);
+        if (l) return l;
+      }
+      const bySym = getVerifiedTokenLogo(cleanSymbol) || getVerifiedTokenLogo(baseTicker);
+      if (bySym) return bySym;
+      return null;
+    } catch {
+      return null;
+    }
+  }, [effectiveAddress, cleanSymbol, baseTicker]);
 
   // Reset attempt index when address or src changes
   useEffect(() => {
@@ -138,67 +192,68 @@ export default function TokenLogo({
   const candidateUrls = useMemo(() => {
     const list: string[] = [];
 
-    // 1. Explicit src (skip known broken /stocks/ patterns)
-    if (src && src.trim()) {
-      const cleanSrc = src.trim();
-      if (!cleanSrc.startsWith("/stocks/")) {
-        list.push(cleanSrc);
+    // Helper: Push if valid and not already added
+    const add = (url: string | null | undefined) => {
+      if (!url || typeof url !== "string") return;
+      const u = url.trim();
+      if (!u || u.startsWith("/stocks/")) return;
+      if (!list.includes(u)) {
+        list.push(u);
       }
+    };
+
+    // 1. If self-hosted or stock, local /tokens/<effectiveAddress>.png is fastest (0ms)
+    if (
+      effectiveAddress &&
+      (SELF_HOSTED_LOGOS.has(effectiveAddress) ||
+        effectiveAddress.startsWith("0xb200000000000000000000") ||
+        effectiveAddress === "0x0000000000000000000000000000000000000000" ||
+        Boolean(stockInfo))
+    ) {
+      add(`/tokens/${effectiveAddress}.png`);
     }
 
-    // 2. Registry logo (e.g. /tokens/0xb2000....png)
-    if (registryLogo) {
-      list.push(registryLogo);
-    }
+    // 2. Explicit src (skip known broken /stocks/ patterns)
+    add(src);
+
+    // 3. Registry logo (e.g. https://metadata.coinbase.com/equity_icons/... or /tokens/...)
+    add(registryLogo);
+
+    // 4. Verified catalog logo (CoinGecko / Superchain)
+    add(verifiedCatalogLogo);
 
     if (effectiveAddress) {
-      // 3. Self-hosted local logo in /tokens/<effectiveAddress>.png
-      if (
-        SELF_HOSTED_LOGOS.has(effectiveAddress) ||
-        effectiveAddress.startsWith("0xb200000000000000000000") ||
-        effectiveAddress === "0x0000000000000000000000000000000000000000"
-      ) {
-        list.push(`/tokens/${effectiveAddress}.png`);
-      }
-
-      // 4. Known remote CDN logos (CoinGecko)
+      // 5. Known remote CDN logos
       if (KNOWN_REMOTE_LOGOS[effectiveAddress]) {
-        list.push(KNOWN_REMOTE_LOGOS[effectiveAddress]);
+        add(KNOWN_REMOTE_LOGOS[effectiveAddress]);
       }
 
-      // 5. TrustWallet Base asset list
-      if (isAddress(effectiveAddress)) {
-        const checksum = getAddress(effectiveAddress);
-        list.push(
-          `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/${checksum}/logo.png`
-        );
-        list.push(
-          `https://assets.smold.app/api/token/8453/${checksum}/logo-128.png`
-        );
-      }
+      // 6. DexScreener CDN for Base tokens
+      add(`https://dd.dexscreener.com/ds-data/tokens/base/${effectiveAddress}.png`);
 
-      // 6. Parqet stock CDN candidate
-      const stockItem = getTokenizedStockByAddress(effectiveAddress);
-      if (stockItem) {
-        const ticker = stockItem.underlyingTicker || stockItem.symbol.replace(/c$/, "");
-        list.push(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}`);
+      // 7. Parqet stock CDN candidate
+      if (stockInfo) {
+        const ticker = stockInfo.underlyingTicker || stockInfo.symbol.replace(/c$/, "");
+        add(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=png`);
         if (ticker.includes(".")) {
-          list.push(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker.replace(".", "-"))}`);
+          add(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker.replace(".", "-"))}?format=png`);
         }
       }
 
-      // 7. Generic self-hosted fallback
-      list.push(`/tokens/${effectiveAddress}.png`);
+      // 8. Local self-hosted fallback
+      add(`/tokens/${effectiveAddress}.png`);
 
-      // 8. Server-side proxy & cache (/api/token-logo/<effectiveAddress>)
-      list.push(
+      // 9. Server-side proxy & cache (/api/token-logo/<effectiveAddress>)
+      add(
         `/api/token-logo/${effectiveAddress}?symbol=${encodeURIComponent(cleanSymbol)}`
       );
+    } else {
+      // Address unknown, try proxy by symbol
+      add(`/api/token-logo/unknown?symbol=${encodeURIComponent(cleanSymbol)}`);
     }
 
-    // Deduplicate preserving order
-    return Array.from(new Set(list));
-  }, [src, registryLogo, effectiveAddress, cleanSymbol]);
+    return list;
+  }, [src, registryLogo, verifiedCatalogLogo, effectiveAddress, cleanSymbol, stockInfo]);
 
   const currentSrc = attemptIndex < candidateUrls.length ? candidateUrls[attemptIndex] : null;
 
@@ -281,9 +336,10 @@ export default function TokenLogo({
         {initials}
       </div>
 
-      {/* Main Image */}
+      {/* Main Image with key to force fresh mount upon fallback transition */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        key={currentSrc}
         ref={(el) => {
           imgRef.current = el;
           if (el?.complete && el.naturalWidth > 0) {

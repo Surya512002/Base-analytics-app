@@ -1,3 +1,5 @@
+import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
+import { getVerifiedTokenLogo } from "@/lib/swap/verified-tokens";
 type TokenLike =
   | { kind: "eth" }
   | {
@@ -36,7 +38,8 @@ const KNOWN_LOGO: Record<string, string> = {
     "https://assets.coingecko.com/coins/images/54683/small/zora.jpg",
 };
 
-export const SELF_HOSTED_LOGOS = new Set([
+export const SELF_HOSTED_LOGOS = new Set<string>([
+  ...TOKENIZED_STOCKS_REGISTRY.map((s) => s.address.toLowerCase()),
   "0x0000000000000000000000000000000000000000",
   "0x0578d8a44db98b23bf096a382e016e29a5ce0ffe",
   "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
@@ -100,6 +103,8 @@ export function tokenLogoUrl(address: string, symbol?: string): string {
     return `/tokens/${key}.png`;
   }
   if (KNOWN_LOGO[key]) return KNOWN_LOGO[key];
+  const verified = getVerifiedTokenLogo(key) || (symbol ? getVerifiedTokenLogo(symbol) : null);
+  if (verified) return verified;
   return `/api/token-logo/${key}${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ""}`;
 }
 

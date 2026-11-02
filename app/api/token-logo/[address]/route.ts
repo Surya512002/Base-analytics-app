@@ -4,16 +4,18 @@ import { resolve } from "node:path";
 import { getAddress, isAddress } from "viem";
 import sharp from "sharp";
 import { generateTokenPlaceholderSvg } from "@/lib/utils/token-color";
-import { getTokenizedStockByAddress } from "@/lib/stocks/tokenized-stocks-registry";
+import {
+  getTokenizedStockByAddress,
+  getTokenizedStockBySymbol,
+} from "@/lib/stocks/tokenized-stocks-registry";
+import { SELF_HOSTED_LOGOS } from "@/lib/launchpad/token-logo";
+import { findVerifiedToken, getVerifiedTokenLogo } from "@/lib/swap/verified-tokens";
 
 export const dynamic = "force-dynamic";
 
-// Negative cache storing addresses with no external logo for 24h
-// address -> timestamp
+// Negative cache storing addresses with no external logo for 2 minutes (preventing CDN abuse without locking out recovered assets)
 const negativeCache = new Map<string, number>();
-const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-import { SELF_HOSTED_LOGOS } from "@/lib/launchpad/token-logo";
+const NEGATIVE_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 // Allowlist of verified external logo providers
 const ALLOWED_HOSTS = new Set([
@@ -31,6 +33,7 @@ const ALLOWED_HOSTS = new Set([
   "assets.parqet.com",
   "www.google.com",
   "metadata.coinbase.com",
+  "assets.geckoterminal.com",
 ]);
 
 /** Well-known Base token CDN links */
@@ -57,6 +60,8 @@ const KNOWN_REMOTE_LOGOS: Record<string, string> = {
     "https://assets.coingecko.com/coins/images/35529/small/Logo.png",
   "0x4ed4e862860bed51a9570b96d89af5e1b0efefed":
     "https://assets.coingecko.com/coins/images/34515/small/android-chrome-512x512.png",
+  "0x1111111111166b7fe7bd91427724b487980afc69":
+    "https://assets.coingecko.com/coins/images/54683/small/zora.jpg",
 };
 
 /**
@@ -140,20 +145,24 @@ export async function GET(
   ctx: { params: Promise<{ address: string }> }
 ) {
   const { address } = await ctx.params;
-  const symbol = req.nextUrl.searchParams.get("symbol") || "TK";
+  const rawSymbol = req.nextUrl.searchParams.get("symbol") || "TK";
+  const cleanSymbol = rawSymbol.replace(/^\$/, "").trim() || "TK";
+  const baseTicker = cleanSymbol.split(/[-/_ ]/)[0] || cleanSymbol;
 
   const isEth =
     address.toLowerCase() === "eth" ||
-    address === "0x0000000000000000000000000000000000000000";
+    address === "0x0000000000000000000000000000000000000000" ||
+    cleanSymbol.toUpperCase() === "ETH" ||
+    baseTicker.toUpperCase() === "ETH";
 
   const lowerAddress = isEth
     ? "0x0000000000000000000000000000000000000000"
     : address.toLowerCase();
 
-  // 1. Source (b): Check self-hosted /public/tokens/<lowerAddress>.png
   const publicTokensDir = resolve(process.cwd(), "public/tokens");
-  const localFile = resolve(publicTokensDir, `${lowerAddress}.png`);
 
+  // 1. Check self-hosted /public/tokens/<lowerAddress>.png
+  const localFile = resolve(publicTokensDir, `${lowerAddress}.png`);
   if (existsSync(localFile)) {
     try {
       const fileData = readFileSync(localFile);
@@ -170,16 +179,35 @@ export async function GET(
     }
   }
 
-  // 2. Source (a): Tokenized Stock Registry & Self-Hosted Assets
-  if (SELF_HOSTED_LOGOS.has(lowerAddress) || lowerAddress.startsWith("0xb200000000000000000000") || isEth) {
-    if (existsSync(localFile)) {
-      return NextResponse.redirect(new URL(`/tokens/${lowerAddress}.png`, req.url), 307);
-    }
-  }
+  // 2. Tokenized Stock Registry (by address, symbol, or compound ticker)
+  const stock =
+    getTokenizedStockByAddress(lowerAddress) ||
+    getTokenizedStockBySymbol(cleanSymbol) ||
+    getTokenizedStockBySymbol(baseTicker) ||
+    getTokenizedStockBySymbol(`${cleanSymbol}c`) ||
+    getTokenizedStockBySymbol(`${baseTicker}c`) ||
+    getTokenizedStockBySymbol(cleanSymbol.replace(/c$/i, "")) ||
+    getTokenizedStockBySymbol(baseTicker.replace(/c$/i, ""));
 
-  if (!isEth && isAddress(lowerAddress)) {
-    const stock = getTokenizedStockByAddress(lowerAddress);
-    if (stock && stock.logo) {
+  if (stock) {
+    const stockLocalPath = resolve(publicTokensDir, `${stock.address.toLowerCase()}.png`);
+    if (existsSync(stockLocalPath)) {
+      try {
+        const fileData = readFileSync(stockLocalPath);
+        return new NextResponse(fileData, {
+          status: 200,
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control":
+              "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+          },
+        });
+      } catch {
+        // proceed
+      }
+    }
+
+    if (stock.logo) {
       if (stock.logo.startsWith("/tokens/")) {
         const stockPath = resolve(process.cwd(), "public", stock.logo.slice(1));
         if (existsSync(stockPath)) {
@@ -194,7 +222,6 @@ export async function GET(
           });
         }
       } else if (stock.logo.startsWith("http")) {
-        // Direct remote Coinbase or CDN logo
         const remoteImg = await fetchSafeImage(stock.logo);
         if (remoteImg) {
           return new NextResponse(remoteImg.buffer as unknown as BodyInit, {
@@ -208,25 +235,74 @@ export async function GET(
         }
       }
     }
+
+    // Try Parqet ticker for stock
+    const ticker = stock.underlyingTicker || stock.symbol.replace(/c$/, "");
+    const parqetResult = await fetchSafeImage(
+      `https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=png`
+    );
+    if (parqetResult) {
+      return new NextResponse(parqetResult.buffer as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          "Content-Type": parqetResult.contentType,
+          "Cache-Control":
+            "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+        },
+      });
+    }
   }
 
-  // 3. Check 24-hour negative cache (avoid repeatedly hitting external CDNs for non-existent art)
+  // 3. Verified Token Catalog (3,100+ Base tokens)
+  const verifiedDef =
+    findVerifiedToken(lowerAddress) ||
+    findVerifiedToken(cleanSymbol) ||
+    findVerifiedToken(baseTicker);
+
+  if (verifiedDef?.logoURI) {
+    if (verifiedDef.logoURI.startsWith("/tokens/")) {
+      const vPath = resolve(process.cwd(), "public", verifiedDef.logoURI.slice(1));
+      if (existsSync(vPath)) {
+        const fileData = readFileSync(vPath);
+        return new NextResponse(fileData, {
+          status: 200,
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control":
+              "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+          },
+        });
+      }
+    } else if (verifiedDef.logoURI.startsWith("http")) {
+      const remoteImg = await fetchSafeImage(verifiedDef.logoURI);
+      if (remoteImg) {
+        return new NextResponse(remoteImg.buffer as unknown as BodyInit, {
+          status: 200,
+          headers: {
+            "Content-Type": remoteImg.contentType,
+            "Cache-Control":
+              "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+          },
+        });
+      }
+    }
+  }
+
+  // 4. Check negative cache to avoid hitting external CDNs repeatedly
   const lastNegative = negativeCache.get(lowerAddress);
   if (lastNegative && Date.now() - lastNegative < NEGATIVE_CACHE_TTL_MS) {
-    const svg = generateTokenPlaceholderSvg(address, symbol, 128);
+    const svg = generateTokenPlaceholderSvg(address, cleanSymbol, 128);
     return new NextResponse(svg, {
       status: 200,
       headers: {
         "Content-Type": "image/svg+xml; charset=utf-8",
         "Cache-Control":
-          "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400",
+          "public, max-age=120, s-maxage=120, stale-while-revalidate=120",
       },
     });
   }
 
-  // 4. Candidate External Chain:
-  // (c) Official Token Lists (CoinGecko / Uniswap / Superchain / TrustWallet)
-  // (d) DEX providers (DexScreener)
+  // 5. External Candidate Chain (DexScreener, CoinGecko, Optimism)
   const checksum = isAddress(lowerAddress) ? getAddress(lowerAddress) : lowerAddress;
   const candidates: string[] = [];
 
@@ -234,35 +310,20 @@ export async function GET(
     candidates.push(KNOWN_REMOTE_LOGOS[lowerAddress]);
   }
 
-  // Tokenized Stock brand logo candidates (Parqet & Google domain API)
-  const stockInfo = getTokenizedStockByAddress(lowerAddress);
-  if (stockInfo) {
-    const sym = stockInfo.underlyingTicker === "BRK.B" ? "BRK-B" : stockInfo.underlyingTicker;
-    candidates.push(`https://assets.parqet.com/logos/symbol/${encodeURIComponent(sym)}?format=png`);
-    if (stockInfo.underlyingTicker === "CRCL") {
-      candidates.push("https://www.google.com/s2/favicons?domain=circle.com&sz=128");
-    }
+  if (isAddress(lowerAddress)) {
+    candidates.push(`https://dd.dexscreener.com/ds-data/tokens/base/${lowerAddress}.png`);
   }
 
-  // TrustWallet Base token repository
-  candidates.push(
-    `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/${checksum}/logo.png`
-  );
-
-  // Smoldapp Base token repository
-  candidates.push(
-    `https://assets.smold.app/api/token/8453/${checksum}/logo-128.png`
-  );
-
-  if (symbol && symbol !== "TK") {
+  if (cleanSymbol && cleanSymbol !== "TK") {
     candidates.push(
       `https://raw.githubusercontent.com/ethereum-optimism/ethereum-optimism.github.io/master/data/${encodeURIComponent(
-        symbol
+        cleanSymbol
       )}/logo.png`
     );
+    candidates.push(
+      `https://assets.parqet.com/logos/symbol/${encodeURIComponent(cleanSymbol)}?format=png`
+    );
   }
-
-  candidates.push(`https://dd.dexscreener.com/ds-data/tokens/base/${lowerAddress}.png`);
 
   for (const candidateUrl of candidates) {
     const result = await fetchSafeImage(candidateUrl);
@@ -278,15 +339,15 @@ export async function GET(
     }
   }
 
-  // 5. Negative Result: Cache for 24h & Return Deterministic Placeholder SVG
+  // 6. Negative Result: Cache for 2m & Return Deterministic Placeholder SVG
   negativeCache.set(lowerAddress, Date.now());
-  const fallbackSvg = generateTokenPlaceholderSvg(address, symbol, 128);
+  const fallbackSvg = generateTokenPlaceholderSvg(address, cleanSymbol, 128);
   return new NextResponse(fallbackSvg, {
     status: 200,
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
       "Cache-Control":
-        "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400",
+        "public, max-age=120, s-maxage=120, stale-while-revalidate=120",
     },
   });
 }
