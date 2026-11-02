@@ -34,6 +34,19 @@ export const beefyAdapter: DiscoveryAdapter = {
         (v) => v.chain === "base" || v.network === "base"
       );
 
+      // Sort candidate vaults: active vaults first, then highest TVL descending
+      baseVaults.sort((a, b) => {
+        const aActive = a.status === "active";
+        const bActive = b.status === "active";
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        const aTvl = (tvlMap[8453]?.[a.id] ?? tvlMap[a.id]) || 0;
+        const bTvl = (tvlMap[8453]?.[b.id] ?? tvlMap[b.id]) || 0;
+        return Number(bTvl) - Number(aTvl);
+      });
+
+      const seenStocks = new Set<string>();
+
       for (const v of baseVaults) {
         if (!v.earnContractAddress) continue;
 
@@ -49,9 +62,8 @@ export const beefyAdapter: DiscoveryAdapter = {
           if (ticker.length <= 2) {
             return (
               assetsLower.includes(sym) ||
-              assetsLower.includes(ticker) ||
               tokenParts.includes(sym) ||
-              tokenParts.includes(ticker)
+              idParts.includes(sym)
             );
           }
           return (
@@ -59,11 +71,16 @@ export const beefyAdapter: DiscoveryAdapter = {
             assetsLower.includes(ticker) ||
             tokenParts.includes(sym) ||
             tokenParts.includes(ticker) ||
-            idParts.includes(sym)
+            idParts.includes(sym) ||
+            idParts.includes(ticker)
           );
         });
 
         if (!matchedStock) continue;
+
+        // Keep the best active vault per stock
+        if (seenStocks.has(matchedStock.symbol)) continue;
+        seenStocks.add(matchedStock.symbol);
 
         try {
           const earnAddr = getAddress(v.earnContractAddress);

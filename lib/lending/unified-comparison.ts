@@ -153,85 +153,85 @@ export const VERIFIED_BEEFY_STOCK_DETAILS: Record<string, VerifiedBeefyVaultDeta
     vaultAddress: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
     wantTokenAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
     vaultId: "aero-cow-base-usdc-nvdac-vault",
-    apy: 28.5,
-    tvlUsd: 10769,
+    apy: 5.91,
+    tvlUsd: 207441,
   },
   AAPLc: {
     vaultAddress: "0xD34249514227594BB3bcdDF24a74fe1901D5077e",
     wantTokenAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1",
     vaultId: "aero-cow-base-usdc-aaplc-vault",
-    apy: 26.4,
-    tvlUsd: 9301,
+    apy: 3.80,
+    tvlUsd: 124421,
   },
   MSFTc: {
     vaultAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
     wantTokenAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732",
     vaultId: "aero-cow-base-msftc-usdc-vault",
-    apy: 293.17,
-    tvlUsd: 70386,
+    apy: 4.37,
+    tvlUsd: 90117,
   },
   TSLAc: {
     vaultAddress: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
     wantTokenAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0",
     vaultId: "aero-cow-base-tslac-usdc-vault",
-    apy: 54.45,
-    tvlUsd: 50944,
+    apy: 6.40,
+    tvlUsd: 60718,
   },
   MSTRc: {
     vaultAddress: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
     wantTokenAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf",
     vaultId: "aero-cow-base-mstrc-usdc-vault",
-    apy: 10.05,
-    tvlUsd: 1950,
+    apy: 88.25,
+    tvlUsd: 4130,
   },
   AMZNc: {
     vaultAddress: "0x1FF5C4d292F9eACAE1fa10c68f2c546ef8Fc7a8A",
     wantTokenAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361",
     vaultId: "aero-cow-base-amznc-usdc-vault",
-    apy: 15.23,
-    tvlUsd: 59668,
+    apy: 3.78,
+    tvlUsd: 63250,
   },
   METAc: {
     vaultAddress: "0x32dB27106d3eeA59A2586E81c4c02aC7a5Ddec49",
     wantTokenAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650",
     vaultId: "aero-cow-base-usdc-metac-vault",
-    apy: 2.93,
-    tvlUsd: 260,
+    apy: 3.59,
+    tvlUsd: 165251,
   },
   GOOGLc: {
     vaultAddress: "0x8Ff449bd7B0073c68C6b5B355B684c7C0d0FEa22",
     wantTokenAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3",
     vaultId: "aero-cow-base-usdc-googlc-vault",
-    apy: 22.5,
-    tvlUsd: 12584,
+    apy: 8.21,
+    tvlUsd: 205266,
   },
   SNDKc: {
     vaultAddress: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
     wantTokenAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661",
     vaultId: "aero-cow-base-sndkc-usdc-vault",
-    apy: 181.78,
-    tvlUsd: 109102,
+    apy: 9.17,
+    tvlUsd: 112369,
   },
   PLTRc: {
     vaultAddress: "0x1361B4DB8b1d8F452B7D3F91bC36B240e32a80BA",
     wantTokenAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4",
     vaultId: "aero-cow-base-pltrc-usdc-vault",
-    apy: 27.5,
-    tvlUsd: 20,
+    apy: 6.63,
+    tvlUsd: 118,
   },
   SPCXc: {
     vaultAddress: "0x08C60dEabCbD835E52d5BF8f8800959B54Db8774",
     wantTokenAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC",
     vaultId: "aero-cow-base-usdc-spcxc-vault",
-    apy: 11.14,
-    tvlUsd: 7287,
+    apy: 9.73,
+    tvlUsd: 118217,
   },
   MUc: {
     vaultAddress: "0x6b08908A8E1a7197e95d525E5f24EE0bf677369e",
     wantTokenAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299",
     vaultId: "aero-cow-base-muc-usdc-vault",
-    apy: 88.35,
-    tvlUsd: 30,
+    apy: 5.59,
+    tvlUsd: 35,
   },
 };
 
@@ -242,19 +242,85 @@ export interface VerifiedAerodromePoolDetails {
 }
 
 export const VERIFIED_AERODROME_STOCK_POOLS: Record<string, VerifiedAerodromePoolDetails> = {
-  NVDAc: { poolAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46", supplyApy: 28.1, tvlUsd: 24500 },
-  AAPLc: { poolAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1", supplyApy: 25.8, tvlUsd: 21000 },
-  MSFTc: { poolAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732", supplyApy: 285.0, tvlUsd: 82000 },
-  TSLAc: { poolAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0", supplyApy: 52.1, tvlUsd: 62000 },
-  MSTRc: { poolAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf", supplyApy: 9.8, tvlUsd: 5000 },
-  AMZNc: { poolAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361", supplyApy: 14.8, tvlUsd: 68000 },
-  METAc: { poolAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650", supplyApy: 2.8, tvlUsd: 1500 },
-  GOOGLc: { poolAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3", supplyApy: 21.9, tvlUsd: 18000 },
-  SNDKc: { poolAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661", supplyApy: 175.0, tvlUsd: 120000 },
-  PLTRc: { poolAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4", supplyApy: 26.5, tvlUsd: 500 },
-  SPCXc: { poolAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC", supplyApy: 10.5, tvlUsd: 12000 },
-  MUc: { poolAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299", supplyApy: 85.0, tvlUsd: 300 },
+  NVDAc: { poolAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46", supplyApy: 17.64, tvlUsd: 517538 },
+  AAPLc: { poolAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1", supplyApy: 5.75, tvlUsd: 110662 },
+  MSFTc: { poolAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732", supplyApy: 2.12, tvlUsd: 17374 },
+  TSLAc: { poolAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0", supplyApy: 6.63, tvlUsd: 34927 },
+  MSTRc: { poolAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf", supplyApy: 3.76, tvlUsd: 214786 },
+  AMZNc: { poolAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361", supplyApy: 8.64, tvlUsd: 64780 },
+  METAc: { poolAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650", supplyApy: 1.43, tvlUsd: 115155 },
+  GOOGLc: { poolAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3", supplyApy: 0.01, tvlUsd: 212922 },
+  SNDKc: { poolAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661", supplyApy: 0.02, tvlUsd: 199153 },
+  PLTRc: { poolAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4", supplyApy: 6.63, tvlUsd: 500 },
+  SPCXc: { poolAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC", supplyApy: 0.95, tvlUsd: 139516 },
+  MUc: { poolAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299", supplyApy: 0.01, tvlUsd: 112850 },
 };
+
+let liveRatesCache: {
+  beefy: Record<string, { apy: number; tvl: number }>;
+  aerodrome: Record<string, { apy: number; tvl: number }>;
+  timestamp: number;
+} | null = null;
+
+async function getLiveBeefyAndAeroRates(): Promise<{
+  beefy: Record<string, { apy: number; tvl: number }>;
+  aerodrome: Record<string, { apy: number; tvl: number }>;
+}> {
+  const now = Date.now();
+  if (liveRatesCache && now - liveRatesCache.timestamp < 60_000) {
+    return liveRatesCache;
+  }
+  try {
+    const [beefyApyRes, beefyTvlRes, aeroRes] = await Promise.all([
+      fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 } }).catch(() => null),
+      fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 } }).catch(() => null),
+      fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 } }).catch(() => null),
+    ]);
+
+    const beefyMap: Record<string, { apy: number; tvl: number }> = {};
+    if (beefyApyRes?.ok) {
+      const apyMap = (await beefyApyRes.json()) as Record<string, number>;
+      const tvlMap = beefyTvlRes?.ok ? ((await beefyTvlRes.json()) as Record<string, any>) : {};
+      for (const [sym, details] of Object.entries(VERIFIED_BEEFY_STOCK_DETAILS)) {
+        const vid = details.vaultId;
+        const rawApy = apyMap[vid] ? Number(apyMap[vid]) * 100 : 0;
+        const rawTvl = tvlMap[8453]?.[vid] ?? tvlMap[vid] ?? 0;
+        const apy = Math.round(rawApy * 100) / 100;
+        const tvl = Math.round(Number(rawTvl) || 0);
+        if (apy > 0 || tvl > 0) {
+          beefyMap[sym] = { apy, tvl };
+        }
+      }
+    }
+
+    const aeroMap: Record<string, { apy: number; tvl: number }> = {};
+    if (aeroRes?.ok) {
+      const json = (await aeroRes.json()) as any;
+      const pools = (json?.data || []).filter(
+        (p: any) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
+      );
+      for (const sym of Object.keys(VERIFIED_AERODROME_STOCK_POOLS)) {
+        const symUpper = sym.toUpperCase();
+        const match =
+          pools.find((p: any) => {
+            const pSym = (p.symbol || "").toUpperCase();
+            return pSym.includes(symUpper) && (pSym.includes("USDC") || pSym.includes("USD"));
+          }) || pools.find((p: any) => (p.symbol || "").toUpperCase().includes(symUpper));
+        if (match) {
+          aeroMap[sym] = {
+            apy: Math.round(Number(match.apy || 0) * 100) / 100,
+            tvl: Math.round(Number(match.tvlUsd || 0)),
+          };
+        }
+      }
+    }
+
+    liveRatesCache = { beefy: beefyMap, aerodrome: aeroMap, timestamp: now };
+    return liveRatesCache;
+  } catch {
+    return { beefy: {}, aerodrome: {} };
+  }
+}
 
 export interface VerifiedIporStockVault {
   vaultAddress: `0x${string}`;
@@ -378,12 +444,18 @@ export async function getUnifiedStockLendingComparison(
   );
 
   const options: StockLendingOption[] = [];
+  const liveRates = await getLiveBeefyAndAeroRates();
 
   // 1. Beefy Finance (Only if stock has verified live Beefy vault on Base)
   const beefyDiscovered = matchingMarkets.find((m) => m.protocol === "beefy");
   const beefyVerified = VERIFIED_BEEFY_STOCK_DETAILS[cleanSymbol];
   if (beefyDiscovered || beefyVerified) {
     const vaultContract = (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || beefyVerified?.vaultAddress) as `0x${string}`;
+    const beefyLive = liveRates.beefy[cleanSymbol];
+    const supplyApy = beefyDiscovered?.supplyApy ?? (beefyLive?.apy ?? beefyVerified?.apy ?? (isHighBeta ? 6.40 : 4.37));
+    const tvlUsd = beefyDiscovered?.tvlUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 142_000);
+    const availableLiquidityUsd = beefyDiscovered?.liquidityUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 95_000);
+
     options.push({
       id: beefyDiscovered ? `beefy-${beefyDiscovered.marketId}` : `${cleanSymbol}-beefy-vault`,
       protocol: "beefy",
@@ -396,13 +468,13 @@ export async function getUnifiedStockLendingComparison(
       stockAddress: stockAddr,
       loanSymbol: "USDC",
       loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: beefyDiscovered?.supplyApy ?? (beefyVerified?.apy ?? (isHighBeta ? 48.65 : 32.14)),
+      supplyApy,
       borrowApr: null,
       maxLtv: null,
       liquidationThreshold: null,
       utilization: 100,
-      availableLiquidityUsd: beefyDiscovered?.liquidityUsd ?? (beefyVerified?.tvlUsd ?? 95_000),
-      tvlUsd: beefyDiscovered?.tvlUsd ?? (beefyVerified?.tvlUsd ?? 142_000),
+      availableLiquidityUsd,
+      tvlUsd,
       riskScore: 2,
       riskLevel: "low",
       riskNotes: [
@@ -421,6 +493,11 @@ export async function getUnifiedStockLendingComparison(
   const aeroVerified = VERIFIED_AERODROME_STOCK_POOLS[cleanSymbol];
   if (aeroDiscovered || aeroVerified) {
     const poolContract = (aeroDiscovered?.contractAddress || aeroVerified?.poolAddress) as `0x${string}`;
+    const aeroLive = liveRates.aerodrome[cleanSymbol];
+    const supplyApy = aeroDiscovered?.supplyApy ?? (aeroLive?.apy ?? aeroVerified?.supplyApy ?? (isHighBeta ? 6.63 : 5.75));
+    const tvlUsd = aeroDiscovered?.tvlUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 280_000);
+    const availableLiquidityUsd = aeroDiscovered?.liquidityUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 125_000);
+
     options.push({
       id: aeroDiscovered ? `aero-${aeroDiscovered.marketId}` : `${cleanSymbol}-aerodrome-gauge`,
       protocol: "aerodrome",
@@ -433,13 +510,13 @@ export async function getUnifiedStockLendingComparison(
       stockAddress: stockAddr,
       loanSymbol: "USDC",
       loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: aeroDiscovered?.supplyApy ?? (aeroVerified?.supplyApy ?? (isHighBeta ? 42.5 : 28.1)),
+      supplyApy,
       borrowApr: null,
       maxLtv: null,
       liquidationThreshold: null,
       utilization: 100,
-      availableLiquidityUsd: aeroDiscovered?.liquidityUsd ?? (aeroVerified?.tvlUsd ?? 125_000),
-      tvlUsd: aeroDiscovered?.tvlUsd ?? (aeroVerified?.tvlUsd ?? 280_000),
+      availableLiquidityUsd,
+      tvlUsd,
       riskScore: 2,
       riskLevel: "low",
       riskNotes: [

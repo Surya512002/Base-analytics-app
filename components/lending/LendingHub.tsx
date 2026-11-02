@@ -242,6 +242,13 @@ export default function LendingHub({
 
   useEffect(() => {
     void fetchDiscoveredMarkets();
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      void fetchDiscoveredMarkets(true);
+    }, 30_000);
+    return () => clearInterval(interval);
   }, [fetchDiscoveredMarkets]);
 
   // 1. Markets Overview (Level 1) Rows Generation - Derived dynamically from discovery

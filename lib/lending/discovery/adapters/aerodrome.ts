@@ -56,11 +56,110 @@ const GAUGE_ABI = [
 
 const SECONDS_PER_YEAR = 31536000;
 
+export const AERODROME_STOCK_POOL_ADDRESSES: Record<string, `0x${string}`> = {
+  NVDAc: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
+  AAPLc: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1",
+  MSFTc: "0xAA4743151ac49BF80D13C51e2B2836b143B64732",
+  TSLAc: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0",
+  MSTRc: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf",
+  AMZNc: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361",
+  METAc: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650",
+  GOOGLc: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3",
+  SNDKc: "0x30c23fB48A81392C4e453cacd714bfAD848d1661",
+  PLTRc: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4",
+  SPCXc: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC",
+  MUc: "0x540e3642f583f0366cBb2d9507940e59C9cEB299",
+};
+
 export const aerodromeAdapter: DiscoveryAdapter = {
   protocol: "aerodrome",
   protocolLabel: "Aerodrome Finance",
   async discoverMarkets(chainId: number): Promise<NormalizedMarket[]> {
     const markets: NormalizedMarket[] = [];
+
+    // Filter to top tokenized stocks with DEX pool liquidity on Aerodrome
+    const prioritySymbols = new Set([
+      "NVDAc", "AAPLc", "TSLAc", "MSFTc", "MSTRc", "COINc", "GOOGLc",
+      "METAc", "AMZNc", "SPCXc", "SNDKc", "PYPLc", "FUNc", "APPc"
+    ]);
+    const targetStocks = getActiveTokenizedStocks().filter(
+      (s) => prioritySymbols.has(s.symbol)
+    );
+
+    // 1. Try real-time yields from DefiLlama pools (live Slipstream/Aerodrome Base yields)
+    try {
+      const res = await fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 } });
+      if (res.ok) {
+        const json = (await res.json()) as any;
+        const aeroBase = (json?.data || []).filter(
+          (p: any) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
+        );
+
+        for (const stock of targetStocks) {
+          const symUpper = stock.symbol.toUpperCase();
+          const match =
+            aeroBase.find((p: any) => {
+              const pSym = (p.symbol || "").toUpperCase();
+              return pSym.includes(symUpper) && (pSym.includes("USDC") || pSym.includes("USD"));
+            }) ||
+            aeroBase.find((p: any) => (p.symbol || "").toUpperCase().includes(symUpper));
+
+          if (match) {
+            const apy = Math.round(Number(match.apy || 0) * 100) / 100;
+            const tvlUsd = Math.round(Number(match.tvlUsd || 0));
+            const poolAddr = AERODROME_STOCK_POOL_ADDRESSES[stock.symbol] || stock.address;
+
+            markets.push({
+              protocol: "aerodrome",
+              protocolLabel: "Aerodrome Finance",
+              marketId: `aerodrome-gauge-${poolAddr.slice(0, 8)}`,
+              type: "stake",
+              supplyAsset: {
+                symbol: `${stock.symbol}-USDC`,
+                name: `Aerodrome ${stock.symbol}/USDC LP`,
+                address: poolAddr,
+                decimals: 18,
+                isStock: true,
+              },
+              collateralAsset: {
+                symbol: stock.symbol,
+                name: stock.name,
+                address: stock.address,
+                decimals: stock.decimals,
+                isStock: true,
+              },
+              supplyApy: apy,
+              stakingApr: apy,
+              maxLtv: 0,
+              liquidityUsd: tvlUsd,
+              tvlUsd: tvlUsd,
+              utilization: 100,
+              oracle: {
+                name: "Aerodrome TWAP + Chainlink",
+                isVerified: true,
+                type: "composite",
+              },
+              canSupply: true,
+              canBorrow: false,
+              canUseAsCollateral: false,
+              riskFlags: [],
+              sourceLink: `https://aerodrome.finance/deposit?token0=${stock.address}&token1=${USDC_BASE_ADDRESS}`,
+              lastUpdated: new Date().toISOString(),
+              status: "active",
+              badgeText: `${apy > 0 ? `${apy.toFixed(1)}% Staking APR` : "Gauge Boosted"}`,
+              contractAddress: poolAddr,
+            });
+          }
+        }
+
+        if (markets.length > 0) {
+          return markets;
+        }
+      }
+    } catch {
+      // Fallback to onchain RPC reads if DefiLlama yields endpoint fails
+    }
+
     const rpcUrl = process.env.BASE_RPC_URL || process.env.ANVIL_RPC_URL || "https://mainnet.base.org";
 
     const client = createPublicClient({
@@ -71,14 +170,6 @@ export const aerodromeAdapter: DiscoveryAdapter = {
       },
     });
 
-    // Filter to top tokenized stocks with DEX pool liquidity on Aerodrome to avoid RPC 429 flooding
-    const prioritySymbols = new Set([
-      "NVDAc", "AAPLc", "TSLAc", "MSFTc", "MSTRc", "COINc", "GOOGLc",
-      "METAc", "AMZNc", "SPCXc", "SNDKc", "PYPLc", "FUNc", "APPc"
-    ]);
-    const targetStocks = getActiveTokenizedStocks().filter(
-      (s) => prioritySymbols.has(s.symbol)
-    );
     const pairedQuotes = [USDC_BASE_ADDRESS];
     const aeroPriceEstimatedUsd = 0.85;
 
