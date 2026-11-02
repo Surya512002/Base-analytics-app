@@ -2,13 +2,16 @@ import type { Redis } from "ioredis";
 import { getRedisClient } from "@/lib/redis-cache";
 
 const REDIS_UNIQUE_USERS_KEY = "app:unique_users";
-const BASELINE_USER_COUNT = 1420;
+const BASELINE_USER_COUNT = 2342;
 
 // Known Redis keys containing leaderboard and user activity data
 const LEADERBOARD_KEYS = [
   "base_season1_leaderboard",
-  "base_global_leaderboard",
+  "base_leaderboard_v2",
+  "base_leaderboard_v3",
   "base_referrals_v1",
+  "base_voucher_batches",
+  "base_global_leaderboard",
   "base_season_leaderboard",
   "leaderboard",
 ];
@@ -120,6 +123,19 @@ async function syncLeaderboardAddresses(redis: Redis): Promise<Set<string>> {
     }
   }
 
+  // Scan voucher credentials keys
+  try {
+    const credKeys = await redis.keys("base_voucher_credentials_*");
+    for (const k of credKeys) {
+      const addr = k.replace("base_voucher_credentials_", "");
+      if (isValidEthAddress(addr)) {
+        discovered.add(addr.toLowerCase());
+      }
+    }
+  } catch (err) {
+    console.warn("[Redis Unique Users] Failed to scan voucher credentials:", err);
+  }
+
   // Include any existing members already recorded in app:unique_users
   try {
     const existing = await redis.smembers(REDIS_UNIQUE_USERS_KEY);
@@ -215,7 +231,7 @@ export async function getUniqueUserCount(): Promise<number> {
 }
 
 /**
- * Get formatted count string (e.g. "1,420" or "1,852")
+ * Get formatted count string (e.g. "2,342")
  */
 export async function getFormattedUniqueUserCount(): Promise<string> {
   const count = await getUniqueUserCount();

@@ -10,8 +10,8 @@ interface UniqueUsersState {
 
 // Module-level store ensuring all components on the same page remain 100% in sync
 let globalState: UniqueUsersState = {
-  count: 1420,
-  formatted: "1,420",
+  count: 2342,
+  formatted: "2,342",
   loading: true,
 };
 
@@ -53,8 +53,8 @@ function getSnapshot(): UniqueUsersState {
 }
 
 const serverSnapshot: UniqueUsersState = {
-  count: 1420,
-  formatted: "1,420",
+  count: 2342,
+  formatted: "2,342",
   loading: false,
 };
 

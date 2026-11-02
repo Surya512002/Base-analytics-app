@@ -7,16 +7,9 @@ let warnedUnavailable = false;
 const AUTH_ERROR =
   /WRONGPASS|NOAUTH|invalid username-password|ERR invalid password/i;
 
-/** Redis Cloud / Redis Labs require TLS — upgrade redis:// → rediss:// */
+/** Redis URL normalizer. Preserves explicit scheme (redis:// or rediss://). */
 export function normalizeRedisUrl(url: string): string {
-  const trimmed = url.trim();
-  if (
-    trimmed.startsWith("redis://") &&
-    /\.(redislabs\.com|redis\.cloud)/i.test(trimmed)
-  ) {
-    return trimmed.replace(/^redis:\/\//, "rediss://");
-  }
-  return trimmed;
+  return url.trim();
 }
 
 function warnUnavailable(reason: string) {
@@ -63,6 +56,8 @@ function getRedis(): Redis | null {
       client.on("error", (e) => {
         if (AUTH_ERROR.test(e.message)) {
           disableRedis("check KV_REDIS_URL username/password in Redis Cloud");
+        } else {
+          console.warn("[Redis cache] Warning:", e.message);
         }
       });
     } catch {

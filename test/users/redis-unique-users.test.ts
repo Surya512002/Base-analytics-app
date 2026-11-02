@@ -10,7 +10,7 @@ import {
 describe("Redis Unique Users Tracker", () => {
   it("returns at least the baseline count for unique users", async () => {
     const count = await getUniqueUserCount();
-    expect(count).toBeGreaterThanOrEqual(1420);
+    expect(count).toBeGreaterThanOrEqual(2342);
   });
 
   it("formats the unique user count as a readable localized string", async () => {
