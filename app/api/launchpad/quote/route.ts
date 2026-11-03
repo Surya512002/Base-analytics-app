@@ -12,7 +12,11 @@ import {
   estimatePriceImpactBps,
   type MarginalProbe,
 } from "@/lib/launchpad/price-impact";
-import { splitGrossAmount } from "@/lib/launchpad/fees";
+import {
+  splitGrossAmount,
+  LAUNCHPAD_LAUNCHED_FEE_BPS,
+  LAUNCHPAD_TRADING_FEE_BPS,
+} from "@/lib/launchpad/fees";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { sanitizeTokenAmountInput } from "@/lib/launchpad/token-amount";
 import { quoteLaunchSwap, type LaunchDex } from "@/lib/launchpad/dex";
@@ -221,13 +225,26 @@ export async function GET(req: Request) {
     if (gross <= BigInt(0)) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
-    // Direct DEX swaps execute the full gross amount directly with builder code attribution
-    const amountIn = gross;
-    const { fee: platformFee } = splitGrossAmount(gross);
+    // Platform fee policy:
+    // - Platform-launched tokens: 0.50% (50 bps) fee (split 0.25% creator + 0.25% platform if creator exists)
+    // - Other trading tokens & tokenized stocks: 0.25% (25 bps) flat platform fee (0% creator fee)
+    const feeBps = isLaunched ? LAUNCHPAD_LAUNCHED_FEE_BPS : LAUNCHPAD_TRADING_FEE_BPS;
+    const { net: netAmount, fee: platformFee } = splitGrossAmount(gross, feeBps);
 
-    // Apply safe default slippage for newly launched tokens (200 bps) and tokenized stock multi-hop pools (150 bps)
-    const isStockTrade = isStock || (legs && (isActiveStockAddress(legs.sellToken) || isActiveStockAddress(legs.buyToken)));
-    const effectiveSlippageBps = isLaunched ? Math.max(slippageBps, 200) : isStockTrade ? Math.max(slippageBps, 150) : slippageBps;
+    // Direct DEX swaps execute the net amount after deducting the platform fee
+    const amountIn = netAmount;
+
+    // Low slippage execution to benefit users across all Base assets:
+    // - Standard trading & tokenized stocks: tight execution, honor user's chosen slippage (min 10 bps / 0.10%)
+    // - New platform launches: safe default for initial pool volatility (min 100 bps / 1.0%)
+    const effectiveSlippageBps = isLaunched
+      ? Math.max(slippageBps, 100)
+      : Math.max(slippageBps, 10);
+
+    const hasCreator = Boolean(isLaunched && creator);
+    const creatorFeeBps = hasCreator ? 25 : 0;
+    const platformFeeBps = hasCreator ? 25 : isLaunched ? 50 : 25;
+    const totalFeeBps = isLaunched ? 50 : 25;
 
     const base = {
       direction,
@@ -241,13 +258,14 @@ export async function GET(req: Request) {
       tokenIn: legs.sellToken,
       tokenOut: legs.buyToken,
       outDecimals: legs.outDecimals,
-      creator,
+      creator: hasCreator ? creator : null,
       referrer: isAddressLike(referrer || "") ? referrer : null,
-      feeShares,
+      feeShares: isLaunched ? feeShares : { creator: "0%", platform: "0.25%", referrer: "0%" },
       isLaunchedToken: isLaunched,
-      defaultSlippageBps: isLaunched ? 250 : 100,
-      creatorFeeBps: isLaunched ? 25 : 0,
-      platformFeeBps: isLaunched ? 25 : 50,
+      defaultSlippageBps: isLaunched ? 150 : 50,
+      creatorFeeBps,
+      platformFeeBps,
+      totalFeeBps,
       antiSnipe,
       aggregatorConfigured: zeroXConfigured(),
     };

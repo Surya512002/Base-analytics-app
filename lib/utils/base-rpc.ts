@@ -49,6 +49,7 @@ export function getBaseRpcUrls(): string[] {
 export function createPublicOnlyBaseClient() {
   return createPublicClient({
     chain: base,
+    pollingInterval: 400,
     transport: http(BASE_PUBLIC_RPC, {
       retryCount: 3,
       retryDelay: 400,
@@ -75,6 +76,7 @@ export function createBaseHttpTransport(): Transport {
 export function createBasePublicClient() {
   return createPublicClient({
     chain: base,
+    pollingInterval: 400,
     transport: createBaseHttpTransport(),
   });
 }

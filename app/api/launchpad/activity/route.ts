@@ -100,7 +100,7 @@ export async function GET(req: Request) {
     const ethUsd = await fetchEthUsd();
     const pub = createBasePublicClient();
     const head = await pub.getBlockNumber();
-    const fromBlock = head > BigInt(2500) ? head - BigInt(2500) : BigInt(0);
+    const fromBlock = head > BigInt(15_000) ? head - BigInt(15_000) : BigInt(0);
     const blockTsCache = new Map<string, number>();
 
     await Promise.all(

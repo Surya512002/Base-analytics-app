@@ -19,7 +19,7 @@ High-performance trading terminal, tokenized equity discovery, lending compariso
 | Section | Key Highlights |
 | :--- | :--- |
 | **Explore** | Token discovery across 32 Coinbase tokenized equities (MSFTc, AAPLc, NVDAc, TSLAc, GOOGLc, METAc, COINc, AMZNc, etc.), 24h volume, interactive charts, and push price alerts. |
-| **Swap** | Smart multi-DEX routing across Uniswap v3, Aerodrome, Slipstream, 0x API v2, and o1 quote routing with built-in **0.25% creator revenue fee sharing** and transparent 0.50% platform fee. |
+| **Swap** | Smart multi-DEX routing across Uniswap v3, Aerodrome, Slipstream, 0x API v2, and o1 quote routing with industry-low **0.25% fee** on tokenized stocks & general tokens, plus **0.25% creator revenue share** (0.50% total) on platform-launched tokens. |
 | **Launchpad** | 3 token launch modes: **B20 vanity tokens** (0xB200... mining), **ERC-20 meme coins**, and **stock-paired memestocks** (paired with NVDAc or AAPLc) with anti-snipe protection, trademark collision warnings, and vesting. |
 | **Lend & Stake** | Real-time yield comparisons across Morpho Blue, Aave v3, Moonwell, and Superform vaults with interactive **Collateral Health Factor Simulator** and borrow risk disclosures. |
 | **Base Voucher** | Decentralized crypto gift cards: split deposits into up to 50 cards supporting **ETH, USDC, Tokenized Stocks**, and **Morpho/Superform Yield Vault shares** (`mvNVDAc`, `mvAAPLc`, `sfNVDAc`, `mvCOINc`). |

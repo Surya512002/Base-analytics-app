@@ -1508,6 +1508,7 @@ export function useVoucherTab(app: WalletAppState) {
           await client.waitForTransactionReceipt({
             hash: hash as `0x${string}`,
             timeout: 60_000,
+            pollingInterval: 400,
           });
         } catch (waitErr) {
           console.warn("[voucher approve wait receipt]", waitErr);

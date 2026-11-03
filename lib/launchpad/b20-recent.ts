@@ -23,9 +23,9 @@ const B20_CREATED_ABI = [
 ] as const;
 
 /** ~2k blocks ≈ a few minutes on Base; keep under eth_getLogs range limits. */
-const LOOKBACK_BLOCKS = 8_000;
+const LOOKBACK_BLOCKS = 40_000;
 const MAX_RECENT = 48;
-const CHUNK = 2_000;
+const CHUNK = 4_000;
 
 export type RecentB20Create = {
   address: string;

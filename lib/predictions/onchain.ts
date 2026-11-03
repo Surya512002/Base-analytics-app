@@ -49,6 +49,7 @@ export function getPredictionsPublicClient(rpcUrl?: string) {
   if (rpcUrl) {
     return createPublicClient({
       chain: base,
+      pollingInterval: 400,
       transport: http(rpcUrl, { retryCount: 2, retryDelay: 400, timeout: 20_000 }),
     });
   }

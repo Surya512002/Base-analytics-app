@@ -10,8 +10,9 @@ function parseShareBps(key: string, fallback: number): number {
 
 /**
  * Share of the platform fee (bps of fee amount, must sum to 10000).
- * Updated structure: 0.5% total fee split evenly between creator (0.25%) and platform (0.25%).
- * Referral fee removed (0%).
+ * Updated structure:
+ * - Platform-launched tokens: 0.50% total fee split evenly between creator (0.25%) and platform (0.25%).
+ * - Other trading tokens & tokenized stocks: 0.25% total fee with 0% creator fee (100% platform treasury).
  */
 export const FEE_SHARE_CREATOR_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_CREATOR_BPS", 5000);
 export const FEE_SHARE_PLATFORM_BPS = parseShareBps("LAUNCHPAD_FEE_SHARE_PLATFORM_BPS", 5000);
@@ -118,3 +119,25 @@ export function feeBreakdownLabels() {
   };
 }
 
+export function feeBreakdownForTier(isLaunched: boolean) {
+  if (isLaunched) {
+    return {
+      totalFeeLabel: "0.50%",
+      creatorShareLabel: "0.25%",
+      platformShareLabel: "0.25%",
+      totalFeeBps: 50,
+      creatorFeeBps: 25,
+      platformFeeBps: 25,
+      hasCreatorSplit: true,
+    };
+  }
+  return {
+    totalFeeLabel: "0.25%",
+    creatorShareLabel: "0%",
+    platformShareLabel: "0.25%",
+    totalFeeBps: 25,
+    creatorFeeBps: 0,
+    platformFeeBps: 25,
+    hasCreatorSplit: false,
+  };
+}

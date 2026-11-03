@@ -1,5 +1,8 @@
 import {
   LAUNCHPAD_PLATFORM_FEE_BPS,
+  LAUNCHPAD_LAUNCHED_FEE_BPS,
+  LAUNCHPAD_TRADING_FEE_BPS,
+  getPlatformFeeBps,
   formatPlatformFeeLabel,
 } from "@/lib/constants/launchpad";
 import {
@@ -11,6 +14,11 @@ import {
 } from "@/lib/launchpad/fee-split";
 
 export {
+  LAUNCHPAD_PLATFORM_FEE_BPS,
+  LAUNCHPAD_LAUNCHED_FEE_BPS,
+  LAUNCHPAD_TRADING_FEE_BPS,
+  getPlatformFeeBps,
+  formatPlatformFeeLabel,
   splitPlatformFee,
   feeShareLabels,
   FEE_SHARE_CREATOR_BPS,
@@ -41,6 +49,8 @@ export function formatFeeFromGross(
   opts?: {
     creator?: `0x${string}`;
     referrer?: `0x${string}` | null;
+    isLaunched?: boolean;
+    feeBps?: number;
   }
 ): {
   platformFeeLabel: string;
@@ -53,7 +63,8 @@ export function formatFeeFromGross(
 } {
   const dec = direction === "buy" ? 18 : decimals;
   const gross = BigInt(grossAmount);
-  const { net, fee } = splitGrossAmount(gross);
+  const bps = opts?.feeBps ?? (opts?.isLaunched != null ? getPlatformFeeBps(opts.isLaunched) : LAUNCHPAD_PLATFORM_FEE_BPS);
+  const { net, fee } = splitGrossAmount(gross, bps);
   const unit = direction === "buy" ? "ETH" : "tokens";
   const fmt = (v: bigint) => {
     const n = Number(v) / 10 ** dec;
@@ -63,13 +74,13 @@ export function formatFeeFromGross(
   };
 
   const base = {
-    platformFeeLabel: formatPlatformFeeLabel(),
+    platformFeeLabel: formatPlatformFeeLabel(bps),
     platformFeeDisplay: `${fmt(fee)} ${unit}`,
     swapAmountDisplay: `${fmt(net)} ${unit}`,
     grossDisplay: `${fmt(gross)} ${unit}`,
   };
 
-  if (!opts?.creator) return base;
+  if (!opts?.creator || opts?.isLaunched === false) return base;
 
   const split = splitPlatformFee(fee, {
     creator: opts.creator,

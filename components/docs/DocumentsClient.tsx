@@ -207,7 +207,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     category: "launchpad",
     title: "Smart Multi-DEX Swap Quote",
     description:
-      "Calculates quotes across Uniswap v3, Aerodrome, Slipstream, and 0x API with creator fee breakdown (0.25%), slippage protection, and price impact.",
+      "Calculates quotes across Uniswap v3, Aerodrome, Slipstream, and 0x API with 0.25% trading fee on stocks/tokens, 0.25% creator revenue share on platform launches, slippage protection, and price impact.",
     params: [
       { name: "sellToken", type: "string", required: true, description: "Address or ticker of token to sell" },
       { name: "buyToken", type: "string", required: true, description: "Address or ticker of token to buy" },
@@ -808,7 +808,7 @@ export default function DocumentsClient() {
                 </div>
                 <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
                   Aggregates Uniswap v3 (all fee tiers), Aerodrome volatile/stable, Slipstream concentrated
-                  liquidity, and 0x API fallback with automated 0.25% creator revenue fee routing.
+                  liquidity, and 0x API fallback with industry-low 0.25% trading fees (and 0.25% creator revenue share on platform launches).
                 </p>
                 <Link href="/swap" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
                   Open Swap terminal <ArrowUpRight size={13} />

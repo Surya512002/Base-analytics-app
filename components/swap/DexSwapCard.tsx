@@ -73,7 +73,7 @@ const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "o1", label: "o1 Router" },
 ];
 
-const SLIPPAGE_PRESETS = ["0.5", "1", "3"];
+const SLIPPAGE_PRESETS = ["0.1", "0.5", "1"];
 const MAX_ETH_FRACTION = 0.97;
 const MAX_TOKEN_FRACTION = 0.995;
 const DOLLAR_PEGGED = new Set(["USDC", "USDT", "DAI", "USDBC", "USDbC", "USDS", "USDE"]);
@@ -439,7 +439,7 @@ export default function DexSwapCard({
           direction: route.direction,
           amount: quoteAmount,
           decimals: pageDecimals,
-          slippageBps: isStockInvolved ? Math.max(parseSlippageBps(slippage), 150) : parseSlippageBps(slippage),
+          slippageBps: parseSlippageBps(slippage),
           dex,
           referrer,
           taker: wallet?.address,
@@ -455,8 +455,8 @@ export default function DexSwapCard({
         setQuoteError(q.hasLiquidity ? null : q.error ?? "No route with sufficient liquidity");
         setActiveDex(q.dex ?? null);
         setQuoteImpactBps(q.priceImpactBps ?? null);
-        if (q.isLaunchedToken) setIsLaunchedToken(true);
-        if (q.creator) setCreatorAddress(q.creator);
+        setIsLaunchedToken(Boolean(q.isLaunchedToken));
+        setCreatorAddress(q.creator ?? null);
 
         const outDec =
           q.outDecimals ?? (route.direction === "buy" ? pageDecimals : route.counterDecimals);
@@ -707,7 +707,7 @@ export default function DexSwapCard({
       decimals: pageDecimals,
       direction: route.direction,
       amount: sanitizeTokenAmountInput(amount, quoteAmountDecimals) || amount,
-      slippageBps: isStockInvolved ? Math.max(parseSlippageBps(slippage), 150) : parseSlippageBps(slippage),
+      slippageBps: parseSlippageBps(slippage),
       dex,
       referrer,
       counterDecimals: route.counterDecimals,
@@ -1125,7 +1125,21 @@ export default function DexSwapCard({
                   <div className="flex items-center justify-between">
                     <span>Platform Fee</span>
                     <span className="font-bold text-[var(--ink)] font-mono">
-                      {formatPlatformFeeLabel()} (0.50%)
+                      {isLaunchedToken ? (
+                        <>
+                          <span>0.50%</span>
+                          <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
+                            (0.25% Creator + 0.25% Platform)
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-600 dark:text-emerald-400">0.25%</span>
+                          <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
+                            (Lowest on Base)
+                          </span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </motion.div>
@@ -1318,7 +1332,7 @@ export default function DexSwapCard({
 
         {/* Card Footer Note */}
         <p className="text-center text-[11px] text-[var(--ink-dim)]">
-          {formatPlatformFeeLabel()} platform fee · 0x &amp; Aerodrome Smart Routing · Base Mainnet
+          {isLaunchedToken ? "0.50% fee (0.25% Creator Share)" : "0.25% trading fee (Lowest on Base)"} · Low-Slippage Smart Routing across Uniswap, Aerodrome, Slipstream &amp; 0x · Base Mainnet
         </p>
       </div>
 

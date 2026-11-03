@@ -200,7 +200,7 @@ async function waitForOnchainHash(hash: string): Promise<string> {
       pub.waitForTransactionReceipt({
         hash: hash as `0x${string}`,
         timeout: ONCHAIN_WAIT_MS,
-        pollingInterval: 2_000,
+        pollingInterval: 400,
       })
     );
     if (receipt.status !== "success") {

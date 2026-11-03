@@ -1434,12 +1434,15 @@ function useWalletAppController() {
         }
         const calls = [];
         const payIsNative = payAsset === "eth";
+        const isLaunched = Boolean(quote.isLaunchedToken);
+        const feeBps = isLaunched ? 50 : 25;
         const grossAmount = parseUnits(
           args.amount,
           args.direction === "buy" ? payDecimals : tokenDecimals
         );
-        const { fee } = splitGrossAmount(grossAmount);
+        const { net: netAmount, fee } = splitGrossAmount(grossAmount, feeBps);
         const swapFee = fee;
+        const buySwapAmount = isAggregator ? grossAmount : netAmount;
         const swapFeeAsset: "eth" | "usdc" | "token" =
           args.direction === "buy"
             ? (payAsset === "usdc" ? "usdc" : payAsset === "eth" ? "eth" : "token")
@@ -1502,7 +1505,7 @@ function useWalletAppController() {
                     : encodeAerodromeTokensForTokens({
                         tokenIn: payTokenAddr,
                         tokenOut: token,
-                        amountIn: grossAmount,
+                        amountIn: buySwapAmount,
                         amountOutMinimum: minOut,
                         recipient,
                         stable: aeroStable,
@@ -1512,7 +1515,7 @@ function useWalletAppController() {
                   ? encodeSlipstreamBuy({
                       tokenOut: token,
                       recipient,
-                      amountIn: grossAmount,
+                      amountIn: buySwapAmount,
                       amountOutMinimum: minOut,
                       tickSpacing: slipTick,
                     })
@@ -1520,21 +1523,31 @@ function useWalletAppController() {
                     ? encodeExactInputMultiHop({
                         path: uniPath,
                         recipient,
-                        amountIn: grossAmount,
+                        amountIn: buySwapAmount,
                         amountOutMinimum: minOut,
                       })
                     : encodeExactInputSingle({
                         tokenIn: (payAsset === "usdc" ? USDC_BASE : payAsset === "token" && args.payToken ? args.payToken : weth) as `0x${string}`,
                         tokenOut: token,
                         recipient,
-                        amountIn: grossAmount,
+                        amountIn: buySwapAmount,
                         amountOutMinimum: minOut,
                         fee: uniFee,
                       });
-            calls.push(buildContractCall(router, swapData, payIsNative ? grossAmount : BigInt(0)));
+            calls.push(buildContractCall(router, swapData, payIsNative ? buySwapAmount : BigInt(0)));
+            if (!isAggregator && swapFee > BigInt(0)) {
+              pushFeeSplitCalls(calls, swapFee, {
+                native: payIsNative,
+                token: payIsNative ? token : payTokenAddr,
+                creator: isLaunched ? creator : null,
+                referrer,
+                referrerBoostBps,
+                payer: recipient,
+              });
+            }
           }
         } else {
-          const sellAmount = grossAmount;
+          const sellAmount = isAggregator ? grossAmount : netAmount;
           const spender = (
             isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
           ) as `0x${string}` | undefined;
@@ -1624,6 +1637,16 @@ function useWalletAppController() {
                           fee: uniFee,
                         });
             calls.push(buildContractCall(router, swapData));
+            if (!isAggregator && swapFee > BigInt(0)) {
+              pushFeeSplitCalls(calls, swapFee, {
+                native: false,
+                token,
+                creator: isLaunched ? creator : null,
+                referrer,
+                referrerBoostBps,
+                payer: recipient,
+              });
+            }
           }
         }
 
@@ -1632,7 +1655,7 @@ function useWalletAppController() {
         });
         setSponsored((s) => s + 1);
 
-        if (creator && swapFee > BigInt(0)) {
+        if (isLaunched && creator && swapFee > BigInt(0)) {
           const split = splitPlatformFee(swapFee, {
             creator,
             referrer: referrer ?? null,

@@ -1,5 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { feeBreakdownLabels, splitPlatformFee, FEE_SHARE_CREATOR_BPS, FEE_SHARE_PLATFORM_BPS } from "@/lib/launchpad/fee-split";
+import {
+  feeBreakdownLabels,
+  feeBreakdownForTier,
+  splitPlatformFee,
+  FEE_SHARE_CREATOR_BPS,
+  FEE_SHARE_PLATFORM_BPS,
+} from "@/lib/launchpad/fee-split";
+import {
+  LAUNCHPAD_LAUNCHED_FEE_BPS,
+  LAUNCHPAD_TRADING_FEE_BPS,
+  getPlatformFeeBps,
+  splitGrossAmount,
+  computePlatformFee,
+} from "@/lib/launchpad/fees";
 import { isAppLaunchedToken } from "@/lib/launchpad/token-store";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { OPENLAUNCH_LOCKER_BASE, OPENLAUNCH_FACTORY_BASE, BASE_STOCKS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
@@ -13,6 +26,44 @@ describe("Token Launch & Fee Sharing System", () => {
 
     expect(FEE_SHARE_CREATOR_BPS).toBe(5000); // 50% of the 50 bps fee = 25 bps (0.25%)
     expect(FEE_SHARE_PLATFORM_BPS).toBe(5000); // 50% of the 50 bps fee = 25 bps (0.25%)
+  });
+
+  it("differentiates fees between platform launched tokens (0.50%) and other trading tokens/stocks (0.25%)", () => {
+    // Platform launched tokens: 0.50% total with creator revenue share
+    const launchedTier = feeBreakdownForTier(true);
+    expect(launchedTier.totalFeeLabel).toBe("0.50%");
+    expect(launchedTier.creatorShareLabel).toBe("0.25%");
+    expect(launchedTier.platformShareLabel).toBe("0.25%");
+    expect(launchedTier.totalFeeBps).toBe(50);
+    expect(launchedTier.hasCreatorSplit).toBe(true);
+    expect(getPlatformFeeBps(true)).toBe(50);
+
+    // Other trading tokens & Coinbase tokenized stocks: 0.25% platform fee, 0% creator fee
+    const tradingTier = feeBreakdownForTier(false);
+    expect(tradingTier.totalFeeLabel).toBe("0.25%");
+    expect(tradingTier.creatorShareLabel).toBe("0%");
+    expect(tradingTier.platformShareLabel).toBe("0.25%");
+    expect(tradingTier.totalFeeBps).toBe(25);
+    expect(tradingTier.hasCreatorSplit).toBe(false);
+    expect(getPlatformFeeBps(false)).toBe(25);
+  });
+
+  it("calculates exact fee amounts for gross swaps on trading vs launched tokens", () => {
+    const gross = BigInt(10_000_000_000); // 10 token units
+
+    // Trading tokens (stocks, blue-chips): 25 bps (0.25%)
+    const tradingFee = computePlatformFee(gross, LAUNCHPAD_TRADING_FEE_BPS);
+    expect(tradingFee).toBe(BigInt(25_000_000)); // 0.25%
+    const tradingSplit = splitGrossAmount(gross, LAUNCHPAD_TRADING_FEE_BPS);
+    expect(tradingSplit.fee).toBe(BigInt(25_000_000));
+    expect(tradingSplit.net).toBe(gross - BigInt(25_000_000));
+
+    // Launched tokens: 50 bps (0.50%)
+    const launchedFee = computePlatformFee(gross, LAUNCHPAD_LAUNCHED_FEE_BPS);
+    expect(launchedFee).toBe(BigInt(50_000_000)); // 0.50%
+    const launchedSplit = splitGrossAmount(gross, LAUNCHPAD_LAUNCHED_FEE_BPS);
+    expect(launchedSplit.fee).toBe(BigInt(50_000_000));
+    expect(launchedSplit.net).toBe(gross - BigInt(50_000_000));
   });
 
   it("splits platform fee evenly between creator and treasury with zero referral dilution", () => {

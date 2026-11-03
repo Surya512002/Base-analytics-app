@@ -146,7 +146,7 @@ export async function GET(req: Request) {
     ]);
 
     // Look back a limited range to keep it fast and reliable.
-    const fromBlock = head > BigInt(6000) ? (head - BigInt(6000)) : BigInt(0);
+    const fromBlock = head > BigInt(30_000) ? (head - BigInt(30_000)) : BigInt(0);
 
     const swapEvent = abi.find((x) => x.type === "event" && x.name === "Swap");
     if (!swapEvent) {

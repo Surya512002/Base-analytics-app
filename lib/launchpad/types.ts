@@ -37,6 +37,7 @@ export interface LaunchedToken {
   lockerAddress?: string;
   creatorFeeBps?: number;
   platformFeeBps?: number;
+  totalFeeBps?: number;
   supplyCap?: string;
   launchPreset?: string;
   vestingSchedule?: VestingScheduleEntry[];

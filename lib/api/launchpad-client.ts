@@ -111,6 +111,7 @@ export type SwapQuoteResponse = {
   defaultSlippageBps?: number;
   creatorFeeBps?: number;
   platformFeeBps?: number;
+  totalFeeBps?: number;
   antiSnipe?: AntiSnipeStatus;
   aggregator?: boolean;
   aggregatorConfigured?: boolean;

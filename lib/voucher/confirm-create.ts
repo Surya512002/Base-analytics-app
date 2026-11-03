@@ -19,6 +19,7 @@ export type ConfirmClient = VoucherChainReader & {
   waitForTransactionReceipt: (args: {
     hash: `0x${string}`;
     timeout?: number;
+    pollingInterval?: number;
   }) => Promise<{ status: string }>;
   readContract: (args: {
     address: `0x${string}`;
@@ -172,6 +173,7 @@ export async function finalizePendingBatchFromTx(
         const receipt = await publicClient.waitForTransactionReceipt({
           hash: txHash as `0x${string}`,
           timeout: RECEIPT_TIMEOUT_MS,
+          pollingInterval: 400,
         });
         if (receipt.status !== "success") return null;
         receiptReady = true;
@@ -240,6 +242,7 @@ export async function confirmVoucherBatchCreate(
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash as `0x${string}`,
         timeout: RECEIPT_TIMEOUT_MS,
+          pollingInterval: 400,
       });
       if (receipt.status === "success") {
         const fromReceipt = await batchCreatedInTx(

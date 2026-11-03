@@ -446,13 +446,8 @@ export default function DexSwapPanel({
         setActiveDex(q.dex ?? null);
         setQuoteImpactBps(q.priceImpactBps ?? null);
         setAggregatorReady(q.aggregatorConfigured !== false);
-        if (q.isLaunchedToken) {
-          setIsLaunchedToken(true);
-          setSlippage((prev) => (prev === "1" ? "0.5" : prev));
-        }
-        if (q.creator) {
-          setCreatorAddress(q.creator);
-        }
+        setIsLaunchedToken(Boolean(q.isLaunchedToken));
+        setCreatorAddress(q.creator ?? null);
         const outDec =
           q.outDecimals ??
           (route.direction === "buy" ? pageDecimals : route.counterDecimals);
@@ -902,7 +897,7 @@ export default function DexSwapPanel({
           </>
         ) : (
           <>
-            {formatPlatformFeeLabel()} platform fee · Paste any{" "}
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">0.25% platform fee</span> (Lowest on Base) · Paste any{" "}
             <span className="font-mono">0x…</span> address in the token picker · Base mainnet
           </>
         )}

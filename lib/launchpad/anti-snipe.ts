@@ -1,4 +1,4 @@
-export const DEFAULT_ANTI_SNIPE_BLOCKS = 8;
+export const DEFAULT_ANTI_SNIPE_BLOCKS = 40; // ~8 seconds on Base Denim 200ms blocks
 
 export type AntiSnipeStatus = {
   active: boolean;
@@ -33,6 +33,7 @@ export function evaluateAntiSnipe(params: {
   const until = poolOpen + blocks;
   const remaining = Math.max(0, until - params.currentBlock);
   const active = params.direction === "buy" && params.currentBlock < until;
+  const estSeconds = (remaining * 0.2).toFixed(1);
 
   return {
     active,
@@ -41,7 +42,7 @@ export function evaluateAntiSnipe(params: {
     poolOpenBlock: poolOpen,
     antiSnipeBlocks: blocks,
     message: active
-      ? `Anti-snipe active — buys blocked for ${remaining} more block(s) (~${remaining * 2}s on Base)`
+      ? `Anti-snipe active — buys blocked for ${remaining} more block(s) (~${estSeconds}s on Base 200ms blocks)`
       : undefined,
   };
 }

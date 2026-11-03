@@ -22,7 +22,7 @@ const B20_CREATED_TOPIC = keccak256(
   toHex("B20Created(address,uint8,string,string,uint8,bytes)")
 );
 
-const LOOKBACK = BigInt(200_000);
+const LOOKBACK = BigInt(1_000_000);
 const creatorCache = new Map<string, string | null>();
 
 function tokenTopic(address: string): Hex {

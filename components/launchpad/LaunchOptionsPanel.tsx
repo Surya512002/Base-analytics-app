@@ -119,22 +119,22 @@ export default function LaunchOptionsPanel({
               <Shield size={14} /> Anti-snipe window
             </p>
             <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80">
-              Blocks buys via Base Analytics for N blocks after pool opens (~2s/block on Base)
+              Blocks buys via Base Analytics for N blocks after pool opens (~200ms/block on Base)
             </p>
           </div>
-          <span className="text-sm font-black text-amber-700 dark:text-amber-300">{antiSnipeBlocks} blocks</span>
+          <span className="text-sm font-black text-amber-700 dark:text-amber-300">{antiSnipeBlocks} blocks (~{(antiSnipeBlocks * 0.2).toFixed(1)}s)</span>
         </div>
         <input
           type="range"
           min={0}
-          max={32}
-          step={1}
+          max={150}
+          step={5}
           value={antiSnipeBlocks}
           onChange={(e) => onAntiSnipeBlocks(parseInt(e.target.value, 10))}
           className="w-full accent-amber-500"
         />
         <p className="text-[10px] text-amber-700/70 dark:text-amber-300/70">
-          Default {DEFAULT_ANTI_SNIPE_BLOCKS} blocks (~16s). Set 0 to disable. Direct DEX trades bypass
+          Default {DEFAULT_ANTI_SNIPE_BLOCKS} blocks (~8s). Set 0 to disable. Direct DEX trades bypass
           this — disclosed on token page.
         </p>
       </div>
