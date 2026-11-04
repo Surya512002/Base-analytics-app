@@ -38,7 +38,7 @@ export const PRESET_SMART_MONEY: SmartMoneyWallet[] = [
     isPreset: true,
   },
   {
-    address: "0x8bcB8044719C6e1C526F76c8c4a5c531d279326F",
+    address: "0x8bcB8044719c6e1C526f76c8C4a5c531D279326F",
     label: "Base Ecosystem Alpha",
     winRatePct: 79,
     totalPnlUsd: 35_200,

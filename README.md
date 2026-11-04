@@ -18,15 +18,15 @@ High-performance trading terminal, tokenized equity discovery, lending compariso
 
 | Section | Key Highlights |
 | :--- | :--- |
-| **Explore** | Token discovery across 32 Coinbase tokenized equities (MSFTc, AAPLc, NVDAc, TSLAc, GOOGLc, METAc, COINc, AMZNc, etc.), 24h volume, interactive charts, and push price alerts. |
-| **Swap** | Smart multi-DEX routing across Uniswap v3, Aerodrome, Slipstream, 0x API v2, and o1 quote routing with industry-low **0.25% fee** on tokenized stocks & general tokens, plus **0.25% creator revenue share** (0.50% total) on platform-launched tokens. |
-| **Launchpad** | 3 token launch modes: **B20 vanity tokens** (0xB200... mining), **ERC-20 meme coins**, and **stock-paired memestocks** (paired with NVDAc or AAPLc) with anti-snipe protection, trademark collision warnings, and vesting. |
-| **Lend & Stake** | Real-time yield comparisons across Morpho Blue, Aave v3, Moonwell, and Superform vaults with interactive **Collateral Health Factor Simulator** and borrow risk disclosures. |
-| **Base Voucher** | Decentralized crypto gift cards: split deposits into up to 50 cards supporting **ETH, USDC, Tokenized Stocks**, and **Morpho/Superform Yield Vault shares** (`mvNVDAc`, `mvAAPLc`, `sfNVDAc`, `mvCOINc`). |
+| **Explore** | Token discovery across 32 Coinbase tokenized equities (MSFTc, AAPLc, NVDAc, TSLAc, GOOGLc, METAc, COINc, AMZNc, etc.), **Token X-Ray (0–100 safety score)**, **Smart Money Radar**, 24h volume, interactive charts, and push price alerts. |
+| **Swap** | Simplified single-flow trading card with collapsible **Advanced** accordion (slippage presets/custom, manual DEX overrides, fee splits), **Swap Preview** breakdown modal, and industry-low **0.25% fee** (0.50% total on platform-launched tokens with 0.25% instant creator share). |
+| **Launchpad** | 3 token launch modes: **B20 vanity tokens** (0xB200... mining), **ERC-20 meme coins**, and **stock-paired memestocks** with **Launch Readiness Score (0–100)**, vesting timeline, and anti-snipe cooldown preview. |
+| **Lend & Stake** | Real-time yield comparisons across Morpho Blue, Aave v3, Moonwell, and Beefy/Superform vaults with interactive **APY Yield Calculator** and live onchain pool data. |
+| **Base Voucher** | Decentralized crypto gift cards: split deposits into up to 50 cards supporting **ETH, USDC, Tokenized Stocks**, and **Yield Vault shares** with offchain animated unwrap and QR links. |
+| **Wallet Analytics** | **Wallet DNA Card** with Neynar Farcaster identity, **Portfolio Time Machine** with CSV export, Base Activity Score (0–100), ERC-4337 smart account user ops, and Hall of Fame. |
+| **AI Agents & MCP** | Official **Model Context Protocol (MCP)** server at `/api/mcp` with tools for `token_xray`, `swap_preview`, `wallet_dna`, and `voucher_prepare_create`. |
+| **Intent Bar** | Universal Spotlight Command Palette (`⌘K`) with natural-language intent parsing: `"swap 50 USDC to ETH"`, `"gift 10 USDC"`, `"launch token"` instantly pre-fills the terminal. |
 | **Compliance Safeguards** | Configurable product guardrails: Edge geo-gating, **Exit-Only Mode** (users are never locked out of their funds), first-use risk acknowledgement modal, and remote kill switch. |
-| **AI Agents & MCP** | Official **Model Context Protocol (MCP)** server at `/api/mcp` enabling autonomous AI agents (Claude Desktop, Cursor, OpenAI GPTs) to prepare batches, query live statuses, and claim vouchers. |
-| **Creator Hub** | Onchain creator profiles (`/creator/[address]`), volume attribution, fee earnings, and verified Coinbase Builder Code attribution (`bc_4uoh9iu2`). |
-| **Wallet Analytics** | Base Activity Score (0–100), ERC-4337 smart account user ops, ERC-1155 achievements, daily check-in streaks, and Hall of Fame. |
 
 > [!TIP]
 > Guests can freely browse **[/explore](https://base-analytics-app.vercel.app/explore)** and **[/lend](https://base-analytics-app.vercel.app/lend)** without connecting a wallet.
