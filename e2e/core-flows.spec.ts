@@ -97,4 +97,14 @@ test.describe("Core App User Flows", () => {
       await expect(page.getByText(/Export Tax CSV/i)).toBeVisible();
     }
   });
+
+  test("10. Yield Finder: renders multi-protocol scanner and risk tier filters on Lend", async ({ page }) => {
+    await page.goto("/?tab=lend");
+    await expect(page.getByText(/Yield Finder/i).first()).toBeVisible();
+    await expect(page.getByText(/Multi-Protocol Scanner/i).first()).toBeVisible();
+
+    // Verify filter buttons
+    await expect(page.getByRole("button", { name: "All Assets" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Low Risk" }).first()).toBeVisible();
+  });
 });

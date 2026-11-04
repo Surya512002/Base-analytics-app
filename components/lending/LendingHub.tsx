@@ -37,6 +37,7 @@ import GaugesTable, { type GaugeRowData } from "./GaugesTable";
 import AssetDetailView from "./AssetDetailView";
 import ProtocolCompareHub from "./ProtocolCompareHub";
 import YieldCalculator from "./YieldCalculator";
+import YieldFinder from "./YieldFinder";
 import ActionDrawer, { type DrawerActionTab } from "./ActionDrawer";
 import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
@@ -961,6 +962,18 @@ export default function LendingHub({
         onExploreVault={handleExploreYieldOption}
         onSelectOption={(protocol) => {
           handleExploreYieldOption({ protocol });
+        }}
+      />
+
+      {/* Yield Finder: Multi-Protocol Scanner & Risk Filter */}
+      <YieldFinder
+        markets={discoveredMarkets}
+        gaugeRows={gaugeRows}
+        stockRows={stockRows}
+        isConnected={isConnected}
+        onRequestConnect={onRequestConnect}
+        onSelectPool={(pool) => {
+          handleExploreYieldOption({ protocol: pool.protocol, marketId: pool.id });
         }}
       />
 
