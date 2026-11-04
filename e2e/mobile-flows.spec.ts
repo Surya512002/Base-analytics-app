@@ -41,6 +41,22 @@ for (const vp of MOBILE_VIEWPORTS) {
       expect(hasHorizontalOverflow).toBeFalsy();
     });
 
+    test(`explore page loads without horizontal overflow at ${vp.width}px`, async ({ page }) => {
+      await page.goto(`${BASE}/explore`, { waitUntil: "domcontentloaded" });
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      });
+      expect(hasHorizontalOverflow).toBeFalsy();
+    });
+
+    test(`lend page loads without horizontal overflow at ${vp.width}px`, async ({ page }) => {
+      await page.goto(`${BASE}/lend`, { waitUntil: "domcontentloaded" });
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      });
+      expect(hasHorizontalOverflow).toBeFalsy();
+    });
+
     test(`bottom-nav safe areas render correctly on mobile at ${vp.width}px`, async ({
       page,
     }) => {
