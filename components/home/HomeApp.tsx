@@ -74,7 +74,6 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
     setTab,
     toast,
     setToast,
-    weeklyXP,
     sponsored,
     handleDisconnect,
     walletScanComplete,

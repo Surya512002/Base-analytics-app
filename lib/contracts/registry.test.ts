@@ -6,7 +6,6 @@ import { COMMON_BASE_TOKENS } from "@/lib/launchpad/common-tokens";
 import {
   BOOSTER_CONTRACT,
   GM_GN_CONTRACT,
-  ACHIEVEMENTS_CONTRACT,
   CHECKIN_CONTRACT,
   ENTRYPOINT_V06,
   ENTRYPOINT_V07,
@@ -47,7 +46,6 @@ describe("Master Contract Address Registry Audit (Base Mainnet)", () => {
     const coreAddrs = [
       BOOSTER_CONTRACT,
       GM_GN_CONTRACT,
-      ACHIEVEMENTS_CONTRACT,
       CHECKIN_CONTRACT,
       ENTRYPOINT_V06,
       ENTRYPOINT_V07,

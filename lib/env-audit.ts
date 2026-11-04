@@ -74,22 +74,6 @@ export function auditServerEnv(): EnvAuditItem[] {
         : "Optional — price alerts and launch broadcasts need this",
   });
 
-  items.push({
-    key: "NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT",
-    ok: Boolean(process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT?.trim()),
-    detail: process.env.NEXT_PUBLIC_BADGE_MARKETPLACE_CONTRACT
-      ? "Set — on-chain badge marketplace live"
-      : "Optional — run npm run stake:deploy to enable",
-  });
-
-  items.push({
-    key: "NEXT_PUBLIC_XP_STAKE_CONTRACT",
-    ok: Boolean(process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT?.trim()),
-    detail: process.env.NEXT_PUBLIC_XP_STAKE_CONTRACT
-      ? "Set — on-chain XP stake live"
-      : "Optional — deploy with npm run stake:deploy",
-  });
-
   return items;
 }
 

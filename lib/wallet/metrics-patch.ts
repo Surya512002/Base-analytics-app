@@ -4,7 +4,6 @@ import {
   uniqueDaysFromState,
 } from "@/lib/wallet/history-store";
 import { countsTowardActivity, rollupWalletActivity } from "@/lib/utils/wallet-activity";
-import { computeScoreComponents, computeTotalScore, type ScoreComponents } from "@/lib/utils/score";
 import { computeSwapVolume } from "@/lib/utils/swap-volume";
 import { fetchNftSnapshot } from "@/lib/api/nft-snapshot";
 import { countNftTxHashesFromTransfers } from "@/lib/utils/nft-stats";
@@ -281,32 +280,7 @@ export async function buildWalletMetricsPatch(
       ? Math.max(parseFloat(prior.ethVolume) || 0, tokenStats.ethVol)
       : tokenStats.ethVol;
 
-  const freshScore = computeScoreComponents({
-    txCount,
-    uniqueDays,
-    activeMonths,
-    activeWeeks,
-    currentStreak: options.currentStreak ?? prior?.currentStreak ?? 0,
-    longestStreak: options.longestStreak ?? prior?.longestStreak ?? 0,
-    ethVol: ethVolNum,
-    uniqueTokens: tokensSwapped,
-    defiInteractions: options.defiInteractions ?? prior?.defiInteractions ?? 0,
-    uniqueContracts: options.uniqueContracts ?? prior?.uniqueContracts ?? 0,
-    nftCount: nftCountComputed,
-    nftTxCount: erc721TxsComputed,
-    dexTradeCount,
-    dexVolumeUSD,
-    ethSwapVolumeUSD,
-    bridgeTxCount: options.bridgeTxCount ?? prior?.bridgeTxCount ?? 0,
-    hasBasename: Boolean(options.basename ?? prior?.basename),
-    gmCount: options.gmCount ?? prior?.gmCount ?? 0,
-    checkInCount: options.checkInCount ?? prior?.checkInCount ?? 0,
-  });
-
-  const scoreComponents: ScoreComponents =
-    partial && prior?.scoreComponents
-      ? maxScoreComponents(freshScore, prior.scoreComponents)
-      : freshScore;
+  const scoreComponents: Record<string, number> = {};
 
   return {
     uniqueDays,
@@ -326,7 +300,7 @@ export async function buildWalletMetricsPatch(
     nftCount: nftCountComputed,
     erc721Txs: erc721TxsComputed,
     scoreComponents,
-    score: computeTotalScore(scoreComponents),
+    score: 0,
     activityScore: partial && prior
       ? Math.max(prior.activityScore, activityScore)
       : activityScore,

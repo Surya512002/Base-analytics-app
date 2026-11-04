@@ -435,28 +435,20 @@ const CONTRACTS_LIST = [
     features: ["Batch splitting (up to 50 cards)", "Keccak256 secret verification", "One card per wallet rate limit"],
   },
   {
-    name: "Achievements Registry",
-    description: "Soulbound and tradeable achievement badges representing verified onchain Base milestones and tier unlocks.",
-    address: "0xadb8120B4B18b892cFAD171243074487122Dea03",
-    standard: "ERC-1155 Multi-Token",
-    verified: true,
-    features: ["Gasless paymaster mints", "Batch achievement claiming", "Tier progression tracking"],
-  },
-  {
     name: "Daily Check-In",
-    description: "Onchain daily activity streak counter and points registry rewarded with streak multipliers.",
+    description: "Onchain daily activity streak counter and registry for recording daily attendance on Base.",
     address: "0xABc7099C631E18640ea60b25116407aa17354FBb",
     standard: "Custom Streak Registry",
     verified: true,
-    features: ["Daily streak maintenance", "Base Activity Score booster", "Anti-abuse cooldowns"],
+    features: ["Daily streak maintenance", "Anti-abuse cooldowns"],
   },
   {
     name: "Booster Contract",
-    description: "Onchain interactive XP and transaction multiplier module.",
+    description: "Onchain interactive engagement booster for recording active participation on Base.",
     address: "0x0d1BE33F8B6a33BeEe7b3bb834DF6f8c168B2e46",
     standard: "Custom Utility",
     verified: true,
-    features: ["XP bonus multipliers", "Protocol engagement boost"],
+    features: ["Protocol engagement boost", "Verified onchain action"],
   },
   {
     name: "GM / GN Social Contract",
@@ -464,7 +456,7 @@ const CONTRACTS_LIST = [
     address: "0xdb4f873B33F448aeA8Bb2b3B7e3ab9561329608A",
     standard: "Custom Social",
     verified: true,
-    features: ["Decentralized GM / GN logging", "Social activity scoring"],
+    features: ["Decentralized GM / GN logging", "Social provenance"],
   },
   {
     name: "Base L1 ↔ L2 Standard Bridge",
@@ -569,9 +561,9 @@ const FAQ_ITEMS = [
     a: "Traditional US equity markets trade 24/5 during official exchange hours, whereas onchain AMM pools on Base trade 24/7. When US exchanges are closed on nights and weekends, onchain prices reflect real-time decentralized pool liquidity and supply/demand, and underlying Chainlink oracle feeds may experience wider spreads or freeze until markets reopen.",
   },
   {
-    category: "Wallet Analytics & Scoring",
-    q: "How is the Base Activity Score calculated?",
-    a: "The score (0–100) measures your wallet's onchain engagement on Base across 6 dimensions: transaction tenure, active days, protocol diversity (DeFi, NFTs, social, bridging), daily check-in streaks, volume transacted, and smart account (ERC-4337 user ops) adoption.",
+    category: "Wallet Habits & Onchain Verification",
+    q: "How does wallet verification and daily check-in work?",
+    a: "Your wallet's activity is derived directly from confirmed transactions on Base mainnet. You can maintain an onchain check-in streak, record GM/GN greetings, and boost verified contracts without custodial risk.",
   },
 ];
 

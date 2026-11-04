@@ -66,13 +66,12 @@ export default function AppModeCards({
               Swap &amp; analytics
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">
-              Swap any Base ERC-20, track onchain score, unlock x402 insights, earn quest XP, and
-              mint badges — all from your wallet.
+              Swap any Base ERC-20, earn DeFi yields, send vouchers, and track your daily habits — all from your wallet.
             </p>
             <ul className="mt-3 space-y-1 text-sm text-[var(--ink-soft)]">
               <li>· Multi-DEX + 0x aggregator quotes</li>
-              <li>· Onchain score &amp; heatmap</li>
-              <li>· Quests, vouchers &amp; gasless badges</li>
+              <li>· Lending &amp; yield vaults across Base</li>
+              <li>· Daily check-in streaks &amp; vouchers</li>
             </ul>
             {onSwap ? (
               <button

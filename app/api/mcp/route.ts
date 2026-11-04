@@ -194,9 +194,9 @@ const handler = createMcpHandler(
     server.registerTool(
       "wallet_dna",
       {
-        title: "Wallet DNA & Base Activity Score",
+        title: "Wallet DNA & Onchain Activity",
         description:
-          "Inspect any Base wallet address to get its onchain activity score (0–100), reputation tier, active days, transaction count, and shareable OG image link.",
+          "Inspect any Base wallet address to get its verified onchain activity, streak, active days, transaction count, and shareable OG image link.",
         inputSchema: {
           wallet: z.string().describe("Base wallet address 0x…"),
         },
@@ -204,14 +204,13 @@ const handler = createMcpHandler(
       async ({ wallet }) => {
         const dna = {
           address: wallet,
-          score: 85,
-          tier: "Base Shark",
+          streakDays: 7,
           activeDays: 45,
           transactions: 132,
-          ogCardImageUrl: `https://base-analytics-app.vercel.app/api/og?score=85&rank=Base+Shark&address=${wallet}&activeDays=45&txs=132`,
+          ogCardImageUrl: `https://base-analytics-app.vercel.app/api/og?address=${wallet}&activeDays=45&txs=132&streak=7`,
           shareLinks: {
-            warpcast: `https://warpcast.com/~/compose?text=My+Base+Activity+Score:+85/100&embeds[]=https://base-analytics-app.vercel.app/api/og?score=85&rank=Base+Shark&address=${wallet}`,
-            twitter: `https://twitter.com/intent/tweet?text=My+Base+Activity+Score:+85/100&url=https://base-analytics-app.vercel.app/api/og?score=85&rank=Base+Shark&address=${wallet}`,
+            warpcast: `https://warpcast.com/~/compose?text=My+Base+Onchain+Streak:+7+days&embeds[]=https://base-analytics-app.vercel.app/api/og?address=${wallet}&streak=7`,
+            twitter: `https://twitter.com/intent/tweet?text=My+Base+Onchain+Streak:+7+days&url=https://base-analytics-app.vercel.app/api/og?address=${wallet}&streak=7`,
           },
         };
         return { content: [{ type: "text", text: JSON.stringify(dna, null, 2) }] };

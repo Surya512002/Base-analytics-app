@@ -1,19 +1,11 @@
 import type { WalletData } from "@/lib/types/wallet";
-import {
-  computeTotalScore,
-  computeWalletRank,
-  type ScoreComponents,
-} from "@/lib/utils/score";
 
 export function maxScoreComponents(
-  a: ScoreComponents,
-  b: ScoreComponents
-): ScoreComponents {
-  const keys = new Set([
-    ...Object.keys(a),
-    ...Object.keys(b),
-  ]) as Set<keyof ScoreComponents>;
-  const out = { ...a };
+  a: Record<string, number> = {},
+  b: Record<string, number> = {}
+): Record<string, number> {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  const out: Record<string, number> = {};
   for (const k of keys) {
     out[k] = Math.max(a[k] ?? 0, b[k] ?? 0);
   }
@@ -70,11 +62,7 @@ export function mergeWalletMetricsMax(
     prior.scoreComponents,
     next.scoreComponents
   );
-  const score = Math.max(
-    prior.score,
-    next.score,
-    computeTotalScore(scoreComponents)
-  );
+  const score = 0;
 
   return {
     ...next,
@@ -123,7 +111,7 @@ export function mergeWalletMetricsMax(
         : next.ethVolume,
     scoreComponents,
     score,
-    walletRank: computeWalletRank(score),
+    walletRank: next.walletRank || prior.walletRank || "Base User",
     activityScore: Math.max(prior.activityScore, next.activityScore),
     currentStreak: Math.max(prior.currentStreak, next.currentStreak),
     longestStreak: Math.max(prior.longestStreak, next.longestStreak),

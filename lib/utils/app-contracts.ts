@@ -1,6 +1,5 @@
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import {
-  ACHIEVEMENTS_CONTRACT,
   BOOSTER_CONTRACT,
   CHECKIN_CONTRACT,
   GM_GN_CONTRACT,
@@ -11,7 +10,6 @@ export const APP_CONTRACTS = {
   gm: GM_GN_CONTRACT.toLowerCase(),
   checkin: CHECKIN_CONTRACT.toLowerCase(),
   booster: BOOSTER_CONTRACT.toLowerCase(),
-  achievements: ACHIEVEMENTS_CONTRACT.toLowerCase(),
   launchpad: B20_FACTORY_ADDRESS.toLowerCase(),
 } as const;
 

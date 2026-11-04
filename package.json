@@ -30,7 +30,6 @@
     "verify": "npm run typecheck && npm run lint && npm run audit && npm run secrets:scan && npm test && npm run test:fork",
     "registry:sync": "node scripts/sync-stock-registry.mjs",
     "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh",
-    "stake:deploy": "bash scripts/deploy-stake-market.sh",
     "notify:list": "node scripts/send-base-notification.mjs list",
     "notify:b20": "node scripts/send-base-notification.mjs broadcast --preset b20_launch",
     "logos:seed": "node scripts/seed-token-logos.mjs",

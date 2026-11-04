@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Share2, Sparkles, Copy, Check, ExternalLink, Dna } from "lucide-react";
+import { Share2, Sparkles, Copy, Check, Dna, Flame } from "lucide-react";
 import { fetchNeynar } from "@/lib/api/neynar";
 import { shortAddr } from "@/lib/launchpad/format";
 import Image from "next/image";
 
 interface WalletDnaCardProps {
   address: string;
-  score?: number;
-  rank?: string;
+  streak?: number;
   activeDays?: number;
   txCount?: number;
   volumeUsd?: number;
@@ -17,8 +16,7 @@ interface WalletDnaCardProps {
 
 export default function WalletDnaCard({
   address,
-  score = 84,
-  rank = "Base Builder",
+  streak = 7,
   activeDays = 42,
   txCount = 128,
   volumeUsd = 12500,
@@ -65,17 +63,16 @@ export default function WalletDnaCard({
 
   const ogImageUrl = useMemo(() => {
     const qs = new URLSearchParams({
-      score: String(score),
-      rank,
       address,
+      streak: String(streak),
       activeDays: String(activeDays),
       txs: String(txCount),
       days: String(activeDays),
     });
     return `${origin}/api/og?${qs.toString()}`;
-  }, [score, rank, address, activeDays, txCount, origin]);
+  }, [address, streak, activeDays, txCount, origin]);
 
-  const shareText = `Check out my Base Onchain Activity Score: ${score}/100 (${rank}) with ${activeDays} active days on @base! 🔵⚡`;
+  const shareText = `Check out my verified onchain activity on @base: ${activeDays} active days, ${txCount} transactions, and a ${streak}-day streak! 🔵⚡`;
 
   const warpcastShareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
     shareText
@@ -103,11 +100,11 @@ export default function WalletDnaCard({
             <h3 className="text-base font-black text-[var(--ink)] flex items-center gap-2">
               <span>Wallet DNA Card</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0052FF] text-white">
-                Base OG
+                Base Onchain
               </span>
             </h3>
             <p className="text-xs text-[var(--ink-muted)]">
-              Dynamic shareable proof of onchain reputation
+              Dynamic shareable proof of onchain activity
             </p>
           </div>
         </div>
@@ -134,14 +131,17 @@ export default function WalletDnaCard({
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[var(--ink-muted)]">
-              Activity Score
+              Daily Streak
             </span>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-3xl font-mono font-black text-[var(--ink)]">{score}</span>
-              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">/ 100</span>
+              <span className="text-3xl font-mono font-black text-[var(--ink)] flex items-center gap-1.5">
+                <Flame size={26} className="text-amber-500 fill-amber-500/20 inline" />
+                {streak}
+              </span>
+              <span className="text-sm font-bold text-amber-600 dark:text-amber-400">days</span>
             </div>
-            <span className="inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-              {rank}
+            <span className="inline-block mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Onchain Verified
             </span>
           </div>
 
@@ -150,7 +150,7 @@ export default function WalletDnaCard({
               Wallet
             </span>
             <p className="font-mono text-xs font-bold text-[var(--ink)] mt-0.5">{shortAddr(address)}</p>
-            <p className="text-[10px] text-[var(--ink-dim)] mt-1">Base Mainnet Verified</p>
+            <p className="text-[10px] text-[var(--ink-dim)] mt-1">Base Mainnet</p>
           </div>
         </div>
 

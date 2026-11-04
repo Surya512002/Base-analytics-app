@@ -28,7 +28,7 @@ import {
   ENTRYPOINT_V07,
 } from "@/lib/constants/contracts";
 import { BRIDGE_CONTRACTS, PROTOCOL_NAMES } from "@/lib/constants/protocols";
-import { MONTH_NAMES } from "@/lib/constants/season";
+import { MONTH_NAMES } from "@/lib/utils/heatmap";
 import { resolveBasename } from "@/lib/utils/resolve-basename";
 import {
   countContractInteractions,
@@ -39,7 +39,6 @@ import {
 } from "@/lib/utils/wallet-activity";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
 import { computeSwapVolume, computeEthFlowVolumes } from "@/lib/utils/swap-volume";
-import { buildOnchainScore } from "@/lib/analytics/onchain-score";
 import type {
   AnalyzeWalletResult,
   AlchemyTransfer,
@@ -574,27 +573,9 @@ export async function analyzeWalletAddress(
   const heatmapActiveDays = dStats.filter((d) => d.count > 0).length;
   const displayUniqueDays = heatmapActiveDays;
 
-  const { scoreComponents, score, walletRank } = buildOnchainScore({
-    txCount: actualTxCount,
-    uniqueDays: displayUniqueDays,
-    activeMonths: uMonths.size,
-    activeWeeks: uWeeks.size,
-    currentStreak: curStreak,
-    longestStreak: longest,
-    ethVol,
-    uniqueTokens: uniqueTokenCount,
-    defiInteractions: defi,
-    uniqueContracts: uContracts.size,
-    nftCount,
-    nftTxCount: erc721Txs,
-    dexTradeCount,
-    dexVolumeUSD: totalSwapVolumeUSD,
-    ethSwapVolumeUSD,
-    bridgeTxCount,
-    hasBasename: !!bn,
-    gmCount,
-    checkInCount,
-  });
+  const scoreComponents: Record<string, number> = {};
+  const score = 0;
+  const walletRank = "Base User";
 
   const ethBalNum = balances.eth;
   const usdcBalNum = balances.usdc;

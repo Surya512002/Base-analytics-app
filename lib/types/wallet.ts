@@ -1,4 +1,4 @@
-import type { ScoreComponents } from "@/lib/utils/score";
+export type ScoreComponents = Record<string, number>;
 
 export interface DayStats {
   date: string;
