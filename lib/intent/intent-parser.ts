@@ -152,7 +152,7 @@ export function parseIntent(query: string): ParsedIntent | null {
     return {
       type: "profile",
       label: "Daily Actions & Streaks",
-      description: "Check in on Base, claim daily streak boosts, and view your onchain activity score",
+      description: "Check in on Base, claim daily streak boosts, and view verified onchain activity",
       actionText: "Open Profile",
       href: "/profile",
       tab: "profile",

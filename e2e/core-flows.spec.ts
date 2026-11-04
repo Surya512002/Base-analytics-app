@@ -54,4 +54,16 @@ test.describe("Core App User Flows", () => {
       page.getByText(/Beefy|Aerodrome|Supply|Stake|Deposit/i).first()
     ).toBeVisible();
   });
+
+  test("6. i18n Language Switcher: opens language selector and renders localized labels", async ({ page }) => {
+    await page.goto("/");
+    const langButton = page.getByRole("button", { name: /select language/i }).first();
+    await expect(langButton).toBeVisible();
+    await langButton.click();
+
+    // Verify language choices are shown
+    await expect(page.getByText("Español")).toBeVisible();
+    await expect(page.getByText("हिन्दी")).toBeVisible();
+    await expect(page.getByText("தமிழ்")).toBeVisible();
+  });
 });
