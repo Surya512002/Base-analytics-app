@@ -8,6 +8,8 @@ import type { VoucherAsset } from "@/lib/utils/voucher";
 import { formatVoucherAmount } from "@/lib/utils/voucher";
 import { BaseNetworkBadge } from "@/components/wallet/VoucherGiftCard3D";
 import { basescanTxUrl } from "@/lib/utils/tx";
+import { FEATURES } from "@/lib/constants/features";
+import { buildGiftCapsuleShareUrls } from "@/lib/voucher/gift-capsule";
 
 export interface VoucherRedeemRevealData {
   cardId: string;
@@ -72,7 +74,7 @@ export default function VoucherRedeemReveal({
       window.clearTimeout(flipTimer);
       window.clearTimeout(revealTimer);
     };
-  }, [data?.cardId, data?.txHash]);
+  }, [data]);
 
   if (!mounted || !data) return null;
 
@@ -80,6 +82,13 @@ export default function VoucherRedeemReveal({
   const hasMessage = Boolean(data.message?.trim());
   const txUrl = data.txHash ? basescanTxUrl(data.txHash) : null;
   const isOpen = phase === "flip" || phase === "reveal";
+
+  const shareUrls = buildGiftCapsuleShareUrls({
+    cardId: data.cardId,
+    asset: data.asset,
+    amountFormatted: amountLabel,
+    message: data.message,
+  });
 
   return createPortal(
     <div
@@ -278,6 +287,26 @@ export default function VoucherRedeemReveal({
               >
                 Create your own gift
               </button>
+            )}
+            {FEATURES.GIFT_CAPSULES && (
+              <>
+                <a
+                  href={shareUrls.warpcast}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-center text-xs font-black px-4 py-3 rounded-xl bg-[#7C65C1] text-white hover:opacity-90 transition inline-flex items-center justify-center gap-1.5"
+                >
+                  <span>Share on Warpcast</span>
+                </a>
+                <a
+                  href={shareUrls.twitter}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-center text-xs font-black px-4 py-3 rounded-xl bg-black text-white hover:bg-neutral-900 border border-white/20 transition inline-flex items-center justify-center gap-1.5"
+                >
+                  <span>Share on X</span>
+                </a>
+              </>
             )}
             <button
               type="button"
