@@ -99,31 +99,44 @@ export async function fetchDexScreenerBatch(
 
   for (let i = 0; i < unique.length; i += BATCH_SIZE) {
     const chunk = unique.slice(i, i + BATCH_SIZE);
-    try {
-      const r = await fetch(
-        `https://api.dexscreener.com/tokens/v1/base/${chunk.join(",")}`,
-        { cache: "no-store", signal: AbortSignal.timeout(5_000) }
-      );
-      if (!r.ok) continue;
-      const data = (await r.json()) as DexScreenerPair[] | { pairs?: DexScreenerPair[] };
-
-      const pairs = Array.isArray(data) ? data : (data.pairs ?? []);
-      for (const pair of pairs) {
-        const baseAddr = (pair.baseToken?.address ?? "").toLowerCase();
-        const quoteAddr = (pair.quoteToken?.address ?? "").toLowerCase();
-        if (baseAddr) {
-          const existing = result.get(baseAddr) ?? [];
-          existing.push(pair);
-          result.set(baseAddr, existing);
+    let attempts = 2;
+    while (attempts > 0) {
+      try {
+        const r = await fetch(
+          `https://api.dexscreener.com/tokens/v1/base/${chunk.join(",")}`,
+          { cache: "no-store", signal: AbortSignal.timeout(5_000) }
+        );
+        if (!r.ok) {
+          attempts--;
+          if (attempts > 0) await new Promise((res) => setTimeout(res, 350));
+          continue;
         }
-        if (quoteAddr && quoteAddr !== baseAddr) {
-          const existing = result.get(quoteAddr) ?? [];
-          existing.push(pair);
-          result.set(quoteAddr, existing);
+        const data = (await r.json()) as DexScreenerPair[] | { pairs?: DexScreenerPair[] };
+
+        const pairs = Array.isArray(data) ? data : (data.pairs ?? []);
+        for (const pair of pairs) {
+          const baseAddr = (pair.baseToken?.address ?? "").toLowerCase();
+          const quoteAddr = (pair.quoteToken?.address ?? "").toLowerCase();
+          if (baseAddr) {
+            const existing = result.get(baseAddr) ?? [];
+            existing.push(pair);
+            result.set(baseAddr, existing);
+          }
+          if (quoteAddr && quoteAddr !== baseAddr) {
+            const existing = result.get(quoteAddr) ?? [];
+            existing.push(pair);
+            result.set(quoteAddr, existing);
+          }
+        }
+        break;
+      } catch (e) {
+        attempts--;
+        if (attempts > 0) {
+          await new Promise((res) => setTimeout(res, 350));
+        } else {
+          console.error("[dexscreener batch]", e);
         }
       }
-    } catch (e) {
-      console.error("[dexscreener batch]", e);
     }
   }
 

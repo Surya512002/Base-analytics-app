@@ -665,14 +665,15 @@ export default function DexSwapCard({
         setIsApproving(true);
         const targetSpender = (activeDex === "aerodrome" ? AERODROME_ROUTER : SWAP_ROUTER_02) as `0x${string}`;
         const connType = app.connType ?? "injected";
+        const exactNeeded = parseUnits(sanitizeTokenAmountInput(amount, fromDecimals) || amount, fromDecimals);
         const call = buildContractCall(
           from.address as `0x${string}`,
-          encodeB20ApproveCalldata(targetSpender, maxUint256)
+          encodeB20ApproveCalldata(targetSpender, exactNeeded)
         );
         const txHash = await sendAppTransactions(connType, wallet.address, [call]);
         if (txHash) {
-          setFromAllowance(maxUint256);
-          showToast(`✅ ${counterSymbol(from)} approved! Ready to swap.`, "");
+          setFromAllowance(exactNeeded);
+          showToast(`✅ ${counterSymbol(from)} approved for exact trade amount! Ready to swap.`, "");
         }
       } catch (err: unknown) {
         console.error("Token approval failed:", err);

@@ -1474,7 +1474,7 @@ function useWalletAppController() {
               calls.push(
                 buildContractCall(
                   payTokenAddr,
-                  encodeB20ApproveCalldata(spender, maxUint256)
+                  encodeB20ApproveCalldata(spender, grossAmount)
                 )
               );
             }
@@ -1560,7 +1560,7 @@ function useWalletAppController() {
               calls.push(
                 buildContractCall(
                   token,
-                  encodeB20ApproveCalldata(spender, maxUint256)
+                  encodeB20ApproveCalldata(spender, sellAmount)
                 )
               );
             }

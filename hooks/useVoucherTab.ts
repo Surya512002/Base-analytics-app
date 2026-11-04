@@ -735,15 +735,15 @@ export function useVoucherTab(app: WalletAppState) {
   }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
 
   const approveUsdcCall = useMemo(() => {
-    if (!pendingCards || !contractReady || pendingAsset === "ETH") return [];
+    if (!pendingCards || !contractReady || pendingAsset === "ETH" || !pendingTotal) return [];
     const tokenAddr = assetToToken(pendingAsset);
     return [
       encodeContractCall(tokenAddr, ERC20_ABI, "approve", [
         VOUCHER_CONTRACT as `0x${string}`,
-        maxUint256,
+        pendingTotal,
       ]),
     ];
-  }, [pendingCards, contractReady, pendingAsset]);
+  }, [pendingCards, contractReady, pendingAsset, pendingTotal]);
 
   const createUsdcCall = useMemo(() => {
     if (!pendingCards || !contractReady || pendingAsset === "ETH") return [];

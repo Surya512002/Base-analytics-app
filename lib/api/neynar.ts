@@ -30,12 +30,36 @@ export async function fetchNeynar(
   path: string,
   params?: Record<string, string | number | undefined>
 ): Promise<NeynarFetchResult> {
-  const res = await fetch(neynarApiUrl(path, params));
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  let attempt = 0;
+  const maxAttempts = 2;
+
+  while (attempt < maxAttempts) {
+    try {
+      const res = await fetch(neynarApiUrl(path, params), {
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok || res.status === 400 || res.status === 404) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          status: res.status,
+          data,
+          unavailable: res.status === 503,
+        };
+      }
+    } catch {
+      // Retry on network timeout
+    }
+    attempt++;
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+
   return {
-    ok: res.ok,
-    status: res.status,
-    data,
-    unavailable: res.status === 503,
+    ok: false,
+    status: 503,
+    data: {},
+    unavailable: true,
   };
 }
