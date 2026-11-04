@@ -289,9 +289,9 @@ export default function LendingHub({
         stk.symbol === "NVDAc" ||
         stk.symbol === "MSTRc" ||
         stk.symbol === "SPCXc";
-      const aaveSupplyApy = aaveMkt?.supplyApy ?? (isAaveSupported ? (isHighBeta ? 5.25 : 4.60) : 0);
-      const aaveBorrowApr = aaveMkt?.borrowApr ?? (isAaveSupported ? (isHighBeta ? 3.75 : 3.45) : null);
-      const aaveLiquidity = aaveMkt?.liquidityUsd || (isAaveSupported ? 14_800_000 : 0);
+      const aaveSupplyApy = aaveMkt?.supplyApy ?? 0;
+      const aaveBorrowApr = aaveMkt?.borrowApr ?? null;
+      const aaveLiquidity = aaveMkt?.liquidityUsd || 0;
 
       // 4. IPOR Fusion
       const iporMkt = matchingMarkets.find((m) => m.protocol === "ipor");

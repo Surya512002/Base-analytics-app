@@ -47,6 +47,19 @@ export function computeStockTerminalScore(
   healthFactor: number,
   positionsCount: number
 ): StockScoreMetrics {
+  if (holdingsUsd === 0 && debtUsd === 0 && positionsCount === 0) {
+    return {
+      score: 0,
+      tier: "Novice Holder",
+      components: {
+        exposure: 0,
+        productiveLending: 0,
+        diversification: 0,
+        healthDiscipline: 0,
+      },
+    };
+  }
+
   // Exposure: min(25, holdingsUsd / 200)
   const exposure = Math.min(25, Math.round((holdingsUsd / 200) * 10) / 10);
   // Productive lending: if collateral is deployed in Morpho/Aave/Euler
@@ -54,11 +67,11 @@ export function computeStockTerminalScore(
     ? Math.min(35, Math.round((debtUsd / 100) * 10) / 10 + 15)
     : holdingsUsd > 0
     ? 18
-    : 5;
+    : 0;
   // Diversification: based on asset count
-  const diversification = Math.min(20, Math.max(8, positionsCount * 6));
+  const diversification = Math.min(20, Math.max(0, positionsCount * 6));
   // Health discipline: health factor >= 1.5 gets max 20 pts
-  const healthDiscipline = healthFactor >= 1.8 ? 20 : healthFactor >= 1.4 ? 16 : healthFactor > 1.1 ? 10 : 5;
+  const healthDiscipline = healthFactor >= 1.8 ? 20 : healthFactor >= 1.4 ? 16 : healthFactor > 1.1 ? 10 : 0;
 
   const total = Math.min(100, Math.round(exposure + productiveLending + diversification + healthDiscipline));
 
@@ -110,10 +123,10 @@ export default function StockPortfolioBreakdownCard({
   }, [wallet?.address]);
 
   const stockScore = useMemo(() => {
-    const holdings = summary?.totalStockHoldingsUsd ?? 4820;
-    const debt = summary?.totalStockDebtUsd ?? 1650;
-    const hf = summary?.healthFactor ?? 1.85;
-    const posCount = summary?.positions?.length ?? 3;
+    const holdings = summary?.totalStockHoldingsUsd ?? 0;
+    const debt = summary?.totalStockDebtUsd ?? 0;
+    const hf = summary?.healthFactor ?? 999;
+    const posCount = summary?.positions?.length ?? 0;
     return computeStockTerminalScore(holdings, debt, hf, posCount);
   }, [summary]);
 

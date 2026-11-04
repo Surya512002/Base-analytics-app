@@ -6,7 +6,11 @@ import {
   IPOR_FUSION_FACTORY_BASE,
   ERC4626_VAULT_ABI,
 } from "./constants";
-import { VERIFIED_BEEFY_STOCK_VAULTS, VERIFIED_BEEFY_STOCK_DETAILS } from "./unified-comparison";
+import {
+  VERIFIED_BEEFY_STOCK_VAULTS,
+  VERIFIED_BEEFY_STOCK_DETAILS,
+  getLiveBeefyAndAeroRates,
+} from "./unified-comparison";
 
 const ZERO_BI = BigInt(0);
 
@@ -85,47 +89,48 @@ export async function readBeefyPositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
   const client = createBasePublicClient();
+  const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
   const vaultEntries = [
     {
       symbol: "NVDAc",
       name: "Moo Beefy Aerodrome NVDAc-USDC",
       vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["NVDAc"] ?? "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
-      apy: VERIFIED_BEEFY_STOCK_DETAILS["NVDAc"]?.apy ?? 28.5,
+      apy: liveRates?.beefy?.["NVDAc"]?.apy ?? 0,
       priceUsd: STOCK_PRICES.NVDAc,
     },
     {
       symbol: "AAPLc",
       name: "Moo Beefy Aerodrome AAPLc-USDC",
       vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["AAPLc"] ?? "0xD34249514227594BB3bcdDF24a74fe1901D5077e",
-      apy: VERIFIED_BEEFY_STOCK_DETAILS["AAPLc"]?.apy ?? 26.4,
+      apy: liveRates?.beefy?.["AAPLc"]?.apy ?? 0,
       priceUsd: STOCK_PRICES.AAPLc,
     },
     {
       symbol: "MSFTc",
       name: "Moo Beefy Aerodrome MSFTc-USDC",
       vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["MSFTc"] ?? "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
-      apy: VERIFIED_BEEFY_STOCK_DETAILS["MSFTc"]?.apy ?? 293.17,
+      apy: liveRates?.beefy?.["MSFTc"]?.apy ?? 0,
       priceUsd: STOCK_PRICES.MSFTc,
     },
     {
       symbol: "TSLAc",
       name: "Moo Beefy Aerodrome TSLAc-USDC",
       vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["TSLAc"] ?? "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
-      apy: VERIFIED_BEEFY_STOCK_DETAILS["TSLAc"]?.apy ?? 54.45,
+      apy: liveRates?.beefy?.["TSLAc"]?.apy ?? 0,
       priceUsd: STOCK_PRICES.TSLAc,
     },
     {
       symbol: "AMZNc",
       name: "Moo Beefy Aerodrome AMZNc-USDC",
       vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["AMZNc"] ?? "0x1FF5C4d292F9eACAE1fa10c68f2c546ef8Fc7a8A",
-      apy: VERIFIED_BEEFY_STOCK_DETAILS["AMZNc"]?.apy ?? 15.23,
+      apy: liveRates?.beefy?.["AMZNc"]?.apy ?? 0,
       priceUsd: STOCK_PRICES.AMZNc,
     },
     {
       symbol: "METAc",
       name: "Moo Beefy Aerodrome METAc-USDC",
       vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["METAc"] ?? "0x32dB27106d3eeA59A2586E81c4c02aC7a5Ddec49",
-      apy: VERIFIED_BEEFY_STOCK_DETAILS["METAc"]?.apy ?? 2.93,
+      apy: liveRates?.beefy?.["METAc"]?.apy ?? 0,
       priceUsd: STOCK_PRICES.METAc,
     },
   ];
@@ -204,7 +209,7 @@ export async function readIporPositions(
       name: "IPOR Google Carry Trade",
       decimals: 8,
       priceUsd: STOCK_PRICES.GOOGLc,
-      supplyApy: 6.15,
+      supplyApy: 0,
     },
     {
       vault: IPOR_FUSION_FACTORY_BASE,
@@ -212,7 +217,7 @@ export async function readIporPositions(
       name: "IPOR Nvidia Carry Trade",
       decimals: 8,
       priceUsd: STOCK_PRICES.NVDAc,
-      supplyApy: 7.47,
+      supplyApy: 0,
     },
     {
       vault: IPOR_FUSION_FACTORY_BASE,
@@ -220,7 +225,7 @@ export async function readIporPositions(
       name: "IPOR Apple Carry Trade",
       decimals: 8,
       priceUsd: STOCK_PRICES.AAPLc,
-      supplyApy: 6.85,
+      supplyApy: 0,
     },
     {
       vault: IPOR_FUSION_FACTORY_BASE,
@@ -228,7 +233,7 @@ export async function readIporPositions(
       name: "IPOR Meta Carry Trade",
       decimals: 8,
       priceUsd: STOCK_PRICES.METAc,
-      supplyApy: 7.46,
+      supplyApy: 0,
     },
   ];
 
@@ -298,13 +303,14 @@ export async function readAerodromeGaugePositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
   const client = createBasePublicClient();
+  const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
   const gaugeMarkets = [
     {
       id: "aero-nvda-usdc",
       pairName: "NVDAc / USDC",
       stockSymbol: "NVDAc",
       gaugeAddress: "0x789a451928bcde91234a567812e94acb7123984e" as `0x${string}`,
-      apr: 38.5,
+      apr: liveRates?.aerodrome?.["NVDAc"]?.apy ?? 0,
       lpPriceUsd: STOCK_PRICES.NVDAc,
     },
     {
@@ -312,7 +318,7 @@ export async function readAerodromeGaugePositions(
       pairName: "MSFTc / USDC",
       stockSymbol: "MSFTc",
       gaugeAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732" as `0x${string}`,
-      apr: 285.0,
+      apr: liveRates?.aerodrome?.["MSFTc"]?.apy ?? 0,
       lpPriceUsd: STOCK_PRICES.MSFTc,
     },
     {
@@ -320,7 +326,7 @@ export async function readAerodromeGaugePositions(
       pairName: "AAPLc / USDC",
       stockSymbol: "AAPLc",
       gaugeAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1" as `0x${string}`,
-      apr: 32.0,
+      apr: liveRates?.aerodrome?.["AAPLc"]?.apy ?? 0,
       lpPriceUsd: STOCK_PRICES.AAPLc,
     },
     {
@@ -328,7 +334,7 @@ export async function readAerodromeGaugePositions(
       pairName: "TSLAc / USDC",
       stockSymbol: "TSLAc",
       gaugeAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0" as `0x${string}`,
-      apr: 48.5,
+      apr: liveRates?.aerodrome?.["TSLAc"]?.apy ?? 0,
       lpPriceUsd: STOCK_PRICES.TSLAc,
     },
   ];
@@ -471,8 +477,8 @@ export async function readAavePositions(
         borrowedFormatted: `$${borrowedUsd.toFixed(2)} USD`,
         suppliedUsd,
         borrowedUsd,
-        apy: 5.25,
-        apr: 3.45,
+        apy: 0,
+        apr: 0,
         healthFactor,
         ltv: ltvPct > 0 ? ltvPct : null,
         liquidationPrice: null,
@@ -497,49 +503,6 @@ export async function readAavePositions(
 export async function fetchAllUserPositions(
   userAddress: `0x${string}`
 ): Promise<PositionsFetchResult> {
-  const isMockEnabled =
-    typeof process !== "undefined" &&
-    process.env.NEXT_PUBLIC_USE_MOCK_POSITIONS === "true";
-
-  if (isMockEnabled) {
-    return {
-      positions: [
-        {
-          id: "mock-beefy-nvda",
-          protocol: "beefy",
-          protocolName: "Beefy Finance",
-          protocolBadge: "Demo Vault",
-          marketId: "mock-beefy-nvda",
-          marketName: "NVDAc-USDC Auto-Compounder",
-          assetSymbol: "NVDAc",
-          assetName: "NVIDIA Corp (Coinbase B20)",
-          assetAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
-          type: "supplied",
-          suppliedAmount: 5.0,
-          borrowedAmount: 200.0,
-          suppliedFormatted: "5.0000 NVDAc",
-          borrowedFormatted: "200.00 USDC",
-          suppliedUsd: 691.25,
-          borrowedUsd: 200.0,
-          apy: 28.5,
-          apr: 0,
-          healthFactor: 2.66,
-          ltv: 28.9,
-          liquidationPrice: 51.95,
-          explorerUrl: "https://basescan.org/address/0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
-          contractAddress: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
-          canAdd: true,
-          canWithdraw: true,
-          canBorrow: false,
-          canRepay: false,
-        },
-      ],
-      errors: {},
-      timestamp: Date.now(),
-      isMockData: true,
-    };
-  }
-
   const errors: Record<string, string> = {};
   const allPositions: UserProtocolPosition[] = [];
 

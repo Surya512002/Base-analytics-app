@@ -240,10 +240,10 @@ describe("Unified Stock Lending Comparison Matrix", () => {
     const summary = await fetchUserStockPortfolioSummary("0x3333333333333333333333333333333333333333");
 
     expect(summary).toBeDefined();
-    expect(summary.totalStockHoldingsUsd ?? summary.stockHoldingUsd).toBeGreaterThan(0);
-    expect(summary.totalStockDebtUsd ?? summary.totalBorrowedUsd).toBeGreaterThan(0);
-    expect(summary.healthFactor).toBeGreaterThan(1.0);
-    expect((summary.positions?.length ?? 1)).toBeGreaterThan(0);
+    expect(summary.totalStockHoldingsUsd).toBe(0);
+    expect(summary.totalStockDebtUsd).toBe(0);
+    expect(summary.healthFactor).toBeGreaterThanOrEqual(1.0);
+    expect(summary.positions).toHaveLength(0);
   });
 });
 
