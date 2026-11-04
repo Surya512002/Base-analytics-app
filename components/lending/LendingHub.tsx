@@ -722,6 +722,108 @@ export default function LendingHub({
     setMarketModalAction(action);
   };
 
+  // Handle Explore Vault click from YieldCalculator
+  const handleExploreYieldOption = async (option: {
+    protocol: string;
+    stockSymbol?: string;
+    contractAddress?: string;
+    marketId?: string;
+  }) => {
+    if (guestMode && onRequestConnect) {
+      onRequestConnect();
+      return;
+    }
+
+    const sym = option.stockSymbol || "NVDAc";
+
+    // 1. If it's Aerodrome / Staking Gauge
+    if (
+      option.protocol.toLowerCase().includes("aerodrome") ||
+      option.marketId?.startsWith("aero-")
+    ) {
+      setMode("stake");
+      const gaugeMatch =
+        gaugeRows.find(
+          (g) =>
+            (option.marketId && g.id === option.marketId) ||
+            (option.contractAddress &&
+              g.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
+            g.stockSymbol?.toLowerCase() === sym.toLowerCase()
+        ) || gaugeRows[0];
+
+      if (gaugeMatch) {
+        const market = BASE_LENDING_MARKETS.find(
+          (m) => m.contractAddress === gaugeMatch.contractAddress
+        ) ?? {
+          id: gaugeMatch.id,
+          name: `Stake ${gaugeMatch.pairName} Gauge`,
+          protocol: "aerodrome",
+          protocolLabel: "Aerodrome Finance",
+          protocolBadge: "Slipstream Gauge",
+          protocolAddress: gaugeMatch.contractAddress,
+          protocolUrl: "https://aerodrome.finance",
+          category: "stocks_stake",
+          asset: {
+            symbol: gaugeMatch.pairName,
+            name: gaugeMatch.pairName,
+            address: gaugeMatch.contractAddress,
+            decimals: 18,
+          },
+          supplyApy: gaugeMatch.gaugeApr,
+          stakingApr: gaugeMatch.gaugeApr,
+          tvlUsd: gaugeMatch.tvlUsd,
+          oracle: "Aerodrome TWAP",
+          contractAddress: gaugeMatch.contractAddress,
+          contractType: "aerodrome_gauge" as const,
+          builderAttributed: true,
+          isStockFocus: true,
+        };
+        handleOpenMarketModal(market, "stake");
+        return;
+      }
+    }
+
+    // 2. If it's a Stock Lending / Beefy / IPOR / Morpho / Aave market
+    try {
+      setMode("lend");
+      setSelectedStockSymbol(sym);
+
+      const res = await getUnifiedStockLendingComparison(sym);
+      setComparison(res);
+
+      // Find the option matching the clicked protocol
+      const matchedOption =
+        res.options.find(
+          (opt) =>
+            opt.protocol.toLowerCase().includes(option.protocol.toLowerCase()) ||
+            option.protocol.toLowerCase().includes(opt.protocol.toLowerCase())
+        ) ||
+        res.bestSupplyOption ||
+        res.options[0];
+
+      if (matchedOption) {
+        handleOpenStockDrawer(matchedOption, "supply");
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to load options for yield calculator selection:", e);
+    }
+
+    // 3. Fallback: Search in BASE_LENDING_MARKETS
+    const fallbackMarket =
+      BASE_LENDING_MARKETS.find(
+        (m) =>
+          (option.marketId && m.id === option.marketId) ||
+          (option.contractAddress &&
+            m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
+          m.protocol.toLowerCase() === option.protocol.toLowerCase()
+      ) || BASE_LENDING_MARKETS[0];
+
+    if (fallbackMarket) {
+      handleOpenMarketModal(fallbackMarket, "supply");
+    }
+  };
+
   // Handle Gauge Claim directly
   const handleClaimGauge = async (gauge: GaugeRowData) => {
     if (!userAddress) {
@@ -891,12 +993,12 @@ export default function LendingHub({
 
       {/* Interactive Yield Calculator */}
       <YieldCalculator
+        markets={discoveredMarkets}
+        gaugeRows={gaugeRows}
+        stockRows={stockRows}
+        onExploreVault={handleExploreYieldOption}
         onSelectOption={(protocol) => {
-          if (protocol === "aerodrome") {
-            setMode("stake");
-          } else {
-            setMode("lend");
-          }
+          handleExploreYieldOption({ protocol });
         }}
       />
 
