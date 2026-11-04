@@ -251,7 +251,7 @@ export default function StockQuotePicker({
                   {stock.issuer}
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--ink-muted)] truncate max-w-full">
+              <p className="text-[11px] text-[var(--ink-muted)] truncate max-w-[130px] min-[360px]:max-w-[180px] sm:max-w-none">
                 {stock.name}
               </p>
             </div>
@@ -349,7 +349,7 @@ export default function StockQuotePicker({
             }`}
           >
             <Clock size={12} className="shrink-0" />
-            <span>Chainlink 24/5: {isMarketOpen ? "Market Open" : "Market Closed"}</span>
+            <span><span className="hidden min-[380px]:inline">Chainlink 24/5: </span>{isMarketOpen ? "Market Open" : "Market Closed"}</span>
           </span>
         </div>
       </div>

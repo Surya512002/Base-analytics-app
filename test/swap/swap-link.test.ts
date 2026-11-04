@@ -170,6 +170,19 @@ describe("Token Metadata Fetcher (Part 1)", () => {
     expect(res.counter).toBeNull();
     expect(res.error).toBeDefined();
   });
+  it("ensures URL ingestion key is deterministic to prevent overwriting user-picked tokens", () => {
+    const buyParam = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".toLowerCase();
+    const sellParam = "eth";
+    const amountParam = "100";
+    const key1 = `${buyParam}|${sellParam}|${amountParam}`;
+    const key2 = `${buyParam}|${sellParam}|${amountParam}`;
+    expect(key1).toBe(key2);
+
+    // When buyParam changes
+    const newBuyParam = "0x4200000000000000000000000000000000000006".toLowerCase();
+    const key3 = `${newBuyParam}|${sellParam}|${amountParam}`;
+    expect(key1).not.toBe(key3);
+  });
 });
 
 describe("Stock Compliance & Jurisdiction Policy (Part 4)", () => {

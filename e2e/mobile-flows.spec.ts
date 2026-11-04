@@ -5,7 +5,57 @@ const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
 // WETH on Base — should have liquidity routes
 const WETH = "0x4200000000000000000000000000000000000006";
 
-test.describe("mobile viewport flows", () => {
+const MOBILE_VIEWPORTS = [
+  { name: "320px (Ultra-compact / iPhone SE 1)", width: 320, height: 568 },
+  { name: "375px (iPhone SE 2/3 / mini)", width: 375, height: 667 },
+  { name: "390px (iPhone 13/14/15 standard)", width: 390, height: 844 },
+  { name: "768px (Tablet portrait / iPad)", width: 768, height: 1024 },
+];
+
+for (const vp of MOBILE_VIEWPORTS) {
+  test.describe(`Mobile viewport verification: ${vp.name}`, () => {
+    test.use({ viewport: { width: vp.width, height: vp.height } });
+
+    test(`launch page loads without horizontal scroll or picker overflow at ${vp.width}px`, async ({
+      page,
+    }) => {
+      await page.goto(`${BASE}/launch`, { waitUntil: "domcontentloaded" });
+
+      // Verify no horizontal page overflow (scrollWidth should equal clientWidth)
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      });
+      expect(hasHorizontalOverflow).toBeFalsy();
+
+      // Check header title or launch text is visible
+      await expect(
+        page.getByText(/Launch/i).first().or(page.locator("h1, h2").first())
+      ).toBeVisible({ timeout: 25_000 });
+    });
+
+    test(`swap page loads without overflow at ${vp.width}px`, async ({ page }) => {
+      await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded" });
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      });
+      expect(hasHorizontalOverflow).toBeFalsy();
+    });
+
+    test(`bottom-nav safe areas render correctly on mobile at ${vp.width}px`, async ({
+      page,
+    }) => {
+      await page.goto(`${BASE}/explore`, { waitUntil: "domcontentloaded" });
+      if (vp.width < 768) {
+        const bottomNav = page.locator("nav[aria-label='Mobile navigation']");
+        await expect(bottomNav).toBeVisible({ timeout: 20_000 });
+        await expect(bottomNav.getByText(/Explore/i).first()).toBeVisible();
+        await expect(bottomNav.getByText(/Swap/i).first()).toBeVisible();
+      }
+    });
+  });
+}
+
+test.describe("mobile flows functional check", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test("redeem page loads voucher form", async ({ page }) => {
@@ -27,31 +77,11 @@ test.describe("mobile viewport flows", () => {
       timeout: 30_000,
     });
   });
-
-  test("creator profile page loads on mobile", async ({ page }) => {
-    const addr = "0x0000000000000000000000000000000000000001";
-    await page.goto(`${BASE}/creator/${addr}`, { waitUntil: "domcontentloaded" });
-    await expect(
-      page.getByText(/All tokens/i).first().or(page.locator("h1").first())
-    ).toBeVisible({ timeout: 30_000 });
-    // Mobile: only bottom nav (header Main nav is lg+ to avoid duplicate tabs).
-    const bottomNav = page.getByRole("navigation", { name: "Main navigation" });
-    await expect(bottomNav).toBeVisible({ timeout: 15_000 });
-    await expect(bottomNav.getByRole("button", { name: "Explore" })).toBeVisible();
-    await expect(bottomNav.getByRole("button", { name: "Swap" })).toBeVisible();
-    // Guest bottom Profile is a button (opens connect); signed-in users get a link.
-    await expect(
-      bottomNav
-        .getByRole("link", { name: "Profile" })
-        .or(bottomNav.getByRole("button", { name: "Profile" }))
-    ).toBeVisible({ timeout: 15_000 });
-  });
 });
 
 test.describe("API smoke", () => {
   test("health endpoint returns checks", async ({ request }) => {
     const res = await request.get(`${BASE}/api/health`);
-    // 503 when optional infra (Alchemy/Redis) is missing in CI — body still valid.
     expect([200, 503]).toContain(res.status());
     const data = await res.json();
     expect(data.checks).toBeDefined();

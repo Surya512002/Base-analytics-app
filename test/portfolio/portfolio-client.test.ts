@@ -50,4 +50,19 @@ describe("Portfolio Client State & Invariants", () => {
     const portfolio = await getWalletPortfolio(fundedAddress, [], false);
     expect(portfolio.totalCount).toBe(portfolio.tokens.length);
   }, 25000);
+
+  it("verifies holdings structure has consistent decimals, symbols, and non-negative numbers", async () => {
+    const portfolio = await getWalletPortfolio(fundedAddress, [], false);
+    for (const t of portfolio.tokens) {
+      expect(typeof t.symbol).toBe("string");
+      expect(t.symbol.length).toBeGreaterThan(0);
+      expect(typeof t.decimals).toBe("number");
+      expect(t.decimals).toBeGreaterThanOrEqual(0);
+      expect(t.balanceNumber).toBeGreaterThanOrEqual(0);
+      if (t.priceUsd !== null) {
+        expect(t.priceUsd).toBeGreaterThanOrEqual(0);
+        expect(t.usdValue).toBeGreaterThanOrEqual(0);
+      }
+    }
+  }, 25000);
 });

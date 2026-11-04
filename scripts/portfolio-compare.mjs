@@ -48,19 +48,18 @@ async function main() {
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
-        for (const item of data) {
-          if (!item.token || item.token.type !== "ERC-20") continue;
-          const dec = Number(item.token.decimals) || 18;
-          const bal = parseFloat(formatUnits(BigInt(item.value || "0"), dec));
-          if (bal > 0) {
-            explorerHoldings.set(item.token.address.toLowerCase(), {
-              symbol: item.token.symbol || "UNKNOWN",
-              name: item.token.name || "Unknown",
-              balance: bal,
-              address: item.token.address,
-            });
-          }
+      const items = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+      for (const item of items) {
+        if (!item.token || item.token.type !== "ERC-20") continue;
+        const dec = Number(item.token.decimals) || 18;
+        const bal = parseFloat(formatUnits(BigInt(item.value || "0"), dec));
+        if (bal > 0) {
+          explorerHoldings.set(item.token.address.toLowerCase(), {
+            symbol: item.token.symbol || "UNKNOWN",
+            name: item.token.name || "Unknown",
+            balance: bal,
+            address: item.token.address,
+          });
         }
       }
     }

@@ -57,7 +57,14 @@ export default function SwapTab({
     loading: holdingsLoading,
   } = holdingsState;
 
-  // Ingest URL params reactively whenever searchParams or initialToken changes
+  const showToastRef = useRef(app.showToast);
+  useEffect(() => {
+    showToastRef.current = app.showToast;
+  }, [app.showToast]);
+
+  const lastIngestedKeyRef = useRef<string | null>(null);
+
+  // Ingest URL params once per unique parameter set — never re-run merely on app re-render
   useEffect(() => {
     const rawSearch = searchParams?.toString()
       ? `?${searchParams.toString()}`
@@ -68,6 +75,12 @@ export default function SwapTab({
     const buyParam = parsed.buy || (initialToken ? initialToken.trim().toLowerCase() : null);
     const sellParam = parsed.sell;
     const amountParam = parsed.amount;
+
+    const ingestionKey = `${buyParam || ""}|${sellParam || ""}|${amountParam || ""}`;
+    if (lastIngestedKeyRef.current === ingestionKey) {
+      return;
+    }
+    lastIngestedKeyRef.current = ingestionKey;
 
     if (amountParam) {
       setUrlAmount(amountParam);
@@ -85,7 +98,7 @@ export default function SwapTab({
             isUnverified: verified ? false : Boolean(res.counter.isUnverified),
           });
         } else if (res.error) {
-          app.showToast(res.error, "");
+          showToastRef.current(res.error, "");
         }
       });
     }
@@ -102,11 +115,11 @@ export default function SwapTab({
             isUnverified: verified ? false : Boolean(res.counter.isUnverified),
           });
         } else if (res.error) {
-          app.showToast(res.error, "");
+          showToastRef.current(res.error, "");
         }
       });
     }
-  }, [searchParams, initialToken, app]);
+  }, [searchParams, initialToken]);
 
   return (
     <div className="w-full max-w-[480px] mx-auto space-y-3 pb-8">
