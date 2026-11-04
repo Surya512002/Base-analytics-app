@@ -408,7 +408,28 @@ export default function MarketsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]/60 text-xs">
-            {filteredRows.length === 0 ? (
+            {loading && filteredRows.length === 0 ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={`skel-row-${i}`} className="animate-pulse">
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-[var(--surface-2)] skeleton-shimmer shrink-0" />
+                      <div className="space-y-1">
+                        <div className="h-3.5 w-16 bg-[var(--surface-2)] skeleton-shimmer rounded" />
+                        <div className="h-3 w-24 bg-[var(--surface-2)] skeleton-shimmer rounded" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3"><div className="h-4 w-14 bg-[var(--surface-2)] skeleton-shimmer rounded" /></td>
+                  <td className="py-3 px-3"><div className="h-4 w-12 bg-[var(--surface-2)] skeleton-shimmer rounded" /></td>
+                  <td className="py-3 px-3"><div className="h-4 w-12 bg-[var(--surface-2)] skeleton-shimmer rounded" /></td>
+                  <td className="py-3 px-3"><div className="h-4 w-16 bg-[var(--surface-2)] skeleton-shimmer rounded" /></td>
+                  <td className="py-3 px-3"><div className="h-4 w-20 bg-[var(--surface-2)] skeleton-shimmer rounded" /></td>
+                  <td className="py-3 px-3"><div className="h-4 w-12 bg-[var(--surface-2)] skeleton-shimmer rounded" /></td>
+                  <td className="py-3 px-3 text-right"><div className="h-7 w-16 bg-[var(--surface-2)] skeleton-shimmer rounded-xl ml-auto" /></td>
+                </tr>
+              ))
+            ) : filteredRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)]">
                   <p className="text-sm font-semibold">No assets found matching the selected filters.</p>

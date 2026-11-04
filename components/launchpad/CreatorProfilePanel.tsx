@@ -155,6 +155,7 @@ export default function CreatorProfilePanel({
             creatorRevenue={creatorRevenue}
             address={address}
             isOwner={isOwner}
+            loading={loading}
             onOpenToken={onOpenToken}
           />
 

@@ -140,8 +140,17 @@ export default function VoucherMyCards({
         </button>
       </div>
 
-      {/* Empty State */}
-      {myBatches.length === 0 ? (
+      {/* Skeletons while initial sync */}
+      {mineStatusesLoading && myBatches.length === 0 ? (
+        <div className="space-y-3" aria-busy="true">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-28 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface-2)] skeleton-shimmer animate-pulse"
+            />
+          ))}
+        </div>
+      ) : myBatches.length === 0 ? (
         <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 sm:p-12 text-center space-y-5 shadow-sm">
           {/* Custom SVG Gift Illustration */}
           <div className="w-20 h-20 mx-auto rounded-3xl bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] flex items-center justify-center shadow-inner">

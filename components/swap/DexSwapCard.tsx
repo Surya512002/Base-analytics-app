@@ -138,8 +138,7 @@ export default function DexSwapCard({
     }
   }, [initialAmount]);
   const [dex, setDex] = useState<LaunchDex>("auto");
-  const [showSettings, setShowSettings] = useState(false);
-  const [showDetails, setShowDetails] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [invertRate, setInvertRate] = useState(false);
   const [flipDegree, setFlipDegree] = useState(0);
 
@@ -792,101 +791,8 @@ export default function DexSwapCard({
                 </span>
               </button>
             )}
-
-            {/* Settings Button */}
-            <button
-              type="button"
-              onClick={() => setShowSettings((s) => !s)}
-              aria-label="Swap Settings"
-              className={`h-8 px-2.5 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
-                showSettings
-                  ? "bg-[var(--brand)] text-white border-[var(--brand)] shadow-xs"
-                  : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
-              }`}
-            >
-              <Settings2 size={14} />
-              <span>{slippage}%</span>
-            </button>
           </div>
         </div>
-
-        {/* Settings Popover Drawer */}
-        <AnimatePresence>
-          {showSettings && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3.5 space-y-3"
-            >
-              <div>
-                <div className="flex items-center justify-between text-xs font-bold text-[var(--ink)] mb-1.5">
-                  <span>Slippage Tolerance</span>
-                  <span className="text-[var(--brand)] font-mono">{slippage}%</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {SLIPPAGE_PRESETS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      aria-pressed={slippage === s}
-                      onClick={() => setSlippage(s)}
-                      className={`pop-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        slippage === s
-                          ? "bg-[var(--brand)] text-white shadow-xs"
-                          : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-                      }`}
-                    >
-                      {s}%
-                    </button>
-                  ))}
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      placeholder="Custom"
-                      value={SLIPPAGE_PRESETS.includes(slippage) ? "" : slippage}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^\d.]/g, "");
-                        setSlippage(val || "0.5");
-                      }}
-                      className="w-full py-1.5 px-2.5 text-center rounded-xl text-xs font-bold border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand)]"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--ink-dim)] pointer-events-none">
-                      %
-                    </span>
-                  </div>
-                </div>
-
-                {slippageWarning && (
-                  <p className="flex items-center gap-1 mt-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                    <AlertTriangle size={12} className="shrink-0" />
-                    <span>{slippageWarning}</span>
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs font-bold text-[var(--ink)] mb-1.5">DEX Routing</p>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {ROUTE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setDex(opt.id)}
-                      className={`pop-pill px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        dex === opt.id
-                          ? "bg-[var(--brand)] text-white shadow-xs"
-                          : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* 1. SELL BOX */}
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 transition-all focus-within:border-[var(--brand)]/60 focus-within:ring-2 focus-within:ring-[var(--brand)]/10">
@@ -1044,94 +950,171 @@ export default function DexSwapCard({
           </div>
         </div>
 
-        {/* COLLAPSIBLE DETAILS ROW */}
+        {/* 3. EXCHANGE RATE & ADVANCED ACCORDION */}
         {hasLiquidity && quoteOut && (
-          <div className="pop rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 space-y-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setShowDetails((d) => !d)}
-              className="w-full flex items-center justify-between text-[var(--ink)] font-bold cursor-pointer"
-            >
+          <div className="card-pop rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 space-y-2.5 text-xs">
+            {/* Primary Summary Row */}
+            <div className="flex items-center justify-between text-[var(--ink)] font-bold">
               <div
-                className="flex items-center gap-1.5 hover:text-[var(--brand)] transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setInvertRate((v) => !v);
-                }}
+                className="flex items-center gap-1.5 hover:text-[var(--brand)] transition-colors cursor-pointer"
+                onClick={() => setInvertRate((v) => !v)}
                 title="Click to invert exchange rate"
               >
                 <span className="font-mono">{exchangeRateString}</span>
                 <span className="text-[10px] text-[var(--ink-dim)]">⇅</span>
               </div>
 
-              <div className="flex items-center gap-1 text-[var(--ink-muted)]">
+              <div className="flex items-center gap-2">
                 {priceImpactBadge && (
-                  <span className={`text-[11px] ${priceImpactBadge.colorClass} mr-1`}>
+                  <span className={`text-[11px] ${priceImpactBadge.colorClass}`}>
                     {priceImpactBadge.label} impact
                   </span>
                 )}
-                <ChevronDown
-                  size={14}
-                  className={`transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`}
-                />
+                {/* Advanced Accordion Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  aria-expanded={showAdvanced}
+                  className="pop-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-[var(--surface-2)] border border-[var(--border-subtle)] hover:border-[var(--brand)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+                >
+                  <Settings2 size={12} />
+                  <span>Advanced</span>
+                  <span className="text-[10px] text-[var(--brand)] font-mono ml-0.5">{slippage}%</span>
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 ml-0.5 ${showAdvanced ? "rotate-180" : ""}`}
+                  />
+                </button>
               </div>
-            </button>
+            </div>
 
+            {/* Advanced Panel: Slippage, DEX Routing Venue, and Execution Breakdown */}
             <AnimatePresence>
-              {showDetails && (
+              {showAdvanced && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="space-y-1.5 pt-2 border-t border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)]"
+                  className="overflow-hidden space-y-3 pt-3 border-t border-[var(--border-subtle)]"
                 >
-                  <div className="flex items-center justify-between">
-                    <span>Route</span>
-                    <span className="font-bold text-[var(--ink)] font-mono">
-                      {activeDex ? dexLabel(activeDex) : "Auto Best (Aggregated)"}
-                    </span>
+                  {/* Slippage Tolerance Settings */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs font-bold text-[var(--ink)] mb-1.5">
+                      <span>Slippage Tolerance</span>
+                      <span className="text-[var(--brand)] font-mono">{slippage}%</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {SLIPPAGE_PRESETS.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          aria-pressed={slippage === s}
+                          onClick={() => setSlippage(s)}
+                          className={`pop-pill flex-1 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            slippage === s
+                              ? "bg-[var(--brand)] text-white shadow-xs"
+                              : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                          }`}
+                        >
+                          {s}%
+                        </button>
+                      ))}
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="Custom"
+                          value={SLIPPAGE_PRESETS.includes(slippage) ? "" : slippage}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^\d.]/g, "");
+                            setSlippage(val || "0.5");
+                          }}
+                          className="w-full py-1 px-2.5 text-center rounded-xl text-xs font-bold border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand)]"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--ink-dim)] pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                    {slippageWarning && (
+                      <p className="flex items-center gap-1 mt-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                        <AlertTriangle size={12} className="shrink-0" />
+                        <span>{slippageWarning}</span>
+                      </p>
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span>Price Impact</span>
-                    <span className={priceImpactBadge?.colorClass ?? "text-[var(--ink)]"}>
-                      {priceImpactPct != null ? `${priceImpactPct.toFixed(2)}%` : "< 0.05%"}
-                    </span>
+                  {/* DEX Routing Venue Selection */}
+                  <div>
+                    <p className="text-xs font-bold text-[var(--ink)] mb-1.5">DEX Routing</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {ROUTE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setDex(opt.id)}
+                          className={`pop-pill px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            dex === opt.id
+                              ? "bg-[var(--brand)] text-white shadow-xs"
+                              : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span>Minimum Received</span>
-                    <span className="font-bold text-[var(--ink)] font-mono">
-                      {minReceive ?? quoteOut} {to ? counterSymbol(to) : ""}
-                    </span>
-                  </div>
+                  {/* Execution Breakdown */}
+                  <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)]">
+                    <div className="flex items-center justify-between">
+                      <span>Execution Route</span>
+                      <span className="font-bold text-[var(--ink)] font-mono">
+                        {activeDex ? dexLabel(activeDex) : "Auto Best (Aggregated)"}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center justify-between">
-                    <span>Network Fee (Base Gas)</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
-                      ~ $0.001 (Sub-cent)
-                    </span>
-                  </div>
+                    <div className="flex items-center justify-between">
+                      <span>Price Impact</span>
+                      <span className={priceImpactBadge?.colorClass ?? "text-[var(--ink)]"}>
+                        {priceImpactPct != null ? `${priceImpactPct.toFixed(2)}%` : "< 0.05%"}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center justify-between">
-                    <span>Platform Fee</span>
-                    <span className="font-bold text-[var(--ink)] font-mono">
-                      {isLaunchedToken ? (
-                        <>
-                          <span>0.50%</span>
-                          <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
-                            (0.25% Creator + 0.25% Platform)
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-emerald-600 dark:text-emerald-400">0.25%</span>
-                          <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
-                            (Lowest on Base)
-                          </span>
-                        </>
-                      )}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span>Minimum Received</span>
+                      <span className="font-bold text-[var(--ink)] font-mono">
+                        {minReceive ?? quoteOut} {to ? counterSymbol(to) : ""}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span>Network Fee (Base Gas)</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                        ~ $0.001 (Sub-cent)
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span>Platform Fee</span>
+                      <span className="font-bold text-[var(--ink)] font-mono">
+                        {isLaunchedToken ? (
+                          <>
+                            <span>0.50%</span>
+                            <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
+                              (0.25% Creator + 0.25% Platform)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-emerald-600 dark:text-emerald-400">0.25%</span>
+                            <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
+                              (Lowest on Base)
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </motion.div>
               )}

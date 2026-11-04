@@ -95,9 +95,9 @@
   --chart-grid: rgba(255, 255, 255, 0.08);
 
   /* Hover Pop Interaction Tokens - Dark Mode */
-  --pop-lift: -4px;
-  --pop-scale: 1.02;
-  --pop-duration: 200ms;
+  --pop-lift: -5px;
+  --pop-scale: 1.03;
+  --pop-duration: 220ms;
   --pop-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --pop-border-rest: transparent;
   --pop-border-hover: rgba(108, 155, 255, 0.40);
@@ -3298,6 +3298,7 @@ button.swap-token-pill:hover {
    ────────────────────────────────────────────────────────────── */
 
 .pop,
+.card-pop,
 .pop-lg,
 .pop-pill,
 .pop-row,
@@ -3312,6 +3313,7 @@ button.swap-token-pill:hover {
 
 /* Tier Overrides */
 .pop,
+.card-pop,
 .hover-pop {
   --pop-lift: -5px;
   --pop-scale: 1.03;
@@ -3347,6 +3349,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 /* Hover effects for hover-capable fine pointers (desktops/laptops) */
 @media (hover: hover) and (pointer: fine) {
   .pop:hover:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
+  .card-pop:hover:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
   .hover-pop:hover:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
   .pop-lg:hover:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
   .pop-pill:hover:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
@@ -3369,6 +3372,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 
 /* Pressed (:active) feedback on all devices */
 .pop:active:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
+.card-pop:active:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
 .hover-pop:active:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
 .pop-lg:active:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
 .pop-pill:active:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]),
@@ -3385,6 +3389,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 
 /* Keyboard Focus-Visible: lift + 2px Base Blue ring with offset */
 .pop:focus-visible:not([data-pop="off"]),
+.card-pop:focus-visible:not([data-pop="off"]),
 .hover-pop:focus-visible:not([data-pop="off"]),
 .pop-lg:focus-visible:not([data-pop="off"]),
 .pop-pill:focus-visible:not([data-pop="off"]),
@@ -3462,6 +3467,10 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   .pop:hover,
   .pop:active,
   .pop:focus-visible,
+  .card-pop,
+  .card-pop:hover,
+  .card-pop:active,
+  .card-pop:focus-visible,
   .hover-pop,
   .hover-pop:hover,
   .hover-pop:active,

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Calculator,
   TrendingUp,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -19,6 +20,7 @@ import type { LaunchedToken } from "@/lib/launchpad/types";
 import { shortAddr } from "@/lib/launchpad/format";
 import { APP_NAV } from "@/lib/nav/app-nav";
 import TokenLogo from "@/components/ui/TokenLogo";
+import { parseIntent, type ParsedIntent } from "@/lib/intent/intent-parser";
 
 type CommandPaletteProps = {
   open: boolean;
@@ -146,6 +148,19 @@ export default function CommandPalette({
     [onTabChange, onClose, router]
   );
 
+  const matchedIntent = useMemo(() => parseIntent(query), [query]);
+
+  const executeIntent = useCallback(
+    (intent: ParsedIntent) => {
+      if (intent.href.startsWith("/")) {
+        router.push(intent.href);
+      }
+      onTabChange(intent.tab);
+      onClose();
+    },
+    [router, onTabChange, onClose]
+  );
+
   if (!open || !mounted) return null;
 
   return createPortal(
@@ -169,7 +184,13 @@ export default function CommandPalette({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search tokens, B20, pages…"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && matchedIntent) {
+                e.preventDefault();
+                executeIntent(matchedIntent);
+              }
+            }}
+            placeholder="Search tokens, B20, or type an action (e.g. 'swap 50 USDC to ETH')…"
             className="command-palette-input flex-1 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--ink-dim)]"
           />
           <kbd className="hidden sm:inline text-[11px] font-mono text-[var(--ink-muted)] border border-[var(--border-subtle)] rounded-md px-2 py-1">
@@ -178,6 +199,39 @@ export default function CommandPalette({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-0">
+          {/* Smart Natural-Language Intent Match */}
+          {matchedIntent && (
+            <div className="mb-4">
+              <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--brand)] flex items-center gap-1.5">
+                <Zap size={13} className="text-[var(--brand)] fill-current" />
+                <span>Smart Intent Detected</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => executeIntent(matchedIntent)}
+                className="w-full text-left rounded-2xl border-2 border-[var(--brand)] bg-[var(--brand-soft)] hover:bg-[var(--brand-soft)]/80 p-4 transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-between gap-3 group"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#0052FF] text-white">
+                      {matchedIntent.type}
+                    </span>
+                    <span className="text-[15px] font-black text-[var(--ink)] truncate">
+                      {matchedIntent.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--ink-muted)] mt-1 truncate">
+                    {matchedIntent.description}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold shadow-xs group-hover:scale-105 transition-transform">
+                  <span>{matchedIntent.actionText}</span>
+                  <ArrowRight size={14} />
+                </div>
+              </button>
+            </div>
+          )}
+
           {filteredNav.length > 0 && (
             <div className="mb-4">
               <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">

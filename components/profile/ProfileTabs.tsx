@@ -27,6 +27,7 @@ interface ProfileTabsProps {
   creatorRevenue: CreatorRevenueSummary | null;
   address: string;
   isOwner?: boolean;
+  loading?: boolean;
   onOpenToken?: (token: LaunchedToken) => void;
 }
 
@@ -36,6 +37,7 @@ export default function ProfileTabs({
   creatorRevenue,
   address,
   isOwner = false,
+  loading = false,
   onOpenToken,
 }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("launches");
@@ -117,7 +119,16 @@ export default function ProfileTabs({
       {/* 1. LAUNCHES TAB */}
       {activeTab === "launches" && (
         <section className="space-y-4 animate-in fade-in duration-200">
-          {tokens.length === 0 ? (
+          {loading && tokens.length === 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2" aria-busy="true">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-44 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface-2)] skeleton-shimmer animate-pulse"
+                />
+              ))}
+            </div>
+          ) : tokens.length === 0 ? (
             <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 sm:p-12 text-center space-y-4 shadow-sm">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--border-subtle)] shadow-inner">
                 <Rocket size={28} />
