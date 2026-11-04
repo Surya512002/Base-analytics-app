@@ -8,13 +8,11 @@ import type { LaunchedToken } from "@/lib/launchpad/types";
 import { parseSwapUrlParams } from "@/lib/swap/swap-link";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
-import { syncTabUrl } from "@/lib/utils/app-url";
-import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
-import { formatUsd } from "@/lib/launchpad/format";
-import DexSwapCard from "./DexSwapCard";
-import PopularChips from "./PopularChips";
-import HoldingsDrawer from "./HoldingsDrawer";
+import DexSwapCard from "@/components/swap/DexSwapCard";
+import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
+import PopularChips from "@/components/swap/PopularChips";
+import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 
 export default function SwapTab({
   app,
@@ -36,6 +34,14 @@ export default function SwapTab({
   const [urlAmount, setUrlAmount] = useState<string | null>(null);
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
 
+  // User override flag: ensures user's manual in-app selection is never overwritten by query param re-runs
+  const userOverrodeBuyRef = useRef(false);
+
+  const handleBuyTokenChange = useCallback((counter: SwapCounter | null) => {
+    userOverrodeBuyRef.current = true;
+    setBuyToken(counter);
+  }, []);
+
   const extraTokens = useMemo(() => {
     const list: string[] = [];
     if (initialToken && initialToken.startsWith("0x")) list.push(initialToken);
@@ -46,7 +52,7 @@ export default function SwapTab({
     if (buyToken?.kind === "token" && buyToken.address) list.push(buyToken.address);
     if (fromPick?.kind === "token" && fromPick.address) list.push(fromPick.address);
     return list;
-  }, [initialToken, searchParams, buyToken, fromPick]);
+  }, [initialToken, searchParams, buyToken?.kind === "token" ? buyToken.address : null, fromPick?.kind === "token" ? fromPick.address : null]);
 
   // Hook for wallet holdings, dust filter, and total USD balance
   const holdingsState = useWalletHoldings(app.wallet?.address, extraTokens);
@@ -86,11 +92,11 @@ export default function SwapTab({
       setUrlAmount(amountParam);
     }
 
-    if (buyParam) {
+    if (buyParam && !userOverrodeBuyRef.current) {
       setLoadingBuyMetadata(true);
       void resolveSwapToken(buyParam).then((res) => {
         setLoadingBuyMetadata(false);
-        if (res.counter) {
+        if (res.counter && !userOverrodeBuyRef.current) {
           const verified = isVerifiedBaseToken(res.counter);
           setBuyToken({
             ...res.counter,
@@ -125,57 +131,51 @@ export default function SwapTab({
     <div className="w-full max-w-[480px] mx-auto space-y-3 pb-8">
       {/* Portfolio Summary Line above Swap Card */}
       <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="h-6 w-6 rounded-lg bg-[var(--brand-soft)] text-[var(--brand)] flex items-center justify-center shrink-0">
-            <Wallet size={13} />
+        <button
+          type="button"
+          onClick={() => setHoldingsDrawerOpen(true)}
+          className="flex items-center gap-2 group text-left cursor-pointer transition hover:opacity-85"
+        >
+          <div className="w-7 h-7 rounded-lg bg-[var(--brand)]/10 text-[var(--brand-text)] flex items-center justify-center shrink-0">
+            <Wallet size={15} />
           </div>
-          {app.wallet?.address && !guestMode ? (
-            <div className="flex items-baseline gap-1.5 truncate">
-              <span className="text-xs text-[var(--ink-muted)] font-medium">Portfolio:</span>
-              {holdingsLoading && allTokens.length === 0 ? (
-                <span className="text-xs text-[var(--ink-dim)]">Loading…</span>
-              ) : (
-                <div className="flex items-baseline gap-1.5 truncate">
-                  <span className="text-xs font-mono font-black text-[var(--ink)] tabular-nums">
-                    {formatUsd(totalUsd)}
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)]">
+              Base Portfolio
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold text-[var(--ink)] tabular-nums">
+                {holdingsLoading ? (
+                  <span className="inline-flex items-center gap-1 text-[var(--ink-muted)]">
+                    <Loader2 size={12} className="animate-spin" /> Loading…
                   </span>
-                  {unpricedTokens.length > 0 && (
-                    <span className="text-[10px] text-[var(--ink-dim)] font-medium">
-                      (+{unpricedTokens.length} unpriced)
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  `$${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                )}
+              </span>
+              <span className="text-[11px] text-[var(--ink-muted)]">
+                · {allTokens.length} assets
+              </span>
+              {unpricedTokens.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] font-medium">
+                  +{unpricedTokens.length} unpriced
+                </span>
               )}
             </div>
-          ) : (
-            <span className="text-xs text-[var(--ink-muted)]">Connect to view wallet balances</span>
-          )}
-        </div>
+          </div>
+        </button>
 
-        {app.wallet?.address && !guestMode ? (
-          <button
-            type="button"
-            onClick={() => setHoldingsDrawerOpen(true)}
-            className="pop-pill inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-[var(--brand)] hover:bg-[var(--brand-soft)] border border-[var(--brand)]/20 transition-all cursor-pointer shrink-0"
-          >
-            <span>View tokens</span>
-            <span className="font-mono text-[10px] bg-[var(--surface-2)] text-[var(--ink-dim)] px-1 rounded">
-              {allTokens.length}
-            </span>
-            <ChevronRight size={13} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onRequestConnect}
-            className="text-xs font-bold text-[var(--brand)] hover:underline cursor-pointer"
-          >
-            Connect
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setHoldingsDrawerOpen(true)}
+          className="p-1 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition"
+          aria-label="Open portfolio drawer"
+        >
+          <ChevronRight size={18} />
+        </button>
       </div>
 
-      {/* Hero Swap Card */}
+      {/* Main Single Action Swap Card */}
       <DexSwapCard
         app={app}
         guestMode={guestMode}
@@ -186,7 +186,7 @@ export default function SwapTab({
         onPrefillFromApplied={() => setFromPick(null)}
         holdings={allTokens}
         currentBuyToken={buyToken}
-        onBuyTokenChange={setBuyToken}
+        onBuyTokenChange={handleBuyTokenChange}
         loadingBuyMetadata={loadingBuyMetadata}
         loadingSellMetadata={loadingSellMetadata}
         initialAmount={urlAmount}
@@ -195,7 +195,7 @@ export default function SwapTab({
       {/* Popular Chips Row below Swap Card */}
       <PopularChips
         currentBuyToken={buyToken}
-        onSelectBuyToken={(counter) => setBuyToken(counter)}
+        onSelectBuyToken={handleBuyTokenChange}
       />
 
       {/* Holdings Drawer */}
