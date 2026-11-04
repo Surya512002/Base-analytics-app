@@ -23,6 +23,7 @@ import {
 import { shortAddr } from "@/lib/launchpad/format";
 import { basescanTxUrl } from "@/lib/utils/tx";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import TokenSparkline from "@/components/ui/TokenSparkline";
 import { useCompliance } from "@/hooks/useCompliance";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
@@ -208,12 +209,20 @@ export default function TokenCard({
           )}
         </div>
 
-        {/* Price Row */}
-        <div className="pt-1">
-          <span className="text-[10px] text-[var(--ink-muted)] block">Price</span>
-          <p className="text-base font-mono font-black text-[var(--ink)] tabular-nums">
-            {formatExactUsd(token.priceUsd)}
-          </p>
+        {/* Price & Trend Sparkline */}
+        <div className="pt-1 flex items-baseline justify-between gap-2">
+          <div>
+            <span className="text-[10px] text-[var(--ink-muted)] block">Price</span>
+            <p className="text-base font-mono font-black text-[var(--ink)] tabular-nums">
+              {formatExactUsd(token.priceUsd)}
+            </p>
+          </div>
+          <TokenSparkline
+            change24h={token.priceChange24h}
+            seed={token.address}
+            width={76}
+            height={26}
+          />
         </div>
 
         {/* Metrics Row: Market Cap, 24h Volume, Liquidity with exact tooltips */}

@@ -6,13 +6,13 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart2,
-  Coins,
   Star,
   User,
   LayoutGrid,
   Table as TableIcon,
-  Filter,
+  Flame,
+  Rocket,
+  ShieldCheck,
 } from "lucide-react";
 import type {
   ExploreCatalogTab,
@@ -56,7 +56,7 @@ export default function FilterBar({
 
   return (
     <div className="space-y-3.5">
-      {/* 1. ONE Tab Row for Token Type (No nested duplicate tabs, no '////' glyph) */}
+      {/* 1. ONE Tab Row for Token Type */}
       <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto no-scrollbar w-fit py-1.5">
         {catalogTabs.map((tab) => {
           const isActive = filters.catalogTab === tab.id;
@@ -224,6 +224,88 @@ export default function FilterBar({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* 3. Smart Filter Preset Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] shrink-0 mr-0.5">
+          Quick Filters:
+        </span>
+
+        {/* Verified Only */}
+        <button
+          type="button"
+          onClick={() =>
+            onChangeFilters((prev) => ({
+              ...prev,
+              onlyVerified: !prev.onlyVerified,
+            }))
+          }
+          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
+            filters.onlyVerified
+              ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-xs"
+              : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+          }`}
+        >
+          <ShieldCheck size={12} className={filters.onlyVerified ? "text-blue-500" : ""} />
+          <span>Verified Contracts</span>
+        </button>
+
+        {/* Volume > $100K */}
+        <button
+          type="button"
+          onClick={() =>
+            onChangeFilters((prev) => ({
+              ...prev,
+              minVolume100k: !prev.minVolume100k,
+            }))
+          }
+          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
+            filters.minVolume100k
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs"
+              : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+          }`}
+        >
+          <Flame size={12} className={filters.minVolume100k ? "text-amber-500" : ""} />
+          <span>High Volume (&gt; $100k)</span>
+        </button>
+
+        {/* Breakout > +15% */}
+        <button
+          type="button"
+          onClick={() =>
+            onChangeFilters((prev) => ({
+              ...prev,
+              breakoutOnly: !prev.breakoutOnly,
+            }))
+          }
+          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
+            filters.breakoutOnly
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs"
+              : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+          }`}
+        >
+          <Rocket size={12} className={filters.breakoutOnly ? "text-emerald-500" : ""} />
+          <span>Breakout (&gt; +15%)</span>
+        </button>
+
+        {/* Clear smart filters if any are active */}
+        {(filters.onlyVerified || filters.minVolume100k || filters.breakoutOnly) && (
+          <button
+            type="button"
+            onClick={() =>
+              onChangeFilters((prev) => ({
+                ...prev,
+                onlyVerified: false,
+                minVolume100k: false,
+                breakoutOnly: false,
+              }))
+            }
+            className="text-[11px] font-bold text-[var(--brand-text)] hover:underline ml-1 shrink-0 cursor-pointer"
+          >
+            Reset Smart Filters
+          </button>
+        )}
       </div>
     </div>
   );

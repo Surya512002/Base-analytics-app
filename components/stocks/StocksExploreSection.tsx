@@ -26,6 +26,7 @@ import { buildSwapLink } from "@/lib/swap/swap-link";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import type { CoinbaseTokenizedStock, LiquidityHealthTier } from "@/lib/stocks/coinbase-api";
 import TokenLogo from "@/components/ui/TokenLogo";
+import TokenSparkline from "@/components/ui/TokenSparkline";
 
 interface StocksExploreSectionProps {
   onSelectStockLend?: (stock: CoinbaseTokenizedStock) => void;
@@ -368,23 +369,32 @@ export default function StocksExploreSection({
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 flex flex-col items-end">
                       <p className="font-mono text-lg font-black text-[var(--ink)]">
                         ${stock.nav.toFixed(2)}
                       </p>
-                      <p
-                        className={`text-xs font-black flex items-center justify-end gap-0.5 ${
-                          isPositive
-                            ? "text-emerald-700 dark:text-emerald-400"
-                            : "text-rose-600 dark:text-rose-400"
-                        }`}
-                      >
-                        {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                        <span>
-                          {isPositive ? "+" : ""}
-                          {stock.change24h.toFixed(2)}%
-                        </span>
-                      </p>
+                      <div className="flex items-center gap-1.5 justify-end mt-0.5">
+                        <TokenSparkline
+                          change24h={stock.change24h}
+                          seed={stock.symbol}
+                          width={44}
+                          height={16}
+                          showGradient={false}
+                        />
+                        <p
+                          className={`text-xs font-black flex items-center justify-end gap-0.5 ${
+                            isPositive
+                              ? "text-emerald-700 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                          <span>
+                            {isPositive ? "+" : ""}
+                            {stock.change24h.toFixed(2)}%
+                          </span>
+                        </p>
+                      </div>
                     </div>
                   </div>
 

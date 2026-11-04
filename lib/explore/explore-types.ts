@@ -48,5 +48,8 @@ export interface ExploreFiltersState {
   onlyWatching: boolean;
   onlyMine: boolean;
   hideLowLiquidity: boolean;
+  onlyVerified?: boolean;
+  minVolume100k?: boolean;
+  breakoutOnly?: boolean;
   viewMode: "table" | "grid";
 }

@@ -84,6 +84,9 @@ export default function ExploreHub({
     onlyWatching: false,
     onlyMine: false,
     hideLowLiquidity: true,
+    onlyVerified: false,
+    minVolume100k: false,
+    breakoutOnly: false,
     viewMode: "table",
   });
 
@@ -230,6 +233,18 @@ export default function ExploreHub({
 
     if (filters.hideLowLiquidity) {
       result = result.filter((t) => t.liquidityUsd >= EXPLORE_CONFIG.LOW_LIQUIDITY_THRESHOLD_USD);
+    }
+
+    if (filters.onlyVerified) {
+      result = result.filter((t) => t.isVerified);
+    }
+
+    if (filters.minVolume100k) {
+      result = result.filter((t) => t.volume24h >= 100000);
+    }
+
+    if (filters.breakoutOnly) {
+      result = result.filter((t) => t.priceChange24h >= 15);
     }
 
     // Sorting
@@ -397,7 +412,7 @@ export default function ExploreHub({
                   ? "Deploy a vanity B20 token or standard ERC-20 to manage it here."
                   : "Try clearing search keywords or unchecking 'Hide low liquidity'."}
             </p>
-            {(filters.onlyWatching || filters.onlyMine || filters.searchQuery) && (
+            {(filters.onlyWatching || filters.onlyMine || filters.searchQuery || filters.onlyVerified || filters.minVolume100k || filters.breakoutOnly) && (
               <button
                 type="button"
                 onClick={() =>
@@ -407,6 +422,9 @@ export default function ExploreHub({
                     onlyWatching: false,
                     onlyMine: false,
                     hideLowLiquidity: false,
+                    onlyVerified: false,
+                    minVolume100k: false,
+                    breakoutOnly: false,
                   }))
                 }
                 className="mt-2 text-xs font-bold text-[var(--brand-text)] hover:underline cursor-pointer"

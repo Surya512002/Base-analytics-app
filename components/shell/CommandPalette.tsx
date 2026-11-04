@@ -10,6 +10,8 @@ import {
   Flame,
   BookOpen,
   ShieldCheck,
+  Calculator,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -89,6 +91,18 @@ export default function CommandPalette({
       hint: n.hint,
       icon: n.icon,
     }));
+    list.push({
+      id: "lend",
+      label: "Yield & APY Calculator",
+      hint: "Simulate lending, auto-compounding & staking returns",
+      icon: Calculator,
+    });
+    list.push({
+      id: "launchpad",
+      label: "Tokenized Equities & RWAs",
+      hint: "NVDAc, AAPLc, TSLAc 24/5 equity trading on Base",
+      icon: TrendingUp,
+    });
     list.push({
       id: "profile",
       label: "Daily Actions & Streaks",

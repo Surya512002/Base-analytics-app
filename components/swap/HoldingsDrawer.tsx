@@ -85,6 +85,60 @@ export default function HoldingsDrawer({
   const [unverifiedPendingToken, setUnverifiedPendingToken] = useState<PortfolioToken | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // Asset allocation breakdown across asset classes
+  const allocation = useMemo(() => {
+    if (!totalUsd || totalUsd <= 0) return null;
+
+    let ethUsd = 0;
+    let stablesUsd = 0;
+    let stocksUsd = 0;
+    let otherUsd = 0;
+
+    for (const token of allTokens) {
+      const val = token.usdValue ?? 0;
+      if (val <= 0) continue;
+      const sym = token.symbol.toUpperCase();
+
+      if (sym === "ETH" || sym === "WETH" || sym === "CBETH") {
+        ethUsd += val;
+      } else if (sym === "USDC" || sym === "USDT" || sym === "DAI" || sym === "USDBC") {
+        stablesUsd += val;
+      } else if (
+        sym.endsWith("C") &&
+        (sym.startsWith("NVDA") ||
+          sym.startsWith("AAPL") ||
+          sym.startsWith("TSLA") ||
+          sym.startsWith("MSFT") ||
+          sym.startsWith("GOOGL") ||
+          sym.startsWith("AMZN") ||
+          sym.startsWith("COIN"))
+      ) {
+        stocksUsd += val;
+      } else {
+        otherUsd += val;
+      }
+    }
+
+    const totalCalculated = ethUsd + stablesUsd + stocksUsd + otherUsd;
+    if (totalCalculated <= 0) return null;
+
+    const ethPct = Math.round((ethUsd / totalCalculated) * 100);
+    const stablesPct = Math.round((stablesUsd / totalCalculated) * 100);
+    const stocksPct = Math.round((stocksUsd / totalCalculated) * 100);
+    const otherPct = Math.max(0, 100 - ethPct - stablesPct - stocksPct);
+
+    return {
+      ethPct,
+      stablesPct,
+      stocksPct,
+      otherPct,
+      ethUsd,
+      stablesUsd,
+      stocksUsd,
+      otherUsd,
+    };
+  }, [allTokens, totalUsd]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -302,6 +356,74 @@ export default function HoldingsDrawer({
                     </button>
                   )}
                 </div>
+
+                {/* Asset Allocation Breakdown Bar */}
+                {allocation && (
+                  <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle)]/60">
+                    <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)]">
+                      <span className="font-bold uppercase tracking-wider">Asset Distribution</span>
+                      <span>{allTokens.filter((t) => (t.usdValue ?? 0) > 0).length} priced assets</span>
+                    </div>
+
+                    <div className="h-2 w-full rounded-full bg-[var(--surface-3)] overflow-hidden flex">
+                      {allocation.ethPct > 0 && (
+                        <div
+                          style={{ width: `${allocation.ethPct}%` }}
+                          className="h-full bg-blue-500"
+                          title={`ETH: ${allocation.ethPct}% (${formatUsd(allocation.ethUsd)})`}
+                        />
+                      )}
+                      {allocation.stablesPct > 0 && (
+                        <div
+                          style={{ width: `${allocation.stablesPct}%` }}
+                          className="h-full bg-emerald-500"
+                          title={`Stables: ${allocation.stablesPct}% (${formatUsd(allocation.stablesUsd)})`}
+                        />
+                      )}
+                      {allocation.stocksPct > 0 && (
+                        <div
+                          style={{ width: `${allocation.stocksPct}%` }}
+                          className="h-full bg-purple-500"
+                          title={`Stocks: ${allocation.stocksPct}% (${formatUsd(allocation.stocksUsd)})`}
+                        />
+                      )}
+                      {allocation.otherPct > 0 && (
+                        <div
+                          style={{ width: `${allocation.otherPct}%` }}
+                          className="h-full bg-amber-500"
+                          title={`Other: ${allocation.otherPct}% (${formatUsd(allocation.otherUsd)})`}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[10px] text-[var(--ink-muted)] flex-wrap pt-0.5">
+                      {allocation.ethPct > 0 && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                          <span>ETH {allocation.ethPct}%</span>
+                        </span>
+                      )}
+                      {allocation.stablesPct > 0 && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>Stables {allocation.stablesPct}%</span>
+                        </span>
+                      )}
+                      {allocation.stocksPct > 0 && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                          <span>Stocks {allocation.stocksPct}%</span>
+                        </span>
+                      )}
+                      {allocation.otherPct > 0 && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          <span>Other {allocation.otherPct}%</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Note on other networks */}

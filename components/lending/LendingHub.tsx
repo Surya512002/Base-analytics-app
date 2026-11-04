@@ -36,6 +36,7 @@ import MarketsTable, { type AssetMarketRow, type ProtocolRateInfo } from "./Mark
 import GaugesTable, { type GaugeRowData } from "./GaugesTable";
 import AssetDetailView from "./AssetDetailView";
 import ProtocolCompareHub from "./ProtocolCompareHub";
+import YieldCalculator from "./YieldCalculator";
 import ActionDrawer, { type DrawerActionTab } from "./ActionDrawer";
 import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
@@ -884,6 +885,17 @@ export default function LendingHub({
               .catch((e) => {
                 console.error("Failed to load position option:", e);
               });
+          }
+        }}
+      />
+
+      {/* Interactive Yield Calculator */}
+      <YieldCalculator
+        onSelectOption={(protocol) => {
+          if (protocol === "aerodrome") {
+            setMode("stake");
+          } else {
+            setMode("lend");
           }
         }}
       />

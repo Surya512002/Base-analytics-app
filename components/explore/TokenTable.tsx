@@ -24,6 +24,7 @@ import {
 import TokenCard from "./TokenCard";
 import { shortAddr } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
+import TokenSparkline from "@/components/ui/TokenSparkline";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 interface TokenTableProps {
@@ -82,6 +83,7 @@ export default function TokenTable({
               <th className="py-3 px-3.5">Token</th>
               <th className="py-3 px-3.5 text-right">Price</th>
               <th className="py-3 px-3.5 text-right">24h %</th>
+              <th className="py-3 px-3.5 text-center">24h Trend</th>
               <th className="py-3 px-3.5 text-right">24h Volume</th>
               <th className="py-3 px-3.5 text-right">Liquidity</th>
               <th className="py-3 px-3.5 text-right">Market Cap</th>
@@ -192,6 +194,18 @@ export default function TokenTable({
                         {token.priceChange24h.toFixed(1)}%
                       </span>
                     </span>
+                  </td>
+
+                  {/* 24h Trend Sparkline */}
+                  <td className="py-3 px-3.5 text-center">
+                    <div className="flex justify-center">
+                      <TokenSparkline
+                        change24h={token.priceChange24h}
+                        seed={token.address}
+                        width={64}
+                        height={20}
+                      />
+                    </div>
                   </td>
 
                   {/* 24h Volume */}
