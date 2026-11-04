@@ -2,28 +2,21 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import {
-  CreditCard,
   Gift,
   RefreshCcw,
   CheckCircle2,
   Copy,
   QrCode,
   Download,
-  ExternalLink,
   ChevronRight,
   X,
   Sparkles,
-  ArrowRight,
-  ShieldCheck,
   Key,
 } from "lucide-react";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 import type { StoredVoucherBatch, VoucherCard } from "@/lib/utils/voucher";
 import {
   formatVoucherAmount,
-  isStockAsset,
-  isVaultShareAsset,
-  getVaultShareBySymbol,
 } from "@/lib/utils/voucher";
 import { generateQrMatrix, generateQrSvgPath } from "@/lib/utils/qr-code";
 
@@ -40,14 +33,11 @@ export default function VoucherMyCards({
   mine,
   onCreateFirstGift,
 }: VoucherMyCardsProps) {
-  const { address } = shared;
   const {
     myBatches,
     chainStats,
     batchCardStatuses,
-    expandedBatchId,
     setExpandedBatchId,
-    loadingBatchDetail,
     mineStatusesLoading,
     recoverTxInput,
     setRecoverTxInput,
@@ -212,8 +202,6 @@ export default function VoucherMyCards({
             const pct = Math.round((redeemedCount / cardCount) * 100);
             const isFullyClaimed = redeemedCount >= cardCount;
             const isPartiallyClaimed = redeemedCount > 0 && !isFullyClaimed;
-            const isActive = redeemedCount === 0;
-
             const displayCards = displayCardsForBatch(b);
             const hasLocalSecrets = displayCards.some(
               (c) => c.secret && c.secret.length > 0

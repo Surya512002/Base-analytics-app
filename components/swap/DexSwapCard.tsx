@@ -8,13 +8,10 @@ import {
   Loader2,
   Settings2,
   ShieldCheck,
-  Zap,
-  Info,
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
   RotateCcw,
-  Sparkles,
 } from "lucide-react";
 import { formatUnits, maxUint256, parseUnits } from "viem";
 import { SWAP_ROUTER_02 } from "@/lib/launchpad/uniswap";
@@ -55,8 +52,6 @@ import {
   normalizeEthWeth,
   resolveDexSwapRoute,
 } from "@/lib/launchpad/dex-swap-params";
-import { enrichSwapCounter } from "@/lib/launchpad/token-logo";
-import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 import TokenSelectorModal from "./TokenSelectorModal";
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { useCompliance } from "@/hooks/useCompliance";
@@ -157,12 +152,10 @@ export default function DexSwapCard({
   const [activeDex, setActiveDex] = useState<SwapVenue | null>(null);
   const [quoteImpactBps, setQuoteImpactBps] = useState<number | null>(null);
   const [isLaunchedToken, setIsLaunchedToken] = useState(false);
-  const [creatorAddress, setCreatorAddress] = useState<string | null>(null);
   const [referrer, setReferrer] = useState<string | null>(null);
 
   // 15-second Refresh Countdown Ring
   const [countdown, setCountdown] = useState(QUOTE_REFRESH_INTERVAL_SEC);
-  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Balances & Prices
   const [balanceTick, setBalanceTick] = useState(0);
@@ -183,7 +176,7 @@ export default function DexSwapCard({
     if (currentBuyToken && (!to || !sameCounter(currentBuyToken, to))) {
       setTo(currentBuyToken);
     }
-  }, [currentBuyToken]);
+  }, [currentBuyToken, to]);
 
   // Sync `to` back to parent
   useEffect(() => {
@@ -219,7 +212,6 @@ export default function DexSwapCard({
     setTo(nextTo);
     setAmount(defaultFromAmount(from));
     setIsLaunchedToken(true);
-    setCreatorAddress(prefillToken.creator ?? null);
     captureTokenReferrerFromUrl(prefillToken.address);
     setReferrer(readTokenReferrer(prefillToken.address));
   }, [prefillToken?.address]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -341,7 +333,7 @@ export default function DexSwapCard({
   const counterUsd = useMemo(() => {
     if (!route) return 0;
     return (route.direction === "buy" ? fromUsd : toUsd) ?? 0;
-  }, [route?.direction, fromUsd, toUsd]);
+  }, [route, fromUsd, toUsd]);
 
   const ethBalance = useMemo(() => {
     const bal = walletCore?.balance ?? wallet?.balance;
@@ -408,7 +400,7 @@ export default function DexSwapCard({
     return () => {
       alive = false;
     };
-  }, [wallet, from, fromDecimals, ethBalance, balanceTick]);
+  }, [wallet, from, fromDecimals, ethBalance, balanceTick, activeDex]);
 
   const quoteAmountDecimals =
     route?.direction === "sell" ? pageDecimals : route?.counterDecimals ?? fromDecimals;
@@ -456,7 +448,6 @@ export default function DexSwapCard({
         setActiveDex(q.dex ?? null);
         setQuoteImpactBps(q.priceImpactBps ?? null);
         setIsLaunchedToken(Boolean(q.isLaunchedToken));
-        setCreatorAddress(q.creator ?? null);
 
         const outDec =
           q.outDecimals ?? (route.direction === "buy" ? pageDecimals : route.counterDecimals);

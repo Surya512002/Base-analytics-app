@@ -9,7 +9,6 @@ import { usePublicClient } from "wagmi";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import {
   ERC20_ABI,
-  USDC_BASE,
   VOUCHER_ABI,
 } from "@/lib/constants/contracts";
 import { VOUCHER_CONTRACT } from "@/lib/constants/env";
@@ -22,7 +21,6 @@ import {
   formatCardId,
   formatVoucherAmount,
   hashVoucherSecret,
-  loadLocalBatches,
   loadAllLocalBatchesForDevice,
   loadPendingBatch,
   loadAnyPendingBatch,
@@ -56,7 +54,7 @@ import {
 import { bumpWeeklyTxKey } from "@/lib/utils/wallet-session";
 import { recordConfirmedInAppAction } from "@/lib/utils/daily-points";
 import { USDC_PRESETS, ETH_PRESETS, STOCK_PRESETS } from "@/components/voucher/voucher-constants";
-import { assetToToken, isStockAsset } from "@/lib/utils/voucher";
+import { assetToToken } from "@/lib/utils/voucher";
 import type {
   VoucherView,
   ViewedCard,
@@ -64,8 +62,7 @@ import type {
   RedeemSuccess,
 } from "@/components/voucher/voucher-types";
 import type { WalletAppState } from "@/hooks/useWalletApp";
-import { txHashFromLifecycle } from "@/lib/utils/tx-status";
-import type { LifecycleStatus } from "@coinbase/onchainkit/transaction";
+import { txHashFromLifecycle, type LifecycleStatus } from "@/lib/utils/tx-status";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
 
@@ -539,7 +536,7 @@ export function useVoucherTab(app: WalletAppState) {
     }
   };
 
-  const prepareCreate = async () => {
+  const prepareCreate = useCallback(async () => {
     if (!address || !contractReady) return;
     setCreating(true);
     setCreatedCards(null);
@@ -650,7 +647,7 @@ export function useVoucherTab(app: WalletAppState) {
     } finally {
       setCreating(false);
     }
-  };
+  }, [address, asset, cardCount, contractReady, message, totalAmount]);
 
   const pendingHashes = useMemo((): `0x${string}`[] => {
     if (!pendingCards?.cards.length) return [];
@@ -806,7 +803,10 @@ export function useVoucherTab(app: WalletAppState) {
     [redeemCardId]
   );
   const redeemParsed = parseCardId(debouncedRedeemCardId);
-  redeemParsedRef.current = redeemParsedForTx;
+
+  useEffect(() => {
+    redeemParsedRef.current = redeemParsedForTx;
+  }, [redeemParsedForTx]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedRedeemCardId(redeemCardId.trim()), 450);
@@ -913,7 +913,7 @@ export function useVoucherTab(app: WalletAppState) {
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [redeemParsed, contractReady, redeemKey]);
+  }, [redeemParsed, contractReady, redeemKey, redeemCardId]);
   const redeemCall = useMemo(() => {
     if (!redeemParsedForTx || !redeemSecret.trim() || !contractReady) return [];
     return [
@@ -1244,7 +1244,9 @@ export function useVoucherTab(app: WalletAppState) {
     [address, publicClient, finalizeCreatedBatch, refreshMyBatches, showToast, resolvePendingBatch]
   );
 
-  recoverBatchByTxRef.current = recoverBatchByTx;
+  useEffect(() => {
+    recoverBatchByTxRef.current = recoverBatchByTx;
+  }, [recoverBatchByTx]);
 
   useEffect(() => {
     if (view !== "mine" || !address || recoverLoading) return;
@@ -1482,7 +1484,7 @@ export function useVoucherTab(app: WalletAppState) {
       }
       refreshMyBatches();
     },
-    [notifyVoucherTx, publicClient, refreshMyBatches, wallet, setTxKeys]
+    [notifyVoucherTx, publicClient, refreshMyBatches, wallet, setTxKeys, setPointsRevision]
   );
 
   const [directApproving, setDirectApproving] = useState(false);

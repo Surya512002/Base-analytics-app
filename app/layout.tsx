@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, Syne } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
 
-const figtree = Figtree({
+const figtree = localFont({
+  src: "../public/fonts/figtree-latin.woff2",
   variable: "--font-figtree",
-  subsets: ["latin"],
+  display: "swap",
+  weight: "300 900",
 });
 
-const syne = Syne({
+const syne = localFont({
+  src: "../public/fonts/syne-latin.woff2",
   variable: "--font-syne",
-  subsets: ["latin"],
+  display: "swap",
+  weight: "400 800",
 });
 
 const APP_URL = getAppUrl();

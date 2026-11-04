@@ -2,25 +2,17 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import {
   X,
   ExternalLink,
   ShieldCheck,
-  TrendingUp,
-  Percent,
-  Coins,
   Lock,
   ArrowRight,
   Sparkles,
   AlertTriangle,
   Loader2,
   CheckCircle2,
-  ChevronDown,
-  Layers,
-  Info,
-  ArrowDownToLine,
-  ArrowUpRight,
   Wallet,
   ShieldAlert,
 } from "lucide-react";
@@ -206,7 +198,6 @@ export default function StockDetailComparisonModal({
   // Active token info for current action
   const isUsdAction = activeAction === "borrow" || activeAction === "repay";
   const activeAssetSymbol = isUsdAction ? "USDC" : stock.symbol;
-  const activeAssetDecimals = isUsdAction ? 6 : stock.decimals;
 
   // Max Borrow capacity: Stock holdings × NAV × Max LTV
   const maxBorrowCapacityUsd = useMemo(() => {

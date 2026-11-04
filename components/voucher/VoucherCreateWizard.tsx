@@ -3,20 +3,15 @@
 import React, { useState, useMemo } from "react";
 import {
   Sparkles,
-  TrendingUp,
-  Coins,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
   Info,
-  ShieldCheck,
   AlertTriangle,
-  RotateCcw,
   Minus,
   Plus,
   Loader2,
 } from "lucide-react";
-import { base } from "viem/chains";
 import { formatUnits } from "viem";
 import { VOUCHER_CONTRACT } from "@/lib/constants/env";
 import {
@@ -56,7 +51,7 @@ export default function VoucherCreateWizard({
   ethBalance = "0.00",
   usdcBalance = "0.00",
 }: VoucherCreateWizardProps) {
-  const { contractReady, address, txCaps, prepareOnchainKitCalls } = shared;
+  const { contractReady, address } = shared;
   const {
     asset,
     setAsset,
@@ -70,23 +65,15 @@ export default function VoucherCreateWizard({
     pendingCards,
     split,
     perCardWei,
-    cardCount,
     prepareCreate,
     cancelPendingCreate,
     pendingAsset,
     exactDepositLabel,
     needsUsdcApproval,
     confirmingDeposit,
-    createEthCall,
-    approveUsdcCall,
-    createUsdcCall,
     checkingAllowance,
     usdcAllowanceError,
-    usdcReadyToFund,
-    usdcTxKey,
     refreshUsdcAllowance,
-    handleApproveTx,
-    handleFundTx,
     directApproving,
     directFunding,
     executeDirectApprove,

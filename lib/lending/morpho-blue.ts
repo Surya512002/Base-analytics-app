@@ -5,14 +5,12 @@ import {
   formatUnits,
   parseUnits,
   type PublicClient,
-  type Hex,
 } from "viem";
 import {
   MORPHO_BLUE_BASE,
   MORPHO_BLUE_ABI,
   CHAINLINK_FEED_ABI,
   ERC20_ABI,
-  USDC_BASE_ADDRESS,
 } from "./constants";
 import type {
   LendingMarket,
@@ -65,7 +63,7 @@ export async function checkOracleFeedStatus(
       functionName: "latestRoundData",
     });
 
-    const [roundId, answer, startedAt, updatedAt, answeredInRound] = data as [
+    const [roundId, answer, , updatedAt] = data as [
       bigint,
       bigint,
       bigint,
@@ -112,10 +110,10 @@ export async function fetchLiveMorphoMarket(
 
     const [
       totalSupplyAssets,
-      totalSupplyShares,
+      ,
       totalBorrowAssets,
-      totalBorrowShares,
-      lastUpdate,
+      ,
+      ,
       fee,
     ] = marketData as [bigint, bigint, bigint, bigint, bigint, bigint];
 
@@ -227,7 +225,7 @@ export async function fetchUserMorphoPosition(
       args: [marketId, userAddress],
     });
 
-    const [supplyShares, borrowShares, collateral] = pos as [
+    const [, borrowShares, collateral] = pos as [
       bigint,
       bigint,
       bigint,

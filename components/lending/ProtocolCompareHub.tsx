@@ -2,26 +2,15 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
   HelpCircle,
   ExternalLink,
-  Search,
   Sparkles,
-  TrendingUp,
-  Lock,
-  Coins,
-  ArrowRight,
   Info,
   ChevronDown,
   ChevronUp,
-  Layers,
-  Filter,
 } from "lucide-react";
-import { BASE_STOCKS, type BaseStock } from "@/lib/stocks/base-stocks";
+import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { AAVE_EQUITIES_SUPPORTED_STOCKS } from "@/lib/lending/unified-comparison";
-import TokenLogo from "@/components/ui/TokenLogo";
 
 export interface ProtocolDetail {
   id: string;
@@ -200,11 +189,10 @@ interface ProtocolCompareHubProps {
 
 export default function ProtocolCompareHub({
   onSelectStock,
-  onRequestConnect,
+  onRequestConnect: _onRequestConnect,
 }: ProtocolCompareHubProps) {
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>("NVDAc");
   const [protocolFilter, setProtocolFilter] = useState<"all" | "live_stocks" | "lending" | "staking">("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [faqOpen, setFaqOpen] = useState<Record<string, boolean>>({
     whyDiff: true,
     whereYield: false,
@@ -391,7 +379,10 @@ export default function ProtocolCompareHub({
               <button
                 key={sym}
                 type="button"
-                onClick={() => setSelectedStockSymbol(sym)}
+                onClick={() => {
+                  setSelectedStockSymbol(sym);
+                  onSelectStock?.(sym);
+                }}
                 className={`pop-pill px-3 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer ${
                   selectedStockSymbol === sym
                     ? "bg-[#0052FF] text-white shadow-xs"
@@ -508,7 +499,7 @@ export default function ProtocolCompareHub({
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setProtocolFilter(f.id as any)}
+                onClick={() => setProtocolFilter(f.id as "all" | "live_stocks" | "lending" | "staking")}
                 className={`pop-pill px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   protocolFilter === f.id
                     ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"

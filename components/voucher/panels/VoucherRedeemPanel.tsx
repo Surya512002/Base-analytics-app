@@ -1,21 +1,14 @@
 "use client";
 
 import React, { useEffect, useCallback } from "react";
-import { base } from "viem/chains";
 import {
   RefreshCcw,
   Loader2,
-  CheckCircle2,
-  ExternalLink,
   Info,
   Gift,
-  ArrowRight,
-  Wallet,
-  ArrowLeftRight,
 } from "lucide-react";
 import VoucherRedeemStatusBanner from "@/components/voucher/VoucherRedeemStatusBanner";
 import VoucherCardPreview from "@/components/voucher/VoucherCardPreview";
-import { formatVoucherAmount } from "@/lib/utils/voucher";
 import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 
@@ -30,22 +23,20 @@ interface VoucherRedeemPanelProps {
 export default function VoucherRedeemPanel({
   shared,
   redeem,
-  onNavigateTab,
+  onNavigateTab: _onNavigateTab,
 }: VoucherRedeemPanelProps) {
-  const { contractReady, txCaps, prepareOnchainKitCalls } = shared;
+  const { contractReady } = shared;
   const {
     redeemCardId,
     setRedeemCardId,
     redeemSecret,
     setRedeemSecret,
     redeemError,
-    redeemKey,
     redeemPreview,
     redeemPreviewLoading,
     redeemPreviewRefreshing,
     redeemParsedForTx,
     redeemCall,
-    handleRedeemTx,
     directRedeeming,
     executeDirectRedeem,
   } = redeem;
@@ -69,7 +60,6 @@ export default function VoucherRedeemPanel({
     return () => window.removeEventListener("hashchange", parseUrlParams);
   }, [parseUrlParams]);
 
-  const isFormFilled = Boolean(redeemCardId.trim() && redeemSecret.trim());
   const isInvalidFormat = Boolean(
     redeemCardId.trim() && !/^\d+-\d+$/.test(redeemCardId.trim())
   );

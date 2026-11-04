@@ -1,15 +1,11 @@
-import { formatUnits, parseUnits, type PublicClient } from "viem";
+import type { PublicClient } from "viem";
 import {
-  MORPHO_BLUE_BASE,
-  MORPHO_ADAPTIVE_CURVE_IRM,
   USDC_BASE_ADDRESS,
   IPOR_FUSION_FACTORY_BASE,
   AAVE_V3_POOL_BASE,
 } from "./constants";
-import { getMorphoMarketId, fetchLiveMorphoMarket } from "./morpho-blue";
-import type { MorphoMarketParams, LendingMarket } from "./types";
+import type { MorphoMarketParams } from "./types";
 import { BASE_STOCKS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
-import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import { runMarketDiscovery } from "./discovery/engine";
 import type { NormalizedMarket } from "./discovery/types";
 
@@ -280,11 +276,11 @@ async function getLiveBeefyAndAeroRates(): Promise<{
     const beefyMap: Record<string, { apy: number; tvl: number }> = {};
     if (beefyApyRes?.ok) {
       const apyMap = (await beefyApyRes.json()) as Record<string, number>;
-      const tvlMap = beefyTvlRes?.ok ? ((await beefyTvlRes.json()) as Record<string, any>) : {};
+      const tvlMap = beefyTvlRes?.ok ? ((await beefyTvlRes.json()) as Record<string, Record<string, number> | number>) : {};
       for (const [sym, details] of Object.entries(VERIFIED_BEEFY_STOCK_DETAILS)) {
         const vid = details.vaultId;
         const rawApy = apyMap[vid] ? Number(apyMap[vid]) * 100 : 0;
-        const rawTvl = tvlMap[8453]?.[vid] ?? tvlMap[vid] ?? 0;
+        const rawTvl = (tvlMap[8453] as Record<string, number> | undefined)?.[vid] ?? tvlMap[vid] ?? 0;
         const apy = Math.round(rawApy * 100) / 100;
         const tvl = Math.round(Number(rawTvl) || 0);
         if (apy > 0 || tvl > 0) {
@@ -293,19 +289,20 @@ async function getLiveBeefyAndAeroRates(): Promise<{
       }
     }
 
+    type YieldPool = { chain?: string; project?: string; symbol?: string; apy?: number; tvlUsd?: number };
     const aeroMap: Record<string, { apy: number; tvl: number }> = {};
     if (aeroRes?.ok) {
-      const json = (await aeroRes.json()) as any;
+      const json = (await aeroRes.json()) as { data?: YieldPool[] };
       const pools = (json?.data || []).filter(
-        (p: any) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
+        (p: YieldPool) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
       );
       for (const sym of Object.keys(VERIFIED_AERODROME_STOCK_POOLS)) {
         const symUpper = sym.toUpperCase();
         const match =
-          pools.find((p: any) => {
+          pools.find((p: YieldPool) => {
             const pSym = (p.symbol || "").toUpperCase();
             return pSym.includes(symUpper) && (pSym.includes("USDC") || pSym.includes("USD"));
-          }) || pools.find((p: any) => (p.symbol || "").toUpperCase().includes(symUpper));
+          }) || pools.find((p: YieldPool) => (p.symbol || "").toUpperCase().includes(symUpper));
         if (match) {
           aeroMap[sym] = {
             apy: Math.round(Number(match.apy || 0) * 100) / 100,
@@ -412,7 +409,8 @@ export async function getUnifiedStockLendingComparison(
 
   const stock = getBaseStockBySymbol(cleanSymbol) ?? BASE_STOCKS[0]!;
   const stockAddr = stock.address;
-  const oracleFeed = stock.feed ?? ("0x04689a41629776563E6822F76f2e57D148d28513" as const);
+  const _oracleFeed = stock.feed ?? ("0x04689a41629776563E6822F76f2e57D148d28513" as const);
+  void _oracleFeed;
 
   // Default baseline rates tailored by equity volatility profile
   const isHighBeta = cleanSymbol === "TSLAc" || cleanSymbol === "NVDAc" || cleanSymbol === "MSTRc";
@@ -427,7 +425,7 @@ export async function getUnifiedStockLendingComparison(
   try {
     const discoveryPromise = runMarketDiscovery(8453, forceRefresh);
     const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
-    const discoveryRes = (await Promise.race([discoveryPromise, timeoutPromise])) as any;
+    const discoveryRes = (await Promise.race([discoveryPromise, timeoutPromise])) as { markets?: NormalizedMarket[] } | null;
     if (discoveryRes && Array.isArray(discoveryRes.markets)) {
       discoveredMarkets = discoveryRes.markets;
     }

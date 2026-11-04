@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -13,56 +13,21 @@ const TokenDetailPanel = dynamic(
   () => import("@/components/launchpad/TokenDetailPanel"),
   { loading: () => <div className="h-96 skeleton-shimmer rounded-3xl border border-[var(--border-subtle)]" /> }
 );
-import TokenCard, { CreateTokenCard } from "@/components/launchpad/TokenCard";
-import { fetchLaunchpadTokens, fetchDiscoverTokens, resolveTokenByAddress } from "@/lib/api/launchpad-client";
-import { fetchMarketData, fetchMarketBatch, fetchGlobalActivity } from "@/lib/api/launchpad-market-client";
-import type { GlobalActivityItem } from "@/lib/api/launchpad-market-client";
+import { fetchLaunchpadTokens, fetchDiscoverTokens } from "@/lib/api/launchpad-client";
+import { fetchMarketData, fetchMarketBatch } from "@/lib/api/launchpad-market-client";
 import { mergeMarketSummaries, type TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import { readExploreCache, writeExploreCache, hasExploreCache } from "@/lib/launchpad/explore-cache";
-import { mergeExploreTokens, sortByMarketVolume } from "@/lib/launchpad/merge-tokens";
-import { filterCatalogTokens, filterTradableExploreTokens } from "@/lib/launchpad/tradable";
+import { mergeExploreTokens } from "@/lib/launchpad/merge-tokens";
 import { isAppLaunched, isB20ExploreToken } from "@/lib/launchpad/token-meta";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
 import ExploreHub from "@/components/explore/ExploreHub";
-import MyLaunchedTokens from "@/components/launchpad/MyLaunchedTokens";
-import AgenticMarketplaceRail, { ExploreKnowledgeRail } from "@/components/explore/AgenticMarketplaceRail";
-import ExploreLandingHero from "@/components/explore/ExploreLandingHero";
-import B20MarketHero from "@/components/explore/B20MarketHero";
-import ExploreSegmentTabs, { type TokenCatalogTab } from "@/components/explore/ExploreSegmentTabs";
-import ExploreSearchBar from "@/components/explore/ExploreSearchBar";
-import ExploreOnboarding from "@/components/explore/ExploreOnboarding";
-import ExploreMobileFab from "@/components/explore/ExploreMobileFab";
-import WatchlistAlertsPanel from "@/components/explore/WatchlistAlertsPanel";
-import { useTokenHoldings } from "@/hooks/useTokenHoldings";
-import { checkAlerts } from "@/lib/utils/token-price-alerts";
-import LaunchpadExploreSections from "@/components/launchpad/LaunchpadExploreSections";
-import RecentlyLaunchedSection from "@/components/launchpad/RecentlyLaunchedSection";
-import B20TokensSection from "@/components/launchpad/B20TokensSection";
-import LaunchCalendar from "@/components/launchpad/LaunchCalendar";
-import TokenWatchlistRail from "@/components/launchpad/TokenWatchlistRail";
-import GlobalActivityTicker from "@/components/shell/GlobalActivityTicker";
-import LiveMarketStrip from "@/components/shell/LiveMarketStrip";
-import StocksExploreSection from "@/components/stocks/StocksExploreSection";
 import StockDetailComparisonModal from "@/components/stocks/StockDetailComparisonModal";
 import type { CoinbaseTokenizedStock } from "@/lib/stocks/coinbase-api";
-import {
-  readTokenWatchlist,
-  toggleTokenWatch,
-} from "@/lib/utils/token-watchlist";
+import { checkAlerts } from "@/lib/utils/token-price-alerts";
 import { buildExploreTokenPath, syncTabUrl } from "@/lib/utils/app-url";
 
 type View = "explore" | "create" | "trade";
-type Filter =
-  | "all"
-  | "newest"
-  | "trending"
-  | "volume"
-  | "mcap"
-  | "mine"
-  | "gainers"
-  | "losers"
-  | "watchlist";
 
 type ExploreCatalog = {
   tokens: LaunchedToken[];
@@ -131,12 +96,7 @@ export default function LaunchpadTab({
     }
     return "explore";
   });
-  const [catalogTab, setCatalogTab] = useState<TokenCatalogTab>("all");
   const [selectedLendingStock, setSelectedLendingStock] = useState<CoinbaseTokenizedStock | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [b20Filter, setB20Filter] = useState<
-    "all" | "trending" | "newest" | "gainers" | "volume" | "mine" | "watchlist"
-  >("all");
   const cachedExplore = readExploreCache();
   const [catalog, setCatalog] = useState<ExploreCatalog>(() =>
     cachedExplore
@@ -152,44 +112,17 @@ export default function LaunchpadTab({
   const [selected, setSelected] = useState<LaunchedToken | null>(null);
   const [initialLoading, setInitialLoading] = useState(!hasExploreCache());
   const [syncing, setSyncing] = useState(false);
-  const [watchlist, setWatchlist] = useState<string[]>([]);
-  const [activities, setActivities] = useState<GlobalActivityItem[]>([]);
-  const gridRef = useRef<HTMLDivElement>(null);
   const refreshGenRef = useRef(0);
   const refreshInFlightRef = useRef(false);
   const hasCatalogRef = useRef(catalog.tokens.length > 0);
   const appRef = useRef(app);
-  appRef.current = app;
-  hasCatalogRef.current = catalog.tokens.length > 0;
+
+  useEffect(() => {
+    appRef.current = app;
+    hasCatalogRef.current = catalog.tokens.length > 0;
+  }, [app, catalog.tokens.length]);
+
   const launchEnabled = b20Activated === true || appB20Activated === true;
-
-  const scrollToGrid = useCallback(() => {
-    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  useEffect(() => {
-    if (!isActive) return;
-    let alive = true;
-    const load = () =>
-      void fetchGlobalActivity(48).then((d) => {
-        if (alive) setActivities(d.activities);
-      });
-    load();
-    const id = setInterval(load, 90_000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [isActive]);
-
-  useEffect(() => {
-    setWatchlist(readTokenWatchlist());
-  }, []);
-
-  const handleToggleWatch = useCallback((address: string) => {
-    toggleTokenWatch(address);
-    setWatchlist(readTokenWatchlist());
-  }, []);
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
     if (refreshInFlightRef.current) return null;
@@ -304,39 +237,6 @@ export default function LaunchpadTab({
     [ensureTokenInCatalog, onNavigate, router]
   );
 
-  const openTradeByAddress = useCallback(
-    async (addr: string) => {
-      const found = tokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
-      if (found) {
-        openSwap(found);
-        return;
-      }
-      const { token, market } = await resolveTokenByAddress(addr);
-      if (!token) {
-        app.showToast(
-          addr.startsWith("0xb20")
-            ? "B20 token not found on Base — check the deploy tx on BaseScan or wait a minute and retry"
-            : "Token not found or no liquidity on Base",
-          ""
-        );
-        return;
-      }
-      setCatalog((prev) => {
-        const launched = prev.tokens.filter(isAppLaunched);
-        const external = prev.tokens.filter((t) => !isAppLaunched(t));
-        const nextTokens = mergeExploreTokens(launched, [token, ...external]);
-        const key = token.address.toLowerCase();
-        return {
-          ...prev,
-          tokens: nextTokens,
-          markets: market ? { ...prev.markets, [key]: market } : prev.markets,
-        };
-      });
-      openSwap(token);
-    },
-    [tokens, openSwap, app]
-  );
-
   const requestCreate = useCallback(() => {
     if (guestMode) {
       onRequestConnect?.();
@@ -353,87 +253,6 @@ export default function LaunchpadTab({
       b20Activated: launchEnabled,
     });
   }, [tokens, launchEnabled, onShellBridge, requestCreate, openSwap]);
-
-  const allNonB20Tokens = useMemo(
-    () => tokens.filter((t) => !isB20ExploreToken(t)),
-    [tokens]
-  );
-
-  const allB20Tokens = useMemo(() => tokens.filter(isB20ExploreToken), [tokens]);
-
-  const tradableTokens = useMemo(
-    () => filterTradableExploreTokens(tokens, markets),
-    [tokens, markets]
-  );
-
-  const tradableB20 = useMemo(
-    () => tradableTokens.filter(isB20ExploreToken),
-    [tradableTokens]
-  );
-
-  const catalogTokens = useMemo(
-    () =>
-      filterCatalogTokens(allNonB20Tokens, markets, {
-        includeMine: true,
-        wallet: wallet?.address,
-      }),
-    [allNonB20Tokens, markets, wallet?.address]
-  );
-
-  const filtered = useMemo(() => {
-    let list = [...catalogTokens];
-
-    if (filter === "newest") {
-      list.sort((a, b) => b.createdAt - a.createdAt);
-    } else if (filter === "trending") {
-      list = sortByMarketVolume(list, markets).filter(
-        (t) => (markets[t.address.toLowerCase()]?.volume24h ?? 0) > 0
-      );
-    } else if (filter === "volume") {
-      list.sort((a, b) => {
-        const va = markets[a.address.toLowerCase()]?.volume24h ?? 0;
-        const vb = markets[b.address.toLowerCase()]?.volume24h ?? 0;
-        return vb - va || b.createdAt - a.createdAt;
-      });
-    } else if (filter === "mcap") {
-      list.sort((a, b) => {
-        const ma = markets[a.address.toLowerCase()]?.marketCap ?? 0;
-        const mb = markets[b.address.toLowerCase()]?.marketCap ?? 0;
-        return mb - ma || b.createdAt - a.createdAt;
-      });
-    } else if (filter === "gainers") {
-      list = list
-        .filter((t) => (markets[t.address.toLowerCase()]?.priceChange24h ?? 0) > 0)
-        .sort(
-          (a, b) =>
-            (markets[b.address.toLowerCase()]?.priceChange24h ?? 0) -
-            (markets[a.address.toLowerCase()]?.priceChange24h ?? 0)
-        );
-    } else if (filter === "losers") {
-      list = list
-        .filter((t) => (markets[t.address.toLowerCase()]?.priceChange24h ?? 0) < 0)
-        .sort(
-          (a, b) =>
-            (markets[a.address.toLowerCase()]?.priceChange24h ?? 0) -
-            (markets[b.address.toLowerCase()]?.priceChange24h ?? 0)
-        );
-    } else if (filter === "watchlist") {
-      list = watchlist
-        .map((addr) => allNonB20Tokens.find((t) => t.address.toLowerCase() === addr))
-        .filter((t): t is LaunchedToken => Boolean(t));
-    } else if (filter === "mine" && wallet) {
-      const w = wallet.address.toLowerCase();
-      list = list.filter((t) => isAppLaunched(t) && t.creator.toLowerCase() === w);
-    }
-
-    return list;
-  }, [catalogTokens, allNonB20Tokens, filter, wallet, markets, watchlist]);
-
-  const holdingInputs = useMemo(
-    () => tradableTokens.map((t) => ({ address: t.address, decimals: t.decimals })),
-    [tradableTokens]
-  );
-  const holdings = useTokenHoldings(wallet?.address, holdingInputs);
 
   useEffect(() => {
     if (!isActive || typeof Notification === "undefined") return;
@@ -457,10 +276,6 @@ export default function LaunchpadTab({
     setView("explore");
     setSelected(null);
     syncTokenUrl(null);
-  };
-
-  const handleActivityToken = (address: string) => {
-    void openTradeByAddress(address);
   };
 
   if (view === "create") {

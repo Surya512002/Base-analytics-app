@@ -1,7 +1,6 @@
 "use client";
 
-import { base } from "viem/chains";
-import { CheckCircle, Copy, Share2, TrendingUp, Sparkles, Building2, Loader2 } from "lucide-react";
+import { CheckCircle, Copy, Share2, TrendingUp, Sparkles, Loader2 } from "lucide-react";
 import { MAX_VOUCHER_CARDS } from "@/lib/utils/voucher";
 import {
   formatSplitSummary,
@@ -31,7 +30,7 @@ export default function VoucherCreatePanel({
   shared: VoucherTab["shared"];
   create: VoucherTab["create"];
 }) {
-  const { contractReady, copied, copyText, shareText, txCaps, prepareOnchainKitCalls } = shared;
+  const { contractReady, copied, copyText, shareText } = shared;
   const {
     asset,
     setAsset,
@@ -55,16 +54,10 @@ export default function VoucherCreatePanel({
     exactDepositLabel,
     needsUsdcApproval,
     confirmingDeposit,
-    createEthCall,
-    approveUsdcCall,
-    createUsdcCall,
     checkingAllowance,
     usdcAllowanceError,
     usdcReadyToFund,
-    usdcTxKey,
     refreshUsdcAllowance,
-    handleApproveTx,
-    handleFundTx,
     createdSectionRef,
     displayCardsForBatch,
     batchCardStatuses,

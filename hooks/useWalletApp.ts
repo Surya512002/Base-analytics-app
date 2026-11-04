@@ -25,7 +25,6 @@ import { clearWalletCache } from "@/lib/utils/wallet-cache";
 import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
-import { fetchMintedLevelsFromChain } from "@/lib/wallet/minted-badges";
 import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
 import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
 import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
@@ -61,7 +60,6 @@ import {
 } from "@/lib/utils/app-badge-levels";
 import {
   getBadgeMintXpTotal,
-  mergeMintedLevelsMax,
   readPersistedMintedLevels,
   recordBadgeMints,
   syncBadgeMintCountFromLevels,
@@ -315,6 +313,8 @@ function useWalletAppController() {
   const x402Paying = useRef(false);
   const handledActionTxs = useRef<Set<string>>(new Set());
   const calendarRef = useRef(getCalendarKeys());
+  const lockWalletCoreRef = useRef<(w: WalletData) => void>(() => {});
+  const analyzeWalletRef = useRef<(address: string, opts?: { background?: boolean }) => Promise<void>>(() => Promise.resolve());
   const [boosts, setBoosts] = useState(0);
   const [miniAppIdentity, setMiniAppIdentity] = useState<MiniAppIdentity | null>(
     null
@@ -575,10 +575,10 @@ function useWalletAppController() {
             if (prev?.address.toLowerCase() !== address.toLowerCase()) return prev;
             return mergeWalletMetricsMax(prev, withBasename);
           });
-          lockWalletCore(mergeWalletMetricsMax(shell, withBasename));
+          lockWalletCoreRef.current(mergeWalletMetricsMax(shell, withBasename));
         })();
 
-        void analyzeWallet(address, { background: true });
+        void analyzeWalletRef.current(address, { background: true });
       } catch (e) {
         console.warn("[wallet] silent resume failed — clearing stale session", e);
         clearPersistedWalletAddress();
@@ -699,10 +699,7 @@ function useWalletAppController() {
       if (leaderboardSaveRef.current) clearTimeout(leaderboardSaveRef.current);
     };
   }, [
-    wallet?.address,
-    wallet?.score,
-    wallet?.walletRank,
-    wallet?.basename,
+    wallet,
     boosts,
     mintedLevels,
     streak,
@@ -2031,10 +2028,10 @@ function useWalletAppController() {
         true
       );
       recordInAppTransaction(address, { notify: false });
-      const { credited } = recordCheckInPointsOnce(address);
+      recordCheckInPointsOnce(address);
       const awardStreak = Math.max(status.streak, expectedStreak, 1);
       if (awardStreak > 0) setStreak(awardStreak);
-      const streakBonus = tryAwardCheckInWeeklyBonus(address, awardStreak);
+      tryAwardCheckInWeeklyBonus(address, awardStreak);
       notifyPointsUpdated(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
@@ -2055,7 +2052,7 @@ function useWalletAppController() {
       setBoosts((current) => bumpBoostCount(address, current));
       const nextKeys = bumpWeeklyTxKey(address, "boost");
       setTxKeys((k) => ({ ...k, ...nextKeys }));
-      const { credited, hitCap } = recordConfirmedInAppAction(
+      recordConfirmedInAppAction(
         address,
         "boost",
         nextKeys.boost ?? 0
@@ -2081,6 +2078,7 @@ function useWalletAppController() {
     setWalletRefreshing(false);
     setScanProgress("");
   }, []);
+  lockWalletCoreRef.current = lockWalletCore;
 
   const analyzeWallet = useCallback(
     async (address: string, opts?: { background?: boolean }) => {
@@ -2446,8 +2444,9 @@ function useWalletAppController() {
         }
       }
     },
-    [applyAnalysis, loadX402PremiumState, lockWalletCore, showToast, syncCheckInStatus]
+    [applyAnalysis, loadX402PremiumState, lockWalletCore, showToast]
   );
+  analyzeWalletRef.current = analyzeWallet;
 
   const handleConnect = async (type: ConnectionType) => {
     if (connectingRef.current) return;
@@ -2644,12 +2643,6 @@ function useWalletAppController() {
       gn: gnCall[0],
       checkin: ciCall[0],
     } as const;
-    const successMsg = {
-      boost: "Boosted! 🎉",
-      gm: "GM on Base! ☀️",
-      gn: "GN on Base! 🌙",
-      checkin: "Check-in secured! 🔥",
-    } as const;
 
     pendingTx.current.add(type);
     setMinting(type);
@@ -2673,7 +2666,7 @@ function useWalletAppController() {
           );
         const nextKeys = bumpWeeklyTxKey(wallet.address, "gm");
         setTxKeys((k) => ({ ...k, ...nextKeys }));
-        const { credited, hitCap } = recordConfirmedInAppAction(
+        recordConfirmedInAppAction(
           wallet.address,
           "gm",
           nextKeys.gm ?? 0
