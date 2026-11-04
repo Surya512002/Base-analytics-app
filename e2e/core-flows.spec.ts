@@ -107,4 +107,11 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByRole("button", { name: "All Assets" }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Low Risk" }).first()).toBeVisible();
   });
+
+  test("11. Stock NAV Tracker: renders 24/5 vs 24/7 spread tracker and market hours indicator", async ({ page }) => {
+    await page.goto("/explore");
+    await expect(page.getByText(/Stock NAV Tracker/i).first()).toBeVisible();
+    await expect(page.getByText(/Market Open|Market Closed/i).first()).toBeVisible();
+    await expect(page.getByText(/Custody Attestations/i).first()).toBeVisible();
+  });
 });

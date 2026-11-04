@@ -27,6 +27,7 @@ import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import type { CoinbaseTokenizedStock, LiquidityHealthTier } from "@/lib/stocks/coinbase-api";
 import TokenLogo from "@/components/ui/TokenLogo";
 import TokenSparkline from "@/components/ui/TokenSparkline";
+import StockNavTracker from "./StockNavTracker";
 
 interface StocksExploreSectionProps {
   onSelectStockLend?: (stock: CoinbaseTokenizedStock) => void;
@@ -242,6 +243,9 @@ export default function StocksExploreSection({
           </div>
         </div>
       </div>
+
+      {/* 2. STOCK NAV TRACKER (24/5 Oracle NAV vs 24/7 DEX AMM Spread & Market Hours) */}
+      <StockNavTracker stocks={stocks} />
 
       {/* Search & Category Filter Navigation */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
