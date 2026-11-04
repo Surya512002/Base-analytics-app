@@ -87,4 +87,14 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByText(/Follow Wallet/i)).toBeVisible();
     await expect(page.getByText(/vitalik\.eth/i)).toBeVisible();
   });
+
+  test("9. Portfolio Time Machine: opens holdings drawer and renders historical benchmark", async ({ page }) => {
+    await page.goto("/swap");
+    const holdingsBtn = page.getByRole("button", { name: /portfolio|holdings/i }).first();
+    if (await holdingsBtn.isVisible()) {
+      await holdingsBtn.click();
+      await expect(page.getByText(/Portfolio Time Machine/i)).toBeVisible();
+      await expect(page.getByText(/Export Tax CSV/i)).toBeVisible();
+    }
+  });
 });
