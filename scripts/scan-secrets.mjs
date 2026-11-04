@@ -45,6 +45,7 @@ const WHITELIST = new Set([
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // standard Anvil account #1
   "0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f", // ERC-4337 UserOperationEvent topic
   "0xfef5641f70e19a87e369304daa9ba823754f3db1e6481d757fcae0442cffe479", // Morpho Blue Base canonical marketId
+  "0x52467d5bbbf878d6b8ec1159385ffca5f76b1f868c2d2aa6ffc5d57bba91f7a4", // Mock test txHash in unique-users unit tests
 ]);
 
 console.log("==================================================");
