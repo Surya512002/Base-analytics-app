@@ -41,6 +41,7 @@ export interface LaunchFormConfig {
   creatorPct: number;
   insiderAllocations: InsiderAllocation[];
   vestedAllocations?: VestedAllocation[];
+  antiSnipeBlocks?: number;
   vanitySalt: `0x${string}` | null;
   vanityAttempts: number;
 }

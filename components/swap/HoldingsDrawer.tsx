@@ -25,6 +25,7 @@ import type { PortfolioToken } from "@/lib/portfolio/types";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import PortfolioTimeMachine from "@/components/portfolio/PortfolioTimeMachine";
 
 interface HoldingsDrawerProps {
   open: boolean;
@@ -416,6 +417,9 @@ export default function HoldingsDrawer({
                     </div>
                   </div>
                 )}
+
+                {/* Portfolio Time Machine & CSV Export */}
+                <PortfolioTimeMachine tokens={allTokens} totalUsd={totalUsd} />
               </div>
 
               {/* Note on other networks */}

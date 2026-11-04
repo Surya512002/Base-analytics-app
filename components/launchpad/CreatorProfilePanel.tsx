@@ -15,6 +15,7 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import CreatorStats from "@/components/profile/CreatorStats";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import DailyActionsPanel from "@/components/profile/DailyActionsPanel";
+import WalletDnaCard from "@/components/profile/WalletDnaCard";
 import {
   LAUNCHPAD_PLATFORM_FEE_BPS,
 } from "@/lib/constants/launchpad";
@@ -159,17 +160,19 @@ export default function CreatorProfilePanel({
             onOpenToken={onOpenToken}
           />
 
-          {/* Mobile view of Daily Actions (stacked at bottom for owner) */}
+          {/* Mobile view of Wallet DNA and Daily Actions (stacked at bottom for owner) */}
           {isOwner && (
-            <div className="block lg:hidden w-full min-w-0">
+            <div className="block lg:hidden w-full min-w-0 space-y-6">
+              <WalletDnaCard address={address} volumeUsd={stats.totalVol} />
               <DailyActionsPanel onRequestConnect={onConnect} />
             </div>
           )}
         </div>
 
-        {/* Right Sticky Column: Daily Actions (Desktop only, for owner) */}
+        {/* Right Sticky Column: Wallet DNA & Daily Actions (Desktop only, for owner) */}
         {isOwner && (
-          <div className="hidden lg:block lg:col-span-4 sticky top-24 w-full min-w-0">
+          <div className="hidden lg:block lg:col-span-4 sticky top-24 w-full min-w-0 space-y-6">
+            <WalletDnaCard address={address} volumeUsd={stats.totalVol} />
             <DailyActionsPanel onRequestConnect={onConnect} />
           </div>
         )}

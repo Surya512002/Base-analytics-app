@@ -26,6 +26,7 @@ import TokenAvatar from "@/components/ui/TokenAvatar";
 import TokenSparkline from "@/components/ui/TokenSparkline";
 import { useCompliance } from "@/hooks/useCompliance";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import TokenXRayBadge from "@/components/launchpad/TokenXRayBadge";
 
 interface TokenCardProps {
   token: UnifiedToken;
@@ -190,13 +191,21 @@ export default function TokenCard({
           </div>
         </div>
 
-        {/* Badges Row: at most two badges */}
+        {/* Badges Row: type, safety X-Ray, status */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
             className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border ${typeBadge.class}`}
           >
             {typeBadge.label}
           </span>
+
+          <TokenXRayBadge
+            address={token.address}
+            symbol={token.symbol}
+            liquidityUsd={token.liquidityUsd}
+            isVerified={token.isVerified}
+            compact
+          />
 
           {statusBadge && (
             <span

@@ -16,6 +16,7 @@ import DiscoveryRow from "./DiscoveryRow";
 import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
+import SmartMoneyRadar from "./SmartMoneyRadar";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
@@ -364,6 +365,15 @@ export default function ExploreHub({
           }}
         />
       </div>
+
+      {/* 3. SMART MONEY RADAR (Live Whale Inflow Stream & Followed Traders) */}
+      <SmartMoneyRadar
+        userWallet={userAddress}
+        onTradeToken={(addr) => {
+          const matched = allUnifiedTokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
+          if (matched) handleTrade(matched);
+        }}
+      />
 
       {/* 4. MAIN EXPLORER SECTION */}
       <div ref={explorerRef} className="space-y-4 pt-2 scroll-mt-20">

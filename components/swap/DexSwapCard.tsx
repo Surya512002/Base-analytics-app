@@ -33,6 +33,8 @@ import { getStockBaselineNav } from "@/lib/stocks/coinbase-api";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import { DEFAULT_STOCK_COMPLIANCE } from "@/lib/stocks/compliance";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
+import TokenXRayBadge from "@/components/launchpad/TokenXRayBadge";
+import SwapPreviewModal from "@/components/swap/SwapPreviewModal";
 import {
   CounterAvatar,
   ETH_COUNTER,
@@ -139,6 +141,7 @@ export default function DexSwapCard({
   }, [initialAmount]);
   const [dex, setDex] = useState<LaunchDex>("auto");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showSwapPreview, setShowSwapPreview] = useState(false);
   const [invertRate, setInvertRate] = useState(false);
   const [flipDegree, setFlipDegree] = useState(0);
 
@@ -691,6 +694,13 @@ export default function DexSwapCard({
       return;
     }
 
+    // Trigger Swap Preview Modal first
+    setShowSwapPreview(true);
+  };
+
+  const handleConfirmSwap = async () => {
+    if (!route || !to) return;
+    setShowSwapPreview(false);
     const ok = await handleTokenSwap({
       token: route.pageToken.address,
       symbol: route.pageToken.symbol,
@@ -942,11 +952,21 @@ export default function DexSwapCard({
                 formatUsdSide(receiveUsd)
               )}
             </span>
-            {to && to.kind === "token" && to.symbol.endsWith("c") && (
-              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
-                Coinbase B20 Equity
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {to && to.kind === "token" && (
+                <TokenXRayBadge
+                  address={to.address}
+                  symbol={to.symbol}
+                  isVerified={isVerifiedBaseToken(to)}
+                  compact
+                />
+              )}
+              {to && to.kind === "token" && to.symbol.endsWith("c") && (
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                  Coinbase B20 Equity
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1344,6 +1364,26 @@ export default function DexSwapCard({
         onAcknowledge={compliance.acknowledge}
         issuerTermsUrl={compliance.status.issuerTermsUrl}
       />
+
+      {/* Swap Pre-Flight Preview Modal */}
+      {to && (
+        <SwapPreviewModal
+          isOpen={showSwapPreview}
+          onClose={() => setShowSwapPreview(false)}
+          onConfirm={() => void handleConfirmSwap()}
+          isConfirming={swapLoading}
+          from={from}
+          to={to}
+          payAmount={amount}
+          payUsd={payUsd}
+          receiveAmount={quoteOut ?? "0.0"}
+          receiveUsd={receiveUsd}
+          priceImpactPct={priceImpactPct}
+          activeDexName={activeDex ? dexLabel(activeDex) : "Auto Best (Aggregated)"}
+          isLaunchedToken={isLaunchedToken}
+          slippagePct={slippage}
+        />
+      )}
     </div>
   );
 }
