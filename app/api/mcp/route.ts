@@ -58,10 +58,35 @@ const handler = createMcpHandler(
             .string()
             .optional()
             .describe("Creator wallet 0x… from Base MCP get_wallets (optimizes USDC approve)"),
+          unlock_timestamp: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .describe("Unix timestamp (seconds) before which cards cannot be redeemed (time-lock)"),
+          expiration_timestamp: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .describe("Unix timestamp (seconds) after which cards expire and creator can reclaim"),
+          required_signer: z
+            .string()
+            .optional()
+            .describe("Optional 0x address requiring authorized signature to claim (conditional voucher)"),
         },
       },
-      async ({ total, cards, asset, message, creator }) =>
-        mcpPrepareCreate({ total, cards, asset, message, creator })
+      async ({ total, cards, asset, message, creator, unlock_timestamp, expiration_timestamp, required_signer }) =>
+        mcpPrepareCreate({
+          total,
+          cards,
+          asset,
+          message,
+          creator,
+          unlockTimestamp: unlock_timestamp,
+          expirationTimestamp: expiration_timestamp,
+          requiredSigner: required_signer,
+        })
     );
 
     server.registerTool(

@@ -66,6 +66,13 @@ export async function GET(req: Request) {
   const cards = parseInt(searchParams.get("cards") || "", 10);
   const message = searchParams.get("message") || "";
   const creator = searchParams.get("creator")?.trim() as `0x${string}` | undefined;
+  const rawUnlock = searchParams.get("unlockTimestamp");
+  const rawExp = searchParams.get("expirationTimestamp");
+  const rawSigner = searchParams.get("requiredSigner")?.trim();
+
+  const unlockTimestamp = rawUnlock ? parseInt(rawUnlock, 10) : undefined;
+  const expirationTimestamp = rawExp ? parseInt(rawExp, 10) : undefined;
+  const requiredSigner = rawSigner?.startsWith("0x") ? (rawSigner as `0x${string}`) : undefined;
 
   if (!total) {
     return NextResponse.json({ error: "total is required" }, { status: 400 });
@@ -87,6 +94,9 @@ export async function GET(req: Request) {
       cards,
       message,
       creator,
+      unlockTimestamp,
+      expirationTimestamp,
+      requiredSigner,
     });
     return NextResponse.json(result, {
       headers: { "Cache-Control": "no-store" },
@@ -113,6 +123,9 @@ export async function POST(req: Request) {
       cards?: number;
       message?: string;
       creator?: string;
+      unlockTimestamp?: number;
+      expirationTimestamp?: number;
+      requiredSigner?: string;
     };
 
     const rawAsset = (body.asset || "USDC").trim();
@@ -154,6 +167,11 @@ export async function POST(req: Request) {
     const cards = Number(body.cards);
     const message = body.message?.trim() || "";
     const creator = body.creator?.trim() as `0x${string}` | undefined;
+    const unlockTimestamp = body.unlockTimestamp ? Number(body.unlockTimestamp) : undefined;
+    const expirationTimestamp = body.expirationTimestamp ? Number(body.expirationTimestamp) : undefined;
+    const requiredSigner = body.requiredSigner?.startsWith("0x")
+      ? (body.requiredSigner.trim() as `0x${string}`)
+      : undefined;
 
     if (!creator?.startsWith("0x") || creator.length !== 42) {
       return NextResponse.json(
@@ -177,6 +195,9 @@ export async function POST(req: Request) {
       cards,
       message,
       creator,
+      unlockTimestamp,
+      expirationTimestamp,
+      requiredSigner,
     });
 
     return NextResponse.json(

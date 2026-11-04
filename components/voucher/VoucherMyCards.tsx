@@ -47,6 +47,8 @@ export default function VoucherMyCards({
     refreshMyBatches,
     loadBatchDetail,
     displayCardsForBatch,
+    reclaimingBatchId,
+    executeReclaimBatch,
   } = mine;
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -211,6 +213,10 @@ export default function VoucherMyCards({
             const pct = Math.round((redeemedCount / cardCount) * 100);
             const isFullyClaimed = redeemedCount >= cardCount;
             const isPartiallyClaimed = redeemedCount > 0 && !isFullyClaimed;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const isTimeLocked = Boolean(b.unlockTimestamp && nowSec < b.unlockTimestamp);
+            const isExpired = Boolean(b.expirationTimestamp && nowSec >= b.expirationTimestamp);
+            const canReclaim = isExpired && !isFullyClaimed;
             const displayCards = displayCardsForBatch(b);
             const hasLocalSecrets = displayCards.some(
               (c) => c.secret && c.secret.length > 0
@@ -223,7 +229,7 @@ export default function VoucherMyCards({
               >
                 {/* Header Row: Batch #, Status Chip, Date */}
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="text-base font-black text-[var(--ink)]">
                       Batch #{b.batchId}
                     </span>
@@ -232,6 +238,14 @@ export default function VoucherMyCards({
                     {isFullyClaimed ? (
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/20">
                         Fully Claimed
+                      </span>
+                    ) : isExpired ? (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
+                        Expired
+                      </span>
+                    ) : isTimeLocked ? (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
+                        Time-Locked
                       </span>
                     ) : isPartiallyClaimed ? (
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
@@ -268,15 +282,15 @@ export default function VoucherMyCards({
                   <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${
-                        isFullyClaimed ? "bg-slate-500" : "bg-emerald-500"
+                        isFullyClaimed ? "bg-slate-500" : isExpired ? "bg-rose-500" : "bg-emerald-500"
                       }`}
                       style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Bottom Row: Message, Asset details & Open Drawer Button */}
-                <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-xs">
+                {/* Bottom Row: Message, Asset details & Actions */}
+                <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-xs flex-wrap gap-2">
                   <div className="flex items-center gap-2 truncate max-w-sm">
                     <span className="font-bold text-[var(--ink)]">{b.asset}</span>
                     {b.message && (
@@ -286,14 +300,26 @@ export default function VoucherMyCards({
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => openBatchDrawer(b)}
-                    className="pop-pill flex items-center gap-1 font-black text-xs text-[var(--brand-text)] hover:underline cursor-pointer shrink-0"
-                  >
-                    <span>View Cards &amp; Links</span>
-                    <ChevronRight size={14} />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {canReclaim && (
+                      <button
+                        type="button"
+                        onClick={() => executeReclaimBatch?.(b.batchId)}
+                        disabled={reclaimingBatchId === b.batchId}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        {reclaimingBatchId === b.batchId ? "Reclaiming…" : "Reclaim Expired"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openBatchDrawer(b)}
+                      className="pop-pill flex items-center gap-1 font-black text-xs text-[var(--brand-text)] hover:underline cursor-pointer shrink-0"
+                    >
+                      <span>View Cards &amp; Links</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

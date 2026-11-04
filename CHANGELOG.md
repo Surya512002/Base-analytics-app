@@ -4,6 +4,23 @@ All notable changes and architectural upgrades across Phases 0 through 5 are doc
 
 ---
 
+## [BaseVoucher v2 Upgrade] Time-Locks, Expiration Reclaim, & Conditional Gift Cards
+
+### Contract & Protocol Upgrades (`contracts/BaseVoucher.sol`)
+- **Time-Lock Functionality**: Added optional `unlockTimestamp` per batch. Redemptions revert with `"Voucher is time-locked"` before unlock date.
+- **Creator Reclaim of Expired Vouchers**: Added `reclaimUnredeemed(batchId)` allowing creators to safely recover unredeemed funds after `expirationTimestamp`. Sets `redeemedCount = cardCount` preventing double-reclaims.
+- **Conditional Signatures / Authorized Redemptions**: Added `requiredSigner` configuration and `redeemConditional(...)` requiring an ECDSA authorization signature from the designated authority for restricted/gated rewards.
+- **Full Backward Compatibility**: Preserved exact 6-tuple return signature for `getBatch(...)`, original `createEthBatch(...)`, `createUsdcBatch(...)`, `createTokenBatch(...)`, and `redeem(...)`. Added `getBatchConfig(...)`, `isBatchUnlocked(...)`, and `isBatchExpired(...)`.
+- **Foundry Test Suite (`test/BaseVoucher.t.sol`)**: Added 10 new Foundry tests verifying time-lock reverts, post-unlock claims, expiration blocking, creator reclaim math, non-creator protection, and authorized ECDSA signature claims.
+
+### Frontend, API, & MCP Integration
+- **Voucher Creation Wizard (`VoucherCreateWizard.tsx`)**: Added "Time-Lock & Expiration" controls in Step 3 (Immediate, 24h, 3d, 7d unlock presets; Never, 14d, 30d, 90d expiration presets) and summary breakdown in Step 4.
+- **My Cards & 1-Click Reclaim (`VoucherMyCards.tsx`)**: Added `Time-Locked` and `Expired` status badges and a 1-click `Reclaim Expired` transaction button for creators.
+- **MCP Agent Tools (`app/api/mcp/route.ts` & `lib/voucher/mcp-tools.ts`)**: Added `unlock_timestamp`, `expiration_timestamp`, and `required_signer` support to `voucher_prepare_create`.
+- **Claim & Redeem Panels**: Enhanced redeem preview with live onchain time-lock countdown and expiration notifications.
+
+---
+
 ## [Phase 5] Delivery & Release Hardening
 
 ### Core Highlights & Polish

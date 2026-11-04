@@ -33,6 +33,9 @@ export interface StoredVoucherBatch {
   createdAt: number;
   txHash?: string;
   cards: VoucherCard[];
+  unlockTimestamp?: number;
+  expirationTimestamp?: number;
+  requiredSigner?: string;
 }
 
 function randomChar(): string {

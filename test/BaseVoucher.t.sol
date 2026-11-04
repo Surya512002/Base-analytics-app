@@ -61,15 +61,25 @@ contract ReentrantAttacker {
 
 contract BaseVoucherTest is Test {
     BaseVoucher public voucher;
+    MockUSDC public mockToken;
     address public alice = address(0xAA11);
     address public bob = address(0xBB22);
     address public charlie = address(0xCC33);
+    uint256 internal signerPrivateKey = 0xA11CE;
+    address public signer;
 
     function setUp() public {
         voucher = new BaseVoucher();
+        mockToken = new MockUSDC();
+        signer = vm.addr(signerPrivateKey);
+
         vm.deal(alice, 100 ether);
         vm.deal(bob, 100 ether);
         vm.deal(charlie, 100 ether);
+
+        mockToken.mint(alice, 10_000 * 1e6);
+        vm.prank(alice);
+        mockToken.approve(address(voucher), type(uint256).max);
     }
 
     function test_CreateEthBatch_Success() public {
@@ -81,7 +91,15 @@ contract BaseVoucherTest is Test {
         voucher.createEthBatch{value: 2 ether}(2, hashes, "Happy Holidays");
         vm.stopPrank();
 
-        (address creator, address token, uint256 amountPerCard, uint256 cardCount, uint256 redeemedCount, string memory msgText) = voucher.getBatch(1);
+        (
+            address creator,
+            address token,
+            uint256 amountPerCard,
+            uint256 cardCount,
+            uint256 redeemedCount,
+            string memory msgText
+        ) = voucher.getBatch(1);
+
         assertEq(creator, alice);
         assertEq(token, address(0));
         assertEq(amountPerCard, 1 ether);
@@ -186,8 +204,153 @@ contract BaseVoucherTest is Test {
         voucher.createEthBatch{value: 2 ether}(2, hashes, "Pool");
         vm.stopPrank();
 
-        // Attack should fail because status is updated before call
         vm.expectRevert();
         attacker.attack(1, 0, "attack_secret");
+    }
+
+    // --- TIME-LOCK TESTS ---
+
+    function test_TimeLock_RevertBeforeUnlockTimestamp() public {
+        uint64 unlockAt = uint64(block.timestamp + 1 days);
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "Christmas Gift", unlockAt, 0, address(0));
+        vm.stopPrank();
+
+        assertFalse(voucher.isBatchUnlocked(1));
+
+        vm.prank(bob);
+        vm.expectRevert("Voucher is time-locked");
+        voucher.redeem(1, 0, "secret1");
+    }
+
+    function test_TimeLock_SuccessAfterUnlockTimestamp() public {
+        uint64 unlockAt = uint64(block.timestamp + 1 days);
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "Christmas Gift", unlockAt, 0, address(0));
+        vm.stopPrank();
+
+        vm.warp(unlockAt + 1);
+        assertTrue(voucher.isBatchUnlocked(1));
+
+        uint256 bobBalBefore = bob.balance;
+        vm.prank(bob);
+        voucher.redeem(1, 0, "secret1");
+
+        assertEq(bob.balance, bobBalBefore + 1 ether);
+    }
+
+    // --- EXPIRATION & RECLAIM TESTS ---
+
+    function test_Expiration_RevertRedemptionAfterExpiration() public {
+        uint64 expAt = uint64(block.timestamp + 3 days);
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "Expiring Gift", 0, expAt, address(0));
+        vm.stopPrank();
+
+        vm.warp(expAt + 1);
+        assertTrue(voucher.isBatchExpired(1));
+
+        vm.prank(bob);
+        vm.expectRevert("Voucher has expired");
+        voucher.redeem(1, 0, "secret1");
+    }
+
+    function test_Reclaim_CreatorCanReclaimExpiredTokens() public {
+        uint64 expAt = uint64(block.timestamp + 3 days);
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](2);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        hashes[1] = keccak256(abi.encodePacked("secret2"));
+        voucher.createEthBatchCustom{value: 2 ether}(2, hashes, "Expiring Gift", 0, expAt, address(0));
+        vm.stopPrank();
+
+        // Bob redeems 1 card before expiration
+        vm.prank(bob);
+        voucher.redeem(1, 0, "secret1");
+
+        // Warp past expiration
+        vm.warp(expAt + 10);
+
+        uint256 aliceBalBefore = alice.balance;
+        vm.prank(alice);
+        voucher.reclaimUnredeemed(1);
+
+        // Alice recovers 1 ETH for unredeemed card
+        assertEq(alice.balance, aliceBalBefore + 1 ether);
+
+        // Cannot reclaim again
+        vm.prank(alice);
+        vm.expectRevert("No cards remaining");
+        voucher.reclaimUnredeemed(1);
+    }
+
+    function test_Reclaim_RevertIfNotExpiredOrNonCreator() public {
+        uint64 expAt = uint64(block.timestamp + 3 days);
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "Expiring Gift", 0, expAt, address(0));
+        vm.stopPrank();
+
+        // Non-creator cannot reclaim
+        vm.prank(bob);
+        vm.expectRevert("Only creator can reclaim");
+        voucher.reclaimUnredeemed(1);
+
+        // Creator cannot reclaim before expiration
+        vm.prank(alice);
+        vm.expectRevert("Batch not expired");
+        voucher.reclaimUnredeemed(1);
+    }
+
+    // --- CONDITIONAL SIGNER TESTS ---
+
+    function test_ConditionalSigner_AuthorizedRedemption() public {
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "VIP Gift", 0, 0, signer);
+        vm.stopPrank();
+
+        // Signer authorizes Bob for batch 1, card 0
+        bytes32 innerHash = keccak256(abi.encodePacked(address(voucher), uint256(1), uint256(0), bob));
+        bytes32 ethSignedMsgHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", innerHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, ethSignedMsgHash);
+        bytes memory sig = abi.encodePacked(r, s, v);
+
+        vm.prank(bob);
+        voucher.redeemConditional(1, 0, "secret1", sig);
+
+        assertTrue(voucher.isCardRedeemed(1, 0));
+        assertEq(bob.balance, 101 ether);
+    }
+
+    function test_ConditionalSigner_RevertsUnauthorizedRedemption() public {
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "VIP Gift", 0, 0, signer);
+        vm.stopPrank();
+
+        // Bob tries without signature
+        vm.prank(bob);
+        vm.expectRevert("Invalid signature length");
+        voucher.redeem(1, 0, "secret1");
+    }
+
+    function test_CreateBatchCustom_RevertIfExpirationBeforeUnlock() public {
+        vm.startPrank(alice);
+        bytes32[] memory hashes = new bytes32[](1);
+        hashes[0] = keccak256(abi.encodePacked("secret1"));
+
+        vm.expectRevert("Expiration must be after unlock");
+        voucher.createEthBatchCustom{value: 1 ether}(1, hashes, "Invalid timing", 1000, 500, address(0));
+        vm.stopPrank();
     }
 }

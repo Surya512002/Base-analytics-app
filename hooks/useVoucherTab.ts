@@ -88,6 +88,8 @@ export function useVoucherTab(app: WalletAppState) {
   const [totalAmount, setTotalAmount] = useState("10");
   const [cardCountInput, setCardCountInput] = useState("10");
   const [message, setMessage] = useState("");
+  const [unlockHours, setUnlockHours] = useState<number>(0);
+  const [expirationDays, setExpirationDays] = useState<number>(0);
   const [creating, setCreating] = useState(false);
   const [pendingCards, setPendingCards] = useState<StoredVoucherBatch | null>(null);
   const [createdCards, setCreatedCards] = useState<StoredVoucherBatch | null>(null);
@@ -123,6 +125,7 @@ export function useVoucherTab(app: WalletAppState) {
     totalCards: number;
     totalUnredeemed: number;
   } | null>(null);
+  const [reclaimingBatchId, setReclaimingBatchId] = useState<number | null>(null);
   const [loadingBatchDetail, setLoadingBatchDetail] = useState<number | null>(null);
   const [mineStatusesLoading, setMineStatusesLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -555,6 +558,8 @@ export function useVoucherTab(app: WalletAppState) {
           cards: cardCount,
           message: message.trim(),
           creator: address,
+          unlockTimestamp: unlockHours > 0 ? Math.floor(Date.now() / 1000) + unlockHours * 3600 : undefined,
+          expirationTimestamp: expirationDays > 0 ? Math.floor(Date.now() / 1000) + expirationDays * 86400 : undefined,
         }),
       });
 
@@ -856,6 +861,10 @@ export function useVoucherTab(app: WalletAppState) {
             amountPerCard: string;
             message: string;
             cardCount: number;
+            unlockTimestamp?: number;
+            expirationTimestamp?: number;
+            isUnlocked?: boolean;
+            isExpired?: boolean;
           };
           cards?: Array<{ cardIndex: number; cardId: string; redeemed: boolean }>;
         };
@@ -886,7 +895,16 @@ export function useVoucherTab(app: WalletAppState) {
         };
         setRedeemPreview(preview);
         redeemPreviewRef.current = preview;
-        setRedeemError("");
+
+        if (batch.isUnlocked === false && batch.unlockTimestamp) {
+          setRedeemError(
+            `🔒 This gift card is time-locked until ${new Date(batch.unlockTimestamp * 1000).toLocaleString()}.`
+          );
+        } else if (batch.isExpired) {
+          setRedeemError("⏳ This gift card has expired.");
+        } else {
+          setRedeemError("");
+        }
       } catch (err) {
         if (cancelled) return;
         if (!hasSamePreview) {
@@ -1770,6 +1788,39 @@ export function useVoucherTab(app: WalletAppState) {
     refreshMyBatches,
   ]);
 
+  const executeReclaimBatch = useCallback(
+    async (batchId: number) => {
+      if (!address || !contractReady) return;
+      setReclaimingBatchId(batchId);
+      try {
+        const call = encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "reclaimUnredeemed",
+          [BigInt(batchId)]
+        );
+        const hash = await sendAppTransactions(connType ?? "injected", address, [call]);
+        if (hash) {
+          showToast("⏳ Reclaiming unredeemed cards on Base...", hash);
+          const client = publicClient ?? createPublicOnlyBaseClient();
+          await client.waitForTransactionReceipt({
+            hash: hash as `0x${string}`,
+            timeout: 60_000,
+          });
+          showToast("✅ Unredeemed cards successfully reclaimed to your wallet!", hash);
+          void refreshMyBatches();
+        }
+      } catch (err: unknown) {
+        console.error("[reclaimUnredeemed]", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        showToast(`❌ Reclaim failed: ${msg.slice(0, 90)}`, "");
+      } finally {
+        setReclaimingBatchId(null);
+      }
+    },
+    [address, contractReady, connType, showToast, publicClient, refreshMyBatches]
+  );
+
   const exactDepositLabel = formatVoucherAmount(pendingAsset, pendingTotal);
 
   return {
@@ -1794,6 +1845,10 @@ export function useVoucherTab(app: WalletAppState) {
       setCardCountInput,
       message,
       setMessage,
+      unlockHours,
+      setUnlockHours,
+      expirationDays,
+      setExpirationDays,
       creating,
       pendingCards,
       readyBatchOnCreate,
@@ -1875,6 +1930,8 @@ export function useVoucherTab(app: WalletAppState) {
       displayCardsForBatch,
       isCardRedeemed,
       isCardStatusKnown,
+      reclaimingBatchId,
+      executeReclaimBatch,
     },
     modals: {
       cardsReadyGate,

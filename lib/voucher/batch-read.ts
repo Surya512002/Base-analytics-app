@@ -26,6 +26,11 @@ export interface BatchLiveStatus {
   createdAt?: number;
   txHash?: string;
   onchain: boolean;
+  unlockTimestamp?: number;
+  expirationTimestamp?: number;
+  requiredSigner?: string;
+  isUnlocked?: boolean;
+  isExpired?: boolean;
 }
 
 export interface BatchCardLiveStatus {
@@ -71,6 +76,29 @@ export async function readOnchainBatch(
     const total = perCard * BigInt(count);
     const redeemed = Number(redeemedCount);
 
+    let unlockTimestamp = 0;
+    let expirationTimestamp = 0;
+    let requiredSigner: string | undefined = undefined;
+    try {
+      const config = await client.readContract({
+        address: VOUCHER_CONTRACT as Address,
+        abi: VOUCHER_ABI,
+        functionName: "getBatchConfig",
+        args: [BigInt(batchId)],
+      });
+      unlockTimestamp = Number(config[0]);
+      expirationTimestamp = Number(config[1]);
+      if (config[2] && config[2] !== "0x0000000000000000000000000000000000000000") {
+        requiredSigner = (config[2] as string).toLowerCase();
+      }
+    } catch {
+      // Legacy deployment graceful fallback
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const isUnlocked = unlockTimestamp === 0 || nowSec >= unlockTimestamp;
+    const isExpired = expirationTimestamp > 0 && nowSec >= expirationTimestamp;
+
     return {
       batchId,
       creator: (creator as string).toLowerCase(),
@@ -84,6 +112,11 @@ export async function readOnchainBatch(
       amountPerCardFormatted: formatVoucherAmount(asset, perCard),
       totalAmountFormatted: formatVoucherAmount(asset, total),
       onchain: true,
+      unlockTimestamp: unlockTimestamp || undefined,
+      expirationTimestamp: expirationTimestamp || undefined,
+      requiredSigner,
+      isUnlocked,
+      isExpired,
     };
   } catch {
     return null;

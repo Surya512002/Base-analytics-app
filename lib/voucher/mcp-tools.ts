@@ -26,6 +26,9 @@ export async function mcpPrepareCreate(args: {
   cards: number;
   message?: string;
   creator?: string;
+  unlockTimestamp?: number;
+  expirationTimestamp?: number;
+  requiredSigner?: string;
 }) {
   if (!voucherMcpReady()) {
     return jsonResult({ valid: false, error: "Voucher contract not configured." });
@@ -50,12 +53,20 @@ export async function mcpPrepareCreate(args: {
     return jsonResult({ valid: false, error: "creator must be a 0x address" });
   }
 
+  const requiredSigner = args.requiredSigner?.trim() as `0x${string}` | undefined;
+  if (requiredSigner && !requiredSigner.startsWith("0x")) {
+    return jsonResult({ valid: false, error: "requiredSigner must be a 0x address" });
+  }
+
   const result = await prepareCreateBatch({
     asset,
     total: args.total,
     cards: args.cards,
     message: args.message || "",
     creator,
+    unlockTimestamp: args.unlockTimestamp,
+    expirationTimestamp: args.expirationTimestamp,
+    requiredSigner,
   });
 
   return jsonResult({

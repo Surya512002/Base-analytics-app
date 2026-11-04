@@ -295,6 +295,36 @@ export const VOUCHER_ABI = [
   },
 
   {
+    name: "createEthBatchCustom",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "cardCount", type: "uint256" },
+      { name: "secretHashes", type: "bytes32[]" },
+      { name: "message", type: "string" },
+      { name: "unlockTimestamp", type: "uint64" },
+      { name: "expirationTimestamp", type: "uint64" },
+      { name: "requiredSigner", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "createTokenBatchCustom",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "cardCount", type: "uint256" },
+      { name: "secretHashes", type: "bytes32[]" },
+      { name: "message", type: "string" },
+      { name: "totalAmount", type: "uint256" },
+      { name: "unlockTimestamp", type: "uint64" },
+      { name: "expirationTimestamp", type: "uint64" },
+      { name: "requiredSigner", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
     name: "redeem",
     type: "function",
     stateMutability: "nonpayable",
@@ -304,6 +334,50 @@ export const VOUCHER_ABI = [
       { name: "secret", type: "string" },
     ],
     outputs: [],
+  },
+  {
+    name: "redeemConditional",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "cardIndex", type: "uint256" },
+      { name: "secret", type: "string" },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "reclaimUnredeemed",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "getBatchConfig",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [
+      { name: "unlockTimestamp", type: "uint64" },
+      { name: "expirationTimestamp", type: "uint64" },
+      { name: "requiredSigner", type: "address" },
+    ],
+  },
+  {
+    name: "isBatchUnlocked",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "isBatchExpired",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ name: "", type: "bool" }],
   },
   {
     name: "nextBatchId",
@@ -366,6 +440,25 @@ export const VOUCHER_ABI = [
       { name: "totalAmount", type: "uint256", indexed: false },
       { name: "cardCount", type: "uint256", indexed: false },
       { name: "message", type: "string", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "BatchConfigured",
+    inputs: [
+      { name: "batchId", type: "uint256", indexed: true },
+      { name: "unlockTimestamp", type: "uint64", indexed: false },
+      { name: "expirationTimestamp", type: "uint64", indexed: false },
+      { name: "requiredSigner", type: "address", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "BatchReclaimed",
+    inputs: [
+      { name: "batchId", type: "uint256", indexed: true },
+      { name: "creator", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
     ],
   },
 ] as const;

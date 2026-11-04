@@ -76,6 +76,9 @@ export interface PrepareCreateInput {
   cards: number;
   message?: string;
   creator?: `0x${string}`;
+  unlockTimestamp?: number;
+  expirationTimestamp?: number;
+  requiredSigner?: `0x${string}`;
 }
 
 export interface PrepareCreateResult {
@@ -105,6 +108,9 @@ export interface PrepareCreateResult {
     shareText: string;
   }>;
   credentialsSaved?: boolean;
+  unlockTimestamp?: number;
+  expirationTimestamp?: number;
+  requiredSigner?: `0x${string}`;
 }
 
 export async function prepareCreateBatch(
@@ -183,17 +189,35 @@ export async function prepareCreateBatch(
   const secretHashes = voucherCards.map((c) => hashVoucherSecret(c.secret));
 
   const calls: ContractCall[] = [];
+  const hasCustomConfig = Boolean(
+    input.unlockTimestamp || input.expirationTimestamp || input.requiredSigner
+  );
+  const unlockTs = BigInt(input.unlockTimestamp || 0);
+  const expTs = BigInt(input.expirationTimestamp || 0);
+  const reqSigner = (input.requiredSigner || "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
   if (asset === "ETH") {
-    calls.push(
-      encodeContractCall(
-        VOUCHER_CONTRACT as `0x${string}`,
-        VOUCHER_ABI,
-        "createEthBatch",
-        [BigInt(cards), secretHashes, trimmedMessage],
-        split.total
-      )
-    );
+    if (hasCustomConfig) {
+      calls.push(
+        encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "createEthBatchCustom",
+          [BigInt(cards), secretHashes, trimmedMessage, unlockTs, expTs, reqSigner],
+          split.total
+        )
+      );
+    } else {
+      calls.push(
+        encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "createEthBatch",
+          [BigInt(cards), secretHashes, trimmedMessage],
+          split.total
+        )
+      );
+    }
   } else if (asset === "USDC") {
     const needsApproval =
       !creator || (await readUsdcAllowance(creator)) < split.total;
@@ -205,14 +229,25 @@ export async function prepareCreateBatch(
         ])
       );
     }
-    calls.push(
-      encodeContractCall(
-        VOUCHER_CONTRACT as `0x${string}`,
-        VOUCHER_ABI,
-        "createUsdcBatch",
-        [BigInt(cards), secretHashes, trimmedMessage, split.total]
-      )
-    );
+    if (hasCustomConfig) {
+      calls.push(
+        encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "createTokenBatchCustom",
+          [USDC_BASE as `0x${string}`, BigInt(cards), secretHashes, trimmedMessage, split.total, unlockTs, expTs, reqSigner]
+        )
+      );
+    } else {
+      calls.push(
+        encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "createUsdcBatch",
+          [BigInt(cards), secretHashes, trimmedMessage, split.total]
+        )
+      );
+    }
   } else {
     // Tokenized Stock (RWA)
     const tokenAddr = assetToToken(asset);
@@ -226,14 +261,25 @@ export async function prepareCreateBatch(
         ])
       );
     }
-    calls.push(
-      encodeContractCall(
-        VOUCHER_CONTRACT as `0x${string}`,
-        VOUCHER_ABI,
-        "createTokenBatch",
-        [tokenAddr, BigInt(cards), secretHashes, trimmedMessage, split.total]
-      )
-    );
+    if (hasCustomConfig) {
+      calls.push(
+        encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "createTokenBatchCustom",
+          [tokenAddr, BigInt(cards), secretHashes, trimmedMessage, split.total, unlockTs, expTs, reqSigner]
+        )
+      );
+    } else {
+      calls.push(
+        encodeContractCall(
+          VOUCHER_CONTRACT as `0x${string}`,
+          VOUCHER_ABI,
+          "createTokenBatch",
+          [tokenAddr, BigInt(cards), secretHashes, trimmedMessage, split.total]
+        )
+      );
+    }
   }
 
 
@@ -283,6 +329,9 @@ export async function prepareCreateBatch(
       }),
     })),
     credentialsSaved,
+    unlockTimestamp: input.unlockTimestamp,
+    expirationTimestamp: input.expirationTimestamp,
+    requiredSigner: input.requiredSigner,
   };
 }
 
@@ -336,6 +385,30 @@ export async function prepareRedeem(
     }),
   ]);
 
+  let isTimeLocked = false;
+  let isExpired = false;
+  let unlockDateStr = "";
+  try {
+    const config = await client.readContract({
+      address: VOUCHER_CONTRACT as `0x${string}`,
+      abi: VOUCHER_ABI,
+      functionName: "getBatchConfig",
+      args: [BigInt(batchId)],
+    });
+    const unlockTs = Number(config[0]);
+    const expTs = Number(config[1]);
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (unlockTs > 0 && nowSec < unlockTs) {
+      isTimeLocked = true;
+      unlockDateStr = new Date(unlockTs * 1000).toLocaleString();
+    }
+    if (expTs > 0 && nowSec >= expTs) {
+      isExpired = true;
+    }
+  } catch {
+    // Legacy deployment fallback
+  }
+
   const [, token, amountPerCard, cardCount] = batch;
   if (cardCount === BigInt(0)) {
     return {
@@ -359,6 +432,44 @@ export async function prepareRedeem(
 
   const asset: VoucherAsset =
     token === "0x0000000000000000000000000000000000000000" ? "ETH" : "USDC";
+
+  if (isTimeLocked) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      valid: false,
+      cardId,
+      batchId,
+      cardIndex,
+      error: `This voucher is time-locked until ${unlockDateStr}.`,
+      calls: [],
+      preview: {
+        asset,
+        amountFormatted: formatVoucherAmount(asset, amountPerCard),
+        message: batch[5] as string,
+        alreadyRedeemed: false,
+      },
+    };
+  }
+
+  if (isExpired) {
+    return {
+      protocol: "Base Voucher",
+      chain: "base",
+      valid: false,
+      cardId,
+      batchId,
+      cardIndex,
+      error: "This voucher has expired.",
+      calls: [],
+      preview: {
+        asset,
+        amountFormatted: formatVoucherAmount(asset, amountPerCard),
+        message: batch[5] as string,
+        alreadyRedeemed: false,
+      },
+    };
+  }
 
   if (redeemed) {
     return {

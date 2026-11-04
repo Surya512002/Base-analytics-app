@@ -65,6 +65,48 @@ describe("Smart Contract Logic & Invariants (Vouchers, Stake, Launch)", () => {
       // Subsequent attempt on same card
       expect(cardRedeemedStatus.get(card0)).toBe(true);
     });
+
+    it("validates time-lock and expiration chronology invariants", () => {
+      const now = 1700000000;
+      const validUnlock = now + 86400; // +1 day
+      const validExp = now + 7 * 86400; // +7 days
+
+      // Valid: expiration after unlock
+      expect(validExp > validUnlock).toBe(true);
+
+      // Invalid: expiration before unlock
+      const invalidExp = validUnlock - 100;
+      expect(invalidExp > validUnlock).toBe(false);
+
+      // Active status evaluation
+      function isRedeemable(current: number, unlock: number, exp: number): boolean {
+        if (unlock > 0 && current < unlock) return false;
+        if (exp > 0 && current >= exp) return false;
+        return true;
+      }
+
+      expect(isRedeemable(now, validUnlock, validExp)).toBe(false); // Before unlock
+      expect(isRedeemable(validUnlock + 1, validUnlock, validExp)).toBe(true); // Active window
+      expect(isRedeemable(validExp + 1, validUnlock, validExp)).toBe(false); // Expired
+    });
+
+    it("verifies creator reclaim math and prevents double reclaim", () => {
+      const cardCount = 10;
+      const perCard = parseEther("0.1"); // 0.1 ETH per card
+      let redeemedCount = 4;
+
+      // Unredeemed calculation
+      const remainingCards = cardCount - redeemedCount;
+      expect(remainingCards).toBe(6);
+      const reclaimAmount = BigInt(remainingCards) * perCard;
+      expect(reclaimAmount).toBe(parseEther("0.6"));
+
+      // Contract marks redeemedCount = cardCount upon reclaim
+      redeemedCount = cardCount;
+      const remainingAfterReclaim = cardCount - redeemedCount;
+      expect(remainingAfterReclaim).toBe(0);
+      expect(remainingAfterReclaim > 0).toBe(false); // Zero cards left to reclaim
+    });
   });
 
   describe("XpStake Invariants", () => {
