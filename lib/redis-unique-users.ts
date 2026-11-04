@@ -1,26 +1,15 @@
 import type { Redis } from "ioredis";
 import { getRedisClient } from "@/lib/redis-cache";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 
 const REDIS_UNIQUE_USERS_KEY = "app:unique_users";
-const BASELINE_USER_COUNT = 2342;
-
-// Known Redis keys containing leaderboard and user activity data
-const LEADERBOARD_KEYS = [
-  "base_season1_leaderboard",
-  "base_leaderboard_v2",
-  "base_leaderboard_v3",
-  "base_referrals_v1",
-  "base_voucher_batches",
-  "base_global_leaderboard",
-  "base_season_leaderboard",
-  "leaderboard",
-];
+const REDIS_VERIFIED_TXS_KEY = "app:verified_tx_hashes";
+const BASELINE_USER_COUNT = 0; // Strict zero-padding: count only confirmed on-chain in-app transactions
 
 // In-memory set for local fallback/caching if Redis is unconfigured or temporarily down
 const localUniqueUsers = new Set<string>();
-
-let lastLeaderboardSync = 0;
-const SYNC_INTERVAL_MS = 30_000; // 30s debounce between full leaderboard sync scans
+const localVerifiedTxs = new Set<string>();
 
 /**
  * Validate standard 42-character hex Ethereum address (0x...)
@@ -32,148 +21,17 @@ export function isValidEthAddress(address: unknown): address is string {
 }
 
 /**
- * Recursively inspect arbitrary leaderboard/referral payloads and extract unique addresses
+ * Validate standard 66-character hex Ethereum transaction hash (0x...)
  */
-export function extractAddressesFromPayload(raw: unknown, target: Set<string>): void {
-  if (!raw) return;
-
-  if (typeof raw === "string") {
-    if (isValidEthAddress(raw)) {
-      target.add(raw.trim().toLowerCase());
-    }
-    return;
-  }
-
-  if (Array.isArray(raw)) {
-    for (const item of raw) {
-      extractAddressesFromPayload(item, target);
-    }
-    return;
-  }
-
-  if (typeof raw === "object") {
-    const obj = raw as Record<string, unknown>;
-
-    // Direct address or wallet fields in LeaderboardEntry
-    if (isValidEthAddress(obj.address)) {
-      target.add(obj.address.trim().toLowerCase());
-    }
-    if (isValidEthAddress(obj.creator)) {
-      target.add(obj.creator.trim().toLowerCase());
-    }
-    if (isValidEthAddress(obj.referredBy)) {
-      target.add(obj.referredBy.trim().toLowerCase());
-    }
-
-    // Wrapped containers (e.g. { entries: [...] }, { leaderboard: [...] }, { invites: [...] })
-    if (Array.isArray(obj.entries)) {
-      extractAddressesFromPayload(obj.entries, target);
-    }
-    if (Array.isArray(obj.leaderboard)) {
-      extractAddressesFromPayload(obj.leaderboard, target);
-    }
-    if (Array.isArray(obj.invites)) {
-      extractAddressesFromPayload(obj.invites, target);
-    }
-
-    // Key-value records where keys themselves are addresses (e.g. base_referrals_v1)
-    for (const [key, val] of Object.entries(obj)) {
-      if (isValidEthAddress(key)) {
-        target.add(key.trim().toLowerCase());
-      }
-      if (val && typeof val === "object") {
-        extractAddressesFromPayload(val, target);
-      }
-    }
-  }
+export function isValidTxHash(txHash: unknown): txHash is `0x${string}` {
+  if (typeof txHash !== "string") return false;
+  const clean = txHash.trim().toLowerCase();
+  return clean.startsWith("0x") && clean.length === 66 && /^0x[0-9a-f]{64}$/i.test(clean);
 }
 
 /**
- * Scan Redis leaderboard keys and sync all unique addresses into app:unique_users.
- * Strictly deduplicates every user by Ethereum address.
- */
-async function syncLeaderboardAddresses(redis: Redis): Promise<Set<string>> {
-  const discovered = new Set<string>();
-
-  for (const key of LEADERBOARD_KEYS) {
-    try {
-      const type = await redis.type(key);
-      if (type === "string") {
-        const raw = await redis.get(key);
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            extractAddressesFromPayload(parsed, discovered);
-          } catch {
-            extractAddressesFromPayload(raw, discovered);
-          }
-        }
-      } else if (type === "set") {
-        const members = await redis.smembers(key);
-        extractAddressesFromPayload(members, discovered);
-      } else if (type === "zset") {
-        const members = await redis.zrange(key, 0, -1);
-        extractAddressesFromPayload(members, discovered);
-      } else if (type === "hash") {
-        const keys = await redis.hkeys(key);
-        extractAddressesFromPayload(keys, discovered);
-      }
-    } catch (err) {
-      console.warn(`[Redis Unique Users] Failed to read ${key}:`, err);
-    }
-  }
-
-  // Scan voucher credentials keys
-  try {
-    const credKeys = await redis.keys("base_voucher_credentials_*");
-    for (const k of credKeys) {
-      const addr = k.replace("base_voucher_credentials_", "");
-      if (isValidEthAddress(addr)) {
-        discovered.add(addr.toLowerCase());
-      }
-    }
-  } catch (err) {
-    console.warn("[Redis Unique Users] Failed to scan voucher credentials:", err);
-  }
-
-  // Include any existing members already recorded in app:unique_users
-  try {
-    const existing = await redis.smembers(REDIS_UNIQUE_USERS_KEY);
-    extractAddressesFromPayload(existing, discovered);
-  } catch (err) {
-    console.warn(`[Redis Unique Users] Failed to read ${REDIS_UNIQUE_USERS_KEY}:`, err);
-  }
-
-  // Include local in-memory addresses
-  for (const addr of localUniqueUsers) {
-    discovered.add(addr);
-  }
-
-  // Sync discovered addresses into local memory
-  for (const addr of discovered) {
-    localUniqueUsers.add(addr);
-  }
-
-  // Batch insert any discovered addresses into the Redis set for persistent O(1) deduplication
-  if (discovered.size > 0) {
-    try {
-      const addrs = Array.from(discovered);
-      for (let i = 0; i < addrs.length; i += 500) {
-        const chunk = addrs.slice(i, i + 500);
-        await redis.sadd(REDIS_UNIQUE_USERS_KEY, ...chunk);
-      }
-    } catch (err) {
-      console.warn("[Redis Unique Users] Failed to sync addresses into Redis Set:", err);
-    }
-  }
-
-  return discovered;
-}
-
-/**
- * Record a unique user address in Redis.
+ * Record a verified unique user address in Redis.
  * Uses Redis SADD (Set Add) for O(1) deduplicated user tracking.
- * Each wallet address is calculated exactly once regardless of multiple logins.
  */
 export async function recordUniqueUser(address: string): Promise<number> {
   const cleanAddr = address?.trim().toLowerCase();
@@ -197,41 +55,112 @@ export async function recordUniqueUser(address: string): Promise<number> {
 }
 
 /**
+ * Verify a confirmed on-chain transaction on Base mainnet (chainId: 8453)
+ * and record the transaction sender as a verified unique user.
+ */
+export async function verifyAndRecordUserTransaction(
+  address: string,
+  txHash: string,
+  customRpcUrl?: string
+): Promise<{ success: boolean; count: number; error?: string }> {
+  const cleanAddr = address?.trim().toLowerCase();
+  if (!isValidEthAddress(cleanAddr)) {
+    return { success: false, count: await getUniqueUserCount(), error: "Invalid Ethereum address format" };
+  }
+
+  if (!isValidTxHash(txHash)) {
+    return { success: false, count: await getUniqueUserCount(), error: "Invalid transaction hash format" };
+  }
+
+  const cleanTx = txHash.trim().toLowerCase();
+
+  // Check if txHash was already used for verification to prevent duplicate replay attempts
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      if (redis.status !== "ready") await redis.connect();
+      const alreadyUsed = await redis.sismember(REDIS_VERIFIED_TXS_KEY, cleanTx);
+      if (alreadyUsed) {
+        return { success: true, count: await getUniqueUserCount() };
+      }
+    } catch {
+      // Continue to on-chain check
+    }
+  } else if (localVerifiedTxs.has(cleanTx)) {
+    return { success: true, count: await getUniqueUserCount() };
+  }
+
+  // Verify on Base RPC that the transaction succeeded and originated from the claimed address
+  const rpcUrl = customRpcUrl || process.env.BASE_RPC_URL || "https://mainnet.base.org";
+  const client = createPublicClient({
+    chain: base,
+    transport: http(rpcUrl, { timeout: 8_000 }),
+  });
+
+  try {
+    const receipt = await client.getTransactionReceipt({ hash: cleanTx as `0x${string}` });
+    if (!receipt) {
+      return { success: false, count: await getUniqueUserCount(), error: "Transaction receipt not found on Base mainnet" };
+    }
+
+    if (receipt.status !== "success") {
+      return { success: false, count: await getUniqueUserCount(), error: "Transaction reverted or failed onchain" };
+    }
+
+    if (receipt.from.toLowerCase() !== cleanAddr) {
+      return {
+        success: false,
+        count: await getUniqueUserCount(),
+        error: `Transaction sender (${receipt.from.toLowerCase()}) does not match claiming address (${cleanAddr})`,
+      };
+    }
+
+    // Record verified txHash and address
+    localVerifiedTxs.add(cleanTx);
+    localUniqueUsers.add(cleanAddr);
+
+    if (redis) {
+      try {
+        await Promise.all([
+          redis.sadd(REDIS_VERIFIED_TXS_KEY, cleanTx),
+          redis.sadd(REDIS_UNIQUE_USERS_KEY, cleanAddr),
+        ]);
+      } catch (err) {
+        console.warn("[Redis Unique Users] Failed to save verified tx/user to Redis:", err);
+      }
+    }
+
+    const count = await getUniqueUserCount();
+    return { success: true, count };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "RPC error verifying transaction";
+    return { success: false, count: await getUniqueUserCount(), error: msg };
+  }
+}
+
+/**
  * Get total count of unique users from Redis.
- * Queries Redis leaderboard and tracked addresses, deduplicating strictly by address.
+ * Deduplicates strictly by Ethereum address.
  */
 export async function getUniqueUserCount(): Promise<number> {
   const redis = getRedisClient();
   if (redis) {
     try {
       if (redis.status !== "ready") await redis.connect();
-
-      // Debounced scan of leaderboard keys to sync any fresh entries
-      const now = Date.now();
-      if (now - lastLeaderboardSync > SYNC_INTERVAL_MS) {
-        lastLeaderboardSync = now;
-        await syncLeaderboardAddresses(redis);
-      }
-
       const count = await redis.scard(REDIS_UNIQUE_USERS_KEY);
-      if (typeof count === "number" && count > 0) {
-        return Math.max(BASELINE_USER_COUNT, count);
+      if (typeof count === "number") {
+        return BASELINE_USER_COUNT + count;
       }
     } catch (err) {
       console.warn("[Redis Unique Users] SCARD failed:", err);
     }
   }
 
-  // Fallback for offline / unconfigured Redis
-  if (localUniqueUsers.size > 0) {
-    return BASELINE_USER_COUNT + localUniqueUsers.size;
-  }
-
-  return BASELINE_USER_COUNT;
+  return BASELINE_USER_COUNT + localUniqueUsers.size;
 }
 
 /**
- * Get formatted count string (e.g. "2,342")
+ * Get formatted count string (e.g. "0" or "42")
  */
 export async function getFormattedUniqueUserCount(): Promise<string> {
   const count = await getUniqueUserCount();
