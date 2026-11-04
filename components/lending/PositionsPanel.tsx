@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   ShieldCheck,
   AlertTriangle,
@@ -9,15 +9,10 @@ import {
   RotateCcw,
   RefreshCw,
   Wallet,
-  ArrowRight,
-  TrendingUp,
-  Lock,
-  Layers,
-  Coins,
-  CheckCircle2,
 } from "lucide-react";
 import type { UserProtocolPosition } from "@/lib/lending/user-positions";
 import { HEALTH_THRESHOLDS } from "@/lib/lending/user-positions";
+import LiquidationGuardBanner from "./LiquidationGuardBanner";
 
 export interface PositionsPanelProps {
   isConnected: boolean;
@@ -208,6 +203,11 @@ export default function PositionsPanel({
           ))}
         </div>
       )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          3.5 LIQUIDATION GUARD (Distance to Liquidation & Stress Test)
+          ───────────────────────────────────────────────────────────── */}
+      <LiquidationGuardBanner positions={positions} onOpenAction={onOpenAction} />
 
       {/* ─────────────────────────────────────────────────────────────
           4. FOUR REAL OVERVIEW METRIC CHIPS

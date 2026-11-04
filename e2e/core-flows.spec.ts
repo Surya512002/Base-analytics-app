@@ -66,4 +66,18 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByText("हिन्दी")).toBeVisible();
     await expect(page.getByText("தமிழ்")).toBeVisible();
   });
+
+  test("7. Liquidation Guard: renders liquidation banner and opens what-if collateral drop slider", async ({ page }) => {
+    await page.goto("/?tab=lend");
+    await expect(page.getByText(/Liquidation Guard/i).first()).toBeVisible();
+
+    // Open What-If Simulator
+    const simButton = page.getByRole("button", { name: /simulate drop/i }).first();
+    await expect(simButton).toBeVisible();
+    await simButton.click();
+
+    // Verify slider and stress test panel appear
+    await expect(page.getByText(/What-If Stress Test/i)).toBeVisible();
+    await expect(page.getByText(/Projected Health Factor/i)).toBeVisible();
+  });
 });
