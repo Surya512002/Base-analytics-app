@@ -207,6 +207,7 @@ import {
   resolveInitialTab,
   analysisNeedsActivityRefresh,
 } from "./wallet/wallet-utils";
+import { useDailyActions } from "./wallet/useDailyActions";
 export type { AppTab };
 
 export type WalletAppState = ReturnType<typeof useWalletAppController>;
@@ -243,19 +244,13 @@ function useWalletAppController() {
   const calendarRef = useRef(getCalendarKeys());
   const lockWalletCoreRef = useRef<(w: WalletData) => void>(() => {});
   const analyzeWalletRef = useRef<(address: string, opts?: { background?: boolean }) => Promise<void>>(() => Promise.resolve());
-  const [boosts, setBoosts] = useState(0);
   const [miniAppIdentity, setMiniAppIdentity] = useState<MiniAppIdentity | null>(
     null
   );
   const [sponsored, setSponsored] = useState(0);
-  const [txKeys, setTxKeys] = useState<Record<string, number>>({
-    ...DEFAULT_TX_KEYS,
-  });
   const [toast, setToast] = useState<{ msg: string; hash: string } | null>(
     null
   );
-  const [streak, setStreak] = useState(0);
-  const [checkedToday, setCheckedToday] = useState(false);
   const [refCopied, setRefCopied] = useState(false);
   const [pointsRevision, setPointsRevision] = useState(0);
   const [scanProgress, setScanProgress] = useState("");
@@ -281,16 +276,36 @@ function useWalletAppController() {
   const [b20Activated, setB20Activated] = useState<boolean | null>(null);
   const [referralInvites, setReferralInvites] = useState(0);
 
-  const boostCall = [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")];
-  const gmCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gm")];
-  const gnCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gn")];
-  const ciCall = [encodeContractCall(CHECKIN_CONTRACT as `0x${string}`, CHECKIN_ABI, "checkIn")];
   const txCaps = getCapabilities();
 
   const showToast = useCallback((msg: string, hash: string) => {
     setToast({ msg, hash });
     setTimeout(() => setToast(null), 6000);
   }, []);
+
+  const {
+    boosts,
+    setBoosts,
+    streak,
+    setStreak,
+    checkedToday,
+    setCheckedToday,
+    txKeys,
+    setTxKeys,
+    boostCall,
+    gmCall,
+    gnCall,
+    ciCall,
+    syncCheckInStatus,
+    handleCheckInSuccess,
+    handleBoostSuccess,
+    resetDailyActions,
+  } = useDailyActions({
+    wallet,
+    setWallet,
+    showToast,
+    setPointsRevision,
+  });
 
   const loadX402PremiumState = useCallback((address: string) => {
     void fetchReferralStats(address).then((s) => {
@@ -1392,132 +1407,6 @@ function useWalletAppController() {
     }
   }, []);
 
-  const syncCheckInStatus = useCallback(async (address: string) => {
-    const status = await fetchCheckInStatus(address);
-    setCheckedToday(status.checkedToday);
-    setStreak(status.streak);
-    patchCheckInInWalletCache(address, status.checkedToday, status.streak);
-    return status;
-  }, []);
-
-  /** Refresh daily check-in state and weekly quest counters at UTC day/week boundaries. */
-  useEffect(() => {
-    if (!wallet) return;
-
-    const applyRollover = (next: ReturnType<typeof getCalendarKeys>) => {
-      const prev = calendarRef.current;
-      if (next.day === prev.day && next.week === prev.week) return;
-
-      calendarRef.current = next;
-
-      if (next.day !== prev.day) {
-        setCheckedToday(readLocalCheckInToday(wallet.address));
-        void syncCheckInStatus(wallet.address);
-      }
-
-      if (next.week !== prev.week) {
-        setTxKeys(readPersistedTxKeys(wallet.address));
-        }
-
-      setPointsRevision((n) => n + 1);
-    };
-
-    const tick = () => applyRollover(getCalendarKeys());
-
-    let midnightTimer: number | undefined;
-    const scheduleMidnight = () => {
-      midnightTimer = window.setTimeout(() => {
-        tick();
-        scheduleMidnight();
-      }, msUntilNextUtcDay());
-    };
-    scheduleMidnight();
-    const intervalId = window.setInterval(tick, 60_000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") tick();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      if (midnightTimer !== undefined) window.clearTimeout(midnightTimer);
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [wallet, syncCheckInStatus]);
-
-  const handleCheckInSuccess = useCallback(
-    async (address: string, txHash?: string) => {
-      if (txHash) {
-        const h = (normalizeTxHash(txHash) ?? txHash).toLowerCase();
-        const key = `checkin:${h}`;
-        if (handledActionTxs.current.has(key)) return;
-        handledActionTxs.current.add(key);
-      }
-      const floor =
-        wallet?.address.toLowerCase() === address.toLowerCase()
-          ? wallet.checkInCount
-          : 0;
-      const count = recordCheckInSuccess(address, floor);
-      const expectedStreak = checkedToday ? Math.max(streak, 1) : Math.max(streak + 1, 1);
-      setCheckedToday(true);
-      setTxKeys((k) => {
-        const next = { ...k, checkin: (k.checkin || 0) + 1 };
-        writePersistedTxKeys(address, next);
-        return next;
-      });
-      setWallet((current) => {
-      if (!current || current.address.toLowerCase() !== address.toLowerCase()) {
-        return current;
-      }
-      return {
-        ...current,
-        checkInCount: Math.max(current.checkInCount, count),
-      };
-    });
-      const status = await syncCheckInStatus(address);
-      patchCheckInInWalletCache(
-        address,
-        status.checkedToday,
-        status.streak,
-        true
-      );
-      recordInAppTransaction(address, { notify: false });
-      const awardStreak = Math.max(status.streak, expectedStreak, 1);
-      if (awardStreak > 0) setStreak(awardStreak);
-      notifyPointsUpdated(address);
-      setPointsRevision((n) => n + 1);
-      if (txHash) {
-        showToast("✅ Onchain check-in secured!", txHash);
-      }
-    },
-    [checkedToday, showToast, streak, syncCheckInStatus, wallet]
-  );
-
-  const handleBoostSuccess = useCallback(
-    (address: string, txHash?: string) => {
-      if (txHash) {
-        const h = (normalizeTxHash(txHash) ?? txHash).toLowerCase();
-        const key = `boost:${h}`;
-        if (handledActionTxs.current.has(key)) return;
-        handledActionTxs.current.add(key);
-      }
-      setBoosts((current) => bumpBoostCount(address, current));
-      const nextKeys = bumpWeeklyTxKey(address, "boost");
-      setTxKeys((k) => ({ ...k, ...nextKeys }));
-      recordConfirmedInAppAction(
-        address,
-        "boost",
-        nextKeys.boost ?? 0
-      );
-      writeLocalBoostTime(address);
-      setPointsRevision((n) => n + 1);
-      if (txHash) {
-        showToast("⚡ Daily boost secured on Base!", txHash);
-      }
-    },
-    [showToast]
-  );
-
   const lockWalletCore = useCallback((w: WalletData) => {
     balancesLockedRef.current = w.address.toLowerCase();
     setWalletCore({
@@ -1981,10 +1870,7 @@ function useWalletAppController() {
     setConnType(null);
     clearConnType();
     clearPersistedWalletAddress();
-    setBoosts(0);
-    setStreak(0);
-    setCheckedToday(false);
-    setTxKeys({ ...DEFAULT_TX_KEYS });
+    resetDailyActions();
     setMiniAppIdentity(null);
     setSponsored(0);
     setLaunchLoading(false);
@@ -1994,9 +1880,7 @@ function useWalletAppController() {
     setWalletRefreshing(false);
     setScanProgress("");
     pendingTx.current.clear();
-    handledActionTxs.current.clear();
-    calendarRef.current = getCalendarKeys();
-  }, []);
+  }, [resetDailyActions]);
 
   const handleDisconnect = () => {
     const address = wallet?.address;
