@@ -1,53 +1,85 @@
 import { NextResponse } from "next/server";
 import { PRESET_SMART_MONEY, type SmartMoneyBuyEvent } from "@/lib/smart-money/smart-money-store";
+import { formatUnits } from "viem";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+interface BlockscoutTokenTxItem {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  contractAddress: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDecimal: string;
+  timeStamp: string;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const walletParam = searchParams.get("wallet")?.trim().toLowerCase();
+  const targetWallet =
+    searchParams.get("wallet")?.trim().toLowerCase() ||
+    PRESET_SMART_MONEY[0].address.toLowerCase();
 
-  // Curated recent Base smart money buy events
+  const matchedPreset = PRESET_SMART_MONEY.find(
+    (w) => w.address.toLowerCase() === targetWallet
+  );
+  const walletLabel = matchedPreset?.label || `Wallet ${targetWallet.slice(0, 6)}…`;
+
   const now = Date.now();
-  const sampleEvents: SmartMoneyBuyEvent[] = [
-    {
-      txHash: "0xa1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef",
-      walletAddress: PRESET_SMART_MONEY[0].address,
-      walletLabel: PRESET_SMART_MONEY[0].label,
-      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      tokenSymbol: "USDC",
-      amount: "25,000",
-      usdValue: 25000,
-      timestamp: now - 18 * 60 * 1000,
-    },
-    {
-      txHash: "0xb2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef12",
-      walletAddress: PRESET_SMART_MONEY[1].address,
-      walletLabel: PRESET_SMART_MONEY[1].label,
-      tokenAddress: "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
-      tokenSymbol: "DEGEN",
-      amount: "450,000",
-      usdValue: 8400,
-      timestamp: now - 45 * 60 * 1000,
-    },
-    {
-      txHash: "0xc3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef1234",
-      walletAddress: PRESET_SMART_MONEY[2].address,
-      walletLabel: PRESET_SMART_MONEY[2].label,
-      tokenAddress: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
-      tokenSymbol: "VIRTUAL",
-      amount: "15,200",
-      usdValue: 12100,
-      timestamp: now - 75 * 60 * 1000,
-    },
-  ];
+  const recentBuys: SmartMoneyBuyEvent[] = [];
+
+  try {
+    const url = `https://base.blockscout.com/api?module=account&action=tokentx&address=${targetWallet}&page=1&offset=8&sort=desc`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(4000),
+      headers: { Accept: "application/json" },
+    });
+
+    if (res.ok) {
+      const data = (await res.json()) as {
+        status?: string;
+        message?: string;
+        result?: BlockscoutTokenTxItem[];
+      };
+
+      if (Array.isArray(data?.result)) {
+        for (const tx of data.result) {
+          // Identify inbound token acquisitions (buys / received)
+          if (tx.to && tx.to.toLowerCase() === targetWallet) {
+            const decimals = parseInt(tx.tokenDecimal || "18", 10);
+            let formattedAmount = "0";
+            try {
+              const parsed = formatUnits(BigInt(tx.value || "0"), isNaN(decimals) ? 18 : decimals);
+              const num = parseFloat(parsed);
+              formattedAmount = num > 1000 ? num.toLocaleString(undefined, { maximumFractionDigits: 2 }) : num.toFixed(4);
+            } catch {
+              formattedAmount = tx.value;
+            }
+
+            recentBuys.push({
+              txHash: tx.hash,
+              walletAddress: targetWallet,
+              walletLabel,
+              tokenAddress: tx.contractAddress,
+              tokenSymbol: tx.tokenSymbol || "TOKEN",
+              amount: formattedAmount,
+              usdValue: null,
+              timestamp: Number(tx.timeStamp || "0") * 1000,
+            });
+          }
+        }
+      }
+    }
+  } catch {
+    // Upstream indexer rate limit or timeout — degrade gracefully without crashing
+  }
 
   return NextResponse.json({
     wallets: PRESET_SMART_MONEY,
-    recentBuys: sampleEvents.filter(
-      (e) => !walletParam || e.walletAddress.toLowerCase() === walletParam
-    ),
+    recentBuys,
     timestamp: now,
   });
 }

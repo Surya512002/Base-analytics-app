@@ -80,4 +80,11 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByText(/What-If Stress Test/i)).toBeVisible();
     await expect(page.getByText(/Projected Health Factor/i)).toBeVisible();
   });
+
+  test("8. Smart Money Radar: renders live onchain feed and wallet follower on Explore", async ({ page }) => {
+    await page.goto("/explore");
+    await expect(page.getByText(/Smart Money Radar/i)).toBeVisible();
+    await expect(page.getByText(/Follow Wallet/i)).toBeVisible();
+    await expect(page.getByText(/vitalik\.eth/i)).toBeVisible();
+  });
 });
