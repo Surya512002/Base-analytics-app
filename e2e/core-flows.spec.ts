@@ -114,4 +114,10 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByText(/Market Open|Market Closed/i).first()).toBeVisible();
     await expect(page.getByText(/Custody Attestations/i).first()).toBeVisible();
   });
+
+  test("12. Smarter Alerts: renders multi-trigger alert panel on Explore", async ({ page }) => {
+    await page.goto("/explore");
+    await expect(page.getByText(/Smarter Alerts/i).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /new alert/i }).first()).toBeVisible();
+  });
 });
