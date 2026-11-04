@@ -30,7 +30,7 @@ jobs:
       - name: Unit & Invariant Tests
         run: npm test
       - name: Production Dependency Audit
-        run: npm audit --omit=dev --audit-level=critical || echo "Upstream dependency audit completed"
+        run: npm audit --omit=dev --audit-level=critical
       - name: Build
         run: npm run build
       - name: Install Playwright
