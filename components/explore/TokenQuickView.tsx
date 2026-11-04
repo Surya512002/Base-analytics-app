@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   TrendingUp,
@@ -12,9 +13,6 @@ import {
   Star,
   Share2,
   ArrowRight,
-  Globe,
-  Coins,
-  ShieldCheck,
 } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import {
@@ -22,7 +20,6 @@ import {
   formatExactUsd,
   isLowLiquidity,
   isExtremeMove,
-  isNewToken,
 } from "@/lib/explore/explore-config";
 import { shortAddr, timeAgo } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
@@ -46,8 +43,41 @@ export default function TokenQuickView({
 }: TokenQuickViewProps) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
-  if (!token) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and handle Escape key while drawer is open
+  useEffect(() => {
+    if (!token) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [token, onClose]);
+
+  // Reset scroll to top when opening or switching tokens
+  useEffect(() => {
+    if (token && bodyRef.current) {
+      bodyRef.current.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [token]);
+
+  if (!mounted || !token) return null;
 
   const isUp = token.priceChange24h >= 0;
   const isZero = token.priceChange24h === 0;
@@ -65,31 +95,39 @@ export default function TokenQuickView({
     setTimeout(() => setShared(false), 2000);
   };
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end bg-[var(--overlay)] backdrop-blur-xs transition-opacity animate-meridian-fade"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:justify-end bg-[var(--overlay)] backdrop-blur-xs transition-opacity animate-meridian-fade"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${token.name} Quick View`}
     >
       {/* Drawer Container (Slide-over desktop, bottom sheet on mobile) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md h-[90vh] sm:h-full bg-[var(--surface-3)] border-t sm:border-l sm:border-t-0 border-[var(--border-subtle)] sm:shadow-2xl flex flex-col justify-between overflow-y-auto rounded-t-3xl sm:rounded-none animate-meridian-rise"
+        className="w-full sm:max-w-md max-h-[88dvh] sm:max-h-full sm:h-full bg-[var(--surface-3)] border-t sm:border-l sm:border-t-0 border-[var(--border-subtle)] sm:shadow-2xl flex flex-col overflow-hidden rounded-t-3xl sm:rounded-none animate-meridian-rise"
       >
-        {/* Top Header */}
-        <div className="p-5 pb-4 border-b border-[var(--border-subtle)] space-y-4">
+        {/* Mobile Pull Handle Indicator */}
+        <div className="pt-2.5 pb-0.5 flex justify-center sm:hidden shrink-0">
+          <div className="w-10 h-1 bg-[var(--border-strong)] rounded-full opacity-60" />
+        </div>
+
+        {/* Top Header - Fixed at top of drawer */}
+        <div className="p-5 pb-4 border-b border-[var(--border-subtle)] space-y-4 shrink-0">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <TokenAvatar
                 src={token.imageUrl}
                 address={token.address}
                 symbol={token.symbol}
-                className="w-12 h-12 rounded-2xl shadow-xs"
+                className="w-12 h-12 rounded-2xl shadow-xs shrink-0"
                 textClassName="text-sm"
               />
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-black text-[var(--ink)] tracking-tight">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg font-black text-[var(--ink)] tracking-tight truncate">
                     {token.name}
                   </h2>
                   {token.isVerified && <VerifiedBadge size={16} />}
@@ -97,15 +135,16 @@ export default function TokenQuickView({
                     {token.type.toUpperCase()}
                   </span>
                 </div>
-                <p className="font-mono text-xs text-[var(--ink-muted)]">${token.symbol}</p>
+                <p className="font-mono text-xs text-[var(--ink-muted)] truncate">${token.symbol}</p>
               </div>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition cursor-pointer"
+              className="p-1.5 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition cursor-pointer shrink-0"
               title="Close drawer"
+              aria-label="Close"
             >
               <X size={18} />
             </button>
@@ -144,8 +183,8 @@ export default function TokenQuickView({
           </div>
         </div>
 
-        {/* Drawer Body */}
-        <div className="p-5 space-y-5 flex-1 overflow-y-auto">
+        {/* Drawer Body - Scrollable content area */}
+        <div ref={bodyRef} className="p-5 space-y-5 flex-1 overflow-y-auto overscroll-contain">
           {/* Risk Alerts (only when applicable) */}
           <div className="space-y-2">
             {!token.hasPool && (
@@ -290,8 +329,8 @@ export default function TokenQuickView({
           </div>
         </div>
 
-        {/* Drawer Footer Actions */}
-        <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-2)] flex items-center gap-2.5">
+        {/* Drawer Footer Actions - Fixed at bottom of drawer */}
+        <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-2)] flex items-center gap-2.5 shrink-0">
           {onToggleWatch && (
             <button
               type="button"
@@ -319,6 +358,7 @@ export default function TokenQuickView({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

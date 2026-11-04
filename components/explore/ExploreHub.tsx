@@ -11,13 +11,11 @@ import {
   normalizeBaseStock,
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
-import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
 import ExploreHero from "./ExploreHero";
 import DiscoveryRow from "./DiscoveryRow";
 import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
-import CommandPalette from "@/components/shell/CommandPalette";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
@@ -77,27 +75,6 @@ export default function ExploreHub({
 
   // Quick view drawer state
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
-
-  // Command palette state
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-
-  // ⌘K global listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen((prev) => !prev);
-      }
-    };
-    const handleCustomOpen = () => setCommandPaletteOpen(true);
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("open-command-palette", handleCustomOpen);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("open-command-palette", handleCustomOpen);
-    };
-  }, []);
 
   // Filter state
   const [filters, setFilters] = useState<ExploreFiltersState>({
@@ -298,7 +275,11 @@ export default function ExploreHub({
         onLaunchToken={onRequestCreateToken}
         searchQuery={filters.searchQuery}
         onSearchChange={(q) => setFilters((prev) => ({ ...prev, searchQuery: q }))}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onOpenCommandPalette={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("open-command-palette"));
+          }
+        }}
       />
 
       {/* 2. DISCOVERY ROWS (Max 8 compact cards, snap-scroll on mobile, grid on desktop) */}
@@ -458,20 +439,6 @@ export default function ExploreHub({
         onTrade={handleTrade}
         onToggleWatch={handleToggleWatch}
         isWatched={selectedQuickViewToken ? watchlist.includes(selectedQuickViewToken.address.toLowerCase()) : false}
-      />
-
-      {/* 6. COMMAND PALETTE (⌘K / Ctrl+K) */}
-      <CommandPalette
-        open={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        tab="launchpad"
-        onTabChange={(tab) => {
-          if (tab === "launchpad") handleScrollToExplorer();
-        }}
-        tokens={tokens}
-        onOpenToken={(t) => {
-          onTradeToken(t);
-        }}
       />
     </div>
   );

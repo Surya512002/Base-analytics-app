@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Search,
   X,
@@ -43,6 +44,20 @@ export default function StockQuotePicker({
   const [copiedAddr, setCopiedAddr] = useState<string | null>(null);
   const [activeInfoSymbol, setActiveInfoSymbol] = useState<string | null>(null);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileSheetOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileSheetOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileSheetOpen]);
 
   const isMarketOpen = isUSMarketOpenNow();
 
@@ -382,8 +397,11 @@ export default function StockQuotePicker({
         </div>
 
         {/* Mobile Full Bottom Sheet / Modal */}
-        {mobileSheetOpen && (
-          <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm animate-fadeIn">
+        {mobileSheetOpen && typeof document !== "undefined" && createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/60 backdrop-blur-sm animate-fadeIn"
+            onClick={() => setMobileSheetOpen(false)}
+          >
             <div
               className="w-full bg-[var(--surface)] border-t border-[var(--border-subtle)] rounded-t-3xl p-4 max-h-[85dvh] flex flex-col shadow-2xl animate-meridian-rise pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
               onClick={(e) => e.stopPropagation()}
@@ -459,7 +477,8 @@ export default function StockQuotePicker({
                 )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

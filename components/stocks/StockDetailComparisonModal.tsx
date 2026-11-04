@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
@@ -71,6 +72,16 @@ export default function StockDetailComparisonModal({
 }: StockDetailComparisonModalProps) {
   const [comparison, setComparison] = useState<StockLendingComparison | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
   const [sortBy, setSortBy] = useState<"best_supply" | "best_borrow" | "liquidity" | "lowest_risk">("best_supply");
   const [selectedOption, setSelectedOption] = useState<StockLendingOption | null>(null);
 
@@ -403,12 +414,14 @@ export default function StockDetailComparisonModal({
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-[var(--overlay)] backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-[var(--overlay)] backdrop-blur-md overflow-y-auto"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -1057,6 +1070,7 @@ export default function StockDetailComparisonModal({
           <span className="font-mono text-[10px] text-[var(--ink-dim)]">Base Chain ID: 8453</span>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }

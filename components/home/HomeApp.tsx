@@ -122,6 +122,9 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         return;
       }
       setTab(next);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
       if (opts?.buy || opts?.token || opts?.sell || opts?.amount) {
         syncTabUrl(next, opts);
       } else {

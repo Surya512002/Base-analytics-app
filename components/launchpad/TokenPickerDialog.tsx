@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Search, X } from "lucide-react";
 import {
   COMMON_BASE_TOKENS,
@@ -78,6 +79,20 @@ export default function TokenPickerDialog({
   > | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -168,9 +183,11 @@ export default function TokenPickerDialog({
 
   const asCounter = (t: CommonToken): SwapCounter => commonTokenToCounter(t);
 
-  return (
+  if (!open || !mounted) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -285,7 +302,8 @@ export default function TokenPickerDialog({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

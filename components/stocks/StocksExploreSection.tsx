@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Search,
   TrendingUp,
@@ -480,8 +481,8 @@ export default function StocksExploreSection({
       )}
 
       {/* Simple Price Alert Dialog */}
-      {activeAlertStock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
+      {activeAlertStock && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
           <div className="w-full max-w-sm rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-5 shadow-2xl space-y-4 animate-meridian-scale">
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
               <div className="flex items-center gap-2">
@@ -530,7 +531,8 @@ export default function StocksExploreSection({
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

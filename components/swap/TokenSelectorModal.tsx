@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, Search, X, Clock, Check, Sparkles, Coins, Wallet, AlertTriangle } from "lucide-react";
 import { useCompliance } from "@/hooks/useCompliance";
@@ -68,6 +69,20 @@ export default function TokenSelectorModal({
   const [recentTokens, setRecentTokens] = useState<SwapCounter[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const compliance = useCompliance();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
 
   const isStockSwapDisabled = !compliance.status.features["stocks.swap"];
   const isRegionRestricted = compliance.isRestricted && !compliance.canEnter;
@@ -264,11 +279,13 @@ export default function TokenSelectorModal({
     onClose();
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-label={title}
@@ -497,7 +514,8 @@ export default function TokenSelectorModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

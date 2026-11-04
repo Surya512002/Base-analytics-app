@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, ExternalLink, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
 
@@ -18,11 +19,30 @@ export default function StockRiskModal({
   issuerTermsUrl = "https://www.coinbase.com/legal/tokenized-stocks",
 }: StockRiskModalProps) {
   const [confirmed, setConfirmed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
       <div className="w-full max-w-lg rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 shadow-2xl space-y-5 animate-meridian-scale text-[var(--ink)]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
@@ -143,6 +163,7 @@ export default function StockRiskModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

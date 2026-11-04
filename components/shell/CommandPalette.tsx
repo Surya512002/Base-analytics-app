@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Command,
@@ -36,9 +37,22 @@ export default function CommandPalette({
 }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!open) setQuery("");
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -118,9 +132,9 @@ export default function CommandPalette({
     [onTabChange, onClose, router]
   );
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-6 pt-[6vh] sm:pt-[8vh]"
       role="dialog"
@@ -237,6 +251,7 @@ export default function CommandPalette({
           </span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

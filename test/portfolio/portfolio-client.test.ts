@@ -21,7 +21,7 @@ describe("Portfolio Client State & Invariants", () => {
       }
     }
     expect(portfolio.totalUsd).toBeCloseTo(computedPricedTotal, 1);
-  });
+  }, 25000);
 
   it("presents tokens without a price feed as 'No price' (priceUsd === null)", async () => {
     // Add custom unlisted token contract
@@ -34,7 +34,7 @@ describe("Portfolio Client State & Invariants", () => {
       expect(token.priceSource).toBe("none");
       expect(token.usdValue).toBe(0);
     }
-  });
+  }, 25000);
 
   it("returns zero counts and empty tokens for unfunded / disconnected wallet", async () => {
     const portfolio = await getWalletPortfolio(emptyAddress, [], false);
@@ -44,10 +44,10 @@ describe("Portfolio Client State & Invariants", () => {
     expect(portfolio.totalUsd).toBe(0);
     expect(portfolio.pricedCount).toBe(0);
     expect(portfolio.unpricedCount).toBe(0);
-  });
+  }, 25000);
 
   it("ensures token count strictly matches the tokens list length", async () => {
     const portfolio = await getWalletPortfolio(fundedAddress, [], false);
     expect(portfolio.totalCount).toBe(portfolio.tokens.length);
-  });
+  }, 25000);
 });

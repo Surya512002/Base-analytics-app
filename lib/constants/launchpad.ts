@@ -34,8 +34,8 @@ export function getPlatformFeeBps(isLaunched: boolean): number {
 }
 
 /** Human label: 50 bps → "0.5%", 25 bps → "0.25%" */
-export function formatPlatformFeeLabel(bps = LAUNCHPAD_TRADING_FEE_BPS): string {
-  const safe = Number.isFinite(bps) && bps >= 0 ? bps : 25;
+export function formatPlatformFeeLabel(bps = LAUNCHPAD_PLATFORM_FEE_BPS): string {
+  const safe = Number.isFinite(bps) && bps >= 0 ? bps : 50;
   const pct = safe / 100;
   if (pct === 0) return "0%";
   const rounded = pct.toFixed(2);

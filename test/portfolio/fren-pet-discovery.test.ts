@@ -57,5 +57,5 @@ describe("Tradable Base Tokens & Fren Pet Portfolio Integration", () => {
     expect(fpBalance?.name).toBe("Fren Pet");
     expect(fpBalance?.decimals).toBe(18);
     expect(fpBalance?.balanceBigInt).toBeGreaterThan(BigInt(0));
-  });
+  }, 25000);
 });

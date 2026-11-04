@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
@@ -82,10 +83,18 @@ export default function HoldingsDrawer({
 
   // Unverified token confirmation state
   const [unverifiedPendingToken, setUnverifiedPendingToken] = useState<PortfolioToken | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Close on Escape key
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and close on Escape key
   useEffect(() => {
     if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (unverifiedPendingToken) {
@@ -98,7 +107,10 @@ export default function HoldingsDrawer({
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open, onClose, showAddModal, unverifiedPendingToken]);
 
   const handleCopyAddress = () => {
@@ -154,11 +166,13 @@ export default function HoldingsDrawer({
     return `${normalizedAddress.slice(0, 6)}…${normalizedAddress.slice(-4)}`;
   }, [normalizedAddress]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex justify-end"
+          className="fixed inset-0 z-[100] flex justify-end"
           role="dialog"
           aria-modal="true"
           aria-label="Wallet Tokens on Base"
@@ -664,6 +678,7 @@ export default function HoldingsDrawer({
           )}
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

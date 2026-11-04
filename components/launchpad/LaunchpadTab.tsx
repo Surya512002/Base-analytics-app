@@ -447,6 +447,12 @@ export default function LaunchpadTab({
     });
   }, [markets, isActive, app]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [view, selected?.address]);
+
   const goExplore = () => {
     setView("explore");
     setSelected(null);

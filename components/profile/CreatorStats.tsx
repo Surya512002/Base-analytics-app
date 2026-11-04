@@ -27,6 +27,8 @@ export default function CreatorStats({
   totalMcap,
   isOwner = false,
 }: CreatorStatsProps) {
+  const { formatted: uniqueUsersFormatted } = useUniqueUsers(address);
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -39,8 +41,6 @@ export default function CreatorStats({
       </div>
     );
   }
-
-  const { formatted: uniqueUsersFormatted } = useUniqueUsers(address);
   const isAllEmpty = launches === 0 && volume24h === 0 && totalMcap === 0;
 
   const statItems = [
