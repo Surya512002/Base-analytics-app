@@ -680,6 +680,15 @@ body {
   outline-offset: 2px;
 }
 
+/* Mobile iOS Safari: Enforce minimum 16px font-size to prevent unwanted auto-zooming on focus */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Accessibility: prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -496,7 +496,7 @@ export default function StockQuotePicker({
               placeholder="Search 8 canonical stocks by ticker (e.g. NVDAc), company (e.g. Apple), or 0xb20… address"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)]"
+              className="w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)]"
             />
             {searchQuery && (
               <button
