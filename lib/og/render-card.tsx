@@ -38,16 +38,15 @@ function stat(label: string, value: string, accent: string = OG_COLORS.cyan) {
 }
 
 export function renderOgCard(data: OgCardData = {}) {
-  const score = data.score ?? 72;
-  const rank = data.rank ?? "Base Shark";
   const address = shortenAddress(
     data.address || "0x3799cafa388da047cAF7c999e31c844705FadfAe"
   );
   const title = data.title || address;
+  const streak = data.streak ?? 7;
+  const activeDays = data.activeDays ?? 47;
+  const txCount = data.txs ?? 1248;
   const subtitle =
-    data.subtitle || `${rank} · ${data.activeDays ?? 47} active days on Base`;
-  const personal =
-    data.variant === "score" || data.variant === "badge" || Boolean(data.title);
+    data.subtitle || `${activeDays} active days · ${streak}d streak on Base`;
 
   return (
     <div
@@ -74,7 +73,7 @@ export function renderOgCard(data: OgCardData = {}) {
           gap: 22,
         }}
       >
-        <OgHeader label="ONCHAIN PROFILE" />
+        <OgHeader label="ONCHAIN ACTIVITY" />
         <div style={{ display: "flex", flex: 1, gap: 34, minHeight: 0 }}>
           <div
             style={{
@@ -92,12 +91,12 @@ export function renderOgCard(data: OgCardData = {}) {
                 letterSpacing: "0.18em",
               }}
             >
-              YOUR BASE PROFILE
+              BASE MAINNET VERIFIED
             </span>
             <span
               style={{
                 color: OG_COLORS.text,
-                fontSize: 48,
+                fontSize: 44,
                 fontWeight: 950,
                 letterSpacing: "-0.035em",
                 marginTop: 14,
@@ -117,8 +116,8 @@ export function renderOgCard(data: OgCardData = {}) {
               {subtitle}
             </span>
             <div style={{ display: "flex", gap: 10, marginTop: 26 }}>
-              {stat("TRANSACTIONS", (data.txs ?? 1248).toLocaleString())}
-              {stat("ACTIVE DAYS", String(data.activeDays ?? 47), OG_COLORS.green)}
+              {stat("TRANSACTIONS", txCount.toLocaleString())}
+              {stat("ACTIVE DAYS", String(activeDays), OG_COLORS.green)}
             </div>
           </div>
 
@@ -142,7 +141,7 @@ export function renderOgCard(data: OgCardData = {}) {
                 letterSpacing: "0.18em",
               }}
             >
-              ONCHAIN SCORE
+              CURRENT STREAK
             </span>
             <div style={{ display: "flex", alignItems: "baseline", marginTop: 10 }}>
               <span
@@ -154,14 +153,14 @@ export function renderOgCard(data: OgCardData = {}) {
                   letterSpacing: "-0.06em",
                 }}
               >
-                {score}
+                {streak}
               </span>
-              <span style={{ color: OG_COLORS.dim, fontSize: 27, fontWeight: 850 }}>
-                /100
+              <span style={{ color: OG_COLORS.dim, fontSize: 27, fontWeight: 850, marginLeft: 10 }}>
+                DAYS
               </span>
             </div>
-            <span style={{ color: OG_COLORS.cyan, fontSize: 24, fontWeight: 900, marginTop: 10 }}>
-              {rank}
+            <span style={{ color: OG_COLORS.green, fontSize: 22, fontWeight: 900, marginTop: 10 }}>
+              Daily Check-In Record
             </span>
             <div
               style={{
@@ -176,19 +175,19 @@ export function renderOgCard(data: OgCardData = {}) {
               <div
                 style={{
                   display: "flex",
-                  width: `${score}%`,
+                  width: `${Math.min(100, streak * 5)}%`,
                   background: "linear-gradient(90deg, #0052FF, #6BA3FF, #34D399)",
                 }}
               />
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              {stat("XP", String(data.xp ?? 120))}
-              {stat("STREAK", `${data.streak ?? 5}d`, OG_COLORS.green)}
-              {stat("BADGES", String(data.badges ?? 3), "#FBBF24")}
+              {stat("BOOSTS", String(data.boosts ?? 1))}
+              {stat("STREAK", `${streak}d`, OG_COLORS.green)}
+              {stat("NETWORK", "Base 8453", OG_COLORS.cyan)}
             </div>
           </div>
         </div>
-        <OgFooter cta={personal ? "CHALLENGE THIS WALLET" : "SCAN YOUR WALLET"} />
+        <OgFooter cta="CHECK ONCHAIN HABITS" />
       </div>
     </div>
   );

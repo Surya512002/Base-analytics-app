@@ -8,6 +8,7 @@ import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { base } from 'wagmi/chains';
 import { wagmiConfig } from '@/lib/wagmi/config';
 import { WalletAppProvider } from '@/hooks/useWalletApp';
+import { I18nProvider } from '@/lib/i18n/context';
 
 const queryClient = new QueryClient();
 
@@ -53,8 +54,10 @@ export function Providers({ children }: { children: ReactNode }) {
           }}
         >
           <WalletAppProvider>
-            <ScrollPerf />
-            {children}
+            <I18nProvider>
+              <ScrollPerf />
+              {children}
+            </I18nProvider>
           </WalletAppProvider>
         </OnchainKitProvider>
       </QueryClientProvider>

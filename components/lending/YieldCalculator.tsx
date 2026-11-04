@@ -42,19 +42,6 @@ interface YieldCalculatorProps {
 // Verified onchain Base baseline values (accurate fallbacks when live indexer is loading)
 const BASELINE_YIELD_MARKETS: YieldOptionTarget[] = [
   {
-    protocol: "aerodrome",
-    protocolName: "Aerodrome Slipstream",
-    asset: "NVDAc-USDC Gauge",
-    stockSymbol: "NVDAc",
-    contractAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
-    marketId: "aero-nvdac-usdc",
-    apy: 17.64,
-    tvlUsd: 517538,
-    isAutoCompounding: false,
-    riskTier: "medium",
-    typeLabel: "DEX Gauge",
-  },
-  {
     protocol: "beefy",
     protocolName: "Beefy Auto-Vault",
     asset: "NVDAc-USDC Vault",
@@ -68,24 +55,37 @@ const BASELINE_YIELD_MARKETS: YieldOptionTarget[] = [
     typeLabel: "Auto-Compounder",
   },
   {
-    protocol: "ipor",
-    protocolName: "IPOR Fusion",
-    asset: "NVDAc Plasma Vault",
+    protocol: "aerodrome",
+    protocolName: "Aerodrome Slipstream",
+    asset: "NVDAc-USDC Gauge",
     stockSymbol: "NVDAc",
-    marketId: "ipor-fusion-nvdac",
-    apy: 7.47,
-    tvlUsd: 43700,
-    isAutoCompounding: true,
-    riskTier: "low",
-    typeLabel: "Plasma Vault",
+    contractAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
+    marketId: "aero-nvdac-usdc",
+    apy: 17.64,
+    tvlUsd: 517538,
+    isAutoCompounding: false,
+    riskTier: "medium",
+    typeLabel: "DEX Gauge",
   },
   {
-    protocol: "aave",
-    protocolName: "Aave v3 Base",
-    asset: "USDC Prime Market",
-    marketId: "aave-v3-usdc",
+    protocol: "morpho_blue",
+    protocolName: "Morpho Blue",
+    asset: "USDC Collateral",
+    marketId: "morpho-blue-weth-usdc",
+    apy: 4.85,
+    tvlUsd: 14800000,
+    isAutoCompounding: true,
+    riskTier: "low",
+    typeLabel: "Money Market",
+  },
+  {
+    protocol: "moonwell",
+    protocolName: "Moonwell Base",
+    asset: "mUSDC Prime Market",
+    contractAddress: "0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22",
+    marketId: "moonwell-musdc",
     apy: 4.65,
-    tvlUsd: 180200000,
+    tvlUsd: 28500000,
     isAutoCompounding: true,
     riskTier: "low",
     typeLabel: "Money Market",
@@ -159,28 +159,34 @@ export default function YieldCalculator({
         }
       }
 
-      // 3. Try to match live IPOR vault
-      if (baseline.protocol === "ipor") {
-        const liveIpor = markets.find((m) => m.protocol === "ipor" && m.supplyApy > 0);
-        if (liveIpor) {
+      // 3. Try to match live Morpho Blue market
+      if (baseline.protocol === "morpho_blue" || baseline.protocol === "morpho") {
+        const liveMorpho = markets.find(
+          (m) => (m.protocol === "morpho" || (m.protocol as string) === "morpho_blue") && m.supplyApy > 0
+        );
+        if (liveMorpho) {
           return {
             ...baseline,
-            apy: Math.round(liveIpor.supplyApy * 100) / 100,
-            tvlUsd: liveIpor.tvlUsd || baseline.tvlUsd,
+            apy: Math.round(liveMorpho.supplyApy * 100) / 100,
+            tvlUsd: liveMorpho.tvlUsd || baseline.tvlUsd,
+            asset: liveMorpho.supplyAsset.symbol ? `${liveMorpho.supplyAsset.symbol} Collateral` : baseline.asset,
+            contractAddress: (liveMorpho.contractAddress as string) || baseline.contractAddress,
           };
         }
       }
 
-      // 4. Try to match live Aave or Morpho market
-      if (baseline.protocol === "aave" || baseline.protocol === "morpho") {
-        const liveAave = markets.find(
-          (m) => (m.protocol === "aave" || m.protocol === "morpho") && m.supplyApy > 0
+      // 4. Try to match live Moonwell or Aave market
+      if (baseline.protocol === "moonwell" || baseline.protocol === "aave") {
+        const liveMoonwell = markets.find(
+          (m) => (m.protocol === "moonwell" || m.protocol === "aave") && m.supplyApy > 0
         );
-        if (liveAave) {
+        if (liveMoonwell) {
           return {
             ...baseline,
-            apy: Math.round(liveAave.supplyApy * 100) / 100,
-            tvlUsd: liveAave.tvlUsd || baseline.tvlUsd,
+            apy: Math.round(liveMoonwell.supplyApy * 100) / 100,
+            tvlUsd: liveMoonwell.tvlUsd || baseline.tvlUsd,
+            asset: liveMoonwell.supplyAsset.name || baseline.asset,
+            contractAddress: (liveMoonwell.contractAddress as string) || baseline.contractAddress,
           };
         }
       }
@@ -334,7 +340,13 @@ export default function YieldCalculator({
               <span>Highest Projected Yield: {bestOption.protocolName} ({bestOption.asset})</span>
             </div>
             <p className="text-[11px] text-emerald-900/80 dark:text-emerald-200/80 leading-relaxed">
-              Earn estimated <strong className="text-emerald-700 dark:text-emerald-300">+{formatUsd(bestOption.returnAmount)}</strong> ({bestOption.apy.toFixed(2)}% APY) with {bestOption.isAutoCompounding ? "automatic compounding" : "active fee rewards"}. Total portfolio value: <strong>{formatUsd(bestOption.totalValue)}</strong>.
+              {bestOption.apy > 0 ? (
+                <>
+                  Earn estimated <strong className="text-emerald-700 dark:text-emerald-300">+{formatUsd(bestOption.returnAmount)}</strong> ({bestOption.apy.toFixed(2)}% APY) with {bestOption.isAutoCompounding ? "automatic compounding" : "active fee rewards"}. Total portfolio value: <strong>{formatUsd(bestOption.totalValue)}</strong>.
+                </>
+              ) : (
+                <>Live onchain yield estimates for {bestOption.protocolName} are currently refreshing from Base mainnet.</>
+              )}
             </p>
           </div>
 
@@ -367,8 +379,12 @@ export default function YieldCalculator({
                 <span className="font-bold text-xs text-[var(--ink)] truncate group-hover:text-[var(--brand)] transition-colors">
                   {calc.protocolName}
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
-                  {calc.apy.toFixed(2)}% APY
+                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono border ${
+                  calc.apy > 0
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                }`}>
+                  {calc.apy > 0 ? `${calc.apy.toFixed(2)}% APY` : "Unavailable"}
                 </span>
               </div>
 
@@ -388,10 +404,10 @@ export default function YieldCalculator({
               </span>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                  +{formatUsd(calc.returnAmount)}
+                  {calc.apy > 0 ? `+${formatUsd(calc.returnAmount)}` : "Unavailable"}
                 </span>
                 <span className="font-mono text-[11px] text-[var(--ink-dim)]">
-                  Total: {formatUsd(calc.totalValue)}
+                  {calc.apy > 0 ? `Total: ${formatUsd(calc.totalValue)}` : "Total: —"}
                 </span>
               </div>
 

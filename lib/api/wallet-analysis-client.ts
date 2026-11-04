@@ -1,52 +1,24 @@
 import type { AnalyzeWalletResult } from "@/lib/types/wallet";
-import {
-  clearAnalyticsUnlocked,
-  readAnalyticsUnlockToken,
-} from "@/lib/utils/analytics-unlock";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function revokeClientUnlock(address: string): void {
-  clearAnalyticsUnlocked(address);
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(
-      new CustomEvent("ba-analytics-unlock-revoked", {
-        detail: { address: address.toLowerCase() },
-      })
-    );
-  }
 }
 
 async function fetchAnalyzeJson<T>(
   path: string,
   timeoutMs: number,
   retries = 2,
-  addressForUnlock?: string
+  _address?: string
 ): Promise<T | null> {
-  const unlockToken = addressForUnlock
-    ? readAnalyticsUnlockToken(addressForUnlock)
-    : null;
-  const headers: HeadersInit = unlockToken
-    ? { "x-analytics-unlock": unlockToken }
-    : {};
-
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const r = await fetch(path, {
         cache: "no-store",
         credentials: "same-origin",
-        headers,
         signal: AbortSignal.timeout(timeoutMs),
       });
       const contentType = r.headers.get("content-type") || "";
       if (!r.ok) {
-        if (r.status === 402) {
-          // Legacy local unlock without server token → force re-pay.
-          if (addressForUnlock) revokeClientUnlock(addressForUnlock);
-          return null;
-        }
         if (r.status >= 500 && attempt < retries) {
           await sleep(800 * (attempt + 1));
           continue;

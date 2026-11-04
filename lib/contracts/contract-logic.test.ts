@@ -109,43 +109,6 @@ describe("Smart Contract Logic & Invariants (Vouchers, Stake, Launch)", () => {
     });
   });
 
-  describe("XpStake Invariants", () => {
-    const MIN_TIER1 = parseEther("0.0001");
-    const MIN_TIER2 = parseEther("0.0005");
-    const MIN_TIER3 = parseEther("0.001");
-    const LOCK_PERIOD = 7 * 24 * 3600; // 7 days
-
-    it("resolves tier thresholds correctly", () => {
-      function resolveTier(amount: bigint): number {
-        if (amount >= MIN_TIER3) return 3;
-        if (amount >= MIN_TIER2) return 2;
-        if (amount >= MIN_TIER1) return 1;
-        throw new Error("min stake");
-      }
-
-      expect(resolveTier(parseEther("0.0001"))).toBe(1);
-      expect(resolveTier(parseEther("0.0004"))).toBe(1);
-      expect(resolveTier(parseEther("0.0005"))).toBe(2);
-      expect(resolveTier(parseEther("0.0009"))).toBe(2);
-      expect(resolveTier(parseEther("0.001"))).toBe(3);
-      expect(resolveTier(parseEther("0.05"))).toBe(3);
-      expect(() => resolveTier(parseEther("0.00005"))).toThrow("min stake");
-    });
-
-    it("enforces exact 7-day lock duration before allowing unstake", () => {
-      const stakedAt = 1000000;
-      const unlockAt = stakedAt + LOCK_PERIOD;
-
-      const beforeLock = unlockAt - 1;
-      const atLock = unlockAt;
-      const afterLock = unlockAt + 100;
-
-      expect(beforeLock >= unlockAt).toBe(false); // Locked
-      expect(atLock >= unlockAt).toBe(true); // Unlocked
-      expect(afterLock >= unlockAt).toBe(true); // Unlocked
-    });
-  });
-
   describe("Launchpad B20 & Fee Splitting Invariants", () => {
     it("verifies supply is exactly fixed at 1 Billion tokens", () => {
       const TOTAL_SUPPLY = BigInt("1000000000"); // 1B

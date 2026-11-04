@@ -1,5 +1,4 @@
 import type { DayStats, WalletData } from "@/lib/types/wallet";
-import { computeScoreComponents, computeTotalScore, computeWalletRank } from "@/lib/utils/score";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
 
 function emptyDailyStats(days = 364): DayStats[] {
@@ -18,28 +17,8 @@ function emptyDailyStats(days = 364): DayStats[] {
 
 /** Minimal wallet row so the app leaves the connect screen while analysis runs. */
 export function buildPendingWalletShell(address: string): WalletData {
-  const scoreComponents = computeScoreComponents({
-    txCount: 0,
-    uniqueDays: 0,
-    activeMonths: 0,
-    activeWeeks: 0,
-    currentStreak: 0,
-    longestStreak: 0,
-    ethVol: 0,
-    uniqueTokens: 0,
-    defiInteractions: 0,
-    uniqueContracts: 0,
-    nftCount: 0,
-    nftTxCount: 0,
-    dexTradeCount: 0,
-    dexVolumeUSD: 0,
-    ethSwapVolumeUSD: 0,
-    bridgeTxCount: 0,
-    hasBasename: false,
-    gmCount: 0,
-    checkInCount: 0,
-  });
-  const score = computeTotalScore(scoreComponents);
+  const scoreComponents: Record<string, number> = {};
+  const score = 0;
   const health = calcWalletHealth({
     uniqueDays: 0,
     activeMonths: 0,
@@ -71,7 +50,7 @@ export function buildPendingWalletShell(address: string): WalletData {
     swapCount: 0,
     contractInteractions: 0,
     nftCount: 0,
-    walletRank: computeWalletRank(score),
+    walletRank: "Base User",
     score: 0,
     historyDays: 364,
     weekLabels: [],

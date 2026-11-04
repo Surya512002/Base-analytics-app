@@ -6,7 +6,6 @@ import {
   CHECKIN_ABI,
   CHECKIN_CONTRACT,
 } from "@/lib/constants/contracts";
-import { computeWalletRank, computeTotalScore, computeScoreComponents } from "@/lib/utils/score";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
 import type { AnalyzeWalletResult, DayStats, WalletData } from "@/lib/types/wallet";
 
@@ -56,29 +55,9 @@ export async function bootstrapWalletAnalysis(
       new Date().toISOString().slice(0, 10);
   }
 
-  const scoreComponents = computeScoreComponents({
-    txCount: txFloor,
-    uniqueDays: Math.min(txFloor, 30),
-    activeMonths: 1,
-    activeWeeks: 1,
-    currentStreak: streak,
-    longestStreak: streak,
-    ethVol: 0,
-    uniqueTokens: smart.tokenTransferCount > 0 ? 3 : 0,
-    defiInteractions: 0,
-    uniqueContracts: 0,
-    nftCount: 0,
-    nftTxCount: 0,
-    dexTradeCount: 0,
-    dexVolumeUSD: 0,
-    ethSwapVolumeUSD: 0,
-    bridgeTxCount: 0,
-    hasBasename: Boolean(bn),
-    gmCount: 0,
-    checkInCount: 0,
-  });
-  const score = computeTotalScore(scoreComponents);
-  const walletRank = computeWalletRank(score);
+  const scoreComponents: Record<string, number> = {};
+  const score = 0;
+  const walletRank = "Base User";
   const health = calcWalletHealth({
     uniqueDays: 0,
     activeMonths: 0,

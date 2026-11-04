@@ -5,7 +5,6 @@ import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
 import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
-import { fetchLeaderboard, saveLeaderboard } from "@/lib/api/leaderboard";
 import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
   formatWalletDisplayLabel,
@@ -26,12 +25,9 @@ import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
 import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
-import { applyBasenameScore } from "@/lib/wallet/apply-basename-score";
 import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import {
-  ACHIEVEMENTS_ABI,
-  ACHIEVEMENTS_CONTRACT,
   BOOSTER_ABI,
   BOOSTER_CONTRACT,
   CHECKIN_ABI,
@@ -39,39 +35,13 @@ import {
   GM_GN_ABI,
   GM_GN_CONTRACT,
 } from "@/lib/constants/contracts";
-import { getCatValue, sumMintedBadges } from "@/lib/utils/achievements";
-import { getISOWeekNumber } from "@/lib/utils/dates";
 import {
   getCalendarKeys,
   msUntilNextUtcDay,
 } from "@/lib/utils/calendar-rollover";
-import { computeChallengeScore, computeWalletRank } from "@/lib/utils/score";
 import { getCapabilities } from "@/lib/utils/paymaster";
-import { WEEKLY_QUESTS } from "@/lib/constants/season";
 import {
-  buildAppQuestContext,
-  computeWeeklyXP,
-  countDoneQuests,
-} from "@/lib/utils/season";
-import {
-  readAppBadgeLevels,
-  recordAppBadgeClaims,
-  writeAppBadgeLevels,
-} from "@/lib/utils/app-badge-levels";
-import {
-  getBadgeMintXpTotal,
-  readPersistedMintedLevels,
-  recordBadgeMints,
-  syncBadgeMintCountFromLevels,
-  writePersistedMintedLevels,
-} from "@/lib/utils/badge-mint-xp";
-import {
-  buildBadgeShareText,
-  buildBadgesShareText,
   buildShareBody,
-  buildShareCardData,
-  buildSharePageUrl,
-  buildScoreShareText,
   getReferralCode,
   twitterShare,
   warpcast,
@@ -97,7 +67,6 @@ import {
   persistWalletAddress,
   readPersistedWalletAddress,
 } from "@/lib/utils/wallet-persist";
-import type { PremiumInsights } from "@/lib/premium/build-insights";
 import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
   readStoredReferrer,
@@ -108,16 +77,6 @@ import {
 import { loadLocalBatches } from "@/lib/utils/voucher";
 import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
-  readFarcasterUnlocked,
-  writeFarcasterUnlocked,
-  clearFarcasterUnlocked,
-} from "@/lib/utils/farcaster-unlock";
-import {
-  readAnalyticsUnlocked,
-  writeAnalyticsUnlocked,
-  clearAnalyticsUnlocked,
-} from "@/lib/utils/analytics-unlock";
-import {
   bumpBoostCount,
   bumpWeeklyTxKey,
   currentWeekKey,
@@ -126,26 +85,20 @@ import {
   ensureSessionStorageVersion,
   mergeTxKeyCounters,
   readPersistedTxKeys,
-  readReferralBonusXpForAddress,
-  setReferralBonusXpForAddress,
   syncSessionFromAnalysis,
   writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
 import { writeLocalBoostTime, writeLocalGmTime, writeLocalGnTime } from "@/lib/utils/daily-actions";
-import { recordCheckInPointsOnce,
+import {
   recordConfirmedInAppAction,
   recordInAppTransaction,
   notifyPointsUpdated,
-  syncActivityPointsFromSession,
-  tryAwardCheckInWeeklyBonus,
-  tryAwardSevenDayAllTasksBonus,
 } from "@/lib/utils/daily-points";
 import { BASE_RPC } from "@/lib/constants/env";
 import {
   ERC20_ABI,
 } from "@/lib/constants/contracts";
 import { parseUnits, parseEther, formatUnits, maxUint256 } from "viem";
-import type { LeaderboardEntry } from "@/lib/types/leaderboard";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import {
   extractB20TokenFromReceipt,
@@ -194,7 +147,6 @@ import { preflightB20Launch, simulateB20Create } from "@/lib/b20/preflight";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
 import { splitPlatformFee } from "@/lib/launchpad/fee-split";
-import { fetchOnchainStake, tierToReferrerBoostBps } from "@/lib/wallet/onchain-stake";
 import { encodeErc20TransferCalldata } from "@/lib/b20/encode";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { syncTabUrl, resolveTabFromUrl } from "@/lib/utils/app-url";
@@ -328,19 +280,7 @@ function useWalletAppController() {
   );
   const [streak, setStreak] = useState(0);
   const [checkedToday, setCheckedToday] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [lbLoading, setLbLoading] = useState(true);
-  const [challenge, setChallenge] = useState("");
-  const [challengeResult, setChallengeResult] = useState<{
-    address: string;
-    score: number;
-    rank: string;
-    days: number;
-    txs: number;
-  } | null>(null);
-  const [challengeLoading, setChallengeLoading] = useState(false);
   const [refCopied, setRefCopied] = useState(false);
-  const [weeklyXP, setWeeklyXP] = useState(0);
   const [pointsRevision, setPointsRevision] = useState(0);
   const [scanProgress, setScanProgress] = useState("");
   const [walletRefreshing, setWalletRefreshing] = useState(false);
@@ -360,25 +300,10 @@ function useWalletAppController() {
   const walletOpGenRef = useRef(0);
   const syncCompleteToastRef = useRef(false);
   const startHistorySyncRef = useRef<((basename?: string | null) => void) | null>(null);
-  const leaderboardSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [premiumUnlocked, setPremiumUnlocked] = useState(false);
-  const [premiumLoading, setPremiumLoading] = useState(false);
-  const [farcasterUnlocked, setFarcasterUnlocked] = useState(false);
-  const [farcasterUnlockLoading, setFarcasterUnlockLoading] = useState(false);
-  const [analyticsUnlocked, setAnalyticsUnlocked] = useState(false);
-  const [analyticsUnlockLoading, setAnalyticsUnlockLoading] = useState(false);
   const [launchLoading, setLaunchLoading] = useState(false);
   const [swapLoading, setSwapLoading] = useState(false);
   const [b20Activated, setB20Activated] = useState<boolean | null>(null);
-  const [premiumData, setPremiumData] = useState<{
-    message: string;
-    transaction?: string;
-  } | null>(null);
-  const [premiumInsights, setPremiumInsights] = useState<PremiumInsights | null>(null);
-  const [x402Product, setX402Product] = useState<X402ProductId>("scan");
-  const [referralBonusXp, setReferralBonusXp] = useState(0);
   const [referralInvites, setReferralInvites] = useState(0);
-  const [x402PayCount, setX402PayCount] = useState(0);
 
   const boostCall = [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")];
   const gmCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gm")];
@@ -392,24 +317,7 @@ function useWalletAppController() {
   }, []);
 
   const loadX402PremiumState = useCallback((address: string) => {
-    const keys = x402StorageKeys(address);
-    const savedCount = parseInt(
-      localStorage.getItem(keys.count) || "0",
-      10
-    );
-    lockX402PremiumSession(address);
-    setX402PayCount(savedCount);
-    setPremiumUnlocked(false);
-    setPremiumData(null);
-    setPremiumInsights(null);
-    setFarcasterUnlocked(readFarcasterUnlocked(address));
-    setAnalyticsUnlocked(readAnalyticsUnlocked(address));
-    setReferralBonusXp(readReferralBonusXpForAddress(address));
     void fetchReferralStats(address).then((s) => {
-      const local = readReferralBonusXpForAddress(address);
-      const bonus = Math.max(local, s.bonusXp);
-      if (bonus > local) setReferralBonusXpForAddress(address, bonus);
-      setReferralBonusXp(bonus);
       setReferralInvites(s.invites ?? 0);
     });
   }, []);
@@ -422,8 +330,7 @@ function useWalletAppController() {
       setConnType(savedType);
       setWallet(buildPendingWalletShell(savedAddr));
       loadX402PremiumState(savedAddr);
-      setMintedLevels(readPersistedMintedLevels(savedAddr));
-    }
+      }
     setSessionBootstrapped(true);
   }, [loadX402PremiumState]);
 
@@ -446,21 +353,6 @@ function useWalletAppController() {
       if (r) storeReferrer(r);
       const card = p.get("card");
       if (card) localStorage.setItem("base_redeem_card", card);
-      const challengeAddr = p.get("challenge")?.trim().toLowerCase();
-      if (
-        challengeAddr?.startsWith("0x") &&
-        challengeAddr.length === 42
-      ) {
-        pendingChallengeRef.current = challengeAddr;
-        setChallenge(challengeAddr);
-        p.delete("challenge");
-        const qs = p.toString();
-        const nextUrl = qs
-          ? `${window.location.pathname}?${qs}`
-          : window.location.pathname;
-        window.history.replaceState({}, "", nextUrl);
-      }
-
       const syncTabFromLocation = () => {
         const path = window.location.pathname;
         if (path.startsWith("/swap")) {
@@ -480,10 +372,6 @@ function useWalletAppController() {
       onPopState = () => syncTabFromLocation();
       window.addEventListener("popstate", onPopState);
     }
-    fetchLeaderboard().then((d) => {
-      setLeaderboard(d);
-      setLbLoading(false);
-    });
     return () => {
       if (onPopState) window.removeEventListener("popstate", onPopState);
     };
@@ -533,7 +421,6 @@ function useWalletAppController() {
         persistConnType(savedType);
         persistWalletAddress(address);
         loadX402PremiumState(address);
-        setMintedLevels(readPersistedMintedLevels(address));
 
         const shell = buildPendingWalletShell(address);
         historyCompleteRef.current = false;
@@ -639,362 +526,14 @@ function useWalletAppController() {
     return () => window.removeEventListener("base-points-updated", onPoints);
   }, [wallet?.address]);
 
+
+
   useEffect(() => {
-    const onRevoked = (e: Event) => {
-      const detail = (e as CustomEvent<{ address?: string }>).detail;
-      if (
-        wallet?.address &&
-        detail?.address?.toLowerCase() === wallet.address.toLowerCase()
-      ) {
-        setAnalyticsUnlocked(false);
-      }
-    };
-    window.addEventListener("ba-analytics-unlock-revoked", onRevoked);
-    return () =>
-      window.removeEventListener("ba-analytics-unlock-revoked", onRevoked);
+    if (!wallet) return;
+    void fetchReferralStats(wallet.address).then((s) => {
+      setReferralInvites(s.invites);
+    });
   }, [wallet?.address]);
-
-  useEffect(() => {
-    if (!wallet) return;
-    syncBadgeMintCountFromLevels(wallet.address, mintedLevels);
-    const activitySynced = syncActivityPointsFromSession(
-      wallet.address,
-      txKeys,
-      streak,
-      checkedToday,
-      x402PayCount,
-      loadLocalBatches(wallet.address).length,
-      Boolean(challengeResult)
-    );
-    if (activitySynced) setPointsRevision((n) => n + 1);
-    const questCtx = buildAppQuestContext({
-      wallet,
-      streak,
-      checkedToday,
-      txKeys,
-      x402PayCount,
-      referralInvites,
-      didChallenge: Boolean(challengeResult),
-    });
-    const questXp = computeWeeklyXP(questCtx, boosts);
-    const badgeMintXp = getBadgeMintXpTotal(wallet.address);
-    const xp = questXp + referralBonusXp;
-    setWeeklyXP(xp);
-    const mintedCount = sumMintedBadges(mintedLevels);
-    if (leaderboardSaveRef.current) clearTimeout(leaderboardSaveRef.current);
-    leaderboardSaveRef.current = setTimeout(() => {
-      void saveLeaderboard({
-        address: wallet.address,
-        basename: wallet.basename,
-        score: wallet.score,
-        rank: wallet.walletRank,
-        boosts,
-        badges: mintedCount,
-        weeklyXP: questXp + referralBonusXp,
-        badgeMintXp,
-        weekNumber: getISOWeekNumber(),
-      }).then(() => fetchLeaderboard().then((d) => setLeaderboard(d)));
-    }, 4000);
-    return () => {
-      if (leaderboardSaveRef.current) clearTimeout(leaderboardSaveRef.current);
-    };
-  }, [
-    wallet,
-    boosts,
-    mintedLevels,
-    streak,
-    checkedToday,
-    txKeys,
-    referralBonusXp,
-    referralInvites,
-    x402PayCount,
-    challengeResult,
-    pointsRevision,
-  ]);
-
-  useEffect(() => {
-    if (!wallet) return;
-    const questCtx = buildAppQuestContext({
-      wallet,
-      streak,
-      checkedToday,
-      txKeys,
-      x402PayCount,
-      referralInvites,
-      didChallenge: Boolean(challengeResult),
-    });
-    const done = countDoneQuests(questCtx);
-    const awarded = tryAwardSevenDayAllTasksBonus(
-      wallet.address,
-      streak,
-      done
-    );
-    if (awarded > 0) setPointsRevision((n) => n + 1);
-  }, [
-    wallet,
-    streak,
-    checkedToday,
-    txKeys,
-    x402PayCount,
-    referralInvites,
-    challengeResult,
-  ]);
-
-  const handlePremiumScan = async (product: X402ProductId = x402Product) => {
-    if (!wallet || x402Paying.current) return;
-
-    let activeConn = connType;
-    if (!activeConn) {
-      activeConn = await inferConnType(wallet.address);
-      if (activeConn) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
-    }
-    if (!activeConn) {
-      showToast("❌ Reconnect wallet to continue", "");
-      return;
-    }
-
-    x402Paying.current = true;
-    setPremiumLoading(true);
-    try {
-      const provider = await getEip1193Provider(activeConn);
-      const { getX402Fetch } = await import("@/lib/x402-client");
-      const x402Fetch = await getX402Fetch(provider);
-
-      const res = await x402Fetch("/api/premium-scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: wallet.address, product }),
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as {
-          message: string;
-          transaction?: string;
-          insights?: PremiumInsights;
-        };
-        setPremiumData(data);
-        setPremiumUnlocked(true);
-        if (data.insights) {
-          setPremiumInsights(data.insights);
-        }
-        const keys = x402StorageKeys(wallet.address);
-        const prev = parseInt(
-          localStorage.getItem(keys.count) || "0",
-          10
-        );
-        const next = prev + 1;
-        localStorage.setItem(keys.count, next.toString());
-        setX402PayCount(next);
-        const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
-        setTxKeys((k) => ({ ...k, ...nextKeys }));
-        recordConfirmedInAppAction(
-          wallet.address,
-          "x402",
-          nextKeys.x402 ?? next
-        );
-        setPointsRevision((n) => n + 1);
-        const txHash = data.transaction
-          ? normalizeTxHash(data.transaction)
-          : null;
-        showToast(
-          txHash
-            ? `✅ x402 payment confirmed! Tx: ${txHash.slice(0, 10)}…`
-            : "✅ x402 payment confirmed on Base!",
-          txHash ?? ""
-        );
-      } else {
-        let errMsg = `HTTP ${res.status}`;
-        const text = await res.text().catch(() => "");
-        try {
-          const err = JSON.parse(text) as { error?: string; detail?: string };
-          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
-        } catch {
-          if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
-        }
-        showToast(`❌ Payment failed: ${errMsg}`, "");
-      }
-    } catch (e) {
-      const msg =
-        e instanceof Error ? e.message.split("\n")[0] : "Payment error";
-      if (!msg.includes("rejected")) showToast(`❌ ${msg}`, "");
-    } finally {
-      x402Paying.current = false;
-      setPremiumLoading(false);
-    }
-  };
-
-  const handleFarcasterUnlock = async () => {
-    if (!wallet || x402Paying.current) return;
-
-    let activeConn = connType;
-    if (!activeConn) {
-      activeConn = await inferConnType(wallet.address);
-      if (activeConn) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
-    }
-    if (!activeConn) {
-      showToast("❌ Reconnect wallet to continue", "");
-      return;
-    }
-
-    x402Paying.current = true;
-    setFarcasterUnlockLoading(true);
-    try {
-      const provider = await getEip1193Provider(activeConn);
-      const { getX402Fetch } = await import("@/lib/x402-client");
-      const x402Fetch = await getX402Fetch(provider);
-
-      const res = await x402Fetch("/api/farcaster-unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: wallet.address }),
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as {
-          message?: string;
-          transaction?: string;
-        };
-        setFarcasterUnlocked(true);
-        writeFarcasterUnlocked(wallet.address);
-        const keys = x402StorageKeys(wallet.address);
-        const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
-        const next = prev + 1;
-        localStorage.setItem(keys.count, next.toString());
-        setX402PayCount(next);
-        const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
-        setTxKeys((k) => ({ ...k, ...nextKeys }));
-        recordConfirmedInAppAction(
-          wallet.address,
-          "x402",
-          nextKeys.x402 ?? next
-        );
-        setPointsRevision((n) => n + 1);
-        const txHash = data.transaction
-          ? normalizeTxHash(data.transaction)
-          : null;
-        showToast(
-          txHash
-            ? `✅ Farcaster unlocked! Tx: ${txHash.slice(0, 10)}…`
-            : "✅ Farcaster analysis unlocked!",
-          txHash ?? ""
-        );
-      } else {
-        let errMsg = `HTTP ${res.status}`;
-        const text = await res.text().catch(() => "");
-        try {
-          const err = JSON.parse(text) as { error?: string; detail?: string };
-          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
-        } catch {
-          if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
-        }
-        if (res.status === 404) {
-          errMsg = "Payment service unavailable — refresh the page and try again";
-        }
-        showToast(`❌ Payment failed: ${errMsg}`, "");
-      }
-    } catch (e) {
-      const msg =
-        e instanceof Error ? e.message.split("\n")[0] : "Payment error";
-      if (!msg.includes("rejected")) showToast(`❌ ${msg}`, "");
-    } finally {
-      x402Paying.current = false;
-      setFarcasterUnlockLoading(false);
-    }
-  };
-
-  const handleAnalyticsUnlock = async () => {
-    if (!wallet || x402Paying.current) return;
-
-    let activeConn = connType;
-    if (!activeConn) {
-      activeConn = await inferConnType(wallet.address);
-      if (activeConn) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
-    }
-    if (!activeConn) {
-      showToast("❌ Reconnect wallet to continue", "");
-      return;
-    }
-
-    x402Paying.current = true;
-    setAnalyticsUnlockLoading(true);
-    try {
-      const provider = await getEip1193Provider(activeConn);
-      const { getX402Fetch } = await import("@/lib/x402-client");
-      const x402Fetch = await getX402Fetch(provider);
-
-      const res = await x402Fetch("/api/analytics-unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: wallet.address }),
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as {
-          message?: string;
-          transaction?: string;
-          unlockToken?: string;
-        };
-        setAnalyticsUnlocked(true);
-        writeAnalyticsUnlocked(wallet.address, data.unlockToken);
-        const keys = x402StorageKeys(wallet.address);
-        const prev = parseInt(localStorage.getItem(keys.count) || "0", 10);
-        const next = prev + 1;
-        localStorage.setItem(keys.count, next.toString());
-        setX402PayCount(next);
-        const nextKeys = bumpWeeklyTxKey(wallet.address, "x402");
-        setTxKeys((k) => ({ ...k, ...nextKeys }));
-        recordConfirmedInAppAction(
-          wallet.address,
-          "x402",
-          nextKeys.x402 ?? next
-        );
-        setPointsRevision((n) => n + 1);
-        const txHash = data.transaction
-          ? normalizeTxHash(data.transaction)
-          : null;
-        showToast(
-          txHash
-            ? `✅ Analytics unlocked! Collecting full onchain history… Tx: ${txHash.slice(0, 10)}…`
-            : "✅ Analytics unlocked — collecting full onchain history via Alchemy…",
-          txHash ?? ""
-        );
-        // Paid unlock → start Alchemy + paymaster + smart-wallet history sync.
-        historyCompleteRef.current = false;
-        syncCompleteToastRef.current = false;
-        void analyzeWallet(wallet.address, { background: true });
-        startHistorySyncRef.current?.(wallet.basename);
-      } else {
-        let errMsg = `HTTP ${res.status}`;
-        const text = await res.text().catch(() => "");
-        try {
-          const err = JSON.parse(text) as { error?: string; detail?: string };
-          errMsg = [err.error, err.detail].filter(Boolean).join(": ") || errMsg;
-        } catch {
-          if (text && !text.startsWith("<!")) errMsg = text.slice(0, 120);
-        }
-        if (res.status === 404) {
-          errMsg = "Payment service unavailable — refresh the page and try again";
-        }
-        showToast(`❌ Payment failed: ${errMsg}`, "");
-      }
-    } catch (e) {
-      const msg =
-        e instanceof Error ? e.message.split("\n")[0] : "Payment error";
-      if (!msg.includes("rejected")) showToast(`❌ ${msg}`, "");
-    } finally {
-      x402Paying.current = false;
-      setAnalyticsUnlockLoading(false);
-    }
-  };
 
   useEffect(() => {
     void fetchB20ActivationStatus().then(setB20Activated);
@@ -1422,13 +961,7 @@ function useWalletAppController() {
           return false;
         }
 
-        let referrerBoostBps = 0;
-        if (referrer) {
-          const stake = await fetchOnchainStake(referrer);
-          if (stake && Date.now() < stake.unlockAt) {
-            referrerBoostBps = tierToReferrerBoostBps(stake.tier);
-          }
-        }
+        const referrerBoostBps = 0;
         const calls = [];
         const payIsNative = payAsset === "eth";
         const isLaunched = Boolean(quote.isLaunchedToken);
@@ -1840,59 +1373,6 @@ function useWalletAppController() {
     }
   }, [connType, showToast, wallet]);
 
-  const handleChallenge = useCallback(async () => {
-    const addr = challenge.trim().toLowerCase();
-    if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
-      showToast("❌ Invalid address", "");
-      return;
-    }
-    setChallengeLoading(true);
-    try {
-      const merged = await fetchWalletTransfers(addr);
-      const activity = rollupWalletActivity(merged, addr);
-      const txCount = activity.participatingHashes.size;
-      const days = activity.uDays;
-      const months = activity.uMonths;
-      const weeks = activity.uWeeks;
-      const s = computeChallengeScore(
-        txCount,
-        days.size,
-        months.size,
-        weeks.size
-      );
-      const rank = computeWalletRank(s);
-      setChallengeResult({
-        address: addr,
-        score: s,
-        rank,
-        days: days.size,
-        txs: txCount,
-      });
-      if (wallet) {
-        setTxKeys((k) => {
-          const next = { ...k, challenge: 1 };
-          writePersistedTxKeys(wallet.address, next);
-          return next;
-        });
-        recordConfirmedInAppAction(wallet.address, "challenge", 1);
-        setPointsRevision((n) => n + 1);
-      }
-    } catch {
-      showToast("❌ Lookup failed", "");
-    } finally {
-      setChallengeLoading(false);
-    }
-  }, [challenge, showToast, wallet]);
-
-  useEffect(() => {
-    const addr = pendingChallengeRef.current;
-    if (!addr) return;
-    pendingChallengeRef.current = null;
-    if (challengeResult?.address === addr) return;
-    setChallenge(addr);
-    void handleChallenge();
-  }, [wallet?.address, challengeResult, handleChallenge]);
-
   const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
     const address = result.wallet.address;
     const session =
@@ -1922,7 +1402,6 @@ function useWalletAppController() {
       }
       return mergeWalletMetricsMax(prev, base);
     });
-    setReferralBonusXp(readReferralBonusXpForAddress(address));
     const week = currentWeekKey();
     const weekChanged = calendarRef.current.week !== week;
     calendarRef.current = getCalendarKeys();
@@ -1962,8 +1441,7 @@ function useWalletAppController() {
 
       if (next.week !== prev.week) {
         setTxKeys(readPersistedTxKeys(wallet.address));
-        setChallengeResult(null);
-      }
+        }
 
       setPointsRevision((n) => n + 1);
     };
@@ -2028,10 +1506,8 @@ function useWalletAppController() {
         true
       );
       recordInAppTransaction(address, { notify: false });
-      recordCheckInPointsOnce(address);
       const awardStreak = Math.max(status.streak, expectedStreak, 1);
       if (awardStreak > 0) setStreak(awardStreak);
-      tryAwardCheckInWeeklyBonus(address, awardStreak);
       notifyPointsUpdated(address);
       setPointsRevision((n) => n + 1);
       if (txHash) {
@@ -2101,13 +1577,7 @@ function useWalletAppController() {
         if (referralRegistered) return;
         referralRegistered = true;
         const ref = readStoredReferrer();
-        void registerReferralJoin(address, ref).then((r) => {
-          if (r.bonusXp > 0) {
-            setReferralBonusXpForAddress(address, r.bonusXp);
-            setReferralBonusXp(r.bonusXp);
-            showToast(`🎉 +${r.bonusXp} referral XP!`, "");
-          }
-        });
+        void registerReferralJoin(address, ref);
       };
 
       let bgSyncStarted = false;
@@ -2138,7 +1608,7 @@ function useWalletAppController() {
               if (prev?.address.toLowerCase() !== address.toLowerCase()) {
                 return prev;
               }
-              return applyBasenameScore(prev, name);
+              return { ...prev, basename: name };
             });
           });
         }
@@ -2234,11 +1704,7 @@ function useWalletAppController() {
         priorBasename?: string | null
       ) => {
         // Full Alchemy / paymaster / smart-wallet history only after paid unlock.
-        if (!readAnalyticsUnlocked(address)) {
-          historyCompleteRef.current = false;
-          pendingHistorySyncRef.current = null;
-          return;
-        }
+        // Full history sync enabled
         if (result.historyComplete === true) {
           historyCompleteRef.current = true;
           pendingHistorySyncRef.current = null;
@@ -2285,38 +1751,8 @@ function useWalletAppController() {
         const skipBootstrap =
           balancesLockedRef.current === address.toLowerCase();
 
-        const unlocked = readAnalyticsUnlocked(address);
-
-        // Unpaid wallets: bootstrap shell only — never hit Alchemy history APIs.
-        if (!unlocked) {
-          setScanProgress("Loading wallet…");
-          const bootstrap = skipBootstrap
-            ? null
-            : await fetchWalletBootstrap(address).catch(() => null);
-          if (stale()) return;
-          if (bootstrap) {
-            mergeAndApply(bootstrap, ci);
-            if (background) lockWalletCore(bootstrap.wallet);
-          } else if (!skipBootstrap) {
-            failScan(
-              background
-                ? "Could not load wallet shell — retry connect"
-                : "❌ Could not load wallet data — check connection and retry"
-            );
-            return;
-          }
-          if (!background) {
-            setLoading(false);
-            setScanProgress("");
-          } else {
-            setAnalyticsSyncing(false);
-            setScanProgress("");
-          }
-          return;
-        }
-
-        // Paid unlock — Alchemy + Blockscout + paymaster / smart-wallet history.
-        setScanProgress(background ? "Loading score…" : "Calculating wallet score…");
+        // Alchemy + Blockscout + paymaster / smart-wallet history.
+        setScanProgress(background ? "Loading…" : "Analyzing wallet…");
         const [cached, bootstrap, quick] = await Promise.all([
           fetchWalletAnalysis(address, false),
           skipBootstrap ? Promise.resolve(null) : fetchWalletBootstrap(address),
@@ -2462,8 +1898,6 @@ function useWalletAppController() {
       persistWalletAddress(addr);
       clearWalletCache(addr);
       loadX402PremiumState(addr);
-      setMintedLevels(readPersistedMintedLevels(addr));
-
       // Enter app immediately — analytics continues in background.
       const shell = buildPendingWalletShell(addr);
       historyCompleteRef.current = false;
@@ -2485,10 +1919,6 @@ function useWalletAppController() {
         syncTabUrl(resumeTab, { token: resume.token ?? null });
       }
       if (resume.card) localStorage.setItem("base_redeem_card", resume.card);
-      if (resume.challenge) {
-        pendingChallengeRef.current = resume.challenge;
-        setChallenge(resume.challenge);
-      }
       clearGuestResume();
       setLoading(false);
       setScanProgress("Loading balance…");
@@ -2522,7 +1952,7 @@ function useWalletAppController() {
           if (basename) {
             setWallet((prev) =>
               prev?.address.toLowerCase() === addr.toLowerCase()
-                ? applyBasenameScore(prev, basename)
+                ? { ...prev, basename }
                 : prev
             );
           }
@@ -2562,9 +1992,8 @@ function useWalletAppController() {
   };
 
   const resetSessionState = useCallback(() => {
-    historySyncGen.current += 1;
     walletOpGenRef.current += 1;
-    balancesLockedRef.current = null;
+    historySyncGen.current += 1;
     pendingHistorySyncRef.current = null;
     historyCompleteRef.current = false;
     historySyncRunningRef.current = false;
@@ -2576,25 +2005,11 @@ function useWalletAppController() {
     setConnType(null);
     clearConnType();
     clearPersistedWalletAddress();
-    setMintedLevels({});
     setBoosts(0);
     setStreak(0);
     setCheckedToday(false);
     setTxKeys({ ...DEFAULT_TX_KEYS });
-    setWeeklyXP(0);
-    setReferralBonusXp(0);
-    setChallenge("");
-    setChallengeResult(null);
-    setPremiumUnlocked(false);
-    setPremiumData(null);
-    setPremiumInsights(null);
-    setFarcasterUnlocked(false);
-    setFarcasterUnlockLoading(false);
-    setAnalyticsUnlocked(false);
-    setAnalyticsUnlockLoading(false);
     setMiniAppIdentity(null);
-    setX402PayCount(0);
-    setX402Product("scan");
     setSponsored(0);
     setLaunchLoading(false);
     setSwapLoading(false);
@@ -2603,7 +2018,6 @@ function useWalletAppController() {
     setWalletRefreshing(false);
     setScanProgress("");
     pendingTx.current.clear();
-    x402Paying.current = false;
     handledActionTxs.current.clear();
     calendarRef.current = getCalendarKeys();
   }, []);
@@ -2611,15 +2025,12 @@ function useWalletAppController() {
   const handleDisconnect = () => {
     const address = wallet?.address;
     if (address) {
-      lockX402PremiumSession(address);
-      clearFarcasterUnlocked(address);
-      clearAnalyticsUnlocked(address);
+      clearWalletCache(address);
     }
     clearPersistedWalletAddress();
     void siweSignOut();
     resetSessionState();
   };
-
   const doNativeTx = async (type: "boost" | "gm" | "gn" | "checkin") => {
     if (!wallet) {
       showToast("❌ Connect your wallet first", "");
@@ -2701,265 +2112,14 @@ function useWalletAppController() {
     }
   };
 
-  const doNativeMint = async (
-    catId: string,
-    targetLevels: number[],
-    tokenIds: number[],
-    catName: string
-  ) => {
-    if (!wallet) return;
-    const pendingKey = `mint-${catId}`;
-    if (pendingTx.current.has(pendingKey)) return;
-    pendingTx.current.add(pendingKey);
-    setMinting(pendingKey);
-    try {
-      const isBatch = tokenIds.length > 1;
-      const call = isBatch
-        ? encodeContractCall(
-            ACHIEVEMENTS_CONTRACT as `0x${string}`,
-            ACHIEVEMENTS_ABI,
-            "mintBatchAchievements",
-            [tokenIds.map((id) => BigInt(id))]
-          )
-        : encodeContractCall(
-            ACHIEVEMENTS_CONTRACT as `0x${string}`,
-            ACHIEVEMENTS_ABI,
-            "mintAchievement",
-            [BigInt(tokenIds[0])]
-          );
-
-      const activeConn = await resolveActiveConnType(connType, wallet.address);
-      if (activeConn && activeConn !== connType) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
-      if (!activeConn) {
-        showToast("❌ Reconnect wallet to mint", "");
-        return;
-      }
-
-      const hash = await sendAppTransaction(activeConn, wallet.address, call);
-      recordInAppTransaction(wallet.address);
-      setMintedLevels((p) => {
-        const next = {
-          ...p,
-          [catId]: Math.max(...targetLevels),
-        };
-        writePersistedMintedLevels(wallet.address, next);
-        syncBadgeMintCountFromLevels(wallet.address, next);
-        return next;
-      });
-      const minted = tokenIds.length;
-      const badgeXp = recordBadgeMints(wallet.address, minted);
-      setTxKeys((p) => {
-        const next = {
-          ...p,
-          [`mint-${catId}`]: (p[`mint-${catId}`] || 0) + 1,
-        };
-        writePersistedTxKeys(wallet.address, next);
-        return next;
-      });
-      setSponsored((s) => s + 1);
-      setPointsRevision((n) => n + 1);
-      showToast(
-        isBatch
-          ? `✅ Claimed ${tokenIds.length} ${catName} badges! +${badgeXp} season XP`
-          : `✅ Badge minted! +${badgeXp} season XP`,
-        hash
-      );
-    } catch (e: unknown) {
-      const m =
-        e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
-      if (!m.toLowerCase().includes("reject")) showToast(`❌ ${m}`, "");
-    } finally {
-      pendingTx.current.delete(pendingKey);
-      setMinting(null);
-    }
-  };
-
-  const doAppBadgeMint = async (
-    catId: string,
-    targetLevels: number[],
-    tokenIds: number[],
-    catName: string
-  ) => {
-    if (!wallet) return false;
-    const pendingKey = `app-mint-${catId}`;
-    if (pendingTx.current.has(pendingKey)) return false;
-    pendingTx.current.add(pendingKey);
-    setMinting(pendingKey);
-    try {
-      const isBatch = tokenIds.length > 1;
-      const call = isBatch
-        ? encodeContractCall(
-            ACHIEVEMENTS_CONTRACT as `0x${string}`,
-            ACHIEVEMENTS_ABI,
-            "mintBatchAchievements",
-            [tokenIds.map((id) => BigInt(id))]
-          )
-        : encodeContractCall(
-            ACHIEVEMENTS_CONTRACT as `0x${string}`,
-            ACHIEVEMENTS_ABI,
-            "mintAchievement",
-            [BigInt(tokenIds[0])]
-          );
-
-      const activeConn = await resolveActiveConnType(connType, wallet.address);
-      if (activeConn && activeConn !== connType) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
-      if (!activeConn) {
-        showToast("❌ Reconnect wallet to mint", "");
-        return false;
-      }
-
-      const hash = await sendAppTransaction(activeConn, wallet.address, call);
-      recordInAppTransaction(wallet.address);
-
-      const prev = readAppBadgeLevels(wallet.address);
-      const next = {
-        ...prev,
-        [catId]: Math.max(...targetLevels),
-      };
-      writeAppBadgeLevels(wallet.address, next);
-
-      const badgeXp = recordAppBadgeClaims(wallet.address, tokenIds.length);
-      setSponsored((s) => s + 1);
-      setPointsRevision((n) => n + 1);
-      showToast(
-        isBatch
-          ? `✅ Minted ${tokenIds.length} ${catName} badges on-chain · +${badgeXp} season XP`
-          : `✅ ${catName} badge minted on-chain · +${badgeXp} season XP`,
-        hash
-      );
-      return true;
-    } catch (e: unknown) {
-      const m =
-        e instanceof Error ? e.message.split("\n")[0] : "Mint rejected.";
-      if (!m.toLowerCase().includes("reject")) showToast(`❌ ${m}`, "");
-      return false;
-    } finally {
-      pendingTx.current.delete(pendingKey);
-      setMinting(null);
-    }
-  };
-
-  const mintedCount = wallet ? sumMintedBadges(mintedLevels) : 0;
-  const ref = wallet ? getReferralCode(wallet.address) : "";
-
-  const openFarcasterShare = async (text: string, pageUrl: string) => {
-    if (sharingRef.current) return;
-    sharingRef.current = true;
-    try {
-      if (
-        connType === "farcaster" &&
-        typeof sdk.actions?.composeCast === "function"
-      ) {
-        await sdk.actions.composeCast({
-          text,
-          embeds: [pageUrl],
-          close: false,
-        });
-      } else {
-        window.open(warpcast(text, pageUrl), "_blank", "noopener,noreferrer");
-      }
-    } catch {
-      showToast("Share cancelled", "");
-    } finally {
-      setTimeout(() => {
-        sharingRef.current = false;
-      }, 2500);
-    }
-  };
-
-  const shareScore = (pl: "w" | "t" | "n") => {
-    if (!wallet || sharingRef.current) return;
-    const main = buildScoreShareText(wallet, streak, mintedCount);
-    const text = buildShareBody(main, ref);
-    const card = buildShareCardData(wallet, {
-      ref,
-      mintedCount,
-      streak,
-      weeklyXP,
-      boosts,
-      variant: "score",
-    });
-    const pageUrl = buildSharePageUrl(card, ref);
-    if (pl === "w") void openFarcasterShare(text, pageUrl);
-    else if (pl === "t") window.open(twitterShare(text, pageUrl), "_blank", "noopener,noreferrer");
-    else if (navigator.share)
-      navigator
-        .share({
-          title: "Base Analytics",
-          text,
-          url: pageUrl,
-        })
-        .catch(() => {});
-  };
-
-  const shareAch = (name: string, level: string, pl: "w" | "t") => {
-    if (!wallet || sharingRef.current) return;
-    const text = buildShareBody(buildBadgeShareText(name, level, wallet), ref);
-    const card = buildShareCardData(wallet, {
-      ref,
-      mintedCount,
-      streak,
-      weeklyXP,
-      boosts,
-      variant: "badge",
-      title: `${level} — ${name}`,
-      subtitle: `${wallet.score}/100 · ${mintedCount} badges on Base`,
-    });
-    const pageUrl = buildSharePageUrl(card, ref);
-    if (pl === "w") void openFarcasterShare(text, pageUrl);
-    else window.open(twitterShare(text, pageUrl), "_blank", "noopener,noreferrer");
-  };
-
-  const shareAll = (count: number, pl: "w" | "t") => {
-    if (!wallet || sharingRef.current) return;
-    const text = buildShareBody(buildBadgesShareText(count, wallet), ref);
-    const card = buildShareCardData(wallet, {
-      ref,
-      mintedCount: count,
-      streak,
-      weeklyXP,
-      boosts,
-      variant: "badge",
-      title: `${count} Badges Minted`,
-      subtitle: `${wallet.walletRank} · Score ${wallet.score}/100`,
-    });
-    const pageUrl = buildSharePageUrl(card, ref);
-    if (pl === "w") void openFarcasterShare(text, pageUrl);
-    else window.open(twitterShare(text, pageUrl), "_blank", "noopener,noreferrer");
-  };
-
-  const getAchievementValue = (id: string) =>
-    wallet ? getCatValue(wallet, boosts, id) : 0;
-
-  const questContext = wallet
-    ? buildAppQuestContext({
-        wallet,
-        streak,
-        checkedToday,
-        txKeys,
-        x402PayCount,
-        referralInvites,
-        didChallenge: Boolean(challengeResult),
-      })
-    : null;
-
-  const doneQuests = questContext
-    ? WEEKLY_QUESTS.filter((q) => q.check(questContext)).length
-    : 0;
-
   const walletScanComplete = Boolean(
     wallet &&
       !loading &&
       !analyticsSyncing &&
-      wallet.score > 0 &&
       wallet.recommendation !== "Fetching onchain data…"
   );
+
+  const ref = wallet ? getReferralCode(wallet.address) : "";
 
   return {
     wallet,
@@ -2969,8 +2129,6 @@ function useWalletAppController() {
     tab,
     setTab,
     minting,
-    mintedLevels,
-    setMintedLevels,
     ready,
     sessionBootstrapped,
     showModal,
@@ -2990,15 +2148,8 @@ function useWalletAppController() {
     checkedToday,
     setCheckedToday,
     setStreak,
-    leaderboard,
-    lbLoading,
-    challenge,
-    setChallenge,
-    challengeResult,
-    challengeLoading,
     refCopied,
     setRefCopied,
-    weeklyXP,
     scanProgress,
     walletRefreshing,
     analyticsSyncing,
@@ -3010,16 +2161,6 @@ function useWalletAppController() {
           miniApp: miniAppIdentity,
         })
       : "",
-    premiumUnlocked,
-    premiumLoading,
-    premiumData,
-    premiumInsights,
-    farcasterUnlocked,
-    farcasterUnlockLoading,
-    handleFarcasterUnlock,
-    analyticsUnlocked,
-    analyticsUnlockLoading,
-    handleAnalyticsUnlock,
     launchLoading,
     swapLoading,
     b20Activated,
@@ -3027,43 +2168,27 @@ function useWalletAppController() {
     handleTokenSwap,
     handleSeedLiquidity,
     handleUnwrapWeth,
-    x402Product,
-    setX402Product,
-    referralBonusXp,
     referralInvites,
-    questContext,
-    x402PayCount,
     boostCall,
     gmCall,
     gnCall,
     ciCall,
     txCaps,
-    mintedCount,
     ref,
     showToast,
-    handlePremiumScan,
-    handleChallenge,
     handleConnect,
     handleDisconnect,
     handleCheckInSuccess,
     handleBoostSuccess,
     syncCheckInStatus,
     doNativeTx,
-    doNativeMint,
-    doAppBadgeMint,
-    shareScore,
-    shareAch,
-    shareAll,
-    getAchievementValue,
-    doneQuests,
     pointsRevision,
     setPointsRevision,
     siweAuthenticated,
     siweSessionChecked,
     siweSigningIn,
     siweSignIn,
-    siweSignOut,
-  };
+    siweSignOut,  };
 }
 
 const WalletAppContext = createContext<WalletAppState | null>(null);

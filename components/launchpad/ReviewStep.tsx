@@ -11,6 +11,7 @@ import type { LaunchTokenType } from "@/lib/launchpad/types";
 import type { BaseStock } from "@/lib/stocks/base-stocks";
 import { formatReadablePrice } from "@/lib/launchpad/launch-configs";
 import TokenLogo from "@/components/ui/TokenLogo";
+import LaunchReadinessSimulator from "./LaunchReadinessSimulator";
 
 interface ReviewStepProps {
   launchType: LaunchTokenType;
@@ -59,7 +60,7 @@ export default function ReviewStep({
   seedLiquidityEth,
   liquidityLocked,
   lockDurationDays,
-  antiSnipeBlocks: _antiSnipeBlocks,
+  antiSnipeBlocks = 8,
   metadataEditable: _metadataEditable,
   startPriceUsd,
   ethUsd,
@@ -99,6 +100,19 @@ export default function ReviewStep({
           Review token specifications, distribution, and costs before confirming on Base.
         </p>
       </div>
+
+      {/* Pre-Flight Launch Readiness Simulator */}
+      <LaunchReadinessSimulator
+        params={{
+          poolReservePct,
+          creatorPct,
+          autoSeedLiquidity,
+          seedLiquidityEth,
+          liquidityLocked,
+          lockDurationDays,
+          antiSnipeBlocks,
+        }}
+      />
 
       {/* Main Review Card */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-4">

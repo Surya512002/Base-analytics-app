@@ -17,6 +17,7 @@ import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
 import SmartMoneyRadar from "./SmartMoneyRadar";
+import SmarterAlertsPanel from "@/components/alerts/SmarterAlertsPanel";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
@@ -374,6 +375,9 @@ export default function ExploreHub({
           if (matched) handleTrade(matched);
         }}
       />
+
+      {/* 3.5 SMARTER ALERTS (Whale swaps, yield spikes, liquidity drops, price targets) */}
+      <SmarterAlertsPanel walletAddress={userAddress} />
 
       {/* 4. MAIN EXPLORER SECTION */}
       <div ref={explorerRef} className="space-y-4 pt-2 scroll-mt-20">

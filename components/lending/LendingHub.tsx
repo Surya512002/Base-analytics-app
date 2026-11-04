@@ -37,6 +37,7 @@ import GaugesTable, { type GaugeRowData } from "./GaugesTable";
 import AssetDetailView from "./AssetDetailView";
 import ProtocolCompareHub from "./ProtocolCompareHub";
 import YieldCalculator from "./YieldCalculator";
+import YieldFinder from "./YieldFinder";
 import ActionDrawer, { type DrawerActionTab } from "./ActionDrawer";
 import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
@@ -490,52 +491,7 @@ export default function LendingHub({
         };
       });
 
-    if (liveVaults.length > 0) return liveVaults;
-
-    return [
-      {
-        id: "aero-cow-base-msftc-usdc-vault",
-        pairName: "MSFTc-USDC (Beefy Auto-Compounder)",
-        stockSymbol: "MSFTc",
-        category: "tech",
-        gaugeApr: 290.2,
-        tvlUsd: 70_411,
-        rewardToken: "BEEFY",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
-      },
-      {
-        id: "aero-cow-base-tslac-usdc-vault",
-        pairName: "TSLAc-USDC (Beefy Auto-Compounder)",
-        stockSymbol: "TSLAc",
-        category: "tech",
-        gaugeApr: 54.13,
-        tvlUsd: 50_839,
-        rewardToken: "BEEFY",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
-      },
-      {
-        id: "aero-cow-base-mstrc-usdc-vault",
-        pairName: "MSTRc-USDC (Beefy Auto-Compounder)",
-        stockSymbol: "MSTRc",
-        category: "crypto",
-        gaugeApr: 10.01,
-        tvlUsd: 1_886,
-        rewardToken: "BEEFY",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
-      },
-    ];
+    return liveVaults;
   }, [discoveredMarkets]);
 
   // 3. Live Stats Calculations for Header
@@ -714,10 +670,6 @@ export default function LendingHub({
     market: LendingMarket,
     action: "supply" | "withdraw" | "borrow" | "repay" | "stake" | "unstake"
   ) => {
-    if (guestMode && onRequestConnect) {
-      onRequestConnect();
-      return;
-    }
     setSelectedMarketModal(market);
     setMarketModalAction(action);
   };
@@ -729,69 +681,80 @@ export default function LendingHub({
     contractAddress?: string;
     marketId?: string;
   }) => {
-    if (guestMode && onRequestConnect) {
-      onRequestConnect();
+    const sym = option.stockSymbol || "NVDAc";
+    setSelectedStockSymbol(sym);
+
+    // 1. Direct match in BASE_LENDING_MARKETS (Beefy, Morpho, Moonwell, Aerodrome)
+    const matchedMarket =
+      BASE_LENDING_MARKETS.find(
+        (m) =>
+          (option.marketId && m.id === option.marketId) ||
+          (option.contractAddress &&
+            m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
+          (m.protocol.toLowerCase() === option.protocol.toLowerCase() &&
+            (!option.stockSymbol || m.asset.symbol.toLowerCase().includes(sym.toLowerCase())))
+      ) ||
+      BASE_LENDING_MARKETS.find(
+        (m) => m.protocol.toLowerCase() === option.protocol.toLowerCase()
+      );
+
+    if (matchedMarket) {
+      const isStake =
+        matchedMarket.category === "stocks_stake" ||
+        matchedMarket.contractType === "aerodrome_gauge";
+      handleOpenMarketModal(matchedMarket, isStake ? "stake" : "supply");
       return;
     }
 
-    const sym = option.stockSymbol || "NVDAc";
+    // 2. Aerodrome / Staking Gauge match in gaugeRows
+    const gaugeMatch = gaugeRows.find(
+      (g) =>
+        (option.marketId && g.id === option.marketId) ||
+        (option.contractAddress &&
+          g.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
+        g.stockSymbol?.toLowerCase() === sym.toLowerCase()
+    );
 
-    // 1. If it's Aerodrome / Staking Gauge
-    if (
-      option.protocol.toLowerCase().includes("aerodrome") ||
-      option.marketId?.startsWith("aero-")
-    ) {
+    if (gaugeMatch) {
       setMode("stake");
-      const gaugeMatch =
-        gaugeRows.find(
-          (g) =>
-            (option.marketId && g.id === option.marketId) ||
-            (option.contractAddress &&
-              g.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-            g.stockSymbol?.toLowerCase() === sym.toLowerCase()
-        ) || gaugeRows[0];
-
-      if (gaugeMatch) {
-        const market = BASE_LENDING_MARKETS.find(
-          (m) => m.contractAddress === gaugeMatch.contractAddress
-        ) ?? {
-          id: gaugeMatch.id,
-          name: `Stake ${gaugeMatch.pairName} Gauge`,
-          protocol: "aerodrome",
-          protocolLabel: "Aerodrome Finance",
-          protocolBadge: "Slipstream Gauge",
-          protocolAddress: gaugeMatch.contractAddress,
-          protocolUrl: "https://aerodrome.finance",
-          category: "stocks_stake",
-          asset: {
-            symbol: gaugeMatch.pairName,
-            name: gaugeMatch.pairName,
-            address: gaugeMatch.contractAddress,
-            decimals: 18,
-          },
-          supplyApy: gaugeMatch.gaugeApr,
-          stakingApr: gaugeMatch.gaugeApr,
-          tvlUsd: gaugeMatch.tvlUsd,
-          oracle: "Aerodrome TWAP",
-          contractAddress: gaugeMatch.contractAddress,
-          contractType: "aerodrome_gauge" as const,
-          builderAttributed: true,
-          isStockFocus: true,
-        };
-        handleOpenMarketModal(market, "stake");
-        return;
-      }
+      const isBeefyGauge = gaugeMatch.rewardToken === "BEEFY" || gaugeMatch.id.includes("beefy");
+      const gaugeMarket: LendingMarket = {
+        id: gaugeMatch.id,
+        name: `${gaugeMatch.pairName} ${isBeefyGauge ? "Auto-Vault" : "Staking Gauge"}`,
+        protocol: isBeefyGauge ? "beefy" : "aerodrome",
+        protocolLabel: isBeefyGauge ? "Beefy Finance" : "Aerodrome Finance",
+        protocolBadge: isBeefyGauge ? "Auto-Compounder" : "Slipstream Gauge",
+        protocolAddress: gaugeMatch.contractAddress,
+        protocolUrl: isBeefyGauge
+          ? `https://app.beefy.com/vault/${gaugeMatch.id.replace(/^beefy-/, "")}`
+          : "https://aerodrome.finance/pools",
+        category: "stocks_stake",
+        asset: {
+          symbol: gaugeMatch.pairName,
+          name: gaugeMatch.pairName,
+          address: gaugeMatch.contractAddress,
+          decimals: 18,
+          isStock: true,
+        },
+        supplyApy: gaugeMatch.gaugeApr,
+        stakingApr: gaugeMatch.gaugeApr,
+        tvlUsd: gaugeMatch.tvlUsd,
+        oracle: isBeefyGauge ? "Beefy Onchain Vault" : "Aerodrome TWAP",
+        contractAddress: gaugeMatch.contractAddress,
+        contractType: isBeefyGauge ? "beefy_vault" : "aerodrome_gauge",
+        builderAttributed: true,
+        isStockFocus: true,
+      };
+      handleOpenMarketModal(gaugeMarket, isBeefyGauge ? "supply" : "stake");
+      return;
     }
 
-    // 2. If it's a Stock Lending / Beefy / IPOR / Morpho / Aave market
+    // 3. Try to load options for Level 3 drawer
     try {
       setMode("lend");
-      setSelectedStockSymbol(sym);
-
       const res = await getUnifiedStockLendingComparison(sym);
       setComparison(res);
 
-      // Find the option matching the clicked protocol
       const matchedOption =
         res.options.find(
           (opt) =>
@@ -806,10 +769,10 @@ export default function LendingHub({
         return;
       }
     } catch (e) {
-      console.error("Failed to load options for yield calculator selection:", e);
+      console.warn("Failed to load options for yield calculator selection:", e);
     }
 
-    // 3. Fallback: Search in BASE_LENDING_MARKETS
+    // 4. Default fallback: Search in BASE_LENDING_MARKETS
     const fallbackMarket =
       BASE_LENDING_MARKETS.find(
         (m) =>
@@ -999,6 +962,18 @@ export default function LendingHub({
         onExploreVault={handleExploreYieldOption}
         onSelectOption={(protocol) => {
           handleExploreYieldOption({ protocol });
+        }}
+      />
+
+      {/* Yield Finder: Multi-Protocol Scanner & Risk Filter */}
+      <YieldFinder
+        markets={discoveredMarkets}
+        gaugeRows={gaugeRows}
+        stockRows={stockRows}
+        isConnected={isConnected}
+        onRequestConnect={onRequestConnect}
+        onSelectPool={(pool) => {
+          handleExploreYieldOption({ protocol: pool.protocol, marketId: pool.id });
         }}
       />
 

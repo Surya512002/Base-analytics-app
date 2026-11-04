@@ -15,20 +15,18 @@ export function appOgImage(bust = OG_VERSION): string {
 
 export function appOgWalletImage(wallet: {
   address: string;
-  score: number;
-  walletRank?: string;
   uniqueDays?: number;
   txCount?: number;
+  streak?: number;
   basename?: string | null;
 }): string {
   const p = new URLSearchParams({
-    v: "score",
     ogv: OG_VERSION,
-    score: String(wallet.score),
-    rank: wallet.walletRank ?? "Base",
     address: wallet.address,
     days: String(wallet.uniqueDays ?? 0),
+    activeDays: String(wallet.uniqueDays ?? 0),
     txs: String(wallet.txCount ?? 0),
+    streak: String(wallet.streak ?? 0),
   });
   if (wallet.basename) p.set("title", wallet.basename);
   return `${getAppUrl()}/api/og?${p.toString()}`;

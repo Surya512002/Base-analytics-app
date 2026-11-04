@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import { useI18n } from "@/lib/i18n/context";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface AppHeaderProps {
@@ -65,6 +67,23 @@ export default function AppHeader({
   );
 
   const profileHref = walletAddress ? `/creator/${walletAddress}` : "/profile";
+
+  const { t } = useI18n();
+
+  const getNavLabel = (navTab: AppTab, fallback: string) => {
+    switch (navTab) {
+      case "launchpad":
+        return t.nav.explore;
+      case "swap":
+        return t.nav.swap;
+      case "lend":
+        return t.nav.lend;
+      case "basehub":
+        return t.nav.vouchers;
+      default:
+        return fallback;
+    }
+  };
 
   // Account Menu dropdown state
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -116,7 +135,7 @@ export default function AppHeader({
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
             }`}
           >
-            {item.label}
+            {getNavLabel(item.tab, item.label)}
           </button>
         );
       })}
@@ -129,7 +148,7 @@ export default function AppHeader({
         }`}
         aria-current={isLaunch ? "page" : undefined}
       >
-        Launch
+        {t.nav.launch}
       </Link>
       <Link
         href={profileHref}
@@ -140,7 +159,7 @@ export default function AppHeader({
         }`}
         aria-current={isProfile ? "page" : undefined}
       >
-        Profile
+        {t.nav.profile}
       </Link>
     </>
   );
@@ -170,14 +189,15 @@ export default function AppHeader({
           {/* Right: ONE Unified Account Area */}
           <div className="flex shrink-0 items-center gap-2">
             {guest || !walletAddress ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <LanguageSelector />
                 <ThemeToggle />
                 <button
                   type="button"
                   onClick={onConnect}
                   className="btn-primary whitespace-nowrap px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
                 >
-                  <span>Connect wallet</span>
+                  <span>{t.actions.connectWallet}</span>
                 </button>
               </div>
             ) : (
@@ -242,6 +262,11 @@ export default function AppHeader({
                         <span className="font-bold text-[var(--brand-text)] bg-[var(--brand-soft)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full text-[10px]">
                           Base Mainnet
                         </span>
+                      </div>
+
+                      <div className="flex items-center justify-between px-2 py-1 text-[var(--ink-muted)]">
+                        <span>Language</span>
+                        <LanguageSelector />
                       </div>
 
                       <div className="flex items-center justify-between px-2 py-1 text-[var(--ink-muted)]">

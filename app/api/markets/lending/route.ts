@@ -210,21 +210,25 @@ export async function GET(req: Request) {
   const totalTvlUsd = markets.reduce((acc, m) => acc + m.tvlUsd, 0);
   const stockMarketsCount = markets.filter((m) => m.isStockFocus).length;
 
-  return NextResponse.json(
-    {
-      markets,
-      summary: {
-        totalMarkets: markets.length,
-        stockMarketsCount,
-        totalTvlUsd,
-        builderCode: BUILDER_CODE,
-        attributionStatus: "active",
-        network: "Base Mainnet (8453)",
+  return new NextResponse(
+    JSON.stringify(
+      {
+        markets,
+        summary: {
+          totalMarkets: markets.length,
+          stockMarketsCount,
+          totalTvlUsd,
+          builderCode: BUILDER_CODE,
+          attributionStatus: "active",
+          network: "Base Mainnet (8453)",
+        },
       },
-    },
+      (_key, value) => (typeof value === "bigint" ? value.toString() : value)
+    ),
     {
       status: 200,
       headers: {
+        "Content-Type": "application/json",
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
     }

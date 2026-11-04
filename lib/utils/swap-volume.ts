@@ -1,6 +1,5 @@
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import {
-  ACHIEVEMENTS_CONTRACT,
   BOOSTER_CONTRACT,
   CHECKIN_CONTRACT,
   GM_GN_CONTRACT,
@@ -54,7 +53,6 @@ const APP_CONTRACTS = new Set(
     GM_GN_CONTRACT,
     BOOSTER_CONTRACT,
     CHECKIN_CONTRACT,
-    ACHIEVEMENTS_CONTRACT,
   ].map((a) => a.toLowerCase())
 );
 

@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
-import { MONTH_NAMES } from "@/lib/constants/season";
 import type { DayStats } from "@/lib/types/wallet";
+
+export const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 export interface HeatmapColumn {
   days: (DayStats | null)[];

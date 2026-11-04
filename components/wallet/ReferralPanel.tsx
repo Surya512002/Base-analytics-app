@@ -13,7 +13,6 @@ interface ReferralPanelProps {
 export default function ReferralPanel({ address }: ReferralPanelProps) {
   const [copied, setCopied] = useState(false);
   const [invites, setInvites] = useState(0);
-  const [bonusXp, setBonusXp] = useState(0);
 
   const code = getReferralCode(address);
   const link = `${APP_URL_WEB}/?ref=${code}`;
@@ -21,7 +20,6 @@ export default function ReferralPanel({ address }: ReferralPanelProps) {
   useEffect(() => {
     void fetchReferralStats(address).then((s) => {
       setInvites(s.invites);
-      setBonusXp(s.bonusXp);
     });
   }, [address]);
 

@@ -1,13 +1,13 @@
 /**
  * Smart Money Radar Store
  * Allows users to follow high-performing Base wallets and track their recent token purchases.
+ * Works seamlessly in browser (localStorage) and Node/testing environments (in-memory).
  */
 
 export interface SmartMoneyWallet {
   address: string;
   label: string;
-  winRatePct?: number;
-  totalPnlUsd?: number;
+  tag: string;
   isPreset?: boolean;
 }
 
@@ -18,40 +18,67 @@ export interface SmartMoneyBuyEvent {
   tokenAddress: string;
   tokenSymbol: string;
   amount: string;
-  usdValue: number;
+  usdValue: number | null;
   timestamp: number;
 }
 
 export const PRESET_SMART_MONEY: SmartMoneyWallet[] = [
   {
     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-    label: "vitalik.eth (Base Holdings)",
-    winRatePct: 92,
-    totalPnlUsd: 120_000,
+    label: "vitalik.eth (Base Active)",
+    tag: "Ecosystem Whale",
     isPreset: true,
   },
   {
     address: "0x3799cafa388da047cAF7c999e31c844705FadfAe",
-    label: "Top Base Liquidity Pioneer",
-    winRatePct: 84,
-    totalPnlUsd: 48_500,
+    label: "Aerodrome Liquidity Provider",
+    tag: "Aerodrome Top LP",
     isPreset: true,
   },
   {
     address: "0x8bcB8044719c6e1C526f76c8C4a5c531D279326F",
     label: "Base Ecosystem Alpha",
-    winRatePct: 79,
-    totalPnlUsd: 35_200,
+    tag: "Base DEX Trader",
     isPreset: true,
   },
 ];
 
 const STORAGE_KEY = "base_smart_money_followed_wallets";
 
+let memoryStorage: Record<string, string> = {};
+
+export function _resetMemoryStoreForTesting(): void {
+  memoryStorage = {};
+}
+
+function getItem(key: string): string | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return memoryStorage[key] ?? null;
+    }
+  }
+  return memoryStorage[key] ?? null;
+}
+
+function setItem(key: string, value: string): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      localStorage.setItem(key, value);
+      return;
+    } catch {
+      memoryStorage[key] = value;
+      return;
+    }
+  }
+  memoryStorage[key] = value;
+}
+
 export function readFollowedSmartMoney(userWallet?: string | null): SmartMoneyWallet[] {
-  if (typeof window === "undefined") return PRESET_SMART_MONEY;
   try {
-    const raw = localStorage.getItem(`${STORAGE_KEY}_${userWallet?.toLowerCase() ?? "guest"}`);
+    const key = `${STORAGE_KEY}_${userWallet?.toLowerCase() ?? "guest"}`;
+    const raw = getItem(key);
     if (!raw) return PRESET_SMART_MONEY;
     const custom = JSON.parse(raw) as SmartMoneyWallet[];
     return [...PRESET_SMART_MONEY, ...custom];
@@ -62,30 +89,32 @@ export function readFollowedSmartMoney(userWallet?: string | null): SmartMoneyWa
 
 export function followSmartMoney(
   userWallet: string | null | undefined,
-  wallet: { address: string; label?: string }
+  wallet: { address: string; label?: string; tag?: string }
 ): SmartMoneyWallet[] {
-  if (typeof window === "undefined") return PRESET_SMART_MONEY;
   try {
     const key = `${STORAGE_KEY}_${userWallet?.toLowerCase() ?? "guest"}`;
-    const raw = localStorage.getItem(key);
+    const raw = getItem(key);
     const existing: SmartMoneyWallet[] = raw ? JSON.parse(raw) : [];
     const addr = wallet.address.toLowerCase();
 
-    if (existing.some((w) => w.address.toLowerCase() === addr)) {
+    // Check if already in presets or custom
+    if (
+      PRESET_SMART_MONEY.some((w) => w.address.toLowerCase() === addr) ||
+      existing.some((w) => w.address.toLowerCase() === addr)
+    ) {
       return [...PRESET_SMART_MONEY, ...existing];
     }
 
-    const updated = [
+    const updated: SmartMoneyWallet[] = [
       ...existing,
       {
         address: wallet.address,
-        label: wallet.label || `Whale ${wallet.address.slice(0, 6)}`,
-        winRatePct: 75,
-        totalPnlUsd: 10_000,
+        label: wallet.label || `Whale ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`,
+        tag: wallet.tag || "Tracked Wallet",
         isPreset: false,
       },
     ];
-    localStorage.setItem(key, JSON.stringify(updated));
+    setItem(key, JSON.stringify(updated));
     return [...PRESET_SMART_MONEY, ...updated];
   } catch {
     return PRESET_SMART_MONEY;
@@ -96,14 +125,13 @@ export function unfollowSmartMoney(
   userWallet: string | null | undefined,
   address: string
 ): SmartMoneyWallet[] {
-  if (typeof window === "undefined") return PRESET_SMART_MONEY;
   try {
     const key = `${STORAGE_KEY}_${userWallet?.toLowerCase() ?? "guest"}`;
-    const raw = localStorage.getItem(key);
+    const raw = getItem(key);
     if (!raw) return PRESET_SMART_MONEY;
     const existing: SmartMoneyWallet[] = JSON.parse(raw);
     const updated = existing.filter((w) => w.address.toLowerCase() !== address.toLowerCase());
-    localStorage.setItem(key, JSON.stringify(updated));
+    setItem(key, JSON.stringify(updated));
     return [...PRESET_SMART_MONEY, ...updated];
   } catch {
     return PRESET_SMART_MONEY;
