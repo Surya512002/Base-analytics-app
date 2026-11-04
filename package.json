@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:live": "vitest run --include '**/*.live.test.ts'",
     "test:e2e": "playwright test",
     "screenshots:dashboard": "PLAYWRIGHT_SKIP_SERVER=1 SCREENSHOT_BASE_URL=https://base-analytics-app.vercel.app playwright test e2e/capture-dashboard-screenshots.spec.ts",
     "thumbnail:generate": "node scripts/generate-app-thumbnail.mjs --local",

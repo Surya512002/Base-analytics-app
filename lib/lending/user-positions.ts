@@ -503,6 +503,49 @@ export async function readAavePositions(
 export async function fetchAllUserPositions(
   userAddress: `0x${string}`
 ): Promise<PositionsFetchResult> {
+  const isMockEnabled =
+    typeof process !== "undefined" &&
+    process.env.NEXT_PUBLIC_USE_MOCK_POSITIONS === "true";
+
+  if (isMockEnabled) {
+    return {
+      positions: [
+        {
+          id: "mock-beefy-nvda",
+          protocol: "beefy",
+          protocolName: "Beefy Finance",
+          protocolBadge: "Demo Vault",
+          marketId: "mock-beefy-nvda",
+          marketName: "NVDAc-USDC Auto-Compounder",
+          assetSymbol: "NVDAc",
+          assetName: "NVIDIA Corp (Coinbase B20)",
+          assetAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
+          type: "supplied",
+          suppliedAmount: 5.0,
+          borrowedAmount: 200.0,
+          suppliedFormatted: "5.0000 NVDAc",
+          borrowedFormatted: "200.00 USDC",
+          suppliedUsd: 691.25,
+          borrowedUsd: 200.0,
+          apy: 0,
+          apr: 0,
+          healthFactor: 2.66,
+          ltv: 28.9,
+          liquidationPrice: 51.95,
+          explorerUrl: "https://basescan.org/address/0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
+          contractAddress: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
+          canAdd: true,
+          canWithdraw: true,
+          canBorrow: false,
+          canRepay: false,
+        },
+      ],
+      errors: {},
+      timestamp: Date.now(),
+      isMockData: true,
+    };
+  }
+
   const errors: Record<string, string> = {};
   const allPositions: UserProtocolPosition[] = [];
 
