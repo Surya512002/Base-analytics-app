@@ -4,8 +4,8 @@ import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import { VERIFIED_IPOR_STOCK_VAULTS, AAVE_EQUITIES_SUPPORTED_STOCKS } from "@/lib/lending/unified-comparison";
 
 describe("IPOR Fusion Markets & Canonical Stocks Verification", () => {
-  it("verifies BASE_STOCKS has exactly 8 canonical stocks", () => {
-    expect(BASE_STOCKS.length).toBe(8);
+  it("verifies BASE_STOCKS has canonical stocks including SpaceX", () => {
+    expect(BASE_STOCKS.length).toBe(9);
     const symbols = BASE_STOCKS.map((s) => s.symbol);
     expect(symbols).toEqual([
       "NVDAc",
@@ -16,6 +16,7 @@ describe("IPOR Fusion Markets & Canonical Stocks Verification", () => {
       "AMZNc",
       "METAc",
       "COINc",
+      "SPCXc",
     ]);
   });
 
@@ -33,6 +34,7 @@ describe("IPOR Fusion Markets & Canonical Stocks Verification", () => {
     expect(iporSymbols).not.toContain("TSLAc");
     expect(iporSymbols).not.toContain("AMZNc");
     expect(iporSymbols).not.toContain("COINc");
+    expect(iporSymbols).not.toContain("SPCXc");
   });
 
   it("verifies stockRows protocol matching gives exactly 4 stocks with IPOR Fusion", () => {

@@ -79,9 +79,9 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aaveOpt.sourceLink).toContain("pro.aave.com");
   });
 
-  it("verifies Aave Pro Equities supports the 7 collateral stocks and excludes unlisted equities", async () => {
-    expect(AAVE_EQUITIES_SUPPORTED_STOCKS.size).toBe(7);
-    for (const sym of ["NVDAc", "AAPLc", "MSFTc", "TSLAc", "AMZNc", "GOOGLc", "METAc"]) {
+  it("verifies Aave Pro Equities supports the 8 collateral stocks and excludes unlisted equities", async () => {
+    expect(AAVE_EQUITIES_SUPPORTED_STOCKS.size).toBe(8);
+    for (const sym of ["NVDAc", "AAPLc", "MSFTc", "TSLAc", "AMZNc", "GOOGLc", "METAc", "SPCXc"]) {
       expect(AAVE_EQUITIES_SUPPORTED_STOCKS.has(sym)).toBe(true);
     }
     expect(AAVE_EQUITIES_SUPPORTED_STOCKS.has("COINc")).toBe(false);
@@ -91,6 +91,12 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aave).toBeDefined();
     expect(aave?.maxLtv).toBe(75);
     expect(aave?.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
+
+    const spcxComp = await getUnifiedStockLendingComparison("SPCXc");
+    const spcxAave = spcxComp.options.find((o) => o.protocol === "aave");
+    expect(spcxAave).toBeDefined();
+    expect(spcxAave?.maxLtv).toBe(75);
+    expect(spcxAave?.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
 
     const coinComp = await getUnifiedStockLendingComparison("COINc", undefined, true);
     expect(coinComp.options.find((o) => o.protocol === "aave")).toBeUndefined();

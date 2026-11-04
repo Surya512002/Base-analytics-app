@@ -163,8 +163,8 @@ export default function LendingHub({
         const pub = createBasePublicClient();
         const user = userAddress as `0x${string}`;
 
-        // Top 8 stocks to keep RPC lightweight
-        const topStocks = BASE_STOCKS.slice(0, 8);
+        // Canonical stocks to query balances
+        const topStocks = BASE_STOCKS;
         const calls = topStocks.map((stk) =>
           pub
             .readContract({
@@ -284,7 +284,11 @@ export default function LendingHub({
       const aaveMkt = matchingMarkets.find((m) => m.protocol === "aave");
       const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol);
       const hasAave = Boolean(aaveMkt || isAaveSupported);
-      const isHighBeta = stk.symbol === "TSLAc" || stk.symbol === "NVDAc" || stk.symbol === "MSTRc";
+      const isHighBeta =
+        stk.symbol === "TSLAc" ||
+        stk.symbol === "NVDAc" ||
+        stk.symbol === "MSTRc" ||
+        stk.symbol === "SPCXc";
       const aaveSupplyApy = aaveMkt?.supplyApy ?? (isAaveSupported ? (isHighBeta ? 5.25 : 4.60) : 0);
       const aaveBorrowApr = aaveMkt?.borrowApr ?? (isAaveSupported ? (isHighBeta ? 3.75 : 3.45) : null);
       const aaveLiquidity = aaveMkt?.liquidityUsd || (isAaveSupported ? 14_800_000 : 0);

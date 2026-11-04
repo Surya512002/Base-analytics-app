@@ -115,7 +115,7 @@ export function filterAndSortYieldPools(
           return false;
         }
       } else if (assetCategory === "stocks") {
-        if (!pool.isStock && !pool.assetSymbol.endsWith("c")) {
+        if (!pool.isStock) {
           return false;
         }
       }

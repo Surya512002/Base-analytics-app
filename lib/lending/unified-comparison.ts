@@ -108,7 +108,7 @@ export interface UserStockPortfolioSummary {
 const comparisonCache = new Map<string, { data: StockLendingComparison; timestamp: number }>();
 const CACHE_TTL_MS = 15_000; // 15 seconds near real-time cache
 
-/** Known verified 7 tokenized stocks supported as collateral on Aave Pro (pro.aave.com/explore/borrow) */
+/** Known verified tokenized stocks supported as collateral on Aave Pro (pro.aave.com/explore/borrow) */
 export const AAVE_EQUITIES_SUPPORTED_STOCKS = new Set([
   "NVDAc",
   "AAPLc",
@@ -117,6 +117,7 @@ export const AAVE_EQUITIES_SUPPORTED_STOCKS = new Set([
   "AMZNc",
   "GOOGLc",
   "METAc",
+  "SPCXc",
 ]);
 
 /** Canonical protocol addresses for Base mainnet equities */
@@ -413,11 +414,23 @@ export async function getUnifiedStockLendingComparison(
   void _oracleFeed;
 
   // Default baseline rates tailored by equity volatility profile
-  const isHighBeta = cleanSymbol === "TSLAc" || cleanSymbol === "NVDAc" || cleanSymbol === "MSTRc";
+  const isHighBeta =
+    cleanSymbol === "TSLAc" ||
+    cleanSymbol === "NVDAc" ||
+    cleanSymbol === "MSTRc" ||
+    cleanSymbol === "SPCXc";
   const isBlueChip = cleanSymbol === "AAPLc" || cleanSymbol === "MSFTc" || cleanSymbol === "GOOGLc";
 
   // Reference NAV
-  const navUsd = isHighBeta ? (cleanSymbol === "NVDAc" ? 138.25 : 221.8) : isBlueChip ? 232.5 : 125.0;
+  const navUsd = isHighBeta
+    ? cleanSymbol === "NVDAc"
+      ? 138.25
+      : cleanSymbol === "SPCXc"
+        ? 145.0
+        : 221.8
+    : isBlueChip
+      ? 232.5
+      : 125.0;
 
   // Load real discovered markets from Base multi-protocol discovery engine
   // Load real discovered markets with timeout guard to prevent test hangs
