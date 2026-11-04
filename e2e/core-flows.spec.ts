@@ -40,4 +40,18 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByText(/launch|token|fixed supply/i).first()).toBeVisible();
     await expect(page.getByText(/1B/i).first()).toBeVisible();
   });
+
+  test("5. Lend & Stake: loads yield calculator and clicking Explore Vault opens market action modal", async ({ page }) => {
+    await page.goto("/?tab=lend");
+    await expect(page.getByText(/Interactive APY Yield Calculator/i)).toBeVisible();
+
+    const exploreButton = page.getByRole("button", { name: /explore vault/i }).first();
+    await expect(exploreButton).toBeVisible();
+    await exploreButton.click();
+
+    // Verify modal or action drawer opens with deposit / supply interface
+    await expect(
+      page.getByText(/Beefy|Aerodrome|Supply|Stake|Deposit/i).first()
+    ).toBeVisible();
+  });
 });

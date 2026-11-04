@@ -16,6 +16,8 @@ export function getBaselineVerifiedMarkets(): NormalizedMarket[] {
       m.protocol === "beefy" ? "beefy" :
       m.protocol === "aerodrome" ? "aerodrome" :
       m.protocol === "ipor" ? "ipor" :
+      m.protocol === "morpho" ? "morpho" :
+      m.protocol === "moonwell" ? "moonwell" :
       m.protocol === "aave" ? "aave" : "aerodrome"
     ) as import("./types").DiscoveryProtocol;
 
