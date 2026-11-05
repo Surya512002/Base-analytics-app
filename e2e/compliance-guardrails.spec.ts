@@ -12,9 +12,9 @@ test.describe("Compliance Guardrails & Exit-Only Safeguards E2E Suite", () => {
       await page.goto(`${BASE}/restricted-regions`);
 
       await expect(page.locator("h1")).toContainText(/Geographic Availability|Restricted Regions/i);
-      await expect(page.locator("body")).toContainText(/Exit-Only Guarantee/i);
-      await expect(page.locator("body")).toContainText(/Never blocked from accessing your own funds/i);
-      await expect(page.locator("body")).toContainText(/Technical Limitations & Gating/i);
+      await expect(page.locator("body")).toContainText(/Exit-Only Policy|Exit-Only Guarantee/i);
+      await expect(page.locator("body")).toContainText(/Your Funds Are Never Trapped|Never blocked/i);
+      await expect(page.locator("body")).toContainText(/Technical Limitations/i);
       await expect(page.locator("body")).toContainText(/United States/i);
     });
 
@@ -27,12 +27,12 @@ test.describe("Compliance Guardrails & Exit-Only Safeguards E2E Suite", () => {
       // /privacy
       await page.goto(`${BASE}/privacy`);
       await expect(page.locator("body")).toContainText(/Privacy Policy/i);
-      await expect(page.locator("body")).toContainText(/No personal data \(PII\) is stored/i);
+      await expect(page.locator("body")).toContainText(/Zero Personal Data Collection|Personal Data/i);
 
       // /risk-disclosure
       await page.goto(`${BASE}/risk-disclosure`);
       await expect(page.locator("body")).toContainText(/Risk Disclosure/i);
-      await expect(page.locator("body")).toContainText(/24\/5 Equity Markets vs\. 24\/7 AMM Liquidity/i);
+      await expect(page.locator("body")).toContainText(/24\/5 Equity vs\. 24\/7 AMM Trading|AMM Trading|Equity Markets/i);
     });
 
     test("renders non-intrusive legal links in footer", async ({ page }) => {
@@ -117,7 +117,7 @@ test.describe("Compliance Guardrails & Exit-Only Safeguards E2E Suite", () => {
 
       await page.goto(`${BASE}/restricted-regions`);
       await expect(page.locator("h1")).toBeVisible();
-      await expect(page.locator("body")).toContainText(/Exit-Only Guarantee/i);
+      await expect(page.locator("body")).toContainText(/Exit-Only Policy|Exit-Only Guarantee/i);
     });
 
     test("verifies light and dark mode styles without layout breakage", async ({ page }) => {

@@ -185,35 +185,37 @@ export default function StockNavTracker({
               <span className="text-[10px] text-[var(--ink-dim)]">Tracking Variance</span>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Market Hours Warning & Custody Attestation */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-[var(--ink-muted)]">
-            <div className="flex items-center gap-1.5">
-              <Info size={13} className="text-[var(--brand-text)] shrink-0" />
-              <span>{comparison.marketHoursNote}</span>
-            </div>
+      {/* Market Hours Warning & Custody Attestation */}
+      {comparison && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-[var(--ink-muted)]">
+          <div className="flex items-center gap-1.5">
+            <Info size={13} className="text-[var(--brand-text)] shrink-0" />
+            <span>{comparison.marketHoursNote}</span>
+          </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <a
-                href={comparison.attestationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[var(--brand-text)] hover:underline font-bold text-[11px]"
-              >
-                <ShieldCheck size={13} />
-                <span>Custody Attestations</span>
-                <ExternalLink size={10} />
-              </a>
-              <a
-                href={comparison.explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[var(--ink-muted)] hover:text-[var(--ink)] text-[11px]"
-              >
-                <span>BaseScan</span>
-                <ExternalLink size={10} />
-              </a>
-            </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <a
+              href={comparison.attestationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[var(--brand-text)] hover:underline font-bold text-[11px]"
+            >
+              <ShieldCheck size={13} />
+              <span>Custody Attestations</span>
+              <ExternalLink size={10} />
+            </a>
+            <a
+              href={comparison.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[var(--ink-muted)] hover:text-[var(--ink)] text-[11px]"
+            >
+              <span>BaseScan</span>
+              <ExternalLink size={10} />
+            </a>
           </div>
         </div>
       )}

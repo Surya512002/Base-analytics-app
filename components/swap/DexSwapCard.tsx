@@ -966,7 +966,7 @@ export default function DexSwapCard({
               )}
               {to && to.kind === "token" && to.symbol.endsWith("c") && (
                 <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
-                  Coinbase B20 Equity
+                  Coinbase B20 Equity{stockTradability?.status === "tradable" ? " · Tradable" : ""}
                 </span>
               )}
             </div>
@@ -1203,7 +1203,7 @@ export default function DexSwapCard({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 font-bold underline shrink-0 hover:opacity-80"
               >
-                <span>Pool</span>
+                <span>BaseScan</span>
                 <ExternalLink size={11} />
               </a>
             )}
