@@ -5,7 +5,6 @@ import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
 import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
-import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
   formatWalletDisplayLabel,
   persistMiniAppIdentity,
@@ -16,39 +15,22 @@ import {
 import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import {
   fetchCheckInStatus,
-  patchCheckInInWalletCache,
   readLocalCheckInToday,
-  recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
 import { clearWalletCache } from "@/lib/utils/wallet-cache";
 import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
-import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
-import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import {
-  BOOSTER_ABI,
-  BOOSTER_CONTRACT,
-  CHECKIN_ABI,
-  CHECKIN_CONTRACT,
-  GM_GN_ABI,
-  GM_GN_CONTRACT,
-} from "@/lib/constants/contracts";
-import {
   getCalendarKeys,
-  msUntilNextUtcDay,
 } from "@/lib/utils/calendar-rollover";
 import { getCapabilities } from "@/lib/utils/paymaster";
 import {
-  buildShareBody,
   getReferralCode,
-  twitterShare,
-  warpcast,
 } from "@/lib/utils/share";
 import {
   clearConnType,
-  inferConnType,
   persistConnType,
   readConnType,
   resolveActiveConnType,
@@ -59,32 +41,23 @@ import {
   persistWalletAddress,
   readPersistedWalletAddress,
 } from "@/lib/utils/wallet-persist";
-import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
   readStoredReferrer,
   registerReferralJoin,
   fetchReferralStats,
   storeReferrer,
 } from "@/lib/utils/referral";
-import { loadLocalBatches } from "@/lib/utils/voucher";
-import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
-  bumpBoostCount,
   bumpWeeklyTxKey,
   currentWeekKey,
-  DEFAULT_TX_KEYS,
   deriveTxKeysFromAnalysis,
   ensureSessionStorageVersion,
   mergeTxKeyCounters,
-  readPersistedTxKeys,
   syncSessionFromAnalysis,
-  writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
-import { writeLocalBoostTime, writeLocalGmTime, writeLocalGnTime } from "@/lib/utils/daily-actions";
+import { writeLocalGmTime, writeLocalGnTime } from "@/lib/utils/daily-actions";
 import {
   recordConfirmedInAppAction,
-  recordInAppTransaction,
-  notifyPointsUpdated,
 } from "@/lib/utils/daily-points";
 import { sendAppTransaction } from "@/lib/utils/send-app-tx";
 import { syncTabUrl, resolveTabFromUrl } from "@/lib/utils/app-url";
@@ -120,20 +93,15 @@ function useWalletAppController() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<AppTab>("launchpad");
   const [minting, setMinting] = useState<string | null>(null);
-  const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selDay, setSelDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sharingRef = useRef(false);
   const pendingTx = useRef<Set<string>>(new Set());
   const connectingRef = useRef(false);
   const autoResumeRef = useRef(false);
   const historySyncGen = useRef(0);
-  const pendingChallengeRef = useRef<string | null>(null);
   const latestDaysRef = useRef(0);
-  const x402Paying = useRef(false);
-  const handledActionTxs = useRef<Set<string>>(new Set());
   const calendarRef = useRef(getCalendarKeys());
   const lockWalletCoreRef = useRef<(w: WalletData) => void>(() => {});
   const analyzeWalletRef = useRef<(address: string, opts?: { background?: boolean }) => Promise<void>>(() => Promise.resolve());
@@ -430,12 +398,13 @@ function useWalletAppController() {
 
 
 
+  const currentWalletAddress = wallet?.address;
   useEffect(() => {
-    if (!wallet) return;
-    void fetchReferralStats(wallet.address).then((s) => {
+    if (!currentWalletAddress) return;
+    void fetchReferralStats(currentWalletAddress).then((s) => {
       setReferralInvites(s.invites);
     });
-  }, [wallet?.address]);
+  }, [currentWalletAddress]);
 
   const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
     const address = result.wallet.address;
@@ -478,7 +447,7 @@ function useWalletAppController() {
     if (typeof window !== "undefined") {
       localStorage.setItem("base_has_connected", "1");
     }
-  }, []);
+  }, [setStreak, setCheckedToday, setBoosts, setWallet, setTxKeys]);
 
   const lockWalletCore = useCallback((w: WalletData) => {
     balancesLockedRef.current = w.address.toLowerCase();
@@ -492,7 +461,10 @@ function useWalletAppController() {
     setWalletRefreshing(false);
     setScanProgress("");
   }, []);
-  lockWalletCoreRef.current = lockWalletCore;
+
+  useEffect(() => {
+    lockWalletCoreRef.current = lockWalletCore;
+  }, [lockWalletCore]);
 
   const analyzeWallet = useCallback(
     async (address: string, opts?: { background?: boolean }) => {
@@ -820,7 +792,10 @@ function useWalletAppController() {
     },
     [applyAnalysis, loadX402PremiumState, lockWalletCore, showToast]
   );
-  analyzeWalletRef.current = analyzeWallet;
+
+  useEffect(() => {
+    analyzeWalletRef.current = analyzeWallet;
+  }, [analyzeWallet]);
 
   const handleConnect = async (type: ConnectionType) => {
     if (connectingRef.current) return;
