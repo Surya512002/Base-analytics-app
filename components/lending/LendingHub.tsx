@@ -61,7 +61,16 @@ export default function LendingHub({
   const isConnected = !!userAddress;
 
   // Level & Navigation state
-  const [activeTab, setActiveTab] = useState<LendingViewTab>("stocks");
+  const [activeTab, setActiveTab] = useState<LendingViewTab>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get("view");
+      if (v === "finder" || v === "vaults" || v === "compare" || v === "stocks") {
+        return v;
+      }
+    }
+    return "stocks";
+  });
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(initialStock ?? null);
 
   // Level 2 data

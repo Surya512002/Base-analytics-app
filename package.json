@@ -18,7 +18,7 @@
     "thumbnail:generate:prod": "node scripts/generate-app-thumbnail.mjs",
     "test:swap-routes": "node scripts/test-swap-routes.mjs",
     "test:swap-routes:local": "node scripts/test-swap-routes.mjs --local",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node --max-semi-space-size=128 --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",
     "audit": "npm audit --omit=dev",
     "secrets:scan": "node scripts/scan-secrets.mjs",
     "secrets:gitleaks": "docker run --rm -v \"$PWD:/repo\" zricethezav/gitleaks:latest detect --source /repo || node scripts/scan-secrets.mjs",
