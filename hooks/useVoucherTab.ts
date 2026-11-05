@@ -1328,6 +1328,19 @@ export function useVoucherTab(app: WalletAppState) {
       }
       attempts += 1;
       void (async () => {
+        try {
+          const client = publicClient ?? createPublicOnlyBaseClient();
+          const receipt = await client.getTransactionReceipt({ hash: fundTx as `0x${string}` });
+          if (receipt && receipt.status === "reverted") {
+            window.clearInterval(interval);
+            setConfirmingDeposit(false);
+            showToast("❌ Deposit transaction reverted on Base.", fundTx);
+            return;
+          }
+        } catch {
+          /* receipt may not be mined yet */
+        }
+
         const shown = await onCreateSuccess(fundTx);
         if (shown || createHandledRef.current || escalated) return;
         if (attempts >= escalateAfter) {
@@ -1639,6 +1652,23 @@ export function useVoucherTab(app: WalletAppState) {
           hash
         );
       } else {
+        const client = publicClient ?? createPublicOnlyBaseClient();
+        let isReverted = false;
+        try {
+          const receipt = await client.getTransactionReceipt({ hash: hash as `0x${string}` });
+          if (receipt && receipt.status === "reverted") {
+            isReverted = true;
+          }
+        } catch {
+          /* receipt may still be pending */
+        }
+
+        if (isReverted) {
+          setConfirmingDeposit(false);
+          showToast("❌ Deposit transaction reverted on Base. Please retry or adjust parameters.", hash);
+          return;
+        }
+
         const recovered = await recoverBatchByTx(hash);
         if (!recovered) {
           showToast(

@@ -90,9 +90,9 @@ export function resolveDexSwapRoute(
     return {
       pageToken: page,
       direction: "sell",
-      payAsset: "eth",
+      payAsset: "token",
       receiveAsset: "eth",
-      payToken: null,
+      payToken: f.address,
       receiveToken: null,
       counterDecimals: 18,
       payCounter: f,

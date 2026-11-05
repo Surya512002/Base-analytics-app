@@ -31,16 +31,20 @@ export type SwapCounter =
 
 export const ETH_COUNTER: SwapCounter = { kind: "eth", isVerified: true, isUnverified: false };
 
-export function counterSymbol(counter: SwapCounter): string {
-  return counter.kind === "eth" ? "ETH" : counter.symbol;
+export function counterSymbol(counter?: SwapCounter | null): string {
+  if (!counter) return "";
+  return counter.kind === "eth" ? "ETH" : (counter.symbol || "TOKEN");
 }
 
-export function counterDecimalsOf(counter: SwapCounter): number {
-  return counter.kind === "eth" ? 18 : counter.decimals;
+export function counterDecimalsOf(counter?: SwapCounter | null): number {
+  if (!counter || counter.kind === "eth") return 18;
+  return typeof counter.decimals === "number" && counter.decimals > 0 ? counter.decimals : 18;
 }
 
-export function sameCounter(a: SwapCounter, b: SwapCounter): boolean {
+export function sameCounter(a?: SwapCounter | null, b?: SwapCounter | null): boolean {
+  if (!a || !b) return false;
   if (a.kind === "eth" || b.kind === "eth") return a.kind === b.kind;
+  if (!a.address || !b.address) return false;
   return a.address.toLowerCase() === b.address.toLowerCase();
 }
 

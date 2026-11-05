@@ -28,6 +28,7 @@ export default function SwapTab({
   const [sidebarPick, setSidebarPick] = useState<SwapCounter | null>(null);
   const [fromPick, setFromPick] = useState<SwapCounter | null>(null);
   const [buyToken, setBuyToken] = useState<SwapCounter | null>(null);
+  const [sellToken, setSellToken] = useState<SwapCounter | null>(null);
   const [loadingBuyMetadata, setLoadingBuyMetadata] = useState(false);
   const [loadingSellMetadata, setLoadingSellMetadata] = useState(false);
   const [urlAmount, setUrlAmount] = useState<string | null>(null);
@@ -37,7 +38,12 @@ export default function SwapTab({
     setBuyToken(counter);
   }, []);
 
+  const handleSellTokenChange = useCallback((counter: SwapCounter | null) => {
+    setSellToken(counter);
+  }, []);
+
   const buyAddr = buyToken?.kind === "token" ? buyToken.address : null;
+  const sellAddr = sellToken?.kind === "token" ? sellToken.address : null;
   const fromAddr = fromPick?.kind === "token" ? fromPick.address : null;
   const extraTokens = useMemo(() => {
     const list: string[] = [];
@@ -47,9 +53,10 @@ export default function SwapTab({
     const sellParam = searchParams?.get("sell");
     if (sellParam && sellParam.startsWith("0x")) list.push(sellParam);
     if (buyAddr) list.push(buyAddr);
+    if (sellAddr) list.push(sellAddr);
     if (fromAddr) list.push(fromAddr);
     return list;
-  }, [initialToken, searchParams, buyAddr, fromAddr]);
+  }, [initialToken, searchParams, buyAddr, sellAddr, fromAddr]);
 
   // Hook for wallet holdings, dust filter, and total USD balance
   const holdingsState = useWalletHoldings(app.wallet?.address, extraTokens);
@@ -184,6 +191,7 @@ export default function SwapTab({
         holdings={allTokens}
         currentBuyToken={buyToken}
         onBuyTokenChange={handleBuyTokenChange}
+        onSellTokenChange={handleSellTokenChange}
         loadingBuyMetadata={loadingBuyMetadata}
         loadingSellMetadata={loadingSellMetadata}
         initialAmount={urlAmount}

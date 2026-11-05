@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowDownUp,
@@ -76,9 +76,9 @@ const MAX_TOKEN_FRACTION = 0.995;
 const DOLLAR_PEGGED = new Set(["USDC", "USDT", "DAI", "USDBC", "USDbC", "USDS", "USDE"]);
 const QUOTE_REFRESH_INTERVAL_SEC = 15;
 
-function defaultFromAmount(counter: SwapCounter): string {
-  if (counter.kind === "eth") return "0.01";
-  const sym = counter.symbol.toUpperCase();
+function defaultFromAmount(counter?: SwapCounter | null): string {
+  if (!counter || counter.kind === "eth") return "0.01";
+  const sym = counter.symbol ? counter.symbol.toUpperCase() : "";
   return DOLLAR_PEGGED.has(sym) ? "10" : "1";
 }
 
@@ -105,6 +105,7 @@ interface DexSwapCardProps {
   holdings?: TokenHolding[];
   currentBuyToken?: SwapCounter | null;
   onBuyTokenChange?: (counter: SwapCounter | null) => void;
+  onSellTokenChange?: (counter: SwapCounter | null) => void;
   loadingBuyMetadata?: boolean;
   loadingSellMetadata?: boolean;
   initialAmount?: string | null;
@@ -122,6 +123,7 @@ export default function DexSwapCard({
   holdings = [],
   currentBuyToken,
   onBuyTokenChange,
+  onSellTokenChange,
   loadingBuyMetadata = false,
   loadingSellMetadata: _loadingSellMetadata = false,
   initialAmount,
@@ -173,19 +175,18 @@ export default function DexSwapCard({
   // Transaction Status Animation State
   const [txSuccessHash, setTxSuccessHash] = useState<string | null>(null);
 
+  // Ref to prevent circular state ping-pong between parent and child
+  const lastBuyPropRef = useRef<SwapCounter | null>(currentBuyToken ?? null);
+  const lastFromPropRef = useRef<SwapCounter | null>(prefillFromCounter ?? null);
+
   // Sync with external buy token pick (e.g. from Popular chips)
   useEffect(() => {
-    if (currentBuyToken && (!to || !sameCounter(currentBuyToken, to))) {
+    if (!currentBuyToken) return;
+    if (!lastBuyPropRef.current || !sameCounter(currentBuyToken, lastBuyPropRef.current)) {
+      lastBuyPropRef.current = currentBuyToken;
       setTo(currentBuyToken);
     }
-  }, [currentBuyToken, to]);
-
-  // Sync `to` back to parent when selected
-  useEffect(() => {
-    if (to) {
-      onBuyTokenChange?.(to);
-    }
-  }, [to, onBuyTokenChange]);
+  }, [currentBuyToken]);
 
   const route = useMemo(() => {
     if (!to) return null;
@@ -197,23 +198,36 @@ export default function DexSwapCard({
   // Handle prefill tokens
   useEffect(() => {
     if (!prefillFromCounter) return;
-    setFrom(prefillFromCounter);
-    onPrefillFromApplied?.();
-  }, [prefillFromCounter, onPrefillFromApplied]);
+    if (!lastFromPropRef.current || !sameCounter(prefillFromCounter, lastFromPropRef.current)) {
+      lastFromPropRef.current = prefillFromCounter;
+      setFrom(prefillFromCounter);
+      setAmount(defaultFromAmount(prefillFromCounter));
+      onPrefillFromApplied?.();
+      onSellTokenChange?.(prefillFromCounter);
+    }
+  }, [prefillFromCounter, onPrefillFromApplied, onSellTokenChange]);
 
   useEffect(() => {
     if (!prefillReceiveCounter) return;
-    setTo(prefillReceiveCounter);
-    onPrefillReceiveApplied?.();
-  }, [prefillReceiveCounter, onPrefillReceiveApplied]);
+    if (!lastBuyPropRef.current || !sameCounter(prefillReceiveCounter, lastBuyPropRef.current)) {
+      lastBuyPropRef.current = prefillReceiveCounter;
+      setTo(prefillReceiveCounter);
+      onBuyTokenChange?.(prefillReceiveCounter);
+      onPrefillReceiveApplied?.();
+    }
+  }, [prefillReceiveCounter, onPrefillReceiveApplied, onBuyTokenChange]);
 
   useEffect(() => {
     if (!prefillToken) return;
     const nextTo = launchedToCounter(prefillToken);
     if (sameCounter(normalizeEthWeth(nextTo), normalizeEthWeth(from))) {
       setFrom(ETH_COUNTER);
+      lastFromPropRef.current = ETH_COUNTER;
+      onSellTokenChange?.(ETH_COUNTER);
     }
+    lastBuyPropRef.current = nextTo;
     setTo(nextTo);
+    onBuyTokenChange?.(nextTo);
     setAmount(defaultFromAmount(from));
     setIsLaunchedToken(true);
     captureTokenReferrerFromUrl(prefillToken.address);
@@ -505,11 +519,15 @@ export default function DexSwapCard({
     setFlipDegree((d) => d + 180);
     const nextFrom = to;
     const nextTo = from;
+    lastBuyPropRef.current = nextTo;
+    lastFromPropRef.current = nextFrom;
     setFrom(nextFrom);
     setTo(nextTo);
     setAmount(defaultFromAmount(nextFrom));
     setQuoteOut(null);
     setMinReceive(null);
+    onBuyTokenChange?.(nextTo);
+    onSellTokenChange?.(nextFrom);
   };
 
   const handleSetPct = (fraction: number) => {
@@ -587,6 +605,9 @@ export default function DexSwapCard({
     if (!to) {
       return { label: "Select buy token", disabled: true, action: "select_token" };
     }
+    if (!route) {
+      return { label: "Select different tokens", disabled: true, action: "same_tokens" };
+    }
     if (isStockBuyRestricted) {
       if (isStockSwapDisabled) {
         return { label: "Stock Swaps Temporarily Disabled", disabled: true, action: "swap_disabled" };
@@ -636,6 +657,7 @@ export default function DexSwapCard({
     guestMode,
     wallet,
     to,
+    route,
     isStockBuyRestricted,
     isStockSwapDisabled,
     stockTradability,
@@ -1339,10 +1361,14 @@ export default function DexSwapCard({
         onClose={() => setPickerSide(null)}
         onSelect={(c) => {
           if (pickerSide === "from") {
+            lastFromPropRef.current = c;
             setFrom(c);
             setAmount(defaultFromAmount(c));
+            onSellTokenChange?.(c);
           } else {
+            lastBuyPropRef.current = c;
             setTo(c);
+            onBuyTokenChange?.(c);
           }
           setPickerSide(null);
         }}

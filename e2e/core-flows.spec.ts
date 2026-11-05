@@ -12,7 +12,7 @@ test.describe("Core App User Flows", () => {
     }
   });
 
-  test("2. Swap Flow: loads /swap with inputs and Advanced settings accordion", async ({ page }) => {
+  test("2. Swap Flow: loads /swap with inputs, settings accordion, and token pair flip", async ({ page }) => {
     await page.goto("/swap");
     await expect(page.getByText(/you pay/i).first()).toBeVisible();
     await expect(page.getByText(/you receive/i).first()).toBeVisible();
@@ -23,6 +23,27 @@ test.describe("Core App User Flows", () => {
       await advancedToggle.click();
       await expect(page.getByText(/slippage tolerance/i).first()).toBeVisible();
       await expect(page.getByText(/dex routing/i).first()).toBeVisible();
+    }
+
+    // Select a popular token (e.g. USDC) to populate the buy token
+    const usdcChip = page.getByRole("button", { name: /buy usdc/i }).first();
+    if (await usdcChip.isVisible()) {
+      await usdcChip.click();
+      await expect(page.getByText("USDC").first()).toBeVisible();
+
+      // Test flipping pair via the flip arrow button
+      const flipBtn = page.getByRole("button", { name: /flip tokens/i }).first();
+      await expect(flipBtn).toBeVisible();
+      await expect(flipBtn).toBeEnabled();
+      await flipBtn.click();
+
+      // Verify no unhandled error screen occurred and tokens flipped
+      await expect(page.getByText(/unhandled error/i)).toHaveCount(0);
+      await expect(page.getByText(/you pay/i).first()).toBeVisible();
+
+      // Flip back
+      await flipBtn.click();
+      await expect(page.getByText(/unhandled error/i)).toHaveCount(0);
     }
   });
 
