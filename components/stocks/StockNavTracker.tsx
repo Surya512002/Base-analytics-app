@@ -18,12 +18,12 @@ import {
 import type { CoinbaseTokenizedStock } from "@/lib/stocks/coinbase-api";
 
 interface StockNavTrackerProps {
-  stocks: CoinbaseTokenizedStock[];
+  stocks?: readonly any[];
   className?: string;
 }
 
 export default function StockNavTracker({
-  stocks,
+  stocks = [],
   className = "",
 }: StockNavTrackerProps) {
   const [selectedSymbol, setSelectedSymbol] = useState<string>(

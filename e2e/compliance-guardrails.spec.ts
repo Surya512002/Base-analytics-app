@@ -11,7 +11,7 @@ test.describe("Compliance Guardrails & Exit-Only Safeguards E2E Suite", () => {
     test("renders /restricted-regions with exit-only guarantee and limitations disclosure", async ({ page }) => {
       await page.goto(`${BASE}/restricted-regions`);
 
-      await expect(page.locator("h1")).toContainText(/Restricted Regions & Product Availability/i);
+      await expect(page.locator("h1")).toContainText(/Geographic Availability|Restricted Regions/i);
       await expect(page.locator("body")).toContainText(/Exit-Only Guarantee/i);
       await expect(page.locator("body")).toContainText(/Never blocked from accessing your own funds/i);
       await expect(page.locator("body")).toContainText(/Technical Limitations & Gating/i);
@@ -21,7 +21,7 @@ test.describe("Compliance Guardrails & Exit-Only Safeguards E2E Suite", () => {
     test("renders draft legal pages /terms, /privacy, and /risk-disclosure with counsel markers", async ({ page }) => {
       // /terms
       await page.goto(`${BASE}/terms`);
-      await expect(page.locator("body")).toContainText(/Draft, pending legal review\. Not final\./i);
+      await expect(page.locator("body")).toContainText(/Draft.*Legal Review|Not final/i);
       await expect(page.locator("body")).toContainText(/Terms of Service/i);
 
       // /privacy

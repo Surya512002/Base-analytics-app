@@ -180,9 +180,11 @@ export default function DexSwapCard({
     }
   }, [currentBuyToken, to]);
 
-  // Sync `to` back to parent
+  // Sync `to` back to parent when selected
   useEffect(() => {
-    onBuyTokenChange?.(to);
+    if (to) {
+      onBuyTokenChange?.(to);
+    }
   }, [to, onBuyTokenChange]);
 
   const route = useMemo(() => {

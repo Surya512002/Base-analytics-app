@@ -17,6 +17,7 @@ import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
 import SmartMoneyRadar from "./SmartMoneyRadar";
+import StockNavTracker from "@/components/stocks/StockNavTracker";
 import SmarterAlertsPanel from "@/components/alerts/SmarterAlertsPanel";
 import {
   readTokenWatchlist,
@@ -365,6 +366,9 @@ export default function ExploreHub({
             handleScrollToExplorer();
           }}
         />
+
+        {/* 2.5 Stock NAV Tracker (24/5 custodian NAV vs 24/7 DEX AMM spread) */}
+        <StockNavTracker stocks={BASE_STOCKS} />
       </div>
 
       {/* 3. SMART MONEY RADAR (Live Whale Inflow Stream & Followed Traders) */}

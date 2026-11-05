@@ -33,11 +33,7 @@ export default function SwapTab({
   const [urlAmount, setUrlAmount] = useState<string | null>(null);
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
 
-  // User override flag: ensures user's manual in-app selection is never overwritten by query param re-runs
-  const userOverrodeBuyRef = useRef(false);
-
   const handleBuyTokenChange = useCallback((counter: SwapCounter | null) => {
-    userOverrodeBuyRef.current = true;
     setBuyToken(counter);
   }, []);
 
@@ -93,11 +89,11 @@ export default function SwapTab({
       setUrlAmount(amountParam);
     }
 
-    if (buyParam && !userOverrodeBuyRef.current) {
+    if (buyParam) {
       setLoadingBuyMetadata(true);
       void resolveSwapToken(buyParam).then((res) => {
         setLoadingBuyMetadata(false);
-        if (res.counter && !userOverrodeBuyRef.current) {
+        if (res.counter) {
           const verified = isVerifiedBaseToken(res.counter);
           setBuyToken({
             ...res.counter,
