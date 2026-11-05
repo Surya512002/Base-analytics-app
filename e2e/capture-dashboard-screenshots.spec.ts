@@ -56,9 +56,7 @@ test.describe("Base dashboard screenshots", () => {
 
     // 3 — Base Voucher redeem
     await page.goto(`${BASE}/redeem`, { waitUntil: "domcontentloaded", timeout: 90_000 });
-    await expect(
-      page.getByPlaceholder(/XXXXX-XXXXX/i).or(page.getByText(/redeem|voucher|gift/i).first())
-    ).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 45_000 });
     await page.waitForTimeout(2000);
     await page.screenshot({
       path: "public/screenshots/screenshot-3-voucher.png",

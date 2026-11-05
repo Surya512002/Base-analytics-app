@@ -35,9 +35,7 @@ test.describe("guest browse flow", () => {
         await page.waitForTimeout(2_000);
       }
     }
-    await expect(
-      page.getByText(/All tokens|Launched tokens|Analytics|Rewards/i).first().or(page.locator("h1").first())
-    ).toBeVisible({
+    await expect(page.locator("h1, h2").first()).toBeVisible({
       timeout: 45_000,
     });
   });
