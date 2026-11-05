@@ -5,7 +5,7 @@ const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
 // Verified contract addresses from base.org/stocks
 const MSFTC = "0xb200000000000000000000ab99cfa739e253872b";
 const TSLAC = "0xb2000000000000000000001e800a7f5189430cd0";
-const COINC = "0xb2000000000000000000004c965b741362e49c71";
+const COINC = "0xb200000000000000000000c85a31389d71f3ecfb";
 
 test.describe("Tokenized Stocks Swap & Status E2E Suite", () => {
   test("1. Preselects tradable stock (MSFTc) from URL, renders quote details & fee", async ({ page }) => {
