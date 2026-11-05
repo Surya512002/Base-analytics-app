@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["lib/**/*.test.ts", "test/**/*.test.ts"],
-    exclude: ["node_modules", "lib/forge-std", "scratch", "test/fork/**"],
+    exclude: ["node_modules", "lib/forge-std", "scratch", "test/fork/**", "**/*.live.test.ts"],
   },
   resolve: {
     alias: {

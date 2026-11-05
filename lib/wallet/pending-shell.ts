@@ -18,7 +18,6 @@ function emptyDailyStats(days = 364): DayStats[] {
 /** Minimal wallet row so the app leaves the connect screen while analysis runs. */
 export function buildPendingWalletShell(address: string): WalletData {
   const scoreComponents: Record<string, number> = {};
-  const score = 0;
   const health = calcWalletHealth({
     uniqueDays: 0,
     activeMonths: 0,

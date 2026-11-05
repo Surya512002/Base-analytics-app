@@ -1,5 +1,3 @@
-import type { Address } from "viem";
-
 export interface O1TradingQuoteParams {
   sellToken: string;
   buyToken: string;

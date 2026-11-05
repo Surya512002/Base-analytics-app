@@ -14,25 +14,25 @@ describe("Lend & Stake Live APY/APR Sync Audit", () => {
     expect(data.markets.length).toBeGreaterThan(0);
 
     // NVDA Beefy
-    const beefyNvda = data.markets.find((m: any) => m.id === "stock-lend-nvda");
+    const beefyNvda = data.markets.find((m: { id?: string; supplyApy?: number }) => m.id === "stock-lend-nvda");
     expect(beefyNvda).toBeDefined();
     expect(beefyNvda.supplyApy).toBeGreaterThan(0);
     expect(beefyNvda.supplyApy).toBeLessThan(200);
 
     // MSFT Beefy
-    const beefyMsft = data.markets.find((m: any) => m.id === "beefy-msftc-usdc");
+    const beefyMsft = data.markets.find((m: { id?: string; supplyApy?: number }) => m.id === "beefy-msftc-usdc");
     expect(beefyMsft).toBeDefined();
     expect(beefyMsft.supplyApy).toBeGreaterThan(0);
     expect(beefyMsft.supplyApy).toBeLessThan(200);
 
     // TSLA Beefy
-    const beefyTsla = data.markets.find((m: any) => m.id === "beefy-tslac-usdc");
+    const beefyTsla = data.markets.find((m: { id?: string; supplyApy?: number }) => m.id === "beefy-tslac-usdc");
     expect(beefyTsla).toBeDefined();
     expect(beefyTsla.supplyApy).toBeGreaterThan(0);
     expect(beefyTsla.supplyApy).toBeLessThan(200);
 
     // NVDA Aerodrome
-    const aeroNvda = data.markets.find((m: any) => m.id === "aero-nvdac-usdc");
+    const aeroNvda = data.markets.find((m: { id?: string; supplyApy?: number; tvlUsd?: number }) => m.id === "aero-nvdac-usdc");
     expect(aeroNvda).toBeDefined();
     expect(aeroNvda.supplyApy).toBeGreaterThan(0);
     expect(aeroNvda.tvlUsd).toBeGreaterThan(10000);

@@ -39,7 +39,7 @@ import {
 } from "@/lib/launchpad/swap-assets";
 import { fetchO1TradingQuote } from "@/lib/trading/o1-api";
 import { getTokenizedStockByAddress, isActiveStockAddress } from "@/lib/stocks/tokenized-stocks-registry";
-import { evaluateRegionCompliance, getComplianceConfig } from "@/src/config/compliance";
+import { evaluateRegionCompliance } from "@/src/config/compliance";
 
 export const dynamic = "force-dynamic";
 

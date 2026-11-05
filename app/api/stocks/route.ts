@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       process.env.COMPLIANCE_MOCK_COUNTRY ||
       null;
 
-    const { evaluateRegionCompliance, getComplianceConfig } = await import("@/src/config/compliance");
+    const { evaluateRegionCompliance } = await import("@/src/config/compliance");
     const compliance = evaluateRegionCompliance(country);
 
     return NextResponse.json(

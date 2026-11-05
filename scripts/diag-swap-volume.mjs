@@ -48,7 +48,7 @@ let stableOutToDex = 0;
 let swapHashCount = 0;
 let stableOutTotal = 0;
 
-for (const [hash, legs] of byHash) {
+for (const [, legs] of byHash) {
   let outStable = 0;
   let inStable = 0;
   let hasOut = false;

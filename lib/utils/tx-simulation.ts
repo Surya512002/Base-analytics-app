@@ -1,4 +1,4 @@
-import { type Address, type PublicClient } from "viem";
+import { type Address } from "viem";
 import type { ContractCall } from "./tx";
 
 export interface SimulationResult {

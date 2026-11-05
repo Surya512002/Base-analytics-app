@@ -6,7 +6,7 @@ import {
   getDeterministicTokenInitials,
   generateTokenPlaceholderSvg,
 } from "@/lib/utils/token-color";
-import { TOKENIZED_STOCKS_REGISTRY, getTokenizedStockBySymbol, getTokenizedStockByAddress } from "@/lib/stocks/tokenized-stocks-registry";
+import { TOKENIZED_STOCKS_REGISTRY, getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import { SELF_HOSTED_LOGOS, tokenLogoUrl } from "@/lib/launchpad/token-logo";
 import { getVerifiedTokenLogo, findVerifiedToken } from "@/lib/swap/verified-tokens";
 

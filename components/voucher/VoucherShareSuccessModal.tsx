@@ -289,7 +289,7 @@ export default function VoucherShareSuccessModal({
                     type="text"
                     readOnly
                     value={claimLink}
-                    className="flex-1 text-xs font-mono bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--ink-muted)] truncate outline-none select-all"
+                    className="flex-1 text-base sm:text-xs font-mono bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--ink-muted)] truncate outline-none select-all"
                   />
                   <button
                     type="button"

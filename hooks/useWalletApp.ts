@@ -5,7 +5,6 @@ import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
 import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
-import { fetchWalletTransfers } from "@/lib/api/wallet-txs";
 import {
   formatWalletDisplayLabel,
   persistMiniAppIdentity,
@@ -16,47 +15,22 @@ import {
 import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
 import {
   fetchCheckInStatus,
-  patchCheckInInWalletCache,
   readLocalCheckInToday,
-  recordCheckInSuccess,
 } from "@/lib/utils/check-in-status";
 import { clearWalletCache } from "@/lib/utils/wallet-cache";
 import { buildPendingWalletShell } from "@/lib/wallet/pending-shell";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { applyPartialSyncPatch } from "@/lib/wallet/merge-partial-sync";
-import { createBasePublicClient, createPublicOnlyBaseClient, isRpcInfrastructureError, withRpcRetry } from "@/lib/utils/base-rpc";
-import { rollupWalletActivity } from "@/lib/utils/wallet-activity";
 import type { AnalyzeWalletResult, ConnectionType, DayStats, WalletData } from "@/lib/types/wallet";
 import {
-  BOOSTER_ABI,
-  BOOSTER_CONTRACT,
-  CHECKIN_ABI,
-  CHECKIN_CONTRACT,
-  GM_GN_ABI,
-  GM_GN_CONTRACT,
-} from "@/lib/constants/contracts";
-import {
   getCalendarKeys,
-  msUntilNextUtcDay,
 } from "@/lib/utils/calendar-rollover";
 import { getCapabilities } from "@/lib/utils/paymaster";
 import {
-  buildShareBody,
   getReferralCode,
-  twitterShare,
-  warpcast,
 } from "@/lib/utils/share";
 import {
-  buildB20Call,
-  buildContractCall,
-  buildExternalSwapCall,
-  buildNativeTransferCall,
-  encodeContractCall,
-  normalizeTxHash,
-} from "@/lib/utils/tx";
-import {
   clearConnType,
-  inferConnType,
   persistConnType,
   readConnType,
   resolveActiveConnType,
@@ -67,88 +41,25 @@ import {
   persistWalletAddress,
   readPersistedWalletAddress,
 } from "@/lib/utils/wallet-persist";
-import type { X402ProductId } from "@/lib/constants/x402-products";
 import {
   readStoredReferrer,
   registerReferralJoin,
   fetchReferralStats,
   storeReferrer,
 } from "@/lib/utils/referral";
-import { loadLocalBatches } from "@/lib/utils/voucher";
-import { lockX402PremiumSession, x402StorageKeys } from "@/lib/utils/x402-session";
 import {
-  bumpBoostCount,
   bumpWeeklyTxKey,
   currentWeekKey,
-  DEFAULT_TX_KEYS,
   deriveTxKeysFromAnalysis,
   ensureSessionStorageVersion,
   mergeTxKeyCounters,
-  readPersistedTxKeys,
   syncSessionFromAnalysis,
-  writePersistedTxKeys,
 } from "@/lib/utils/wallet-session";
-import { writeLocalBoostTime, writeLocalGmTime, writeLocalGnTime } from "@/lib/utils/daily-actions";
+import { writeLocalGmTime, writeLocalGnTime } from "@/lib/utils/daily-actions";
 import {
   recordConfirmedInAppAction,
-  recordInAppTransaction,
-  notifyPointsUpdated,
 } from "@/lib/utils/daily-points";
-import { BASE_RPC } from "@/lib/constants/env";
-import {
-  ERC20_ABI,
-} from "@/lib/constants/contracts";
-import { parseUnits, parseEther, formatUnits, maxUint256 } from "viem";
-import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
-import {
-  extractB20TokenFromReceipt,
-  isInvalidLaunchTokenAddress,
-} from "@/lib/b20/launch-receipt";
-import {
-  encodeCreateB20Calldata,
-  encodeB20ApproveCalldata,
-  mergeMintAllocations,
-  predictB20Address,
-  type MintAllocation,
-} from "@/lib/b20/encode";
-import {
-  encodeExactInputSingle,
-  encodeExactInputSingleToEth,
-  encodeExactInputMultiHop,
-  encodeExactInputMultiHopToEth,
-  encodeWethWithdrawCalldata,
-  SWAP_ROUTER_02,
-  WETH_BASE,
-} from "@/lib/launchpad/uniswap";
-import { routerHasCode } from "@/lib/launchpad/router-guard";
-import {
-  encodeAerodromeBuy,
-  encodeAerodromeSell,
-  encodeAerodromeTokensForTokens,
-  AERODROME_ROUTER,
-} from "@/lib/launchpad/aerodrome";
-import {
-  encodeSlipstreamBuy,
-  encodeSlipstreamSell,
-} from "@/lib/launchpad/slipstream";
-import { dexLabel } from "@/lib/launchpad/dex";
-import type { LaunchDex } from "@/lib/launchpad/dex";
-import type { LaunchTokenType } from "@/lib/launchpad/types";
-import {
-  buildSeedLiquidityCalls,
-  computeLiquiditySeedAmounts,
-  seedDexLabel,
-  type SeedDex,
-} from "@/lib/launchpad/seed-liquidity";
-import { USDC_BASE, USDC_DECIMALS, type SwapAsset } from "@/lib/launchpad/tokens-base";
-import { registerLaunchedToken, fetchSwapQuote, fetchB20ActivationStatus } from "@/lib/api/launchpad-client";
-import { sendAppTransaction, sendAppTransactions } from "@/lib/utils/send-app-tx";
-import { preflightB20Launch, simulateB20Create } from "@/lib/b20/preflight";
-import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
-import { splitGrossAmount } from "@/lib/launchpad/fees";
-import { splitPlatformFee } from "@/lib/launchpad/fee-split";
-import { encodeErc20TransferCalldata } from "@/lib/b20/encode";
-import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
+import { sendAppTransaction } from "@/lib/utils/send-app-tx";
 import { syncTabUrl, resolveTabFromUrl } from "@/lib/utils/app-url";
 import {
   readGuestResume,
@@ -156,84 +67,16 @@ import {
 } from "@/lib/utils/guest-resume";
 import { useSiweAuth } from "@/hooks/useSiweAuth";
 
-function pushFeeSplitCalls(
-  calls: ReturnType<typeof buildContractCall>[],
-  fee: bigint,
-  opts: {
-    native: boolean;
-    token: `0x${string}`;
-    creator?: `0x${string}` | null;
-    referrer?: `0x${string}` | null;
-    referrerBoostBps?: number;
-    /** Skip fee transfers back to the payer (avoids a useless self-send popup). */
-    payer?: `0x${string}`;
-  }
-) {
-  if (fee <= BigInt(0)) return;
-
-  const skipSelf = (to: string) =>
-    Boolean(opts.payer && to.toLowerCase() === opts.payer.toLowerCase());
-
-  if (!opts.creator) {
-    if (opts.native) {
-      if (!skipSelf(LAUNCHPAD_TREASURY)) {
-        calls.push(buildNativeTransferCall(LAUNCHPAD_TREASURY, fee));
-      }
-    } else {
-      calls.push(
-        buildContractCall(opts.token, encodeErc20TransferCalldata(LAUNCHPAD_TREASURY, fee))
-      );
-    }
-    return;
-  }
-
-  const split = splitPlatformFee(fee, {
-    creator: opts.creator,
-    referrer: opts.referrer ?? null,
-    referrerBoostBps: opts.referrerBoostBps,
-  });
-  for (const t of split.transfers) {
-    if (skipSelf(t.to)) continue;
-    if (opts.native) {
-      calls.push(buildNativeTransferCall(t.to, t.amount));
-    } else {
-      calls.push(buildContractCall(opts.token, encodeErc20TransferCalldata(t.to, t.amount)));
-    }
-  }
-}
+import {
+  type AppTab,
+  resolveInitialTab,
+  analysisNeedsActivityRefresh,
+} from "./wallet/wallet-utils";
+import { useDailyActions } from "./wallet/useDailyActions";
+import { useAppTransactions } from "./wallet/useAppTransactions";
+export type { AppTab };
 
 export type WalletAppState = ReturnType<typeof useWalletAppController>;
-
-export type AppTab =
-  | "launchpad"
-  | "swap"
-  | "lend"
-  | "basehub"
-  | "profile";
-
-function resolveInitialTab(): AppTab {
-  if (typeof window !== "undefined") {
-    if (window.location.pathname.startsWith("/swap")) return "swap";
-    if (window.location.pathname.startsWith("/lend") || window.location.pathname.startsWith("/earn")) return "lend";
-    if (window.location.pathname.startsWith("/explore")) return "launchpad";
-    if (window.location.pathname.startsWith("/profile") || window.location.pathname.startsWith("/creator")) return "profile";
-  }
-  const fromUrl = resolveTabFromUrl();
-  if (fromUrl) return fromUrl;
-  return "launchpad";
-}
-
-function analysisNeedsActivityRefresh(
-  result: AnalyzeWalletResult & { historyComplete?: boolean }
-): boolean {
-  const w = result.wallet;
-  if (!w?.address) return true;
-  if (result.historyComplete !== true) return true;
-  if (w.recommendation === "Fetching onchain data…") return true;
-  if ((w.txCount ?? 0) > 0 && (w.recentTxs?.length ?? 0) === 0) return true;
-  if (w.firstTx === "Syncing…" || w.lastTx === "Syncing…") return true;
-  return false;
-}
 
 function useWalletAppController() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -250,36 +93,25 @@ function useWalletAppController() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<AppTab>("launchpad");
   const [minting, setMinting] = useState<string | null>(null);
-  const [mintedLevels, setMintedLevels] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selDay, setSelDay] = useState<DayStats | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sharingRef = useRef(false);
   const pendingTx = useRef<Set<string>>(new Set());
   const connectingRef = useRef(false);
   const autoResumeRef = useRef(false);
   const historySyncGen = useRef(0);
-  const pendingChallengeRef = useRef<string | null>(null);
   const latestDaysRef = useRef(0);
-  const x402Paying = useRef(false);
-  const handledActionTxs = useRef<Set<string>>(new Set());
   const calendarRef = useRef(getCalendarKeys());
   const lockWalletCoreRef = useRef<(w: WalletData) => void>(() => {});
   const analyzeWalletRef = useRef<(address: string, opts?: { background?: boolean }) => Promise<void>>(() => Promise.resolve());
-  const [boosts, setBoosts] = useState(0);
   const [miniAppIdentity, setMiniAppIdentity] = useState<MiniAppIdentity | null>(
     null
   );
   const [sponsored, setSponsored] = useState(0);
-  const [txKeys, setTxKeys] = useState<Record<string, number>>({
-    ...DEFAULT_TX_KEYS,
-  });
   const [toast, setToast] = useState<{ msg: string; hash: string } | null>(
     null
   );
-  const [streak, setStreak] = useState(0);
-  const [checkedToday, setCheckedToday] = useState(false);
   const [refCopied, setRefCopied] = useState(false);
   const [pointsRevision, setPointsRevision] = useState(0);
   const [scanProgress, setScanProgress] = useState("");
@@ -300,21 +132,59 @@ function useWalletAppController() {
   const walletOpGenRef = useRef(0);
   const syncCompleteToastRef = useRef(false);
   const startHistorySyncRef = useRef<((basename?: string | null) => void) | null>(null);
-  const [launchLoading, setLaunchLoading] = useState(false);
-  const [swapLoading, setSwapLoading] = useState(false);
-  const [b20Activated, setB20Activated] = useState<boolean | null>(null);
   const [referralInvites, setReferralInvites] = useState(0);
 
-  const boostCall = [encodeContractCall(BOOSTER_CONTRACT as `0x${string}`, BOOSTER_ABI, "boost")];
-  const gmCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gm")];
-  const gnCall = [encodeContractCall(GM_GN_CONTRACT as `0x${string}`, GM_GN_ABI, "gn")];
-  const ciCall = [encodeContractCall(CHECKIN_CONTRACT as `0x${string}`, CHECKIN_ABI, "checkIn")];
   const txCaps = getCapabilities();
 
   const showToast = useCallback((msg: string, hash: string) => {
     setToast({ msg, hash });
     setTimeout(() => setToast(null), 6000);
   }, []);
+
+  const {
+    boosts,
+    setBoosts,
+    streak,
+    setStreak,
+    checkedToday,
+    setCheckedToday,
+    txKeys,
+    setTxKeys,
+    boostCall,
+    gmCall,
+    gnCall,
+    ciCall,
+    syncCheckInStatus,
+    handleCheckInSuccess,
+    handleBoostSuccess,
+    resetDailyActions,
+  } = useDailyActions({
+    wallet,
+    setWallet,
+    showToast,
+    setPointsRevision,
+  });
+
+  const {
+    launchLoading,
+    swapLoading,
+    b20Activated,
+    handleLaunchB20,
+    handleTokenSwap,
+    handleSeedLiquidity,
+    handleUnwrapWeth,
+    resetTransactionsState,
+  } = useAppTransactions({
+    wallet,
+    connType,
+    setConnType,
+    showToast,
+    setPointsRevision,
+    setTxKeys,
+    setSponsored,
+    siweAuthenticated,
+    siweSignIn,
+  });
 
   const loadX402PremiumState = useCallback((address: string) => {
     void fetchReferralStats(address).then((s) => {
@@ -528,850 +398,13 @@ function useWalletAppController() {
 
 
 
+  const currentWalletAddress = wallet?.address;
   useEffect(() => {
-    if (!wallet) return;
-    void fetchReferralStats(wallet.address).then((s) => {
+    if (!currentWalletAddress) return;
+    void fetchReferralStats(currentWalletAddress).then((s) => {
       setReferralInvites(s.invites);
     });
-  }, [wallet?.address]);
-
-  useEffect(() => {
-    void fetchB20ActivationStatus().then(setB20Activated);
-  }, []);
-
-  const handleLaunchB20 = useCallback(
-    async (args: {
-      name: string;
-      symbol: string;
-      decimals: number;
-      supplyCap: string;
-      salt: `0x${string}`;
-      imageUrl?: string;
-      description?: string;
-      website?: string;
-      twitter?: string;
-      telegram?: string;
-      discord?: string;
-      metadataEditable?: boolean;
-      /** Vanity grind preview — fallback if RPC address prediction fails */
-      predictedAddress?: string;
-      mints: MintAllocation[];
-      poolSeedPct?: number;
-      quoteToken?: string;
-      startPriceUsd?: string;
-      launchPreset?: string;
-      vestingSchedule?: Array<{
-        address: string;
-        pct: number;
-        cliffMonths: number;
-        vestMonths: number;
-      }>;
-      antiSnipeBlocks?: number;
-      seedLiquidityEth?: string;
-      autoSeedLiquidity?: boolean;
-      seedDex?: SeedDex;
-      ethUsd?: number;
-      tokenType?: LaunchTokenType;
-      quoteAsset?: string;
-      quoteAssetAddress?: string;
-      quoteAssetSymbol?: string;
-      liquidityLocked?: boolean;
-      lockerAddress?: string;
-    }): Promise<{
-      ok: boolean;
-      address?: string;
-      symbol?: string;
-      name?: string;
-      imageUrl?: string;
-      txHash?: string;
-    }> => {
-      if (!wallet) return { ok: false };
-
-      setLaunchLoading(true);
-      try {
-        // Catalog registration requires SIWE — sign in before launch so fees bind to creator.
-        if (!siweAuthenticated) {
-          const signed = await siweSignIn();
-          if (!signed.ok) {
-            showToast(
-              signed.error === "Sign-in cancelled"
-                ? "Sign in required to launch and claim creator fees"
-                : signed.error || "Sign in required to launch",
-              ""
-            );
-            return { ok: false };
-          }
-        }
-
-        const activated = await fetchB20ActivationStatus();
-        setB20Activated(activated);
-        if (!activated) {
-          showToast("B20 is not activated on Base mainnet yet", "");
-          return { ok: false };
-        }
-
-        const activeConn = await resolveActiveConnType(connType, wallet.address);
-        if (activeConn && activeConn !== connType) {
-          setConnType(activeConn);
-          persistConnType(activeConn);
-        }
-        if (!activeConn) {
-          showToast("❌ Reconnect wallet to launch", "");
-          return { ok: false };
-        }
-
-        const creator = wallet.address as `0x${string}`;
-
-        let seedEthWei = BigInt(0);
-        if (
-          args.autoSeedLiquidity !== false &&
-          args.seedLiquidityEth &&
-          args.startPriceUsd
-        ) {
-          try {
-            seedEthWei = parseEther(args.seedLiquidityEth);
-          } catch {
-            seedEthWei = BigInt(0);
-          }
-        }
-
-        const preflight = await preflightB20Launch(creator, { seedEthWei });
-        if (!preflight.hasMinGas) {
-          const bal = Number(preflight.balanceEth);
-          showToast(
-            `Need ≥${preflight.minEth} ETH on Base (gas${seedEthWei > BigInt(0) ? " + liquidity seed" : ""}). Balance: ${bal.toFixed(6)} ETH`,
-            ""
-          );
-          return { ok: false };
-        }
-
-        const supplyCap = parseUnits(args.supplyCap, args.decimals);
-        const mergedMints = mergeMintAllocations(args.mints);
-        const mintTotal = mergedMints.reduce((s, m) => s + m.amount, BigInt(0));
-        if (mintTotal > supplyCap) {
-          showToast("Allocations exceed fixed 1B supply", "");
-          return { ok: false };
-        }
-
-        const salt = args.salt;
-
-        let tokenAddr: `0x${string}` =
-          (await predictB20Address(creator, salt)) ??
-          (args.predictedAddress?.startsWith("0x")
-            ? (args.predictedAddress as `0x${string}`)
-            : (`0xB2000000000000000000000000000000000000` as `0x${string}`));
-
-        const createData = encodeCreateB20Calldata({
-          name: args.name,
-          symbol: args.symbol,
-          creator,
-          decimals: args.decimals,
-          supplyCap,
-          salt,
-          adminless: true,
-          metadataEditable: args.metadataEditable,
-          description: args.description,
-          website: args.website,
-          twitter: args.twitter,
-          telegram: args.telegram,
-          discord: args.discord,
-          mints: mergedMints,
-        });
-
-        const createCall = buildB20Call(B20_FACTORY_ADDRESS, createData);
-
-        const simulation = await simulateB20Create(creator, createData);
-        if (!simulation.ok) {
-          showToast(simulation.reason, "");
-          return { ok: false };
-        }
-
-        // B20 factory calldata cannot include builder suffix — companion attribution
-        // tx is appended automatically; create hash is still returned for registration.
-        const hash = await sendAppTransactions(activeConn, wallet.address, [createCall]);
-
-        let launchBlock: number | undefined;
-        let receipt: import("viem").TransactionReceipt | null = null;
-        try {
-          const pub = createPublicOnlyBaseClient();
-          receipt = await withRpcRetry(() =>
-            pub.getTransactionReceipt({ hash: hash as `0x${string}` })
-          );
-          if (!receipt || receipt.status !== "success") {
-            throw new Error(
-              "Token launch reverted — check allocations and retry with a new salt"
-            );
-          }
-          launchBlock = Number(receipt.blockNumber);
-          const fromEvent = extractB20TokenFromReceipt(receipt);
-          if (fromEvent) {
-            tokenAddr = fromEvent;
-          } else if (isInvalidLaunchTokenAddress(tokenAddr)) {
-            const retryPredict = await predictB20Address(creator, salt);
-            if (retryPredict && !isInvalidLaunchTokenAddress(retryPredict)) {
-              tokenAddr = retryPredict;
-            }
-          }
-        } catch (receiptErr) {
-          if (isRpcInfrastructureError(receiptErr)) {
-            console.warn("[launch] receipt fetch skipped (RPC error)", receiptErr);
-            // Tx hash is valid — register token; block will backfill from explorer later.
-          } else {
-            const msg =
-              receiptErr instanceof Error ? receiptErr.message : "Launch not confirmed on Base";
-            throw new Error(msg);
-          }
-        }
-
-        if (isInvalidLaunchTokenAddress(tokenAddr)) {
-          showToast(
-            "Token may be live — paste the 0xB20… address from BaseScan to register",
-            hash
-          );
-          return {
-            ok: true,
-            address: undefined,
-            symbol: args.symbol,
-            name: args.name,
-            imageUrl: args.imageUrl,
-            txHash: hash,
-          };
-        }
-
-        const antiBlocks = args.antiSnipeBlocks ?? 8;
-        const saved = await registerLaunchedToken({
-          address: tokenAddr,
-          name: args.name,
-          symbol: args.symbol,
-          decimals: args.decimals,
-          creator: wallet.address,
-          txHash: hash,
-          imageUrl: args.imageUrl,
-          description: args.description,
-          website: args.website,
-          twitter: args.twitter,
-          telegram: args.telegram,
-          discord: args.discord,
-          supplyCap: args.supplyCap,
-          launchPreset: args.launchPreset,
-          vestingSchedule: args.vestingSchedule,
-          launchBlock,
-          antiSnipeBlocks: antiBlocks,
-          poolOpenBlock: launchBlock ?? undefined,
-          startPriceUsd: args.startPriceUsd,
-          source: "launched",
-          tokenType: args.tokenType,
-          quoteAsset: args.quoteAsset,
-          quoteAssetAddress: args.quoteAssetAddress,
-          quoteAssetSymbol: args.quoteAssetSymbol,
-          liquidityLocked: args.liquidityLocked,
-          lockerAddress: args.lockerAddress,
-        });
-        if (!saved) {
-          showToast(
-            "Token is live on Base — app catalog save failed; paste your address to trade",
-            hash
-          );
-        }
-
-        if (
-          args.autoSeedLiquidity !== false &&
-          args.seedLiquidityEth &&
-          args.startPriceUsd
-        ) {
-          const seed = computeLiquiditySeedAmounts({
-            seedEth: args.seedLiquidityEth,
-            startPriceUsd: args.startPriceUsd,
-            ethUsd: args.ethUsd ?? 2500,
-            decimals: args.decimals,
-          });
-          if (seed) {
-            try {
-              const seedCalls = buildSeedLiquidityCalls({
-                token: tokenAddr,
-                creator,
-                tokenAmount: seed.tokenWei,
-                ethAmount: seed.ethWei,
-                dex: args.seedDex ?? "aerodrome",
-              });
-              await sendAppTransactions(activeConn, wallet.address, seedCalls);
-              showToast(
-                `💧 Liquidity seeded on ${seedDexLabel(args.seedDex ?? "aerodrome")} — ${args.symbol} is tradable in-app`,
-                ""
-              );
-            } catch (seedErr) {
-              const seedMsg =
-                seedErr instanceof Error ? seedErr.message.split("\n")[0] : "LP seed failed";
-              showToast(
-                `Token live — add liquidity manually to enable swaps (${seedMsg}). If approve failed first, retry seed from the token page.`,
-                ""
-              );
-            }
-          }
-        }
-
-        const nextKeys = bumpWeeklyTxKey(wallet.address, "launch");
-        setTxKeys((k) => ({ ...k, ...nextKeys }));
-        const { credited, hitCap } = recordConfirmedInAppAction(
-          wallet.address,
-          "launch",
-          nextKeys.launch ?? 0
-        );
-        setPointsRevision((n) => n + 1);
-        if (hitCap && credited === 0) {
-          showToast(`${args.symbol} launched — daily point cap reached`, hash);
-        } else if (credited > 0) {
-          showToast(`🚀 ${args.symbol} launched · +${credited} pts`, hash);
-        } else {
-          showToast(`🚀 ${args.symbol} launched on Base`, hash);
-        }
-        return {
-          ok: true,
-          address: tokenAddr,
-          symbol: args.symbol,
-          name: args.name,
-          imageUrl: args.imageUrl,
-          txHash: hash,
-        };
-      } catch (e) {
-        const msg =
-          e instanceof Error ? e.message.split("\n")[0] : "Launch failed";
-        const friendly =
-          isRpcInfrastructureError(e) ||
-          /rpc request failed|fetch failed|429|capacity|rate limit/i.test(msg)
-            ? "Base RPC is busy — if you approved the tx, check BaseScan in 30s or retry"
-            : msg.includes("Number") || msg.includes("underflow") || msg.includes("overflow")
-            ? "Invalid supply or mint amount"
-            : msg.includes("TokenAlreadyExists")
-              ? "Token already exists — change name/symbol and retry"
-              : msg.includes("FeatureNotActivated")
-                ? "B20 is not activated on Base mainnet yet"
-                : msg.includes("not confirmed") || msg.includes("not broadcast")
-                  ? "Launch not confirmed — approve the tx in your wallet, keep the tab open, ensure ≥0.0001 ETH on Base, and retry with a new salt"
-                  : msg;
-        if (!friendly.toLowerCase().includes("reject")) {
-          showToast(`❌ ${friendly}`, "");
-        }
-        return { ok: false };
-      } finally {
-        setLaunchLoading(false);
-      }
-    },
-    [connType, showToast, wallet, siweAuthenticated, siweSignIn]
-  );
-
-  const handleTokenSwap = useCallback(
-    async (args: {
-      token: string;
-      symbol: string;
-      decimals: number;
-      direction: "buy" | "sell";
-      amount: string;
-      slippageBps: number;
-      dex?: LaunchDex;
-      referrer?: string | null;
-      payAsset?: SwapAsset;
-      receiveAsset?: SwapAsset;
-      payToken?: string | null;
-      receiveToken?: string | null;
-      counterDecimals?: number;
-    }): Promise<boolean> => {
-      if (!wallet) return false;
-
-      const payAsset = args.payAsset ?? "eth";
-      const receiveAsset = args.receiveAsset ?? "eth";
-      const payDecimals =
-        payAsset === "usdc"
-          ? USDC_DECIMALS
-          : payAsset === "token"
-            ? (args.counterDecimals ?? 18)
-            : 18;
-
-      setSwapLoading(true);
-      try {
-        const tokenAddr = args.token as `0x${string}`;
-        const tokenDecimals =
-          args.direction === "sell" || payAsset === "token"
-            ? await fetchErc20Decimals(tokenAddr, args.decimals)
-            : args.decimals;
-
-        const quote = await fetchSwapQuote({
-          token: args.token,
-          direction: args.direction,
-          amount: args.amount,
-          decimals: tokenDecimals,
-          slippageBps: args.slippageBps,
-          dex: args.dex ?? "auto",
-          referrer: args.referrer ?? null,
-          taker: wallet.address,
-          payAsset,
-          receiveAsset,
-          payToken: args.payToken,
-          receiveToken: args.receiveToken,
-          counterDecimals: args.counterDecimals,
-        });
-
-        if (!quote.hasLiquidity) {
-          showToast(
-            quote.error ||
-              quote.antiSnipe?.message ||
-              "No swap route found — trade on Aerodrome or add a WETH pool",
-            ""
-          );
-          return false;
-        }
-
-        const activeConn = await resolveActiveConnType(connType, wallet.address);
-        if (activeConn && activeConn !== connType) {
-          setConnType(activeConn);
-          persistConnType(activeConn);
-        }
-        if (!activeConn) {
-          showToast("❌ Reconnect wallet to swap", "");
-          return false;
-        }
-
-        const token = args.token as `0x${string}`;
-        const recipient = wallet.address as `0x${string}`;
-        const swapDex = quote.dex ?? "uniswap";
-        const isAggregator = swapDex === "aggregator";
-        const router = (quote.router ??
-          (swapDex === "aerodrome" ? AERODROME_ROUTER : SWAP_ROUTER_02)) as `0x${string}`;
-        const weth = WETH_BASE as `0x${string}`;
-        const minOut = BigInt(quote.amountOutMinimum);
-        const uniFee = quote.uniswapFeeTier ?? 3000;
-        const uniPath = quote.uniswapPath as `0x${string}` | undefined;
-        const aeroStable = quote.aerodromeStable ?? false;
-        const aeroHops = quote.aerodromeHops?.map((h) => ({
-          from: h.from as `0x${string}`,
-          to: h.to as `0x${string}`,
-          stable: h.stable,
-        }));
-        const slipTick = quote.slipstreamTickSpacing ?? 200;
-        const creator = quote.creator as `0x${string}` | undefined;
-        const referrer = (quote.referrer || args.referrer) as `0x${string}` | null;
-
-        if (isAggregator && (!quote.tx?.to || !quote.tx.data)) {
-          showToast("Aggregator route unavailable — try again", "");
-          return false;
-        }
-
-        if (!(await routerHasCode(router))) {
-          showToast("❌ Router unavailable on Base — try another route", "");
-          return false;
-        }
-
-        const referrerBoostBps = 0;
-        const calls = [];
-        const payIsNative = payAsset === "eth";
-        const isLaunched = Boolean(quote.isLaunchedToken);
-        const feeBps = isLaunched ? 50 : 25;
-        const grossAmount = parseUnits(
-          args.amount,
-          args.direction === "buy" ? payDecimals : tokenDecimals
-        );
-        const { net: netAmount, fee } = splitGrossAmount(grossAmount, feeBps);
-        const swapFee = fee;
-        const buySwapAmount = isAggregator ? grossAmount : netAmount;
-        const swapFeeAsset: "eth" | "usdc" | "token" =
-          args.direction === "buy"
-            ? (payAsset === "usdc" ? "usdc" : payAsset === "eth" ? "eth" : "token")
-            : "token";
-
-        if (grossAmount <= BigInt(0)) {
-          showToast("Invalid swap amount", "");
-          return false;
-        }
-
-        if (args.direction === "buy") {
-          const payTokenAddr = (
-            payAsset === "usdc"
-              ? USDC_BASE
-              : payAsset === "token" && args.payToken
-                ? args.payToken
-                : token
-          ) as `0x${string}`;
-          const spender = (
-            isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
-          ) as `0x${string}` | undefined;
-
-          if (!payIsNative && BASE_RPC && spender) {
-            const pub = createBasePublicClient();
-            const allowance = await pub.readContract({
-              address: payTokenAddr,
-              abi: ERC20_ABI,
-              functionName: "allowance",
-              args: [recipient, spender],
-            });
-            if (allowance < grossAmount) {
-              calls.push(
-                buildContractCall(
-                  payTokenAddr,
-                  encodeB20ApproveCalldata(spender, grossAmount)
-                )
-              );
-            }
-          }
-
-          if (isAggregator && quote.tx) {
-            calls.push(
-              buildExternalSwapCall(
-                quote.tx.to as `0x${string}`,
-                quote.tx.data as `0x${string}`,
-                BigInt(quote.tx.value || "0")
-              )
-            );
-          } else if (!isAggregator) {
-            const swapData =
-              swapDex === "aerodrome"
-                ? (payIsNative
-                    ? encodeAerodromeBuy({
-                        tokenOut: token,
-                        recipient,
-                        amountOutMinimum: minOut,
-                        stable: aeroStable,
-                        hops: aeroHops,
-                      })
-                    : encodeAerodromeTokensForTokens({
-                        tokenIn: payTokenAddr,
-                        tokenOut: token,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                        recipient,
-                        stable: aeroStable,
-                        hops: aeroHops,
-                      }))
-                : swapDex === "slipstream"
-                  ? encodeSlipstreamBuy({
-                      tokenOut: token,
-                      recipient,
-                      amountIn: buySwapAmount,
-                      amountOutMinimum: minOut,
-                      tickSpacing: slipTick,
-                    })
-                  : uniPath
-                    ? encodeExactInputMultiHop({
-                        path: uniPath,
-                        recipient,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                      })
-                    : encodeExactInputSingle({
-                        tokenIn: (payAsset === "usdc" ? USDC_BASE : payAsset === "token" && args.payToken ? args.payToken : weth) as `0x${string}`,
-                        tokenOut: token,
-                        recipient,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                        fee: uniFee,
-                      });
-            calls.push(buildContractCall(router, swapData, payIsNative ? buySwapAmount : BigInt(0)));
-            if (!isAggregator && swapFee > BigInt(0)) {
-              pushFeeSplitCalls(calls, swapFee, {
-                native: payIsNative,
-                token: payIsNative ? token : payTokenAddr,
-                creator: isLaunched ? creator : null,
-                referrer,
-                referrerBoostBps,
-                payer: recipient,
-              });
-            }
-          }
-        } else {
-          const sellAmount = isAggregator ? grossAmount : netAmount;
-          const spender = (
-            isAggregator ? quote.allowanceSpender ?? quote.tx?.to : router
-          ) as `0x${string}` | undefined;
-          if (BASE_RPC && spender) {
-            const pub = createBasePublicClient();
-            const allowance = await pub.readContract({
-              address: token,
-              abi: ERC20_ABI,
-              functionName: "allowance",
-              args: [recipient, spender],
-            });
-            if (allowance < sellAmount) {
-              calls.push(
-                buildContractCall(
-                  token,
-                  encodeB20ApproveCalldata(spender, sellAmount)
-                )
-              );
-            }
-          }
-
-          if (isAggregator && quote.tx) {
-            calls.push(
-              buildExternalSwapCall(
-                quote.tx.to as `0x${string}`,
-                quote.tx.data as `0x${string}`,
-                BigInt(quote.tx.value || "0")
-              )
-            );
-          } else {
-            const swapData =
-              swapDex === "aerodrome"
-                ? (receiveAsset === "eth"
-                    ? encodeAerodromeSell({
-                        tokenIn: token,
-                        recipient,
-                        amountIn: sellAmount,
-                        amountOutMinimum: minOut,
-                        stable: aeroStable,
-                        hops: aeroHops,
-                      })
-                    : encodeAerodromeTokensForTokens({
-                        tokenIn: token,
-                        tokenOut: (receiveAsset === "usdc" ? USDC_BASE : args.receiveToken || USDC_BASE) as `0x${string}`,
-                        amountIn: sellAmount,
-                        amountOutMinimum: minOut,
-                        recipient,
-                        stable: aeroStable,
-                        hops: aeroHops,
-                      }))
-                : swapDex === "slipstream"
-                  ? encodeSlipstreamSell({
-                      tokenIn: token,
-                      recipient,
-                      amountIn: sellAmount,
-                      amountOutMinimum: minOut,
-                      tickSpacing: slipTick,
-                    })
-                  : uniPath
-                    ? (receiveAsset === "eth"
-                        ? encodeExactInputMultiHopToEth({
-                            path: uniPath,
-                            recipient,
-                            amountIn: sellAmount,
-                            amountOutMinimum: minOut,
-                          })
-                        : encodeExactInputMultiHop({
-                            path: uniPath,
-                            recipient,
-                            amountIn: sellAmount,
-                            amountOutMinimum: minOut,
-                          }))
-                    : receiveAsset === "eth"
-                      ? encodeExactInputSingleToEth({
-                          tokenIn: token,
-                          recipient,
-                          amountIn: sellAmount,
-                          amountOutMinimum: minOut,
-                          fee: uniFee,
-                        })
-                      : encodeExactInputSingle({
-                          tokenIn: token,
-                          tokenOut: (receiveAsset === "usdc" ? USDC_BASE : args.receiveToken || USDC_BASE) as `0x${string}`,
-                          recipient,
-                          amountIn: sellAmount,
-                          amountOutMinimum: minOut,
-                          fee: uniFee,
-                        });
-            calls.push(buildContractCall(router, swapData));
-            if (!isAggregator && swapFee > BigInt(0)) {
-              pushFeeSplitCalls(calls, swapFee, {
-                native: false,
-                token,
-                creator: isLaunched ? creator : null,
-                referrer,
-                referrerBoostBps,
-                payer: recipient,
-              });
-            }
-          }
-        }
-
-        const hash = await sendAppTransactions(activeConn, wallet.address, calls, {
-          atomicBatch: true,
-        });
-        setSponsored((s) => s + 1);
-
-        if (isLaunched && creator && swapFee > BigInt(0)) {
-          const split = splitPlatformFee(swapFee, {
-            creator,
-            referrer: referrer ?? null,
-            referrerBoostBps,
-          });
-          const trader = wallet.address.toLowerCase();
-          // Match pushFeeSplitCalls skipSelf — don't credit unpaid self-transfers.
-          const creatorShare =
-            trader === creator.toLowerCase() ? BigInt(0) : split.creator;
-          const referrerShare =
-            referrer && trader === referrer.toLowerCase()
-              ? BigInt(0)
-              : split.referrer;
-          void fetch("/api/launchpad/fees", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              txHash: hash,
-              tokenAddress: token,
-              tokenSymbol: args.symbol,
-              trader: wallet.address,
-              creator,
-              referrer: referrer ?? null,
-              direction: args.direction,
-              feeAsset: swapFeeAsset,
-              feeAmount: swapFee.toString(),
-              creatorShare: creatorShare.toString(),
-              platformShare: split.platform.toString(),
-              referrerShare: referrerShare.toString(),
-            }),
-          }).catch(() => {});
-        }
-
-        const nextKeys = bumpWeeklyTxKey(wallet.address, "swap");
-        setTxKeys((k) => ({ ...k, ...nextKeys }));
-        const { credited, hitCap } = recordConfirmedInAppAction(
-          wallet.address,
-          "swap",
-          nextKeys.swap ?? 0
-        );
-        setPointsRevision((n) => n + 1);
-        const label = args.direction === "buy" ? "Buy" : "Sell";
-        const via = dexLabel(swapDex);
-        if (hitCap && credited === 0) {
-          showToast(`${label} ${args.symbol} via ${via} — daily point cap reached`, hash);
-        } else if (credited > 0) {
-          showToast(`${label} ${args.symbol} via ${via} · +${credited} pts`, hash);
-        } else {
-          showToast(`✅ ${label} ${args.symbol} via ${via}`, hash);
-        }
-        return true;
-      } catch (e) {
-        const msg =
-          e instanceof Error ? e.message.split("\n")[0] : "Swap failed";
-        if (!msg.toLowerCase().includes("reject")) {
-          showToast(`❌ ${msg}`, "");
-        }
-        return false;
-      } finally {
-        setSwapLoading(false);
-      }
-    },
-    [connType, showToast, wallet]
-  );
-
-  const handleSeedLiquidity = useCallback(
-    async (args: {
-      token: string;
-      symbol: string;
-      decimals: number;
-      tokenAmount: string;
-      seedEth: string;
-      startPriceUsd?: string;
-      seedDex?: SeedDex;
-    }): Promise<boolean> => {
-      if (!wallet) return false;
-
-      setSwapLoading(true);
-      try {
-        const activeConn = await resolveActiveConnType(connType, wallet.address);
-        if (activeConn && activeConn !== connType) {
-          setConnType(activeConn);
-          persistConnType(activeConn);
-        }
-        if (!activeConn) {
-          showToast("❌ Reconnect wallet to seed liquidity", "");
-          return false;
-        }
-
-        const token = args.token as `0x${string}`;
-        const creator = wallet.address as `0x${string}`;
-        let tokenWei = parseUnits(args.tokenAmount, args.decimals);
-        let ethWei = parseEther(args.seedEth);
-
-        if (args.startPriceUsd) {
-          const computed = computeLiquiditySeedAmounts({
-            seedEth: args.seedEth,
-            startPriceUsd: args.startPriceUsd,
-            ethUsd: 2500,
-            decimals: args.decimals,
-          });
-          if (computed) {
-            tokenWei = computed.tokenWei;
-            ethWei = computed.ethWei;
-          }
-        }
-
-        if (tokenWei <= BigInt(0) || ethWei <= BigInt(0)) {
-          showToast("Invalid liquidity amounts", "");
-          return false;
-        }
-
-        const calls = buildSeedLiquidityCalls({
-          token,
-          creator,
-          tokenAmount: tokenWei,
-          ethAmount: ethWei,
-          dex: args.seedDex ?? "aerodrome",
-        });
-        const hash = await sendAppTransactions(activeConn, wallet.address, calls, {
-          atomicBatch: true,
-        });
-        recordInAppTransaction(wallet.address);
-        setPointsRevision((n) => n + 1);
-        showToast(`💧 ${args.symbol} pool seeded on ${seedDexLabel(args.seedDex ?? "aerodrome")}`, hash);
-        return true;
-      } catch (e) {
-        const msg = e instanceof Error ? e.message.split("\n")[0] : "Seed failed";
-        if (!msg.toLowerCase().includes("reject")) {
-          showToast(`❌ ${msg}`, "");
-        }
-        return false;
-      } finally {
-        setSwapLoading(false);
-      }
-    },
-    [connType, showToast, wallet]
-  );
-
-  /** Withdraw the wallet's full WETH balance back to native ETH. */
-  const handleUnwrapWeth = useCallback(async (): Promise<boolean> => {
-    if (!wallet) return false;
-
-    setSwapLoading(true);
-    try {
-      const activeConn = await resolveActiveConnType(connType, wallet.address);
-      if (activeConn && activeConn !== connType) {
-        setConnType(activeConn);
-        persistConnType(activeConn);
-      }
-      if (!activeConn) {
-        showToast("❌ Reconnect wallet to unwrap", "");
-        return false;
-      }
-
-      const pub = createBasePublicClient();
-      const balance = await pub.readContract({
-        address: WETH_BASE,
-        abi: ERC20_ABI,
-        functionName: "balanceOf",
-        args: [wallet.address as `0x${string}`],
-      });
-      if (balance <= BigInt(0)) {
-        showToast("No WETH to unwrap", "");
-        return false;
-      }
-
-      const hash = await sendAppTransactions(
-        activeConn,
-        wallet.address,
-        [buildContractCall(WETH_BASE, encodeWethWithdrawCalldata(balance))],
-        { atomicBatch: true }
-      );
-      showToast(`✅ Unwrapped ${formatUnits(balance, 18)} WETH to ETH`, hash);
-      return true;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message.split("\n")[0] : "Unwrap failed";
-      if (!msg.toLowerCase().includes("reject")) {
-        showToast(`❌ ${msg}`, "");
-      }
-      return false;
-    } finally {
-      setSwapLoading(false);
-    }
-  }, [connType, showToast, wallet]);
+  }, [currentWalletAddress]);
 
   const applyAnalysis = useCallback((result: AnalyzeWalletResult) => {
     const address = result.wallet.address;
@@ -1414,133 +447,7 @@ function useWalletAppController() {
     if (typeof window !== "undefined") {
       localStorage.setItem("base_has_connected", "1");
     }
-  }, []);
-
-  const syncCheckInStatus = useCallback(async (address: string) => {
-    const status = await fetchCheckInStatus(address);
-    setCheckedToday(status.checkedToday);
-    setStreak(status.streak);
-    patchCheckInInWalletCache(address, status.checkedToday, status.streak);
-    return status;
-  }, []);
-
-  /** Refresh daily check-in state and weekly quest counters at UTC day/week boundaries. */
-  useEffect(() => {
-    if (!wallet) return;
-
-    const applyRollover = (next: ReturnType<typeof getCalendarKeys>) => {
-      const prev = calendarRef.current;
-      if (next.day === prev.day && next.week === prev.week) return;
-
-      calendarRef.current = next;
-
-      if (next.day !== prev.day) {
-        setCheckedToday(readLocalCheckInToday(wallet.address));
-        void syncCheckInStatus(wallet.address);
-      }
-
-      if (next.week !== prev.week) {
-        setTxKeys(readPersistedTxKeys(wallet.address));
-        }
-
-      setPointsRevision((n) => n + 1);
-    };
-
-    const tick = () => applyRollover(getCalendarKeys());
-
-    let midnightTimer: number | undefined;
-    const scheduleMidnight = () => {
-      midnightTimer = window.setTimeout(() => {
-        tick();
-        scheduleMidnight();
-      }, msUntilNextUtcDay());
-    };
-    scheduleMidnight();
-    const intervalId = window.setInterval(tick, 60_000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") tick();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      if (midnightTimer !== undefined) window.clearTimeout(midnightTimer);
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [wallet, syncCheckInStatus]);
-
-  const handleCheckInSuccess = useCallback(
-    async (address: string, txHash?: string) => {
-      if (txHash) {
-        const h = (normalizeTxHash(txHash) ?? txHash).toLowerCase();
-        const key = `checkin:${h}`;
-        if (handledActionTxs.current.has(key)) return;
-        handledActionTxs.current.add(key);
-      }
-      const floor =
-        wallet?.address.toLowerCase() === address.toLowerCase()
-          ? wallet.checkInCount
-          : 0;
-      const count = recordCheckInSuccess(address, floor);
-      const expectedStreak = checkedToday ? Math.max(streak, 1) : Math.max(streak + 1, 1);
-      setCheckedToday(true);
-      setTxKeys((k) => {
-        const next = { ...k, checkin: (k.checkin || 0) + 1 };
-        writePersistedTxKeys(address, next);
-        return next;
-      });
-      setWallet((current) => {
-      if (!current || current.address.toLowerCase() !== address.toLowerCase()) {
-        return current;
-      }
-      return {
-        ...current,
-        checkInCount: Math.max(current.checkInCount, count),
-      };
-    });
-      const status = await syncCheckInStatus(address);
-      patchCheckInInWalletCache(
-        address,
-        status.checkedToday,
-        status.streak,
-        true
-      );
-      recordInAppTransaction(address, { notify: false });
-      const awardStreak = Math.max(status.streak, expectedStreak, 1);
-      if (awardStreak > 0) setStreak(awardStreak);
-      notifyPointsUpdated(address);
-      setPointsRevision((n) => n + 1);
-      if (txHash) {
-        showToast("✅ Onchain check-in secured!", txHash);
-      }
-    },
-    [checkedToday, showToast, streak, syncCheckInStatus, wallet]
-  );
-
-  const handleBoostSuccess = useCallback(
-    (address: string, txHash?: string) => {
-      if (txHash) {
-        const h = (normalizeTxHash(txHash) ?? txHash).toLowerCase();
-        const key = `boost:${h}`;
-        if (handledActionTxs.current.has(key)) return;
-        handledActionTxs.current.add(key);
-      }
-      setBoosts((current) => bumpBoostCount(address, current));
-      const nextKeys = bumpWeeklyTxKey(address, "boost");
-      setTxKeys((k) => ({ ...k, ...nextKeys }));
-      recordConfirmedInAppAction(
-        address,
-        "boost",
-        nextKeys.boost ?? 0
-      );
-      writeLocalBoostTime(address);
-      setPointsRevision((n) => n + 1);
-      if (txHash) {
-        showToast("⚡ Daily boost secured on Base!", txHash);
-      }
-    },
-    [showToast]
-  );
+  }, [setStreak, setCheckedToday, setBoosts, setWallet, setTxKeys]);
 
   const lockWalletCore = useCallback((w: WalletData) => {
     balancesLockedRef.current = w.address.toLowerCase();
@@ -1554,7 +461,10 @@ function useWalletAppController() {
     setWalletRefreshing(false);
     setScanProgress("");
   }, []);
-  lockWalletCoreRef.current = lockWalletCore;
+
+  useEffect(() => {
+    lockWalletCoreRef.current = lockWalletCore;
+  }, [lockWalletCore]);
 
   const analyzeWallet = useCallback(
     async (address: string, opts?: { background?: boolean }) => {
@@ -1882,7 +792,10 @@ function useWalletAppController() {
     },
     [applyAnalysis, loadX402PremiumState, lockWalletCore, showToast]
   );
-  analyzeWalletRef.current = analyzeWallet;
+
+  useEffect(() => {
+    analyzeWalletRef.current = analyzeWallet;
+  }, [analyzeWallet]);
 
   const handleConnect = async (type: ConnectionType) => {
     if (connectingRef.current) return;
@@ -2005,22 +918,15 @@ function useWalletAppController() {
     setConnType(null);
     clearConnType();
     clearPersistedWalletAddress();
-    setBoosts(0);
-    setStreak(0);
-    setCheckedToday(false);
-    setTxKeys({ ...DEFAULT_TX_KEYS });
+    resetDailyActions();
+    resetTransactionsState();
     setMiniAppIdentity(null);
     setSponsored(0);
-    setLaunchLoading(false);
-    setSwapLoading(false);
-    setB20Activated(false);
     setAnalyticsSyncing(false);
     setWalletRefreshing(false);
     setScanProgress("");
     pendingTx.current.clear();
-    handledActionTxs.current.clear();
-    calendarRef.current = getCalendarKeys();
-  }, []);
+  }, [resetDailyActions, resetTransactionsState]);
 
   const handleDisconnect = () => {
     const address = wallet?.address;

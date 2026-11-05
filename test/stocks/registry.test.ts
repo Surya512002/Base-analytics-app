@@ -7,9 +7,8 @@ import {
   getTokenizedStockBySymbol,
   getStockCategoryCounts,
   isNewStock,
-  type TokenizedStockEntry,
 } from "@/lib/stocks/tokenized-stocks-registry";
-import { BASE_STOCKS, getBaseStockByAddress } from "@/lib/stocks/base-stocks";
+import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 
 describe("Single Source of Truth Tokenized Stock Registry (Base Mainnet)", () => {

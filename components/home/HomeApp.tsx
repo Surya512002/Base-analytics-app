@@ -61,12 +61,12 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
   const app = useWalletApp();
   const {
     wallet,
-    walletCore,
+    walletCore: _walletCore,
     ready,
     loading,
     scanProgress,
     walletRefreshing,
-    analyticsSyncing,
+    analyticsSyncing: _analyticsSyncing,
     showModal,
     setShowModal,
     handleConnect,
@@ -74,7 +74,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
     setTab,
     toast,
     setToast,
-    sponsored,
+    sponsored: _sponsored,
     handleDisconnect,
     walletScanComplete,
     sessionBootstrapped,

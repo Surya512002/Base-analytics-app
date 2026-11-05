@@ -9,6 +9,8 @@ const MOBILE_VIEWPORTS = [
   { name: "320px (Ultra-compact / iPhone SE 1)", width: 320, height: 568 },
   { name: "375px (iPhone SE 2/3 / mini)", width: 375, height: 667 },
   { name: "390px (iPhone 13/14/15 standard)", width: 390, height: 844 },
+  { name: "412px (Pixel 7 / Android standard)", width: 412, height: 915 },
+  { name: "430px (iPhone Pro Max / Plus)", width: 430, height: 932 },
   { name: "768px (Tablet portrait / iPad)", width: 768, height: 1024 },
 ];
 
@@ -35,6 +37,22 @@ for (const vp of MOBILE_VIEWPORTS) {
 
     test(`swap page loads without overflow at ${vp.width}px`, async ({ page }) => {
       await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded" });
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      });
+      expect(hasHorizontalOverflow).toBeFalsy();
+    });
+
+    test(`explore page loads without horizontal overflow at ${vp.width}px`, async ({ page }) => {
+      await page.goto(`${BASE}/explore`, { waitUntil: "domcontentloaded" });
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      });
+      expect(hasHorizontalOverflow).toBeFalsy();
+    });
+
+    test(`lend page loads without horizontal overflow at ${vp.width}px`, async ({ page }) => {
+      await page.goto(`${BASE}/lend`, { waitUntil: "domcontentloaded" });
       const hasHorizontalOverflow = await page.evaluate(() => {
         return document.documentElement.scrollWidth > document.documentElement.clientWidth;
       });

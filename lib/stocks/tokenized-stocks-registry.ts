@@ -4068,6 +4068,7 @@ export const VERIFIED_BASE_STOCKS_8 = [
   "AMZNc",
   "METAc",
   "COINc",
+  "SPCXc",
 ] as const;
 
 /**

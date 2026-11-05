@@ -1,4 +1,4 @@
-import { getAddress, isAddress } from "viem";
+import { isAddress } from "viem";
 
 export const NATIVE_ETH_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 

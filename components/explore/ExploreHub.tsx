@@ -43,15 +43,15 @@ export default function ExploreHub({
   app,
   tokens,
   markets,
-  marketStats,
-  b20Activated = true,
+  marketStats: _marketStats,
+  b20Activated: _b20Activated = true,
   initialLoading = false,
-  syncing = false,
+  syncing: _syncing = false,
   onTradeToken,
   onRequestCreateToken,
-  guestMode = false,
-  onRequestConnect,
-  onRefreshData,
+  guestMode: _guestMode = false,
+  onRequestConnect: _onRequestConnect,
+  onRefreshData: _onRefreshData,
 }: ExploreHubProps) {
   const { wallet } = app;
   const userAddress = wallet?.address ?? null;

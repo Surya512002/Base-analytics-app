@@ -15,7 +15,6 @@ import { formatUnits } from "viem";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { fetchSwapQuote, fetchProtectionStatus, type LaunchDex } from "@/lib/api/launchpad-client";
-import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 import { ERC20_ABI } from "@/lib/constants/contracts";
 import { captureTokenReferrerFromUrl, readTokenReferrer } from "@/lib/utils/referral";
 import {

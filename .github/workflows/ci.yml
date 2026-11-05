@@ -2,13 +2,14 @@ name: CI & Release Readiness
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, full-audit-and-polish]
   pull_request:
 
 jobs:
   quality:
     name: Code Quality & App Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
     steps:
@@ -23,6 +24,13 @@ jobs:
           cache: false
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -30,10 +38,17 @@ jobs:
       - name: Unit & Invariant Tests
         run: npm test
       - name: Production Dependency Audit
-        run: npm audit --omit=dev --audit-level=critical || echo "Upstream dependency audit completed"
+        run: npm audit --omit=dev --audit-level=critical
       - name: Build
         run: npm run build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
       - name: Install Playwright
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
       - name: E2E and swap route smoke tests
         run: |
@@ -52,13 +67,13 @@ jobs:
   secrets:
     name: Gitleaks Secrets Detection
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Run Gitleaks Scanner
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Comprehensive Secret Scanner
@@ -67,6 +82,7 @@ jobs:
   contracts:
     name: Smart Contracts & Security Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:

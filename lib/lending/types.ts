@@ -26,6 +26,7 @@ export interface MarketAsset {
   decimals: number;
   isStock?: boolean;
   icon?: string;
+  feed?: string;
 }
 
 export interface LendingMarket {
@@ -111,7 +112,30 @@ export interface UserMorphoPosition {
   isHealthy: boolean;
 }
 
-export type {
-  UserStockPortfolioSummary,
-  UserStockPortfolioPosition,
-} from "./unified-comparison";
+export interface UserStockPortfolioPosition {
+  symbol: string;
+  name: string;
+  balanceFormatted: string;
+  balanceUsd: number;
+  protocol: string;
+  status: string;
+}
+
+export interface UserStockPortfolioSummary {
+  stockSymbol: string;
+  stockHoldingShares: number;
+  stockHoldingUsd: number;
+  totalStockHoldingsUsd?: number;
+  totalStockDebtUsd?: number;
+  totalSuppliedUsd: number;
+  totalBorrowedUsd: number;
+  netEquityUsd: number;
+  healthFactor: number;
+  currentLtvPct: number;
+  liquidationThresholdPct: number;
+  weightedLltvPct?: number;
+  isHealthy: boolean;
+  activePositionsCount: number;
+  positions?: UserStockPortfolioPosition[];
+}
+

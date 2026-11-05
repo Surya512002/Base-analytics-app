@@ -12,6 +12,7 @@ import {
   detectBrowserWalletAvailability,
   type BrowserWalletAvailability,
 } from "@/lib/utils/wallet-providers";
+import { isMobileDevice, getMobileWalletDeepLink } from "@/lib/utils/wallet-deeplink";
 import type { ConnectionType } from "@/lib/types/wallet";
 
 type WalletOption = {
@@ -21,6 +22,7 @@ type WalletOption = {
   icon: ReactNode;
   available?: boolean;
   installUrl?: string;
+  actionLabel?: string;
 };
 
 const BASE_WALLET: WalletOption = {
@@ -32,24 +34,35 @@ const BASE_WALLET: WalletOption = {
 };
 
 function browserWalletOptions(
-  availability: BrowserWalletAvailability
+  availability: BrowserWalletAvailability,
+  isMobile: boolean
 ): WalletOption[] {
   return [
     {
       type: "metamask",
       label: "MetaMask",
-      short: availability.metamask ? "Browser extension" : "Not installed",
+      short: availability.metamask
+        ? "Browser extension"
+        : isMobile
+        ? "Open in MetaMask app"
+        : "Not installed",
       icon: <MetaMaskWalletIcon size={20} />,
       available: availability.metamask,
-      installUrl: "https://metamask.io/download/",
+      installUrl: isMobile ? getMobileWalletDeepLink("metamask") : "https://metamask.io/download/",
+      actionLabel: isMobile ? "Open App" : "Install extension",
     },
     {
       type: "coinbase",
       label: "Coinbase Wallet",
-      short: availability.coinbase ? "Browser extension" : "Not installed",
+      short: availability.coinbase
+        ? "Browser extension"
+        : isMobile
+        ? "Open in Coinbase app"
+        : "Not installed",
       icon: <BaseAppWalletIcon size={20} />,
       available: availability.coinbase,
-      installUrl: "https://www.coinbase.com/wallet/downloads",
+      installUrl: isMobile ? getMobileWalletDeepLink("coinbase") : "https://www.coinbase.com/wallet/downloads",
+      actionLabel: isMobile ? "Open App" : "Install extension",
     },
     {
       type: "injected",
@@ -78,16 +91,18 @@ function WalletGridButton({
         href={wallet.installUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-left opacity-70 hover:opacity-100 hover:border-[var(--brand)] transition-colors"
+        className="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-left opacity-90 hover:opacity-100 hover:border-[var(--brand)] transition-colors"
       >
-        <span className="w-7 h-7 rounded-md bg-[var(--surface)] dark:bg-white/90 flex items-center justify-center shrink-0 overflow-hidden grayscale border border-[var(--border-subtle)]">
+        <span className="w-7 h-7 rounded-md bg-[var(--surface)] dark:bg-white/90 flex items-center justify-center shrink-0 overflow-hidden border border-[var(--border-subtle)]">
           {wallet.icon}
         </span>
         <span className="min-w-0">
-          <span className="block text-[11px] font-semibold text-[var(--ink-muted)] truncate">
+          <span className="block text-[11px] font-semibold text-[var(--ink)] truncate">
             {wallet.label}
           </span>
-          <span className="block text-[9px] text-[var(--ink-dim)] truncate">Install extension</span>
+          <span className="block text-[9px] text-[var(--brand-text)] font-medium truncate">
+            {wallet.actionLabel || "Install extension"}
+          </span>
         </span>
       </a>
     );
@@ -124,11 +139,13 @@ export default function ConnectWalletModal({
 }) {
   const [inMiniApp, setInMiniApp] = useState(false);
   const [miniAppHost, setMiniAppHost] = useState<MiniAppHost | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [availability, setAvailability] = useState<BrowserWalletAvailability>(() =>
     detectBrowserWalletAvailability()
   );
 
   useEffect(() => {
+    setIsMobile(isMobileDevice());
     setAvailability(detectBrowserWalletAvailability());
     void (async () => {
       const inside = await isInsideBaseMiniApp();
@@ -167,8 +184,8 @@ export default function ConnectWalletModal({
   }, [miniAppHost]);
 
   const otherWallets = useMemo(
-    () => browserWalletOptions(availability),
-    [availability]
+    () => browserWalletOptions(availability, isMobile),
+    [availability, isMobile]
   );
 
   if (!open) return null;
@@ -177,6 +194,8 @@ export default function ConnectWalletModal({
     ? miniAppHost === "warpcast"
       ? "You’re in Warpcast — connect your embedded wallet to trade on Base."
       : "You’re in Base App — connect your in-app smart wallet."
+    : isMobile
+    ? "Connect via Base Wallet passkey or open in your mobile wallet app."
     : "Pick the wallet you want — each option opens that wallet only (no auto MetaMask).";
 
   return (
@@ -262,7 +281,7 @@ export default function ConnectWalletModal({
 
               <div className="mt-4 pt-3 border-t border-white/[0.08]">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)] mb-2">
-                  Browser extensions
+                  {isMobile ? "Mobile wallets" : "Browser extensions"}
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {otherWallets.map((w) => (

@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:live": "vitest run --include '**/*.live.test.ts'",
     "test:e2e": "playwright test",
     "screenshots:dashboard": "PLAYWRIGHT_SKIP_SERVER=1 SCREENSHOT_BASE_URL=https://base-analytics-app.vercel.app playwright test e2e/capture-dashboard-screenshots.spec.ts",
     "thumbnail:generate": "node scripts/generate-app-thumbnail.mjs --local",
@@ -40,7 +41,8 @@
     "node": ">=20.0.0"
   },
   "overrides": {
-    "@coinbase/cdp-sdk": "1.44.1"
+    "@coinbase/cdp-sdk": "1.44.1",
+    "proxy-addr": "^2.0.8"
   },
   "dependencies": {
     "@base-org/account": "2.5.4",
@@ -68,6 +70,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "recharts": "^3.10.1",
+    "sharp": "^0.35.5",
     "siwe": "2.3.2",
     "viem": "2.53.1",
     "wagmi": "2.19.5",

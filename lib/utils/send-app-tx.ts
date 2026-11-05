@@ -9,7 +9,6 @@ import {
   prepareCallsForWalletSendCalls,
   withBuilderSuffix,
   isB20FactoryAddress,
-  isB20PrecompileAddress,
   isPreservedCalldataCall,
   finalizeAppTransactionBatch,
   canBundleViaMulticall3,

@@ -5,7 +5,7 @@
  * If not curated, fetches name, symbol, and decimals directly on-chain via Base RPC multicall.
  */
 
-import { type Address, isAddress, getAddress } from "viem";
+import { isAddress, getAddress } from "viem";
 import { COMMON_BASE_TOKENS, type CommonToken } from "@/lib/launchpad/common-tokens";
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
 import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";

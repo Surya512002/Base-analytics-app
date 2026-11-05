@@ -224,12 +224,10 @@ export default function TokenLaunchForm({
 
   // Fetch stock prices
   useEffect(() => {
-    void fetch("/api/stocks/markets")
+    void fetch("/api/stocks")
       .then((r) => r.json())
-      .then((d: { data?: Array<{ symbol: string; nav: number }> }) => {
-        if (d.data && Array.isArray(d.data)) {
-          const map: Record<string, number> = {};
-          d.data.forEach((s) => {
+      .then((d: { stocks?: Array<{ symbol: string; nav: number }>; data?: Array<{ symbol: string; nav: number }> }) => {
+        const list = d.stocks || d.data; if (list && Array.isArray(list)) { const map: Record<string, number> = {}; list.forEach((s) => {
             map[s.symbol] = s.nav;
           });
           setStockPrices(map);

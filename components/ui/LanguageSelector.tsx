@@ -34,8 +34,8 @@ export default function LanguageSelector() {
         aria-expanded={open}
       >
         <Globe size={13} className="text-[var(--brand)]" />
-        <span className="font-mono">{activeMeta.nativeName}</span>
-        <ChevronDown size={12} className="text-[var(--ink-muted)] opacity-70" />
+        <span className="font-mono hidden sm:inline">{activeMeta.nativeName}</span>
+        <ChevronDown size={12} className="text-[var(--ink-muted)] opacity-70 hidden sm:inline" />
       </button>
 
       {open && (

@@ -1,8 +1,56 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getAddress } from "viem";
 import { getWalletPortfolio } from "@/lib/portfolio/portfolio-service";
 
-describe("Portfolio Client State & Invariants", () => {
+vi.mock("@/lib/portfolio/indexer", () => ({
+  discoverWalletBalances: vi.fn(async (address: string, customAddrs: string[] = []) => {
+    if (address.toLowerCase() === "0x70997970c51812dc3a010c7d01b50e0d17dc79c8") {
+      if (customAddrs.length > 0) {
+        return {
+          nativeEthBigInt: BigInt(0),
+          balances: customAddrs.map((addr) => ({
+            address: addr,
+            symbol: "UNLISTED",
+            name: "Unlisted Token",
+            decimals: 18,
+            balanceBigInt: BigInt("1000000000000000000"),
+            balanceRaw: "1000000000000000000",
+            balanceFormatted: "1.0",
+            balanceNumber: 1.0,
+          })),
+        };
+      }
+      return { nativeEthBigInt: BigInt(0), balances: [] };
+    }
+    // funded address mock data
+    return {
+      nativeEthBigInt: BigInt("1500000000000000000"), // 1.5 ETH
+      balances: [
+        {
+          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+          symbol: "USDC",
+          name: "USD Coin",
+          decimals: 6,
+          balanceBigInt: BigInt("250000000"), // 250 USDC
+          balanceRaw: "250000000",
+          balanceFormatted: "250.0",
+          balanceNumber: 250.0,
+        },
+      ],
+    };
+  }),
+}));
+
+vi.mock("@/lib/portfolio/pricing", () => ({
+  batchPriceTokens: vi.fn(async (_addresses: Array<string | null>) => {
+    const map = new Map();
+    map.set("eth", { priceUsd: 2500, priceSource: "dexscreener" });
+    map.set("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", { priceUsd: 1.0, priceSource: "dexscreener" });
+    return map;
+  }),
+}));
+
+describe("Portfolio Client State & Invariants (Hermetic)", () => {
   const fundedAddress = getAddress("0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F");
   const emptyAddress = getAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
 
@@ -21,7 +69,7 @@ describe("Portfolio Client State & Invariants", () => {
       }
     }
     expect(portfolio.totalUsd).toBeCloseTo(computedPricedTotal, 1);
-  }, 25000);
+  });
 
   it("presents tokens without a price feed as 'No price' (priceUsd === null)", async () => {
     // Add custom unlisted token contract
@@ -29,12 +77,13 @@ describe("Portfolio Client State & Invariants", () => {
     const portfolio = await getWalletPortfolio(emptyAddress, [unlisted], false);
 
     const token = portfolio.tokens.find((t) => t.address?.toLowerCase() === unlisted.toLowerCase());
+    expect(token).toBeDefined();
     if (token) {
       expect(token.priceUsd).toBeNull();
       expect(token.priceSource).toBe("none");
       expect(token.usdValue).toBe(0);
     }
-  }, 25000);
+  });
 
   it("returns zero counts and empty tokens for unfunded / disconnected wallet", async () => {
     const portfolio = await getWalletPortfolio(emptyAddress, [], false);
@@ -44,12 +93,12 @@ describe("Portfolio Client State & Invariants", () => {
     expect(portfolio.totalUsd).toBe(0);
     expect(portfolio.pricedCount).toBe(0);
     expect(portfolio.unpricedCount).toBe(0);
-  }, 25000);
+  });
 
   it("ensures token count strictly matches the tokens list length", async () => {
     const portfolio = await getWalletPortfolio(fundedAddress, [], false);
     expect(portfolio.totalCount).toBe(portfolio.tokens.length);
-  }, 25000);
+  });
 
   it("verifies holdings structure has consistent decimals, symbols, and non-negative numbers", async () => {
     const portfolio = await getWalletPortfolio(fundedAddress, [], false);
@@ -64,5 +113,5 @@ describe("Portfolio Client State & Invariants", () => {
         expect(t.usdValue).toBeGreaterThanOrEqual(0);
       }
     }
-  }, 25000);
+  });
 });

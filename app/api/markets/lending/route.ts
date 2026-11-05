@@ -36,12 +36,12 @@ async function fetchLiveBeefyVaults(): Promise<Record<string, { apy: number; tvl
 
     if (!apyRes.ok || !tvlRes.ok) return {};
     const apyMap = (await apyRes.json()) as Record<string, number>;
-    const tvlMap = (await tvlRes.json()) as Record<string, any>;
+    const tvlMap = (await tvlRes.json()) as Record<string, Record<string, number> | number>;
 
     const map: Record<string, { apy: number; tvl: number }> = {};
     for (const [addr, vaultId] of Object.entries(BEEFY_STOCK_VAULT_IDS)) {
       const rawApy = apyMap[vaultId] ? Number(apyMap[vaultId]) * 100 : 0;
-      const rawTvl = tvlMap[8453]?.[vaultId] ?? tvlMap[vaultId] ?? 0;
+      const rawTvl = (typeof tvlMap[8453] === "object" ? tvlMap[8453]?.[vaultId] : undefined) ?? tvlMap[vaultId] ?? 0;
       const apy = Math.round(rawApy * 100) / 100;
       const tvl = Math.round(Number(rawTvl) || 0);
       if (apy > 0 || tvl > 0) {
@@ -58,9 +58,17 @@ async function fetchLiveAerodromeYields(): Promise<Record<string, { apy: number;
   try {
     const res = await fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 } });
     if (!res.ok) return {};
-    const json = (await res.json()) as any;
+    const json = (await res.json()) as {
+      data?: Array<{
+        chain?: string;
+        project?: string;
+        symbol?: string;
+        apy?: number;
+        tvlUsd?: number;
+      }>;
+    };
     const aeroBase = (json?.data || []).filter(
-      (p: any) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
+      (p) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
     );
 
     const map: Record<string, { apy: number; tvl: number }> = {};
@@ -72,11 +80,11 @@ async function fetchLiveAerodromeYields(): Promise<Record<string, { apy: number;
     for (const sym of stockSymbols) {
       const symUpper = sym.toUpperCase();
       const match =
-        aeroBase.find((p: any) => {
+        aeroBase.find((p) => {
           const pSym = (p.symbol || "").toUpperCase();
           return pSym.includes(symUpper) && (pSym.includes("USDC") || pSym.includes("USD"));
         }) ||
-        aeroBase.find((p: any) => (p.symbol || "").toUpperCase().includes(symUpper));
+        aeroBase.find((p) => (p.symbol || "").toUpperCase().includes(symUpper));
 
       if (match) {
         const apy = Math.round(Number(match.apy || 0) * 100) / 100;

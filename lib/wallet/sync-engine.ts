@@ -2,7 +2,6 @@ import {
   decodeV2Cursor,
   fetchBlockscoutV2Chunk,
   V2_STREAMS,
-  type V2Stream,
 } from "@/lib/api/blockscout-v2";
 import {
   collectWalletFastAll,

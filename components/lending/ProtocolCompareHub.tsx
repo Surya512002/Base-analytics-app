@@ -214,7 +214,7 @@ export default function ProtocolCompareHub({
 
   // Derived stock yields across protocols
   const stockYieldMatrix = useMemo(() => {
-    const isHighBeta = ["NVDAc", "TSLAc", "MSTRc"].includes(selectedStock.symbol);
+    const isHighBeta = ["NVDAc", "TSLAc", "MSTRc", "SPCXc"].includes(selectedStock.symbol);
     const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(selectedStock.symbol);
     const isIporSupported = ["GOOGLc", "GOOGc", "NVDAc", "AAPLc", "METAc"].includes(selectedStock.symbol);
 
@@ -598,10 +598,10 @@ export default function ProtocolCompareHub({
           {faqOpen.whyDiff && (
             <div className="p-3.5 text-xs text-[var(--ink-muted)] space-y-2 bg-[var(--surface)] border-t border-[var(--border-subtle)] leading-relaxed">
               <p>
-                <strong>Aave Pro</strong> (<code>pro.aave.com/explore/borrow</code>) features institutional cross-collateral money markets on Base supporting 7 tokenized stocks: <strong>NVDAc, AAPLc, MSFTc, TSLAc, AMZNc, GOOGLc, and METAc</strong>.
+                <strong>Aave Pro</strong> (<code>pro.aave.com/explore/borrow</code>) features institutional cross-collateral money markets on Base supporting 8 tokenized stocks: <strong>NVDAc, AAPLc, MSFTc, TSLAc, AMZNc, GOOGLc, METAc, and SPCXc (SpaceX)</strong>.
               </p>
               <p>
-                Verified holders can supply any of these 7 equities as borrowing collateral to draw USDC liquidity at 75% Max LTV and ~80% Liquidation Threshold with real-time Chainlink equity oracle price feeds and Base Builder attribution.
+                Verified holders can supply any of these 8 equities as borrowing collateral to draw USDC liquidity at 75% Max LTV and ~80% Liquidation Threshold with real-time Chainlink equity oracle price feeds and Base Builder attribution.
               </p>
             </div>
           )}

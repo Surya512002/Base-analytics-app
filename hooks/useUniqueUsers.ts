@@ -10,8 +10,8 @@ interface UniqueUsersState {
 
 // Module-level store ensuring all components on the same page remain 100% in sync
 let globalState: UniqueUsersState = {
-  count: 2342,
-  formatted: "2,342",
+  count: 0,
+  formatted: "0",
   loading: true,
 };
 
@@ -53,8 +53,8 @@ function getSnapshot(): UniqueUsersState {
 }
 
 const serverSnapshot: UniqueUsersState = {
-  count: 2342,
-  formatted: "2,342",
+  count: 0,
+  formatted: "0",
   loading: false,
 };
 
@@ -63,51 +63,8 @@ function getServerSnapshot(): UniqueUsersState {
 }
 
 let activeFetch: Promise<void> | null = null;
-const pingedAddresses = new Set<string>();
 
-async function syncUniqueUsers(address?: string | null): Promise<void> {
-  const cleanAddr = address?.trim().toLowerCase();
-  const isValid =
-    cleanAddr && cleanAddr.startsWith("0x") && cleanAddr.length === 42;
-
-  // Record connected wallet address if valid and not yet pinged in this session
-  if (isValid && !pingedAddresses.has(cleanAddr)) {
-    const sessionKey = `base_user_pinged_${cleanAddr}`;
-    const alreadyInSession =
-      typeof window !== "undefined" && window.sessionStorage?.getItem(sessionKey);
-
-    if (!alreadyInSession) {
-      try {
-        const res = await fetch("/api/app/unique-users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address: cleanAddr }),
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.ok && typeof data.count === "number") {
-            pingedAddresses.add(cleanAddr);
-            if (typeof window !== "undefined") {
-              try {
-                window.sessionStorage?.setItem(sessionKey, "1");
-              } catch {
-                /* ignore sessionStorage write error */
-              }
-            }
-            updateGlobalState(data.count, data.formatted);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("[useUniqueUsers] POST failed:", err);
-      }
-    } else {
-      pingedAddresses.add(cleanAddr);
-    }
-  }
-
-  // Deduplicate in-flight GET requests across concurrent component mounts
+async function fetchUniqueUsersCount(): Promise<void> {
   if (activeFetch) return activeFetch;
 
   activeFetch = (async () => {
@@ -130,15 +87,50 @@ async function syncUniqueUsers(address?: string | null): Promise<void> {
 }
 
 /**
- * Hook to retrieve synchronized unique active app users.
+ * Report a confirmed on-chain in-app transaction to record the user as verified.
+ * Requires both the wallet address and mined Base transaction hash.
+ */
+export async function reportConfirmedTransaction(
+  address: string,
+  txHash: string
+): Promise<boolean> {
+  const cleanAddr = address?.trim().toLowerCase();
+  const cleanTx = txHash?.trim().toLowerCase();
+
+  if (!cleanAddr || !cleanTx) return false;
+
+  try {
+    const res = await fetch("/api/app/unique-users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: cleanAddr, txHash: cleanTx }),
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok && typeof data.count === "number") {
+        updateGlobalState(data.count, data.formatted);
+        return true;
+      }
+    }
+  } catch (err) {
+    console.warn("[useUniqueUsers] Transaction report failed:", err);
+  }
+
+  return false;
+}
+
+/**
+ * Hook to retrieve synchronized count of verified active app users.
  * All calling components share the same global state, guaranteeing consistency.
  */
-export function useUniqueUsers(connectedAddress?: string | null) {
+export function useUniqueUsers(_connectedAddress?: string | null) {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    void syncUniqueUsers(connectedAddress);
-  }, [connectedAddress]);
+    void fetchUniqueUsersCount();
+  }, []);
 
   return state;
 }

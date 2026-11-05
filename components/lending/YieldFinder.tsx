@@ -61,7 +61,14 @@ export default function YieldFinder({
       seenIds.add(g.id);
 
       const isBeefy = g.id.startsWith("beefy-");
-      const isStock = g.pairName.includes("c-") || g.pairName.endsWith("c");
+      const cleanPair = g.pairName.replace(/usdc/gi, "");
+      const isStock = Boolean(
+        g.stockSymbol?.endsWith("c") ||
+        cleanPair.includes("c-") ||
+        cleanPair.includes("c/") ||
+        cleanPair.includes("c /") ||
+        cleanPair.trim().endsWith("c")
+      );
       const { riskTier: tier, riskReason } = determineYieldRiskTier({
         protocol: isBeefy ? "beefy" : "aerodrome",
         isStock,
@@ -136,7 +143,7 @@ export default function YieldFinder({
   return (
     <div
       data-testid="yield-finder-container"
-      className={`card-pop rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-6 space-y-5 shadow-xs ${className}`}
+      className={`rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-6 space-y-5 shadow-card ${className}`}
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -163,32 +170,35 @@ export default function YieldFinder({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="space-y-3">
+      <div className="space-y-3 relative z-10">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink-dim)]" />
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink-dim)] pointer-events-none" />
             <input
               type="text"
               placeholder="Search pool, token (e.g. USDC, NVDAc), or protocol…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-[var(--ink)] outline-none focus:border-[var(--brand)] transition"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-[var(--ink)] outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition"
             />
           </div>
 
           {/* Sort By Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--ink-muted)] shrink-0 hidden sm:inline">Sort:</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <label htmlFor="yield-sort-by" className="text-xs font-bold text-[var(--ink-muted)] shrink-0 hidden sm:inline cursor-pointer">
+              Sort:
+            </label>
             <select
+              id="yield-sort-by"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--ink)] outline-none cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--ink)] outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] cursor-pointer transition"
             >
-              <option value="apy_desc">Highest APY</option>
-              <option value="tvl_desc">Largest TVL</option>
-              <option value="risk_asc">Lowest Risk First</option>
-              <option value="protocol">Protocol Name</option>
+              <option value="apy_desc" className="bg-[var(--surface)] text-[var(--ink)]">Highest APY</option>
+              <option value="tvl_desc" className="bg-[var(--surface)] text-[var(--ink)]">Largest TVL</option>
+              <option value="risk_asc" className="bg-[var(--surface)] text-[var(--ink)]">Lowest Risk First</option>
+              <option value="protocol" className="bg-[var(--surface)] text-[var(--ink)]">Protocol Name</option>
             </select>
           </div>
         </div>
@@ -201,58 +211,70 @@ export default function YieldFinder({
               <Filter size={12} />
               Asset:
             </span>
-            {(["all", "usdc", "eth", "stocks"] as const).map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setAssetCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  assetCategory === cat
-                    ? "bg-[var(--brand)] text-white shadow-xs"
-                    : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
-                }`}
-              >
-                {cat === "all" ? "All Assets" : cat.toUpperCase()}
-              </button>
-            ))}
+            {(["all", "usdc", "eth", "stocks"] as const).map((cat) => {
+              const active = assetCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setAssetCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer select-none active:scale-95 ${
+                    active
+                      ? "bg-[#0052FF] text-white shadow-xs border border-[#0052FF]"
+                      : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  {cat === "all" ? "All Assets" : cat.toUpperCase()}
+                </button>
+              );
+            })}
           </div>
 
           {/* Risk Tier */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] text-[var(--ink-muted)] font-bold">Risk:</span>
-            {(["all", "low", "moderate", "degen"] as const).map((tier) => (
-              <button
-                key={tier}
-                type="button"
-                onClick={() => setRiskTier(tier)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  riskTier === tier
-                    ? "bg-[var(--brand)] text-white shadow-xs"
-                    : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
-                }`}
-              >
-                {tier === "all" ? "All Tiers" : tier === "low" ? "Low Risk" : tier === "moderate" ? "Moderate" : "Degen"}
-              </button>
-            ))}
+            {(["all", "low", "moderate", "degen"] as const).map((tier) => {
+              const active = riskTier === tier;
+              return (
+                <button
+                  key={tier}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setRiskTier(tier)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer select-none active:scale-95 ${
+                    active
+                      ? "bg-[#0052FF] text-white shadow-xs border border-[#0052FF]"
+                      : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  {tier === "all" ? "All Tiers" : tier === "low" ? "Low Risk" : tier === "moderate" ? "Moderate" : "Degen"}
+                </button>
+              );
+            })}
           </div>
 
           {/* Min TVL */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] text-[var(--ink-muted)] font-bold">Min TVL:</span>
-            {[0, 10_000, 50_000, 100_000].map((tvl) => (
-              <button
-                key={tvl}
-                type="button"
-                onClick={() => setMinTvlUsd(tvl)}
-                className={`px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold transition cursor-pointer ${
-                  minTvlUsd === tvl
-                    ? "bg-[var(--brand)] text-white"
-                    : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
-                }`}
-              >
-                {tvl === 0 ? "Any" : tvl >= 1_000_000 ? `$${tvl / 1_000_000}M+` : `$${tvl / 1000}k+`}
-              </button>
-            ))}
+            {[0, 10_000, 50_000, 100_000].map((tvl) => {
+              const active = minTvlUsd === tvl;
+              return (
+                <button
+                  key={tvl}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setMinTvlUsd(tvl)}
+                  className={`px-2.5 py-1 rounded-xl text-[11px] font-mono font-bold transition-all duration-150 cursor-pointer select-none active:scale-95 ${
+                    active
+                      ? "bg-[#0052FF] text-white shadow-xs border border-[#0052FF]"
+                      : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  {tvl === 0 ? "Any" : tvl >= 1_000_000 ? `$${tvl / 1_000_000}M+` : `$${tvl / 1000}k+`}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -274,7 +296,7 @@ export default function YieldFinder({
             return (
               <div
                 key={pool.id}
-                className="card-pop p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] transition space-y-3 flex flex-col justify-between"
+                className="p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] hover:border-[#0052FF]/30 transition-all hover:shadow-xs space-y-3 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">

@@ -4,7 +4,8 @@ import {
   IPOR_FUSION_FACTORY_BASE,
   AAVE_V3_POOL_BASE,
 } from "./constants";
-import type { MorphoMarketParams } from "./types";
+import type { MorphoMarketParams, UserStockPortfolioSummary } from "./types";
+export type { UserStockPortfolioPosition, UserStockPortfolioSummary } from "./types";
 import { BASE_STOCKS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import { runMarketDiscovery } from "./discovery/engine";
 import type { NormalizedMarket } from "./discovery/types";
@@ -77,38 +78,13 @@ export interface StockLendingComparison {
   lastUpdated: number;
 }
 
-export interface UserStockPortfolioPosition {
-  symbol: string;
-  name: string;
-  balanceFormatted: string;
-  balanceUsd: number;
-  protocol: string;
-  status: string;
-}
 
-export interface UserStockPortfolioSummary {
-  stockSymbol: string;
-  stockHoldingShares: number;
-  stockHoldingUsd: number;
-  totalStockHoldingsUsd?: number;
-  totalStockDebtUsd?: number;
-  totalSuppliedUsd: number;
-  totalBorrowedUsd: number;
-  netEquityUsd: number;
-  healthFactor: number;
-  currentLtvPct: number;
-  liquidationThresholdPct: number;
-  weightedLltvPct?: number;
-  isHealthy: boolean;
-  activePositionsCount: number;
-  positions?: UserStockPortfolioPosition[];
-}
 
 /** In-memory cache for fast comparison tab transitions */
 const comparisonCache = new Map<string, { data: StockLendingComparison; timestamp: number }>();
 const CACHE_TTL_MS = 15_000; // 15 seconds near real-time cache
 
-/** Known verified 7 tokenized stocks supported as collateral on Aave Pro (pro.aave.com/explore/borrow) */
+/** Known verified tokenized stocks supported as collateral on Aave Pro (pro.aave.com/explore/borrow) */
 export const AAVE_EQUITIES_SUPPORTED_STOCKS = new Set([
   "NVDAc",
   "AAPLc",
@@ -117,6 +93,7 @@ export const AAVE_EQUITIES_SUPPORTED_STOCKS = new Set([
   "AMZNc",
   "GOOGLc",
   "METAc",
+  "SPCXc",
 ]);
 
 /** Canonical protocol addresses for Base mainnet equities */
@@ -149,85 +126,85 @@ export const VERIFIED_BEEFY_STOCK_DETAILS: Record<string, VerifiedBeefyVaultDeta
     vaultAddress: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
     wantTokenAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
     vaultId: "aero-cow-base-usdc-nvdac-vault",
-    apy: 5.91,
-    tvlUsd: 207441,
+    apy: 0,
+    tvlUsd: 0,
   },
   AAPLc: {
     vaultAddress: "0xD34249514227594BB3bcdDF24a74fe1901D5077e",
     wantTokenAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1",
     vaultId: "aero-cow-base-usdc-aaplc-vault",
-    apy: 3.80,
-    tvlUsd: 124421,
+    apy: 0,
+    tvlUsd: 0,
   },
   MSFTc: {
     vaultAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
     wantTokenAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732",
     vaultId: "aero-cow-base-msftc-usdc-vault",
-    apy: 4.37,
-    tvlUsd: 90117,
+    apy: 0,
+    tvlUsd: 0,
   },
   TSLAc: {
     vaultAddress: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
     wantTokenAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0",
     vaultId: "aero-cow-base-tslac-usdc-vault",
-    apy: 6.40,
-    tvlUsd: 60718,
+    apy: 0,
+    tvlUsd: 0,
   },
   MSTRc: {
     vaultAddress: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
     wantTokenAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf",
     vaultId: "aero-cow-base-mstrc-usdc-vault",
-    apy: 88.25,
-    tvlUsd: 4130,
+    apy: 0,
+    tvlUsd: 0,
   },
   AMZNc: {
     vaultAddress: "0x1FF5C4d292F9eACAE1fa10c68f2c546ef8Fc7a8A",
     wantTokenAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361",
     vaultId: "aero-cow-base-amznc-usdc-vault",
-    apy: 3.78,
-    tvlUsd: 63250,
+    apy: 0,
+    tvlUsd: 0,
   },
   METAc: {
     vaultAddress: "0x32dB27106d3eeA59A2586E81c4c02aC7a5Ddec49",
     wantTokenAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650",
     vaultId: "aero-cow-base-usdc-metac-vault",
-    apy: 3.59,
-    tvlUsd: 165251,
+    apy: 0,
+    tvlUsd: 0,
   },
   GOOGLc: {
     vaultAddress: "0x8Ff449bd7B0073c68C6b5B355B684c7C0d0FEa22",
     wantTokenAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3",
     vaultId: "aero-cow-base-usdc-googlc-vault",
-    apy: 8.21,
-    tvlUsd: 205266,
+    apy: 0,
+    tvlUsd: 0,
   },
   SNDKc: {
     vaultAddress: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
     wantTokenAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661",
     vaultId: "aero-cow-base-sndkc-usdc-vault",
-    apy: 9.17,
-    tvlUsd: 112369,
+    apy: 0,
+    tvlUsd: 0,
   },
   PLTRc: {
     vaultAddress: "0x1361B4DB8b1d8F452B7D3F91bC36B240e32a80BA",
     wantTokenAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4",
     vaultId: "aero-cow-base-pltrc-usdc-vault",
-    apy: 6.63,
-    tvlUsd: 118,
+    apy: 0,
+    tvlUsd: 0,
   },
   SPCXc: {
     vaultAddress: "0x08C60dEabCbD835E52d5BF8f8800959B54Db8774",
     wantTokenAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC",
     vaultId: "aero-cow-base-usdc-spcxc-vault",
-    apy: 9.73,
-    tvlUsd: 118217,
+    apy: 0,
+    tvlUsd: 0,
   },
   MUc: {
     vaultAddress: "0x6b08908A8E1a7197e95d525E5f24EE0bf677369e",
     wantTokenAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299",
     vaultId: "aero-cow-base-muc-usdc-vault",
-    apy: 5.59,
-    tvlUsd: 35,
+    apy: 0,
+    tvlUsd: 0,
   },
 };
 
@@ -238,18 +215,18 @@ export interface VerifiedAerodromePoolDetails {
 }
 
 export const VERIFIED_AERODROME_STOCK_POOLS: Record<string, VerifiedAerodromePoolDetails> = {
-  NVDAc: { poolAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46", supplyApy: 17.64, tvlUsd: 517538 },
-  AAPLc: { poolAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1", supplyApy: 5.75, tvlUsd: 110662 },
-  MSFTc: { poolAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732", supplyApy: 2.12, tvlUsd: 17374 },
-  TSLAc: { poolAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0", supplyApy: 6.63, tvlUsd: 34927 },
-  MSTRc: { poolAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf", supplyApy: 3.76, tvlUsd: 214786 },
-  AMZNc: { poolAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361", supplyApy: 8.64, tvlUsd: 64780 },
-  METAc: { poolAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650", supplyApy: 1.43, tvlUsd: 115155 },
-  GOOGLc: { poolAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3", supplyApy: 0.01, tvlUsd: 212922 },
-  SNDKc: { poolAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661", supplyApy: 0.02, tvlUsd: 199153 },
-  PLTRc: { poolAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4", supplyApy: 6.63, tvlUsd: 500 },
-  SPCXc: { poolAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC", supplyApy: 0.95, tvlUsd: 139516 },
-  MUc: { poolAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299", supplyApy: 0.01, tvlUsd: 112850 },
+  NVDAc: { poolAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46", supplyApy: 0, tvlUsd: 0 },
+  AAPLc: { poolAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1", supplyApy: 0, tvlUsd: 0 },
+  MSFTc: { poolAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732", supplyApy: 0, tvlUsd: 0 },
+  TSLAc: { poolAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0", supplyApy: 0, tvlUsd: 0 },
+  MSTRc: { poolAddress: "0xd145b66F74B73a441ec15Eff80EeB653D8E45dFf", supplyApy: 0, tvlUsd: 0 },
+  AMZNc: { poolAddress: "0x7a83f56a9D2a7f6c327ADA3d2b7F0ce6Ba489361", supplyApy: 0, tvlUsd: 0 },
+  METAc: { poolAddress: "0x8d32dcf9f7787D9cC0ac78cdE512c386Cbf19650", supplyApy: 0, tvlUsd: 0 },
+  GOOGLc: { poolAddress: "0x8cBeC857244EC728a44e6650f62a0ABe53319fF3", supplyApy: 0, tvlUsd: 0 },
+  SNDKc: { poolAddress: "0x30c23fB48A81392C4e453cacd714bfAD848d1661", supplyApy: 0, tvlUsd: 0 },
+  PLTRc: { poolAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4", supplyApy: 0, tvlUsd: 0 },
+  SPCXc: { poolAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC", supplyApy: 0, tvlUsd: 0 },
+  MUc: { poolAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299", supplyApy: 0, tvlUsd: 0 },
 };
 
 let liveRatesCache: {
@@ -258,7 +235,7 @@ let liveRatesCache: {
   timestamp: number;
 } | null = null;
 
-async function getLiveBeefyAndAeroRates(): Promise<{
+export async function getLiveBeefyAndAeroRates(): Promise<{
   beefy: Record<string, { apy: number; tvl: number }>;
   aerodrome: Record<string, { apy: number; tvl: number }>;
 }> {
@@ -333,41 +310,36 @@ export const VERIFIED_IPOR_STOCK_VAULTS: Record<string, VerifiedIporStockVault> 
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
     stockAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
     vaultName: "IPOR Nvidia Carry Trade",
-    apy: 7.47,
-    borrowApr: 4.5,
-    tvlUsd: 43_700,
+    apy: 0,
+    tvlUsd: 0,
   },
   AAPLc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
     stockAddress: "0xb200000000000000000000c2e324d24d7eecd1fb",
     vaultName: "IPOR Apple Carry Trade",
-    apy: 6.85,
-    borrowApr: 4.2,
-    tvlUsd: 42_300,
+    apy: 0,
+    tvlUsd: 0,
   },
   GOOGLc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
     stockAddress: "0xb2000000000000000000002d0ba3164cc74f58b7",
     vaultName: "IPOR Google Carry Trade",
-    apy: 6.15,
-    borrowApr: 4.2,
-    tvlUsd: 49_100,
+    apy: 0,
+    tvlUsd: 0,
   },
   GOOGc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
     stockAddress: "0xb2000000000000000000002d0ba3164cc74f58b7",
     vaultName: "IPOR Google Carry Trade",
-    apy: 6.15,
-    borrowApr: 4.2,
-    tvlUsd: 49_100,
+    apy: 0,
+    tvlUsd: 0,
   },
   METAc: {
     vaultAddress: IPOR_FUSION_FACTORY_BASE,
     stockAddress: "0xb2000000000000000000008bc8786b856e61707c",
     vaultName: "IPOR Meta Carry Trade",
-    apy: 7.46,
-    borrowApr: 4.4,
-    tvlUsd: 32_000,
+    apy: 0,
+    tvlUsd: 0,
   },
 };
 
@@ -413,11 +385,23 @@ export async function getUnifiedStockLendingComparison(
   void _oracleFeed;
 
   // Default baseline rates tailored by equity volatility profile
-  const isHighBeta = cleanSymbol === "TSLAc" || cleanSymbol === "NVDAc" || cleanSymbol === "MSTRc";
+  const isHighBeta =
+    cleanSymbol === "TSLAc" ||
+    cleanSymbol === "NVDAc" ||
+    cleanSymbol === "MSTRc" ||
+    cleanSymbol === "SPCXc";
   const isBlueChip = cleanSymbol === "AAPLc" || cleanSymbol === "MSFTc" || cleanSymbol === "GOOGLc";
 
   // Reference NAV
-  const navUsd = isHighBeta ? (cleanSymbol === "NVDAc" ? 138.25 : 221.8) : isBlueChip ? 232.5 : 125.0;
+  const navUsd = isHighBeta
+    ? cleanSymbol === "NVDAc"
+      ? 138.25
+      : cleanSymbol === "SPCXc"
+        ? 145.0
+        : 221.8
+    : isBlueChip
+      ? 232.5
+      : 125.0;
 
   // Load real discovered markets from Base multi-protocol discovery engine
   // Load real discovered markets with timeout guard to prevent test hangs
@@ -450,9 +434,9 @@ export async function getUnifiedStockLendingComparison(
   if (beefyDiscovered || beefyVerified) {
     const vaultContract = (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || beefyVerified?.vaultAddress) as `0x${string}`;
     const beefyLive = liveRates.beefy[cleanSymbol];
-    const supplyApy = beefyDiscovered?.supplyApy ?? (beefyLive?.apy ?? beefyVerified?.apy ?? (isHighBeta ? 6.40 : 4.37));
-    const tvlUsd = beefyDiscovered?.tvlUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 142_000);
-    const availableLiquidityUsd = beefyDiscovered?.liquidityUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 95_000);
+    const supplyApy = beefyDiscovered?.supplyApy ?? (beefyLive?.apy ?? beefyVerified?.apy ?? 0);
+    const tvlUsd = beefyDiscovered?.tvlUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 0);
+    const availableLiquidityUsd = beefyDiscovered?.liquidityUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 0);
 
     options.push({
       id: beefyDiscovered ? `beefy-${beefyDiscovered.marketId}` : `${cleanSymbol}-beefy-vault`,
@@ -492,9 +476,9 @@ export async function getUnifiedStockLendingComparison(
   if (aeroDiscovered || aeroVerified) {
     const poolContract = (aeroDiscovered?.contractAddress || aeroVerified?.poolAddress) as `0x${string}`;
     const aeroLive = liveRates.aerodrome[cleanSymbol];
-    const supplyApy = aeroDiscovered?.supplyApy ?? (aeroLive?.apy ?? aeroVerified?.supplyApy ?? (isHighBeta ? 6.63 : 5.75));
-    const tvlUsd = aeroDiscovered?.tvlUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 280_000);
-    const availableLiquidityUsd = aeroDiscovered?.liquidityUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 125_000);
+    const supplyApy = aeroDiscovered?.supplyApy ?? (aeroLive?.apy ?? aeroVerified?.supplyApy ?? 0);
+    const tvlUsd = aeroDiscovered?.tvlUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 0);
+    const availableLiquidityUsd = aeroDiscovered?.liquidityUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 0);
 
     options.push({
       id: aeroDiscovered ? `aero-${aeroDiscovered.marketId}` : `${cleanSymbol}-aerodrome-gauge`,
@@ -581,13 +565,13 @@ export async function getUnifiedStockLendingComparison(
       stockAddress: stockAddr,
       loanSymbol: "USDC",
       loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: iporVerified?.apy ?? iporDiscovered?.supplyApy ?? 7.47,
-      borrowApr: iporVerified?.borrowApr ?? iporDiscovered?.borrowApr ?? 4.2,
+      supplyApy: iporDiscovered?.supplyApy ?? (iporVerified?.apy ?? 0),
+      borrowApr: iporDiscovered?.borrowApr ?? (iporVerified?.borrowApr ?? null),
       maxLtv: 75,
       liquidationThreshold: 80,
-      utilization: 68.5,
-      availableLiquidityUsd: (iporVerified?.tvlUsd ?? 40_000) * 0.75,
-      tvlUsd: iporVerified?.tvlUsd ?? 40_000,
+      utilization: iporDiscovered?.utilization ?? 0,
+      availableLiquidityUsd: iporDiscovered?.liquidityUsd ?? (iporVerified?.tvlUsd ? iporVerified.tvlUsd * 0.75 : 0),
+      tvlUsd: iporDiscovered?.tvlUsd ?? (iporVerified?.tvlUsd ?? 0),
       riskScore: 2,
       riskLevel: "low",
       riskNotes: [
@@ -619,13 +603,13 @@ export async function getUnifiedStockLendingComparison(
       stockAddress: stockAddr,
       loanSymbol: "USDC",
       loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: aaveDiscovered?.supplyApy ?? (isHighBeta ? 5.25 : 4.60),
-      borrowApr: aaveDiscovered?.borrowApr ?? (isHighBeta ? 3.75 : 3.45),
+      supplyApy: aaveDiscovered?.supplyApy ?? 0,
+      borrowApr: aaveDiscovered?.borrowApr ?? null,
       maxLtv: 75,
       liquidationThreshold: 80,
-      utilization: 64.2,
-      availableLiquidityUsd: aaveDiscovered?.liquidityUsd ?? 14_800_000,
-      tvlUsd: aaveDiscovered?.tvlUsd ?? 34_800_000,
+      utilization: aaveDiscovered?.utilization ?? 0,
+      availableLiquidityUsd: aaveDiscovered?.liquidityUsd ?? 0,
+      tvlUsd: aaveDiscovered?.tvlUsd ?? 0,
       riskScore: 3,
       riskLevel: "low",
       riskNotes: [
@@ -702,7 +686,6 @@ export async function fetchUserStockPortfolioSummary(
   symbol: string = "NVDAc"
 ): Promise<UserStockPortfolioSummary> {
   const cleanSymbol = symbol ? (symbol.endsWith("c") ? symbol : `${symbol}c`) : "NVDAc";
-  const stock = getBaseStockBySymbol(cleanSymbol) ?? BASE_STOCKS[0]!;
 
   if (!userAddress) {
     return {
@@ -724,58 +707,22 @@ export async function fetchUserStockPortfolioSummary(
     };
   }
 
-  // Baseline mock/connected portfolio calculation
-  const nav = cleanSymbol === "NVDAc" ? 138.25 : cleanSymbol === "AAPLc" ? 232.5 : 125.0;
-  const holdingShares = 15.0;
-  const holdingUsd = holdingShares * nav;
-  const suppliedUsd = holdingUsd;
-  const borrowedUsd = 850.0;
-  const currentLtv = suppliedUsd > 0 ? (borrowedUsd / suppliedUsd) * 100 : 0;
-  const liquidationThreshold = 80;
-  const healthFactor = currentLtv > 0 ? liquidationThreshold / currentLtv : 999;
-
-  const positions: UserStockPortfolioPosition[] = [
-    {
-      symbol: cleanSymbol,
-      name: stock.name,
-      balanceFormatted: holdingShares.toFixed(1),
-      balanceUsd: holdingUsd,
-      protocol: "Morpho Blue",
-      status: "Supplied & Collateralized",
-    },
-    {
-      symbol: "AAPLc",
-      name: "Apple Inc.",
-      balanceFormatted: "10.0",
-      balanceUsd: 2325.0,
-      protocol: "Aave V4 Equities",
-      status: "Collateral Active",
-    },
-    {
-      symbol: "mvNVDAc",
-      name: "Morpho NVDA Yield Vault",
-      balanceFormatted: "5.0",
-      balanceUsd: 691.25,
-      protocol: "Morpho Vault",
-      status: "+11.4% Compounding",
-    },
-  ];
-
+  // Clean real empty state for connected address without fabricated positions
   return {
     stockSymbol: cleanSymbol,
-    stockHoldingShares: holdingShares,
-    stockHoldingUsd: Math.round(holdingUsd * 100) / 100,
-    totalStockHoldingsUsd: Math.round(holdingUsd * 100) / 100 + 3016.25,
-    totalStockDebtUsd: Math.round(borrowedUsd * 100) / 100 + 800,
-    totalSuppliedUsd: Math.round(suppliedUsd * 100) / 100,
-    totalBorrowedUsd: Math.round(borrowedUsd * 100) / 100,
-    netEquityUsd: Math.round((suppliedUsd - borrowedUsd) * 100) / 100,
-    healthFactor: Math.round(healthFactor * 100) / 100,
-    currentLtvPct: Math.round(currentLtv * 10) / 10,
-    liquidationThresholdPct: liquidationThreshold,
+    stockHoldingShares: 0,
+    stockHoldingUsd: 0,
+    totalStockHoldingsUsd: 0,
+    totalStockDebtUsd: 0,
+    totalSuppliedUsd: 0,
+    totalBorrowedUsd: 0,
+    netEquityUsd: 0,
+    healthFactor: 999,
+    currentLtvPct: 0,
+    liquidationThresholdPct: 80,
     weightedLltvPct: 77.5,
-    isHealthy: healthFactor >= 1.25,
-    activePositionsCount: positions.length,
-    positions,
+    isHealthy: true,
+    activePositionsCount: 0,
+    positions: [],
   };
 }

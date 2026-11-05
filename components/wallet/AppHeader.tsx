@@ -195,9 +195,10 @@ export default function AppHeader({
                 <button
                   type="button"
                   onClick={onConnect}
-                  className="btn-primary whitespace-nowrap px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  className="btn-primary whitespace-nowrap px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
                 >
-                  <span>{t.actions.connectWallet}</span>
+                  <span className="hidden sm:inline">{t.actions.connectWallet}</span>
+                  <span className="sm:hidden">Connect</span>
                 </button>
               </div>
             ) : (

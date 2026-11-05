@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowUpRight, Rocket, Shield, Star, TrendingDown, TrendingUp } from "lucide-react";
 import CreatorChip from "@/components/launchpad/CreatorChip";

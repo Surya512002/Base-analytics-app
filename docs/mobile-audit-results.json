@@ -1,0 +1,1512 @@
+{
+  "timestamp": "2026-11-04T17:09:33.907Z",
+  "overflowIssues": [
+    {
+      "viewport": "iPhone-SE",
+      "route": "/",
+      "docScroll": 320,
+      "winWidth": 320,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 710,
+          "rectWidth": 1100,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.shrink-0",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.items-center",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.btn-primary.whitespace-nowrap",
+          "rectRight": 363,
+          "rectWidth": 115,
+          "winWidth": 320
+        },
+        {
+          "selector": "span.",
+          "rectRight": 348,
+          "rectWidth": 85,
+          "winWidth": 320
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/explore",
+      "docScroll": 320,
+      "winWidth": 320,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 710,
+          "rectWidth": 1100,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.shrink-0",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.items-center",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.btn-primary.whitespace-nowrap",
+          "rectRight": 363,
+          "rectWidth": 115,
+          "winWidth": 320
+        },
+        {
+          "selector": "span.",
+          "rectRight": 348,
+          "rectWidth": 85,
+          "winWidth": 320
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/swap",
+      "docScroll": 320,
+      "winWidth": 320,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 710,
+          "rectWidth": 1100,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.shrink-0",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.items-center",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.btn-primary.whitespace-nowrap",
+          "rectRight": 363,
+          "rectWidth": 115,
+          "winWidth": 320
+        },
+        {
+          "selector": "span.",
+          "rectRight": 348,
+          "rectWidth": 85,
+          "winWidth": 320
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/lend",
+      "docScroll": 320,
+      "winWidth": 320,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 710,
+          "rectWidth": 1100,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.shrink-0",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.items-center",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.btn-primary.whitespace-nowrap",
+          "rectRight": 363,
+          "rectWidth": 115,
+          "winWidth": 320
+        },
+        {
+          "selector": "span.",
+          "rectRight": 348,
+          "rectWidth": 85,
+          "winWidth": 320
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/launch",
+      "docScroll": 320,
+      "winWidth": 320,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 710,
+          "rectWidth": 1100,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.shrink-0",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "div.flex.items-center",
+          "rectRight": 363,
+          "rectWidth": 264,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.btn-primary.whitespace-nowrap",
+          "rectRight": 363,
+          "rectWidth": 115,
+          "winWidth": 320
+        },
+        {
+          "selector": "span.",
+          "rectRight": 348,
+          "rectWidth": 85,
+          "winWidth": 320
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/docs",
+      "docScroll": 320,
+      "winWidth": 320,
+      "elements": [
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 378,
+          "rectWidth": 54,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 468,
+          "rectWidth": 84,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 542,
+          "rectWidth": 68,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 623,
+          "rectWidth": 76,
+          "winWidth": 320
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 732,
+          "rectWidth": 103,
+          "winWidth": 320
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/",
+      "docScroll": 390,
+      "winWidth": 390,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 745,
+          "rectWidth": 1100,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.max-sm:min-w-[280px].max-sm:snap-start",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.pop-lg.group",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.space-y-3",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.flex.items-start",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 390
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/explore",
+      "docScroll": 390,
+      "winWidth": 390,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 745,
+          "rectWidth": 1100,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.max-sm:min-w-[280px].max-sm:snap-start",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.pop-lg.group",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.space-y-3",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 390
+        },
+        {
+          "selector": "div.flex.items-start",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 390
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/docs",
+      "docScroll": 390,
+      "winWidth": 390,
+      "elements": [
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 468,
+          "rectWidth": 84,
+          "winWidth": 390
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 542,
+          "rectWidth": 68,
+          "winWidth": 390
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 623,
+          "rectWidth": 76,
+          "winWidth": 390
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 732,
+          "rectWidth": 103,
+          "winWidth": 390
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 781,
+          "rectWidth": 43,
+          "winWidth": 390
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/",
+      "docScroll": 430,
+      "winWidth": 430,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 765,
+          "rectWidth": 1100,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.max-sm:min-w-[280px].max-sm:snap-start",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.pop-lg.group",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.space-y-3",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.flex.items-start",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 430
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/explore",
+      "docScroll": 430,
+      "winWidth": 430,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 765,
+          "rectWidth": 1100,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.max-sm:min-w-[280px].max-sm:snap-start",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.pop-lg.group",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.space-y-3",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 430
+        },
+        {
+          "selector": "div.flex.items-start",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 430
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/docs",
+      "docScroll": 430,
+      "winWidth": 430,
+      "elements": [
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 468,
+          "rectWidth": 84,
+          "winWidth": 430
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 542,
+          "rectWidth": 68,
+          "winWidth": 430
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 623,
+          "rectWidth": 76,
+          "winWidth": 430
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 732,
+          "rectWidth": 103,
+          "winWidth": 430
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 781,
+          "rectWidth": 43,
+          "winWidth": 430
+        }
+      ]
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/",
+      "docScroll": 412,
+      "winWidth": 412,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 756,
+          "rectWidth": 1100,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.max-sm:min-w-[280px].max-sm:snap-start",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.pop-lg.group",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.space-y-3",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.flex.items-start",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 412
+        }
+      ]
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/explore",
+      "docScroll": 412,
+      "winWidth": 412,
+      "elements": [
+        {
+          "selector": "div.absolute.top-[-15%]",
+          "rectRight": 756,
+          "rectWidth": 1100,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.max-sm:min-w-[280px].max-sm:snap-start",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.pop-lg.group",
+          "rectRight": 582,
+          "rectWidth": 280,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.space-y-3",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 412
+        },
+        {
+          "selector": "div.flex.items-start",
+          "rectRight": 565,
+          "rectWidth": 246,
+          "winWidth": 412
+        }
+      ]
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/docs",
+      "docScroll": 412,
+      "winWidth": 412,
+      "elements": [
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 468,
+          "rectWidth": 84,
+          "winWidth": 412
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 542,
+          "rectWidth": 68,
+          "winWidth": 412
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 623,
+          "rectWidth": 76,
+          "winWidth": 412
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 732,
+          "rectWidth": 103,
+          "winWidth": 412
+        },
+        {
+          "selector": "button.shrink-0.rounded-lg",
+          "rectRight": 781,
+          "rectWidth": 43,
+          "winWidth": 412
+        }
+      ]
+    }
+  ],
+  "smallFontInputs": [
+    {
+      "viewport": "iPhone-SE",
+      "route": "/",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/explore",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search pool, token (e.g. USDC, NVDAc), or protocol…",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface-2)] borde"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/lend",
+      "tag": "select",
+      "type": "select-one",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[va"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by asset, ticker (e.g. NVDAc) or company...",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/lend",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/docs",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search guides, endpoints, parameters, or questions...",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--bor"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/explore",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search pool, token (e.g. USDC, NVDAc), or protocol…",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface-2)] borde"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/lend",
+      "tag": "select",
+      "type": "select-one",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[va"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by asset, ticker (e.g. NVDAc) or company...",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/lend",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/docs",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search guides, endpoints, parameters, or questions...",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--bor"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/explore",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search pool, token (e.g. USDC, NVDAc), or protocol…",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface-2)] borde"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/lend",
+      "tag": "select",
+      "type": "select-one",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[va"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by asset, ticker (e.g. NVDAc) or company...",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/lend",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/docs",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search guides, endpoints, parameters, or questions...",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--bor"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/explore",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by name, symbol ($AERO, $NVDAc) or 0x address…",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--bord"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/explore",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "rounded border-[var(--border-subtle)] text-[var(--brand)] ac"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search pool, token (e.g. USDC, NVDAc), or protocol…",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface-2)] borde"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/lend",
+      "tag": "select",
+      "type": "select-one",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[va"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/lend",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search by asset, ticker (e.g. NVDAc) or company...",
+      "fontSize": "12px",
+      "className": "w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/lend",
+      "tag": "input",
+      "type": "checkbox",
+      "placeholder": "",
+      "fontSize": "12px",
+      "className": "w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/docs",
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Search guides, endpoints, parameters, or questions...",
+      "fontSize": "14px",
+      "className": "w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--bor"
+    }
+  ],
+  "smallTouchTargets": [],
+  "consoleErrors": [
+    {
+      "viewport": "iPhone-SE",
+      "url": "http://localhost:3000/launch",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "viewport": "iPhone-14",
+      "url": "http://localhost:3000/launch",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "url": "http://localhost:3000/launch",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "viewport": "Pixel-7",
+      "url": "http://localhost:3000/launch",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "url": "http://localhost:3000/launch",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "viewport": "Desktop",
+      "url": "http://localhost:3000/launch",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "routeResults": [
+    {
+      "viewport": "iPhone-SE",
+      "route": "/",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/explore",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__explore.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/swap",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__swap.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/lend",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__lend.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/launch",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__launch.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/profile",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__profile.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/redeem",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__redeem.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/docs",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__docs.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/terms",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__terms.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/privacy",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__privacy.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/risk-disclosure",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__risk-disclosure.png"
+    },
+    {
+      "viewport": "iPhone-SE",
+      "route": "/restricted-regions",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-SE__restricted-regions.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-14__.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/explore",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-14__explore.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/swap",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__swap.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/lend",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__lend.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/launch",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__launch.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/profile",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__profile.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/redeem",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__redeem.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/docs",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-14__docs.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/terms",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__terms.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/privacy",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__privacy.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/risk-disclosure",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__risk-disclosure.png"
+    },
+    {
+      "viewport": "iPhone-14",
+      "route": "/restricted-regions",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-14__restricted-regions.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/explore",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__explore.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/swap",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__swap.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/lend",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__lend.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/launch",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__launch.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/profile",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__profile.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/redeem",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__redeem.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/docs",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__docs.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/terms",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__terms.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/privacy",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__privacy.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/risk-disclosure",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__risk-disclosure.png"
+    },
+    {
+      "viewport": "iPhone-ProMax",
+      "route": "/restricted-regions",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPhone-ProMax__restricted-regions.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/Pixel-7__.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/explore",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/Pixel-7__explore.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/swap",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__swap.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/lend",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__lend.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/launch",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__launch.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/profile",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__profile.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/redeem",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__redeem.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/docs",
+      "status": 200,
+      "overflow": true,
+      "screenshot": "docs/qa-screenshots/Pixel-7__docs.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/terms",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__terms.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/privacy",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__privacy.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/risk-disclosure",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__risk-disclosure.png"
+    },
+    {
+      "viewport": "Pixel-7",
+      "route": "/restricted-regions",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Pixel-7__restricted-regions.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/explore",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__explore.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/swap",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__swap.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/lend",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__lend.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/launch",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__launch.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/profile",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__profile.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/redeem",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__redeem.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/docs",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__docs.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/terms",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__terms.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/privacy",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__privacy.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/risk-disclosure",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__risk-disclosure.png"
+    },
+    {
+      "viewport": "iPad-Portrait",
+      "route": "/restricted-regions",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/iPad-Portrait__restricted-regions.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/explore",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__explore.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/swap",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__swap.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/lend",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__lend.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/launch",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__launch.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/profile",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__profile.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/redeem",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__redeem.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/docs",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__docs.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/terms",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__terms.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/privacy",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__privacy.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/risk-disclosure",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__risk-disclosure.png"
+    },
+    {
+      "viewport": "Desktop",
+      "route": "/restricted-regions",
+      "status": 200,
+      "overflow": false,
+      "screenshot": "docs/qa-screenshots/Desktop__restricted-regions.png"
+    }
+  ]
+}

@@ -21,7 +21,6 @@ import {
   isNewToken,
 } from "@/lib/explore/explore-config";
 import { shortAddr } from "@/lib/launchpad/format";
-import { basescanTxUrl } from "@/lib/utils/tx";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import TokenSparkline from "@/components/ui/TokenSparkline";
 import { useCompliance } from "@/hooks/useCompliance";

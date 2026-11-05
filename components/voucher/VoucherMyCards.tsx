@@ -188,7 +188,7 @@ export default function VoucherMyCards({
                 value={recoverTxInput}
                 onChange={(e) => setRecoverTxInput(e.target.value.trim())}
                 placeholder="0x… Base transaction hash"
-                className="flex-1 text-xs font-mono rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
+                className="flex-1 text-base sm:text-xs font-mono rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
               />
               <button
                 type="button"
@@ -467,7 +467,7 @@ export default function VoucherMyCards({
                           type="text"
                           readOnly
                           value={claimLink}
-                          className="flex-1 text-xs font-mono bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-2.5 py-1.5 text-[var(--ink-muted)] truncate outline-none select-all"
+                          className="flex-1 text-base sm:text-xs font-mono bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-2.5 py-1.5 text-[var(--ink-muted)] truncate outline-none select-all"
                         />
                         <button
                           type="button"

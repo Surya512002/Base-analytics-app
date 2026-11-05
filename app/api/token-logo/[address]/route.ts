@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getAddress, isAddress } from "viem";
+import { isAddress } from "viem";
 import sharp from "sharp";
 import { generateTokenPlaceholderSvg } from "@/lib/utils/token-color";
 import {
   getTokenizedStockByAddress,
   getTokenizedStockBySymbol,
 } from "@/lib/stocks/tokenized-stocks-registry";
-import { SELF_HOSTED_LOGOS } from "@/lib/launchpad/token-logo";
-import { findVerifiedToken, getVerifiedTokenLogo } from "@/lib/swap/verified-tokens";
+import { findVerifiedToken } from "@/lib/swap/verified-tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -303,7 +302,6 @@ export async function GET(
   }
 
   // 5. External Candidate Chain (DexScreener, CoinGecko, Optimism)
-  const checksum = isAddress(lowerAddress) ? getAddress(lowerAddress) : lowerAddress;
   const candidates: string[] = [];
 
   if (KNOWN_REMOTE_LOGOS[lowerAddress]) {

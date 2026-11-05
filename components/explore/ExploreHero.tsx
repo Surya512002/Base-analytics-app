@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Search, Rocket, ChevronDown, Command } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import SpotlightCarousel from "./SpotlightCarousel";
