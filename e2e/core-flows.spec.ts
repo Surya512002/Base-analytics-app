@@ -41,9 +41,9 @@ test.describe("Core App User Flows", () => {
     await expect(page.getByText(/1B/i).first()).toBeVisible();
   });
 
-  test("5. Lend & Stake: loads yield calculator and clicking Explore Vault opens market action modal", async ({ page }) => {
+  test("5. Lend & Stake: loads top yield spotlight and clicking Explore Vault opens market action modal", async ({ page }) => {
     await page.goto("/?tab=lend");
-    await expect(page.getByText(/Interactive APY Yield Calculator/i).first()).toBeVisible();
+    await expect(page.getByText(/Top Yield Spotlight|Highest Verified Return/i).first()).toBeVisible();
 
     const exploreButton = page.getByRole("button", { name: /explore vault/i }).first();
     if (await exploreButton.isVisible()) {

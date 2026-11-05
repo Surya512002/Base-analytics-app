@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { GaugeRowData } from "@/components/lending/GaugesTable";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 
-describe("Yield Calculator & Explore Vault Protocol Audit", () => {
+describe("Top Yield Spotlight & Explore Vault Protocol Audit", () => {
   it("verifies BASE_LENDING_MARKETS does not contain hardcoded 290.2% fake APR", () => {
     const hasFake290 = BASE_LENDING_MARKETS.some((m) => m.supplyApy === 290.2 || m.stakingApr === 290.2);
     expect(hasFake290).toBe(false);

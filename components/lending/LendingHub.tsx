@@ -36,7 +36,7 @@ import MarketsTable, { type AssetMarketRow, type ProtocolRateInfo } from "./Mark
 import GaugesTable, { type GaugeRowData } from "./GaugesTable";
 import AssetDetailView from "./AssetDetailView";
 import ProtocolCompareHub from "./ProtocolCompareHub";
-import YieldCalculator from "./YieldCalculator";
+import TopYieldSpotlight from "./TopYieldSpotlight";
 import YieldFinder from "./YieldFinder";
 import ActionDrawer, { type DrawerActionTab } from "./ActionDrawer";
 import LendingActionModal from "./LendingActionModal";
@@ -955,8 +955,8 @@ export default function LendingHub({
         }}
       />
 
-      {/* Interactive Yield Calculator */}
-      <YieldCalculator
+      {/* Top Yield Spotlight: Highlights top verified yield opportunity with zero calculation clutter */}
+      <TopYieldSpotlight
         markets={discoveredMarkets}
         gaugeRows={gaugeRows}
         stockRows={stockRows}
