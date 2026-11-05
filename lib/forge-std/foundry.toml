@@ -12,7 +12,7 @@ ignored_error_codes = [3860]
 mainnet = "https://ethereum.reth.rs/rpc"
 optimism_sepolia = "https://sepolia.optimism.io/"                # Adds a trailing slash.
 arbitrum_one_sepolia = "https://sepolia-rollup.arbitrum.io/rpc/" # Adds a trailing slash.
-needs_undefined_env_var = "${UNDEFINED_RPC_URL_PLACEHOLDER}"
+needs_undefined_env_var = "${UNDEFINED_RPC_URL_PLACEHOLDER:-https://mainnet.base.org}"
 
 [lint]
 lint_on_build = false

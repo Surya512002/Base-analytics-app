@@ -85,10 +85,9 @@ jobs:
     timeout-minutes: 15
     env:
       BASE_RPC_URL: https://mainnet.base.org
+      UNDEFINED_RPC_URL_PLACEHOLDER: https://mainnet.base.org
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:

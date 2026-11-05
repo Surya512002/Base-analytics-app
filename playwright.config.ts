@@ -13,14 +13,17 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        browserName: "chromium",
+      },
       testIgnore: ["**/capture-dashboard-screenshots.spec.ts", "**/mobile-*.spec.ts"],
     },
     {
       name: "mobile-iphone-14",
       use: {
         ...devices["iPhone 14"],
-        defaultBrowserType: "chromium",
+        browserName: "chromium",
       },
       testMatch: [/mobile-.*\.spec\.ts/],
     },
@@ -28,6 +31,7 @@ export default defineConfig({
       name: "mobile-pixel-7",
       use: {
         ...devices["Pixel 7"],
+        browserName: "chromium",
       },
       testMatch: [/mobile-.*\.spec\.ts/],
     },

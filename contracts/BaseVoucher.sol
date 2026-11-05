@@ -142,7 +142,7 @@ contract BaseVoucher {
         uint256 batchId,
         uint256 cardIndex,
         string calldata secret,
-        bytes calldata signature
+        bytes memory signature
     ) public {
         Batch storage b = batches[batchId];
         require(b.cardCount > 0, "Invalid batch");
