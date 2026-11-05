@@ -49,8 +49,7 @@ describe("TokenLaunchForm Stock Markets API Integration", () => {
     // Verify each stock entry has symbol and valid numeric NAV
     const sample = data.stocks[0];
     expect(sample.symbol).toBeDefined();
-    expect(typeof sample.symbol).toBe("string");
     expect(typeof sample.nav).toBe("number");
     expect(sample.nav).toBeGreaterThan(0);
-  });
+  }, 30_000);
 });

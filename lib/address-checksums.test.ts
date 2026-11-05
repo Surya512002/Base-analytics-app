@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { getAddress, isAddress } from "viem";
 
 const ROOT = join(__dirname, "..");
-const SKIP = new Set(["node_modules", "forge-std", "public", "out", "cache"]);
+const SKIP = new Set(["node_modules", "forge-std", "public", "out", "cache", "forge-out", "dist", ".next"]);
 
 function sourceFiles(dir: string, acc: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -45,5 +45,5 @@ describe("hardcoded addresses", () => {
     }
 
     expect(offenders).toEqual([]);
-  });
+  }, 30_000);
 });

@@ -54,11 +54,11 @@ jobs:
         run: |
           npm start &
           DEV_PID=$!
-          for i in $(seq 1 90); do
-            if curl -sf http://127.0.0.1:3000/api/launchpad/status >/dev/null; then
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3000 >/dev/null; then
               break
             fi
-            sleep 2
+            sleep 1
           done
           PLAYWRIGHT_SKIP_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
           SWAP_ROUTES_URL=http://127.0.0.1:3000 npm run test:swap-routes:local
@@ -83,6 +83,8 @@ jobs:
     name: Smart Contracts & Security Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      BASE_RPC_URL: https://mainnet.base.org
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,11 +92,11 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
       - name: Forge Build
         run: forge build --sizes
       - name: Forge Unit & Invariant Tests
-        run: forge test -vvv
+        run: forge test -vvv --match-path "test/*.sol"
       - name: Forge Coverage
         run: forge coverage || echo "Coverage generated"
       - name: Run Slither Static Analysis

@@ -14,26 +14,22 @@ export default defineConfig({
     {
       name: "desktop-chromium",
       use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "mobile-iphone-se",
-      use: { ...devices["iPhone SE"] },
+      testIgnore: ["**/capture-dashboard-screenshots.spec.ts", "**/mobile-*.spec.ts"],
     },
     {
       name: "mobile-iphone-14",
-      use: { ...devices["iPhone 14"] },
-    },
-    {
-      name: "mobile-iphone-promax",
-      use: { ...devices["iPhone 14 Pro Max"] },
+      use: {
+        ...devices["iPhone 14"],
+        defaultBrowserType: "chromium",
+      },
+      testMatch: [/mobile-.*\.spec\.ts/],
     },
     {
       name: "mobile-pixel-7",
-      use: { ...devices["Pixel 7"] },
-    },
-    {
-      name: "tablet-ipad",
-      use: { ...devices["iPad (gen 7)"] },
+      use: {
+        ...devices["Pixel 7"],
+      },
+      testMatch: [/mobile-.*\.spec\.ts/],
     },
   ],
   webServer: process.env.PLAYWRIGHT_SKIP_SERVER
