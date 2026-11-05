@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   determineYieldRiskTier,
   filterAndSortYieldPools,
+  formatRate,
   type UnifiedYieldPool,
 } from "@/lib/lending/yield-finder-math";
 
@@ -126,5 +127,29 @@ describe("Yield Finder Filter & Sorting Engine", () => {
     });
     expect(sorted[0].id).toBe("moonwell-usdc"); // $15M
     expect(sorted[1].id).toBe("morpho-weth"); // $4.2M
+  });
+
+  it("sorts pools by APR descending", () => {
+    const poolsWithApr: UnifiedYieldPool[] = [
+      { ...samplePools[0], apr: 5.2 },
+      { ...samplePools[1], apr: 24.5 },
+      { ...samplePools[2], apr: 18.0 },
+    ];
+    const sorted = filterAndSortYieldPools(poolsWithApr, {
+      sortBy: "apr_desc",
+    });
+    expect(sorted[0].id).toBe("morpho-weth"); // 24.5%
+    expect(sorted[1].id).toBe("aerodrome-msftc"); // 18.0%
+    expect(sorted[2].id).toBe("moonwell-usdc"); // 5.2%
+  });
+
+  it("formats rates with precision without rounding low fractions to zero", () => {
+    expect(formatRate(0.01)).toBe("0.01%");
+    expect(formatRate(0.05)).toBe("0.05%");
+    expect(formatRate(5.91)).toBe("5.9%");
+    expect(formatRate(88.25)).toBe("88.3%");
+    expect(formatRate(0)).toBe("0.0%");
+    expect(formatRate(null)).toBe("Unavailable");
+    expect(formatRate(undefined)).toBe("Unavailable");
   });
 });

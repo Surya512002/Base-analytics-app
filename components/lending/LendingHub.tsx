@@ -974,7 +974,11 @@ export default function LendingHub({
         isConnected={isConnected}
         onRequestConnect={onRequestConnect}
         onSelectPool={(pool) => {
-          handleExploreYieldOption({ protocol: pool.protocol, marketId: pool.id });
+          handleExploreYieldOption({
+            protocol: pool.protocol,
+            marketId: pool.id,
+            stockSymbol: pool.assetSymbol,
+          });
         }}
       />
 

@@ -11,23 +11,40 @@ export interface UnifiedYieldPool {
   id: string;
   name: string;
   assetSymbol: string;
-  protocol: "aerodrome" | "beefy" | "morpho" | "moonwell" | "aave" | "ipor";
+  protocol: "aerodrome" | "beefy" | "morpho" | "moonwell" | "aave" | "ipor" | string;
   protocolLabel: string;
-  apy: number | null; // Net APY in %
+  apy: number | null; // Net / Compounded APY in %
+  apr?: number | null; // Staking / Gauge APR in %
+  borrowApr?: number | null; // Borrow APR in %
   tvlUsd: number | null;
+  liquidityUsd?: number | null;
+  maxLtv?: number | null;
+  utilization?: number | null;
   riskTier: RiskTier;
   riskReason: string;
   contractAddress: string;
-  actionType: "supply" | "stake" | "vault";
+  actionType: "supply" | "stake" | "vault" | "borrow";
   isStock: boolean;
+  rewardToken?: string;
+  badgeText?: string;
 }
 
 export interface YieldFinderFilterParams {
   assetCategory?: AssetCategory;
   riskTier?: RiskTier | "all";
   minTvlUsd?: number;
-  sortBy?: "apy_desc" | "tvl_desc" | "risk_asc" | "protocol";
+  sortBy?: "apy_desc" | "apr_desc" | "tvl_desc" | "risk_asc" | "protocol";
   searchQuery?: string;
+}
+
+/**
+ * Cleanly format rate percentages without rounding 0.01% down to 0.0%.
+ */
+export function formatRate(val: number | null | undefined): string {
+  if (val === null || val === undefined || !Number.isFinite(val)) return "Unavailable";
+  if (val === 0) return "0.0%";
+  if (val < 0.1) return `${val.toFixed(2)}%`;
+  return `${val.toFixed(1)}%`;
 }
 
 /**
@@ -145,9 +162,14 @@ export function filterAndSortYieldPools(
     .sort((a, b) => {
       switch (sortBy) {
         case "apy_desc": {
-          const apyA = a.apy ?? -1;
-          const apyB = b.apy ?? -1;
-          return apyB - apyA;
+          const rateA = a.apy ?? a.apr ?? -1;
+          const rateB = b.apy ?? b.apr ?? -1;
+          return rateB - rateA;
+        }
+        case "apr_desc": {
+          const aprA = a.apr ?? a.apy ?? -1;
+          const aprB = b.apr ?? b.apy ?? -1;
+          return aprB - aprA;
         }
         case "tvl_desc": {
           const tvlA = a.tvlUsd ?? -1;
