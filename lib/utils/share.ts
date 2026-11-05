@@ -1,6 +1,6 @@
-import { APP_URL_WEB, MINIAPP_URL } from "@/lib/constants/env";
+import { APP_URL_WEB } from "@/lib/constants/env";
 import type { WalletData } from "@/lib/types/wallet";
-import { getOgImageUrl, type OgCardData } from "@/lib/og/types";
+import { getOgImageUrl } from "@/lib/og/types";
 import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
 
 export const SHARE_TAGLINE =

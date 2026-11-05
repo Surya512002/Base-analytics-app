@@ -1,7 +1,6 @@
 import { keccak256, toBytes, parseUnits, formatUnits } from "viem";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import {
-  BASE_STOCKS,
   getBaseStockBySymbol,
   getBaseStockByAddress,
   BASE_STOCK_DECIMALS,

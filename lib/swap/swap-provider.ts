@@ -9,9 +9,7 @@
 import { fetchSwapQuote, type LaunchDex, type SwapQuoteResponse } from "@/lib/api/launchpad-client";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { ERC20_ABI } from "@/lib/constants/contracts";
-import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import type { SwapAsset } from "@/lib/launchpad/tokens-base";
-import { parseUnits } from "viem";
 
 export interface SwapQuoteParams {
   token: string;

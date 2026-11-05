@@ -1,4 +1,3 @@
-import type { Redis } from "ioredis";
 import { getRedisClient } from "@/lib/redis-cache";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";

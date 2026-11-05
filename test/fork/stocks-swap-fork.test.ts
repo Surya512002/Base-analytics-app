@@ -391,7 +391,7 @@ describe("Base Fork Tests: Tokenized Stocks Swap & Dual-DEX Routing", () => {
           data: calldata,
           account: testAccount,
         });
-      } catch (err: any) {
+      } catch (err) {
         errorCaught = true;
         expect(err).toBeDefined();
       }

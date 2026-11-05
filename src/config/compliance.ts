@@ -157,7 +157,7 @@ export function getComplianceConfig(): ComplianceConfig {
     sanctions: {
       enabled: process.env.COMPLIANCE_SANCTIONS_SCREENING_ENABLED === "true",
       provider:
-        (process.env.COMPLIANCE_SANCTIONS_PROVIDER as any) || "chainalysis_oracle",
+        (process.env.COMPLIANCE_SANCTIONS_PROVIDER as "chainalysis_oracle" | "mock" | undefined) || "chainalysis_oracle",
     },
   };
 }
@@ -177,7 +177,7 @@ export const complianceConfig: ComplianceConfig = getComplianceConfig();
 export function evaluateRegionCompliance(
   countryCode: string | null | undefined,
   feature?: ComplianceFeatureKey,
-  configOverride?: Partial<ComplianceConfig>
+  configOverride?: Partial<ComplianceConfig> & { mode?: ComplianceRegionMode }
 ): {
   isRestricted: boolean;
   mode: ComplianceRegionMode;
@@ -190,7 +190,7 @@ export function evaluateRegionCompliance(
     ...base,
     ...configOverride,
     restrictedRegionMode:
-      (configOverride as any)?.mode ||
+      configOverride?.mode ||
       configOverride?.restrictedRegionMode ||
       base.restrictedRegionMode,
     features: {

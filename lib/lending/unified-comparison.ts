@@ -4,7 +4,7 @@ import {
   IPOR_FUSION_FACTORY_BASE,
   AAVE_V3_POOL_BASE,
 } from "./constants";
-import type { MorphoMarketParams, UserStockPortfolioPosition, UserStockPortfolioSummary } from "./types";
+import type { MorphoMarketParams, UserStockPortfolioSummary } from "./types";
 export type { UserStockPortfolioPosition, UserStockPortfolioSummary } from "./types";
 import { BASE_STOCKS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import { runMarketDiscovery } from "./discovery/engine";
@@ -686,7 +686,6 @@ export async function fetchUserStockPortfolioSummary(
   symbol: string = "NVDAc"
 ): Promise<UserStockPortfolioSummary> {
   const cleanSymbol = symbol ? (symbol.endsWith("c") ? symbol : `${symbol}c`) : "NVDAc";
-  const stock = getBaseStockBySymbol(cleanSymbol) ?? BASE_STOCKS[0]!;
 
   if (!userAddress) {
     return {

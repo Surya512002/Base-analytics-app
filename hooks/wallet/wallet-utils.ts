@@ -21,8 +21,9 @@ export function resolveInitialTab(): AppTab {
 }
 
 export function analysisNeedsActivityRefresh(
-  result: AnalyzeWalletResult & { historyComplete?: boolean }
+  result?: (Partial<AnalyzeWalletResult> & { historyComplete?: boolean }) | null
 ): boolean {
+  if (!result) return true;
   const w = result.wallet;
   if (!w?.address) return true;
   if (result.historyComplete !== true) return true;

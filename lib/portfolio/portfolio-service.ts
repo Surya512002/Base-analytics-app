@@ -1,7 +1,6 @@
 import { formatUnits, getAddress } from "viem";
 import { formatTokenAmount } from "../launchpad/format";
 import { TOKENIZED_STOCKS_REGISTRY } from "../stocks/tokenized-stocks-registry";
-import { COMMON_BASE_TOKENS } from "../launchpad/common-tokens";
 import { fetchAllUserPositions } from "../lending/user-positions";
 import { discoverWalletBalances } from "./indexer";
 import { batchPriceTokens } from "./pricing";
@@ -16,9 +15,6 @@ const cache = new Map<string, { timestamp: number; data: PortfolioResponse }>();
 
 const STOCK_ADDRESSES = new Set(
   TOKENIZED_STOCKS_REGISTRY.map((s) => s.address.toLowerCase())
-);
-const VERIFIED_ADDRESSES = new Set(
-  COMMON_BASE_TOKENS.map((t) => t.address.toLowerCase())
 );
 
 /**

@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
+import type { WalletData } from "@/lib/types/wallet";
 import {
   analysisNeedsActivityRefresh,
   resolveInitialTab,
@@ -17,16 +18,16 @@ describe("Wallet Modular Hooks & Controller Utilities", () => {
           recentTxs: [{ hash: "0x123", timeAgo: "1h", type: "swap", summary: "Swapped ETH for USDC" }],
           firstTx: "2024-01-01",
           lastTx: "2024-06-01",
-        } as any,
-      } as any)
+        } as unknown as WalletData,
+      })
     ).toBe(false);
 
     // Incomplete history: requires refresh
     expect(
       analysisNeedsActivityRefresh({
         historyComplete: false,
-        wallet: { address: "0x1111111111111111111111111111111111111111" } as any,
-      } as any)
+        wallet: { address: "0x1111111111111111111111111111111111111111" } as unknown as WalletData,
+      })
     ).toBe(true);
 
     // Placeholder syncing text: requires refresh
@@ -36,8 +37,8 @@ describe("Wallet Modular Hooks & Controller Utilities", () => {
         wallet: {
           address: "0x1111111111111111111111111111111111111111",
           recommendation: "Fetching onchain data…",
-        } as any,
-      } as any)
+        } as unknown as WalletData,
+      })
     ).toBe(true);
   });
 

@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPublicClient, http, getAddress, isAddress } from "viem";
+import { createPublicClient, http, getAddress } from "viem";
 import { base } from "viem/chains";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

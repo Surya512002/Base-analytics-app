@@ -1,7 +1,6 @@
 import type { ConnectionType } from "@/lib/types/wallet";
 import {
   detectMiniAppConnType,
-  detectMiniAppHost,
   ensureBaseNetwork,
 } from "@/lib/utils/wallet-connection";
 import { connectWallet, getEip1193Provider } from "@/app/connection";

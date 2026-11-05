@@ -93,7 +93,7 @@ export async function POST(req: Request) {
       },
       { headers: NO_CACHE_HEADERS }
     );
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { ok: false, error: "Failed to process transaction verification request." },
       { status: 500, headers: NO_CACHE_HEADERS }

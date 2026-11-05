@@ -10,7 +10,6 @@ import {
   Moon,
   Loader2,
   ExternalLink,
-  Info,
   Clock,
   RotateCcw,
 } from "lucide-react";
@@ -18,7 +17,6 @@ import { useWalletApp } from "@/hooks/useWalletApp";
 import { CHECKIN_CONTRACT, BOOSTER_CONTRACT, GM_GN_CONTRACT } from "@/lib/constants/contracts";
 import {
   readLocalLastCheckInTime,
-  readLocalCheckInToday,
 } from "@/lib/utils/check-in-status";
 import {
   readLocalBoostTime,
@@ -105,16 +103,19 @@ export default function DailyActionsPanel({
   }, [address, syncCheckInStatus]);
 
   const boostedToday = useMemo(() => {
+    void lastBoostTs;
     return isConnected ? isBoostedToday(address) : false;
-  }, [isConnected, address, minting, lastBoostTs]);
+  }, [isConnected, address, lastBoostTs]);
 
   const gmToday = useMemo(() => {
+    void lastGmTs;
     return isConnected ? isGmSentToday(address) : false;
-  }, [isConnected, address, minting, lastGmTs]);
+  }, [isConnected, address, lastGmTs]);
 
   const gnToday = useMemo(() => {
+    void lastGnTs;
     return isConnected ? isGnSentToday(address) : false;
-  }, [isConnected, address, minting, lastGnTs]);
+  }, [isConnected, address, lastGnTs]);
 
   // Action definitions array config with Check-In, Boost, Daily GM, and Daily GN
   const ACTIONS_CONFIG: DailyActionConfig[] = [

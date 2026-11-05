@@ -8,9 +8,7 @@ import {
   Clock,
   Activity,
   ExternalLink,
-  ShieldCheck,
   Check,
-  Calendar,
 } from "lucide-react";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
@@ -42,6 +40,7 @@ export default function ProfileTabs({
 }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("launches");
   const [revenueRange, setRevenueRange] = useState<"7d" | "30d" | "all">("all");
+  const [now] = useState(() => Date.now());
 
   // Vesting schedules
   const vestingSchedules = useMemo(() => {
@@ -55,7 +54,6 @@ export default function ProfileTabs({
       isUnlocked: boolean;
     }> = [];
 
-    const now = Date.now();
     for (const t of tokens) {
       for (const v of t.vestingSchedule ?? []) {
         const unlockMs = t.createdAt + v.cliffMonths * 30 * 24 * 60 * 60 * 1000;
@@ -71,7 +69,7 @@ export default function ProfileTabs({
       }
     }
     return list.sort((a, b) => a.unlockDate.getTime() - b.unlockDate.getTime());
-  }, [tokens]);
+  }, [tokens, now]);
 
   // Check if activity exists
   const hasActivity = Boolean(

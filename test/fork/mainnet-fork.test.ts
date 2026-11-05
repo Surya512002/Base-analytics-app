@@ -101,7 +101,7 @@ describe("Base Mainnet Fork & On-Chain Protocol Verification", () => {
     expect(nvdaStock).toBeDefined();
 
     // Mock an active discovered option for NVDAc on Morpho Blue
-    const mockOption: any = {
+    const mockOption = {
       id: "morpho_blue_nvdac",
       protocol: "morpho_blue",
       protocolName: "Morpho Blue",
@@ -113,16 +113,20 @@ describe("Base Mainnet Fork & On-Chain Protocol Verification", () => {
         irm: "0x2222222222222222222222222222222222222222",
         lltv: BigInt("770000000000000000"),
       },
-      stockSymbol: nvdaStock.symbol,
-      stockName: nvdaStock.name,
-      stockAddress: nvdaStock.address,
-      loanSymbol: "USDC",
-      loanAddress: BASE_MAINNET_REGISTRY.USDC.address,
-      supplyApy: 6.8,
-      borrowApr: 4.2,
-      maxLtv: 77,
-      contractAddress: BASE_MAINNET_REGISTRY.MORPHO_BLUE.address,
-    };
+      contractAddress: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      asset: {
+        symbol: "USDC",
+        name: "USD Coin",
+        address: BASE_MAINNET_REGISTRY.USDC.address,
+        decimals: 6,
+      },
+      collateralAsset: {
+        symbol: nvdaStock.symbol,
+        name: nvdaStock.name,
+        address: nvdaStock.address,
+        decimals: 8,
+      },
+    } as unknown as Parameters<typeof buildUnifiedProtocolCalls>[0]["option"];
 
     const supplyCalls = buildUnifiedProtocolCalls({
       option: mockOption,

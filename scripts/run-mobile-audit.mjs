@@ -75,7 +75,7 @@ async function main() {
         const status = resp ? resp.status() : "no-resp";
 
         // Check horizontal overflow
-        const overflow = await page.evaluate((vpWidth) => {
+        const overflow = await page.evaluate(() => {
           const docScroll = document.documentElement.scrollWidth;
           const bodyScroll = document.body.scrollWidth;
           const winWidth = window.innerWidth;

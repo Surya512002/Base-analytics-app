@@ -52,7 +52,6 @@ console.log("==================================================");
 console.log("🔍 RUNNING SECRETS & REPO HYGIENE SCAN");
 console.log("==================================================");
 
-let totalIssues = 0;
 const findings = [];
 
 function checkContent(content, location) {

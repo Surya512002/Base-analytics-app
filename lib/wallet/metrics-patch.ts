@@ -8,7 +8,6 @@ import { computeSwapVolume } from "@/lib/utils/swap-volume";
 import { fetchNftSnapshot } from "@/lib/api/nft-snapshot";
 import { countNftTxHashesFromTransfers } from "@/lib/utils/nft-stats";
 import { buildDailyStatsFromState } from "@/lib/wallet/sync-engine";
-import { maxScoreComponents } from "@/lib/wallet/merge-metrics";
 import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
 
 export interface WalletMetricsPatch {
@@ -201,7 +200,6 @@ export async function buildWalletMetricsPatch(
   let dexVolumeETH: number;
   let dexTradeCount30d: number;
   let dexVolumeUSD30d: number;
-  let ethSwapVolumeUSD = 0;
 
   const nftSnapshot =
     partial && prior
@@ -230,7 +228,6 @@ export async function buildWalletMetricsPatch(
 
   if (partial && prior) {
     const swapMetrics = await computeSwapVolume(transfers, addr, ethUsd);
-    ethSwapVolumeUSD = swapMetrics.ethSwapVolumeUSD;
     tokensSwapped = Math.max(prior.tokensSwapped, tokensFromTransfers);
     erc20Txs = Math.max(prior.erc20Txs, stored?.erc20LegCount ?? 0);
     swapCount = Math.max(prior.swapCount, tokenStats.swapCount);
@@ -254,7 +251,6 @@ export async function buildWalletMetricsPatch(
     erc20Txs = Math.max(tokenStats.erc20Txs, stored?.erc20LegCount ?? 0);
     swapCount = tokenStats.swapCount;
     const swapMetrics = await computeSwapVolume(transfers, addr, ethUsd);
-    ethSwapVolumeUSD = swapMetrics.ethSwapVolumeUSD;
     ethVolume = tokenStats.ethVol.toFixed(4);
     dexTradeCount = swapMetrics.dexTradeCount;
     dexVolumeUSD = swapMetrics.dexVolumeUSD;
@@ -263,7 +259,6 @@ export async function buildWalletMetricsPatch(
     dexVolumeUSD30d = swapMetrics.dexVolumeUSD30d;
   } else {
     const swapMetrics = await computeSwapVolume(transfers, addr, ethUsd);
-    ethSwapVolumeUSD = swapMetrics.ethSwapVolumeUSD;
     tokensSwapped = tokensFromTransfers;
     erc20Txs = Math.max(tokenStats.erc20Txs, stored?.erc20LegCount ?? 0);
     swapCount = tokenStats.swapCount;
@@ -274,11 +269,6 @@ export async function buildWalletMetricsPatch(
     dexTradeCount30d = swapMetrics.dexTradeCount30d;
     dexVolumeUSD30d = swapMetrics.dexVolumeUSD30d;
   }
-
-  const ethVolNum =
-    partial && prior
-      ? Math.max(parseFloat(prior.ethVolume) || 0, tokenStats.ethVol)
-      : tokenStats.ethVol;
 
   const scoreComponents: Record<string, number> = {};
 

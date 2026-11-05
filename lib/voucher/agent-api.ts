@@ -1,5 +1,4 @@
 import { type Hex } from "viem";
-import { base } from "viem/chains";
 import {
   ERC20_ABI,
   USDC_BASE,
@@ -17,7 +16,6 @@ import {
   hashVoucherSecret,
   parseCardId,
   assetToToken,
-  isStockAsset,
   type StoredVoucherBatch,
   type VoucherAsset,
 } from "@/lib/utils/voucher";

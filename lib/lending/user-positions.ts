@@ -8,7 +8,6 @@ import {
 } from "./constants";
 import {
   VERIFIED_BEEFY_STOCK_VAULTS,
-  VERIFIED_BEEFY_STOCK_DETAILS,
   getLiveBeefyAndAeroRates,
 } from "./unified-comparison";
 

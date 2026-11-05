@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Gift, Wallet, ArrowRight } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";

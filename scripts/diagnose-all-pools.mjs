@@ -1,4 +1,4 @@
-import { createPublicClient, http, getAddress, parseUnits, parseEther } from "viem";
+import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { writeFileSync } from "node:fs";
 import { TOKENIZED_STOCKS_REGISTRY } from "../lib/stocks/tokenized-stocks-registry.ts";
@@ -109,7 +109,7 @@ async function scanStock(stock) {
             quoteBal: quoteBal.toString(),
           });
         }
-      } catch (e) {}
+      } catch {}
     }
 
     // 2. Aerodrome V2 (volatile false, stable true)
@@ -143,7 +143,7 @@ async function scanStock(stock) {
             quoteBal: quoteBal.toString(),
           });
         }
-      } catch (e) {}
+      } catch {}
     }
 
     // 3. Slipstream
@@ -177,7 +177,7 @@ async function scanStock(stock) {
             quoteBal: quoteBal.toString(),
           });
         }
-      } catch (e) {}
+      } catch {}
     }
   }
 
