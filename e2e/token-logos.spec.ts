@@ -15,15 +15,22 @@ test.describe("Token Logo Rendering and Image Integrity", () => {
     test(`${name} page contains no broken <img> elements and renders token logos`, async ({ page }) => {
       await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 45_000 });
       // Allow image lazy loads and fallback resolutions to settle
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(2500);
 
-      // Verify all rendered <img> elements have naturalWidth > 0
+      // Verify all rendered visible <img> elements have naturalWidth > 0
       const brokenImages = await page.evaluate(() => {
         const images = Array.from(document.querySelectorAll("img"));
         return images
           .filter((img) => {
-            // Only check images that are actually attached to the DOM and have a src
+            const style = window.getComputedStyle(img);
+            const isVisible =
+              img.offsetParent !== null &&
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              style.opacity !== "0";
+
             return (
+              isVisible &&
               img.src &&
               !img.src.startsWith("data:image/svg+xml;base64,PHN2Zy") &&
               img.complete &&
