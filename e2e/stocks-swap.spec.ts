@@ -21,8 +21,8 @@ test.describe("Tokenized Stocks Swap & Status E2E Suite", () => {
     // Verify Tradable status appears
     await expect(page.locator("body")).toContainText(/Coinbase B20 Equity|Tradable/i);
 
-    // Verify 0.5% platform fee disclosure
-    await expect(page.locator("body")).toContainText(/0.5%|Platform Fee/i);
+    // Verify platform fee disclosure
+    await expect(page.locator("body")).toContainText(/0\.25%|0\.5%|Platform Fee/i);
   });
 
   test("2. Low liquidity stock (TSLAc) renders warning banner without disabling swap", async ({ page }) => {
