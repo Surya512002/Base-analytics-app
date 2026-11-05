@@ -95,6 +95,7 @@ export default function MarketsTable({
     { id: "aave", label: "Aave Pro" },
     { id: "ipor", label: "IPOR Fusion" },
   ];
+  const [actionFilter, setActionFilter] = useState<"all" | "supply" | "borrow">("all");
   const [onlyHoldings, setOnlyHoldings] = useState(false);
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "liquidity" | "price" | "name">("supply");
   const [sortAsc, setSortAsc] = useState(false);
@@ -118,6 +119,13 @@ export default function MarketsTable({
     // Filter out stocks without lending market unless showAllStocks is checked
     if (!showAllStocks) {
       result = result.filter((r) => r.hasLendingMarket !== false);
+    }
+
+    // Action filter: all vs supply vs borrow
+    if (actionFilter === "supply") {
+      result = result.filter((r) => r.bestSupplyApy > 0);
+    } else if (actionFilter === "borrow") {
+      result = result.filter((r) => r.bestBorrowApr !== null && r.bestBorrowApr > 0);
     }
 
     // Search query
@@ -195,7 +203,7 @@ export default function MarketsTable({
     });
 
     return result;
-  }, [rows, showAllStocks, searchQuery, selectedCategory, selectedProtocol, onlyHoldings, sortBy, sortAsc]);
+  }, [rows, showAllStocks, searchQuery, selectedCategory, selectedProtocol, onlyHoldings, sortBy, sortAsc, actionFilter]);
 
   const toggleSort = (field: "supply" | "borrow" | "liquidity" | "price" | "name") => {
     if (sortBy === field) {
@@ -307,8 +315,55 @@ export default function MarketsTable({
           </div>
         </div>
 
-        {/* Protocol & Category Filter Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[var(--border-subtle)]">
+        {/* Action, Protocol & Category Filter Row */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-1 border-t border-[var(--border-subtle)]">
+          {/* Action Filter: All vs Supply vs Borrow */}
+          <div className="flex items-center gap-1 bg-[var(--surface-2)] p-1 rounded-xl border border-[var(--border-subtle)] w-fit shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter("all");
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                actionFilter === "all"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              All Stocks
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter("supply");
+                setSortBy("supply");
+                setSortAsc(false);
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                actionFilter === "supply"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              Lend &amp; Supply
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter("borrow");
+                setSortBy("borrow");
+                setSortAsc(true);
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                actionFilter === "borrow"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
+                  : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              Borrow &amp; Collateral
+            </button>
+          </div>
+
           {/* Protocol Filter */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
             <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Protocol:</span>

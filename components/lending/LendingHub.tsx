@@ -13,8 +13,7 @@ import {
 } from "@/lib/lending/unified-comparison";
 import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
-import MarketGroupTabs, { type MarketGroup } from "./MarketGroupTabs";
-import ModeSwitch, { type LendingMode } from "./ModeSwitch";
+import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
 import PositionsPanel from "./PositionsPanel";
 import {
   fetchAllUserPositions,
@@ -62,8 +61,7 @@ export default function LendingHub({
   const isConnected = !!userAddress;
 
   // Level & Navigation state
-  const [marketGroup, setMarketGroup] = useState<MarketGroup>("stocks");
-  const [mode, setMode] = useState<LendingMode>("lend");
+  const [activeTab, setActiveTab] = useState<LendingViewTab>("stocks");
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(initialStock ?? null);
 
   // Level 2 data
@@ -734,7 +732,7 @@ export default function LendingHub({
     );
 
     if (gaugeMatch) {
-      setMode("stake");
+      setActiveTab("vaults");
       const isBeefyGauge = gaugeMatch.rewardToken === "BEEFY" || gaugeMatch.id.includes("beefy");
       const gaugeMarket: LendingMarket = {
         id: gaugeMatch.id,
@@ -769,7 +767,7 @@ export default function LendingHub({
 
     // 3. Try to load options for Level 3 drawer
     try {
-      setMode("lend");
+      setActiveTab("stocks");
       const res = await getUnifiedStockLendingComparison(sym);
       setComparison(res);
 
@@ -859,30 +857,7 @@ export default function LendingHub({
         isRefreshing={isRefreshing}
       />
 
-      {/* 2. SECTION CONTROLS: Segmented Tabs (Market Group) & Mode Switch */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-[var(--border-subtle)]/70">
-        <MarketGroupTabs
-          value={marketGroup}
-          onChange={(newGroup) => {
-            setMarketGroup(newGroup);
-            setSelectedStockSymbol(null);
-          }}
-          stocksCount={BASE_STOCKS.length}
-          allCount={BASE_STOCKS.length}
-        />
-
-        <ModeSwitch
-          value={mode}
-          onChange={(newMode) => {
-            setMode(newMode);
-            if (newMode === "stake") {
-              setSelectedStockSymbol(null);
-            }
-          }}
-        />
-      </div>
-
-      {/* 3. YOUR POSITIONS & HEALTH (Real on-chain positions) */}
+      {/* 2. YOUR POSITIONS & HEALTH (Real on-chain positions) */}
       <PositionsPanel
         isConnected={isConnected}
         isWrongNetwork={isWrongNetwork}
@@ -983,24 +958,21 @@ export default function LendingHub({
         }}
       />
 
-      {/* Yield Finder: Multi-Protocol Scanner & Risk Filter */}
-      <YieldFinder
-        markets={discoveredMarkets}
-        gaugeRows={gaugeRows}
-        stockRows={stockRows}
-        isConnected={isConnected}
-        onRequestConnect={onRequestConnect}
-        onSelectPool={(pool) => {
-          handleExploreYieldOption({
-            protocol: pool.protocol,
-            marketId: pool.id,
-            stockSymbol: pool.assetSymbol,
-          });
-        }}
-      />
+      {/* 4. UNIFIED WORKSPACE NAVIGATION (Directly controlling showcase view below) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+        <LendingViewTabs
+          value={activeTab}
+          onChange={(newTab) => {
+            setActiveTab(newTab);
+            setSelectedStockSymbol(null);
+          }}
+          stocksCount={BASE_STOCKS.length}
+          vaultsCount={gaugeRows.length}
+        />
+      </div>
 
-      {/* 4. MAIN WORKSPACE VIEW (Level 1 vs Level 2 vs Gauges) */}
-      {mode === "stake" ? (
+      {/* 5. ACTIVE SHOWCASE VIEW */}
+      {activeTab === "vaults" ? (
         /* STAKE & GAUGES VIEW */
         <GaugesTable
           gauges={gaugeRows}
@@ -1052,11 +1024,27 @@ export default function LendingHub({
           }}
           onClaim={handleClaimGauge}
         />
-      ) : marketGroup === "compare" ? (
+      ) : activeTab === "finder" ? (
+        /* MULTI-PROTOCOL YIELD SCANNER */
+        <YieldFinder
+          markets={discoveredMarkets}
+          gaugeRows={gaugeRows}
+          stockRows={stockRows}
+          isConnected={isConnected}
+          onRequestConnect={onRequestConnect}
+          onSelectPool={(pool) => {
+            handleExploreYieldOption({
+              protocol: pool.protocol,
+              marketId: pool.id,
+              stockSymbol: pool.assetSymbol,
+            });
+          }}
+        />
+      ) : activeTab === "compare" ? (
         /* REAL MULTI-PROTOCOL TOKENIZED STOCKS COMPARISON TOOL */
         <ProtocolCompareHub
           onSelectStock={(symbol) => {
-            setMarketGroup("stocks");
+            setActiveTab("stocks");
             setSelectedStockSymbol(symbol);
           }}
           onRequestConnect={onRequestConnect}
@@ -1084,7 +1072,6 @@ export default function LendingHub({
           onSelectAsset={(symbol) => setSelectedStockSymbol(symbol)}
           isConnected={isConnected}
           onRequestConnect={onRequestConnect}
-          mode={mode}
           loading={isLoadingBalances || isLoadingDiscovered}
           showAllStocks={showAllStocks}
           onToggleShowAllStocks={setShowAllStocks}
