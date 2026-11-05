@@ -90,9 +90,11 @@ export default function ProtocolCard({
             Supply APY
           </span>
           <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {option.supplyApy > 0 ? `${option.supplyApy.toFixed(2)}%` : "0.00%"}
+            {option.supplyApy > 0 ? `${option.supplyApy.toFixed(2)}%` : "—"}
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">Securities yield</span>
+          <span className="text-[10px] text-[var(--ink-dim)]">
+            {option.supplyApy > 0 ? "Securities yield" : "Collateral only"}
+          </span>
         </div>
 
         <div>
@@ -121,7 +123,7 @@ export default function ProtocolCard({
           <div className="p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)]/60">
             <span className="text-[9px] uppercase font-bold text-[var(--ink-dim)] block">Liquidity</span>
             <span className="font-mono font-bold text-[var(--ink)] text-xs">
-              {formatCompactUsd(option.availableLiquidityUsd)}
+              {option.availableLiquidityUsd > 0 ? formatCompactUsd(option.availableLiquidityUsd) : "—"}
             </span>
           </div>
 

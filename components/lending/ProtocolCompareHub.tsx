@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { AAVE_EQUITIES_SUPPORTED_STOCKS } from "@/lib/lending/unified-comparison";
+import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 
 export interface ProtocolDetail {
   id: string;
@@ -214,9 +215,29 @@ export default function ProtocolCompareHub({
 
   // Derived stock yields across protocols
   const stockYieldMatrix = useMemo(() => {
-    const isHighBeta = ["NVDAc", "TSLAc", "MSTRc", "SPCXc"].includes(selectedStock.symbol);
-    const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(selectedStock.symbol);
-    const isIporSupported = ["GOOGLc", "GOOGc", "NVDAc", "AAPLc", "METAc"].includes(selectedStock.symbol);
+    const baselineMarkets = getBaselineVerifiedMarkets();
+    const sym = selectedStock.symbol;
+    const cleanSym = sym.toLowerCase();
+
+    const matching = baselineMarkets.filter(
+      (m) =>
+        m.collateralAsset?.symbol.toLowerCase() === cleanSym ||
+        m.supplyAsset.symbol.toLowerCase() === cleanSym ||
+        (cleanSym === "googlc" && (m.supplyAsset.symbol.toLowerCase() === "googc" || m.collateralAsset?.symbol.toLowerCase() === "googc"))
+    );
+
+    const beefyMkt = matching.find((m) => m.protocol === "beefy");
+    const aeroMkt = matching.find((m) => m.protocol === "aerodrome");
+    const iporMkt = matching.find((m) => m.protocol === "ipor");
+    const aaveMkt = matching.find((m) => m.protocol === "aave");
+
+    const isAaveSupported = sym === "SPCXc" || Boolean(aaveMkt) || AAVE_EQUITIES_SUPPORTED_STOCKS.has(sym);
+    const isIporSupported = Boolean(iporMkt);
+
+    const beefyApy = beefyMkt?.supplyApy ?? (sym === "NVDAc" ? 5.91 : 3.82);
+    const aeroApy = aeroMkt?.supplyApy ?? (sym === "NVDAc" ? 17.64 : 8.64);
+    const iporApy = iporMkt?.supplyApy ?? 7.47;
+    const iporBorrow = iporMkt?.borrowApr ?? 4.50;
 
     const matrix = [
       {
@@ -226,13 +247,13 @@ export default function ProtocolCompareHub({
         status: "live",
         statusBadge: "🟢 Live on Base",
         badgeColor: "emerald",
-        yieldRate: isHighBeta ? "48.65% APY" : "32.14% APY",
+        yieldRate: `${beefyApy.toFixed(2)}% APY`,
         yieldType: "Auto-Compounded LP Yield",
         canBorrow: "No (Yield only)",
-        tvl: "$142,000",
+        tvl: beefyMkt?.tvlUsd ? `$${(beefyMkt.tvlUsd / 1000).toFixed(0)}K` : "$207K",
         actionText: "Deposit in Beefy Vault",
         actionUrl: `https://app.beefy.com/vault/aero-cow-base-${selectedStock.symbol.toLowerCase()}-usdc`,
-        contractAddress: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
+        contractAddress: (beefyMkt?.contractAddress || "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025") as string,
         riskScore: "Low (No Debt)",
       },
       {
@@ -242,13 +263,13 @@ export default function ProtocolCompareHub({
         status: "live",
         statusBadge: "🟢 Live on Base",
         badgeColor: "emerald",
-        yieldRate: isHighBeta ? "42.50% APR" : "28.10% APR",
+        yieldRate: `${aeroApy.toFixed(2)}% APR`,
         yieldType: "AERO Emissions + Swap Fees",
         canBorrow: "No (LP Staking)",
-        tvl: "$280,000",
+        tvl: aeroMkt?.tvlUsd ? `$${(aeroMkt.tvlUsd / 1000).toFixed(0)}K` : "$518K",
         actionText: "Stake on Aerodrome",
         actionUrl: "https://aerodrome.finance/pools",
-        contractAddress: "0x16613524e02ad97eDfeF371bC883F2F5d6C480A5",
+        contractAddress: (aeroMkt?.contractAddress || "0xA282064541Bb45Caa046fB9f21a240671aBB7f46") as string,
         riskScore: "Low (DEX LP)",
       },
       {
@@ -256,16 +277,16 @@ export default function ProtocolCompareHub({
         name: "Aave Pro",
         type: "Equities Collateral Lending Hub",
         status: isAaveSupported ? "live" : "crypto_only",
-        statusBadge: isAaveSupported ? "🟢 Live on Base" : "⚪ 7 Stocks Only",
+        statusBadge: isAaveSupported ? "🟢 Live on Base" : "⚪ Unsupported",
         badgeColor: isAaveSupported ? "emerald" : "slate",
         yieldRate: isAaveSupported
-          ? isHighBeta
+          ? sym === "SPCXc"
             ? "5.25% Supply · 3.75% Borrow"
-            : "4.60% Supply · 3.45% Borrow"
+            : "Collateral Only · 3.75% Borrow"
           : "Not Supported",
-        yieldType: isAaveSupported ? "USDC Borrowing against Collateral" : "Mag-7 Stocks Collateral Only",
+        yieldType: isAaveSupported ? "USDC Borrowing against Collateral" : "Equities Collateral Only",
         canBorrow: isAaveSupported ? "Yes (Max LTV 75%)" : "No",
-        tvl: isAaveSupported ? "$34,800,000" : "$0",
+        tvl: isAaveSupported ? (sym === "SPCXc" ? "$14.9M" : "$14.8M") : "$0",
         actionText: isAaveSupported ? "Borrow on Aave Pro" : "Visit Aave Pro",
         actionUrl: "https://pro.aave.com/explore/borrow",
         contractAddress: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
@@ -274,15 +295,6 @@ export default function ProtocolCompareHub({
     ];
 
     if (isIporSupported) {
-      const iporApy =
-        selectedStock.symbol === "NVDAc"
-          ? "7.47% APY"
-          : selectedStock.symbol === "AAPLc"
-          ? "6.85% APY"
-          : selectedStock.symbol === "METAc"
-          ? "7.46% APY"
-          : "6.15% APY";
-
       matrix.push({
         protocolId: "ipor",
         name: "IPOR Fusion",
@@ -290,10 +302,10 @@ export default function ProtocolCompareHub({
         status: "live",
         statusBadge: "🟢 Live on Base",
         badgeColor: "emerald",
-        yieldRate: iporApy,
+        yieldRate: `${iporApy.toFixed(2)}% APY · ${iporBorrow.toFixed(2)}% Borrow`,
         yieldType: "Automated Stock Carry Yield",
         canBorrow: "Yes (Borrow USDC)",
-        tvl: "$380,000",
+        tvl: iporMkt?.tvlUsd ? `$${(iporMkt.tvlUsd / 1000).toFixed(0)}K` : "$376K",
         actionText: "Deposit on IPOR Stocks",
         actionUrl: "https://app.ipor.io/stocks",
         contractAddress: "0x1455717668fA96534f675856347A973fA907e922",

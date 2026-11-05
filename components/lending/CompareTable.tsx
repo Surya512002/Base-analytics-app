@@ -26,8 +26,13 @@ export default function CompareTable({
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "ltv" | "liquidity" | "risk">("supply");
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Filter out any ghost entries with zero APY, zero borrow APR, and zero liquidity
+  const validOptions = (options || []).filter(
+    (o) => o.supplyApy > 0 || (o.borrowApr !== null && o.borrowApr > 0) || o.availableLiquidityUsd > 0
+  );
+
   // If this stock does not yet have active protocol pools on Base mainnet
-  if (!options || options.length === 0) {
+  if (validOptions.length === 0) {
     return (
       <div className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 text-center space-y-4 shadow-xs">
         <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
@@ -61,14 +66,14 @@ export default function CompareTable({
   }
 
   // Identify best-in-column values
-  const maxSupply = Math.max(...options.map((o) => o.supplyApy));
-  const validBorrows = options.map((o) => o.borrowApr).filter((b): b is number => b !== null && b > 0);
+  const maxSupply = Math.max(...validOptions.map((o) => o.supplyApy));
+  const validBorrows = validOptions.map((o) => o.borrowApr).filter((b): b is number => b !== null && b > 0);
   const minBorrow = validBorrows.length > 0 ? Math.min(...validBorrows) : null;
-  const maxLiquidity = Math.max(...options.map((o) => o.availableLiquidityUsd));
-  const validLtvs = options.map((o) => o.maxLtv).filter((l): l is number => l !== null && l > 0);
+  const maxLiquidity = Math.max(...validOptions.map((o) => o.availableLiquidityUsd));
+  const validLtvs = validOptions.map((o) => o.maxLtv).filter((l): l is number => l !== null && l > 0);
   const maxLtv = validLtvs.length > 0 ? Math.max(...validLtvs) : null;
 
-  const sortedOptions = [...options].sort((a, b) => {
+  const sortedOptions = [...validOptions].sort((a, b) => {
     let diff = 0;
     if (sortBy === "supply") {
       diff = b.supplyApy - a.supplyApy;
@@ -180,13 +185,16 @@ export default function CompareTable({
                 {/* Supply APY */}
                 <td className="py-3.5 px-3">
                   <div className="flex items-center gap-1.5 font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                    <span>{opt.supplyApy > 0 ? `${opt.supplyApy.toFixed(2)}%` : "0.00%"}</span>
+                    <span>{opt.supplyApy > 0 ? `${opt.supplyApy.toFixed(2)}%` : "—"}</span>
                     {isBestSupply && (
                       <span className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center" title="Best Supply APY">
                         <Check size={9} strokeWidth={3} />
                       </span>
                     )}
                   </div>
+                  {opt.supplyApy === 0 && (opt.borrowApr !== null || (opt.maxLtv !== null && opt.maxLtv > 0)) && (
+                    <span className="text-[10px] text-[var(--ink-muted)] block font-medium">Collateral Only</span>
+                  )}
                 </td>
 
                 {/* Borrow APR */}
@@ -216,7 +224,7 @@ export default function CompareTable({
                 {/* Available Liquidity */}
                 <td className="py-3.5 px-3 font-mono text-[var(--ink)]">
                   <div className="flex items-center gap-1.5">
-                    <span>{formatCompactUsd(opt.availableLiquidityUsd)}</span>
+                    <span>{opt.availableLiquidityUsd > 0 ? formatCompactUsd(opt.availableLiquidityUsd) : "—"}</span>
                     {isDeepest && (
                       <span className="w-3.5 h-3.5 rounded-full bg-purple-500/20 text-purple-600 flex items-center justify-center" title="Deepest Liquidity">
                         <Check size={9} strokeWidth={3} />

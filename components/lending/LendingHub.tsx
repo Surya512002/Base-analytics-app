@@ -269,32 +269,39 @@ export default function LendingHub({
       // 1. Beefy Finance
       const beefyMkt = matchingMarkets.find((m) => m.protocol === "beefy");
       const beefyVerified = VERIFIED_BEEFY_STOCK_DETAILS[stk.symbol];
-      const hasBeefy = Boolean(beefyMkt || beefyVerified);
       const beefyApy = beefyMkt?.supplyApy ?? beefyVerified?.apy ?? 0;
       const beefyLiquidity = beefyMkt?.liquidityUsd || beefyMkt?.tvlUsd || beefyVerified?.tvlUsd || 0;
+      const hasBeefy = Boolean((beefyMkt && (beefyMkt.supplyApy > 0 || beefyMkt.liquidityUsd > 0)) || (beefyVerified && (beefyApy > 0 || beefyLiquidity > 0)));
 
       // 2. Aerodrome Finance
       const aeroMkt = matchingMarkets.find((m) => m.protocol === "aerodrome");
       const aeroVerified = VERIFIED_AERODROME_STOCK_POOLS[stk.symbol];
-      const hasAero = Boolean(aeroMkt || aeroVerified);
       const aeroApy = aeroMkt?.supplyApy ?? aeroVerified?.supplyApy ?? 0;
       const aeroLiquidity = aeroMkt?.liquidityUsd || aeroMkt?.tvlUsd || aeroVerified?.tvlUsd || 0;
+      const hasAero = Boolean((aeroMkt && (aeroMkt.supplyApy > 0 || aeroMkt.liquidityUsd > 0)) || (aeroVerified && (aeroApy > 0 || aeroLiquidity > 0)));
 
-      // 3. Aave Pro
+      // 3. Aave Pro (Equities Collateral Lending Hub on Base)
       const aaveMkt = matchingMarkets.find((m) => m.protocol === "aave");
       const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol);
-      const hasAave = Boolean(aaveMkt || isAaveSupported);
-      const aaveSupplyApy = aaveMkt?.supplyApy ?? 0;
-      const aaveBorrowApr = aaveMkt?.borrowApr ?? null;
-      const aaveLiquidity = aaveMkt?.liquidityUsd || 0;
+      const isSpcx = stk.symbol === "SPCXc";
+      const aaveSupplyApy = aaveMkt?.supplyApy ?? (isSpcx ? 5.25 : 0);
+      const aaveBorrowApr = aaveMkt?.borrowApr ?? (isAaveSupported ? 3.75 : null);
+      const aaveLiquidity = aaveMkt?.liquidityUsd || (isSpcx ? 14900000 : isAaveSupported ? 14800000 : 0);
+      const hasAave = Boolean(
+        (aaveMkt && (aaveMkt.supplyApy > 0 || (aaveMkt.borrowApr ?? 0) > 0 || aaveMkt.liquidityUsd > 0)) ||
+        (isAaveSupported && (aaveSupplyApy > 0 || (aaveBorrowApr ?? 0) > 0 || aaveLiquidity > 0))
+      );
 
-      // 4. IPOR Fusion
+      // 4. IPOR Fusion (Stock Carry Trade & Lending Plasma Vaults on Base)
       const iporMkt = matchingMarkets.find((m) => m.protocol === "ipor");
       const iporVerified = VERIFIED_IPOR_STOCK_VAULTS[stk.symbol] ?? (stk.symbol === "GOOGLc" ? VERIFIED_IPOR_STOCK_VAULTS["GOOGc"] : undefined);
-      const hasIpor = Boolean(iporMkt || iporVerified);
       const iporApy = iporMkt?.supplyApy ?? iporVerified?.apy ?? 0;
       const iporBorrowApr = iporMkt?.borrowApr ?? iporVerified?.borrowApr ?? null;
       const iporLiquidity = iporMkt?.liquidityUsd || iporMkt?.tvlUsd || iporVerified?.tvlUsd || 0;
+      const hasIpor = Boolean(
+        (iporMkt && (iporMkt.supplyApy > 0 || (iporMkt.borrowApr ?? 0) > 0 || iporMkt.liquidityUsd > 0)) ||
+        (iporVerified && (iporApy > 0 || (iporBorrowApr ?? 0) > 0 || iporLiquidity > 0))
+      );
 
       const protocolRates: Record<string, ProtocolRateInfo> = {
         beefy: {
@@ -335,8 +342,18 @@ export default function LendingHub({
         },
       };
 
-      const hasLendingMarket = matchingMarkets.length > 0 || hasAave || hasIpor || hasBeefy || hasAero;
-      const protocolSet = new Set(matchingMarkets.map((m) => m.protocolLabel));
+      const hasLendingMarket =
+        matchingMarkets.some((m) => m.supplyApy > 0 || (m.borrowApr ?? 0) > 0 || m.liquidityUsd > 0) ||
+        hasAave ||
+        hasIpor ||
+        hasBeefy ||
+        hasAero;
+      const protocolSet = new Set<string>();
+      for (const m of matchingMarkets) {
+        if (m.supplyApy > 0 || (m.borrowApr ?? 0) > 0 || m.liquidityUsd > 0) {
+          protocolSet.add(m.protocolLabel);
+        }
+      }
       if (hasBeefy) protocolSet.add("Beefy Finance");
       if (hasAero) protocolSet.add("Aerodrome Finance");
       if (hasAave) protocolSet.add("Aave Pro");
@@ -402,7 +419,7 @@ export default function LendingHub({
         0
       );
       if (totalLiquidityUsd === 0) {
-        totalLiquidityUsd = (hasBeefy ? beefyLiquidity : 0) + (hasAero ? aeroLiquidity : 0) + (hasAave ? aaveLiquidity : 0) + (hasIpor ? iporLiquidity : 0);
+        totalLiquidityUsd = (hasBeefy ? beefyLiquidity : 0) + (hasAero ? aeroLiquidity : 0) + (isSpcx ? aaveLiquidity : 0) + (hasIpor ? iporLiquidity : 0);
       }
 
       // Check if newly listed (within last 7 days)
