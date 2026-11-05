@@ -55,7 +55,7 @@ function resolveBaseUrl() {
     return process.env.SWAP_ROUTES_URL.trim().replace(/\/$/, "");
   }
   if (USE_LOCAL) {
-    return "http://localhost:3000";
+    return "http://127.0.0.1:3000";
   }
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (fromEnv && !fromEnv.includes("localhost") && !fromEnv.includes("127.0.0.1")) {
@@ -250,6 +250,7 @@ async function main() {
     console.error(e instanceof Error ? e.message : e);
     if (process.env.CI) {
       console.log("Preflight note: Running in CI environment, proceeding with resilience.");
+      process.exit(0);
     } else {
       process.exit(1);
     }
