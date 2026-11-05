@@ -5,14 +5,7 @@ import {
   ArrowLeft,
   LayoutGrid,
   Table as TableIcon,
-  TrendingUp,
-  Lock,
-  Layers,
   Clock,
-  ShieldCheck,
-  Wallet,
-  RefreshCw,
-  ArrowRight,
 } from "lucide-react";
 import type { StockLendingComparison, StockLendingOption } from "@/lib/lending/unified-comparison";
 import ProtocolCard from "./ProtocolCard";
@@ -51,8 +44,8 @@ export default function AssetDetailView({
   onOpenSupply,
   onOpenBorrow,
   onOpenDetails,
-  onRefresh,
-  isRefreshing = false,
+  onRefresh: _onRefresh,
+  isRefreshing: _isRefreshing = false,
 }: AssetDetailViewProps) {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [showMiniHeader, setShowMiniHeader] = useState(false);

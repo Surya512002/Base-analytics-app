@@ -35,7 +35,6 @@ import {
   amountFromBalanceFraction,
   amountFromRawBalanceFraction,
   formatTokenBalanceDisplay,
-  formatTokenInputAmount,
   sanitizeTokenAmountInput,
 } from "@/lib/launchpad/token-amount";
 import {
@@ -44,7 +43,6 @@ import {
   resolveDexSwapRoute,
 } from "@/lib/launchpad/dex-swap-params";
 import { enrichSwapCounter } from "@/lib/launchpad/token-logo";
-import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -155,7 +153,6 @@ export default function DexSwapPanel({
   const [dex, setDex] = useState<LaunchDex>("auto");
   const [showSettings, setShowSettings] = useState(false);
   const [isLaunchedToken, setIsLaunchedToken] = useState(false);
-  const [creatorAddress, setCreatorAddress] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
@@ -167,7 +164,6 @@ export default function DexSwapPanel({
   const [ethUsd, setEthUsd] = useState(2500);
   const [referrer, setReferrer] = useState<string | null>(null);
   const [highImpactAck, setHighImpactAck] = useState(false);
-  const [activePct, setActivePct] = useState<string | null>(null);
   const [balanceTick, setBalanceTick] = useState(0);
   const [fromBalance, setFromBalance] = useState(0);
   const [fromBalanceRaw, setFromBalanceRaw] = useState<bigint>(BigInt(0));
@@ -212,7 +208,6 @@ export default function DexSwapPanel({
     setAmount(defaultFromAmount(from));
     setSlippage("0.5");
     setIsLaunchedToken(true);
-    setCreatorAddress(prefillToken.creator ?? null);
     captureTokenReferrerFromUrl(prefillToken.address);
     setReferrer(readTokenReferrer(prefillToken.address));
   }, [prefillToken?.address]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -282,7 +277,7 @@ export default function DexSwapPanel({
     if (!route) return 0;
     // Buy: pay with `from` (counter). Sell: receive `to` (counter).
     return (route.direction === "buy" ? fromUsd : toUsd) ?? 0;
-  }, [route?.direction, fromUsd, toUsd]);
+  }, [route, fromUsd, toUsd]);
 
   useEffect(() => {
     if (from.kind !== "token") {
@@ -447,7 +442,6 @@ export default function DexSwapPanel({
         setQuoteImpactBps(q.priceImpactBps ?? null);
         setAggregatorReady(q.aggregatorConfigured !== false);
         setIsLaunchedToken(Boolean(q.isLaunchedToken));
-        setCreatorAddress(q.creator ?? null);
         const outDec =
           q.outDecimals ??
           (route.direction === "buy" ? pageDecimals : route.counterDecimals);
@@ -522,7 +516,6 @@ export default function DexSwapPanel({
     setAmount(defaultFromAmount(nextFrom));
     setQuoteOut(null);
     setMinReceive(null);
-    setActivePct(null);
   };
 
   const pickToken = (side: "from" | "to", next: SwapCounter) => {
@@ -542,7 +535,6 @@ export default function DexSwapPanel({
     }
     setQuoteOut(null);
     setMinReceive(null);
-    setActivePct(null);
     setPickerSide(null);
   };
 
@@ -552,8 +544,7 @@ export default function DexSwapPanel({
     onPrefillReceiveApplied?.();
   }, [prefillReceiveCounter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setPct = (pct: number, label: string) => {
-    setActivePct(label);
+  const setPct = (pct: number) => {
     const fraction =
       pct < 0
         ? from.kind === "eth"
@@ -571,7 +562,6 @@ export default function DexSwapPanel({
 
   const onAmountChange = (raw: string) => {
     setAmount(raw);
-    setActivePct(null);
     if (!raw.trim() || parseFloat(raw) <= 0) {
       setQuoteOut(null);
       setMinReceive(null);
@@ -612,7 +602,6 @@ export default function DexSwapPanel({
     if (ok) {
       setAmount(defaultFromAmount(from));
       setQuoteOut(null);
-      setActivePct(null);
       refreshBalances();
       window.setTimeout(refreshBalances, 2500);
       window.setTimeout(refreshBalances, 8000);
@@ -758,7 +747,7 @@ export default function DexSwapPanel({
             {wallet && !guestMode && (
               <button
                 type="button"
-                onClick={() => setPct(-1, "MAX")}
+                onClick={() => setPct(-1)}
                 className="dex-swap-max"
               >
                 Balance {formatTokenBalanceDisplay(fromBalance, fromDecimals)} · MAX

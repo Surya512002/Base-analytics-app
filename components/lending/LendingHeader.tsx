@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TrendingUp, RefreshCw, ShieldCheck, Coins, Lock, Info } from "lucide-react";
+import { TrendingUp, RefreshCw, Info } from "lucide-react";
 
 interface LendingHeaderProps {
   topSupplyApy: number;

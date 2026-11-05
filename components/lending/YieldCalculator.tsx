@@ -3,14 +3,8 @@
 import React, { useState, useMemo } from "react";
 import {
   Calculator,
-  TrendingUp,
   Sparkles,
   ArrowRight,
-  ShieldCheck,
-  Coins,
-  Percent,
-  Layers,
-  ExternalLink,
 } from "lucide-react";
 import { formatUsd } from "@/lib/launchpad/format";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
@@ -97,7 +91,7 @@ const PRESET_AMOUNTS = [250, 1000, 5000, 10000, 25000];
 export default function YieldCalculator({
   markets = [],
   gaugeRows = [],
-  stockRows = [],
+  stockRows: _stockRows = [],
   onSelectOption,
   onExploreVault,
 }: YieldCalculatorProps) {

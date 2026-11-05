@@ -2,10 +2,8 @@
 
 import { TrendingUp } from "lucide-react";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
-import { feeShareLabels } from "@/lib/launchpad/fee-split";
 
 export default function RevenueSharingLaunchBanner() {
-  const shares = feeShareLabels();
 
   return (
     <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/8 p-4 sm:p-5">

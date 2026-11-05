@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, Search, X, Clock, Check, Sparkles, Coins, Wallet, AlertTriangle } from "lucide-react";
+import { Loader2, Search, X, Clock, Sparkles, Coins, Wallet, AlertTriangle } from "lucide-react";
 import { useCompliance } from "@/hooks/useCompliance";
 import {
   COMMON_BASE_TOKENS,
@@ -15,7 +15,6 @@ import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-l
 import {
   CounterAvatar,
   ETH_COUNTER,
-  counterDecimalsOf,
   counterSymbol,
   sameCounter,
   type SwapCounter,
@@ -531,7 +530,7 @@ function TokenListItem({
   holding?: TokenHolding;
 }) {
   const sym = counterSymbol(counter);
-  const displayName = name ?? (counter.kind === "token" ? (counter as any).name ?? sym : "Ethereum");
+  const displayName = name ?? (counter.name || (counter.kind === "token" ? sym : "Ethereum"));
   const tradability =
     counter.kind === "token" && counter.symbol.endsWith("c")
       ? getStockTradability(counter.address)

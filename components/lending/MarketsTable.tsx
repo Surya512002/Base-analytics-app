@@ -8,11 +8,9 @@ import {
   ChevronRight,
   Sparkles,
   AlertTriangle,
-  Layers,
   Clock,
 } from "lucide-react";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
-import { getStockCategoryCounts, type StockCategory } from "@/lib/stocks/tokenized-stocks-registry";
 import TokenLogo from "@/components/ui/TokenLogo";
 
 export interface ProtocolRateInfo {
@@ -70,7 +68,7 @@ export default function MarketsTable({
   onSelectAsset,
   isConnected,
   onRequestConnect,
-  mode = "lend",
+  mode: _mode = "lend",
   loading = false,
   showAllStocks = false,
   onToggleShowAllStocks,

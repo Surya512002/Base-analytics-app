@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
-import { BASE_STOCKS, type BaseStock } from "@/lib/stocks/base-stocks";
+import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isNewStock } from "@/lib/stocks/tokenized-stocks-registry";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 import type { LendingMarket } from "@/lib/lending/types";
@@ -53,7 +53,7 @@ interface LendingHubProps {
 
 export default function LendingHub({
   app,
-  guestMode = false,
+  guestMode: _guestMode = false,
   onRequestConnect,
   initialStock,
 }: LendingHubProps) {
@@ -81,7 +81,7 @@ export default function LendingHub({
   >("supply");
 
   // Real-time freshness & polling
-  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
+  const [lastUpdated, setLastUpdated] = useState<number>(() => Date.now());
   const [secondsAgo, setSecondsAgo] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -90,7 +90,7 @@ export default function LendingHub({
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
 
   // Claim pending state for gauges
-  const [claimingGaugeId, setClaimingGaugeId] = useState<string | null>(null);
+  const [_claimingGaugeId, setClaimingGaugeId] = useState<string | null>(null);
 
   // Seconds ago timer tick
   useEffect(() => {
@@ -222,11 +222,11 @@ export default function LendingHub({
         const data = await res.json();
         if (data.ok && Array.isArray(data.markets) && data.markets.length > 0) {
           setDiscoveredMarkets(data.markets);
-          if (data.protocolStatus) {
+          if (data.protocolStatus && typeof data.protocolStatus === "object") {
             const errs: Record<string, string> = {};
-            for (const [k, v] of Object.entries(data.protocolStatus)) {
-              if ((v as any)?.status === "error") {
-                errs[k] = (v as any)?.error || "Error";
+            for (const [k, v] of Object.entries(data.protocolStatus as Record<string, { status?: string; error?: string }>)) {
+              if (v?.status === "error") {
+                errs[k] = v.error || "Error";
               }
             }
             setProtocolErrors(errs);
@@ -284,11 +284,6 @@ export default function LendingHub({
       const aaveMkt = matchingMarkets.find((m) => m.protocol === "aave");
       const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol);
       const hasAave = Boolean(aaveMkt || isAaveSupported);
-      const isHighBeta =
-        stk.symbol === "TSLAc" ||
-        stk.symbol === "NVDAc" ||
-        stk.symbol === "MSTRc" ||
-        stk.symbol === "SPCXc";
       const aaveSupplyApy = aaveMkt?.supplyApy ?? 0;
       const aaveBorrowApr = aaveMkt?.borrowApr ?? null;
       const aaveLiquidity = aaveMkt?.liquidityUsd || 0;
@@ -529,7 +524,7 @@ export default function LendingHub({
   const [positionsErrors, setPositionsErrors] = useState<Record<string, string>>({});
   const [isLoadingPositions, setIsLoadingPositions] = useState<boolean>(false);
   const [isRefreshingPositions, setIsRefreshingPositions] = useState<boolean>(false);
-  const [lastPositionsUpdated, setLastPositionsUpdated] = useState<number>(Date.now());
+  const [lastPositionsUpdated, setLastPositionsUpdated] = useState<number>(() => Date.now());
   const [positionsSecondsAgo, setPositionsSecondsAgo] = useState<number>(0);
   const [isMockPositionsData, setIsMockPositionsData] = useState<boolean>(false);
   const [isWrongNetwork, setIsWrongNetwork] = useState<boolean>(false);
@@ -543,7 +538,8 @@ export default function LendingHub({
     let alive = true;
     async function checkChain() {
       try {
-        const provider = (await getEip1193Provider((connType as any) || "injected")) as {
+        const providerType = (connType ?? "injected") as "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected";
+        const provider = (await getEip1193Provider(providerType)) as {
           request: (args: { method: string }) => Promise<unknown>;
         } | null;
         if (provider?.request) {
@@ -565,7 +561,8 @@ export default function LendingHub({
 
   const handleSwitchNetwork = async () => {
     try {
-      const provider = (await getEip1193Provider((connType as any) || "injected")) as {
+      const providerType = (connType ?? "injected") as "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected";
+      const provider = (await getEip1193Provider(providerType)) as {
         request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
       } | null;
       if (provider) {

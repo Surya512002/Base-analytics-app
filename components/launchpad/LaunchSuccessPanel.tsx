@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Rocket,
   ArrowRight,
   Share2,
   Twitter,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowDownUp,
@@ -13,7 +13,7 @@ import {
   ExternalLink,
   RotateCcw,
 } from "lucide-react";
-import { formatUnits, maxUint256, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { SWAP_ROUTER_02 } from "@/lib/launchpad/uniswap";
 import { AERODROME_ROUTER } from "@/lib/launchpad/aerodrome";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";

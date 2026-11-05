@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { X, Globe, Twitter, Send, ImagePlus, AlertCircle, AlertTriangle, ShieldCheck } from "lucide-react";
+import { X, Globe, Twitter, Send, ImagePlus, AlertCircle, AlertTriangle } from "lucide-react";
 import { checkTrademarkCollision } from "@/lib/launchpad/trademark-check";
 
 interface IdentityStepProps {

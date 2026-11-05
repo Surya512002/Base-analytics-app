@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Wallet, ChevronRight, Loader2 } from "lucide-react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
-import type { LaunchedToken } from "@/lib/launchpad/types";
 import { parseSwapUrlParams } from "@/lib/swap/swap-link";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
@@ -42,6 +41,8 @@ export default function SwapTab({
     setBuyToken(counter);
   }, []);
 
+  const buyAddr = buyToken?.kind === "token" ? buyToken.address : null;
+  const fromAddr = fromPick?.kind === "token" ? fromPick.address : null;
   const extraTokens = useMemo(() => {
     const list: string[] = [];
     if (initialToken && initialToken.startsWith("0x")) list.push(initialToken);
@@ -49,10 +50,10 @@ export default function SwapTab({
     if (buyParam && buyParam.startsWith("0x")) list.push(buyParam);
     const sellParam = searchParams?.get("sell");
     if (sellParam && sellParam.startsWith("0x")) list.push(sellParam);
-    if (buyToken?.kind === "token" && buyToken.address) list.push(buyToken.address);
-    if (fromPick?.kind === "token" && fromPick.address) list.push(fromPick.address);
+    if (buyAddr) list.push(buyAddr);
+    if (fromAddr) list.push(fromAddr);
     return list;
-  }, [initialToken, searchParams, buyToken?.kind === "token" ? buyToken.address : null, fromPick?.kind === "token" ? fromPick.address : null]);
+  }, [initialToken, searchParams, buyAddr, fromAddr]);
 
   // Hook for wallet holdings, dust filter, and total USD balance
   const holdingsState = useWalletHoldings(app.wallet?.address, extraTokens);

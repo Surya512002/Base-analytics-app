@@ -7,7 +7,7 @@ import {
   poolSeedPct,
   type LaunchFormConfig,
 } from "@/lib/launchpad/launch-config";
-import { ShieldCheck, ShieldAlert, Clock, Bot, Sparkles, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Clock, Bot, CheckCircle2 } from "lucide-react";
 
 export default function LaunchConfigSummary({
   config,

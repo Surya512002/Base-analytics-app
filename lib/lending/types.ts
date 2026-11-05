@@ -26,6 +26,7 @@ export interface MarketAsset {
   decimals: number;
   isStock?: boolean;
   icon?: string;
+  feed?: string;
 }
 
 export interface LendingMarket {

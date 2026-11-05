@@ -4,14 +4,12 @@ import React, { useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
-  ArrowUpDown,
   MoreHorizontal,
   ExternalLink,
   Copy,
   Check,
   Star,
   ShieldAlert,
-  ArrowRight,
 } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import {
@@ -19,10 +17,8 @@ import {
   formatExactUsd,
   isLowLiquidity,
   isExtremeMove,
-  isNewToken,
 } from "@/lib/explore/explore-config";
 import TokenCard from "./TokenCard";
-import { shortAddr } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import TokenSparkline from "@/components/ui/TokenSparkline";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";

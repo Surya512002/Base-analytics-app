@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
 import type { CreatorProfile } from "@/lib/launchpad/creator-profile-types";
-import { isCreatorProfileComplete } from "@/lib/launchpad/creator-profile-types";
 import type { CreatorRevenueSummary } from "@/lib/launchpad/fee-ledger";
 import { fetchLaunchpadTokens } from "@/lib/api/launchpad-client";
 import { fetchMarketData } from "@/lib/api/launchpad-market-client";

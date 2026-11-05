@@ -3,14 +3,10 @@
 import React, { useState } from "react";
 import {
   ShieldCheck,
-  AlertTriangle,
   ExternalLink,
   Check,
-  Clock,
   Info,
   ChevronRight,
-  TrendingUp,
-  Lock,
 } from "lucide-react";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 import { getRiskCriteriaExplanation } from "@/lib/lending/protocol-adapter-interface";

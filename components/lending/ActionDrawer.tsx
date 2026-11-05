@@ -236,7 +236,7 @@ function ActionDrawerContent({
     return () => {
       alive = false;
     };
-  }, [userAddress, option?.stockAddress]);
+  }, [userAddress, option]);
 
   // Safe Guard: Never show blank panel if option is missing or undefined
   if (!option || !option.stockSymbol) {
@@ -303,7 +303,6 @@ function ActionDrawerContent({
   const yearlySupplyEarnings = parsedAmount * (supplyApyVal / 100);
 
   // Projected Borrow Metrics
-  const estimatedLtv = option.maxLtv ? option.maxLtv - 5 : 70;
   const monthlyBorrowCost = (parsedAmount * ((option.borrowApr ?? 3.5) / 100)) / 12;
 
   // High risk or high LTV check

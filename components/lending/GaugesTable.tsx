@@ -4,15 +4,10 @@ import React, { useState, useMemo } from "react";
 import {
   Search,
   X,
-  Coins,
-  ShieldCheck,
   ChevronDown,
   ChevronUp,
-  AlertCircle,
-  ArrowUpRight,
   ExternalLink,
   Sparkles,
-  Layers,
 } from "lucide-react";
 
 export interface GaugeRowData {

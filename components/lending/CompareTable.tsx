@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, ShieldCheck, ArrowUpDown, ChevronRight, ExternalLink, ShieldAlert, ArrowRight } from "lucide-react";
+import { Check, ShieldCheck, ArrowUpDown, ExternalLink, ShieldAlert, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 

@@ -6,7 +6,6 @@ import {
   X,
   ExternalLink,
   ShieldCheck,
-  Zap,
   Loader2,
   AlertCircle,
   CheckCircle2,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import type { LendingMarket, ActionModalType } from "@/lib/lending/types";
 import TokenLogo from "@/components/ui/TokenLogo";
-import { BUILDER_CODE } from "@/lib/constants/env";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import type { ConnectionType } from "@/lib/types/wallet";
 import { parseUnits, maxUint256, formatUnits, parseAbi } from "viem";
@@ -279,7 +277,7 @@ export default function LendingActionModal({
         const morphoParams = market.morphoParams ?? {
           loanToken: market.asset.address,
           collateralToken: market.collateralAsset?.address ?? market.asset.address,
-          oracle: (market.collateralAsset as any)?.feed ?? "0x04689a41629776563E6822F76f2e57D148d28513",
+          oracle: (market.collateralAsset?.feed as `0x${string}` | undefined) ?? "0x04689a41629776563E6822F76f2e57D148d28513",
           irm: MORPHO_ADAPTIVE_CURVE_IRM,
           lltv: BigInt(market.ltv ?? 77) * (BigInt(10) ** BigInt(16)),
         };
