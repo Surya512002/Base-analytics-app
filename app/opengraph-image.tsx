@@ -5,7 +5,7 @@ import { OG_SIZE } from "@/lib/og/types";
 
 export const runtime = "nodejs";
 export const alt =
-  "Base Analytics — Tokenized Stocks, B20 Vanity Launches, Multi-DEX Swaps & Stock Loans on Base.";
+  "Base Analytics — 260+ Tokenized Stocks, Beefy Yields, Multi-DEX Swaps & B20 Launchpad on Base.";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 export const revalidate = 120;
