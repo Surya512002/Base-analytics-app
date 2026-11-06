@@ -5,9 +5,9 @@ import { VERIFIED_IPOR_STOCK_VAULTS, AAVE_EQUITIES_SUPPORTED_STOCKS } from "@/li
 
 describe("IPOR Fusion Markets & Canonical Stocks Verification", () => {
   it("verifies BASE_STOCKS has canonical stocks including SpaceX", () => {
-    expect(BASE_STOCKS.length).toBe(9);
+    expect(BASE_STOCKS.length).toBeGreaterThanOrEqual(9);
     const symbols = BASE_STOCKS.map((s) => s.symbol);
-    expect(symbols).toEqual([
+    const canonical = [
       "NVDAc",
       "AAPLc",
       "MSFTc",
@@ -17,7 +17,10 @@ describe("IPOR Fusion Markets & Canonical Stocks Verification", () => {
       "METAc",
       "COINc",
       "SPCXc",
-    ]);
+    ];
+    for (const sym of canonical) {
+      expect(symbols).toContain(sym);
+    }
   });
 
   it("verifies only the 4 canonical stocks have IPOR Fusion vaults", () => {

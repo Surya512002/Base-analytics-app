@@ -9,6 +9,8 @@ import {
   Sparkles,
   AlertTriangle,
   Clock,
+  RotateCcw,
+  Filter,
 } from "lucide-react";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -315,8 +317,8 @@ export default function MarketsTable({
           </div>
         </div>
 
-        {/* Action, Protocol & Category Filter Row */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-1 border-t border-[var(--border-subtle)]">
+        {/* Tier 1: Action Filter Segmented Control & Status Info */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[var(--border-subtle)]">
           {/* Action Filter: All vs Supply vs Borrow */}
           <div className="flex items-center gap-1 bg-[var(--surface-2)] p-1 rounded-xl border border-[var(--border-subtle)] w-fit shrink-0">
             <button
@@ -324,7 +326,7 @@ export default function MarketsTable({
               onClick={() => {
                 setActionFilter("all");
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 actionFilter === "all"
                   ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -339,7 +341,7 @@ export default function MarketsTable({
                 setSortBy("supply");
                 setSortAsc(false);
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 actionFilter === "supply"
                   ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -354,7 +356,7 @@ export default function MarketsTable({
                 setSortBy("borrow");
                 setSortAsc(true);
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 actionFilter === "borrow"
                   ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs border border-[var(--border-subtle)]"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -364,52 +366,106 @@ export default function MarketsTable({
             </button>
           </div>
 
-          {/* Protocol Filter */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
-            <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Protocol:</span>
-            {protocolFilters.map((p) => {
-              const isSelected = selectedProtocol === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => handleSelectProtocol(p.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
-                    isSelected
-                      ? p.id === "beefy"
-                        ? "bg-purple-600 text-white hover:bg-purple-700 shadow-sm"
-                        : "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
-                      : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)] border border-[var(--border-subtle)]"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+          {/* Quick Active Filter Summary & Reset */}
+          {(selectedProtocol !== "all" || selectedCategory !== "all" || actionFilter !== "all" || searchQuery) && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[var(--ink-muted)] font-medium">
+                Showing {filteredRows.length} of {rows.length} stocks
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  handleSelectProtocol("all");
+                  setSelectedCategory("all");
+                  setActionFilter("all");
+                  setSearchQuery("");
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 transition-all cursor-pointer inline-flex items-center gap-1"
+              >
+                <RotateCcw size={11} />
+                <span>Reset Filters</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Tier 2: Multi-Dimensional Filter Controls (Clean, Wrap-friendly, Zero Horizontal Scroll Needed) */}
+        <div className="bg-[var(--surface-2)]/60 rounded-xl p-3 border border-[var(--border-subtle)] space-y-2.5">
+          {/* Protocol Filter Row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-black uppercase text-[var(--ink-muted)] tracking-wider min-w-[70px] shrink-0">
+              Protocol:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {protocolFilters.map((p) => {
+                const isSelected = selectedProtocol === p.id;
+                const dotColor =
+                  p.id === "beefy"
+                    ? "bg-purple-400"
+                    : p.id === "aerodrome"
+                      ? "bg-sky-400"
+                      : p.id === "aave"
+                        ? "bg-violet-400"
+                        : p.id === "ipor"
+                          ? "bg-amber-400"
+                          : "bg-emerald-400";
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => handleSelectProtocol(p.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none inline-flex items-center gap-1.5 ${
+                      isSelected
+                        ? p.id === "beefy"
+                          ? "bg-purple-600 text-white hover:bg-purple-700 shadow-sm ring-2 ring-purple-400/40"
+                          : p.id === "aave"
+                            ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm ring-2 ring-violet-400/40"
+                            : p.id === "ipor"
+                              ? "bg-amber-600 text-white hover:bg-amber-700 shadow-sm ring-2 ring-amber-400/40"
+                              : "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm ring-2 ring-blue-400/40"
+                        : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
+                    }`}
+                  >
+                    {p.id !== "all" && (
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          isSelected ? "bg-white" : dotColor
+                        }`}
+                      />
+                    )}
+                    <span>{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Category Filter Chips */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
-            <span className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mr-1">Sector:</span>
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap cursor-pointer select-none ${
-                    isSelected
-                      ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
-                      : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)] border border-[var(--border-subtle)]"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
+          {/* Sector / Category Filter Row */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[var(--border-subtle)]/60">
+            <span className="text-[11px] font-black uppercase text-[var(--ink-muted)] tracking-wider min-w-[70px] shrink-0">
+              Sector:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {categories.map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer select-none ${
+                      isSelected
+                        ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
+                        : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

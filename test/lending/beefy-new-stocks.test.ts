@@ -6,6 +6,7 @@ import {
   getUnifiedStockLendingComparison,
 } from "@/lib/lending/unified-comparison";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
+import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isAddress } from "viem";
 
 describe("Beefy Finance Added Tokenized Stocks", () => {
@@ -69,5 +70,12 @@ describe("Beefy Finance Added Tokenized Stocks", () => {
     expect(beefyOpt?.protocolName).toBe("Beefy Finance");
     expect(beefyOpt?.contractAddress).toBe("0x2Cb70836DD8f9A350Ff2F25805D4B213BF553468");
     expect(beefyOpt?.sourceLink).toContain("aero-cow-base-usdc-intcc-vault");
+  });
+
+  it("verifies all 10 newly added stocks are present in BASE_STOCKS", () => {
+    const baseStockSymbols = BASE_STOCKS.map((s) => s.symbol);
+    for (const sym of newStockSymbols) {
+      expect(baseStockSymbols).toContain(sym);
+    }
   });
 });

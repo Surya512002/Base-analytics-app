@@ -4055,11 +4055,11 @@ for (const entry of TOKENIZED_STOCKS_REGISTRY) {
 }
 
 /**
- * The 8 canonical verified tokenized stocks on Base mainnet.
+ * Verified tokenized stocks on Base mainnet.
  * Backed 1:1 by real stock shares held in custody (Coinbase B20 precompiles).
- * Active with Chainlink 24/5 equity feeds and verified on-chain lending & DEX pools.
+ * Active with Chainlink 24/5 equity feeds and verified on-chain lending, staking, or DEX pools.
  */
-export const VERIFIED_BASE_STOCKS_8 = [
+export const VERIFIED_BASE_STOCKS = [
   "NVDAc",
   "AAPLc",
   "MSFTc",
@@ -4069,13 +4069,25 @@ export const VERIFIED_BASE_STOCKS_8 = [
   "METAc",
   "COINc",
   "SPCXc",
+  "INTCc",
+  "AMDc",
+  "SKHYc",
+  "ORCLc",
+  "NFLXc",
+  "HIMSc",
+  "LLYc",
+  "CBRSc",
+  "PYPLc",
+  "RBLXc",
 ] as const;
 
+export const VERIFIED_BASE_STOCKS_8 = VERIFIED_BASE_STOCKS;
+
 /**
- * Get all active verified tokenized stocks on Base mainnet (the 8 canonical stocks).
+ * Get all active verified tokenized stocks on Base mainnet.
  */
 export function getActiveTokenizedStocks(): TokenizedStockEntry[] {
-  return VERIFIED_BASE_STOCKS_8.map((sym) => STOCKS_BY_SYMBOL_MAP.get(sym.toUpperCase())!).filter(Boolean);
+  return VERIFIED_BASE_STOCKS.map((sym) => STOCKS_BY_SYMBOL_MAP.get(sym.toUpperCase())!).filter(Boolean);
 }
 
 /**

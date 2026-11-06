@@ -58,7 +58,7 @@ export const OPENLAUNCH_FACTORY_BASE = getAddress("0x815542E8b392389A1389E22E588
 export const OPENLAUNCH_LOCKER_BASE = getAddress("0xcd1680D26922fcd9CabFbb8a56bA40C333fD842a");
 
 /** Map active registry entries into BaseStock format */
-function mapEntryToBaseStock(entry: TokenizedStockEntry): BaseStock {
+export function mapEntryToBaseStock(entry: TokenizedStockEntry): BaseStock {
   return {
     symbol: entry.symbol,
     name: entry.name,
@@ -75,10 +75,13 @@ function mapEntryToBaseStock(entry: TokenizedStockEntry): BaseStock {
 }
 
 /**
- * Derived list of active tokenized stocks on Base mainnet.
+ * Derived list of active verified tokenized stocks on Base mainnet.
  * Generated dynamically from single source of truth registry.
  */
 export const BASE_STOCKS: readonly BaseStock[] = getActiveTokenizedStocks().map(mapEntryToBaseStock);
+
+/** Full catalog of all 260+ tokenized stocks in registry */
+export const ALL_BASE_STOCKS: readonly BaseStock[] = TOKENIZED_STOCKS_REGISTRY.map(mapEntryToBaseStock);
 
 export function getBaseStockByAddress(address: string): BaseStock | null {
   const found = getTokenizedStockByAddress(address);

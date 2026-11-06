@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
-import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
+import { BASE_STOCKS, ALL_BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isNewStock } from "@/lib/stocks/tokenized-stocks-registry";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 import type { LendingMarket } from "@/lib/lending/types";
@@ -262,7 +262,8 @@ export default function LendingHub({
 
   // 1. Markets Overview (Level 1) Rows Generation - Derived dynamically from discovery
   const stockRows: AssetMarketRow[] = useMemo(() => {
-    return BASE_STOCKS.map((stk) => {
+    const stockList = showAllStocks ? ALL_BASE_STOCKS : BASE_STOCKS;
+    return stockList.map((stk) => {
       const matchingMarkets = discoveredMarkets.filter(
         (m) =>
           m.collateralAsset?.address.toLowerCase() === stk.address.toLowerCase() ||
@@ -454,7 +455,27 @@ export default function LendingHub({
                         ? 198.8
                         : stk.symbol === "MSTRc"
                           ? 242.0
-                          : 125.0;
+                          : stk.symbol === "INTCc"
+                            ? 23.4
+                            : stk.symbol === "AMDc"
+                              ? 156.3
+                              : stk.symbol === "SKHYc"
+                                ? 138.0
+                                : stk.symbol === "ORCLc"
+                                  ? 176.5
+                                  : stk.symbol === "NFLXc"
+                                    ? 715.0
+                                    : stk.symbol === "HIMSc"
+                                      ? 24.2
+                                      : stk.symbol === "LLYc"
+                                        ? 825.0
+                                        : stk.symbol === "CBRSc"
+                                          ? 38.0
+                                          : stk.symbol === "PYPLc"
+                                            ? 81.2
+                                            : stk.symbol === "RBLXc"
+                                              ? 47.5
+                                              : 125.0;
 
       const bal = walletBalances[stk.symbol] ?? null;
       const balUsd = bal !== null ? bal * priceUsd : null;
@@ -481,7 +502,7 @@ export default function LendingHub({
         protocolRates,
       };
     });
-  }, [discoveredMarkets, walletBalances]);
+  }, [discoveredMarkets, walletBalances, showAllStocks]);
 
   // All Markets Rows (strictly verified tokenized stocks)
   const allMarketsRows: AssetMarketRow[] = useMemo(() => {
