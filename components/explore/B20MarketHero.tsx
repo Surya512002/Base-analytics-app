@@ -180,9 +180,8 @@ export default function B20MarketHero({
                         <div className="spotlight-stat">
                           <p className="spotlight-stat-label">24h</p>
                           <p
-                            className={`spotlight-stat-value inline-flex items-center gap-1 ${
-                              isUp ? "text-emerald-700" : "text-rose-700"
-                            }`}
+                            className={`spotlight-stat-value inline-flex items-center gap-1 ${isUp ? "text-emerald-700" : "text-rose-700"
+                              }`}
                           >
                             {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                             {isUp ? "+" : ""}

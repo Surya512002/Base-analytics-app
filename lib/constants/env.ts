@@ -40,6 +40,11 @@ export const APP_URL_WEB = "https://base-analytics-app.vercel.app";
 export const BUILDER_CODE =
   process.env.NEXT_PUBLIC_BUILDER_CODE || "bc_4uoh9iu2";
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";
+
+const RAW_VOUCHER_CONTRACT = (process.env.NEXT_PUBLIC_VOUCHER_CONTRACT || "").trim();
+// 0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25 is legacy BaseVoucher v1 (only ETH/USDC, lacks createTokenBatch).
+// 0xc118afff969db6cd6d2de639e2c8ba1223768fce is BaseVoucher v2 (supports ERC20 tokenized stocks + custom configs).
 export const VOUCHER_CONTRACT =
-  process.env.NEXT_PUBLIC_VOUCHER_CONTRACT ||
-  "0xc118afff969db6cd6d2de639e2c8ba1223768fce";
+  !RAW_VOUCHER_CONTRACT || RAW_VOUCHER_CONTRACT.toLowerCase() === "0xe425b060d888dd54c57160f4c3b0d3fb76eccf25"
+    ? "0xc118afff969db6cd6d2de639e2c8ba1223768fce"
+    : RAW_VOUCHER_CONTRACT;

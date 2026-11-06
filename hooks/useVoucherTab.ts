@@ -770,7 +770,8 @@ export function useVoucherTab(app: WalletAppState) {
       pendingCards.message.trim(),
       pendingTotal,
     ]);
-    return [{ ...call, gas: BigInt(350_000) }];
+    const safeGas = BigInt(Math.max(450_000, 200_000 + pendingCards.cardCount * 35_000));
+    return [{ ...call, gas: safeGas }];
   }, [pendingCards, contractReady, pendingAsset, pendingHashes, pendingTotal]);
 
   const usdcAllowanceError =

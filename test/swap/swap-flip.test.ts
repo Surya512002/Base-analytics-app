@@ -13,17 +13,19 @@ import {
 import { computeSwapUsd } from "@/lib/launchpad/swap-display";
 
 describe("Swap Pair Flipping & Robustness", () => {
-  const ofcToken = launchedToCounter({
+  const ofcToken: Extract<SwapCounter, { kind: "token" }> = {
+    kind: "token",
     address: "0x752C5a95d202972E124390F30a50154409d3c858",
     symbol: "OFC",
     decimals: 18,
-  }) as Extract<SwapCounter, { kind: "token" }>;
+  };
 
-  const usdcToken = launchedToCounter({
+  const usdcToken: Extract<SwapCounter, { kind: "token" }> = {
+    kind: "token",
     address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     symbol: "USDC",
     decimals: 6,
-  }) as Extract<SwapCounter, { kind: "token" }>;
+  };
 
   it("safely handles sameCounter with null, undefined, and case differences", () => {
     expect(sameCounter(null, null)).toBe(false);
