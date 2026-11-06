@@ -25,6 +25,17 @@ const BEEFY_STOCK_VAULT_IDS: Record<string, string> = {
   "0x1361B4DB8b1d8F452B7D3F91bC36B240e32a80BA": "aero-cow-base-pltrc-usdc-vault",
   "0x08C60dEabCbD835E52d5BF8f8800959B54Db8774": "aero-cow-base-usdc-spcxc-vault",
   "0x6b08908A8E1a7197e95d525E5f24EE0bf677369e": "aero-cow-base-muc-usdc-vault",
+  // Newly added Beefy stock vaults on Base
+  "0x2Cb70836DD8f9A350Ff2F25805D4B213BF553468": "aero-cow-base-usdc-intcc-vault",
+  "0xf258dcE970F53CAC991311156958102676dCb339": "aero-cow-base-usdc-amdc-vault",
+  "0xeE85c17B5E7795F2dc6e697b6371377dc5f44eB0": "aero-cow-base-usdc-skhyc-vault",
+  "0x9CD97B7bd7365270a6e15Af4167deaa766EdAAd1": "aero-cow-base-usdc-orclc-vault",
+  "0x9ad4b75debC7F460D300e062540B5f29d35D3256": "aero-cow-base-usdc-nflxc-vault",
+  "0x988fD5a5C357082659251e35EB7B5C6d727B7cEB": "aero-cow-base-usdc-himsc-vault",
+  "0x9dc030A252E21EA86b1AdE8bD30077Ab36F0beF1": "aero-cow-base-usdc-llyc-vault",
+  "0x7f7b598245B15A39777F682d11Bf806262a007B4": "aero-cow-base-usdc-cbrsc-vault",
+  "0x7818b61CFa261d9940173698A15Fedb2dc238Fab": "aerodrome-cow-base-usdc-pyplc-vault",
+  "0x193E4F77f94CC6fdBc7e68df2e6e0DeA0F8C6bf0": "aerodrome-cow-base-usdc-rblxc-vault",
 };
 
 async function fetchLiveBeefyVaults(): Promise<Record<string, { apy: number; tvl: number }>> {
@@ -74,7 +85,9 @@ async function fetchLiveAerodromeYields(): Promise<Record<string, { apy: number;
     const map: Record<string, { apy: number; tvl: number }> = {};
     const stockSymbols = [
       "NVDAc", "AAPLc", "MSFTc", "TSLAc", "MSTRc", "AMZNc",
-      "METAc", "GOOGLc", "SNDKc", "PLTRc", "SPCXc", "MUc"
+      "METAc", "GOOGLc", "SNDKc", "PLTRc", "SPCXc", "MUc",
+      "INTCc", "AMDc", "SKHYc", "ORCLc", "NFLXc", "HIMSc",
+      "LLYc", "CBRSc", "PYPLc", "RBLXc",
     ];
 
     for (const sym of stockSymbols) {

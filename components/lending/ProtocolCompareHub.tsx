@@ -387,7 +387,7 @@ export default function ProtocolCompareHub({
 
           {/* Quick Stock Selector Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-            {["NVDAc", "AAPLc", "TSLAc", "MSFTc", "COINc", "MSTRc", "GOOGLc", "METAc"].map((sym) => (
+            {["NVDAc", "AAPLc", "TSLAc", "MSFTc", "INTCc", "AMDc", "SKHYc", "ORCLc", "NFLXc", "CBRSc", "MSTRc", "COINc"].map((sym) => (
               <button
                 key={sym}
                 type="button"

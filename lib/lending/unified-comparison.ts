@@ -112,6 +112,16 @@ export const VERIFIED_BEEFY_STOCK_VAULTS: Record<string, `0x${string}`> = {
   PLTRc: "0x1361B4DB8b1d8F452B7D3F91bC36B240e32a80BA",
   SPCXc: "0x08C60dEabCbD835E52d5BF8f8800959B54Db8774",
   MUc: "0x6b08908A8E1a7197e95d525E5f24EE0bf677369e",
+  INTCc: "0x2Cb70836DD8f9A350Ff2F25805D4B213BF553468",
+  AMDc: "0xf258dcE970F53CAC991311156958102676dCb339",
+  SKHYc: "0xeE85c17B5E7795F2dc6e697b6371377dc5f44eB0",
+  ORCLc: "0x9CD97B7bd7365270a6e15Af4167deaa766EdAAd1",
+  NFLXc: "0x9ad4b75debC7F460D300e062540B5f29d35D3256",
+  HIMSc: "0x988fD5a5C357082659251e35EB7B5C6d727B7cEB",
+  LLYc: "0x9dc030A252E21EA86b1AdE8bD30077Ab36F0beF1",
+  CBRSc: "0x7f7b598245B15A39777F682d11Bf806262a007B4",
+  PYPLc: "0x7818b61CFa261d9940173698A15Fedb2dc238Fab",
+  RBLXc: "0x193E4F77f94CC6fdBc7e68df2e6e0DeA0F8C6bf0",
 };
 
 export interface VerifiedBeefyVaultDetails {
@@ -207,6 +217,76 @@ export const VERIFIED_BEEFY_STOCK_DETAILS: Record<string, VerifiedBeefyVaultDeta
     apy: 0,
     tvlUsd: 0,
   },
+  INTCc: {
+    vaultAddress: "0x2Cb70836DD8f9A350Ff2F25805D4B213BF553468",
+    wantTokenAddress: "0x6c24A02266e92aC5029358C88e2E63935593A9AC",
+    vaultId: "aero-cow-base-usdc-intcc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  AMDc: {
+    vaultAddress: "0xf258dcE970F53CAC991311156958102676dCb339",
+    wantTokenAddress: "0x087F5791102Bf13aaAA659002970d5d1F87FaCC9",
+    vaultId: "aero-cow-base-usdc-amdc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  SKHYc: {
+    vaultAddress: "0xeE85c17B5E7795F2dc6e697b6371377dc5f44eB0",
+    wantTokenAddress: "0xD64489A21FCDDe2E07813DCDb38218079C760488",
+    vaultId: "aero-cow-base-usdc-skhyc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  ORCLc: {
+    vaultAddress: "0x9CD97B7bd7365270a6e15Af4167deaa766EdAAd1",
+    wantTokenAddress: "0x12A74a794AeA94D026CD59F5806382727E106EEB",
+    vaultId: "aero-cow-base-usdc-orclc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  NFLXc: {
+    vaultAddress: "0x9ad4b75debC7F460D300e062540B5f29d35D3256",
+    wantTokenAddress: "0x707E147Ec2C8726ea3d16A381500474E0A3c0718",
+    vaultId: "aero-cow-base-usdc-nflxc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  HIMSc: {
+    vaultAddress: "0x988fD5a5C357082659251e35EB7B5C6d727B7cEB",
+    wantTokenAddress: "0xF488988Ff08C23A6AAdf691d5486Ef51F1653385",
+    vaultId: "aero-cow-base-usdc-himsc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  LLYc: {
+    vaultAddress: "0x9dc030A252E21EA86b1AdE8bD30077Ab36F0beF1",
+    wantTokenAddress: "0x8c99631f6453cb4e6D512Ba44E9097425Ca77EcA",
+    vaultId: "aero-cow-base-usdc-llyc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  CBRSc: {
+    vaultAddress: "0x7f7b598245B15A39777F682d11Bf806262a007B4",
+    wantTokenAddress: "0x0046535A7aa562218773FFe22e63Ad6e705fa84b",
+    vaultId: "aero-cow-base-usdc-cbrsc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  PYPLc: {
+    vaultAddress: "0x7818b61CFa261d9940173698A15Fedb2dc238Fab",
+    wantTokenAddress: "0xD02d330579f792244061BF81AfC8c981004f9bcA",
+    vaultId: "aerodrome-cow-base-usdc-pyplc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
+  RBLXc: {
+    vaultAddress: "0x193E4F77f94CC6fdBc7e68df2e6e0DeA0F8C6bf0",
+    wantTokenAddress: "0x975955A1813103C6db2CBc7aa4F3887a79FFBa65",
+    vaultId: "aerodrome-cow-base-usdc-rblxc-vault",
+    apy: 0,
+    tvlUsd: 0,
+  },
 };
 
 export interface VerifiedAerodromePoolDetails {
@@ -228,6 +308,16 @@ export const VERIFIED_AERODROME_STOCK_POOLS: Record<string, VerifiedAerodromePoo
   PLTRc: { poolAddress: "0x6f96D1002b2C0671bbBDd381Ca2D3dE030282Cf4", supplyApy: 0, tvlUsd: 0 },
   SPCXc: { poolAddress: "0x2618EEEC4686a000529fC822b8f47c0E4853acDC", supplyApy: 0, tvlUsd: 0 },
   MUc: { poolAddress: "0x540e3642f583f0366cBb2d9507940e59C9cEB299", supplyApy: 0, tvlUsd: 0 },
+  INTCc: { poolAddress: "0x6c24A02266e92aC5029358C88e2E63935593A9AC", supplyApy: 0, tvlUsd: 0 },
+  AMDc: { poolAddress: "0x087F5791102Bf13aaAA659002970d5d1F87FaCC9", supplyApy: 0, tvlUsd: 0 },
+  SKHYc: { poolAddress: "0xD64489A21FCDDe2E07813DCDb38218079C760488", supplyApy: 0, tvlUsd: 0 },
+  ORCLc: { poolAddress: "0x12A74a794AeA94D026CD59F5806382727E106EEB", supplyApy: 0, tvlUsd: 0 },
+  NFLXc: { poolAddress: "0x707E147Ec2C8726ea3d16A381500474E0A3c0718", supplyApy: 0, tvlUsd: 0 },
+  HIMSc: { poolAddress: "0xF488988Ff08C23A6AAdf691d5486Ef51F1653385", supplyApy: 0, tvlUsd: 0 },
+  LLYc: { poolAddress: "0x8c99631f6453cb4e6D512Ba44E9097425Ca77EcA", supplyApy: 0, tvlUsd: 0 },
+  CBRSc: { poolAddress: "0x0046535A7aa562218773FFe22e63Ad6e705fa84b", supplyApy: 0, tvlUsd: 0 },
+  PYPLc: { poolAddress: "0xD02d330579f792244061BF81AfC8c981004f9bcA", supplyApy: 0, tvlUsd: 0 },
+  RBLXc: { poolAddress: "0x975955A1813103C6db2CBc7aa4F3887a79FFBa65", supplyApy: 0, tvlUsd: 0 },
 };
 
 let liveRatesCache: {
