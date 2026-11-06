@@ -42,10 +42,6 @@ export async function GET(req: Request) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "nonce failed";
     console.error("[auth/nonce]", msg);
-    // Misconfigured production (e.g. missing SIWE_SESSION_SECRET) — surface as 503, not opaque 500
-    if (msg.includes("SIWE_SESSION_SECRET")) {
-      return NextResponse.json({ error: "Auth not configured" }, { status: 503 });
-    }
     return NextResponse.json({ error: "Could not issue nonce" }, { status: 500 });
   }
 }

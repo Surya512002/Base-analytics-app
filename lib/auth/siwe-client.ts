@@ -55,15 +55,42 @@ async function signMessageWithWallet(
   connType: ConnectionType,
   message: string
 ): Promise<string> {
-  const provider = await getEip1193Provider(connType);
+  let provider: any;
+  try {
+    provider = await getEip1193Provider(connType);
+  } catch (err) {
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      provider = w.coinbaseWalletExtension || w.ethereum;
+    }
+    if (!provider) throw err;
+  }
+
   const checksum = getAddress(address);
 
-  const accounts = (await provider.request({
-    method: "eth_requestAccounts",
-  })) as string[];
+  let accounts: string[] = [];
+  try {
+    accounts = ((await provider.request({
+      method: "eth_accounts",
+    })) as string[]) || [];
+  } catch {
+    // ignore
+  }
+
+  if (!accounts || accounts.length === 0) {
+    try {
+      accounts = ((await provider.request({
+        method: "eth_requestAccounts",
+      })) as string[]) || [];
+    } catch (e) {
+      if (isUserRejected(e)) throw e;
+    }
+  }
+
   const matched =
-    accounts.find((a) => a.toLowerCase() === address.toLowerCase()) ?? accounts[0];
-  if (!matched) throw new Error("No wallet account connected");
+    accounts.find((a) => a?.toLowerCase() === address.toLowerCase()) ??
+    accounts[0] ??
+    checksum;
 
   const signAttempts: Array<() => Promise<string>> = [
     async () => {
@@ -104,6 +131,9 @@ async function signMessageWithWallet(
       const sig = await attempt();
       if (sig?.startsWith("0x")) return sig;
     } catch (e) {
+      if (isUserRejected(e)) {
+        throw e;
+      }
       lastErr = e;
     }
   }
@@ -221,7 +251,7 @@ async function tryWalletSiwe(
   message: string,
   connType: ConnectionType
 ): Promise<{ ok: boolean; error?: string; address?: string }> {
-  const SIGN_TIMEOUT_MS = 12_000;
+  const SIGN_TIMEOUT_MS = 60_000;
 
   try {
     const signPromise = signMessageWithWallet(address, connType, message);
@@ -275,11 +305,8 @@ export async function signInWithSiwe(
     const activeConn =
       (await resolveActiveConnType(connType, address)) ??
       (await inferConnType(address)) ??
-      connType;
-
-    if (!activeConn) {
-      return { ok: false, error: "Connect wallet first" };
-    }
+      connType ??
+      "injected";
 
     const nonceRes = await fetch(
       `/api/auth/nonce?address=${encodeURIComponent(address)}`,

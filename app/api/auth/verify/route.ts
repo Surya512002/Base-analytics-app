@@ -85,7 +85,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing message or signature" }, { status: 400 });
     }
 
-    const verified = await verifySiweCredentials(message, signature, requestHost);
+    const verified = await verifySiweCredentials(
+      message,
+      signature,
+      requestHost,
+      clientDomain
+    );
     if ("error" in verified) {
       return NextResponse.json({ error: verified.error }, { status: 401 });
     }
