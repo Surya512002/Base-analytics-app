@@ -13,6 +13,7 @@ export async function saveWalletCredentials(
     const res = await fetch("/api/vouchers/credentials", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         creator: creator.toLowerCase(),
         batch: { ...batch, creator: creator.toLowerCase() },
@@ -32,7 +33,8 @@ export async function loadWalletCredentials(
 
   try {
     const res = await fetch(
-      `/api/vouchers/credentials?creator=${encodeURIComponent(creator.toLowerCase())}`
+      `/api/vouchers/credentials?creator=${encodeURIComponent(creator.toLowerCase())}`,
+      { cache: "no-store", credentials: "include" }
     );
     if (!res.ok) return [];
     const data = (await res.json()) as { batches?: StoredVoucherBatch[] };

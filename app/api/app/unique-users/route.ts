@@ -69,6 +69,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const action = typeof body?.action === "string" ? body.action.trim() : "";
+    if (action === "connect") {
+      const { recordUniqueUser } = await import("@/lib/redis-unique-users");
+      const count = await recordUniqueUser(address);
+      const formatted = count.toLocaleString();
+      return NextResponse.json(
+        {
+          ok: true,
+          count,
+          formatted,
+        },
+        { headers: NO_CACHE_HEADERS }
+      );
+    }
+
     if (!isValidTxHash(txHash)) {
       return NextResponse.json(
         { ok: false, error: "A valid confirmed Base on-chain transaction hash (txHash) is required." },

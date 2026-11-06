@@ -433,8 +433,7 @@ export function collectSecretsForBatch(
     if (!b || b.batchId !== batchId) return;
     if (
       creator &&
-      b.creator &&
-      b.creator.toLowerCase() !== creator.toLowerCase()
+      (!b.creator || b.creator.toLowerCase() !== creator.toLowerCase())
     ) {
       return;
     }

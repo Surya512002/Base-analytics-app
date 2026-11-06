@@ -1,28 +1,49 @@
 import { getRedisClient } from "@/lib/redis-cache";
+import { readDiskJson, writeDiskJson } from "@/lib/utils/disk-store";
 import type { VoucherBatchMeta } from "@/lib/types/voucher";
 
 const DB_KEY = "base_voucher_batches";
+const DISK_FILE = "voucher-batches.json";
+
+let memoryBatches: VoucherBatchMeta[] | null = null;
 
 export async function readStoredBatches(): Promise<VoucherBatchMeta[]> {
-  const redis = getRedisClient();
+  // Try Redis first
   try {
-    if (!redis) return [];
-    if (redis.status !== "ready") await redis.connect();
-    const raw = await redis.get(DB_KEY);
-    return raw ? (JSON.parse(raw) as VoucherBatchMeta[]) : [];
+    const redis = getRedisClient();
+    if (redis) {
+      if (redis.status !== "ready") await redis.connect();
+      const raw = await redis.get(DB_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as VoucherBatchMeta[];
+        memoryBatches = parsed;
+        writeDiskJson(DISK_FILE, parsed);
+        return parsed;
+      }
+    }
   } catch (e) {
-    console.error("[Voucher batch-store] read failed", e);
-    return [];
+    console.warn("[Voucher batch-store] Redis read failed, falling back to local:", e);
   }
+
+  // Fallback to memory or disk
+  if (memoryBatches !== null) {
+    return memoryBatches;
+  }
+  memoryBatches = readDiskJson<VoucherBatchMeta[]>(DISK_FILE, []);
+  return memoryBatches;
 }
 
 export async function writeStoredBatches(batches: VoucherBatchMeta[]): Promise<void> {
+  memoryBatches = batches;
+  writeDiskJson(DISK_FILE, batches);
+
   try {
     const redis = getRedisClient();
-    if (!redis) return;
-    if (redis.status !== "ready") await redis.connect();
-    await redis.set(DB_KEY, JSON.stringify(batches));
+    if (redis) {
+      if (redis.status !== "ready") await redis.connect();
+      await redis.set(DB_KEY, JSON.stringify(batches));
+    }
   } catch (e) {
-    console.error("[Voucher batch-store] write failed", e);
+    console.warn("[Voucher batch-store] Redis write failed, kept in local store:", e);
   }
 }

@@ -12,6 +12,10 @@ import {
   X,
   Sparkles,
   Key,
+  ShieldCheck,
+  Lock,
+  LogOut,
+  AlertCircle,
 } from "lucide-react";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 import type { StoredVoucherBatch, VoucherCard } from "@/lib/utils/voucher";
@@ -115,31 +119,134 @@ export default function VoucherMyCards({
     void loadBatchDetail(b.batchId);
   };
 
+  // 1. If not connected, prompt to connect
+  if (!shared.address) {
+    return (
+      <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 sm:p-12 text-center space-y-5 shadow-sm">
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] flex items-center justify-center shadow-inner">
+          <Key size={30} />
+        </div>
+        <div className="max-w-md mx-auto space-y-1.5">
+          <h3 className="text-lg font-black text-[var(--ink)]">
+            Connect Wallet
+          </h3>
+          <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed">
+            Connect your wallet to access your created gift card batches and claim keys.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Checking creator session
+  if (mine.authChecking) {
+    return (
+      <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-12 text-center space-y-4">
+        <RefreshCcw size={24} className="animate-spin mx-auto text-[var(--brand-text)]" />
+        <p className="text-xs text-[var(--ink-muted)] font-medium">Verifying creator session…</p>
+      </div>
+    );
+  }
+
+  // 3. Creator verification lock gate
+  if (!mine.isAuthedCreator) {
+    return (
+      <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 sm:p-12 text-center space-y-6 shadow-sm">
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center shadow-inner">
+          <Lock size={30} />
+        </div>
+        <div className="max-w-md mx-auto space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full inline-block">
+            Creator Verification
+          </span>
+          <h3 className="text-xl font-black text-[var(--ink)]">
+            Sign In to Unlock My Cards
+          </h3>
+          <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed">
+            To ensure card claim secrets are private and accessible across all your devices (Desktop &amp; Coinbase Wallet), sign in with your creator wallet:
+          </p>
+          <div className="font-mono text-xs font-bold text-[var(--ink)] bg-[var(--surface-2)] py-1.5 px-3 rounded-xl border border-[var(--border-subtle)] inline-block">
+            {shared.address.slice(0, 6)}…{shared.address.slice(-4)}
+          </div>
+        </div>
+
+        {mine.authError && (
+          <div className="max-w-md mx-auto p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2 justify-center">
+            <AlertCircle size={14} className="shrink-0" />
+            <span>{mine.authError}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={mine.handleCreatorSignIn}
+            disabled={mine.signingInCreator}
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition shadow-md cursor-pointer disabled:opacity-50"
+          >
+            {mine.signingInCreator ? (
+              <>
+                <RefreshCcw size={16} className="animate-spin" />
+                <span>Waiting for Signature in Wallet…</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={16} />
+                <span>Sign In with Wallet</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <p className="text-[11px] text-[var(--ink-dim)]">
+          Free 1-click message signature • 0 gas • Verifies onchain creator identity
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header & Sync */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-[var(--ink)]">
-            My Gift Batches
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-black text-[var(--ink)]">
+              My Gift Batches
+            </h2>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <ShieldCheck size={11} /> Verified Creator
+            </span>
+          </div>
           <p className="text-xs text-[var(--ink-muted)] mt-0.5">
             Manage your created gift batches, check claim progress, and export links.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={refreshMyBatches}
-          disabled={mineStatusesLoading}
-          className="pop-pill flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 transition cursor-pointer"
-        >
-          <RefreshCcw
-            size={13}
-            className={mineStatusesLoading ? "animate-spin text-[var(--brand-text)]" : ""}
-          />
-          <span>{mineStatusesLoading ? "Syncing…" : "Refresh"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={refreshMyBatches}
+            disabled={mineStatusesLoading}
+            className="pop-pill flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 transition cursor-pointer"
+          >
+            <RefreshCcw
+              size={13}
+              className={mineStatusesLoading ? "animate-spin text-[var(--brand-text)]" : ""}
+            />
+            <span>{mineStatusesLoading ? "Syncing…" : "Refresh"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={mine.handleCreatorSignOut}
+            title="Sign out of creator session"
+            className="pop-pill flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[var(--ink-muted)] hover:text-red-500 bg-[var(--surface-2)] border border-[var(--border-subtle)] transition cursor-pointer"
+          >
+            <LogOut size={13} />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+        </div>
       </div>
 
       {/* Skeletons while initial sync */}

@@ -68,3 +68,6 @@ keystores/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.data/
+.data

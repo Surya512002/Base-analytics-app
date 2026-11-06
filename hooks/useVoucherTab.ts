@@ -65,6 +65,12 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import { txHashFromLifecycle, type LifecycleStatus } from "@/lib/utils/tx-status";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
+import {
+  fetchSiweSession,
+  signInWithSiwe,
+  signOutSiwe,
+} from "@/lib/auth/siwe-client";
+import { reportConfirmedTransaction } from "@/hooks/useUniqueUsers";
 
 export function useVoucherTab(app: WalletAppState) {
   const { showToast, setSponsored, setTab, wallet, setTxKeys, connType, setPointsRevision } = app;
@@ -134,6 +140,11 @@ export function useVoucherTab(app: WalletAppState) {
   const [recoverError, setRecoverError] = useState("");
   const [confirmingDeposit, setConfirmingDeposit] = useState(false);
   const [cardsReadyGate, setCardsReadyGate] = useState<StoredVoucherBatch | null>(null);
+
+  const [isAuthedCreator, setIsAuthedCreator] = useState(false);
+  const [authChecking, setAuthChecking] = useState(false);
+  const [signingInCreator, setSigningInCreator] = useState(false);
+  const [authError, setAuthError] = useState("");
 
   const [viewCardId, setViewCardId] = useState("");
   const [viewSecret, setViewSecret] = useState("");
@@ -373,6 +384,60 @@ export function useVoucherTab(app: WalletAppState) {
     } finally {
       setLoadingBatchDetail((current) => (current === batchId ? null : current));
     }
+  }, []);
+
+  const checkCreatorAuth = useCallback(async () => {
+    if (!address) {
+      setIsAuthedCreator(false);
+      return;
+    }
+    setAuthChecking(true);
+    try {
+      const session = await fetchSiweSession();
+      const authed = Boolean(
+        session.authenticated &&
+        session.address?.toLowerCase() === address.toLowerCase()
+      );
+      setIsAuthedCreator(authed);
+    } catch {
+      setIsAuthedCreator(false);
+    } finally {
+      setAuthChecking(false);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    void checkCreatorAuth();
+  }, [checkCreatorAuth]);
+
+  const handleCreatorSignIn = useCallback(async () => {
+    if (!address) return { ok: false, error: "Connect wallet first" };
+    setSigningInCreator(true);
+    setAuthError("");
+    try {
+      const res = await signInWithSiwe(address, connType);
+      if (res.ok) {
+        setIsAuthedCreator(true);
+        setAuthError("");
+        await refreshMyBatches();
+        return { ok: true };
+      } else {
+        setAuthError(res.error || "Sign-in cancelled");
+        return { ok: false, error: res.error };
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Sign-in failed";
+      setAuthError(msg);
+      return { ok: false, error: msg };
+    } finally {
+      setSigningInCreator(false);
+    }
+  }, [address, connType, refreshMyBatches]);
+
+  const handleCreatorSignOut = useCallback(async () => {
+    await signOutSiwe();
+    setIsAuthedCreator(false);
+    setMyBatches([]);
   }, []);
 
   useEffect(() => {
@@ -979,6 +1044,9 @@ export function useVoucherTab(app: WalletAppState) {
       };
       saveLocalBatch(address, saved);
       void saveWalletCredentials(address, saved);
+      if (txHash && address) {
+        void reportConfirmedTransaction(address, txHash);
+      }
       const nextKeys = bumpWeeklyTxKey(address, "voucher");
       setTxKeys((k) => ({ ...k, ...nextKeys }));
       recordConfirmedInAppAction(address, "voucher", nextKeys.voucher ?? 0);
@@ -1468,6 +1536,10 @@ export function useVoucherTab(app: WalletAppState) {
         void credited;
       }
 
+      if (hash && address) {
+        void reportConfirmedTransaction(address, hash);
+      }
+
       setBatchCardStatuses((prev) => {
         const cards = prev[parsed.batchId];
         const cardId = formatCardId(parsed.batchId, parsed.cardIndex);
@@ -1838,6 +1910,9 @@ export function useVoucherTab(app: WalletAppState) {
             hash: hash as `0x${string}`,
             timeout: 60_000,
           });
+          if (hash && address) {
+            void reportConfirmedTransaction(address, hash);
+          }
           showToast("✅ Unredeemed cards successfully reclaimed to your wallet!", hash);
           void refreshMyBatches();
         }
@@ -1943,6 +2018,13 @@ export function useVoucherTab(app: WalletAppState) {
       lookupCard,
     },
     mine: {
+      isAuthedCreator,
+      authChecking,
+      signingInCreator,
+      authError,
+      handleCreatorSignIn,
+      handleCreatorSignOut,
+      checkCreatorAuth,
       myBatches,
       chainStats,
       batchCardStatuses,

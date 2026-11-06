@@ -60,8 +60,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ batch });
     }
 
-    const all = await readStoredBatches();
-    return NextResponse.json({ batches: all });
+    // Do not leak other creators' batches when creator query param is omitted
+    return NextResponse.json({ batches: [] });
   } catch (err) {
     console.error("[Voucher GET]", err);
     return NextResponse.json({ batches: [], batch: null });

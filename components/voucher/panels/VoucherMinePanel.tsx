@@ -33,6 +33,12 @@ export default function VoucherMinePanel({
 }) {
   const { address, connType, copied, copyText, shareText } = shared;
   const {
+    isAuthedCreator,
+    authChecking,
+    signingInCreator,
+    authError,
+    handleCreatorSignIn,
+    handleCreatorSignOut,
     myBatches,
     chainStats,
     batchCardStatuses,
@@ -84,22 +90,47 @@ export default function VoucherMinePanel({
         </SectionCard>
       )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="section-eyebrow">Your voucher batches</p>
-          <p className="readable-body text-[10px] mt-0.5">Tap a batch to view its cards</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {mineStatusesLoading && (
-            <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
-              <RefreshCcw size={12} className="animate-spin" /> Syncing…
-            </span>
-          )}
-          <button onClick={refreshMyBatches} className="text-[var(--ink-dim)] hover:text-[var(--ink)] p-1">
-            <RefreshCcw size={14} />
+      {!isAuthedCreator ? (
+        <SectionCard bar={false} className="border border-[var(--border-subtle)] text-center p-6 space-y-4">
+          <p className="section-eyebrow">Creator verification required</p>
+          <p className="readable-body text-xs max-w-md mx-auto">
+            To view claim secrets and manage your created voucher batches securely across devices, sign in with your creator wallet.
+          </p>
+          {authError && <p className="text-red-500 text-xs font-bold">{authError}</p>}
+          <button
+            type="button"
+            onClick={handleCreatorSignIn}
+            disabled={signingInCreator}
+            className="pop-pill px-5 py-2.5 rounded-xl font-bold text-xs bg-[#0052FF] text-white hover:bg-[#0047e0] transition cursor-pointer"
+          >
+            {signingInCreator ? "Signing in…" : "Sign In to View Cards"}
           </button>
-        </div>
-      </div>
+        </SectionCard>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="section-eyebrow">Your voucher batches (Verified)</p>
+              <p className="readable-body text-[10px] mt-0.5">Tap a batch to view its cards</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {mineStatusesLoading && (
+                <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
+                  <RefreshCcw size={12} className="animate-spin" /> Syncing…
+                </span>
+              )}
+              <button onClick={refreshMyBatches} className="text-[var(--ink-dim)] hover:text-[var(--ink)] p-1">
+                <RefreshCcw size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={handleCreatorSignOut}
+                className="text-[10px] text-[var(--ink-muted)] hover:text-red-500 px-2 py-1 rounded-lg border border-[var(--border-subtle)]"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
 
       {(connType === "coinbase" || connType === "baseAccount" || connType === "farcaster") && (
         <SectionCard bar={false} className="border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
@@ -371,6 +402,8 @@ export default function VoucherMinePanel({
             </SectionCard>
           );
         })
+      )}
+        </>
       )}
     </div>
   );

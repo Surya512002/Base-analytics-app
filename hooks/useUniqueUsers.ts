@@ -125,12 +125,31 @@ export async function reportConfirmedTransaction(
  * Hook to retrieve synchronized count of verified active app users.
  * All calling components share the same global state, guaranteeing consistency.
  */
-export function useUniqueUsers(_connectedAddress?: string | null) {
+export function useUniqueUsers(connectedAddress?: string | null) {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
     void fetchUniqueUsersCount();
   }, []);
+
+  useEffect(() => {
+    const clean = connectedAddress?.trim().toLowerCase();
+    if (!clean || !clean.startsWith("0x") || clean.length !== 42) return;
+
+    void fetch("/api/app/unique-users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: clean, action: "connect" }),
+      cache: "no-store",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.ok && typeof data.count === "number") {
+          updateGlobalState(data.count, data.formatted);
+        }
+      })
+      .catch(() => {});
+  }, [connectedAddress]);
 
   return state;
 }

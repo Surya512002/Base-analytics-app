@@ -19,6 +19,7 @@ import type { LaunchpadShellBridge } from "@/components/launchpad/LaunchpadTab";
 import { syncTabUrl } from "@/lib/utils/app-url";
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
+import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 
 const SwapTab = dynamic(
   () => import("@/components/swap/SwapTab"),
@@ -59,6 +60,7 @@ export type HomeAppProps = {
 export default function HomeApp({ initialToken, forceTab, initialLaunchView }: HomeAppProps) {
   const router = useRouter();
   const app = useWalletApp();
+  useUniqueUsers(app.wallet?.address);
   const {
     wallet,
     walletCore: _walletCore,

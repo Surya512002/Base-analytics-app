@@ -69,12 +69,11 @@ export async function batchCreatedInTx(
 
     // Bundled txs (Base App / AA) can carry several creations — prefer our own.
     const wanted = expectedCreator?.toLowerCase();
-    const created =
-      (wanted &&
-        events.find(
+    const created = wanted
+      ? events.find(
           (e) => (e.args.creator as string | undefined)?.toLowerCase() === wanted
-        )) ||
-      events[0];
+        )
+      : events[0];
     if (!created?.args.batchId || !created.args.creator) return null;
 
     return {
@@ -109,17 +108,13 @@ export async function recoverBatchFromTx(
   txHash: Hash,
   wallet: string
 ): Promise<BatchFromTx | null> {
-  const batch = await batchCreatedInTx(publicClient, txHash);
+  const normalized = wallet.toLowerCase();
+  const batch = await batchCreatedInTx(publicClient, txHash, normalized);
   if (!batch) return null;
 
-  const participated = await walletParticipatedInBatchTx(
-    publicClient,
-    txHash,
-    wallet
-  );
   const onChainCreatorMatch =
-    batch.onChainCreator === wallet.toLowerCase();
+    batch.onChainCreator.toLowerCase() === normalized;
 
-  if (!participated && !onChainCreatorMatch) return null;
+  if (!onChainCreatorMatch) return null;
   return batch;
 }

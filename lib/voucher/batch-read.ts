@@ -266,14 +266,10 @@ export async function listCreatorBatches(
   for (const batchId of [...batchIds].sort((a, b) => b - a)) {
     const live = await readOnchainBatch(batchId);
     const meta = metaById.get(batchId);
-    if (live && (live.creator === normalized || meta)) {
-      batches.push(
-        mergeMeta(
-          meta ? { ...live, creator: normalized } : live,
-          meta
-        )
-      );
-    } else if (meta) {
+    // Strict isolation: only return batches where creator matches normalized
+    if (live && live.creator.toLowerCase() === normalized) {
+      batches.push(mergeMeta(live, meta));
+    } else if (!live && meta && meta.creator.toLowerCase() === normalized) {
       batches.push({
         batchId: meta.batchId,
         creator: meta.creator,
