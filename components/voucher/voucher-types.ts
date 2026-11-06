@@ -46,6 +46,7 @@ export interface RedeemPreview {
   amountPerCard: bigint;
   message: string;
   redeemed: boolean;
+  contractAddress?: string;
 }
 
 export interface RedeemSuccess {

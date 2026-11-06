@@ -3,6 +3,7 @@ import type { VoucherBatchMeta } from "@/lib/types/voucher";
 import {
   listCreatorBatches,
   readBatchDetail,
+  readOnchainBatch,
   recoverBatchForWallet,
 } from "@/lib/voucher/batch-read";
 import { readStoredBatches, writeStoredBatches } from "@/lib/voucher/batch-store";
@@ -73,6 +74,15 @@ export async function POST(req: Request) {
     const body = (await req.json()) as VoucherBatchMeta;
     if (!body.creator?.startsWith("0x") || !body.batchId) {
       return NextResponse.json({ success: false, error: "Invalid payload" }, { status: 400 });
+    }
+
+    // Verify batch exists onchain before persisting meta
+    const live = await readOnchainBatch(body.batchId);
+    if (!live || live.creator.toLowerCase() !== body.creator.toLowerCase()) {
+      return NextResponse.json(
+        { success: false, error: "Batch not confirmed onchain for this creator" },
+        { status: 400 }
+      );
     }
 
     const all = await readStoredBatches();

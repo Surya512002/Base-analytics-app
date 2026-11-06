@@ -202,7 +202,7 @@ export default function VoucherRedeemPanel({
 
         {/* Single Primary Action Button */}
         <div className="pt-2">
-          {contractReady && redeemCall.length > 0 && !redeemPreview?.redeemed ? (
+          {contractReady && redeemCall.length > 0 && !redeemPreview?.redeemed && !redeemError ? (
             <button
               type="button"
               disabled={directRedeeming}
@@ -223,7 +223,7 @@ export default function VoucherRedeemPanel({
               type="button"
               disabled
               className={`w-full py-4 rounded-xl font-black text-sm border transition ${
-                redeemPreview?.redeemed
+                redeemPreview?.redeemed || redeemError
                   ? "bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed"
                   : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)] cursor-not-allowed"
               }`}
@@ -232,11 +232,13 @@ export default function VoucherRedeemPanel({
                 ? "Checking card validity…"
                 : redeemPreview?.redeemed
                   ? "Card Already Redeemed"
-                  : !redeemCardId.trim()
-                    ? "Enter Card ID"
-                    : !redeemSecret.trim()
-                      ? "Enter Secret Key"
-                      : "Enter Valid Card ID & Secret"}
+                  : redeemError
+                    ? redeemError
+                    : !redeemCardId.trim()
+                      ? "Enter Card ID"
+                      : !redeemSecret.trim()
+                        ? "Enter Secret Key"
+                        : "Enter Valid Card ID & Secret"}
             </button>
           )}
         </div>

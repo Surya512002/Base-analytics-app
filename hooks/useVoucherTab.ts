@@ -229,34 +229,15 @@ export function useVoucherTab(app: WalletAppState) {
 
   const refreshMyBatches = useCallback(async () => {
     if (!address) return;
+    const normalized = address.toLowerCase();
     const local = loadAllLocalBatchesForDevice(address);
-    const merged = new Map(local.map((b) => [b.batchId, b]));
     const stats: Record<number, number> = {};
 
     let serverCredentials: StoredVoucherBatch[] = [];
     try {
       serverCredentials = await loadWalletCredentials(address);
-      for (const sb of serverCredentials) {
-        if (sb.creator?.toLowerCase() !== address.toLowerCase()) continue;
-        upsertBatchInMap(merged, { ...sb, creator: address });
-      }
     } catch {
       /* server credentials optional */
-    }
-
-    // Migrate any local secrets to server (e.g. batch 11 saved before server storage existed).
-    for (const b of merged.values()) {
-      if (b.cards.some((c) => c.secret?.trim())) {
-        void saveWalletCredentials(address, b);
-      }
-    }
-
-    const pending = loadPendingBatch(address);
-    if (pending) {
-      upsertBatchInMap(merged, {
-        ...pending,
-        creator: address,
-      });
     }
 
     try {
@@ -278,93 +259,142 @@ export function useVoucherTab(app: WalletAppState) {
             unredeemedCount: number;
             message: string;
             creator: string;
+            contractAddress?: string;
             createdAt?: number;
             txHash?: string;
           }>;
         };
 
-        setCreatorSummary({
-          batchCount: summary.batchCount,
-          totalCards: summary.totalCards,
-          totalUnredeemed: summary.totalUnredeemed,
-        });
+        const onchainBatches = (summary.batches ?? []).filter(
+          (b) => b.creator?.toLowerCase() === normalized
+        );
+        const onchainIds = new Set(onchainBatches.map((b) => b.batchId));
 
-        for (const b of summary.batches ?? []) {
-          if (b.creator?.toLowerCase() !== address.toLowerCase()) continue;
-          stats[b.batchId] = b.redeemedCount;
-          upsertBatchInMap(merged, b);
-        }
-        setChainStats(stats);
-
-        const withSecrets = [...merged.values()].map((b) => {
-          const withServer = mergeServerSecrets(b, serverCredentials);
-          const mergedBatch = mergeSecretsIntoBatch(withServer);
-          if (
-            address &&
-            mergedBatch.cards.some((c) => c.secret.length > 0) &&
-            !b.cards.some((c) => c.secret.length > 0)
-          ) {
-            saveLocalBatch(address, mergedBatch);
-            void saveWalletCredentials(address, mergedBatch);
+        // Prune any unconfirmed phantom batches from localStorage
+        const validLocal = local.filter((l) => onchainIds.has(l.batchId));
+        if (validLocal.length !== local.length) {
+          try {
+            localStorage.setItem(
+              `base_voucher_batches_${normalized}`,
+              JSON.stringify(validLocal)
+            );
+          } catch {
+            /* ignore storage quota errors */
           }
-          return mergedBatch;
+        }
+
+        setCreatorSummary({
+          batchCount: onchainBatches.length,
+          totalCards: onchainBatches.reduce((s, b) => s + b.cardCount, 0),
+          totalUnredeemed: onchainBatches.reduce((s, b) => s + b.unredeemedCount, 0),
         });
-        setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
+
+        const confirmedBatches: StoredVoucherBatch[] = [];
+        for (const b of onchainBatches) {
+          stats[b.batchId] = b.redeemedCount;
+          const localMatch = validLocal.find((l) => l.batchId === b.batchId);
+          const serverMatch = serverCredentials.find((s) => s.batchId === b.batchId);
+
+          const combinedCards = Array.from({ length: b.cardCount }, (_, i) => {
+            const localCard = localMatch?.cards.find((c) => c.cardIndex === i);
+            const serverCard = serverMatch?.cards.find((c) => c.cardIndex === i);
+            return {
+              batchId: b.batchId,
+              cardIndex: i,
+              cardId: formatCardId(b.batchId, i),
+              secret: localCard?.secret || serverCard?.secret || "",
+              redeemed: i < b.redeemedCount,
+            };
+          });
+
+          const batchEntry: StoredVoucherBatch = {
+            batchId: b.batchId,
+            asset: b.asset,
+            totalAmount: b.totalAmount,
+            amountPerCard: b.amountPerCard,
+            cardCount: b.cardCount,
+            message: b.message,
+            creator: normalized,
+            createdAt: b.createdAt ?? localMatch?.createdAt ?? Date.now(),
+            txHash: b.txHash ?? localMatch?.txHash,
+            cards: combinedCards,
+          };
+          confirmedBatches.push(batchEntry);
+
+          if (combinedCards.some((c) => c.secret.length > 0)) {
+            saveLocalBatch(address, batchEntry);
+            void saveWalletCredentials(address, batchEntry);
+          }
+        }
+
+        setChainStats(stats);
+        setMyBatches(confirmedBatches.sort((a, b) => b.batchId - a.batchId));
         return;
       }
     } catch {
-      /* fall through to local + RPC */
+      /* fall through to direct onchain verification */
     }
 
+    // Fallback: Verify local batches directly onchain via publicClient
+    const confirmedFallback: StoredVoucherBatch[] = [];
+    const client = publicClient ?? createPublicOnlyBaseClient();
+    const candidateContracts: `0x${string}`[] = [
+      (VOUCHER_CONTRACT as `0x${string}`) || "0xc118afff969db6cd6d2de639e2c8ba1223768fce",
+      "0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25",
+    ];
+
+    for (const b of local) {
+      let isVerifiedOnchain = false;
+      let redeemedOnchain = 0;
+
+      for (const contractAddr of candidateContracts) {
+        try {
+          const result = await client.readContract({
+            address: contractAddr,
+            abi: VOUCHER_ABI,
+            functionName: "getBatch",
+            args: [BigInt(b.batchId)],
+          });
+          const [bCreator, , , bCount, bRedeemed] = result;
+          if (
+            Number(bCount) > 0 &&
+            typeof bCreator === "string" &&
+            bCreator.toLowerCase() === normalized
+          ) {
+            isVerifiedOnchain = true;
+            redeemedOnchain = Number(bRedeemed);
+            break;
+          }
+        } catch {
+          /* try next contract */
+        }
+      }
+
+      if (isVerifiedOnchain) {
+        stats[b.batchId] = redeemedOnchain;
+        confirmedFallback.push(b);
+      }
+    }
+
+    setChainStats(stats);
     setCreatorSummary(
-      merged.size > 0
+      confirmedFallback.length > 0
         ? {
-            batchCount: merged.size,
-            totalCards: [...merged.values()].reduce((s, b) => s + b.cardCount, 0),
-            totalUnredeemed: [...merged.values()].reduce(
+            batchCount: confirmedFallback.length,
+            totalCards: confirmedFallback.reduce((s, b) => s + b.cardCount, 0),
+            totalUnredeemed: confirmedFallback.reduce(
               (s, b) => s + Math.max(0, b.cardCount - (stats[b.batchId] ?? 0)),
               0
             ),
           }
         : null
     );
-    if (!publicClient || !contractReady) {
-      const withSecrets = [...merged.values()].map((b) =>
-        mergeSecretsIntoBatch(mergeServerSecrets(b, serverCredentials))
-      );
-      setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
-      return;
-    }
 
-    for (const b of merged.values()) {
-      try {
-        const result = await publicClient.readContract({
-          address: VOUCHER_CONTRACT as `0x${string}`,
-          abi: VOUCHER_ABI,
-          functionName: "getBatch",
-          args: [BigInt(b.batchId)],
-        });
-        stats[b.batchId] = Number(result[4]);
-      } catch {
-        stats[b.batchId] = stats[b.batchId] ?? 0;
-      }
-    }
-    setChainStats(stats);
-    const withSecrets = [...merged.values()].map((b) => {
-      const withServer = mergeServerSecrets(b, serverCredentials);
-      const mergedBatch = mergeSecretsIntoBatch(withServer);
-      if (
-        address &&
-        mergedBatch.cards.some((c) => c.secret.length > 0) &&
-        !b.cards.some((c) => c.secret.length > 0)
-      ) {
-        saveLocalBatch(address, mergedBatch);
-        void saveWalletCredentials(address, mergedBatch);
-      }
-      return mergedBatch;
-    });
+    const withSecrets = confirmedFallback.map((b) =>
+      mergeSecretsIntoBatch(mergeServerSecrets(b, serverCredentials))
+    );
     setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
-  }, [address, publicClient, contractReady, upsertBatchInMap]);
+  }, [address, publicClient]);
 
   const loadBatchDetail = useCallback(async (batchId: number) => {
     setLoadingBatchDetail(batchId);
@@ -549,21 +579,44 @@ export function useVoucherTab(app: WalletAppState) {
     setViewError("");
     setViewedCard(null);
     try {
-      const [batch, redeemed] = await Promise.all([
-        publicClient.readContract({
-          address: VOUCHER_CONTRACT as `0x${string}`,
-          abi: VOUCHER_ABI,
-          functionName: "getBatch",
-          args: [BigInt(parsed.batchId)],
-        }),
-        publicClient.readContract({
-          address: VOUCHER_CONTRACT as `0x${string}`,
-          abi: VOUCHER_ABI,
-          functionName: "isCardRedeemed",
-          args: [BigInt(parsed.batchId), BigInt(parsed.cardIndex)],
-        }),
-      ]);
-      const [creator, token, amountPerCard, cardCount, redeemedCount, message] = batch;
+      const candidates: `0x${string}`[] = [
+        (VOUCHER_CONTRACT as `0x${string}`) || "0xc118afff969db6cd6d2de639e2c8ba1223768fce",
+        "0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25",
+      ];
+      let foundContract: `0x${string}` | null = null;
+      let foundBatch: [string, string, bigint, bigint, bigint, string] | null = null;
+      let foundRedeemed = false;
+
+      for (const contractAddr of candidates) {
+        try {
+          const batch = (await publicClient.readContract({
+            address: contractAddr,
+            abi: VOUCHER_ABI,
+            functionName: "getBatch",
+            args: [BigInt(parsed.batchId)],
+          })) as [string, string, bigint, bigint, bigint, string];
+          if (batch[3] > BigInt(0)) {
+            foundContract = contractAddr;
+            foundBatch = batch;
+            foundRedeemed = (await publicClient.readContract({
+              address: contractAddr,
+              abi: VOUCHER_ABI,
+              functionName: "isCardRedeemed",
+              args: [BigInt(parsed.batchId), BigInt(parsed.cardIndex)],
+            })) as boolean;
+            break;
+          }
+        } catch {
+          /* try next contract */
+        }
+      }
+
+      if (!foundBatch || !foundContract) {
+        setViewError("Batch not found onchain.");
+        return;
+      }
+
+      const [creator, token, amountPerCard, cardCount, redeemedCount, message] = foundBatch;
       if (cardCount === BigInt(0)) {
         setViewError("Batch not found onchain.");
         return;
@@ -576,12 +629,13 @@ export function useVoucherTab(app: WalletAppState) {
       let secretValid: boolean | null = null;
       if (viewSecret.trim()) {
         const onChainHash = await publicClient.readContract({
-          address: VOUCHER_CONTRACT as `0x${string}`,
+          address: foundContract,
           abi: VOUCHER_ABI,
           functionName: "cardSecretHashes",
           args: [BigInt(parsed.batchId), BigInt(parsed.cardIndex)],
         });
-        secretValid = hashVoucherSecret(viewSecret) === onChainHash;
+        const clean = viewSecret.replace(/\s/g, "").toUpperCase();
+        secretValid = hashVoucherSecret(clean) === onChainHash;
       }
 
       setViewedCard({
@@ -594,7 +648,7 @@ export function useVoucherTab(app: WalletAppState) {
         creator,
         cardCount: Number(cardCount),
         redeemedCount: Number(redeemedCount),
-        redeemed,
+        redeemed: foundRedeemed,
         secretValid,
       });
     } catch {
@@ -927,6 +981,7 @@ export function useVoucherTab(app: WalletAppState) {
             amountPerCard: string;
             message: string;
             cardCount: number;
+            contractAddress?: string;
             unlockTimestamp?: number;
             expirationTimestamp?: number;
             isUnlocked?: boolean;
@@ -951,6 +1006,7 @@ export function useVoucherTab(app: WalletAppState) {
           return;
         }
 
+        const targetContract = (batch.contractAddress || VOUCHER_CONTRACT) as `0x${string}`;
         const cardStatus = data.cards?.find((c) => c.cardIndex === redeemParsed.cardIndex);
         const preview: RedeemPreview = {
           cardId: lookupCardId,
@@ -958,9 +1014,65 @@ export function useVoucherTab(app: WalletAppState) {
           amountPerCard: BigInt(batch.amountPerCard),
           message: batch.message ?? "",
           redeemed: cardStatus?.redeemed ?? false,
+          contractAddress: targetContract,
         };
         setRedeemPreview(preview);
         redeemPreviewRef.current = preview;
+
+        if (cardStatus?.redeemed) {
+          setRedeemError("This gift card has already been claimed.");
+          return;
+        }
+
+        // Proactive check: has this recipient wallet already claimed from this batch?
+        if (address && publicClient) {
+          try {
+            const alreadyClaimed = await publicClient.readContract({
+              address: targetContract,
+              abi: VOUCHER_ABI,
+              functionName: "hasWalletRedeemed",
+              args: [BigInt(redeemParsed.batchId), address],
+            });
+            if (alreadyClaimed) {
+              setRedeemError(
+                "Your wallet has already claimed a card from this batch (limit: 1 card per wallet). Please switch to a different recipient wallet."
+              );
+              return;
+            }
+          } catch {
+            /* ignore RPC check error */
+          }
+        }
+
+        // Proactive check: secret match verification
+        const cleanSecret = redeemSecret.replace(/\s/g, "").toUpperCase();
+        if (cleanSecret.length >= 6 && publicClient) {
+          try {
+            const expectedHash = await publicClient.readContract({
+              address: targetContract,
+              abi: VOUCHER_ABI,
+              functionName: "cardSecretHashes",
+              args: [BigInt(redeemParsed.batchId), BigInt(redeemParsed.cardIndex)],
+            });
+            if (
+              expectedHash &&
+              expectedHash !==
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ) {
+              const computedHash = hashVoucherSecret(cleanSecret);
+              if (
+                computedHash.toLowerCase() !== (expectedHash as string).toLowerCase()
+              ) {
+                setRedeemError(
+                  "Secret key does not match this card. Please check the secret code."
+                );
+                return;
+              }
+            }
+          } catch {
+            /* ignore RPC check error */
+          }
+        }
 
         if (batch.isUnlocked === false && batch.unlockTimestamp) {
           setRedeemError(
@@ -997,17 +1109,20 @@ export function useVoucherTab(app: WalletAppState) {
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [redeemParsed, contractReady, redeemKey, redeemCardId]);
+  }, [redeemParsed, contractReady, redeemKey, redeemCardId, redeemSecret, address, publicClient]);
   const redeemCall = useMemo(() => {
     if (!redeemParsedForTx || !redeemSecret.trim() || !contractReady) return [];
+    if (redeemError || redeemPreview?.redeemed) return [];
+    const target = (redeemPreview?.contractAddress || VOUCHER_CONTRACT) as `0x${string}`;
+    const cleanSecret = redeemSecret.replace(/\s/g, "").toUpperCase();
     return [
-      encodeContractCall(VOUCHER_CONTRACT as `0x${string}`, VOUCHER_ABI, "redeem", [
+      encodeContractCall(target, VOUCHER_ABI, "redeem", [
         BigInt(redeemParsedForTx.batchId),
         BigInt(redeemParsedForTx.cardIndex),
-        redeemSecret.trim().toUpperCase(),
+        cleanSecret,
       ]),
     ];
-  }, [redeemParsedForTx, redeemSecret, contractReady]);
+  }, [redeemParsedForTx, redeemSecret, contractReady, redeemError, redeemPreview]);
 
   const resolvePendingBatch = useCallback(
     (txHash?: string): StoredVoucherBatch | null => {
@@ -1785,6 +1900,45 @@ export function useVoucherTab(app: WalletAppState) {
     if (!address || !redeemCall.length) return;
     setDirectRedeeming(true);
     setRedeemError("");
+
+    const parsed = redeemParsedRef.current;
+    const preview = redeemPreviewRef.current;
+    const targetContract = (preview?.contractAddress || VOUCHER_CONTRACT) as `0x${string}`;
+    const cleanSecret = redeemSecret.replace(/\s/g, "").toUpperCase();
+
+    // Pre-flight simulation check to guard against onchain revert & wasted gas
+    if (parsed && publicClient && address) {
+      try {
+        await publicClient.simulateContract({
+          address: targetContract,
+          abi: VOUCHER_ABI,
+          functionName: "redeem",
+          args: [BigInt(parsed.batchId), BigInt(parsed.cardIndex), cleanSecret],
+          account: address,
+        });
+      } catch (simErr: unknown) {
+        const msg = simErr instanceof Error ? simErr.message : String(simErr);
+        let userMsg = "Card cannot be redeemed.";
+        if (msg.includes("One card per wallet per batch")) {
+          userMsg =
+            "This wallet has already claimed a card from this batch (limit: 1 card per wallet). Please switch to a different recipient wallet.";
+        } else if (msg.includes("Invalid secret")) {
+          userMsg = "Secret key is invalid for this card. Please check the secret code.";
+        } else if (msg.includes("Already redeemed")) {
+          userMsg = "This card has already been claimed.";
+        } else if (msg.includes("Invalid batch")) {
+          userMsg = "Gift card batch not found onchain.";
+        } else if (msg.includes("Batch is locked")) {
+          userMsg = "This card is time-locked and cannot be redeemed yet.";
+        } else if (msg.includes("Batch has expired")) {
+          userMsg = "This card has expired.";
+        }
+        setRedeemError(userMsg);
+        setDirectRedeeming(false);
+        return;
+      }
+    }
+
     try {
       const hash = await sendAppTransactions(
         connType ?? "injected",
@@ -1793,8 +1947,6 @@ export function useVoucherTab(app: WalletAppState) {
       );
       notifyVoucherTx("Card redeemed to your wallet!", hash, redeemNotifiedRef);
 
-      const parsed = redeemParsedRef.current;
-      const preview = redeemPreviewRef.current;
       if (preview) {
         setRedeemSuccess({
           cardId: preview.cardId,
@@ -1843,7 +1995,7 @@ export function useVoucherTab(app: WalletAppState) {
         if (publicClient) {
           try {
             const result = await publicClient.readContract({
-              address: VOUCHER_CONTRACT as `0x${string}`,
+              address: targetContract,
               abi: VOUCHER_ABI,
               functionName: "getBatch",
               args: [BigInt(parsed.batchId)],
@@ -1874,7 +2026,15 @@ export function useVoucherTab(app: WalletAppState) {
         msg.toLowerCase().includes("cancel") ||
         msg.includes("4001");
       if (!isCancel) {
-        setRedeemError("Redeem failed. Card may be used or secret invalid.");
+        if (msg.includes("One card per wallet per batch")) {
+          setRedeemError("This wallet has already claimed a card from this batch (limit 1 per wallet).");
+        } else if (msg.includes("Invalid secret")) {
+          setRedeemError("Secret key is invalid for this card. Please check the secret code.");
+        } else if (msg.includes("Already redeemed")) {
+          setRedeemError("This card has already been claimed.");
+        } else {
+          setRedeemError("Redeem failed. Please check the card details and recipient wallet.");
+        }
       }
     } finally {
       setDirectRedeeming(false);
@@ -1888,6 +2048,7 @@ export function useVoucherTab(app: WalletAppState) {
     setTxKeys,
     setPointsRevision,
     publicClient,
+    redeemSecret,
     refreshMyBatches,
   ]);
 

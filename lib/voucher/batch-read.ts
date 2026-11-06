@@ -11,6 +11,13 @@ import {
 } from "@/lib/utils/voucher";
 import { readStoredBatches } from "@/lib/voucher/batch-store";
 
+export const VOUCHER_V2_CONTRACT = "0xc118afff969db6cd6d2de639e2c8ba1223768fce" as const;
+export const VOUCHER_V1_CONTRACT = "0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25" as const;
+export const ALL_VOUCHER_CONTRACTS: readonly Address[] = [
+  (VOUCHER_CONTRACT as Address) || VOUCHER_V2_CONTRACT,
+  VOUCHER_V1_CONTRACT,
+];
+
 export interface BatchLiveStatus {
   batchId: number;
   creator: string;
@@ -26,6 +33,7 @@ export interface BatchLiveStatus {
   createdAt?: number;
   txHash?: string;
   onchain: boolean;
+  contractAddress?: string;
   unlockTimestamp?: number;
   expirationTimestamp?: number;
   requiredSigner?: string;
@@ -54,84 +62,96 @@ function getClient() {
 }
 
 export async function readOnchainBatch(
-  batchId: number
+  batchId: number,
+  targetContract?: Address
 ): Promise<BatchLiveStatus | null> {
   const client = getClient();
   if (!client) return null;
 
-  try {
-    const [creator, token, amountPerCard, cardCount, redeemedCount, message] =
-      await client.readContract({
-        address: VOUCHER_CONTRACT as Address,
-        abi: VOUCHER_ABI,
-        functionName: "getBatch",
-        args: [BigInt(batchId)],
-      });
+  const candidates: Address[] = targetContract
+    ? [targetContract]
+    : Array.from(new Set(ALL_VOUCHER_CONTRACTS));
 
-    const count = Number(cardCount);
-    if (count === 0) return null;
-
-    const asset = tokenToAsset(token as string);
-    const perCard = amountPerCard as bigint;
-    const total = perCard * BigInt(count);
-    const redeemed = Number(redeemedCount);
-
-    let unlockTimestamp = 0;
-    let expirationTimestamp = 0;
-    let requiredSigner: string | undefined = undefined;
+  for (const contractAddr of candidates) {
     try {
-      const config = await client.readContract({
-        address: VOUCHER_CONTRACT as Address,
-        abi: VOUCHER_ABI,
-        functionName: "getBatchConfig",
-        args: [BigInt(batchId)],
-      });
-      unlockTimestamp = Number(config[0]);
-      expirationTimestamp = Number(config[1]);
-      if (config[2] && config[2] !== "0x0000000000000000000000000000000000000000") {
-        requiredSigner = (config[2] as string).toLowerCase();
+      const [creator, token, amountPerCard, cardCount, redeemedCount, message] =
+        await client.readContract({
+          address: contractAddr,
+          abi: VOUCHER_ABI,
+          functionName: "getBatch",
+          args: [BigInt(batchId)],
+        });
+
+      const count = Number(cardCount);
+      if (count === 0) continue;
+
+      const asset = tokenToAsset(token as string);
+      const perCard = amountPerCard as bigint;
+      const total = perCard * BigInt(count);
+      const redeemed = Number(redeemedCount);
+
+      let unlockTimestamp = 0;
+      let expirationTimestamp = 0;
+      let requiredSigner: string | undefined = undefined;
+      try {
+        const config = await client.readContract({
+          address: contractAddr,
+          abi: VOUCHER_ABI,
+          functionName: "getBatchConfig",
+          args: [BigInt(batchId)],
+        });
+        unlockTimestamp = Number(config[0]);
+        expirationTimestamp = Number(config[1]);
+        if (config[2] && config[2] !== "0x0000000000000000000000000000000000000000") {
+          requiredSigner = (config[2] as string).toLowerCase();
+        }
+      } catch {
+        // Legacy deployment graceful fallback
       }
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      const isUnlocked = unlockTimestamp === 0 || nowSec >= unlockTimestamp;
+      const isExpired = expirationTimestamp > 0 && nowSec >= expirationTimestamp;
+
+      return {
+        batchId,
+        creator: (creator as string).toLowerCase(),
+        asset,
+        totalAmount: total.toString(),
+        amountPerCard: perCard.toString(),
+        cardCount: count,
+        redeemedCount: redeemed,
+        unredeemedCount: Math.max(0, count - redeemed),
+        message: message as string,
+        amountPerCardFormatted: formatVoucherAmount(asset, perCard),
+        totalAmountFormatted: formatVoucherAmount(asset, total),
+        onchain: true,
+        contractAddress: contractAddr.toLowerCase(),
+        unlockTimestamp: unlockTimestamp || undefined,
+        expirationTimestamp: expirationTimestamp || undefined,
+        requiredSigner,
+        isUnlocked,
+        isExpired,
+      };
     } catch {
-      // Legacy deployment graceful fallback
+      // try next candidate contract
     }
-
-    const nowSec = Math.floor(Date.now() / 1000);
-    const isUnlocked = unlockTimestamp === 0 || nowSec >= unlockTimestamp;
-    const isExpired = expirationTimestamp > 0 && nowSec >= expirationTimestamp;
-
-    return {
-      batchId,
-      creator: (creator as string).toLowerCase(),
-      asset,
-      totalAmount: total.toString(),
-      amountPerCard: perCard.toString(),
-      cardCount: count,
-      redeemedCount: redeemed,
-      unredeemedCount: Math.max(0, count - redeemed),
-      message: message as string,
-      amountPerCardFormatted: formatVoucherAmount(asset, perCard),
-      totalAmountFormatted: formatVoucherAmount(asset, total),
-      onchain: true,
-      unlockTimestamp: unlockTimestamp || undefined,
-      expirationTimestamp: expirationTimestamp || undefined,
-      requiredSigner,
-      isUnlocked,
-      isExpired,
-    };
-  } catch {
-    return null;
   }
+
+  return null;
 }
 
 export async function readBatchCardStatuses(
   batchId: number,
-  cardCount: number
+  cardCount: number,
+  targetContract?: Address
 ): Promise<BatchCardLiveStatus[]> {
   const client = getClient();
   if (!client || cardCount < 1) return [];
 
+  const contractAddress = targetContract || (VOUCHER_CONTRACT as Address);
   const contracts = Array.from({ length: cardCount }, (_, i) => ({
-    address: VOUCHER_CONTRACT as Address,
+    address: contractAddress,
     abi: VOUCHER_ABI,
     functionName: "isCardRedeemed" as const,
     args: [BigInt(batchId), BigInt(i)] as const,
@@ -151,24 +171,62 @@ export async function readBatchCardStatuses(
 
 async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
   const client = getClient();
-  if (!client || !VOUCHER_CONTRACT) return [];
+  if (!client) return [];
 
   const normalized = creator.toLowerCase();
   const ids = new Set<number>();
+  const contractsToScan = Array.from(new Set(ALL_VOUCHER_CONTRACTS));
 
-  try {
-    const nextId = await client.readContract({
-      address: VOUCHER_CONTRACT as Address,
-      abi: VOUCHER_ABI,
-      functionName: "nextBatchId",
-    });
-    const max = Number(nextId);
-    for (let batchId = 1; batchId < max; batchId++) {
-      const live = await readOnchainBatch(batchId);
-      if (live?.creator === normalized) ids.add(batchId);
+  for (const contractAddr of contractsToScan) {
+    try {
+      const nextId = await client.readContract({
+        address: contractAddr,
+        abi: VOUCHER_ABI,
+        functionName: "nextBatchId",
+      });
+      const max = Number(nextId);
+      if (max <= 1) continue;
+
+      const batchIdsToQuery: number[] = [];
+      for (let batchId = 1; batchId < max; batchId++) {
+        batchIdsToQuery.push(batchId);
+      }
+
+      // Query in multicall chunks of 50
+      const chunkSize = 50;
+      for (let i = 0; i < batchIdsToQuery.length; i += chunkSize) {
+        const chunk = batchIdsToQuery.slice(i, i + chunkSize);
+        const calls = chunk.map((bId) => ({
+          address: contractAddr,
+          abi: VOUCHER_ABI,
+          functionName: "getBatch" as const,
+          args: [BigInt(bId)] as const,
+        }));
+        try {
+          const results = await client.multicall({ contracts: calls, allowFailure: true });
+          results.forEach((res, idx) => {
+            if (res.status === "success" && Array.isArray(res.result)) {
+              const [bCreator, , , bCardCount] = res.result;
+              if (
+                Number(bCardCount) > 0 &&
+                typeof bCreator === "string" &&
+                bCreator.toLowerCase() === normalized
+              ) {
+                ids.add(chunk[idx]);
+              }
+            }
+          });
+        } catch {
+          // Fallback to sequential if multicall chunk fails
+          for (const bId of chunk) {
+            const live = await readOnchainBatch(bId, contractAddr);
+            if (live?.creator === normalized) ids.add(bId);
+          }
+        }
+      }
+    } catch {
+      /* RPC unavailable or contract not deployed on this network */
     }
-  } catch {
-    /* RPC unavailable */
   }
 
   return [...ids].sort((a, b) => b - a);
@@ -266,32 +324,9 @@ export async function listCreatorBatches(
   for (const batchId of [...batchIds].sort((a, b) => b - a)) {
     const live = await readOnchainBatch(batchId);
     const meta = metaById.get(batchId);
-    // Strict isolation: only return batches where creator matches normalized
+    // Strict isolation: only return verified onchain batches where creator matches normalized
     if (live && live.creator.toLowerCase() === normalized) {
       batches.push(mergeMeta(live, meta));
-    } else if (!live && meta && meta.creator.toLowerCase() === normalized) {
-      batches.push({
-        batchId: meta.batchId,
-        creator: meta.creator,
-        asset: meta.asset,
-        totalAmount: meta.totalAmount,
-        amountPerCard: meta.amountPerCard,
-        cardCount: meta.cardCount,
-        redeemedCount: meta.redeemedCount,
-        unredeemedCount: Math.max(0, meta.cardCount - meta.redeemedCount),
-        message: meta.message,
-        amountPerCardFormatted: formatVoucherAmount(
-          meta.asset,
-          BigInt(meta.amountPerCard)
-        ),
-        totalAmountFormatted: formatVoucherAmount(
-          meta.asset,
-          BigInt(meta.totalAmount)
-        ),
-        createdAt: meta.createdAt,
-        txHash: meta.txHash,
-        onchain: false,
-      });
     }
   }
 
@@ -323,7 +358,11 @@ export async function readBatchDetail(batchId: number): Promise<{
     /* ignore */
   }
 
-  const cards = await readBatchCardStatuses(batchId, batch.cardCount);
+  const cards = await readBatchCardStatuses(
+    batchId,
+    batch.cardCount,
+    batch.contractAddress as Address | undefined
+  );
   return { batch: mergeMeta(batch, meta), cards };
 }
 

@@ -5,6 +5,7 @@ import {
   readCreatorCredentials,
   upsertCreatorBatch,
 } from "@/lib/voucher/credentials-store";
+import { readOnchainBatch } from "@/lib/voucher/batch-read";
 import { parseSessionToken, SESSION_COOKIE } from "@/lib/auth/siwe-server";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,15 @@ export async function GET(req: Request) {
     }
 
     const batches = await readCreatorCredentials(creator);
-    return NextResponse.json({ creator, batches, authenticated: true });
+    // Strict verification: only return credentials for batches confirmed onchain
+    const confirmedBatches: StoredVoucherBatch[] = [];
+    for (const b of batches) {
+      const live = await readOnchainBatch(b.batchId);
+      if (live && live.creator.toLowerCase() === creator) {
+        confirmedBatches.push(b);
+      }
+    }
+    return NextResponse.json({ creator, batches: confirmedBatches, authenticated: true });
   } catch (err) {
     console.error("[Voucher credentials GET]", err);
     return NextResponse.json({ creator: null, batches: [] });
@@ -58,6 +67,15 @@ export async function POST(req: Request) {
 
     if (!batch?.batchId || !Array.isArray(batch.cards)) {
       return NextResponse.json({ success: false, error: "Invalid batch" }, { status: 400 });
+    }
+
+    // Verify batch exists onchain and was created by this creator
+    const live = await readOnchainBatch(batch.batchId);
+    if (!live || live.creator.toLowerCase() !== creator) {
+      return NextResponse.json(
+        { success: false, error: "Batch not confirmed onchain for this creator" },
+        { status: 400 }
+      );
     }
 
     const hasSecrets = batch.cards.some((c) => c.secret?.trim());
