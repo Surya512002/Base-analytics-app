@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "lib/forge-std/**",
     "e2e/**",
+    "limit-orders/**",
   ]),
   {
     rules: {

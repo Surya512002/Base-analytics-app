@@ -1,0 +1,11 @@
+node_modules
+.env
+.env*
+.env.*
+cache
+artifacts
+coverage
+*.log
+edr-cache
+logs
+
