@@ -7,7 +7,7 @@ describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
   const origFlag = process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
 
   afterEach(() => {
-    process.env.NODE_ENV = origNodeEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = origNodeEnv;
     if (origFlag !== undefined) {
       process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED = origFlag;
     } else {
@@ -16,7 +16,7 @@ describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
   });
 
   it("blocks API route in production when flag is unset or not 'true'", async () => {
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     delete process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
 
     const req = new NextRequest("http://localhost:3000/api/limit-orders/region-check");
@@ -32,7 +32,7 @@ describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
   });
 
   it("allows API route in production when flag is explicitly 'true'", async () => {
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED = "true";
 
     // Request with valid European country (e.g. DE)
@@ -47,7 +47,7 @@ describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
   });
 
   it("allows API route in development/test regardless of flag", async () => {
-    process.env.NODE_ENV = "development";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "development";
     delete process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
 
     const req = new NextRequest("http://localhost:3000/api/limit-orders/region-check", {
