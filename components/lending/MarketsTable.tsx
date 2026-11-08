@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Clock,
   RotateCcw,
-  Filter,
 } from "lucide-react";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -30,8 +29,8 @@ export interface AssetMarketRow {
   name: string;
   category: string;
   address: `0x${string}`;
-  priceUsd: number;
-  priceChange24h?: number;
+  priceUsd: number | null;
+  priceChange24h?: number | null;
   bestSupplyApy: number;
   bestSupplyProtocol: string;
   bestBorrowApr: number | null;
@@ -45,6 +44,8 @@ export interface AssetMarketRow {
   riskFlags?: string[];
   oracleVerified?: boolean;
   protocolRates?: Record<string, ProtocolRateInfo>;
+  utilization?: number | null;
+  riskTier?: "low" | "medium" | "degen";
 }
 
 interface MarketsTableProps {
@@ -98,8 +99,9 @@ export default function MarketsTable({
     { id: "ipor", label: "IPOR Fusion" },
   ];
   const [actionFilter, setActionFilter] = useState<"all" | "supply" | "borrow">("all");
+  const [selectedRisk, setSelectedRisk] = useState<"all" | "low" | "medium" | "degen">("all");
   const [onlyHoldings, setOnlyHoldings] = useState(false);
-  const [sortBy, setSortBy] = useState<"supply" | "borrow" | "liquidity" | "price" | "name">("supply");
+  const [sortBy, setSortBy] = useState<"supply" | "borrow" | "liquidity" | "utilization" | "price" | "name">("supply");
   const [sortAsc, setSortAsc] = useState(false);
 
   const isMarketOpen = isUSMarketOpenNow();
@@ -112,6 +114,13 @@ export default function MarketsTable({
     { id: "finance", label: "Finance" },
     { id: "consumer", label: "Consumer" },
     { id: "healthcare", label: "Healthcare" },
+  ];
+
+  const riskFilters: Array<{ id: "all" | "low" | "medium" | "degen"; label: string }> = [
+    { id: "all", label: "All Risk Tiers" },
+    { id: "low", label: "Low Risk" },
+    { id: "medium", label: "Medium Risk" },
+    { id: "degen", label: "High Risk" },
   ];
 
   // Filter & Sort
@@ -145,6 +154,14 @@ export default function MarketsTable({
     // Category filter
     if (selectedCategory !== "all") {
       result = result.filter((r) => r.category.toLowerCase() === selectedCategory.toLowerCase());
+    }
+
+    // Risk filter
+    if (selectedRisk !== "all") {
+      result = result.filter((r) => {
+        const tier = r.riskTier ?? (r.riskFlags && r.riskFlags.length > 1 ? "degen" : r.riskFlags && r.riskFlags.length === 1 ? "medium" : "low");
+        return tier === selectedRisk;
+      });
     }
 
     // Protocol filter (Beefy Finance vs Aerodrome vs Aave Pro vs IPOR Fusion)
@@ -196,8 +213,10 @@ export default function MarketsTable({
           ? (b.protocolRates?.[selectedProtocol]?.hasMarket ? b.protocolRates[selectedProtocol].liquidityUsd : 0)
           : b.totalLiquidityUsd;
         diff = bLiq - aLiq;
+      } else if (sortBy === "utilization") {
+        diff = (b.utilization ?? 0) - (a.utilization ?? 0);
       } else if (sortBy === "price") {
-        diff = b.priceUsd - a.priceUsd;
+        diff = (b.priceUsd ?? 0) - (a.priceUsd ?? 0);
       } else if (sortBy === "name") {
         diff = a.symbol.localeCompare(b.symbol);
       }
@@ -205,9 +224,9 @@ export default function MarketsTable({
     });
 
     return result;
-  }, [rows, showAllStocks, searchQuery, selectedCategory, selectedProtocol, onlyHoldings, sortBy, sortAsc, actionFilter]);
+  }, [rows, showAllStocks, searchQuery, selectedCategory, selectedRisk, selectedProtocol, onlyHoldings, sortBy, sortAsc, actionFilter]);
 
-  const toggleSort = (field: "supply" | "borrow" | "liquidity" | "price" | "name") => {
+  const toggleSort = (field: "supply" | "borrow" | "liquidity" | "utilization" | "price" | "name") => {
     if (sortBy === field) {
       setSortAsc((prev) => !prev);
     } else {
@@ -423,7 +442,7 @@ export default function MarketsTable({
                             ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm ring-2 ring-violet-400/40"
                             : p.id === "ipor"
                               ? "bg-amber-600 text-white hover:bg-amber-700 shadow-sm ring-2 ring-amber-400/40"
-                              : "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm ring-2 ring-blue-400/40"
+                              : "bg-[var(--brand)] text-white hover:opacity-90 shadow-sm ring-2 ring-[var(--brand)]/40"
                         : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
                     }`}
                   >
@@ -457,11 +476,38 @@ export default function MarketsTable({
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer select-none ${
                       isSelected
-                        ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
+                        ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-sm"
                         : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
                     }`}
                   >
                     {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Risk Tier Filter Row */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[var(--border-subtle)]/60">
+            <span className="text-[11px] font-black uppercase text-[var(--ink-muted)] tracking-wider min-w-[70px] shrink-0">
+              Risk:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {riskFilters.map((rf) => {
+                const isSelected = selectedRisk === rf.id;
+                return (
+                  <button
+                    key={rf.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setSelectedRisk(rf.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer select-none ${
+                      isSelected
+                        ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-sm"
+                        : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
+                    }`}
+                  >
+                    {rf.label}
                   </button>
                 );
               })}
@@ -597,11 +643,11 @@ export default function MarketsTable({
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
                             {row.isNew && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                                 <Sparkles size={9} /> NEW
                               </span>
                             )}
-                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                               {row.category}
                             </span>
                           </div>
@@ -617,7 +663,7 @@ export default function MarketsTable({
                           className={`w-1.5 h-1.5 rounded-full ${isMarketOpen ? "bg-emerald-500" : "bg-amber-500"}`}
                           title={isMarketOpen ? "Chainlink 24/5 Live Feed Active" : "US Market Closed"}
                         />
-                        <span>${row.priceUsd.toFixed(2)}</span>
+                        <span>{row.priceUsd !== null && row.priceUsd > 0 ? `$${row.priceUsd.toFixed(2)}` : "—"}</span>
                       </div>
                     </td>
 
@@ -730,7 +776,7 @@ export default function MarketsTable({
                             e.stopPropagation();
                             onSelectAsset(row.symbol);
                           }}
-                          className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs shadow-xs group-hover:bg-[#0047e0] transition flex items-center gap-1 ml-auto cursor-pointer"
+                          className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white font-bold text-xs shadow-xs hover:opacity-90 transition flex items-center gap-1 ml-auto cursor-pointer"
                         >
                           <span>Compare</span>
                           <ChevronRight size={13} />
@@ -796,11 +842,11 @@ export default function MarketsTable({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
                           {row.isNew && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                               <Sparkles size={8} /> NEW
                             </span>
                           )}
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                             {row.category}
                           </span>
                         </div>
@@ -809,7 +855,9 @@ export default function MarketsTable({
                     </div>
 
                     <div className="text-right">
-                      <p className="font-mono font-bold text-sm text-[var(--ink)]">${row.priceUsd.toFixed(2)}</p>
+                      <p className="font-mono font-bold text-sm text-[var(--ink)]">
+                        {row.priceUsd !== null && row.priceUsd > 0 ? `$${row.priceUsd.toFixed(2)}` : "—"}
+                      </p>
                       <span className="text-[10px] text-[var(--ink-muted)]">
                         {hasThisProtocolMarket && liquidityToDisplay > 0 ? `${formatCompactUsd(liquidityToDisplay)} liq` : "—"}
                       </span>
@@ -825,7 +873,7 @@ export default function MarketsTable({
                         return (
                           <span
                             key={p}
-                            className={`px-1.5 py-0.2 rounded font-bold ${
+                            className={`px-1.5 py-0.5 rounded font-bold ${
                               isCurrent
                                 ? "bg-[var(--brand)] text-white"
                                 : "bg-[var(--surface)] text-[var(--ink)]"

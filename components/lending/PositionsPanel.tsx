@@ -31,6 +31,7 @@ export interface PositionsPanelProps {
     action: "supply" | "withdraw" | "borrow" | "repay" | "stake" | "unstake"
   ) => void;
   isMockData?: boolean;
+  onShowToast?: (title: string, desc?: string) => void;
 }
 
 export default function PositionsPanel({
@@ -47,6 +48,7 @@ export default function PositionsPanel({
   onRequestConnect,
   onOpenAction,
   isMockData = false,
+  onShowToast,
 }: PositionsPanelProps) {
   // Aggregate real totals
   const totalSuppliedUsd = positions.reduce((acc, p) => acc + p.suppliedUsd, 0);
@@ -193,7 +195,7 @@ export default function PositionsPanel({
                 <button
                   type="button"
                   onClick={() => onRetryProtocol(protocol)}
-                  className="px-2 py-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-[11px] hover:border-[#0052FF] flex items-center gap-1 cursor-pointer"
+                  className="px-2 py-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-[11px] hover:border-[var(--brand)] flex items-center gap-1 cursor-pointer"
                 >
                   <RotateCcw size={10} />
                   <span>Retry</span>
@@ -207,7 +209,7 @@ export default function PositionsPanel({
       {/* ─────────────────────────────────────────────────────────────
           3.5 LIQUIDATION GUARD (Distance to Liquidation & Stress Test)
           ───────────────────────────────────────────────────────────── */}
-      <LiquidationGuardBanner positions={positions} onOpenAction={onOpenAction} />
+      <LiquidationGuardBanner positions={positions} onOpenAction={onOpenAction} onShowToast={onShowToast} />
 
       {/* ─────────────────────────────────────────────────────────────
           4. FOUR REAL OVERVIEW METRIC CHIPS
@@ -417,7 +419,7 @@ export default function PositionsPanel({
                     <button
                       type="button"
                       onClick={() => onOpenAction?.(pos.marketId, "supply")}
-                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[#0052FF] cursor-pointer"
+                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[var(--brand)] cursor-pointer"
                     >
                       Add
                     </button>
@@ -437,7 +439,7 @@ export default function PositionsPanel({
                     <button
                       type="button"
                       onClick={() => onOpenAction?.(pos.marketId, "borrow")}
-                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[#0052FF] cursor-pointer"
+                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[var(--brand)] cursor-pointer"
                     >
                       Borrow
                     </button>
@@ -447,7 +449,7 @@ export default function PositionsPanel({
                     <button
                       type="button"
                       onClick={() => onOpenAction?.(pos.marketId, "repay")}
-                      className="pop-pill px-2.5 py-1 rounded-lg bg-[#0052FF] text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--brand)] hover:opacity-90 text-white font-bold text-[11px] shadow-xs cursor-pointer"
                     >
                       Repay
                     </button>

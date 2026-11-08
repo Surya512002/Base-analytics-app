@@ -20,6 +20,7 @@ export interface YieldOptionTarget {
   isAutoCompounding: boolean;
   riskTier: "low" | "medium" | "degen";
   typeLabel?: string;
+  isLiveVerified?: boolean;
 }
 
 interface TopYieldSpotlightProps {
@@ -98,120 +99,76 @@ export default function TopYieldSpotlight({
 }: TopYieldSpotlightProps) {
   // Derive real live markets dynamically from verified on-chain data and pick the highest yield
   const bestOption: YieldOptionTarget = useMemo(() => {
-    const list: YieldOptionTarget[] = BASELINE_YIELD_MARKETS.map((baseline) => {
-      // 1. Try to match live Aerodrome from gaugeRows or markets
-      if (baseline.protocol === "aerodrome") {
-        const liveGauge = gaugeRows.find(
-          (g) => g.rewardToken === "AERO" || g.pairName.toLowerCase().includes("aerodrome")
-        );
-        if (liveGauge && liveGauge.gaugeApr > 0) {
-          return {
-            ...baseline,
-            apy: Math.round(liveGauge.gaugeApr * 100) / 100,
-            apr: Math.round(liveGauge.gaugeApr * 100) / 100,
-            tvlUsd: liveGauge.tvlUsd || baseline.tvlUsd,
-            asset: liveGauge.pairName || baseline.asset,
-            stockSymbol: liveGauge.stockSymbol || baseline.stockSymbol,
-            contractAddress: liveGauge.contractAddress || baseline.contractAddress,
-          };
-        }
-        const liveMarket = markets.find((m) => m.protocol === "aerodrome" && (m.supplyApy ?? 0) > 0);
-        if (liveMarket) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMarket.supplyApy ?? 0) * 100) / 100,
-            apr: Math.round((liveMarket.stakingApr ?? liveMarket.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMarket.tvlUsd || baseline.tvlUsd,
-            contractAddress: (liveMarket.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
+    const list: YieldOptionTarget[] = [];
+    const seen = new Set<string>();
 
-      // 2. Try to match live Beefy vault
-      if (baseline.protocol === "beefy") {
-        const liveBeefy = gaugeRows.find(
-          (g) => g.rewardToken === "BEEFY" || g.pairName.toLowerCase().includes("beefy")
-        );
-        if (liveBeefy && liveBeefy.gaugeApr > 0) {
-          return {
-            ...baseline,
-            apy: Math.round(liveBeefy.gaugeApr * 100) / 100,
-            apr: Math.round(liveBeefy.gaugeApr * 100) / 100,
-            tvlUsd: liveBeefy.tvlUsd || baseline.tvlUsd,
-            asset: liveBeefy.pairName || baseline.asset,
-            stockSymbol: liveBeefy.stockSymbol || baseline.stockSymbol,
-            contractAddress: liveBeefy.contractAddress || baseline.contractAddress,
-          };
-        }
-        const liveMarket = markets.find((m) => m.protocol === "beefy" && (m.supplyApy ?? 0) > 0);
-        if (liveMarket) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMarket.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMarket.tvlUsd || baseline.tvlUsd,
-            contractAddress: (liveMarket.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
-
-      // 3. Try to match live Morpho Blue market
-      if (baseline.protocol === "morpho_blue" || baseline.protocol === "morpho") {
-        const liveMorpho = markets.find(
-          (m) => (m.protocol === "morpho" || (m.protocol as string) === "morpho_blue") && (m.supplyApy ?? 0) > 0
-        );
-        if (liveMorpho) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMorpho.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMorpho.tvlUsd || baseline.tvlUsd,
-            asset: liveMorpho.supplyAsset?.symbol ? `${liveMorpho.supplyAsset.symbol} Collateral` : baseline.asset,
-            contractAddress: (liveMorpho.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
-
-      // 4. Try to match live Moonwell or Aave market
-      if (baseline.protocol === "moonwell" || baseline.protocol === "aave") {
-        const liveMoonwell = markets.find(
-          (m) => (m.protocol === "moonwell" || m.protocol === "aave") && (m.supplyApy ?? 0) > 0
-        );
-        if (liveMoonwell) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMoonwell.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMoonwell.tvlUsd || baseline.tvlUsd,
-            asset: liveMoonwell.supplyAsset?.name || baseline.asset,
-            contractAddress: (liveMoonwell.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
-
-      return baseline;
-    });
-
-    // Also check if any gauge in gaugeRows has an even higher APR
+    // 1. Match from gaugeRows (single pass, deduplicated by protocol and asset/contract)
     for (const g of gaugeRows) {
       if (g.gaugeApr > 0) {
-        list.push({
-          protocol: "aerodrome",
-          protocolName: "Aerodrome Slipstream",
-          asset: g.pairName || "LP Gauge",
-          stockSymbol: g.stockSymbol,
-          contractAddress: g.contractAddress,
-          marketId: g.id,
-          apy: Math.round(g.gaugeApr * 100) / 100,
-          apr: Math.round(g.gaugeApr * 100) / 100,
-          tvlUsd: g.tvlUsd,
-          isAutoCompounding: false,
-          riskTier: "low",
-          typeLabel: "DEX Gauge",
-        });
+        const isBeefy = g.rewardToken === "BEEFY" || g.pairName.toLowerCase().includes("beefy");
+        const protocol = isBeefy ? "beefy" : g.rewardToken === "PENDLE" ? "pendle" : "aerodrome";
+        const key = `${protocol}:${(g.contractAddress || g.id || g.pairName).toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push({
+            protocol,
+            protocolName: isBeefy ? "Beefy Auto-Vault" : g.rewardToken === "PENDLE" ? "Pendle Finance" : "Aerodrome Slipstream",
+            asset: g.pairName || `${g.stockSymbol || "Equities"} LP`,
+            stockSymbol: g.stockSymbol,
+            contractAddress: g.contractAddress,
+            marketId: g.id,
+            apy: Math.round(g.gaugeApr * 100) / 100,
+            apr: Math.round(g.gaugeApr * 100) / 100,
+            tvlUsd: g.tvlUsd,
+            isAutoCompounding: isBeefy,
+            riskTier: "low",
+            typeLabel: isBeefy ? "Auto-Compounder" : g.rewardToken === "PENDLE" ? "Yield Token" : "DEX Gauge",
+            isLiveVerified: true,
+          });
+        }
       }
     }
 
-    // Sort by APY / APR descending
-    list.sort((a, b) => (b.apy ?? b.apr ?? 0) - (a.apy ?? a.apr ?? 0));
-    return list[0] || BASELINE_YIELD_MARKETS[0];
+    // 2. Match from markets (protocol AND asset, avoiding duplicates)
+    for (const m of markets) {
+      if (m.status === "active" && ((m.supplyApy ?? 0) > 0 || (m.stakingApr ?? 0) > 0)) {
+        const addrOrId = (m.contractAddress as string) || m.marketId || m.supplyAsset?.symbol || "";
+        const key = `${m.protocol.toLowerCase()}:${addrOrId.toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          const rate = m.supplyApy > 0 ? m.supplyApy : (m.stakingApr ?? 0);
+          const isAuto = m.protocol === "beefy" || m.protocol === "morpho" || m.protocol === "moonwell";
+          const assetName = m.supplyAsset?.name || m.supplyAsset?.symbol || "Asset";
+          list.push({
+            protocol: m.protocol,
+            protocolName: m.protocolLabel || m.protocol,
+            asset: assetName,
+            stockSymbol: m.collateralAsset?.symbol || (m.supplyAsset?.isStock ? m.supplyAsset.symbol : undefined),
+            contractAddress: (m.contractAddress as string) || undefined,
+            marketId: m.marketId,
+            apy: Math.round(rate * 100) / 100,
+            apr: m.stakingApr ? Math.round(m.stakingApr * 100) / 100 : null,
+            tvlUsd: m.tvlUsd || m.liquidityUsd || 0,
+            isAutoCompounding: isAuto,
+            riskTier: "low",
+            typeLabel: isAuto ? "Auto-Compounder" : "Money Market",
+            isLiveVerified: true,
+          });
+        }
+      }
+    }
+
+    if (list.length > 0) {
+      // Sort by APY / APR descending
+      list.sort((a, b) => (b.apy ?? b.apr ?? 0) - (a.apy ?? a.apr ?? 0));
+      return list[0]!;
+    }
+
+    // Baseline fallback clearly marked as not verified live
+    return {
+      ...BASELINE_YIELD_MARKETS[0]!,
+      isLiveVerified: false,
+    };
   }, [markets, gaugeRows]);
 
   const handleTriggerAction = (target: YieldOptionTarget) => {
@@ -237,13 +194,21 @@ export default function TopYieldSpotlight({
               <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Top Yield Spotlight</span>
             </span>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-[#0052FF] dark:text-blue-400 border border-blue-500/20">
-              Highest Verified Return on Base
-            </span>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-muted)]">
-              <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Verified On-Chain</span>
-            </span>
+            {bestOption.isLiveVerified ? (
+              <>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-[var(--brand-text)] border border-blue-500/20">
+                  Highest Verified Return on Base
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-muted)]">
+                  <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>Verified On-Chain</span>
+                </span>
+              </>
+            ) : (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                Loading Live Opportunities…
+              </span>
+            )}
           </div>
 
           <div>

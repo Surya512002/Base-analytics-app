@@ -97,7 +97,7 @@ export default function AssetDetailView({
                 <button
                   type="button"
                   onClick={() => onOpenSupply(bestSupply)}
-                  className="px-3 py-1 rounded-lg bg-[#0052FF] text-white text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-3 py-1 rounded-lg bg-[var(--brand)] text-white text-xs font-bold hover:opacity-90 transition shadow-xs cursor-pointer"
                 >
                   Supply ({bestSupply.supplyApy.toFixed(1)}%)
                 </button>
@@ -209,7 +209,7 @@ export default function AssetDetailView({
               <button
                 type="button"
                 onClick={() => onOpenSupply(bestSupply)}
-                className="py-1.5 px-3 rounded-lg bg-[#0052FF] text-white font-bold text-xs shadow-xs transition cursor-pointer self-start active:scale-[0.98]"
+                className="py-1.5 px-3 rounded-lg bg-[var(--brand)] text-white hover:opacity-90 font-bold text-xs shadow-xs transition cursor-pointer self-start active:scale-[0.98]"
               >
                 {bestSupply.type === "strategy" ? "Deposit to Strategy" : "Supply Now"}
               </button>
