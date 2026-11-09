@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { buildConnectSrcDirective } from "./lib/security/csp";
 
 const nextConfig: NextConfig = {
   images: {
@@ -160,7 +161,10 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com https://raw.githubusercontent.com https://*.githubusercontent.com https://basescan.org https://assets.coingecko.com https://coin-images.coingecko.com https://*.coingecko.com https://dd.dexscreener.com https://*.dexscreener.com https://cdn.dexscreener.com https://metadata.coinbase.com https://assets.parqet.com https://assets.geckoterminal.com https://www.google.com https://*.google.com https://tokens.1inch.io https://ipfs.io https://*.ipfs.dweb.link https://arweave.net https://assets.smold.app https://ethereum-optimism.github.io",
               "font-src 'self' data:",
-              "connect-src 'self' https://mainnet.base.org https://sepolia.base.org https://*.alchemy.com https://api.developer.coinbase.com https://keys.coinbase.com https://cca-lite.coinbase.com https://api.0x.org https://basescan.org https://*.basescan.org https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://*.farcaster.xyz",
+              buildConnectSrcDirective([
+                process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC,
+                process.env.NEXT_PUBLIC_BASE_RPC_URL,
+              ]),
               "frame-src 'self' https://keys.coinbase.com https://farcaster.xyz https://warpcast.com",
               "frame-ancestors 'self' https://farcaster.xyz https://warpcast.com",
             ].join("; "),

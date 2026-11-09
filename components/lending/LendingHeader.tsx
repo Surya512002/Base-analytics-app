@@ -9,7 +9,6 @@ interface LendingHeaderProps {
   totalLiquidityUsd: number;
   verifiedPoolsCount: number;
   lastUpdatedSecondsAgo?: number;
-  isStale?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
@@ -27,12 +26,9 @@ export default function LendingHeader({
   totalLiquidityUsd,
   verifiedPoolsCount,
   lastUpdatedSecondsAgo = 0,
-  isStale = false,
   onRefresh,
   isRefreshing = false,
 }: LendingHeaderProps) {
-  const isDataStale = Boolean(isStale || lastUpdatedSecondsAgo > 60);
-
   return (
     <div className="space-y-4">
       {/* Title & One-line Subtitle */}
@@ -52,24 +48,12 @@ export default function LendingHeader({
 
         {/* Live Data Freshness Badge & Refresh button */}
         <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-          <div
-            className={`pop-pill flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors ${
-              isDataStale
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)]"
-            }`}
-          >
-            {isDataStale ? (
-              <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-            ) : (
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-            )}
-            <span>
-              {isDataStale ? "Stale" : "Live"} · updated {lastUpdatedSecondsAgo}s ago
+          <div className="pop-pill flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink-muted)] font-medium">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
+            <span>Live · updated {lastUpdatedSecondsAgo}s ago</span>
           </div>
 
           {onRefresh && (
@@ -125,7 +109,7 @@ export default function LendingHeader({
           <p className="text-lg font-black font-mono text-[var(--brand-text)] mt-0.5">
             {verifiedPoolsCount} Pools
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">Morpho, Aerodrome, Beefy, Aave &amp; Moonwell</span>
+          <span className="text-[10px] text-[var(--ink-dim)]">Beefy, Aerodrome, Morpho &amp; Moonwell</span>
         </div>
       </div>
 

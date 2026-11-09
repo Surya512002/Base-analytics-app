@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   type Address,
   encodeFunctionData,
@@ -18,6 +18,7 @@ import {
   buildRefundExpiredCall,
   buildCreateDcaCall,
   buildCancelDcaCall,
+  assertAllowedLimitOrderTx,
 } from "./calls";
 import {
   getLimitOrdersConfig,
@@ -25,6 +26,7 @@ import {
   DEFAULT_KEEPER_FEE_BPS,
   DEFAULT_MAX_DEVIATION_BPS,
 } from "@/src/config/limitOrders";
+import { isLimitOrdersFeatureEnabled } from "./featureFlag";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { buildContractCall } from "@/lib/utils/tx";
@@ -52,9 +54,54 @@ export interface MarketState extends StockMarketConfig {
 }
 
 export function useLimitOrders(app: WalletAppState) {
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const account = useAccount();
   const currentChainId = useChainId();
-  const chainId = account.chainId || currentChainId || 8453;
+
+  // Injected EIP-1193 chain detection (e.g. MetaMask provider) initialized lazily
+  const [injectedChainId, setInjectedChainId] = useState<number | undefined>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const hex = (window as any).ethereum?.chainId;
+        if (hex) {
+          const parsed = typeof hex === "string" ? (hex.startsWith("0x") ? parseInt(hex, 16) : Number(hex)) : Number(hex);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+      } catch {}
+    }
+    return undefined;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const eth = (window as any).ethereum;
+    if (!eth?.on) return;
+    const onChainChanged = (hex: any) => {
+      try {
+        if (hex) {
+          const parsed = typeof hex === "string" ? (hex.startsWith("0x") ? parseInt(hex, 16) : Number(hex)) : Number(hex);
+          if (!isNaN(parsed) && parsed > 0 && isMountedRef.current) {
+            setInjectedChainId(parsed);
+          }
+        }
+      } catch {}
+    };
+    eth.on("chainChanged", onChainChanged);
+    return () => {
+      try {
+        eth.removeListener?.("chainChanged", onChainChanged);
+      } catch {}
+    };
+  }, []);
+
+  const chainId = (account.isConnected && account.chainId) ? account.chainId : (injectedChainId || account.chainId || currentChainId || 8453);
   const config = useMemo(() => getLimitOrdersConfig(chainId), [chainId]);
 
   const walletAddress = app.wallet?.address as Address | undefined;
@@ -312,12 +359,15 @@ export function useLimitOrders(app: WalletAppState) {
                 }
               })
             );
+            if (!isMountedRef.current) return;
             const grouped = groupOrders(rawOrders);
             setOpenOrders(grouped.open);
             setHistoryOrders(grouped.history);
           } else {
-            setOpenOrders([]);
-            setHistoryOrders([]);
+            if (isMountedRef.current) {
+              setOpenOrders([]);
+              setHistoryOrders([]);
+            }
           }
 
           if (planIds && planIds.length > 0) {
@@ -349,10 +399,11 @@ export function useLimitOrders(app: WalletAppState) {
                 }
               })
             );
+            if (!isMountedRef.current) return;
             rawPlans.sort((a, b) => (b.id > a.id ? 1 : -1));
             setPlans(rawPlans);
           } else {
-            setPlans([]);
+            if (isMountedRef.current) setPlans([]);
           }
         } catch {
           // ignore
@@ -361,7 +412,7 @@ export function useLimitOrders(app: WalletAppState) {
     } catch {
       // ignore
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   }, [config, publicClient, walletAddress]);
 
@@ -381,10 +432,12 @@ export function useLimitOrders(app: WalletAppState) {
       try {
         setTxSubmitting(true);
         const req = buildApproveCall(tokenAddress, config.orderBook, amount);
+        assertAllowedLimitOrderTx(req, config, amount);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           app.showToast(`Approved ${label}`, hash);
@@ -399,7 +452,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const placeOrder = useCallback(
@@ -424,10 +477,12 @@ export function useLimitOrders(app: WalletAppState) {
           minAmountOut: args.minAmountOut,
           expiry: args.expiry,
         });
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           setTxSuccessHash(hash);
@@ -443,7 +498,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const placeTrailingStop = useCallback(
@@ -465,10 +520,12 @@ export function useLimitOrders(app: WalletAppState) {
           minAmountOut: args.minAmountOut,
           expiry: args.expiry,
         });
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           setTxSuccessHash(hash);
@@ -484,7 +541,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const placeBracket = useCallback(
@@ -510,10 +567,12 @@ export function useLimitOrders(app: WalletAppState) {
           minOutStopLoss: args.minOutStopLoss,
           expiry: args.expiry,
         });
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           setTxSuccessHash(hash);
@@ -529,7 +588,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const updateOrder = useCallback(
@@ -543,10 +602,12 @@ export function useLimitOrders(app: WalletAppState) {
           newTrigger: newTriggerPrice,
           newMinAmountOut,
         });
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           app.showToast(`Order #${id} updated successfully!`, hash);
@@ -561,7 +622,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const cancelOrder = useCallback(
@@ -570,10 +631,12 @@ export function useLimitOrders(app: WalletAppState) {
       try {
         setTxSubmitting(true);
         const req = buildCancelOrderCall(config.orderBook, id);
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           app.showToast(`Order #${id} cancelled and refunded.`, hash);
@@ -588,7 +651,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const refundExpired = useCallback(
@@ -597,10 +660,12 @@ export function useLimitOrders(app: WalletAppState) {
       try {
         setTxSubmitting(true);
         const req = buildRefundExpiredCall(config.orderBook, id);
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           app.showToast(`Expired order #${id} refunded.`, hash);
@@ -615,7 +680,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const createDca = useCallback(
@@ -637,10 +702,12 @@ export function useLimitOrders(app: WalletAppState) {
           interval: args.interval,
           maxPrice: args.maxPrice,
         });
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           setTxSuccessHash(hash);
@@ -656,7 +723,7 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   const cancelDca = useCallback(
@@ -665,10 +732,12 @@ export function useLimitOrders(app: WalletAppState) {
       try {
         setTxSubmitting(true);
         const req = buildCancelDcaCall(config.orderBook, id);
+        assertAllowedLimitOrderTx(req, config);
         const hash = await sendAppTransactions(
           app.connType,
           walletAddress,
-          [buildContractCall(req.to, req.data, req.value ?? 0n)]
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
         );
         if (hash) {
           app.showToast(`DCA plan #${id} cancelled and unspent funds refunded.`, hash);
@@ -683,10 +752,11 @@ export function useLimitOrders(app: WalletAppState) {
         setTxSubmitting(false);
       }
     },
-    [app, config.orderBook, loadData, walletAddress]
+    [app, config, chainId, loadData, walletAddress]
   );
 
   return {
+    isEnabled: isLimitOrdersFeatureEnabled(),
     config,
     chainId,
     walletAddress,

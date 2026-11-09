@@ -161,33 +161,54 @@ export async function resolveActiveConnType(
   return active;
 }
 
+const BASE_SEPOLIA_HEX = "0x14a34" as const;
+
 type Eip1193 = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
-export async function ensureBaseNetwork(provider: Eip1193): Promise<void> {
+export async function ensureBaseNetwork(
+  provider: Eip1193,
+  targetChainId: 8453 | 84532 = 8453
+): Promise<void> {
+  const targetHex = targetChainId === 84532 ? BASE_SEPOLIA_HEX : BASE_CHAIN_HEX;
   const rawChainId = (await provider.request({ method: "eth_chainId" })) as string | number;
   const str = String(rawChainId ?? "").toLowerCase();
   const num = typeof rawChainId === "number" ? rawChainId : parseInt(str, str.startsWith("0x") ? 16 : 10);
-  if (num === 8453 || str === BASE_CHAIN_HEX || str === "0x2105") return;
+  if (num === targetChainId || str === targetHex) return;
 
   try {
     await provider.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: BASE_CHAIN_HEX }],
+      params: [{ chainId: targetHex }],
     });
   } catch {
-    await provider.request({
-      method: "wallet_addEthereumChain",
-      params: [
-        {
-          chainId: BASE_CHAIN_HEX,
-          chainName: "Base",
-          nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-          rpcUrls: ["https://mainnet.base.org"],
-          blockExplorerUrls: ["https://basescan.org"],
-        },
-      ],
-    });
+    if (targetChainId === 84532) {
+      await provider.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: BASE_SEPOLIA_HEX,
+            chainName: "Base Sepolia",
+            nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://sepolia.base.org"],
+            blockExplorerUrls: ["https://sepolia.basescan.org"],
+          },
+        ],
+      });
+    } else {
+      await provider.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: BASE_CHAIN_HEX,
+            chainName: "Base",
+            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"],
+          },
+        ],
+      });
+    }
   }
 }

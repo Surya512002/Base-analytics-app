@@ -134,12 +134,12 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
 /** Base Sepolia Testnet Mock Config (Chain ID 84532) */
 export const BASE_SEPOLIA_CONFIG: LimitOrdersConfig = {
   orderBook: (process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA as Address) ||
-    getAddress("0x0000000000000000000000000000000000000000"),
+    getAddress("0xC7fBA8EB5442760F83266C32F3Bc2E5c65079e46"),
   swapAdapter: (process.env.NEXT_PUBLIC_LIMIT_ORDER_ADAPTER_SEPOLIA as Address) ||
-    getAddress("0x0000000000000000000000000000000000000000"),
+    getAddress("0xbDa98551b18431bD95fdF21D06cBc37dA9dE943D"),
   quoteToken: {
     address: (process.env.NEXT_PUBLIC_LIMIT_ORDER_QUOTE_SEPOLIA as Address) ||
-      getAddress("0x0000000000000000000000000000000000000001"),
+      getAddress("0x19468e9fe5dBfdbD786D9b09Da7caC07c1367187"),
     symbol: "mUSDC",
     decimals: 6,
   },
@@ -148,10 +148,10 @@ export const BASE_SEPOLIA_CONFIG: LimitOrdersConfig = {
       symbol: "mNVDA",
       name: "Mock NVDA (Testnet)",
       stockToken: (process.env.NEXT_PUBLIC_LIMIT_ORDER_STOCK_SEPOLIA as Address) ||
-        getAddress("0x0000000000000000000000000000000000000002"),
+        getAddress("0xCCc66590BA8a67fe51bC2eB552B24f30c30263F2"),
       decimals: 18,
       feed: (process.env.NEXT_PUBLIC_LIMIT_ORDER_FEED_SEPOLIA as Address) ||
-        getAddress("0x0000000000000000000000000000000000000003"),
+        getAddress("0x8836DF0Aa5F499B8E53649e6662EBE1C668F767f"),
       poolFee: 3000,
       maxStalenessSeconds: 86400 * 7,
       maxStockIn: 1n * 10n ** 18n, // 1 mNVDA ($100 cap)

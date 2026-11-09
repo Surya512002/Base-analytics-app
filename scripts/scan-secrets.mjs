@@ -33,6 +33,10 @@ const IGNORED_PATHS = [
   "scan-secrets.mjs",
   "test-swap-routes.mjs",
   "contracts.ts",
+  "artifacts",
+  "cache",
+  "edr-cache",
+  "logs",
 ];
 
 // Whitelisted dummy / mock values or known ERC event topic hashes / protocol market IDs
@@ -41,11 +45,14 @@ const WHITELIST = new Set([
   "0x0000000000000000000000000000000000000000000000000000000000000000",
   "0x1111111111111111111111111111111111111111111111111111111111111111",
   "0x2222222222222222222222222222222222222222222222222222222222222222",
+  "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", // maxUint256 approval
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // standard Anvil account #0
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // standard Anvil account #1
+  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // standard Hardhat account #2
   "0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f", // ERC-4337 UserOperationEvent topic
   "0xfef5641f70e19a87e369304daa9ba823754f3db1e6481d757fcae0442cffe479", // Morpho Blue Base canonical marketId
   "0x52467d5bbbf878d6b8ec1159385ffca5f76b1f868c2d2aa6ffc5d57bba91f7a4", // Mock test txHash in unique-users unit tests
+  "0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000", // Dummy test key in EnvLoading.test.js
 ]);
 
 console.log("==================================================");
@@ -53,6 +60,7 @@ console.log("🔍 RUNNING SECRETS & REPO HYGIENE SCAN");
 console.log("==================================================");
 
 const findings = [];
+let totalIssues = 0;
 
 function checkContent(content, location) {
   for (const { name, regex } of SECRET_PATTERNS) {
@@ -151,7 +159,7 @@ try {
 
 // Summary Report
 console.log("\n--------------------------------------------------");
-if (findings.length === 0) {
+if (findings.length === 0 && totalIssues === 0) {
   console.log("✅ PASSED: No exposed secrets, private keys, or credentials found.");
   console.log("--------------------------------------------------\n");
   process.exit(0);

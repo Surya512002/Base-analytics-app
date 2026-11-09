@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ExternalLink,
+  Repeat,
 } from "lucide-react";
 import {
   PRICE_DECIMALS,
@@ -31,12 +32,14 @@ interface RecurringViewProps {
   limitOrders: ReturnType<typeof useLimitOrders>;
   onConnectWallet?: () => void;
   onSwitchChain?: () => void;
+  onSwitchSepolia?: () => void;
 }
 
 export default function RecurringView({
   limitOrders,
   onConnectWallet,
   onSwitchChain,
+  onSwitchSepolia,
 }: RecurringViewProps) {
   const {
     config,
@@ -157,6 +160,9 @@ export default function RecurringView({
   };
 
   const isWrongChain = chainId !== 8453 && chainId !== 84532;
+  const isMainnetWithoutOrderBook =
+    chainId === 8453 &&
+    (!config.orderBook || config.orderBook === "0x0000000000000000000000000000000000000000");
 
   const intervalLabel = useMemo(() => {
     if (activeInterval === 3600) return "hour";
@@ -197,7 +203,34 @@ export default function RecurringView({
         </div>
       )}
 
-      {/* Main Recurring Form Card */}
+      {/* Mainnet Placeholder when Order Book not deployed on Base Mainnet */}
+      {isMainnetWithoutOrderBook ? (
+        <div
+          data-testid="mainnet-recurring-placeholder"
+          className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] text-center space-y-4 shadow-card"
+        >
+          <div className="w-12 h-12 mx-auto rounded-full bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+            <Repeat size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[var(--ink)]">
+              Recurring buys aren&apos;t live on Base mainnet yet. Switch to Base Sepolia to test.
+            </h3>
+            <p className="text-xs text-[var(--ink-muted)] mt-1.5 max-w-sm mx-auto">
+              Testnet contracts are deployed on Base Sepolia. You can test recurring accumulation (DCA) with test tokens.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onSwitchSepolia}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+          >
+            <span>Switch to Base Sepolia</span>
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Main Recurring Form Card */}
       <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-card space-y-4">
         {/* Stock Selector & Live Price */}
         <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
@@ -386,13 +419,52 @@ export default function RecurringView({
           </div>
         )}
 
+        {/* Pre-Flight Plain-Language Summary Box */}
+        {amountPerBuyInput.trim() !== "" && totalBudget > 0n && !validationError && (
+          <div className="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/15 space-y-2 text-xs">
+            <div className="font-bold text-[var(--ink)] flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+              <CheckCircle2 size={13} />
+              <span>DCA Plan Pre-Flight Summary</span>
+            </div>
+            <div className="space-y-1 text-[11px] text-[var(--ink-muted)]">
+              <div className="flex justify-between">
+                <span>Total Escrow Deposit:</span>
+                <span className="font-semibold text-[var(--ink)] tabular-nums">
+                  {formatUnits(totalBudget, quoteDecimals)} {quoteSymbol}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Execution Schedule:</span>
+                <span className="font-semibold text-[var(--ink)]">
+                  {buysCount} buys of {amountPerBuyInput} {quoteSymbol} every {intervalLabel}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Price Ceiling:</span>
+                <span className="font-semibold text-[var(--ink)]">
+                  {priceCeilingInput.trim() ? `≤ $${priceCeilingInput}` : "None (market rate)"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Target Contract:</span>
+                <span className="font-mono text-[var(--ink)]">
+                  OrderBook ({config.orderBook.slice(0, 6)}…{config.orderBook.slice(-4)})
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] text-[var(--ink-muted)] pt-1 border-t border-cyan-500/10">
+              Exact budget approval only &middot; Unspent funds refundable anytime on plan cancellation
+            </p>
+          </div>
+        )}
+
         {/* Submit Actions */}
         <div>
           {!walletAddress ? (
             <button
               type="button"
               onClick={onConnectWallet}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition shadow-xs flex items-center justify-center"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition shadow-xs flex items-center justify-center cursor-pointer"
             >
               Connect Wallet
             </button>
@@ -400,7 +472,7 @@ export default function RecurringView({
             <button
               type="button"
               onClick={onSwitchChain}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition flex items-center justify-center"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition flex items-center justify-center cursor-pointer"
             >
               Switch to Base
             </button>
@@ -425,7 +497,7 @@ export default function RecurringView({
               type="button"
               onClick={handleApproveTotal}
               disabled={txSubmitting}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 cursor-pointer"
             >
               {txSubmitting ? (
                 <>
@@ -441,7 +513,7 @@ export default function RecurringView({
               type="button"
               onClick={handleStartDca}
               disabled={Boolean(validationError) || txSubmitting}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-xs"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-xs cursor-pointer"
             >
               {txSubmitting ? (
                 <>
@@ -472,6 +544,8 @@ export default function RecurringView({
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* "My plans" Panel */}
       <MyPlansPanel

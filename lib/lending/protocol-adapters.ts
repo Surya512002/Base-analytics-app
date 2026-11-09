@@ -1,12 +1,9 @@
-import { encodeFunctionData, type Hex, parseAbi } from "viem";
-import { BUILDER_CODE } from "@/lib/constants/env";
-import { buildContractCall, type ContractCall } from "@/lib/utils/tx";
+import type { ContractCall } from "@/lib/utils/tx";
 import {
   buildAttributedApproveCall,
   buildAttributedMorphoSupplyCollateralCall,
   buildAttributedMorphoBorrowCall,
   buildAttributedMorphoRepayCall,
-  buildAttributedMorphoSupplyCall,
   buildAttributedMorphoWithdrawCollateralCall,
   buildAttributedVaultDepositCall,
   buildAttributedVaultWithdrawCall,
@@ -21,14 +18,6 @@ import {
 } from "./builder-attribution";
 import type { StockLendingOption } from "./unified-comparison";
 
-const MOONWELL_MTOKEN_ABI = parseAbi([
-  "function mint(uint256 mintAmount) external returns (uint256)",
-  "function redeem(uint256 redeemTokens) external returns (uint256)",
-  "function redeemUnderlying(uint256 redeemAmount) external returns (uint256)",
-  "function borrow(uint256 borrowAmount) external returns (uint256)",
-  "function repayBorrow(uint256 repayAmount) external returns (uint256)",
-]);
-
 /**
  * Build 1-click execution calls for any protocol in the Unified Stock Lending Comparison.
  * Automatically prepares approval call if needed, followed by protocol deposit/borrow/repay.
@@ -39,8 +28,9 @@ export function buildUnifiedProtocolCalls(params: {
   amountRaw: bigint;
   userAddress: `0x${string}`;
   requiresApproval?: boolean;
+  approveAmount?: bigint;
 }): ContractCall[] {
-  const { option, action, amountRaw, userAddress, requiresApproval = true } = params;
+  const { option, action, amountRaw, userAddress, requiresApproval = true, approveAmount } = params;
   const calls: ContractCall[] = [];
 
   // Determine active token for approval & action
@@ -57,7 +47,7 @@ export function buildUnifiedProtocolCalls(params: {
     (action === "supply" || action === "repay" || action === "strategy_deposit")
   ) {
     calls.push(
-      buildAttributedApproveCall(targetToken, option.contractAddress, amountRaw)
+      buildAttributedApproveCall(targetToken, option.contractAddress, approveAmount ?? amountRaw)
     );
   }
 

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "npm run build:collector && next build",
+    "build": "npm run build:collector && node --max-old-space-size=4096 node_modules/next/dist/bin/next build",
     "build:collector": "node scripts/build-collector.mjs",
     "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbopack",

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getComplianceConfig } from "@/src/config/compliance";
+import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,8 @@ export const dynamic = "force-dynamic";
  * in addition to any custom LIMIT_ORDERS_BLOCKED_COUNTRIES.
  */
 export async function GET(request: NextRequest) {
-  // G5 Feature flag: When in production and NEXT_PUBLIC_LIMIT_ORDERS_ENABLED is not "true", block route
-  const isProduction = process.env.NODE_ENV === "production";
-  const isFeatureEnabled =
-    !isProduction || process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED === "true";
-
-  if (!isFeatureEnabled) {
+  // G5 Feature flag: check single source of truth
+  if (!isLimitOrdersFeatureEnabled()) {
     return NextResponse.json(
       { error: "Limit orders feature is disabled." },
       { status: 404 }
@@ -52,6 +49,7 @@ export async function GET(request: NextRequest) {
   // 3. Determine if restricted:
   // - In production: a missing header counts as restricted for safety.
   // - In development/test: a missing header is allowed.
+  const isProduction = process.env.NODE_ENV === "production";
   let isRestricted = false;
   let reason: string | null = null;
 

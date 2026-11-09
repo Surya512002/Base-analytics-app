@@ -1,6 +1,5 @@
 import type { NormalizedMarket } from "./types";
 import { BASE_LENDING_MARKETS } from "../markets";
-import { getAddress } from "viem";
 
 /**
  * Returns verified onchain baseline markets on Base mainnet.
