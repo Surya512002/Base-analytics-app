@@ -16,7 +16,7 @@ import type { LendingMarket, ActionModalType } from "@/lib/lending/types";
 import TokenLogo from "@/components/ui/TokenLogo";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import type { ConnectionType } from "@/lib/types/wallet";
-import { parseUnits, maxUint256, formatUnits, parseAbi } from "viem";
+import { parseUnits, formatUnits, parseAbi } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatTokenAmount } from "@/lib/launchpad/format";
 import { ERC20_ABI } from "@/lib/constants/contracts";
@@ -77,7 +77,6 @@ export default function LendingActionModal({
   const [walletBalanceRaw, setWalletBalanceRaw] = useState<bigint>(BigInt(0));
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [balanceError, setBalanceError] = useState(false);
-  const [unlimitedApproval, setUnlimitedApproval] = useState(false);
 
   const availableActions: ActionModalType[] = [];
   if (market.category === "stocks_borrow" || market.category === "crypto_borrow") {
@@ -364,6 +363,12 @@ export default function LendingActionModal({
 
       // 1. Approval call for deposits/supplies/stakes/repays if allowance is insufficient
       if (action === "supply" || action === "stake" || action === "repay") {
+        // Safe approval calculation: supply & stake use exact amount; repay adds a 0.1% buffer + 1 wei
+        // to cover block-by-block interest accrual between approval and transaction execution.
+        const requiredAllowance =
+          action === "repay"
+            ? parsedAmount + (parsedAmount * BigInt(10)) / BigInt(10000) + BigInt(1)
+            : parsedAmount;
         try {
           const pub = createBasePublicClient();
           const allowance = (await pub.readContract({
@@ -372,16 +377,14 @@ export default function LendingActionModal({
             functionName: "allowance",
             args: [user, market.contractAddress],
           })) as bigint;
-          if (allowance < parsedAmount) {
-            const approveAmount = unlimitedApproval ? maxUint256 : parsedAmount;
+          if (allowance < requiredAllowance) {
             calls.push(
-              buildAttributedApproveCall(activeAsset.address, market.contractAddress, approveAmount)
+              buildAttributedApproveCall(activeAsset.address, market.contractAddress, requiredAllowance)
             );
           }
         } catch {
-          const approveAmount = unlimitedApproval ? maxUint256 : parsedAmount;
           calls.push(
-            buildAttributedApproveCall(activeAsset.address, market.contractAddress, approveAmount)
+            buildAttributedApproveCall(activeAsset.address, market.contractAddress, requiredAllowance)
           );
         }
       }
@@ -683,17 +686,12 @@ export default function LendingActionModal({
             </div>
           </div>
 
-          {/* Unlimited Approval Toggle */}
+          {/* Exact Allowance Notice */}
           {(action === "supply" || action === "stake" || action === "repay") && (
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-[var(--ink-muted)] px-1 select-none">
-              <input
-                type="checkbox"
-                checked={unlimitedApproval}
-                onChange={(e) => setUnlimitedApproval(e.target.checked)}
-                className="w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer"
-              />
-              <span>Approve unlimited allowance (faster for future transactions)</span>
-            </label>
+            <div className="flex items-center gap-1.5 text-xs text-[var(--ink-muted)] px-1 select-none">
+              <ShieldCheck size={13} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
+              <span>Exact allowance: approval is strictly scoped to this action{action === "repay" ? " (+0.1% interest buffer)" : ""}.</span>
+            </div>
           )}
 
           {/* Metrics Preview */}
