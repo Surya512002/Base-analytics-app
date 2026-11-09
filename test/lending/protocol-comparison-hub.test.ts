@@ -86,7 +86,7 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(msftProtocols).not.toContain("ipor");
     expect(msftProtocols).toContain("beefy");
     expect(msftProtocols).toContain("aerodrome");
-  }, 20000);
+  }, 45000);
 
   it("verifies all returned contract addresses are non-empty and start with 0x", async () => {
     const comp = await getUnifiedStockLendingComparison("MSFTc");

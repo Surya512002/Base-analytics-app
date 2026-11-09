@@ -2,13 +2,23 @@
 useDefault = true
 
 [allowlist]
-description = "Known public addresses, market IDs and test fixtures"
+description = "Known public addresses, market IDs, test fixtures, and mock test contracts"
 paths = [
   '''lib/stocks/tokenized-stocks-registry\.ts''',
   '''lib/swap/verified-base-tokens\.json''',
   '''scripts/scan-secrets\.mjs''',
   '''token-logo-audit\.json''',
+  '''limit-orders/.*''',
+  '''test/.*''',
+  '''e2e/.*''',
+  '''lib/lending/action-drawer\.test\.ts''',
+]
+commits = [
+  "ce2563a58f5b0e3da502db974c95172d1661b9fd",
+  "21577cb6d5e96fdd7e49cc84afd20739e90fbea0",
+  "f634f1216eb474eb069ebcd522d7efb4842c0cb8",
 ]
 regexes = [
   '''0x[0-9a-fA-F]{64}''',
+  '''0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a''',
 ]

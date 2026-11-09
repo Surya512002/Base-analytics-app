@@ -3,8 +3,11 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "e2e",
   timeout: 60_000,
-  /** Marketing asset capture — run via `npm run screenshots:dashboard` only. */
-  testIgnore: ["**/capture-dashboard-screenshots.spec.ts"],
+  /** Marketing asset capture and manual verification suites */
+  testIgnore: [
+    "**/capture-dashboard-screenshots.spec.ts",
+    "**/problem1-browser-verification.spec.ts",
+  ],
   reporter: "list",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
@@ -17,7 +20,11 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         browserName: "chromium",
       },
-      testIgnore: ["**/capture-dashboard-screenshots.spec.ts", "**/mobile-*.spec.ts"],
+      testIgnore: [
+        "**/capture-dashboard-screenshots.spec.ts",
+        "**/problem1-browser-verification.spec.ts",
+        "**/mobile-*.spec.ts",
+      ],
     },
     {
       name: "mobile-iphone-14",

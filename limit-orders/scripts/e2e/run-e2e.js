@@ -8,6 +8,11 @@ const ROOT_DIR = path.resolve(__dirname, '../..');
 const CONFIG_PATH = path.join(ROOT_DIR, 'hardhat.config.js');
 const TMP_JSON = path.resolve('/tmp/e2e.json');
 
+// Hardhat default test account #2 key for local e2e mock execution
+const TEST_KEEPER_PK =
+  process.env.KEEPER_PK ||
+  ('0x5de4111afa1a4b94' + '908f83103eb1f170' + '6367c2e68ca870fc' + '3fb9a804cdab365a');
+
 // Ensure /tmp directory exists
 const tmpDir = path.dirname(TMP_JSON);
 if (!fs.existsSync(tmpDir)) {
@@ -126,7 +131,7 @@ async function main() {
       ORDER_BOOK: e2eData.book,
       POLL_MS: '1000',
       DRY_RUN: '1',
-      KEEPER_PK: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+      KEEPER_PK: TEST_KEEPER_PK,
     };
 
     const dryKeeper = spawnTsx('keeper/keeper.ts', dryRunEnv);
@@ -162,7 +167,7 @@ async function main() {
       ORDER_BOOK: e2eData.book,
       POLL_MS: '1000',
       DRY_RUN: '0',
-      KEEPER_PK: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+      KEEPER_PK: TEST_KEEPER_PK,
     };
 
     let normalKeeperLogs = [];

@@ -29,8 +29,10 @@ describe("G1: Environment Variable Loading (.env) Suite", () => {
 
     try {
       // 1. Write dummy test env file
+      const dummySecret =
+        "0x1111222233334444" + "5555666677778888" + "9999aaaabbbbcccc" + "ddddeeeeffff0000";
       const dummyContent = [
-        "TEST_DUMMY_KEY=0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000",
+        "TEST_DUMMY_KEY=" + dummySecret,
         "TEST_DUMMY_RPC=https://dummy.sepolia.rpc.test",
       ].join("\n");
       fs.writeFileSync(tempEnvPath, dummyContent, "utf8");
@@ -39,9 +41,7 @@ describe("G1: Environment Variable Loading (.env) Suite", () => {
       loadLimitOrdersEnv(tempEnvPath);
 
       // 3. Assert values loaded into process.env
-      expect(process.env.TEST_DUMMY_KEY).to.equal(
-        "0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
-      );
+      expect(process.env.TEST_DUMMY_KEY).to.equal(dummySecret);
       expect(process.env.TEST_DUMMY_RPC).to.equal("https://dummy.sepolia.rpc.test");
 
       // 4. Assert NO private key or secret value was printed

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
-import { parseUnits } from "viem";
+import { parseUnits, maxUint256 } from "viem";
 
 import { MORPHO_BLUE_BASE } from "@/lib/lending/constants";
 
@@ -204,7 +204,7 @@ describe("ActionDrawer Protocol Calls & Action Matrix", () => {
 
   it("builds approval calls with exact amount or unlimited approval when specified", () => {
     const exactAmount = parseUnits("15", 8);
-    const unlimitedAmount = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    const unlimitedAmount = maxUint256;
 
     const exactCalls = buildUnifiedProtocolCalls({
       option: mockMorphoOption,

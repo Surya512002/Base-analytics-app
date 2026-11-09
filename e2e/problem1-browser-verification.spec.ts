@@ -1,8 +1,12 @@
 import { test, expect } from "@playwright/test";
+import fs from "fs";
 import path from "path";
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const SCREENSHOT_DIR = path.resolve(process.cwd(), "limit-orders/logs/screenshots");
+if (!fs.existsSync(SCREENSHOT_DIR)) {
+  fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+}
 
 const DUMMY_WALLET = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
