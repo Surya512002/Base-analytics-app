@@ -256,13 +256,13 @@ export default function YieldFinder({
       {/* 1. Header with View Toggle & Result Count */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center border border-[#0052FF]/20 shadow-xs shrink-0">
-            <Compass size={22} className="text-[#0052FF]" />
+          <div className="w-10 h-10 rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shadow-xs shrink-0">
+            <Compass size={22} className="text-[var(--brand-text)]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-[var(--ink)]">Yield Finder</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0052FF] text-white">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--brand)] text-white">
                 Multi-Protocol Scanner
               </span>
             </div>
@@ -286,7 +286,7 @@ export default function YieldFinder({
               title="Compact Table View"
               className={`p-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 viewMode === "compact"
-                  ? "bg-[var(--surface)] text-[#0052FF] shadow-xs"
+                  ? "bg-[var(--surface)] text-[var(--brand-text)] shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
             >
@@ -299,7 +299,7 @@ export default function YieldFinder({
               title="Cards View"
               className={`p-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 viewMode === "cards"
-                  ? "bg-[var(--surface)] text-[#0052FF] shadow-xs"
+                  ? "bg-[var(--surface)] text-[var(--brand-text)] shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
             >
@@ -367,7 +367,7 @@ export default function YieldFinder({
               placeholder="Search pool, token (e.g. USDC, NVDAc), or protocol…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-[var(--ink)] outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] transition"
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:ring-1 focus:ring-[var(--brand)] transition"
             />
             {searchQuery && (
               <button
@@ -389,7 +389,7 @@ export default function YieldFinder({
               id="yield-sort-by"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--ink)] outline-none focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] cursor-pointer transition"
+              className="px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:ring-1 focus:ring-[var(--brand)] cursor-pointer transition"
             >
               <option value="apy_desc" className="bg-[var(--surface)] text-[var(--ink)]">Highest APY</option>
               <option value="apr_desc" className="bg-[var(--surface)] text-[var(--ink)]">Highest APR / Rewards</option>
@@ -418,7 +418,7 @@ export default function YieldFinder({
                   onClick={() => setAssetCategory(cat)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer select-none active:scale-95 ${
                     active
-                      ? "bg-[#0052FF] text-white shadow-xs border border-[#0052FF]"
+                      ? "bg-[var(--brand)] text-white shadow-xs border border-[var(--brand)]"
                       : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] hover:border-[var(--border-strong)]"
                   }`}
                 >
@@ -441,7 +441,7 @@ export default function YieldFinder({
                   onClick={() => setRiskTier(tier)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer select-none active:scale-95 ${
                     active
-                      ? "bg-[#0052FF] text-white shadow-xs border border-[#0052FF]"
+                      ? "bg-[var(--brand)] text-white shadow-xs border border-[var(--brand)]"
                       : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] hover:border-[var(--border-strong)]"
                   }`}
                 >
@@ -464,7 +464,7 @@ export default function YieldFinder({
                   onClick={() => setMinTvlUsd(tvl)}
                   className={`px-2.5 py-1 rounded-xl text-[11px] font-mono font-bold transition-all duration-150 cursor-pointer select-none active:scale-95 ${
                     active
-                      ? "bg-[#0052FF] text-white shadow-xs border border-[#0052FF]"
+                      ? "bg-[var(--brand)] text-white shadow-xs border border-[var(--brand)]"
                       : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-3)] hover:border-[var(--border-strong)]"
                   }`}
                 >
@@ -477,7 +477,7 @@ export default function YieldFinder({
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-[11px] font-bold text-[#0052FF] hover:underline ml-1 cursor-pointer"
+                className="text-[11px] font-bold text-[var(--brand-text)] hover:underline ml-1 cursor-pointer"
               >
                 Reset
               </button>
@@ -497,7 +497,7 @@ export default function YieldFinder({
             <button
               type="button"
               onClick={resetFilters}
-              className="mt-2 px-3 py-1.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold cursor-pointer hover:bg-[#0047e0]"
+              className="mt-2 px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold cursor-pointer hover:opacity-90"
             >
               Reset Filters
             </button>
@@ -531,11 +531,11 @@ export default function YieldFinder({
                     {/* Strategy & Protocol */}
                     <td className="py-3 px-3.5">
                       <div className="flex flex-col">
-                        <span className="font-bold text-[var(--ink)] text-xs group-hover:text-[#0052FF] transition-colors">
+                        <span className="font-bold text-[var(--ink)] text-xs group-hover:text-[var(--brand-text)] transition-colors">
                           {pool.name}
                         </span>
                         <div className="flex items-center gap-1.5 text-[10px] text-[var(--ink-muted)] mt-0.5">
-                          <span className="font-mono uppercase font-bold text-[#0052FF]">
+                          <span className="font-mono uppercase font-bold text-[var(--brand-text)]">
                             {pool.protocolLabel}
                           </span>
                           {pool.badgeText && (
@@ -618,7 +618,7 @@ export default function YieldFinder({
                         <button
                           type="button"
                           onClick={() => onSelectPool(pool)}
-                          className="pop-pill inline-flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold bg-[#0052FF] text-white hover:bg-[#0047e0] transition text-xs shadow-xs cursor-pointer shrink-0"
+                          className="pop-pill inline-flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold bg-[var(--brand)] text-white hover:opacity-90 transition text-xs shadow-xs cursor-pointer shrink-0"
                         >
                           <span>{pool.actionType === "vault" ? "Deposit" : pool.actionType === "stake" ? "Stake" : pool.actionType === "borrow" ? "Borrow" : "Supply"}</span>
                           <ArrowRight size={12} />
@@ -641,12 +641,12 @@ export default function YieldFinder({
             return (
               <div
                 key={pool.id}
-                className="p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] hover:border-[#0052FF]/30 transition-all hover:shadow-xs space-y-3 flex flex-col justify-between"
+                className="p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] hover:border-[var(--brand)]/30 transition-all hover:shadow-xs space-y-3 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#0052FF] font-bold block">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--brand-text)] font-bold block">
                         {pool.protocolLabel}
                       </span>
                       <h4 className="text-sm font-bold text-[var(--ink)] leading-snug">{pool.name}</h4>
@@ -718,7 +718,7 @@ export default function YieldFinder({
                     <button
                       type="button"
                       onClick={() => onSelectPool(pool)}
-                      className="pop-pill w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-bold bg-[#0052FF] text-white hover:bg-[#0047e0] transition text-xs shadow-xs cursor-pointer"
+                      className="pop-pill w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-bold bg-[var(--brand)] text-white hover:opacity-90 transition text-xs shadow-xs cursor-pointer"
                     >
                       <span>{pool.actionType === "vault" ? "Deposit" : pool.actionType === "stake" ? "Stake" : pool.actionType === "borrow" ? "Borrow" : "Supply"}</span>
                       <ArrowRight size={13} />
@@ -742,7 +742,7 @@ export default function YieldFinder({
           <button
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
-            className="pop-pill inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-[#0052FF] font-bold transition cursor-pointer self-start sm:self-auto"
+            className="pop-pill inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-[var(--brand-text)] font-bold transition cursor-pointer self-start sm:self-auto"
           >
             <span>{showAll ? "Show Top 8 Opportunities" : `View All ${filteredPools.length} Opportunities`}</span>
             {showAll ? <ChevronUp size={15} /> : <ChevronDown size={15} />}

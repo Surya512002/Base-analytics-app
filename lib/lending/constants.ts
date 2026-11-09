@@ -3,6 +3,9 @@ import { BUILDER_CODE } from "@/lib/constants/env";
 
 export { BUILDER_CODE };
 
+/** Minimum TVL/Liquidity threshold for verified yield rankings ($5,000) */
+export const MIN_TVL_USD = 5000;
+
 /** Canonical Base Mainnet Protocol Addresses */
 export const MORPHO_BLUE_BASE = "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb" as const;
 export const MORPHO_ADAPTIVE_CURVE_IRM = "0x46415998764C29aB2a25CbeA6254146D50D22687" as const;

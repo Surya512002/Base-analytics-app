@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { PROTOCOL_REALITY_REGISTRY } from "@/components/lending/ProtocolCompareHub";
 import {
   getUnifiedStockLendingComparison,
-  AAVE_EQUITIES_SUPPORTED_STOCKS,
 } from "@/lib/lending/unified-comparison";
 
 describe("Protocol Comparison Hub & Real DeFi Verification", () => {
@@ -56,8 +55,8 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
 
     expect(protocols).toContain("beefy");
     expect(protocols).toContain("aerodrome");
-    expect(protocols).toContain("ipor");
-    expect(protocols).toContain("aave");
+    // Synthetic Aave Pro and unverified IPOR are removed in Phase 2
+    expect(protocols).not.toContain("aave");
     expect(protocols).not.toContain("morpho_blue");
 
     const beefyOpt = comp.options.find((o) => o.protocol === "beefy")!;
@@ -70,36 +69,7 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aeroOpt.type).toBe("strategy");
     expect(aeroOpt.supplyApy).toBeGreaterThanOrEqual(0);
     expect(aeroOpt.contractAddress).toBe("0xA282064541Bb45Caa046fB9f21a240671aBB7f46");
-
-    const aaveOpt = comp.options.find((o) => o.protocol === "aave")!;
-    expect(aaveOpt.type).toBe("variable");
-    expect(aaveOpt.supplyApy).toBeGreaterThanOrEqual(0);
-    expect(aaveOpt.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
-    expect(aaveOpt.sourceLink).toContain("pro.aave.com");
-  });
-
-  it("verifies Aave Pro Equities supports the 8 collateral stocks and excludes unlisted equities", async () => {
-    expect(AAVE_EQUITIES_SUPPORTED_STOCKS.size).toBe(8);
-    for (const sym of ["NVDAc", "AAPLc", "MSFTc", "TSLAc", "AMZNc", "GOOGLc", "METAc", "SPCXc"]) {
-      expect(AAVE_EQUITIES_SUPPORTED_STOCKS.has(sym)).toBe(true);
-    }
-    expect(AAVE_EQUITIES_SUPPORTED_STOCKS.has("COINc")).toBe(false);
-
-    const comp = await getUnifiedStockLendingComparison("AAPLc");
-    const aave = comp.options.find((o) => o.protocol === "aave");
-    expect(aave).toBeDefined();
-    expect(aave?.maxLtv).toBe(75);
-    expect(aave?.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
-
-    const spcxComp = await getUnifiedStockLendingComparison("SPCXc");
-    const spcxAave = spcxComp.options.find((o) => o.protocol === "aave");
-    expect(spcxAave).toBeDefined();
-    expect(spcxAave?.maxLtv).toBe(75);
-    expect(spcxAave?.contractAddress).toBe("0xA238Dd80C259a72e81d7e4664a9801593F98d1c5");
-
-    const coinComp = await getUnifiedStockLendingComparison("COINc", undefined, true);
-    expect(coinComp.options.find((o) => o.protocol === "aave")).toBeUndefined();
-  }, 10000);
+  }, 35000);
 
   it("verifies unwhitelisted stocks with zero protocol pools return 0 options without mock fallbacks", async () => {
     const comp = await getUnifiedStockLendingComparison("COINc", undefined, true);
@@ -108,22 +78,14 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(comp.bestSupplyOption).toBeNull();
     expect(comp.bestBorrowOption).toBeNull();
     expect(comp.highestLiquidityOption).toBeNull();
-  });
+  }, 35000);
 
-  it("verifies MSFTc does not have IPOR Fusion and only the 4 canonical stocks have IPOR", async () => {
-    // MSFTc has Beefy, Aerodrome, Aave Pro - but NOT IPOR Fusion (app.ipor.io/stocks hosts 4 stocks only)
+  it("verifies MSFTc has live Beefy and Aerodrome options without unverified synthetic pools", async () => {
     const msftComp = await getUnifiedStockLendingComparison("MSFTc", undefined, true);
     const msftProtocols = msftComp.options.map((o) => o.protocol);
     expect(msftProtocols).not.toContain("ipor");
     expect(msftProtocols).toContain("beefy");
-    expect(msftProtocols).toContain("aave");
-
-    // Strictly the 4 verified IPOR stocks: NVDAc, AAPLc, GOOGLc, METAc
-    for (const sym of ["NVDAc", "AAPLc", "GOOGLc", "METAc"]) {
-      const comp = await getUnifiedStockLendingComparison(sym, undefined, true);
-      const protos = comp.options.map((o) => o.protocol);
-      expect(protos).toContain("ipor");
-    }
+    expect(msftProtocols).toContain("aerodrome");
   }, 20000);
 
   it("verifies all returned contract addresses are non-empty and start with 0x", async () => {

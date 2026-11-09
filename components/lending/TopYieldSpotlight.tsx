@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react";
 import { formatUsd } from "@/lib/launchpad/format";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
+import { MIN_TVL_USD } from "@/lib/lending/constants";
 import type { GaugeRowData } from "./GaugesTable";
 import type { AssetMarketRow } from "./MarketsTable";
 
@@ -31,63 +32,6 @@ interface TopYieldSpotlightProps {
   className?: string;
 }
 
-// Verified onchain Base baseline values (accurate fallbacks when live indexer is loading)
-const BASELINE_YIELD_MARKETS: YieldOptionTarget[] = [
-  {
-    protocol: "aerodrome",
-    protocolName: "Aerodrome Slipstream",
-    asset: "NVDAc-USDC Gauge",
-    stockSymbol: "NVDAc",
-    contractAddress: "0xA282064541Bb45Caa046fB9f21a240671aBB7f46",
-    marketId: "aero-nvdac-usdc",
-    apy: 17.64,
-    apr: 17.64,
-    tvlUsd: 517538,
-    isAutoCompounding: false,
-    riskTier: "low",
-    typeLabel: "DEX Gauge",
-  },
-  {
-    protocol: "beefy",
-    protocolName: "Beefy Auto-Vault",
-    asset: "NVDAc-USDC Vault",
-    stockSymbol: "NVDAc",
-    contractAddress: "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
-    marketId: "stock-lend-nvda",
-    apy: 5.91,
-    apr: null,
-    tvlUsd: 207441,
-    isAutoCompounding: true,
-    riskTier: "low",
-    typeLabel: "Auto-Compounder",
-  },
-  {
-    protocol: "morpho_blue",
-    protocolName: "Morpho Blue",
-    asset: "USDC Collateral",
-    marketId: "morpho-blue-weth-usdc",
-    apy: 4.85,
-    apr: null,
-    tvlUsd: 14800000,
-    isAutoCompounding: true,
-    riskTier: "low",
-    typeLabel: "Money Market",
-  },
-  {
-    protocol: "moonwell",
-    protocolName: "Moonwell Base",
-    asset: "mUSDC Prime Market",
-    contractAddress: "0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22",
-    marketId: "moonwell-musdc",
-    apy: 4.65,
-    apr: null,
-    tvlUsd: 28500000,
-    isAutoCompounding: true,
-    riskTier: "low",
-    typeLabel: "Money Market",
-  },
-];
-
 export default function TopYieldSpotlight({
   markets = [],
   gaugeRows = [],
@@ -97,121 +41,77 @@ export default function TopYieldSpotlight({
   className = "",
 }: TopYieldSpotlightProps) {
   // Derive real live markets dynamically from verified on-chain data and pick the highest yield
-  const bestOption: YieldOptionTarget = useMemo(() => {
-    const list: YieldOptionTarget[] = BASELINE_YIELD_MARKETS.map((baseline) => {
-      // 1. Try to match live Aerodrome from gaugeRows or markets
-      if (baseline.protocol === "aerodrome") {
-        const liveGauge = gaugeRows.find(
-          (g) => g.rewardToken === "AERO" || g.pairName.toLowerCase().includes("aerodrome")
-        );
-        if (liveGauge && liveGauge.gaugeApr > 0) {
-          return {
-            ...baseline,
-            apy: Math.round(liveGauge.gaugeApr * 100) / 100,
-            apr: Math.round(liveGauge.gaugeApr * 100) / 100,
-            tvlUsd: liveGauge.tvlUsd || baseline.tvlUsd,
-            asset: liveGauge.pairName || baseline.asset,
-            stockSymbol: liveGauge.stockSymbol || baseline.stockSymbol,
-            contractAddress: liveGauge.contractAddress || baseline.contractAddress,
-          };
-        }
-        const liveMarket = markets.find((m) => m.protocol === "aerodrome" && (m.supplyApy ?? 0) > 0);
-        if (liveMarket) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMarket.supplyApy ?? 0) * 100) / 100,
-            apr: Math.round((liveMarket.stakingApr ?? liveMarket.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMarket.tvlUsd || baseline.tvlUsd,
-            contractAddress: (liveMarket.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
+  const bestOption: YieldOptionTarget | null = useMemo(() => {
+    const list: YieldOptionTarget[] = [];
 
-      // 2. Try to match live Beefy vault
-      if (baseline.protocol === "beefy") {
-        const liveBeefy = gaugeRows.find(
-          (g) => g.rewardToken === "BEEFY" || g.pairName.toLowerCase().includes("beefy")
-        );
-        if (liveBeefy && liveBeefy.gaugeApr > 0) {
-          return {
-            ...baseline,
-            apy: Math.round(liveBeefy.gaugeApr * 100) / 100,
-            apr: Math.round(liveBeefy.gaugeApr * 100) / 100,
-            tvlUsd: liveBeefy.tvlUsd || baseline.tvlUsd,
-            asset: liveBeefy.pairName || baseline.asset,
-            stockSymbol: liveBeefy.stockSymbol || baseline.stockSymbol,
-            contractAddress: liveBeefy.contractAddress || baseline.contractAddress,
-          };
-        }
-        const liveMarket = markets.find((m) => m.protocol === "beefy" && (m.supplyApy ?? 0) > 0);
-        if (liveMarket) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMarket.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMarket.tvlUsd || baseline.tvlUsd,
-            contractAddress: (liveMarket.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
+    // 1. Evaluate verified discovered markets above MIN_TVL_USD
+    for (const m of markets) {
+      const tvl = m.tvlUsd || m.liquidityUsd || 0;
+      if (tvl < MIN_TVL_USD) continue;
+      const rate = m.supplyApy > 0 ? m.supplyApy : (m.stakingApr ?? 0);
+      if (rate <= 0) continue;
 
-      // 3. Try to match live Morpho Blue market
-      if (baseline.protocol === "morpho_blue" || baseline.protocol === "morpho") {
-        const liveMorpho = markets.find(
-          (m) => (m.protocol === "morpho" || (m.protocol as string) === "morpho_blue") && (m.supplyApy ?? 0) > 0
-        );
-        if (liveMorpho) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMorpho.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMorpho.tvlUsd || baseline.tvlUsd,
-            asset: liveMorpho.supplyAsset?.symbol ? `${liveMorpho.supplyAsset.symbol} Collateral` : baseline.asset,
-            contractAddress: (liveMorpho.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
-
-      // 4. Try to match live Moonwell or Aave market
-      if (baseline.protocol === "moonwell" || baseline.protocol === "aave") {
-        const liveMoonwell = markets.find(
-          (m) => (m.protocol === "moonwell" || m.protocol === "aave") && (m.supplyApy ?? 0) > 0
-        );
-        if (liveMoonwell) {
-          return {
-            ...baseline,
-            apy: Math.round((liveMoonwell.supplyApy ?? 0) * 100) / 100,
-            tvlUsd: liveMoonwell.tvlUsd || baseline.tvlUsd,
-            asset: liveMoonwell.supplyAsset?.name || baseline.asset,
-            contractAddress: (liveMoonwell.contractAddress as string) || baseline.contractAddress,
-          };
-        }
-      }
-
-      return baseline;
-    });
-
-    // Also check if any gauge in gaugeRows has an even higher APR
-    for (const g of gaugeRows) {
-      if (g.gaugeApr > 0) {
-        list.push({
-          protocol: "aerodrome",
-          protocolName: "Aerodrome Slipstream",
-          asset: g.pairName || "LP Gauge",
-          stockSymbol: g.stockSymbol,
-          contractAddress: g.contractAddress,
-          marketId: g.id,
-          apy: Math.round(g.gaugeApr * 100) / 100,
-          apr: Math.round(g.gaugeApr * 100) / 100,
-          tvlUsd: g.tvlUsd,
-          isAutoCompounding: false,
-          riskTier: "low",
-          typeLabel: "DEX Gauge",
-        });
-      }
+      const isCompounding = m.protocol === "beefy";
+      list.push({
+        protocol: m.protocol,
+        protocolName: m.protocolLabel,
+        asset: m.supplyAsset.symbol ? `${m.supplyAsset.symbol}` : m.protocolLabel,
+        stockSymbol: m.supplyAsset.isStock
+          ? m.supplyAsset.symbol
+          : m.collateralAsset?.isStock
+            ? m.collateralAsset.symbol
+            : undefined,
+        contractAddress: m.contractAddress,
+        marketId: m.marketId,
+        apy: Math.round(rate * 100) / 100,
+        apr: m.stakingApr ? Math.round(m.stakingApr * 100) / 100 : null,
+        tvlUsd: tvl,
+        isAutoCompounding: isCompounding,
+        riskTier: "low",
+        typeLabel: isCompounding
+          ? "Auto-Compounder"
+          : m.type === "stake"
+            ? "DEX Gauge"
+            : "Money Market",
+      });
     }
+
+    // 2. Evaluate gauge rows above MIN_TVL_USD
+    for (const g of gaugeRows) {
+      const tvl = g.tvlUsd || 0;
+      if (tvl < MIN_TVL_USD) continue;
+      if (g.gaugeApr <= 0) continue;
+
+      const isBeefy = g.rewardToken?.toUpperCase() === "BEEFY";
+      const isPendle = g.rewardToken?.toUpperCase() === "PENDLE";
+      const proto = isBeefy ? "beefy" : isPendle ? "pendle" : "aerodrome";
+      const protoLabel = isBeefy
+        ? "Beefy Finance"
+        : isPendle
+          ? "Pendle Finance"
+          : "Aerodrome Finance";
+
+      list.push({
+        protocol: proto,
+        protocolName: protoLabel,
+        asset: g.pairName || "LP Gauge",
+        stockSymbol: g.stockSymbol,
+        contractAddress: g.contractAddress,
+        marketId: g.id,
+        apy: Math.round(g.gaugeApr * 100) / 100,
+        apr: Math.round(g.gaugeApr * 100) / 100,
+        tvlUsd: tvl,
+        isAutoCompounding: isBeefy,
+        riskTier: "low",
+        typeLabel: isBeefy ? "Auto-Compounder" : isPendle ? "Yield Token" : "DEX Gauge",
+      });
+    }
+
+    if (list.length === 0) return null;
 
     // Sort by APY / APR descending
     list.sort((a, b) => (b.apy ?? b.apr ?? 0) - (a.apy ?? a.apr ?? 0));
-    return list[0] || BASELINE_YIELD_MARKETS[0];
+    return list[0];
   }, [markets, gaugeRows]);
 
   const handleTriggerAction = (target: YieldOptionTarget) => {
@@ -221,6 +121,21 @@ export default function TopYieldSpotlight({
       onSelectOption(target.protocol);
     }
   };
+
+  if (!bestOption) {
+    return (
+      <div
+        className={`rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 shadow-card ${className}`}
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-[var(--brand)] animate-pulse" />
+          <span className="text-sm font-bold text-[var(--ink-muted)]">
+            Scanning verified on-chain yield opportunities on Base mainnet...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const isGauge = !bestOption.isAutoCompounding;
   const rateLabel = isGauge ? "Gauge APR" : "Net APY";
@@ -237,7 +152,7 @@ export default function TopYieldSpotlight({
               <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Top Yield Spotlight</span>
             </span>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-[#0052FF] dark:text-blue-400 border border-blue-500/20">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
               Highest Verified Return on Base
             </span>
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-muted)]">

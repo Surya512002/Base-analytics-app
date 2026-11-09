@@ -26,13 +26,10 @@ export default function CompareTable({
   const [sortBy, setSortBy] = useState<"supply" | "borrow" | "ltv" | "liquidity" | "risk">("supply");
   const [sortAsc, setSortAsc] = useState(false);
 
-  // Filter out any ghost entries with zero APY, zero borrow APR, and zero liquidity
-  const validOptions = (options || []).filter(
-    (o) => o.supplyApy > 0 || (o.borrowApr !== null && o.borrowApr > 0) || o.availableLiquidityUsd > 0
-  );
+  const displayOptions = options || [];
 
   // If this stock does not yet have active protocol pools on Base mainnet
-  if (validOptions.length === 0) {
+  if (displayOptions.length === 0) {
     return (
       <div className="w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8 text-center space-y-4 shadow-xs">
         <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
@@ -58,7 +55,7 @@ export default function CompareTable({
             href="/lend"
             className="px-4 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] text-xs font-bold hover:border-[var(--brand)] hover:text-[var(--brand-text)] transition"
           >
-            Explore 12 Supported Stocks
+            Explore Supported Stocks
           </Link>
         </div>
       </div>
@@ -66,27 +63,29 @@ export default function CompareTable({
   }
 
   // Identify best-in-column values
-  const maxSupply = Math.max(...validOptions.map((o) => o.supplyApy));
-  const validBorrows = validOptions.map((o) => o.borrowApr).filter((b): b is number => b !== null && b > 0);
+  const maxSupply = Math.max(...displayOptions.map((o) => o.supplyApy));
+  const validBorrows = displayOptions.map((o) => o.borrowApr).filter((b): b is number => b !== null && b > 0);
   const minBorrow = validBorrows.length > 0 ? Math.min(...validBorrows) : null;
-  const maxLiquidity = Math.max(...validOptions.map((o) => o.availableLiquidityUsd));
-  const validLtvs = validOptions.map((o) => o.maxLtv).filter((l): l is number => l !== null && l > 0);
+  const maxLiquidity = Math.max(...displayOptions.map((o) => o.availableLiquidityUsd));
+  const validLtvs = displayOptions.map((o) => o.maxLtv).filter((l): l is number => l !== null && l > 0);
   const maxLtv = validLtvs.length > 0 ? Math.max(...validLtvs) : null;
 
-  const sortedOptions = [...validOptions].sort((a, b) => {
+  const sortedOptions = [...displayOptions].sort((a, b) => {
     let diff = 0;
     if (sortBy === "supply") {
-      diff = b.supplyApy - a.supplyApy;
+      diff = a.supplyApy - b.supplyApy;
     } else if (sortBy === "borrow") {
-      diff = (a.borrowApr ?? 999) - (b.borrowApr ?? 999);
+      const aVal = a.borrowApr ?? 999;
+      const bVal = b.borrowApr ?? 999;
+      diff = aVal - bVal;
     } else if (sortBy === "ltv") {
-      diff = (b.maxLtv ?? 0) - (a.maxLtv ?? 0);
+      diff = (a.maxLtv ?? 0) - (b.maxLtv ?? 0);
     } else if (sortBy === "liquidity") {
-      diff = b.availableLiquidityUsd - a.availableLiquidityUsd;
+      diff = a.availableLiquidityUsd - b.availableLiquidityUsd;
     } else if (sortBy === "risk") {
       diff = a.riskScore - b.riskScore;
     }
-    return sortAsc ? -diff : diff;
+    return sortAsc ? diff : -diff;
   });
 
   const toggleSort = (field: "supply" | "borrow" | "ltv" | "liquidity" | "risk") => {
@@ -94,49 +93,51 @@ export default function CompareTable({
       setSortAsc((prev) => !prev);
     } else {
       setSortBy(field);
+      // First click on borrow and risk is ascending (lowest rate / lowest risk)
+      // First click on supply, ltv, liquidity is descending (highest yield / highest limit)
       setSortAsc(field === "borrow" || field === "risk");
     }
   };
 
   return (
-    <div className="w-full overflow-x-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
+    <div className="w-full overflow-x-auto max-h-[75vh] overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
       <table className="w-full text-left border-collapse min-w-[750px]">
-        <thead>
+        <thead className="sticky top-0 z-20 bg-[var(--surface)]">
           <tr className="border-b border-[var(--border-subtle)] text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
             {/* Sticky first column */}
-            <th className="py-3.5 px-4 sticky left-0 z-20 bg-[var(--surface)] shadow-r">Protocol</th>
-            <th className="py-3.5 px-3">Type</th>
+            <th className="py-3.5 px-4 sticky left-0 z-30 bg-[var(--surface)] shadow-r">Protocol</th>
+            <th className="py-3.5 px-3 bg-[var(--surface)]">Type</th>
             <th
               onClick={() => toggleSort("supply")}
-              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none text-emerald-600 dark:text-emerald-400"
+              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none text-emerald-600 dark:text-emerald-400 bg-[var(--surface)]"
             >
               <span className="inline-flex items-center gap-1">Supply APY <ArrowUpDown size={11} /></span>
             </th>
             <th
               onClick={() => toggleSort("borrow")}
-              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
+              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none bg-[var(--surface)]"
             >
               <span className="inline-flex items-center gap-1">Borrow APR <ArrowUpDown size={11} /></span>
             </th>
             <th
               onClick={() => toggleSort("ltv")}
-              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
+              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none bg-[var(--surface)]"
             >
               <span className="inline-flex items-center gap-1">Max LTV <ArrowUpDown size={11} /></span>
             </th>
             <th
               onClick={() => toggleSort("liquidity")}
-              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
+              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none bg-[var(--surface)]"
             >
               <span className="inline-flex items-center gap-1">Liquidity <ArrowUpDown size={11} /></span>
             </th>
             <th
               onClick={() => toggleSort("risk")}
-              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none"
+              className="py-3.5 px-3 cursor-pointer hover:text-[var(--ink)] select-none bg-[var(--surface)]"
             >
               <span className="inline-flex items-center gap-1">Risk <ArrowUpDown size={11} /></span>
             </th>
-            <th className="py-3.5 px-4 text-right">Action</th>
+            <th className="py-3.5 px-4 text-right bg-[var(--surface)]">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--border-subtle)]/60 text-xs">
@@ -177,15 +178,28 @@ export default function CompareTable({
 
                 {/* Type Badge */}
                 <td className="py-3.5 px-3">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
-                    {opt.typeLabel}
-                  </span>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                      {opt.kindChip || opt.typeLabel}
+                    </span>
+                    {opt.isLowLiquidity && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        Low liquidity
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Supply APY */}
                 <td className="py-3.5 px-3">
                   <div className="flex items-center gap-1.5 font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                    <span>{opt.supplyApy > 0 ? `${opt.supplyApy.toFixed(2)}%` : "—"}</span>
+                    <span>
+                      {opt.supplyApy > 0
+                        ? `${opt.supplyApy.toFixed(2)}%`
+                        : opt.availableLiquidityUsd > 0 && opt.role === "lp_vault"
+                          ? "0.00%"
+                          : "—"}
+                    </span>
                     {isBestSupply && (
                       <span className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center" title="Best Supply APY">
                         <Check size={9} strokeWidth={3} />
@@ -194,6 +208,9 @@ export default function CompareTable({
                   </div>
                   {opt.supplyApy === 0 && (opt.borrowApr !== null || (opt.maxLtv !== null && opt.maxLtv > 0)) && (
                     <span className="text-[10px] text-[var(--ink-muted)] block font-medium">Collateral Only</span>
+                  )}
+                  {opt.role === "lp_vault" && (
+                    <span className="text-[9px] text-[var(--ink-muted)] block">Pair with USDC</span>
                   )}
                 </td>
 
