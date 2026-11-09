@@ -58,7 +58,7 @@ export default function CompareTable({
             href="/lend"
             className="px-4 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] text-xs font-bold hover:border-[var(--brand)] hover:text-[var(--brand-text)] transition"
           >
-            Explore 12 Supported Stocks
+            Explore Supported Stocks
           </Link>
         </div>
       </div>
@@ -76,17 +76,18 @@ export default function CompareTable({
   const sortedOptions = [...validOptions].sort((a, b) => {
     let diff = 0;
     if (sortBy === "supply") {
-      diff = b.supplyApy - a.supplyApy;
+      diff = a.supplyApy - b.supplyApy;
     } else if (sortBy === "borrow") {
       diff = (a.borrowApr ?? 999) - (b.borrowApr ?? 999);
     } else if (sortBy === "ltv") {
-      diff = (b.maxLtv ?? 0) - (a.maxLtv ?? 0);
+      diff = (a.maxLtv ?? 0) - (b.maxLtv ?? 0);
     } else if (sortBy === "liquidity") {
-      diff = b.availableLiquidityUsd - a.availableLiquidityUsd;
+      diff = a.availableLiquidityUsd - b.availableLiquidityUsd;
     } else if (sortBy === "risk") {
       diff = a.riskScore - b.riskScore;
     }
-    return sortAsc ? -diff : diff;
+    // sortAsc = true: lowest first (ascending); sortAsc = false: highest first (descending)
+    return sortAsc ? diff : -diff;
   });
 
   const toggleSort = (field: "supply" | "borrow" | "ltv" | "liquidity" | "risk") => {
@@ -94,6 +95,7 @@ export default function CompareTable({
       setSortAsc((prev) => !prev);
     } else {
       setSortBy(field);
+      // First click on Borrow and Risk sorts ascending (lowest first); Supply/LTV/Liquidity sorts descending (highest first)
       setSortAsc(field === "borrow" || field === "risk");
     }
   };
@@ -104,7 +106,7 @@ export default function CompareTable({
         <thead>
           <tr className="border-b border-[var(--border-subtle)] text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
             {/* Sticky first column */}
-            <th className="py-3.5 px-4 sticky left-0 z-20 bg-[var(--surface)] shadow-r">Protocol</th>
+            <th className="py-3.5 px-4 sticky left-0 z-20 bg-[var(--surface)] border-r border-[var(--border-subtle)]">Protocol</th>
             <th className="py-3.5 px-3">Type</th>
             <th
               onClick={() => toggleSort("supply")}
@@ -149,7 +151,7 @@ export default function CompareTable({
             return (
               <tr key={opt.id} className="pop-row group transition">
                 {/* Sticky Protocol Column */}
-                <td className="py-3.5 px-4 sticky left-0 z-10 bg-[var(--surface)] group-hover:bg-[var(--surface-2)] shadow-r">
+                <td className="py-3.5 px-4 sticky left-0 z-10 bg-[var(--surface)] group-hover:bg-[var(--surface-2)] border-r border-[var(--border-subtle)]">
                   <div>
                     <span className="font-bold text-sm text-[var(--ink)]">{opt.protocolName}</span>
                     <div className="flex items-center gap-2 mt-0.5">

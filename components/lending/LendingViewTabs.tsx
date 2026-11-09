@@ -10,20 +10,22 @@ interface LendingViewTabsProps {
   onChange: (tab: LendingViewTab) => void;
   stocksCount?: number;
   vaultsCount?: number;
+  protocolsCount?: number;
 }
 
 export default function LendingViewTabs({
   value,
   onChange,
-  stocksCount = 12,
+  stocksCount,
   vaultsCount,
+  protocolsCount,
 }: LendingViewTabsProps) {
   const tabs = [
     {
       id: "stocks" as LendingViewTab,
       label: "Tokenized Stocks",
       icon: Sparkles,
-      countBadge: stocksCount > 0 ? stocksCount.toString() : undefined,
+      countBadge: stocksCount && stocksCount > 0 ? stocksCount.toString() : undefined,
     },
     {
       id: "vaults" as LendingViewTab,
@@ -41,7 +43,7 @@ export default function LendingViewTabs({
       id: "compare" as LendingViewTab,
       label: "Compare Protocols",
       icon: ArrowLeftRight,
-      countBadge: "8 Protocols",
+      countBadge: protocolsCount && protocolsCount > 0 ? `${protocolsCount} Protocols` : "Protocols",
     },
   ];
 
@@ -64,7 +66,7 @@ export default function LendingViewTabs({
             onClick={() => onChange(tab.id)}
             className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 select-none ${
               isSelected
-                ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
+                ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
             }`}
           >

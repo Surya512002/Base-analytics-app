@@ -110,7 +110,7 @@ export default function GaugesTable({
               placeholder="Filter by stock (e.g. NVDA, MSFT)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] focus:outline-none focus:border-[#0052FF]"
+              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--brand)]"
             />
             {searchQuery && (
               <button
@@ -149,19 +149,19 @@ export default function GaugesTable({
               }`}
             >
               <span>Beefy Vaults</span>
-              <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">Auto</span>
+              <span className="text-[10px] bg-white/20 px-1 py-0.5 rounded font-mono">Auto</span>
             </button>
             <button
               type="button"
               onClick={() => setProtocolFilter("aerodrome")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 protocolFilter === "aerodrome"
-                  ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
+                  ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
             >
               <span>Aerodrome Gauges</span>
-              <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">AERO</span>
+              <span className="text-[10px] bg-white/20 px-1 py-0.5 rounded font-mono">AERO</span>
             </button>
           </div>
 
@@ -176,7 +176,7 @@ export default function GaugesTable({
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
                     isSelected
-                      ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
+                      ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-xs"
                       : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
                   }`}
                 >
@@ -203,7 +203,14 @@ export default function GaugesTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]/60 text-xs">
-            {filteredGauges.map((gauge) => {
+            {filteredGauges.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-12 text-center text-xs text-[var(--ink-muted)]">
+                  No staking gauges or vaults found matching your criteria.
+                </td>
+              </tr>
+            ) : (
+              filteredGauges.map((gauge) => {
               const isBeefy = gauge.rewardToken === "BEEFY" || gauge.id.includes("beefy") || gauge.pairName.includes("Beefy");
               const isPendle = gauge.rewardToken === "PENDLE" || gauge.id.includes("pendle");
 
@@ -213,7 +220,7 @@ export default function GaugesTable({
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full shrink-0 ${
-                          isBeefy ? "bg-purple-500" : isPendle ? "bg-cyan-500" : "bg-[#0052FF]"
+                          isBeefy ? "bg-purple-500" : isPendle ? "bg-cyan-500" : "bg-[var(--brand)]"
                         }`}
                       />
                       <div>
@@ -224,12 +231,12 @@ export default function GaugesTable({
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
                               isBeefy
                                 ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
                                 : isPendle
                                   ? "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20"
-                                  : "bg-[#0052FF]/10 text-[#0052FF] dark:text-[#3B82F6] border border-[#0052FF]/20"
+                                  : "bg-[var(--brand)]/10 text-[var(--brand-text)] border border-[var(--brand)]/20"
                             }`}
                           >
                             {isBeefy ? "Beefy Finance" : isPendle ? "Pendle Finance" : "Aerodrome Gauge"}
@@ -298,7 +305,7 @@ export default function GaugesTable({
                         <button
                           type="button"
                           onClick={() => onOpenStake?.(gauge)}
-                          className="px-3 py-1.5 rounded-lg bg-[#0052FF] hover:bg-[#0045D8] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[var(--brand)] hover:opacity-90 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                         >
                           {isBeefy ? "Deposit" : "Stake"}
                         </button>
@@ -325,7 +332,8 @@ export default function GaugesTable({
                   </td>
                 </tr>
               );
-            })}
+            })
+          )}
           </tbody>
         </table>
       </div>

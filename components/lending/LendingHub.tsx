@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { BASE_STOCKS, ALL_BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isNewStock } from "@/lib/stocks/tokenized-stocks-registry";
@@ -24,7 +24,6 @@ import {
   type UserProtocolPosition,
 } from "@/lib/lending/user-positions";
 import {
-  AAVE_EQUITIES_SUPPORTED_STOCKS,
   VERIFIED_IPOR_STOCK_VAULTS,
   VERIFIED_AERODROME_STOCK_POOLS,
   VERIFIED_BEEFY_STOCK_DETAILS,
@@ -42,6 +41,8 @@ import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { batchPriceTokens } from "@/lib/portfolio/pricing";
+import { formatUnits } from "viem";
 
 interface LendingHubProps {
   app: WalletAppState;
@@ -107,20 +108,32 @@ export default function LendingHub({
     return () => clearInterval(timer);
   }, [lastUpdated]);
 
+  // Stale request tracking refs
+  const comparisonReqIdRef = useRef<number>(0);
+  const exploreReqIdRef = useRef<number>(0);
+
   // Load comparison data when selectedStockSymbol changes or on refresh
   const loadComparison = useCallback(async (symbol: string, force = false) => {
+    const reqId = ++comparisonReqIdRef.current;
     setIsLoadingComparison(true);
     try {
       const data = await getUnifiedStockLendingComparison(symbol, undefined, force);
-      setComparison(data);
-      setLastUpdated(Date.now());
-      setSecondsAgo(0);
+      if (comparisonReqIdRef.current === reqId) {
+        setComparison(data);
+        setLastUpdated(Date.now());
+        setSecondsAgo(0);
+      }
     } catch (err) {
       console.error("Failed to load comparison for stock:", symbol, err);
+      if (comparisonReqIdRef.current === reqId) {
+        showToast(`Failed to load comparison for ${symbol}`, "Please check your network connection.");
+      }
     } finally {
-      setIsLoadingComparison(false);
+      if (comparisonReqIdRef.current === reqId) {
+        setIsLoadingComparison(false);
+      }
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     if (selectedStockSymbol) {
@@ -130,13 +143,14 @@ export default function LendingHub({
     }
   }, [selectedStockSymbol, loadComparison]);
 
-  // Periodic background refresh for active comparison (every 20s)
+  // Periodic background refresh for active comparison (every 20s, paused when tab hidden)
   useEffect(() => {
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       if (selectedStockSymbol) {
-        loadComparison(selectedStockSymbol, true);
-      } else {
-        setLastUpdated(Date.now());
+        void loadComparison(selectedStockSymbol, true);
       }
     }, 20_000);
     return () => clearInterval(interval);
@@ -170,34 +184,31 @@ export default function LendingHub({
         const pub = createBasePublicClient();
         const user = userAddress as `0x${string}`;
 
-        // Canonical stocks to query balances
+        // Canonical stocks to query balances via single multicall
         const topStocks = BASE_STOCKS;
-        const calls = topStocks.map((stk) =>
-          pub
-            .readContract({
-              address: stk.address,
-              abi: [
-                {
-                  name: "balanceOf",
-                  type: "function",
-                  stateMutability: "view",
-                  inputs: [{ name: "account", type: "address" }],
-                  outputs: [{ name: "", type: "uint256" }],
-                },
-              ],
-              functionName: "balanceOf",
-              args: [user],
-            })
-            .catch(() => BigInt(0))
-        );
+        const contracts = topStocks.map((stk) => ({
+          address: stk.address,
+          abi: [
+            {
+              name: "balanceOf",
+              type: "function",
+              stateMutability: "view",
+              inputs: [{ name: "account", type: "address" }],
+              outputs: [{ name: "", type: "uint256" }],
+            },
+          ] as const,
+          functionName: "balanceOf" as const,
+          args: [user] as const,
+        }));
 
-        const results = await Promise.all(calls);
+        const results = await pub.multicall({ contracts });
         if (!alive) return;
 
         const mapping: Record<string, number> = {};
         topStocks.forEach((stk, idx) => {
-          const raw = results[idx] ?? BigInt(0);
-          const bal = Number(raw) / 10 ** stk.decimals;
+          const res = results[idx];
+          const raw = res && res.status === "success" ? (res.result as bigint) : BigInt(0);
+          const bal = parseFloat(formatUnits(raw, stk.decimals)) || 0;
           mapping[stk.symbol] = bal;
         });
 
@@ -215,10 +226,44 @@ export default function LendingHub({
     };
   }, [userAddress]);
 
+  // Real feed & oracle prices for tokenized stocks
+  const [stockPrices, setStockPrices] = useState<Record<string, { priceUsd: number | null; priceChange24h: number | null }>>({});
+
+  useEffect(() => {
+    let alive = true;
+    async function fetchPrices() {
+      try {
+        const addresses = ALL_BASE_STOCKS.map((s) => s.address as `0x${string}`);
+        const priceMap = await batchPriceTokens(addresses);
+        if (!alive) return;
+        const prices: Record<string, { priceUsd: number | null; priceChange24h: number | null }> = {};
+        priceMap.forEach((v, k) => {
+          prices[k.toLowerCase()] = {
+            priceUsd: v.priceUsd,
+            priceChange24h: v.priceChange24h,
+          };
+        });
+        setStockPrices(prices);
+      } catch (err) {
+        console.warn("[LendingHub] Failed to fetch real stock prices:", err);
+      }
+    }
+    void fetchPrices();
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      void fetchPrices();
+    }, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   // Discovered markets state from /api/markets, seeded with verified onchain baseline
   const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>(() => getBaselineVerifiedMarkets());
   const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
   const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
+  const [isMarketsStale, setIsMarketsStale] = useState(false);
   const [showAllStocks, setShowAllStocks] = useState(false);
 
   const fetchDiscoveredMarkets = useCallback(async (refresh = false) => {
@@ -229,21 +274,29 @@ export default function LendingHub({
         const data = await res.json();
         if (data.ok && Array.isArray(data.markets) && data.markets.length > 0) {
           setDiscoveredMarkets(data.markets);
+          setIsMarketsStale(false);
+          const errs: Record<string, string> = {};
           if (data.protocolStatus && typeof data.protocolStatus === "object") {
-            const errs: Record<string, string> = {};
             for (const [k, v] of Object.entries(data.protocolStatus as Record<string, { status?: string; error?: string }>)) {
               if (v?.status === "error") {
                 errs[k] = v.error || "Error";
               }
             }
-            setProtocolErrors(errs);
           }
+          // Clear old protocolErrors for healthy protocols by setting exact current active errors
+          setProtocolErrors(errs);
           setLastUpdated(Date.now());
           setSecondsAgo(0);
+        } else {
+          // Empty response: preserve last good data, mark as stale
+          setIsMarketsStale(true);
         }
+      } else {
+        setIsMarketsStale(true);
       }
     } catch (e) {
       console.warn("Discovered markets fetch error:", e);
+      setIsMarketsStale(true);
     } finally {
       setIsLoadingDiscovered(false);
     }
@@ -290,14 +343,11 @@ export default function LendingHub({
 
       // 3. Aave Pro (Equities Collateral Lending Hub on Base)
       const aaveMkt = matchingMarkets.find((m) => m.protocol === "aave");
-      const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol);
-      const isSpcx = stk.symbol === "SPCXc";
-      const aaveSupplyApy = aaveMkt?.supplyApy ?? (isSpcx ? 5.25 : 0);
-      const aaveBorrowApr = aaveMkt?.borrowApr ?? (isAaveSupported ? 3.75 : null);
-      const aaveLiquidity = aaveMkt?.liquidityUsd || (isSpcx ? 14900000 : isAaveSupported ? 14800000 : 0);
+      const aaveSupplyApy = aaveMkt?.supplyApy ?? 0;
+      const aaveBorrowApr = aaveMkt?.borrowApr ?? null;
+      const aaveLiquidity = aaveMkt?.liquidityUsd || aaveMkt?.tvlUsd || 0;
       const hasAave = Boolean(
-        (aaveMkt && (aaveMkt.supplyApy > 0 || (aaveMkt.borrowApr ?? 0) > 0 || aaveMkt.liquidityUsd > 0)) ||
-        (isAaveSupported && (aaveSupplyApy > 0 || (aaveBorrowApr ?? 0) > 0 || aaveLiquidity > 0))
+        aaveMkt && (aaveMkt.supplyApy > 0 || (aaveMkt.borrowApr ?? 0) > 0 || aaveMkt.liquidityUsd > 0)
       );
 
       // 4. IPOR Fusion (Stock Carry Trade & Lending Plasma Vaults on Base)
@@ -427,7 +477,7 @@ export default function LendingHub({
         0
       );
       if (totalLiquidityUsd === 0) {
-        totalLiquidityUsd = (hasBeefy ? beefyLiquidity : 0) + (hasAero ? aeroLiquidity : 0) + (isSpcx ? aaveLiquidity : 0) + (hasIpor ? iporLiquidity : 0);
+        totalLiquidityUsd = (hasBeefy ? beefyLiquidity : 0) + (hasAero ? aeroLiquidity : 0) + (hasAave ? aaveLiquidity : 0) + (hasIpor ? iporLiquidity : 0);
       }
 
       // Check if newly listed (within last 7 days)
@@ -436,49 +486,12 @@ export default function LendingHub({
       const riskFlags = Array.from(new Set(matchingMarkets.flatMap((m) => m.riskFlags)));
       const oracleVerified = matchingMarkets.length > 0 ? !riskFlags.includes("UNKNOWN_ORACLE") : false;
 
-      const priceUsd =
-        stk.symbol === "NVDAc"
-          ? 138.25
-          : stk.symbol === "AAPLc"
-            ? 232.5
-            : stk.symbol === "TSLAc"
-              ? 221.8
-              : stk.symbol === "COINc"
-                ? 184.5
-                : stk.symbol === "MSFTc"
-                  ? 428.1
-                  : stk.symbol === "GOOGLc"
-                    ? 182.2
-                    : stk.symbol === "METAc"
-                      ? 590.4
-                      : stk.symbol === "AMZNc"
-                        ? 198.8
-                        : stk.symbol === "MSTRc"
-                          ? 242.0
-                          : stk.symbol === "INTCc"
-                            ? 23.4
-                            : stk.symbol === "AMDc"
-                              ? 156.3
-                              : stk.symbol === "SKHYc"
-                                ? 138.0
-                                : stk.symbol === "ORCLc"
-                                  ? 176.5
-                                  : stk.symbol === "NFLXc"
-                                    ? 715.0
-                                    : stk.symbol === "HIMSc"
-                                      ? 24.2
-                                      : stk.symbol === "LLYc"
-                                        ? 825.0
-                                        : stk.symbol === "CBRSc"
-                                          ? 38.0
-                                          : stk.symbol === "PYPLc"
-                                            ? 81.2
-                                            : stk.symbol === "RBLXc"
-                                              ? 47.5
-                                              : 125.0;
+      const priceInfo = stockPrices[stk.address.toLowerCase()];
+      const priceUsd = priceInfo?.priceUsd ?? null;
+      const priceChange24h = priceInfo?.priceChange24h ?? null;
 
       const bal = walletBalances[stk.symbol] ?? null;
-      const balUsd = bal !== null ? bal * priceUsd : null;
+      const balUsd = bal !== null && priceUsd !== null ? bal * priceUsd : null;
 
       return {
         symbol: stk.symbol,
@@ -486,7 +499,7 @@ export default function LendingHub({
         category: stk.category ?? "tech",
         address: stk.address,
         priceUsd,
-        priceChange24h: 1.25,
+        priceChange24h,
         bestSupplyApy,
         bestSupplyProtocol,
         bestBorrowApr,
@@ -500,9 +513,11 @@ export default function LendingHub({
         riskFlags,
         oracleVerified,
         protocolRates,
+        utilization: matchingMarkets.find((m) => m.utilization !== undefined)?.utilization ?? null,
+        riskTier: (riskFlags.length > 1 ? "degen" : riskFlags.length === 1 ? "medium" : "low") as "low" | "medium" | "degen",
       };
     });
-  }, [discoveredMarkets, walletBalances, showAllStocks]);
+  }, [discoveredMarkets, walletBalances, showAllStocks, stockPrices]);
 
   // All Markets Rows (strictly verified tokenized stocks)
   const allMarketsRows: AssetMarketRow[] = useMemo(() => {
@@ -538,31 +553,36 @@ export default function LendingHub({
     return liveVaults;
   }, [discoveredMarkets]);
 
-  // 3. Live Stats Calculations for Header
+  // 3. Live Stats Calculations for Header (Active markets only, no double counting, no fake 50 fallback)
   const headerStats = useMemo(() => {
     let topSupply = 0;
     let lowestBorrow = 999;
     let totalLiquidity = 0;
 
-    allMarketsRows.forEach((r) => {
-      if (r.hasLendingMarket) {
-        if (r.bestSupplyApy > topSupply) topSupply = r.bestSupplyApy;
-        if (r.bestBorrowApr && r.bestBorrowApr > 0 && r.bestBorrowApr < lowestBorrow) {
-          lowestBorrow = r.bestBorrowApr;
-        }
-        totalLiquidity += r.totalLiquidityUsd;
-      }
-    });
+    const activeMarkets = discoveredMarkets.filter((m) => m.status === "active");
+    const seenMarkets = new Set<string>();
 
-    const verifiedPools = discoveredMarkets.length > 0 ? discoveredMarkets.length : 50;
+    activeMarkets.forEach((m) => {
+      const key = m.marketId || m.contractAddress;
+      if (key && seenMarkets.has(key)) return;
+      if (key) seenMarkets.add(key);
+
+      if (m.supplyApy > topSupply) topSupply = m.supplyApy;
+      if (m.borrowApr && m.borrowApr > 0 && m.borrowApr < lowestBorrow) {
+        lowestBorrow = m.borrowApr;
+      }
+      // Never add TVL and liquidity together; prioritize liquidityUsd, fallback to tvlUsd
+      const poolLiquidity = m.liquidityUsd > 0 ? m.liquidityUsd : (m.tvlUsd > 0 ? m.tvlUsd : 0);
+      totalLiquidity += poolLiquidity;
+    });
 
     return {
       topSupplyApy: topSupply > 0 ? topSupply : 0,
       lowestBorrowApr: lowestBorrow < 999 ? lowestBorrow : 0,
       totalLiquidityUsd: totalLiquidity,
-      verifiedPoolsCount: verifiedPools,
+      verifiedPoolsCount: activeMarkets.length,
     };
-  }, [allMarketsRows, discoveredMarkets]);
+  }, [discoveredMarkets]);
 
   // 4. Real On-chain User Positions
   const [userPositions, setUserPositions] = useState<UserProtocolPosition[]>([]);
@@ -573,54 +593,6 @@ export default function LendingHub({
   const [positionsSecondsAgo, setPositionsSecondsAgo] = useState<number>(0);
   const [isMockPositionsData, setIsMockPositionsData] = useState<boolean>(false);
   const [isWrongNetwork, setIsWrongNetwork] = useState<boolean>(false);
-
-  // Check if wallet is on Base (8453 / 0x2105)
-  useEffect(() => {
-    if (!isConnected || typeof window === "undefined") {
-      setIsWrongNetwork(false);
-      return;
-    }
-    let alive = true;
-    async function checkChain() {
-      try {
-        const providerType = (connType ?? "injected") as "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected";
-        const provider = (await getEip1193Provider(providerType)) as {
-          request: (args: { method: string }) => Promise<unknown>;
-        } | null;
-        if (provider?.request) {
-          const chainId = (await provider.request({ method: "eth_chainId" })) as string;
-          const normalized = chainId?.toLowerCase();
-          if (alive) {
-            setIsWrongNetwork(Boolean(normalized && normalized !== "0x2105" && normalized !== "8453"));
-          }
-        }
-      } catch {
-        if (alive) setIsWrongNetwork(false);
-      }
-    }
-    void checkChain();
-    return () => {
-      alive = false;
-    };
-  }, [isConnected, connType]);
-
-  const handleSwitchNetwork = async () => {
-    try {
-      const providerType = (connType ?? "injected") as "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected";
-      const provider = (await getEip1193Provider(providerType)) as {
-        request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-      } | null;
-      if (provider) {
-        await ensureBaseNetwork(provider);
-        setIsWrongNetwork(false);
-        if (userAddress) {
-          void loadUserPositions(userAddress, true);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to switch to Base network:", e);
-    }
-  };
 
   // Master positions reader
   const loadUserPositions = useCallback(async (addr: string, isManual = false) => {
@@ -642,6 +614,88 @@ export default function LendingHub({
       setIsRefreshingPositions(false);
     }
   }, []);
+
+  // Check if wallet is on Base (8453 / 0x2105) and listen for chainChanged / accountsChanged
+  useEffect(() => {
+    if (!isConnected || typeof window === "undefined") {
+      setIsWrongNetwork(false);
+      return;
+    }
+    let alive = true;
+    let activeProvider: {
+      request: (args: { method: string }) => Promise<unknown>;
+      on?: (event: string, handler: (...args: unknown[]) => void) => void;
+      removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
+    } | null = null;
+
+    const handleChain = (chainIdHex: unknown) => {
+      if (!alive) return;
+      const normalized = String(chainIdHex).toLowerCase();
+      const wrong = Boolean(normalized && normalized !== "0x2105" && normalized !== "8453");
+      setIsWrongNetwork(wrong);
+      if (!wrong && userAddress) {
+        void loadUserPositions(userAddress, true);
+      }
+    };
+
+    const handleAccounts = (accounts: unknown) => {
+      if (!alive) return;
+      const list = Array.isArray(accounts) ? accounts : [];
+      if (list.length > 0 && typeof list[0] === "string") {
+        void loadUserPositions(list[0], true);
+      } else {
+        setUserPositions([]);
+      }
+    };
+
+    async function checkChainAndAttachListeners() {
+      try {
+        const providerType = (connType ?? "injected") as "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected";
+        const provider = (await getEip1193Provider(providerType)) as typeof activeProvider;
+        activeProvider = provider;
+        if (provider?.request) {
+          const chainId = (await provider.request({ method: "eth_chainId" })) as string;
+          const normalized = chainId?.toLowerCase();
+          if (alive) {
+            setIsWrongNetwork(Boolean(normalized && normalized !== "0x2105" && normalized !== "8453"));
+          }
+          if (provider.on) {
+            provider.on("chainChanged", handleChain);
+            provider.on("accountsChanged", handleAccounts);
+          }
+        }
+      } catch {
+        if (alive) setIsWrongNetwork(false);
+      }
+    }
+    void checkChainAndAttachListeners();
+
+    return () => {
+      alive = false;
+      if (activeProvider?.removeListener) {
+        activeProvider.removeListener("chainChanged", handleChain);
+        activeProvider.removeListener("accountsChanged", handleAccounts);
+      }
+    };
+  }, [isConnected, connType, userAddress, loadUserPositions]);
+
+  const handleSwitchNetwork = async () => {
+    try {
+      const providerType = (connType ?? "injected") as "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected";
+      const provider = (await getEip1193Provider(providerType)) as {
+        request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+      } | null;
+      if (provider) {
+        await ensureBaseNetwork(provider);
+        setIsWrongNetwork(false);
+        if (userAddress) {
+          void loadUserPositions(userAddress, true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to switch to Base network:", e);
+    }
+  };
 
   // Invalidate and clear immediately on disconnect or account switch
   useEffect(() => {
@@ -694,12 +748,28 @@ export default function LendingHub({
       ]);
       setPositionsErrors((prev) => {
         const copy = { ...prev };
-        delete copy[protocol];
+        for (const k of Object.keys(copy)) {
+          if (
+            k.toLowerCase() === protocol.toLowerCase() ||
+            k.toLowerCase().includes(protocol.toLowerCase()) ||
+            protocol.toLowerCase().includes(k.toLowerCase())
+          ) {
+            delete copy[k];
+          }
+        }
         return copy;
       });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Retry failed";
-      setPositionsErrors((prev) => ({ ...prev, [protocol]: msg }));
+      setPositionsErrors((prev) => {
+        const key =
+          Object.keys(prev).find(
+            (k) =>
+              k.toLowerCase() === protocol.toLowerCase() ||
+              k.toLowerCase().includes(protocol.toLowerCase())
+          ) ?? protocol;
+        return { ...prev, [key]: msg };
+      });
     } finally {
       setIsRefreshingPositions(false);
     }
@@ -720,15 +790,17 @@ export default function LendingHub({
     setMarketModalAction(action);
   };
 
-  // Handle Explore Vault click from YieldCalculator
+  // Handle Explore Vault click from YieldCalculator or TopYieldSpotlight
   const handleExploreYieldOption = async (option: {
     protocol: string;
     stockSymbol?: string;
     contractAddress?: string;
     marketId?: string;
   }) => {
-    const sym = option.stockSymbol || "NVDAc";
-    setSelectedStockSymbol(sym);
+    // Only select stock symbol if explicitly provided (never default to NVDAc)
+    if (option.stockSymbol) {
+      setSelectedStockSymbol(option.stockSymbol);
+    }
 
     // 1. Direct match in BASE_LENDING_MARKETS (Beefy, Morpho, Moonwell, Aerodrome)
     const matchedMarket =
@@ -736,13 +808,21 @@ export default function LendingHub({
         (m) =>
           (option.marketId && m.id === option.marketId) ||
           (option.contractAddress &&
-            m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-          (m.protocol.toLowerCase() === option.protocol.toLowerCase() &&
-            (!option.stockSymbol || m.asset.symbol.toLowerCase().includes(sym.toLowerCase())))
+            m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase())
       ) ||
-      BASE_LENDING_MARKETS.find(
-        (m) => m.protocol.toLowerCase() === option.protocol.toLowerCase()
-      );
+      (option.stockSymbol
+        ? BASE_LENDING_MARKETS.find(
+            (m) =>
+              (m.protocol.toLowerCase() === option.protocol.toLowerCase() ||
+                (option.protocol.toLowerCase().includes("morpho") && m.protocol === "morpho")) &&
+              m.asset.symbol.toLowerCase().includes(option.stockSymbol!.toLowerCase())
+          )
+        : BASE_LENDING_MARKETS.find(
+            (m) =>
+              m.protocol.toLowerCase() === option.protocol.toLowerCase() ||
+              (option.protocol.toLowerCase().includes("morpho") && m.protocol === "morpho") ||
+              (option.protocol.toLowerCase().includes("moonwell") && m.protocol === "moonwell")
+          ));
 
     if (matchedMarket) {
       const isStake =
@@ -758,7 +838,7 @@ export default function LendingHub({
         (option.marketId && g.id === option.marketId) ||
         (option.contractAddress &&
           g.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-        g.stockSymbol?.toLowerCase() === sym.toLowerCase()
+        (option.stockSymbol && g.stockSymbol?.toLowerCase() === option.stockSymbol.toLowerCase())
     );
 
     if (gaugeMatch) {
@@ -795,27 +875,35 @@ export default function LendingHub({
       return;
     }
 
-    // 3. Try to load options for Level 3 drawer
-    try {
-      setActiveTab("stocks");
-      const res = await getUnifiedStockLendingComparison(sym);
-      setComparison(res);
+    // 3. Try to load options for Level 3 drawer if stockSymbol is present
+    if (option.stockSymbol) {
+      const sym = option.stockSymbol;
+      const reqId = ++exploreReqIdRef.current;
+      try {
+        setActiveTab("stocks");
+        const res = await getUnifiedStockLendingComparison(sym);
+        if (exploreReqIdRef.current !== reqId) return;
+        setComparison(res);
 
-      const matchedOption =
-        res.options.find(
-          (opt) =>
-            opt.protocol.toLowerCase().includes(option.protocol.toLowerCase()) ||
-            option.protocol.toLowerCase().includes(opt.protocol.toLowerCase())
-        ) ||
-        res.bestSupplyOption ||
-        res.options[0];
+        const matchedOption =
+          res.options.find(
+            (opt) =>
+              opt.protocol.toLowerCase().includes(option.protocol.toLowerCase()) ||
+              option.protocol.toLowerCase().includes(opt.protocol.toLowerCase())
+          ) ||
+          res.bestSupplyOption ||
+          res.options[0];
 
-      if (matchedOption) {
-        handleOpenStockDrawer(matchedOption, "supply");
-        return;
+        if (matchedOption) {
+          handleOpenStockDrawer(matchedOption, "supply");
+          return;
+        }
+      } catch (e) {
+        if (exploreReqIdRef.current === reqId) {
+          console.warn("Failed to load options for yield calculator selection:", e);
+          showToast(`Failed to load options for ${sym}`, "Please check your network connection.");
+        }
       }
-    } catch (e) {
-      console.warn("Failed to load options for yield calculator selection:", e);
     }
 
     // 4. Default fallback: Search in BASE_LENDING_MARKETS
@@ -825,7 +913,8 @@ export default function LendingHub({
           (option.marketId && m.id === option.marketId) ||
           (option.contractAddress &&
             m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-          m.protocol.toLowerCase() === option.protocol.toLowerCase()
+          m.protocol.toLowerCase() === option.protocol.toLowerCase() ||
+          option.protocol.toLowerCase().includes(m.protocol.toLowerCase())
       ) || BASE_LENDING_MARKETS[0];
 
     if (fallbackMarket) {
@@ -874,6 +963,27 @@ export default function LendingHub({
       ? currentStockBalance * comparison.navUsd
       : null;
 
+  // Sticky Connected Portfolio Summary
+  const stickySummary = useMemo(() => {
+    if (!isConnected || userPositions.length === 0) return null;
+    const totalSupplied = userPositions.reduce((acc, p) => acc + p.suppliedUsd, 0);
+    const totalBorrowed = userPositions.reduce((acc, p) => acc + p.borrowedUsd, 0);
+    const netApy =
+      totalSupplied > 0
+        ? userPositions.reduce((acc, p) => acc + p.suppliedUsd * p.apy, 0) / totalSupplied
+        : 0;
+    const debtPositions = userPositions.filter((p) => p.borrowedUsd > 0 && p.healthFactor !== null);
+    const lowestHF =
+      debtPositions.length > 0 ? Math.min(...debtPositions.map((p) => p.healthFactor!)) : null;
+
+    return {
+      totalSupplied,
+      totalBorrowed,
+      netApy,
+      healthFactor: lowestHF,
+    };
+  }, [isConnected, userPositions]);
+
   return (
     <div className="space-y-6 pb-16 animate-meridian-rise">
       {/* 1. COMPACT HEADER WITH LIVE STATS & DISCLAIMER */}
@@ -883,9 +993,56 @@ export default function LendingHub({
         totalLiquidityUsd={headerStats.totalLiquidityUsd}
         verifiedPoolsCount={headerStats.verifiedPoolsCount}
         lastUpdatedSecondsAgo={secondsAgo}
+        isStale={isMarketsStale}
         onRefresh={handleManualRefresh}
         isRefreshing={isRefreshing}
       />
+
+      {/* Sticky Connected Summary Bar */}
+      {isConnected && stickySummary && (
+        <div className="sticky top-2 z-20 backdrop-blur-md bg-[var(--surface-3)]/95 border border-[var(--border-subtle)] rounded-2xl p-3 px-4 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-bold text-[var(--ink)]">Portfolio Snapshot:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            <div>
+              <span className="text-[var(--ink-muted)] text-[11px] block">Supplied</span>
+              <span className="font-mono font-bold text-[var(--ink)]">
+                ${stickySummary.totalSupplied.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div>
+              <span className="text-[var(--ink-muted)] text-[11px] block">Borrowed</span>
+              <span className="font-mono font-bold text-[var(--ink)]">
+                ${stickySummary.totalBorrowed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div>
+              <span className="text-[var(--ink-muted)] text-[11px] block">Net APY</span>
+              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                {stickySummary.netApy > 0 ? `+${stickySummary.netApy.toFixed(2)}%` : "0.00%"}
+              </span>
+            </div>
+            <div>
+              <span className="text-[var(--ink-muted)] text-[11px] block">Health Factor</span>
+              <span
+                className={`font-mono font-bold ${
+                  stickySummary.healthFactor === null
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : stickySummary.healthFactor >= 1.5
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : stickySummary.healthFactor >= 1.15
+                        ? "text-amber-500"
+                        : "text-rose-500"
+                }`}
+              >
+                {stickySummary.healthFactor !== null ? stickySummary.healthFactor.toFixed(2) : "∞ (Safe)"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. YOUR POSITIONS & HEALTH (Real on-chain positions) */}
       <PositionsPanel
@@ -903,6 +1060,7 @@ export default function LendingHub({
         lastUpdatedSecondsAgo={positionsSecondsAgo}
         onRequestConnect={onRequestConnect}
         isMockData={isMockPositionsData}
+        onShowToast={(title, desc) => showToast(title, desc ?? "")}
         onOpenAction={(marketId, action) => {
           // Check if it's a gauge action
           const gaugeMatch = gaugeRows.find(
@@ -972,6 +1130,7 @@ export default function LendingHub({
               })
               .catch((e) => {
                 console.error("Failed to load position option:", e);
+                showToast("Failed to load position details", "Please try again or check network connection.");
               });
           }
         }}
@@ -996,8 +1155,9 @@ export default function LendingHub({
             setActiveTab(newTab);
             setSelectedStockSymbol(null);
           }}
-          stocksCount={BASE_STOCKS.length}
+          stocksCount={showAllStocks ? ALL_BASE_STOCKS.length : BASE_STOCKS.length}
           vaultsCount={gaugeRows.length}
+          protocolsCount={new Set(discoveredMarkets.filter((m) => m.status === "active").map((m) => m.protocol)).size || undefined}
         />
       </div>
 
@@ -1073,6 +1233,7 @@ export default function LendingHub({
       ) : activeTab === "compare" ? (
         /* REAL MULTI-PROTOCOL TOKENIZED STOCKS COMPARISON TOOL */
         <ProtocolCompareHub
+          markets={discoveredMarkets}
           onSelectStock={(symbol) => {
             setActiveTab("stocks");
             setSelectedStockSymbol(symbol);
@@ -1120,6 +1281,7 @@ export default function LendingHub({
           initialTab={drawerInitialTab}
           userAddress={userAddress}
           connType={connType}
+          userPositions={userPositions}
           onRequestConnect={onRequestConnect}
           onSuccess={() => {
             showToast("Transaction executed successfully!", "Attributed with Base Builder Code");
