@@ -46,16 +46,22 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     await expect(ordersTab).toBeVisible();
     await ordersTab.click();
 
-    // Verify Order Type selector options: Limit buy, Take-profit, Stop-loss, Trailing stop, Bracket
-    await expect(page.locator('button:has-text("Limit buy")')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('button:has-text("Take-profit")')).toBeVisible();
-    await expect(page.locator('button:has-text("Stop-loss")')).toBeVisible();
-    await expect(page.locator('button:has-text("Trailing stop")')).toBeVisible();
-    await expect(page.locator('button:has-text("Bracket")')).toBeVisible();
+    // Verify Orders tab content:
+    // On Base mainnet without deployed order book (default in CI), displays the informational placeholder.
+    // On Base Sepolia (or when order book is deployed), displays full order book options.
+    const mainnetNotice = page.locator('text="Orders aren\'t live on Base mainnet yet"');
+    if (await mainnetNotice.isVisible({ timeout: 5000 })) {
+      await expect(page.locator('button:has-text("Switch to Base Sepolia")')).toBeVisible();
+    } else {
+      await expect(page.locator('button:has-text("Limit buy")')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('button:has-text("Take-profit")')).toBeVisible();
+      await expect(page.locator('button:has-text("Stop-loss")')).toBeVisible();
+      await expect(page.locator('button:has-text("Trailing stop")')).toBeVisible();
+      await expect(page.locator('button:has-text("Bracket")')).toBeVisible();
 
-    // Verify input fields and connect wallet button
-    const amountInput = page.locator("#order-amount-input");
-    await expect(amountInput).toBeVisible();
+      const amountInput = page.locator("#order-amount-input");
+      await expect(amountInput).toBeVisible();
+    }
 
     // Verify no horizontal overflow blowout on desktop
     const isOverflowing = await page.evaluate(() => {
@@ -68,9 +74,14 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     await expect(recurringTab).toBeVisible();
     await recurringTab.click();
 
-    // Verify DCA elements: amount per buy, frequency presets
-    await expect(page.locator("body")).toContainText(/Amount Per Buy|Repeat Every|Price Ceiling/i, { timeout: 10000 });
-    await expect(page.locator('button:has-text("1 day")')).toBeVisible();
+    // Verify Recurring tab content (mainnet notice or DCA form)
+    const recurringNotice = page.locator('text="Recurring buys aren\'t live on Base mainnet yet"');
+    if (await recurringNotice.isVisible({ timeout: 5000 })) {
+      await expect(page.locator('button:has-text("Switch to Base Sepolia")')).toBeVisible();
+    } else {
+      await expect(page.locator("body")).toContainText(/Amount Per Buy|Repeat Every|Price Ceiling/i, { timeout: 10000 });
+      await expect(page.locator('button:has-text("1 day")')).toBeVisible();
+    }
 
     // Verify no fatal console errors
     const fatalErrors = consoleErrors.filter(
@@ -94,12 +105,26 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     await expect(ordersTab).toBeVisible();
     await ordersTab.click();
 
-    // Verify Order Type buttons are reachable and tap-friendly (min height 32px)
-    const limitBuyBtn = page.locator('button:has-text("Limit buy")');
-    await expect(limitBuyBtn).toBeVisible();
-    const box = await limitBuyBtn.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.height).toBeGreaterThanOrEqual(28);
+    // Verify Orders tab elements on mobile (mainnet notice or order buttons)
+    const mainnetNotice = page.locator('text="Orders aren\'t live on Base mainnet yet"');
+    if (await mainnetNotice.isVisible({ timeout: 5000 })) {
+      const switchBtn = page.locator('button:has-text("Switch to Base Sepolia")');
+      await expect(switchBtn).toBeVisible();
+      const box = await switchBtn.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.height).toBeGreaterThanOrEqual(28);
+    } else {
+      const limitBuyBtn = page.locator('button:has-text("Limit buy")');
+      await expect(limitBuyBtn).toBeVisible();
+      const box = await limitBuyBtn.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.height).toBeGreaterThanOrEqual(28);
+
+      // Click Trailing stop to test dynamic trail inputs at 360px
+      const trailingStopBtn = page.locator('button:has-text("Trailing stop")');
+      await trailingStopBtn.click();
+      await expect(page.locator("body")).toContainText(/Trail Distance/i);
+    }
 
     // Verify no horizontal overflow blowout at 360px
     const isOverflowingMobile = await page.evaluate(() => {
@@ -107,15 +132,17 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     });
     expect(isOverflowingMobile).toBe(false);
 
-    // Click Trailing stop to test dynamic trail inputs at 360px
-    const trailingStopBtn = page.locator('button:has-text("Trailing stop")');
-    await trailingStopBtn.click();
-    await expect(page.locator("body")).toContainText(/Trail Distance/i);
-
     // Switch to Recurring tab
     const recurringTab = page.locator('button:has-text("Recurring")');
     await recurringTab.click();
-    await expect(page.locator("body")).toContainText(/Amount Per Buy/i);
+
+    const recurringNotice = page.locator('text="Recurring buys aren\'t live on Base mainnet yet"');
+    if (await recurringNotice.isVisible({ timeout: 5000 })) {
+      const switchBtn = page.locator('button:has-text("Switch to Base Sepolia")');
+      await expect(switchBtn).toBeVisible();
+    } else {
+      await expect(page.locator("body")).toContainText(/Amount Per Buy/i);
+    }
 
     // Verify no horizontal overflow on recurring tab either
     const isRecurringOverflowing = await page.evaluate(() => {
