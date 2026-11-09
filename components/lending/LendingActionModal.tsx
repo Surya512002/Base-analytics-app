@@ -261,7 +261,7 @@ export default function LendingActionModal({
             : parsedAmount;
         try {
           const pub = createBasePublicClient();
-          const allowance = await pub.readContract({
+          const allowance = (await pub.readContract({
             address: activeAsset.address,
             abi: ERC20_ABI,
             functionName: "allowance",
