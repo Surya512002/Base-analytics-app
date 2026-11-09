@@ -523,14 +523,31 @@ async function sendGroupedAppCalls(
   return lastHash;
 }
 
-function prefersWalletSendCalls(
+/**
+ * Decides whether transactions should attempt EIP-5792 batching via wallet_sendCalls.
+ * 
+ * Injected EOA wallets (MetaMask, Rabby, window.ethereum) must ALWAYS use sequential
+ * eth_sendTransaction (approve, then the action) and NEVER receive wallet_sendCalls.
+ * Even though MetaMask on Base/Base Sepolia supports EIP-5792 and returns atomicBatch: { supported: true }
+ * (or status: "ready" / "supported") in wallet_getCapabilities, dispatching wallet_sendCalls causes MetaMask
+ * to prompt the user with an unexpected EIP-7702 Account Upgrade delegation dialog.
+ * 
+ * In contrast, smart contract wallets (Coinbase Smart Wallet, Base Account, Farcaster miniapp)
+ * natively support batching and continue to use wallet_sendCalls.
+ */
+export function prefersWalletSendCalls(
   connType: ConnectionType,
   inMiniApp: boolean
 ): boolean {
+  // Injected EOA wallets never use wallet_sendCalls under any circumstances
+  if (connType === "metamask" || connType === "injected") {
+    return false;
+  }
   if (inMiniApp) return true;
   return (
     connType === "farcaster" ||
-    connType === "baseAccount"
+    connType === "baseAccount" ||
+    connType === "coinbase"
   );
 }
 
@@ -547,8 +564,10 @@ async function sendB20Launch(
   // Desktop browser wallets (MetaMask, Rabby, Coinbase extension) must use
   // eth_sendTransaction — wallet_sendCalls often returns ghost hashes outside Base App.
   const useSendCallsFirst =
-    inMiniApp &&
-    (connType === "farcaster" ||
+    connType !== "metamask" &&
+    connType !== "injected" &&
+    (inMiniApp ||
+      connType === "farcaster" ||
       connType === "baseAccount" ||
       connType === "coinbase");
 
@@ -584,6 +603,8 @@ export type SendAppTxOptions = {
   skipBuilderCompanion?: boolean;
   /** When true (default), approve + swap + fee transfers run in one wallet_sendCalls batch. */
   atomicBatch?: boolean;
+  /** Optional EIP-1193 provider override (useful for tests and custom injectors). */
+  provider?: Eip1193;
 };
 
 /** Sends one or more app contract calls — sponsored via paymaster in Base App / Coinbase Wallet. */
@@ -601,7 +622,9 @@ export async function sendAppTransactions(
     skipCompanion: options?.skipBuilderCompanion,
   });
 
-  const provider = (await getEip1193Provider(connType)) as unknown as Eip1193;
+  const provider =
+    options?.provider ??
+    ((await getEip1193Provider(connType)) as unknown as Eip1193);
 
   await ensureBaseNetwork(provider);
   await ensureActiveAccount(provider, from);
@@ -688,4 +711,25 @@ export async function sendAppTransaction(
   call: ContractCall
 ): Promise<string> {
   return sendAppTransactions(connType, from, [call]);
+}
+
+/**
+ * Query provider EIP-5792 capabilities for a given chain.
+ */
+export async function getProviderCapabilities(
+  provider: Eip1193,
+  account?: string,
+  chainIdHex: string = BASE_CHAIN_HEX
+): Promise<Record<string, unknown> | null> {
+  try {
+    const caps = (await provider.request({
+      method: "wallet_getCapabilities",
+      params: account ? [account] : [],
+    })) as Record<string, Record<string, unknown>> | undefined;
+    if (!caps || typeof caps !== "object") return null;
+    const chainKey = caps[chainIdHex] || caps[String(parseInt(chainIdHex, 16))];
+    return (chainKey as Record<string, unknown>) || null;
+  } catch {
+    return null;
+  }
 }
