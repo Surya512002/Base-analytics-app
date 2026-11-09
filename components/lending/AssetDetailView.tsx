@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   Table as TableIcon,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 import type { StockLendingComparison, StockLendingOption } from "@/lib/lending/unified-comparison";
 import ProtocolCard from "./ProtocolCard";
@@ -44,8 +45,8 @@ export default function AssetDetailView({
   onOpenSupply,
   onOpenBorrow,
   onOpenDetails,
-  onRefresh: _onRefresh,
-  isRefreshing: _isRefreshing = false,
+  onRefresh,
+  isRefreshing = false,
 }: AssetDetailViewProps) {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [showMiniHeader, setShowMiniHeader] = useState(false);
@@ -97,7 +98,7 @@ export default function AssetDetailView({
                 <button
                   type="button"
                   onClick={() => onOpenSupply(bestSupply)}
-                  className="px-3 py-1 rounded-lg bg-[#0052FF] text-white text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-3 py-1 rounded-lg bg-[var(--brand)] text-white text-xs font-bold shadow-xs cursor-pointer hover:opacity-90"
                 >
                   Supply ({bestSupply.supplyApy.toFixed(1)}%)
                 </button>
@@ -151,17 +152,30 @@ export default function AssetDetailView({
 
           {/* Right badges & Wallet Balance */}
           <div className="flex flex-col sm:items-end gap-1.5">
-            {/* Market Status chip */}
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit ${
-                isMarketOpen
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-              }`}
-            >
-              <Clock size={12} />
-              <span>{isMarketOpen ? "Market Open" : "Market Closed (24/5 Feed)"}</span>
-            </span>
+            {/* Market Status chip & Refresh button */}
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit ${
+                  isMarketOpen
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                }`}
+              >
+                <Clock size={12} />
+                <span>{isMarketOpen ? "Market Open" : "Market Closed (24/5 Feed)"}</span>
+              </span>
+              {onRefresh && (
+                <button
+                  type="button"
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="pop-pill p-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer disabled:opacity-50"
+                  title="Refresh live rates for this asset"
+                >
+                  <RefreshCw size={12} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
+                </button>
+              )}
+            </div>
 
             {/* Wallet Balance */}
             <div className="text-xs text-[var(--ink-muted)]">
@@ -195,21 +209,33 @@ export default function AssetDetailView({
           {/* 1. Top Supply Yield */}
           <div className="pop p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex flex-col justify-between gap-2">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
-                Top Supply Yield
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
+                  Top Supply Yield
+                </span>
+                {bestSupply?.kindChip && (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                    {bestSupply.kindChip}
+                  </span>
+                )}
+              </div>
               <p className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
                 {bestSupply ? `${bestSupply.supplyApy.toFixed(2)}%` : "—"}
               </p>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
                 {bestSupply?.protocolName ?? "No pool available"}
               </p>
+              {bestSupply?.role === "lp_vault" && (
+                <p className="text-[10px] text-[var(--ink-dim)] mt-1 italic">
+                  LP / Vault yield (pair with USDC)
+                </p>
+              )}
             </div>
             {bestSupply && (
               <button
                 type="button"
                 onClick={() => onOpenSupply(bestSupply)}
-                className="py-1.5 px-3 rounded-lg bg-[#0052FF] text-white font-bold text-xs shadow-xs transition cursor-pointer self-start active:scale-[0.98]"
+                className="py-1.5 px-3 rounded-lg bg-[var(--brand)] text-white font-bold text-xs shadow-xs transition cursor-pointer self-start active:scale-[0.98] hover:opacity-90"
               >
                 {bestSupply.type === "strategy" ? "Deposit to Strategy" : "Supply Now"}
               </button>
@@ -219,9 +245,16 @@ export default function AssetDetailView({
           {/* 2. Lowest Borrow Rate */}
           <div className="pop p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex flex-col justify-between gap-2">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
-                Lowest Borrow Rate
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
+                  Lowest Borrow Rate
+                </span>
+                {bestBorrow?.kindChip && (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                    {bestBorrow.kindChip}
+                  </span>
+                )}
+              </div>
               <p className="text-xl font-black font-mono text-[var(--ink)] mt-0.5">
                 {bestBorrow && bestBorrow.borrowApr !== null ? `${bestBorrow.borrowApr.toFixed(2)}%` : "—"}
               </p>

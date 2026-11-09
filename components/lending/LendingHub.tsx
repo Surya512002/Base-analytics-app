@@ -11,6 +11,8 @@ import {
   type StockLendingComparison,
   type StockLendingOption,
 } from "@/lib/lending/unified-comparison";
+import { deriveStockMarketOptions } from "@/lib/lending/market-classifier";
+import { MIN_TVL_USD } from "@/lib/lending/constants";
 import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
 import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
@@ -23,12 +25,6 @@ import {
   readAerodromeGaugePositions,
   type UserProtocolPosition,
 } from "@/lib/lending/user-positions";
-import {
-  AAVE_EQUITIES_SUPPORTED_STOCKS,
-  VERIFIED_IPOR_STOCK_VAULTS,
-  VERIFIED_AERODROME_STOCK_POOLS,
-  VERIFIED_BEEFY_STOCK_DETAILS,
-} from "@/lib/lending/unified-comparison";
 import { getEip1193Provider } from "@/app/connection";
 import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
 import MarketsTable, { type AssetMarketRow, type ProtocolRateInfo } from "./MarketsTable";
@@ -42,6 +38,28 @@ import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+
+const STOCK_REFERENCE_PRICES: Record<string, number> = {
+  NVDAc: 138.25,
+  AAPLc: 232.5,
+  TSLAc: 221.8,
+  COINc: 184.5,
+  MSFTc: 428.1,
+  GOOGLc: 182.2,
+  METAc: 590.4,
+  AMZNc: 198.8,
+  MSTRc: 242.0,
+  INTCc: 23.4,
+  AMDc: 156.3,
+  SKHYc: 138.0,
+  ORCLc: 176.5,
+  NFLXc: 715.0,
+  HIMSc: 24.2,
+  LLYc: 825.0,
+  CBRSc: 38.0,
+  PYPLc: 81.2,
+  RBLXc: 47.5,
+};
 
 interface LendingHubProps {
   app: WalletAppState;
@@ -99,6 +117,51 @@ export default function LendingHub({
   // Claim pending state for gauges
   const [_claimingGaugeId, setClaimingGaugeId] = useState<string | null>(null);
 
+  // Discovered markets state from /api/markets, seeded with verified onchain baseline
+  const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>(() => getBaselineVerifiedMarkets());
+  const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
+  const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
+  const [showAllStocks, setShowAllStocks] = useState(false);
+
+  const fetchDiscoveredMarkets = useCallback(async (refresh = false, silent = false) => {
+    if (!silent) setIsLoadingDiscovered(true);
+    try {
+      const res = await fetch(`/api/markets?chainId=8453${refresh ? "&refresh=true" : ""}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.markets) && data.markets.length > 0) {
+          setDiscoveredMarkets(data.markets);
+          if (data.protocolStatus && typeof data.protocolStatus === "object") {
+            const errs: Record<string, string> = {};
+            for (const [k, v] of Object.entries(data.protocolStatus as Record<string, { status?: string; error?: string }>)) {
+              if (v?.status === "error") {
+                errs[k] = v.error || "Error";
+              }
+            }
+            setProtocolErrors(errs);
+          }
+          setLastUpdated(Date.now());
+          setSecondsAgo(0);
+        }
+      }
+    } catch (e) {
+      console.warn("Discovered markets fetch error:", e);
+    } finally {
+      if (!silent) setIsLoadingDiscovered(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchDiscoveredMarkets(false, false);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      void fetchDiscoveredMarkets(false, true);
+    }, 20_000);
+    return () => clearInterval(interval);
+  }, [fetchDiscoveredMarkets]);
+
   // Seconds ago timer tick
   useEffect(() => {
     const timer = setInterval(() => {
@@ -111,7 +174,7 @@ export default function LendingHub({
   const loadComparison = useCallback(async (symbol: string, force = false) => {
     setIsLoadingComparison(true);
     try {
-      const data = await getUnifiedStockLendingComparison(symbol, undefined, force);
+      const data = await getUnifiedStockLendingComparison(symbol, undefined, force, discoveredMarkets);
       setComparison(data);
       setLastUpdated(Date.now());
       setSecondsAgo(0);
@@ -120,7 +183,7 @@ export default function LendingHub({
     } finally {
       setIsLoadingComparison(false);
     }
-  }, []);
+  }, [discoveredMarkets]);
 
   useEffect(() => {
     if (selectedStockSymbol) {
@@ -140,20 +203,6 @@ export default function LendingHub({
       }
     }, 20_000);
     return () => clearInterval(interval);
-  }, [selectedStockSymbol, loadComparison]);
-
-  // Manual refresh handler
-  const handleManualRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      if (selectedStockSymbol) {
-        await loadComparison(selectedStockSymbol, true);
-      }
-      setLastUpdated(Date.now());
-      setSecondsAgo(0);
-    } finally {
-      setTimeout(() => setIsRefreshing(false), 400);
-    }
   }, [selectedStockSymbol, loadComparison]);
 
   // Fetch on-chain balances for prominent stocks if wallet connected
@@ -215,267 +264,64 @@ export default function LendingHub({
     };
   }, [userAddress]);
 
-  // Discovered markets state from /api/markets, seeded with verified onchain baseline
-  const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>(() => getBaselineVerifiedMarkets());
-  const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
-  const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
-  const [showAllStocks, setShowAllStocks] = useState(false);
-
-  const fetchDiscoveredMarkets = useCallback(async (refresh = false) => {
-    setIsLoadingDiscovered(true);
-    try {
-      const res = await fetch(`/api/markets?chainId=8453${refresh ? "&refresh=true" : ""}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ok && Array.isArray(data.markets) && data.markets.length > 0) {
-          setDiscoveredMarkets(data.markets);
-          if (data.protocolStatus && typeof data.protocolStatus === "object") {
-            const errs: Record<string, string> = {};
-            for (const [k, v] of Object.entries(data.protocolStatus as Record<string, { status?: string; error?: string }>)) {
-              if (v?.status === "error") {
-                errs[k] = v.error || "Error";
-              }
-            }
-            setProtocolErrors(errs);
-          }
-          setLastUpdated(Date.now());
-          setSecondsAgo(0);
-        }
-      }
-    } catch (e) {
-      console.warn("Discovered markets fetch error:", e);
-    } finally {
-      setIsLoadingDiscovered(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchDiscoveredMarkets();
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-        return;
-      }
-      void fetchDiscoveredMarkets(true);
-    }, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchDiscoveredMarkets]);
-
-  // 1. Markets Overview (Level 1) Rows Generation - Derived dynamically from discovery
+  // 1. Markets Overview (Level 1) Rows Generation - Derived dynamically from unified discovery
   const stockRows: AssetMarketRow[] = useMemo(() => {
     const stockList = showAllStocks ? ALL_BASE_STOCKS : BASE_STOCKS;
     return stockList.map((stk) => {
-      const matchingMarkets = discoveredMarkets.filter(
-        (m) =>
-          m.collateralAsset?.address.toLowerCase() === stk.address.toLowerCase() ||
-          m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase() ||
-          m.collateralAsset?.symbol.toLowerCase() === stk.symbol.toLowerCase() ||
-          m.supplyAsset.symbol.toLowerCase() === stk.symbol.toLowerCase() ||
-          (stk.symbol === "GOOGLc" && (m.supplyAsset.symbol.toLowerCase() === "googc" || m.collateralAsset?.symbol.toLowerCase() === "googc"))
-      );
+      const summary = deriveStockMarketOptions(stk, discoveredMarkets);
 
-      // Protocol-specific rates (for Beefy, Aerodrome, Aave Pro, IPOR Fusion)
-      // 1. Beefy Finance
-      const beefyMkt = matchingMarkets.find((m) => m.protocol === "beefy");
-      const beefyVerified = VERIFIED_BEEFY_STOCK_DETAILS[stk.symbol];
-      const beefyApy = beefyMkt?.supplyApy ?? beefyVerified?.apy ?? 0;
-      const beefyLiquidity = beefyMkt?.liquidityUsd || beefyMkt?.tvlUsd || beefyVerified?.tvlUsd || 0;
-      const hasBeefy = Boolean((beefyMkt && (beefyMkt.supplyApy > 0 || beefyMkt.liquidityUsd > 0)) || (beefyVerified && (beefyApy > 0 || beefyLiquidity > 0)));
+      const bestSupplyApy = summary.bestOverallYieldOption?.supplyApy ?? 0;
+      const bestSupplyProtocol =
+        summary.bestOverallYieldOption?.protocolLabel ??
+        (summary.hasLendingMarket ? "Collateral only" : "None");
+      const supplyKindChip = summary.bestOverallYieldOption?.kindChip;
 
-      // 2. Aerodrome Finance
-      const aeroMkt = matchingMarkets.find((m) => m.protocol === "aerodrome");
-      const aeroVerified = VERIFIED_AERODROME_STOCK_POOLS[stk.symbol];
-      const aeroApy = aeroMkt?.supplyApy ?? aeroVerified?.supplyApy ?? 0;
-      const aeroLiquidity = aeroMkt?.liquidityUsd || aeroMkt?.tvlUsd || aeroVerified?.tvlUsd || 0;
-      const hasAero = Boolean((aeroMkt && (aeroMkt.supplyApy > 0 || aeroMkt.liquidityUsd > 0)) || (aeroVerified && (aeroApy > 0 || aeroLiquidity > 0)));
+      const bestBorrowApr = summary.bestBorrowOption?.borrowApr ?? null;
+      const bestBorrowProtocol = summary.bestBorrowOption?.protocolLabel ?? null;
+      const borrowKindChip = summary.bestBorrowOption ? "Borrow" : undefined;
 
-      // 3. Aave Pro (Equities Collateral Lending Hub on Base)
-      const aaveMkt = matchingMarkets.find((m) => m.protocol === "aave");
-      const isAaveSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(stk.symbol);
-      const isSpcx = stk.symbol === "SPCXc";
-      const aaveSupplyApy = aaveMkt?.supplyApy ?? (isSpcx ? 5.25 : 0);
-      const aaveBorrowApr = aaveMkt?.borrowApr ?? (isAaveSupported ? 3.75 : null);
-      const aaveLiquidity = aaveMkt?.liquidityUsd || (isSpcx ? 14900000 : isAaveSupported ? 14800000 : 0);
-      const hasAave = Boolean(
-        (aaveMkt && (aaveMkt.supplyApy > 0 || (aaveMkt.borrowApr ?? 0) > 0 || aaveMkt.liquidityUsd > 0)) ||
-        (isAaveSupported && (aaveSupplyApy > 0 || (aaveBorrowApr ?? 0) > 0 || aaveLiquidity > 0))
-      );
+      const totalLiquidityUsd = summary.totalLiquidityUsd;
+      const listedProtocols =
+        summary.listedProtocols.length > 0 ? summary.listedProtocols : ["No Pool"];
 
-      // 4. IPOR Fusion (Stock Carry Trade & Lending Plasma Vaults on Base)
-      const iporMkt = matchingMarkets.find((m) => m.protocol === "ipor");
-      const iporVerified = VERIFIED_IPOR_STOCK_VAULTS[stk.symbol] ?? (stk.symbol === "GOOGLc" ? VERIFIED_IPOR_STOCK_VAULTS["GOOGc"] : undefined);
-      const iporApy = iporMkt?.supplyApy ?? iporVerified?.apy ?? 0;
-      const iporBorrowApr = iporMkt?.borrowApr ?? iporVerified?.borrowApr ?? null;
-      const iporLiquidity = iporMkt?.liquidityUsd || iporMkt?.tvlUsd || iporVerified?.tvlUsd || 0;
-      const hasIpor = Boolean(
-        (iporMkt && (iporMkt.supplyApy > 0 || (iporMkt.borrowApr ?? 0) > 0 || iporMkt.liquidityUsd > 0)) ||
-        (iporVerified && (iporApy > 0 || (iporBorrowApr ?? 0) > 0 || iporLiquidity > 0))
-      );
-
-      const protocolRates: Record<string, ProtocolRateInfo> = {
-        beefy: {
-          supplyApy: beefyApy,
-          borrowApr: null,
-          borrowLabel: "Yield Vault",
-          liquidityUsd: beefyLiquidity,
-          protocolLabel: "Beefy Finance",
-          hasMarket: hasBeefy,
-          typeLabel: "Auto-Compounder",
-        },
-        aerodrome: {
-          supplyApy: aeroApy,
-          borrowApr: null,
-          borrowLabel: "DEX Pool",
-          liquidityUsd: aeroLiquidity,
-          protocolLabel: "Aerodrome Finance",
-          hasMarket: hasAero,
-          typeLabel: "DEX Gauge",
-        },
-        aave: {
-          supplyApy: aaveSupplyApy,
-          borrowApr: aaveBorrowApr,
-          borrowLabel: "Aave Pro",
-          liquidityUsd: aaveLiquidity,
-          protocolLabel: "Aave Pro",
-          hasMarket: hasAave,
-          typeLabel: "Equities Lending",
-        },
-        ipor: {
-          supplyApy: iporApy,
-          borrowApr: iporBorrowApr,
-          borrowLabel: "IPOR Fusion",
-          liquidityUsd: iporLiquidity,
-          protocolLabel: "IPOR Fusion",
-          hasMarket: hasIpor,
-          typeLabel: "Carry Plasma Vault",
-        },
-      };
-
-      const hasLendingMarket =
-        matchingMarkets.some((m) => m.supplyApy > 0 || (m.borrowApr ?? 0) > 0 || m.liquidityUsd > 0) ||
-        hasAave ||
-        hasIpor ||
-        hasBeefy ||
-        hasAero;
-      const protocolSet = new Set<string>();
-      for (const m of matchingMarkets) {
-        if (m.supplyApy > 0 || (m.borrowApr ?? 0) > 0 || m.liquidityUsd > 0) {
-          protocolSet.add(m.protocolLabel);
+      const protocolRates: Record<string, ProtocolRateInfo> = {};
+      for (const opt of summary.options) {
+        if (!protocolRates[opt.protocol]) {
+          protocolRates[opt.protocol] = {
+            supplyApy: opt.supplyApy,
+            borrowApr: opt.borrowApr,
+            liquidityUsd: opt.liquidityUsd > 0 ? opt.liquidityUsd : opt.tvlUsd,
+            protocolLabel: opt.protocolLabel,
+            hasMarket: true,
+            borrowLabel: opt.role === "borrow" ? "Stock Collateral" : opt.roleLabel,
+            typeLabel: opt.kindChip,
+          };
+        } else {
+          if (opt.supplyApy > protocolRates[opt.protocol].supplyApy) {
+            protocolRates[opt.protocol].supplyApy = opt.supplyApy;
+          }
+          if (
+            opt.borrowApr !== null &&
+            (protocolRates[opt.protocol].borrowApr === null ||
+              opt.borrowApr < (protocolRates[opt.protocol].borrowApr ?? 999))
+          ) {
+            protocolRates[opt.protocol].borrowApr = opt.borrowApr;
+          }
+          protocolRates[opt.protocol].liquidityUsd +=
+            opt.liquidityUsd > 0 ? opt.liquidityUsd : opt.tvlUsd;
         }
-      }
-      if (hasBeefy) protocolSet.add("Beefy Finance");
-      if (hasAero) protocolSet.add("Aerodrome Finance");
-      if (hasAave) protocolSet.add("Aave Pro");
-      if (hasIpor) protocolSet.add("IPOR Fusion");
-      const listedProtocols = Array.from(protocolSet);
-
-      // Real Supply/Staking APY: from yield vaults, staking pools, or stock supply pools
-      const supplyMarkets = matchingMarkets.filter(
-        (m) =>
-          (m.type === "stake" ||
-            m.type === "lend" ||
-            m.supplyAsset.address.toLowerCase() === stk.address.toLowerCase()) &&
-          m.supplyApy > 0
-      );
-      const bestSupplyMkt = supplyMarkets.sort((a, b) => b.supplyApy - a.supplyApy)[0];
-      let bestSupplyApy = bestSupplyMkt?.supplyApy ?? 0;
-      let bestSupplyProtocol =
-        bestSupplyMkt?.protocolLabel ?? (hasLendingMarket ? "Collateral only" : "None");
-
-      // Fallback bestSupply if matchingMarkets was not yet hydrated
-      if (bestSupplyApy === 0) {
-        if (hasBeefy && beefyApy > 0) {
-          bestSupplyApy = beefyApy;
-          bestSupplyProtocol = "Beefy Finance";
-        } else if (hasAero && aeroApy > 0) {
-          bestSupplyApy = aeroApy;
-          bestSupplyProtocol = "Aerodrome Finance";
-        } else if (hasIpor && iporApy > 0) {
-          bestSupplyApy = iporApy;
-          bestSupplyProtocol = "IPOR Fusion";
-        } else if (hasAave && aaveSupplyApy > 0) {
-          bestSupplyApy = aaveSupplyApy;
-          bestSupplyProtocol = "Aave Pro";
-        }
-      }
-
-      // Real Borrow APR: from borrowing markets where stock is collateral
-      const borrowMarkets = matchingMarkets.filter(
-        (m) => m.type === "borrow" && m.borrowApr !== undefined && m.borrowApr > 0
-      );
-      // Prefer borrow markets with verified available depth > $10
-      const fundedBorrowMarkets = borrowMarkets.filter((m) => (m.liquidityUsd || 0) > 10);
-      const borrowCandidates = fundedBorrowMarkets.length > 0 ? fundedBorrowMarkets : borrowMarkets;
-      const bestBorrowMkt = borrowCandidates.sort(
-        (a, b) => (a.borrowApr ?? 999) - (b.borrowApr ?? 999)
-      )[0];
-      let bestBorrowApr = bestBorrowMkt?.borrowApr ?? null;
-      let bestBorrowProtocol = bestBorrowMkt?.protocolLabel ?? null;
-
-      if (bestBorrowApr === null) {
-        if (hasAave && aaveBorrowApr) {
-          bestBorrowApr = aaveBorrowApr;
-          bestBorrowProtocol = "Aave Pro";
-        } else if (hasIpor && iporBorrowApr) {
-          bestBorrowApr = iporBorrowApr;
-          bestBorrowProtocol = "IPOR Fusion";
-        }
-      }
-
-      // Real Total Liquidity: sum of real discovered depth across active protocols
-      let totalLiquidityUsd = matchingMarkets.reduce(
-        (sum, m) => sum + (m.liquidityUsd > 0 ? m.liquidityUsd : (m.tvlUsd || 0)),
-        0
-      );
-      if (totalLiquidityUsd === 0) {
-        totalLiquidityUsd = (hasBeefy ? beefyLiquidity : 0) + (hasAero ? aeroLiquidity : 0) + (isSpcx ? aaveLiquidity : 0) + (hasIpor ? iporLiquidity : 0);
       }
 
       // Check if newly listed (within last 7 days)
       const isNew = stk.addedAt ? isNewStock(stk.addedAt) : false;
 
-      const riskFlags = Array.from(new Set(matchingMarkets.flatMap((m) => m.riskFlags)));
-      const oracleVerified = matchingMarkets.length > 0 ? !riskFlags.includes("UNKNOWN_ORACLE") : false;
+      const riskFlags = Array.from(
+        new Set(summary.options.flatMap((o) => o.rawMarket.riskFlags))
+      );
+      const oracleVerified =
+        summary.options.length > 0 ? !riskFlags.includes("UNKNOWN_ORACLE") : false;
 
-      const priceUsd =
-        stk.symbol === "NVDAc"
-          ? 138.25
-          : stk.symbol === "AAPLc"
-            ? 232.5
-            : stk.symbol === "TSLAc"
-              ? 221.8
-              : stk.symbol === "COINc"
-                ? 184.5
-                : stk.symbol === "MSFTc"
-                  ? 428.1
-                  : stk.symbol === "GOOGLc"
-                    ? 182.2
-                    : stk.symbol === "METAc"
-                      ? 590.4
-                      : stk.symbol === "AMZNc"
-                        ? 198.8
-                        : stk.symbol === "MSTRc"
-                          ? 242.0
-                          : stk.symbol === "INTCc"
-                            ? 23.4
-                            : stk.symbol === "AMDc"
-                              ? 156.3
-                              : stk.symbol === "SKHYc"
-                                ? 138.0
-                                : stk.symbol === "ORCLc"
-                                  ? 176.5
-                                  : stk.symbol === "NFLXc"
-                                    ? 715.0
-                                    : stk.symbol === "HIMSc"
-                                      ? 24.2
-                                      : stk.symbol === "LLYc"
-                                        ? 825.0
-                                        : stk.symbol === "CBRSc"
-                                          ? 38.0
-                                          : stk.symbol === "PYPLc"
-                                            ? 81.2
-                                            : stk.symbol === "RBLXc"
-                                              ? 47.5
-                                              : 125.0;
+      const priceUsd = STOCK_REFERENCE_PRICES[stk.symbol] ?? 125.0;
 
       const bal = walletBalances[stk.symbol] ?? null;
       const balUsd = bal !== null ? bal * priceUsd : null;
@@ -489,14 +335,16 @@ export default function LendingHub({
         priceChange24h: 1.25,
         bestSupplyApy,
         bestSupplyProtocol,
+        supplyKindChip,
         bestBorrowApr,
         bestBorrowProtocol,
+        borrowKindChip,
         totalLiquidityUsd,
         walletBalance: bal,
         walletBalanceUsd: balUsd,
         isNew,
-        listedProtocols: listedProtocols.length > 0 ? listedProtocols : ["No Pool"],
-        hasLendingMarket,
+        listedProtocols,
+        hasLendingMarket: summary.hasLendingMarket,
         riskFlags,
         oracleVerified,
         protocolRates,
@@ -554,13 +402,15 @@ export default function LendingHub({
       }
     });
 
-    const verifiedPools = discoveredMarkets.length > 0 ? discoveredMarkets.length : 50;
+    const verifiedPools = discoveredMarkets.filter(
+      (m) => (m.liquidityUsd > 0 ? m.liquidityUsd : (m.tvlUsd || 0)) >= MIN_TVL_USD
+    ).length;
 
     return {
       topSupplyApy: topSupply > 0 ? topSupply : 0,
       lowestBorrowApr: lowestBorrow < 999 ? lowestBorrow : 0,
       totalLiquidityUsd: totalLiquidity,
-      verifiedPoolsCount: verifiedPools,
+      verifiedPoolsCount: verifiedPools > 0 ? verifiedPools : discoveredMarkets.length,
     };
   }, [allMarketsRows, discoveredMarkets]);
 
@@ -642,6 +492,24 @@ export default function LendingHub({
       setIsRefreshingPositions(false);
     }
   }, []);
+
+  // Manual refresh handler for header and asset detail view
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchDiscoveredMarkets(true, false);
+      if (selectedStockSymbol) {
+        await loadComparison(selectedStockSymbol, true);
+      }
+      if (userAddress) {
+        void loadUserPositions(userAddress, true);
+      }
+      setLastUpdated(Date.now());
+      setSecondsAgo(0);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 400);
+    }
+  }, [fetchDiscoveredMarkets, selectedStockSymbol, loadComparison, userAddress, loadUserPositions]);
 
   // Invalidate and clear immediately on disconnect or account switch
   useEffect(() => {
@@ -798,7 +666,7 @@ export default function LendingHub({
     // 3. Try to load options for Level 3 drawer
     try {
       setActiveTab("stocks");
-      const res = await getUnifiedStockLendingComparison(sym);
+      const res = await getUnifiedStockLendingComparison(sym, undefined, false, discoveredMarkets);
       setComparison(res);
 
       const matchedOption =
@@ -956,7 +824,7 @@ export default function LendingHub({
               action === "stake" || action === "unstake" ? "supply" : action
             );
           } else {
-            getUnifiedStockLendingComparison(sym)
+            getUnifiedStockLendingComparison(sym, undefined, false, discoveredMarkets)
               .then((res) => {
                 setComparison(res);
                 const opt =
@@ -1123,6 +991,7 @@ export default function LendingHub({
           onRequestConnect={onRequestConnect}
           onSuccess={() => {
             showToast("Transaction executed successfully!", "Attributed with Base Builder Code");
+            void fetchDiscoveredMarkets(true, true);
             if (selectedStockSymbol) {
               loadComparison(selectedStockSymbol, true);
             }
@@ -1144,6 +1013,10 @@ export default function LendingHub({
           onRequestConnect={onRequestConnect}
           onSuccess={() => {
             showToast("Market transaction confirmed!", "Attributed with Base Builder Code");
+            void fetchDiscoveredMarkets(true, true);
+            if (selectedStockSymbol) {
+              loadComparison(selectedStockSymbol, true);
+            }
             if (userAddress) {
               void loadUserPositions(userAddress, true);
             }

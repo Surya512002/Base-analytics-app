@@ -34,6 +34,16 @@ const COMPTROLLER_ABI = [
   },
 ] as const;
 
+const ORACLE_ABI = [
+  {
+    name: "getUnderlyingPrice",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "mToken", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
 const MTOKEN_ABI = [
   { name: "symbol", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
   { name: "name", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
@@ -63,11 +73,18 @@ export const moonwellAdapter: DiscoveryAdapter = {
     });
 
     try {
-      const allMarkets = (await client.readContract({
-        address: MOONWELL_COMPTROLLER_BASE,
-        abi: COMPTROLLER_ABI,
-        functionName: "getAllMarkets",
-      })) as Address[];
+      const [allMarkets, oracleAddress] = await Promise.all([
+        client.readContract({
+          address: MOONWELL_COMPTROLLER_BASE,
+          abi: COMPTROLLER_ABI,
+          functionName: "getAllMarkets",
+        }) as Promise<Address[]>,
+        client.readContract({
+          address: MOONWELL_COMPTROLLER_BASE,
+          abi: COMPTROLLER_ABI,
+          functionName: "oracle",
+        }).catch(() => null as Address | null),
+      ]);
 
       await Promise.all(
         allMarkets.map(async (mTokenRaw) => {
@@ -126,9 +143,27 @@ export const moonwellAdapter: DiscoveryAdapter = {
             const dec = Number(decimals);
             const cashNum = Number(cash) / 10 ** dec;
             const borrowNum = Number(totalBorrows) / 10 ** dec;
-            const tvlUsd = Math.round(cashNum + borrowNum);
-            const liquidityUsd = Math.round(cashNum);
-            const utilization = tvlUsd > 0 ? (borrowNum / tvlUsd) * 100 : 0;
+
+            let priceUsd = 1.0;
+            if (oracleAddress) {
+              try {
+                const rawPrice = await client.readContract({
+                  address: oracleAddress,
+                  abi: ORACLE_ABI,
+                  functionName: "getUnderlyingPrice",
+                  args: [mToken],
+                });
+                if (rawPrice > BigInt(0)) {
+                  priceUsd = Number(rawPrice) / 10 ** (36 - dec);
+                }
+              } catch {
+                // Fallback to 1.0
+              }
+            }
+
+            const tvlUsd = Math.round((cashNum + borrowNum) * priceUsd);
+            const liquidityUsd = Math.round(cashNum * priceUsd);
+            const utilization = tvlUsd > 0 ? (borrowNum / (cashNum + borrowNum)) * 100 : 0;
 
             markets.push({
               protocol: "moonwell",

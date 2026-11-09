@@ -9,7 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
+import { BASE_STOCKS, areStockSymbolsEquivalent } from "@/lib/stocks/base-stocks";
 import { AAVE_EQUITIES_SUPPORTED_STOCKS } from "@/lib/lending/unified-comparison";
 import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 
@@ -217,13 +217,11 @@ export default function ProtocolCompareHub({
   const stockYieldMatrix = useMemo(() => {
     const baselineMarkets = getBaselineVerifiedMarkets();
     const sym = selectedStock.symbol;
-    const cleanSym = sym.toLowerCase();
 
     const matching = baselineMarkets.filter(
       (m) =>
-        m.collateralAsset?.symbol.toLowerCase() === cleanSym ||
-        m.supplyAsset.symbol.toLowerCase() === cleanSym ||
-        (cleanSym === "googlc" && (m.supplyAsset.symbol.toLowerCase() === "googc" || m.collateralAsset?.symbol.toLowerCase() === "googc"))
+        areStockSymbolsEquivalent(m.supplyAsset.symbol, sym) ||
+        (m.collateralAsset && areStockSymbolsEquivalent(m.collateralAsset.symbol, sym))
     );
 
     const beefyMkt = matching.find((m) => m.protocol === "beefy");
@@ -234,23 +232,30 @@ export default function ProtocolCompareHub({
     const isAaveSupported = sym === "SPCXc" || Boolean(aaveMkt) || AAVE_EQUITIES_SUPPORTED_STOCKS.has(sym);
     const isIporSupported = Boolean(iporMkt);
 
-    const beefyApy = beefyMkt?.supplyApy ?? (sym === "NVDAc" ? 5.91 : 3.82);
-    const aeroApy = aeroMkt?.supplyApy ?? (sym === "NVDAc" ? 17.64 : 8.64);
-    const iporApy = iporMkt?.supplyApy ?? 7.47;
-    const iporBorrow = iporMkt?.borrowApr ?? 4.50;
+    const beefyApy = beefyMkt?.supplyApy ?? 0;
+    const aeroApy = aeroMkt?.supplyApy ?? 0;
+    const iporApy = iporMkt?.supplyApy ?? 0;
+    const iporBorrow = iporMkt?.borrowApr ?? null;
+
+    const formatTvl = (tvl?: number) => {
+      if (!tvl || tvl <= 0) return "—";
+      if (tvl >= 1e6) return `$${(tvl / 1e6).toFixed(1)}M`;
+      if (tvl >= 1e3) return `$${(tvl / 1e3).toFixed(0)}K`;
+      return `$${tvl.toFixed(0)}`;
+    };
 
     const matrix = [
       {
         protocolId: "beefy",
         name: "Beefy Finance",
         type: "Auto-Compounding Vault",
-        status: "live",
-        statusBadge: "🟢 Live on Base",
-        badgeColor: "emerald",
-        yieldRate: `${beefyApy.toFixed(2)}% APY`,
+        status: beefyMkt ? "live" : "unsupported",
+        statusBadge: beefyMkt ? "🟢 Live on Base" : "⚪ No Vault",
+        badgeColor: beefyMkt ? "emerald" : "slate",
+        yieldRate: beefyApy > 0 ? `${beefyApy.toFixed(2)}% APY` : beefyMkt ? "0.00% APY" : "—",
         yieldType: "Auto-Compounded LP Yield",
         canBorrow: "No (Yield only)",
-        tvl: beefyMkt?.tvlUsd ? `$${(beefyMkt.tvlUsd / 1000).toFixed(0)}K` : "$207K",
+        tvl: formatTvl(beefyMkt?.tvlUsd),
         actionText: "Deposit in Beefy Vault",
         actionUrl: `https://app.beefy.com/vault/aero-cow-base-${selectedStock.symbol.toLowerCase()}-usdc`,
         contractAddress: (beefyMkt?.contractAddress || "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025") as string,
@@ -260,13 +265,13 @@ export default function ProtocolCompareHub({
         protocolId: "aerodrome",
         name: "Aerodrome Finance",
         type: "DEX Gauge & Staking",
-        status: "live",
-        statusBadge: "🟢 Live on Base",
-        badgeColor: "emerald",
-        yieldRate: `${aeroApy.toFixed(2)}% APR`,
+        status: aeroMkt ? "live" : "unsupported",
+        statusBadge: aeroMkt ? "🟢 Live on Base" : "⚪ No Pool",
+        badgeColor: aeroMkt ? "emerald" : "slate",
+        yieldRate: aeroApy > 0 ? `${aeroApy.toFixed(2)}% APR` : aeroMkt ? "0.00% APR" : "—",
         yieldType: "AERO Emissions + Swap Fees",
         canBorrow: "No (LP Staking)",
-        tvl: aeroMkt?.tvlUsd ? `$${(aeroMkt.tvlUsd / 1000).toFixed(0)}K` : "$518K",
+        tvl: formatTvl(aeroMkt?.tvlUsd),
         actionText: "Stake on Aerodrome",
         actionUrl: "https://aerodrome.finance/pools",
         contractAddress: (aeroMkt?.contractAddress || "0xA282064541Bb45Caa046fB9f21a240671aBB7f46") as string,
@@ -279,14 +284,10 @@ export default function ProtocolCompareHub({
         status: isAaveSupported ? "live" : "crypto_only",
         statusBadge: isAaveSupported ? "🟢 Live on Base" : "⚪ Unsupported",
         badgeColor: isAaveSupported ? "emerald" : "slate",
-        yieldRate: isAaveSupported
-          ? sym === "SPCXc"
-            ? "5.25% Supply · 3.75% Borrow"
-            : "Collateral Only · 3.75% Borrow"
-          : "Not Supported",
+        yieldRate: isAaveSupported ? "Collateral Only" : "Not Supported",
         yieldType: isAaveSupported ? "USDC Borrowing against Collateral" : "Equities Collateral Only",
         canBorrow: isAaveSupported ? "Yes (Max LTV 75%)" : "No",
-        tvl: isAaveSupported ? (sym === "SPCXc" ? "$14.9M" : "$14.8M") : "$0",
+        tvl: "—",
         actionText: isAaveSupported ? "Borrow on Aave Pro" : "Visit Aave Pro",
         actionUrl: "https://pro.aave.com/explore/borrow",
         contractAddress: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
@@ -294,7 +295,7 @@ export default function ProtocolCompareHub({
       },
     ];
 
-    if (isIporSupported) {
+    if (isIporSupported && iporMkt) {
       matrix.push({
         protocolId: "ipor",
         name: "IPOR Fusion",
@@ -302,10 +303,10 @@ export default function ProtocolCompareHub({
         status: "live",
         statusBadge: "🟢 Live on Base",
         badgeColor: "emerald",
-        yieldRate: `${iporApy.toFixed(2)}% APY · ${iporBorrow.toFixed(2)}% Borrow`,
+        yieldRate: iporBorrow !== null ? `${iporApy.toFixed(2)}% APY · ${iporBorrow.toFixed(2)}% Borrow` : `${iporApy.toFixed(2)}% APY`,
         yieldType: "Automated Stock Carry Yield",
         canBorrow: "Yes (Borrow USDC)",
-        tvl: iporMkt?.tvlUsd ? `$${(iporMkt.tvlUsd / 1000).toFixed(0)}K` : "$376K",
+        tvl: formatTvl(iporMkt.tvlUsd),
         actionText: "Deposit on IPOR Stocks",
         actionUrl: "https://app.ipor.io/stocks",
         contractAddress: "0x1455717668fA96534f675856347A973fA907e922",
@@ -397,7 +398,7 @@ export default function ProtocolCompareHub({
                 }}
                 className={`pop-pill px-3 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer ${
                   selectedStockSymbol === sym
-                    ? "bg-[#0052FF] text-white shadow-xs"
+                    ? "bg-[var(--brand)] text-white shadow-xs"
                     : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
                 }`}
               >
@@ -475,7 +476,7 @@ export default function ProtocolCompareHub({
                   rel="noopener noreferrer"
                   className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     item.status === "live"
-                      ? "bg-[#0052FF] hover:bg-[#0045D8] text-white shadow-xs"
+                      ? "bg-[var(--brand)] hover:opacity-90 text-white shadow-xs"
                       : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
                   }`}
                 >

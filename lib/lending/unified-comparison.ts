@@ -2,14 +2,22 @@ import type { PublicClient } from "viem";
 import {
   USDC_BASE_ADDRESS,
   IPOR_FUSION_FACTORY_BASE,
-  AAVE_V3_POOL_BASE,
 } from "./constants";
 import type { MorphoMarketParams, UserStockPortfolioSummary } from "./types";
 export type { UserStockPortfolioPosition, UserStockPortfolioSummary } from "./types";
-import { BASE_STOCKS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
+import {
+  ALL_BASE_STOCKS,
+  getBaseStockBySymbol,
+  normalizeStockSymbol,
+  areStockSymbolsEquivalent,
+} from "@/lib/stocks/base-stocks";
 import { runMarketDiscovery } from "./discovery/engine";
-import { getBaselineVerifiedMarkets } from "./discovery/baseline";
 import type { NormalizedMarket } from "./discovery/types";
+import {
+  deriveStockMarketOptions,
+  type MarketRole,
+  type KindChip,
+} from "./market-classifier";
 
 async function getRedisCache<T>(key: string): Promise<T | null> {
   if (typeof window !== "undefined") return null;
@@ -64,6 +72,9 @@ export interface StockLendingOption {
   isHighestLiquidity?: boolean;
   isLowestRisk?: boolean;
   fixedTermDays?: number; // e.g. 30, 60, 90 for Morpho Midnight
+  role?: MarketRole;
+  kindChip?: KindChip;
+  isLowLiquidity?: boolean;
 }
 
 export interface StockLendingComparison {
@@ -76,6 +87,7 @@ export interface StockLendingComparison {
   bestBorrowOption: StockLendingOption | null;
   highestLiquidityOption: StockLendingOption | null;
   lowestRiskOption: StockLendingOption | null;
+  totalLiquidityUsd?: number;
   lastUpdated: number;
 }
 
@@ -335,10 +347,9 @@ export async function getLiveBeefyAndAeroRates(): Promise<{
     return liveRatesCache;
   }
   try {
-    const [beefyApyRes, beefyTvlRes, aeroRes] = await Promise.all([
+    const [beefyApyRes, beefyTvlRes] = await Promise.all([
       fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 } }).catch(() => null),
       fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 } }).catch(() => null),
-      fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 } }).catch(() => null),
     ]);
 
     const beefyMap: Record<string, { apy: number; tvl: number }> = {};
@@ -357,26 +368,10 @@ export async function getLiveBeefyAndAeroRates(): Promise<{
       }
     }
 
-    type YieldPool = { chain?: string; project?: string; symbol?: string; apy?: number; tvlUsd?: number };
     const aeroMap: Record<string, { apy: number; tvl: number }> = {};
-    if (aeroRes?.ok) {
-      const json = (await aeroRes.json()) as { data?: YieldPool[] };
-      const pools = (json?.data || []).filter(
-        (p: YieldPool) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
-      );
-      for (const sym of Object.keys(VERIFIED_AERODROME_STOCK_POOLS)) {
-        const symUpper = sym.toUpperCase();
-        const match =
-          pools.find((p: YieldPool) => {
-            const pSym = (p.symbol || "").toUpperCase();
-            return pSym.includes(symUpper) && (pSym.includes("USDC") || pSym.includes("USD"));
-          }) || pools.find((p: YieldPool) => (p.symbol || "").toUpperCase().includes(symUpper));
-        if (match) {
-          aeroMap[sym] = {
-            apy: Math.round(Number(match.apy || 0) * 100) / 100,
-            tvl: Math.round(Number(match.tvlUsd || 0)),
-          };
-        }
+    for (const [sym, pool] of Object.entries(VERIFIED_AERODROME_STOCK_POOLS)) {
+      if (pool.supplyApy > 0 || pool.tvlUsd > 0) {
+        aeroMap[sym] = { apy: pool.supplyApy, tvl: pool.tvlUsd };
       }
     }
 
@@ -440,341 +435,129 @@ export const VERIFIED_IPOR_STOCK_VAULTS: Record<string, VerifiedIporStockVault> 
 
 /**
  * Generate side-by-side verified lending and borrowing options for any tokenized stock.
- * Compares Morpho Blue, Morpho Midnight, Aave V4, Euler V2, Superform SuperStocks, and Moonwell.
- * Cached via Redis and in-memory with sub-50ms response.
+ * Uses shared deriveStockMarketOptions so Table and Detail view are 100% consistent.
  */
 export async function getUnifiedStockLendingComparison(
   symbol: string,
   client?: PublicClient,
-  forceRefresh = false
+  forceRefresh = false,
+  preloadedMarkets?: NormalizedMarket[]
 ): Promise<StockLendingComparison> {
-  const cleanSymbol = symbol.endsWith("c") ? symbol : `${symbol}c`;
-  const cached = comparisonCache.get(cleanSymbol);
+  const cleanSymbol = normalizeStockSymbol(symbol);
   const now = Date.now();
 
-  if (!forceRefresh && cached && now - cached.timestamp < CACHE_TTL_MS) {
-    return cached.data;
+  // Look up stock strictly in registry and ALL_BASE_STOCKS (prevent defaulting to NVDAc)
+  const stock =
+    getBaseStockBySymbol(cleanSymbol) ??
+    ALL_BASE_STOCKS.find((s) => areStockSymbolsEquivalent(s.symbol, cleanSymbol)) ??
+    null;
+
+  if (!stock) {
+    throw new Error(`Stock not found: ${symbol}`);
   }
 
-  // Check Redis cache (server-only)
-  const redisKey = `base_stock_lending_comp_${cleanSymbol.toLowerCase()}`;
-  if (!forceRefresh) {
-    try {
-      const redisCached = await getRedisCache<StockLendingComparison>(redisKey);
-      if (redisCached) {
-        comparisonCache.set(cleanSymbol, { data: redisCached, timestamp: now });
-        return redisCached;
+  // Check cache only if not passing custom preloaded markets
+  if (!preloadedMarkets) {
+    const cached = comparisonCache.get(stock.symbol);
+    if (!forceRefresh && cached && now - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+
+    const redisKey = `base_stock_lending_comp_${stock.symbol.toLowerCase()}`;
+    if (!forceRefresh) {
+      try {
+        const redisCached = await getRedisCache<StockLendingComparison>(redisKey);
+        if (redisCached) {
+          comparisonCache.set(stock.symbol, { data: redisCached, timestamp: now });
+          return redisCached;
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
     }
   }
 
-  const stock = getBaseStockBySymbol(cleanSymbol) ?? BASE_STOCKS[0]!;
-  const stockAddr = stock.address;
-  const _oracleFeed = stock.feed ?? ("0x04689a41629776563E6822F76f2e57D148d28513" as const);
-  void _oracleFeed;
-
-  // Default baseline rates tailored by equity volatility profile
+  // Reference NAV (tailored by volatility profile)
   const isHighBeta =
-    cleanSymbol === "TSLAc" ||
-    cleanSymbol === "NVDAc" ||
-    cleanSymbol === "MSTRc" ||
-    cleanSymbol === "SPCXc";
-  const isBlueChip = cleanSymbol === "AAPLc" || cleanSymbol === "MSFTc" || cleanSymbol === "GOOGLc";
+    stock.symbol === "TSLAc" ||
+    stock.symbol === "NVDAc" ||
+    stock.symbol === "MSTRc" ||
+    stock.symbol === "SPCXc";
+  const isBlueChip =
+    stock.symbol === "AAPLc" || stock.symbol === "MSFTc" || stock.symbol === "GOOGLc";
 
-  // Reference NAV
   const navUsd = isHighBeta
-    ? cleanSymbol === "NVDAc"
+    ? stock.symbol === "NVDAc"
       ? 138.25
-      : cleanSymbol === "SPCXc"
+      : stock.symbol === "SPCXc"
         ? 145.0
         : 221.8
     : isBlueChip
       ? 232.5
       : 125.0;
 
-  // Load real discovered markets from Base multi-protocol discovery engine
-  // Load real discovered markets with timeout guard to prevent test hangs
+  // Load markets: use preloaded if available, otherwise fetch live without 1200ms timeout
   let discoveredMarkets: NormalizedMarket[] = [];
-  try {
-    const discoveryPromise = runMarketDiscovery(8453, forceRefresh);
-    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
-    const discoveryRes = (await Promise.race([discoveryPromise, timeoutPromise])) as { markets?: NormalizedMarket[] } | null;
-    if (discoveryRes && Array.isArray(discoveryRes.markets) && discoveryRes.markets.length > 0) {
-      discoveredMarkets = discoveryRes.markets;
-    }
-  } catch (discErr) {
-    console.warn("[Unified Comparison] Could not run discovery:", discErr);
-  }
-
-  // Hydrate with verified on-chain baseline if discovery returned empty or timed out
-  if (discoveredMarkets.length === 0) {
-    discoveredMarkets = getBaselineVerifiedMarkets();
-  }
-
-  const matchingMarkets = discoveredMarkets.filter(
-    (m) =>
-      m.collateralAsset?.address.toLowerCase() === stockAddr.toLowerCase() ||
-      m.supplyAsset.address.toLowerCase() === stockAddr.toLowerCase() ||
-      m.collateralAsset?.symbol.toLowerCase() === cleanSymbol.toLowerCase() ||
-      m.supplyAsset.symbol.toLowerCase() === cleanSymbol.toLowerCase() ||
-      (cleanSymbol === "GOOGLc" && (m.supplyAsset.symbol.toLowerCase() === "googc" || m.collateralAsset?.symbol.toLowerCase() === "googc"))
-  );
-
-  const options: StockLendingOption[] = [];
-  const liveRates = await getLiveBeefyAndAeroRates();
-
-  // 1. Beefy Finance (Only if stock has verified live Beefy vault on Base with real yield or TVL)
-  const beefyDiscovered = matchingMarkets.find((m) => m.protocol === "beefy");
-  const beefyVerified = VERIFIED_BEEFY_STOCK_DETAILS[cleanSymbol];
-  if (beefyDiscovered || beefyVerified) {
-    const vaultContract = (beefyDiscovered?.contractAddress || beefyDiscovered?.supplyAsset.address || beefyVerified?.vaultAddress) as `0x${string}`;
-    const beefyLive = liveRates.beefy[cleanSymbol];
-    const supplyApy = beefyDiscovered?.supplyApy ?? (beefyLive?.apy ?? beefyVerified?.apy ?? 0);
-    const tvlUsd = beefyDiscovered?.tvlUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 0);
-    const availableLiquidityUsd = beefyDiscovered?.liquidityUsd ?? (beefyLive?.tvl ?? beefyVerified?.tvlUsd ?? 0);
-
-    if (supplyApy > 0 || tvlUsd > 0) {
-      options.push({
-        id: beefyDiscovered ? `beefy-${beefyDiscovered.marketId}` : `${cleanSymbol}-beefy-vault`,
-        protocol: "beefy",
-        protocolName: "Beefy Finance",
-        protocolBadge: "Beefy · Auto-Compounder",
-        type: "vault",
-        typeLabel: "Auto-Compounding Vault",
-        stockSymbol: cleanSymbol,
-        stockName: stock.name,
-        stockAddress: stockAddr,
-        loanSymbol: "USDC",
-        loanAddress: USDC_BASE_ADDRESS,
-        supplyApy,
-        borrowApr: null,
-        maxLtv: null,
-        liquidationThreshold: null,
-        utilization: 100,
-        availableLiquidityUsd,
-        tvlUsd,
-        riskScore: 2,
-        riskLevel: "low",
-        riskNotes: [
-          "Auto-compounding yield vault deployed on Base mainnet.",
-          "Automatically harvests Aerodrome LP fees & AERO gauge emissions and reinvests them into LP shares.",
-          "Zero liquidation risk; standard audited Beefy ERC-4626 vault architecture.",
-        ],
-        contractAddress: vaultContract,
-        executionType: "beefy",
-        sourceLink: beefyVerified ? `https://app.beefy.com/vault/${beefyVerified.vaultId}` : (beefyDiscovered?.sourceLink || "https://app.beefy.com"),
-      });
+  if (preloadedMarkets) {
+    discoveredMarkets = preloadedMarkets;
+  } else {
+    try {
+      const discoveryRes = await runMarketDiscovery(8453, forceRefresh);
+      discoveredMarkets = discoveryRes.markets || [];
+    } catch (discErr) {
+      console.warn("[Unified Comparison] Could not run discovery:", discErr);
+      discoveredMarkets = [];
     }
   }
 
-  // 2. Aerodrome Finance (Only if stock has verified live Aerodrome pool on Base with real yield or TVL)
-  const aeroDiscovered = matchingMarkets.find((m) => m.protocol === "aerodrome");
-  const aeroVerified = VERIFIED_AERODROME_STOCK_POOLS[cleanSymbol];
-  if (aeroDiscovered || aeroVerified) {
-    const poolContract = (aeroDiscovered?.contractAddress || aeroVerified?.poolAddress) as `0x${string}`;
-    const aeroLive = liveRates.aerodrome[cleanSymbol];
-    const supplyApy = aeroDiscovered?.supplyApy ?? (aeroLive?.apy ?? aeroVerified?.supplyApy ?? 0);
-    const tvlUsd = aeroDiscovered?.tvlUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 0);
-    const availableLiquidityUsd = aeroDiscovered?.liquidityUsd ?? (aeroLive?.tvl ?? aeroVerified?.tvlUsd ?? 0);
+  // Derive unified options using the single source of truth
+  const summary = deriveStockMarketOptions(stock, discoveredMarkets);
 
-    if (supplyApy > 0 || tvlUsd > 0) {
-      options.push({
-        id: aeroDiscovered ? `aero-${aeroDiscovered.marketId}` : `${cleanSymbol}-aerodrome-gauge`,
-        protocol: "aerodrome",
-        protocolName: "Aerodrome Finance",
-        protocolBadge: "Aerodrome · CoW AMM Pool",
-        type: "strategy",
-        typeLabel: "DEX Liquidity Pool",
-        stockSymbol: cleanSymbol,
-        stockName: stock.name,
-        stockAddress: stockAddr,
-        loanSymbol: "USDC",
-        loanAddress: USDC_BASE_ADDRESS,
-        supplyApy,
-        borrowApr: null,
-        maxLtv: null,
-        liquidationThreshold: null,
-        utilization: 100,
-        availableLiquidityUsd,
-        tvlUsd,
-        riskScore: 2,
-        riskLevel: "low",
-        riskNotes: [
-          "Concentrated liquidity DEX on Base with Slipstream gauge rewards.",
-          "Earn AERO emissions + trading swap fees.",
-          "Builder Code attributed on-chain gauge staking.",
-        ],
-        contractAddress: poolContract,
-        executionType: "aerodrome",
-        sourceLink: aeroDiscovered?.sourceLink || "https://aerodrome.finance/pools",
-      });
-    }
-  }
+  // Map ClassifiedMarketOption into StockLendingOption
+  const options: StockLendingOption[] = summary.options.map((opt) => ({
+    id: opt.id,
+    protocol: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : "aave") as any,
+    protocolName: opt.protocolLabel,
+    protocolBadge: opt.protocolBadge,
+    type: opt.role === "lp_vault" ? (opt.protocol === "beefy" ? "vault" : "strategy") : opt.role === "borrow" ? "variable" : "vault",
+    typeLabel: opt.roleLabel,
+    stockSymbol: stock.symbol,
+    stockName: stock.name,
+    stockAddress: stock.address,
+    loanSymbol: "USDC",
+    loanAddress: USDC_BASE_ADDRESS,
+    supplyApy: opt.supplyApy,
+    borrowApr: opt.borrowApr,
+    maxLtv: opt.maxLtv,
+    liquidationThreshold: opt.maxLtv ? Math.min(95, opt.maxLtv + 5) : null,
+    utilization: opt.utilization,
+    availableLiquidityUsd: opt.liquidityUsd,
+    tvlUsd: opt.tvlUsd,
+    riskScore: opt.riskScore,
+    riskLevel: opt.riskLevel,
+    riskNotes: opt.riskNotes,
+    contractAddress: opt.contractAddress,
+    executionType: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : "aave") as any,
+    sourceLink: opt.sourceLink,
+    role: opt.role,
+    kindChip: opt.kindChip,
+    isLowLiquidity: opt.isLowLiquidity,
+  }));
 
-  // 3. Pendle Finance (Live PT/YT yield market if discovered)
-  const pendleDiscovered = matchingMarkets.find((m) => m.protocol === "pendle");
-  if (pendleDiscovered && (pendleDiscovered.supplyApy > 0 || pendleDiscovered.tvlUsd > 0)) {
-    options.push({
-      id: `pendle-${pendleDiscovered.marketId}`,
-      protocol: "pendle",
-      protocolName: "Pendle Finance",
-      protocolBadge: "Pendle · Fixed Yield",
-      type: "strategy",
-      typeLabel: "Yield Trading / PT",
-      stockSymbol: cleanSymbol,
-      stockName: stock.name,
-      stockAddress: stockAddr,
-      loanSymbol: "USDC",
-      loanAddress: USDC_BASE_ADDRESS,
-      supplyApy: pendleDiscovered.supplyApy,
-      borrowApr: null,
-      maxLtv: null,
-      liquidationThreshold: null,
-      utilization: 100,
-      availableLiquidityUsd: pendleDiscovered.liquidityUsd,
-      tvlUsd: pendleDiscovered.tvlUsd,
-      riskScore: 4,
-      riskLevel: "medium",
-      riskNotes: [
-        "Tokenized yield market trading Principal & Yield tokens.",
-        "Fixed term yield locked until expiry.",
-      ],
-      contractAddress: (pendleDiscovered.contractAddress || pendleDiscovered.supplyAsset.address) as `0x${string}`,
-      executionType: "pendle",
-      sourceLink: pendleDiscovered.sourceLink,
-    });
-  }
-
-  // 4. IPOR Fusion (Stock Carry Trade & Lending Plasma Vaults on Base)
-  // Official app: https://app.ipor.io/stocks (Verified 4 stocks: GOOGc/GOOGLc, NVDAc, AAPLc, METAc)
-  const iporDiscovered = matchingMarkets.find((m) => m.protocol === "ipor");
-  const iporVerified = VERIFIED_IPOR_STOCK_VAULTS[cleanSymbol] ?? (cleanSymbol === "GOOGc" ? VERIFIED_IPOR_STOCK_VAULTS["GOOGLc"] : undefined);
-  const isIporSupported = Boolean(iporDiscovered || iporVerified);
-  if (isIporSupported) {
-    const iporContract = (iporDiscovered?.contractAddress || iporVerified?.vaultAddress || IPOR_FUSION_FACTORY_BASE) as `0x${string}`;
-    const supplyApy = iporDiscovered?.supplyApy ?? (iporVerified?.apy ?? 0);
-    const borrowApr = iporDiscovered?.borrowApr ?? (iporVerified?.borrowApr ?? null);
-    const tvlUsd = iporDiscovered?.tvlUsd ?? (iporVerified?.tvlUsd ?? 0);
-    const availableLiquidityUsd = iporDiscovered?.liquidityUsd ?? (iporVerified?.tvlUsd ? Math.round(iporVerified.tvlUsd * 0.75) : 0);
-
-    if (supplyApy > 0 || (borrowApr !== null && borrowApr > 0) || tvlUsd > 0) {
-      options.push({
-        id: iporDiscovered ? `ipor-${iporDiscovered.marketId}` : `${cleanSymbol}-ipor-vault`,
-        protocol: "ipor",
-        protocolName: "IPOR Fusion",
-        protocolBadge: "IPOR · Stocks Plasma Vault",
-        type: "vault",
-        typeLabel: "Stock Yield & Carry Trade",
-        stockSymbol: cleanSymbol,
-        stockName: stock.name,
-        stockAddress: stockAddr,
-        loanSymbol: "USDC",
-        loanAddress: USDC_BASE_ADDRESS,
-        supplyApy,
-        borrowApr,
-        maxLtv: 75,
-        liquidationThreshold: 80,
-        utilization: iporDiscovered?.utilization ?? 68.5,
-        availableLiquidityUsd,
-        tvlUsd,
-        riskScore: 2,
-        riskLevel: "low",
-        riskNotes: [
-          "Institutional-grade tokenized stock yield & carry-trade vault on Base.",
-          "ERC-4626 Plasma Vault architecture routing liquidity to optimal Base credit markets.",
-          "Earn automated stock yield on IPOR Fusion with Base Builder attribution.",
-        ],
-        contractAddress: iporContract,
-        executionType: "ipor",
-        sourceLink: "https://app.ipor.io/stocks",
-      });
-    }
-  }
-
-  // 5. Aave Pro (Equities Collateral Lending Hub on Base)
-  // Official app: https://pro.aave.com/explore/borrow
-  const aaveDiscovered = matchingMarkets.find((m) => m.protocol === "aave");
-  const isAaveStockSupported = AAVE_EQUITIES_SUPPORTED_STOCKS.has(cleanSymbol);
-  if (aaveDiscovered || isAaveStockSupported) {
-    const aaveContract = (aaveDiscovered?.contractAddress || AAVE_V3_POOL_BASE) as `0x${string}`;
-    const isSpcx = cleanSymbol === "SPCXc";
-    const supplyApy = aaveDiscovered?.supplyApy ?? (isSpcx ? 5.25 : 0);
-    const borrowApr = aaveDiscovered?.borrowApr ?? 3.75;
-    const tvlUsd = aaveDiscovered?.tvlUsd ?? (isSpcx ? 14900000 : 34800000);
-    const availableLiquidityUsd = aaveDiscovered?.liquidityUsd ?? 14800000;
-
-    options.push({
-      id: aaveDiscovered ? `aave-${aaveDiscovered.marketId}` : `${cleanSymbol}-aave-equities`,
-      protocol: "aave",
-      protocolName: "Aave Pro",
-      protocolBadge: "Aave · Equities Collateral",
-      type: "variable",
-      typeLabel: "Cross-Collateral Lending Hub",
-      stockSymbol: cleanSymbol,
-      stockName: stock.name,
-      stockAddress: stockAddr,
-      loanSymbol: "USDC",
-      loanAddress: USDC_BASE_ADDRESS,
-      supplyApy,
-      borrowApr,
-      maxLtv: 75,
-      liquidationThreshold: 80,
-      utilization: aaveDiscovered?.utilization ?? (isSpcx ? 42.5 : 35.0),
-      availableLiquidityUsd,
-      tvlUsd,
-      riskScore: 3,
-      riskLevel: "low",
-      riskNotes: [
-        "Aave Pro institutional cross-collateral money market on Base.",
-        "Supply tokenized stock collateral to borrow USDC with 75% Max LTV & 80% Liquidation Threshold.",
-        "Base Builder Code attributed execution via canonical Aave V3/Pro pool on Base.",
-      ],
-      contractAddress: aaveContract,
-      executionType: "aave",
-      sourceLink: "https://pro.aave.com/explore/borrow",
-    });
-  }
-
-  // Strictly filter out any ghost options with zero yield, zero borrow, and zero liquidity
-  const validOptions = options.filter(
-    (opt) =>
-      opt.supplyApy > 0 ||
-      (opt.borrowApr !== null && opt.borrowApr > 0) ||
-      opt.availableLiquidityUsd > 0 ||
-      opt.tvlUsd > 0
-  );
-
-  // Calculate Best Badges
-  let bestSupplyOption: StockLendingOption | null = null;
-  let bestBorrowOption: StockLendingOption | null = null;
-  let highestLiquidityOption: StockLendingOption | null = null;
-  let lowestRiskOption: StockLendingOption | null = null;
-
-  let maxSupplyApy = -1;
-  let minBorrowApr = 999;
-  let maxLiquidity = -1;
-  let minRiskScore = 999;
-
-  for (const opt of validOptions) {
-    if (opt.supplyApy > maxSupplyApy) {
-      maxSupplyApy = opt.supplyApy;
-      bestSupplyOption = opt;
-    }
-    if (opt.borrowApr !== null && opt.borrowApr < minBorrowApr) {
-      minBorrowApr = opt.borrowApr;
-      bestBorrowOption = opt;
-    }
-    if (opt.availableLiquidityUsd > maxLiquidity) {
-      maxLiquidity = opt.availableLiquidityUsd;
-      highestLiquidityOption = opt;
-    }
-    if (opt.riskScore < minRiskScore) {
-      minRiskScore = opt.riskScore;
-      lowestRiskOption = opt;
-    }
-  }
+  // Best badges calculated from summary selectors
+  const bestSupplyOption = summary.bestOverallYieldOption
+    ? options.find((o) => o.id === summary.bestOverallYieldOption!.id) ?? null
+    : null;
+  const bestBorrowOption = summary.bestBorrowOption
+    ? options.find((o) => o.id === summary.bestBorrowOption!.id) ?? null
+    : null;
+  const highestLiquidityOption = summary.deepestOption
+    ? options.find((o) => o.id === summary.deepestOption!.id) ?? null
+    : null;
+  const lowestRiskOption =
+    options.length > 0
+      ? [...options].sort((a, b) => a.riskScore - b.riskScore)[0]
+      : null;
 
   if (bestSupplyOption) bestSupplyOption.isBestSupply = true;
   if (bestBorrowOption) bestBorrowOption.isBestBorrow = true;
@@ -782,20 +565,21 @@ export async function getUnifiedStockLendingComparison(
   if (lowestRiskOption) lowestRiskOption.isLowestRisk = true;
 
   const result: StockLendingComparison = {
-    stockSymbol: cleanSymbol,
+    stockSymbol: stock.symbol,
     stockName: stock.name,
-    stockAddress: stockAddr,
+    stockAddress: stock.address,
     navUsd,
-    options: validOptions,
+    options,
     bestSupplyOption,
     bestBorrowOption,
     highestLiquidityOption,
     lowestRiskOption,
+    totalLiquidityUsd: summary.totalLiquidityUsd,
     lastUpdated: now,
   };
 
-  comparisonCache.set(cleanSymbol, { data: result, timestamp: now });
-  // Set Redis cache with 60s expiration (server-only)
+  comparisonCache.set(stock.symbol, { data: result, timestamp: now });
+  const redisKey = `base_stock_lending_comp_${stock.symbol.toLowerCase()}`;
   void setRedisCache(redisKey, result, 60).catch(() => {});
 
   return result;

@@ -15,6 +15,7 @@ import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
+import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import OrdersView from "@/components/swap/orders/OrdersView";
 import RecurringView from "@/components/swap/orders/RecurringView";
 
@@ -46,10 +47,26 @@ export default function SwapTab({
   const { switchChain } = useSwitchChain();
   const limitOrders = useLimitOrders(app);
 
-  // G5 Feature flag: in production, NEXT_PUBLIC_LIMIT_ORDERS_ENABLED must be "true"
-  const isOrdersEnabled =
-    process.env.NODE_ENV !== "production" ||
-    process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED === "true";
+  const isOrdersEnabled = isLimitOrdersFeatureEnabled();
+  const isProd = process.env.NODE_ENV === "production";
+  const isVercelPreview = process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+  const flagOn = process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED === "true";
+
+  const showDebugNotice = !isProd || isVercelPreview;
+  const debugReasons = useMemo(() => {
+    const list: string[] = [];
+    if (!flagOn) list.push("flag off (NEXT_PUBLIC_LIMIT_ORDERS_ENABLED != 'true')");
+    if (limitOrders.regionRestricted) list.push(`region restricted (${limitOrders.regionCountry || "blocked"})`);
+    if (limitOrders.chainId !== 8453 && limitOrders.chainId !== 84532) {
+      list.push(`wrong network (chain ID ${limitOrders.chainId})`);
+    } else if (
+      limitOrders.chainId === 8453 &&
+      (!limitOrders.config.orderBook || limitOrders.config.orderBook === "0x0000000000000000000000000000000000000000")
+    ) {
+      list.push("mainnet order book not deployed yet (switch to Sepolia)");
+    }
+    return list;
+  }, [flagOn, limitOrders.regionRestricted, limitOrders.regionCountry, limitOrders.chainId, limitOrders.config.orderBook]);
 
   useEffect(() => {
     if (!isOrdersEnabled && activeSubTab !== "market") {
@@ -57,8 +74,49 @@ export default function SwapTab({
     }
   }, [isOrdersEnabled, activeSubTab]);
 
-  const handleSwitchBase = useCallback(() => {
-    switchChain?.({ chainId: base.id });
+  const handleSwitchBase = useCallback(async () => {
+    try {
+      switchChain?.({ chainId: base.id });
+    } catch {}
+    if (typeof window !== "undefined" && (window as any).ethereum?.request) {
+      try {
+        await (window as any).ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x2105" }],
+        });
+      } catch {}
+    }
+  }, [switchChain]);
+
+  const handleSwitchSepolia = useCallback(async () => {
+    try {
+      switchChain?.({ chainId: 84532 });
+    } catch {}
+    if (typeof window !== "undefined" && (window as any).ethereum?.request) {
+      try {
+        await (window as any).ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x14a34" }],
+        });
+      } catch (err: any) {
+        if (err?.code === 4902) {
+          try {
+            await (window as any).ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: "0x14a34",
+                  chainName: "Base Sepolia",
+                  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+                  rpcUrls: ["https://sepolia.base.org"],
+                  blockExplorerUrls: ["https://sepolia.basescan.org"],
+                },
+              ],
+            });
+          } catch {}
+        }
+      }
+    }
   }, [switchChain]);
 
   const handleBuyTokenChange = useCallback((counter: SwapCounter | null) => {
@@ -312,6 +370,7 @@ export default function SwapTab({
           limitOrders={limitOrders}
           onConnectWallet={onRequestConnect}
           onSwitchChain={handleSwitchBase}
+          onSwitchSepolia={handleSwitchSepolia}
         />
       )}
 
@@ -321,7 +380,18 @@ export default function SwapTab({
           limitOrders={limitOrders}
           onConnectWallet={onRequestConnect}
           onSwitchChain={handleSwitchBase}
+          onSwitchSepolia={handleSwitchSepolia}
         />
+      )}
+
+      {/* Development & Vercel Preview Debug Notice */}
+      {showDebugNotice && debugReasons.length > 0 && (
+        <div
+          data-testid="limit-orders-debug-notice"
+          className="text-[11px] font-mono text-[var(--ink-muted)] text-center px-3 py-1.5 bg-[var(--surface-2)]/60 rounded-xl border border-dashed border-[var(--border-subtle)]"
+        >
+          Debug (dev/preview): {debugReasons.join(" · ")}
+        </div>
       )}
     </div>
   );

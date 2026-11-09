@@ -1,7 +1,7 @@
-import { createPublicClient, http, getAddress, type Address } from "viem";
+import { createPublicClient, http, getAddress, parseAbi, type Address } from "viem";
 import { base } from "viem/chains";
 import type { DiscoveryAdapter, NormalizedMarket } from "../types";
-import { AAVE_V3_POOL_BASE } from "@/lib/lending/constants";
+import { AAVE_V3_POOL_BASE, USDC_BASE_ADDRESS } from "@/lib/lending/constants";
 
 /**
  * AAVE PROTOCOL ADAPTER FOR BASE MAINNET (CHAIN ID 8453)
@@ -10,12 +10,12 @@ import { AAVE_V3_POOL_BASE } from "@/lib/lending/constants";
  * - Aave V3: DEPLOYED and LIVE on Base mainnet.
  *   Pool Address: 0xA238Dd80C259a72e81d7e4664a9801593F98d1c5
  *   PoolDataProvider: 0x2d8A3C5677189723C4cB8873CfC9C8976FDF38Ac
- * - Aave V4 (Unified Liquidity Layer & Spokes): NOT YET DEPLOYED on Base.
- *   Aave V4 is currently under active specification/development by Aave Labs and
- *   BGD Labs. No production spokes or singleton v4 contracts are live on Base mainnet.
+ *   PriceOracle: 0x2Cc00a68351E074b04C18856641A5C1B6dE258Ab
+ * - Aave V4: NOT YET DEPLOYED on Base.
  */
 
 const AAVE_V3_DATA_PROVIDER_BASE = getAddress("0x2d8A3C5677189723C4cB8873CfC9C8976FDF38Ac");
+const AAVE_V3_ORACLE_BASE = getAddress("0x2Cc00a68351E074b04C18856641A5C1B6dE258Ab");
 
 const AAVE_DATA_PROVIDER_ABI = [
   {
@@ -120,14 +120,31 @@ export const aaveAdapter: DiscoveryAdapter = {
           const canBorrow = config[6] && !config[9]; // borrowingEnabled && !isFrozen
           const canUseAsCollateral = config[5]; // usageAsCollateralEnabled
 
-          // Approximate USD TVL and liquidity from totalAToken
+          // Real USD TVL and liquidity from totalAToken multiplied by oracle price
           const dec = Number(config[0]);
           const totalAssets = Number(data[2]) / 10 ** dec;
           const totalDebt = Number(data[4]) / 10 ** dec;
           const availableAssets = Math.max(0, totalAssets - totalDebt);
 
-          const tvlUsd = Math.round(totalAssets);
-          const liquidityUsd = Math.round(availableAssets);
+          let priceUsd = 1.0;
+          if (tokenAddress.toLowerCase() !== USDC_BASE_ADDRESS.toLowerCase()) {
+            try {
+              const rawPrice = await client.readContract({
+                address: AAVE_V3_ORACLE_BASE,
+                abi: parseAbi(["function getAssetPrice(address asset) external view returns (uint256)"]),
+                functionName: "getAssetPrice",
+                args: [tokenAddress],
+              });
+              if (rawPrice > BigInt(0)) {
+                priceUsd = Number(rawPrice) / 1e8;
+              }
+            } catch {
+              // Fallback to 1.0 if oracle call times out
+            }
+          }
+
+          const tvlUsd = Math.round(totalAssets * priceUsd);
+          const liquidityUsd = Math.round(availableAssets * priceUsd);
           const utilization = totalAssets > 0 ? (totalDebt / totalAssets) * 100 : 0;
 
           markets.push({

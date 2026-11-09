@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Clock,
   RotateCcw,
-  Filter,
 } from "lucide-react";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -34,8 +33,10 @@ export interface AssetMarketRow {
   priceChange24h?: number;
   bestSupplyApy: number;
   bestSupplyProtocol: string;
+  supplyKindChip?: string;
   bestBorrowApr: number | null;
   bestBorrowProtocol: string | null;
+  borrowKindChip?: string;
   totalLiquidityUsd: number;
   walletBalance?: number | null;
   walletBalanceUsd?: number | null;
@@ -423,7 +424,7 @@ export default function MarketsTable({
                             ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm ring-2 ring-violet-400/40"
                             : p.id === "ipor"
                               ? "bg-amber-600 text-white hover:bg-amber-700 shadow-sm ring-2 ring-amber-400/40"
-                              : "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm ring-2 ring-blue-400/40"
+                              : "bg-[var(--brand)] text-white hover:opacity-90 shadow-sm ring-2 ring-[var(--brand)]/40"
                         : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
                     }`}
                   >
@@ -457,7 +458,7 @@ export default function MarketsTable({
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer select-none ${
                       isSelected
-                        ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-sm"
+                        ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-sm"
                         : "bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] border border-[var(--border-subtle)]"
                     }`}
                   >
@@ -625,9 +626,16 @@ export default function MarketsTable({
                     <td className="py-3 px-3">
                       {hasThisProtocolMarket ? (
                         <div>
-                          <p className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                            {supplyApyToDisplay > 0 ? `${supplyApyToDisplay.toFixed(2)}%` : "—"}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                              {supplyApyToDisplay > 0 ? `${supplyApyToDisplay.toFixed(2)}%` : "—"}
+                            </p>
+                            {row.supplyKindChip && supplyApyToDisplay > 0 && !isProtocolFilter && (
+                              <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                                {row.supplyKindChip}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-[var(--ink-muted)]">{supplyProtocolToDisplay}</p>
                         </div>
                       ) : (
@@ -647,6 +655,11 @@ export default function MarketsTable({
                                 ? `${borrowAprToDisplay.toFixed(2)}%`
                                 : "—"}
                             </p>
+                            {row.borrowKindChip && borrowAprToDisplay !== null && borrowAprToDisplay > 0 && !isProtocolFilter && (
+                              <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                                {row.borrowKindChip}
+                              </span>
+                            )}
                             {hasOracleWarning && (
                               <span title="Unknown Oracle — Borrowing Disabled">
                                 <AlertTriangle size={13} className="text-amber-500" />
@@ -730,7 +743,7 @@ export default function MarketsTable({
                             e.stopPropagation();
                             onSelectAsset(row.symbol);
                           }}
-                          className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs shadow-xs group-hover:bg-[#0047e0] transition flex items-center gap-1 ml-auto cursor-pointer"
+                          className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white font-bold text-xs shadow-xs hover:opacity-90 transition flex items-center gap-1 ml-auto cursor-pointer"
                         >
                           <span>Compare</span>
                           <ChevronRight size={13} />

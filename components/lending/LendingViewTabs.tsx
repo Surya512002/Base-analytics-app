@@ -64,7 +64,7 @@ export default function LendingViewTabs({
             onClick={() => onChange(tab.id)}
             className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 select-none ${
               isSelected
-                ? "bg-[#0052FF] text-white hover:bg-[#0045D8] shadow-xs"
+                ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
             }`}
           >

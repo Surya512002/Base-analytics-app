@@ -21,11 +21,18 @@ import {
 } from "lucide-react";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 import type { ConnectionType } from "@/lib/types/wallet";
-import { parseUnits, formatUnits } from "viem";
+import { parseUnits, formatUnits, maxUint256, parseAbi } from "viem";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { USDC_BASE_ADDRESS, ERC20_ABI } from "@/lib/lending/constants";
+import {
+  USDC_BASE_ADDRESS,
+  ERC20_ABI,
+  MORPHO_BLUE_BASE,
+  MORPHO_BLUE_ABI,
+  AAVE_V3_DATA_PROVIDER_BASE,
+} from "@/lib/lending/constants";
+import { getMorphoMarketId } from "@/lib/lending/morpho-blue";
 import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
 import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import { useCompliance } from "@/hooks/useCompliance";
@@ -139,11 +146,16 @@ function ActionDrawerContent({
   const [activeTab, setActiveTab] = useState<DrawerActionTab>(initialTab);
   const [amount, setAmount] = useState("");
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false);
+  const [approveUnlimited, setApproveUnlimited] = useState(false);
   const compliance = useCompliance();
 
-  // Balances
+  // Balances: floats for display and BigInts for exact on-chain calculations
   const [stockBalance, setStockBalance] = useState<number>(0);
+  const [rawStockBalance, setRawStockBalance] = useState<bigint>(BigInt(0));
   const [usdcBalance, setUsdcBalance] = useState<number>(0);
+  const [rawUsdcBalance, setRawUsdcBalance] = useState<bigint>(BigInt(0));
+  const [suppliedBalance, setSuppliedBalance] = useState<number>(0);
+  const [rawSuppliedBalance, setRawSuppliedBalance] = useState<bigint>(BigInt(0));
   const [loadingBalances, setLoadingBalances] = useState(false);
 
   // Transaction States
@@ -157,6 +169,13 @@ function ActionDrawerContent({
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const isConnected = !!userAddress;
+
+  // Resolve decimals dynamically from token registry (defaults to 8 for B20 stocks)
+  const stockEntry = option?.stockSymbol ? getTokenizedStockBySymbol(option.stockSymbol) : undefined;
+  const stockDecimals = stockEntry?.decimals ?? 8;
+  const loanDecimals = 6; // Canonical USDC decimals on Base
+  const activeDecimals =
+    activeTab === "borrow" || activeTab === "repay" ? loanDecimals : stockDecimals;
 
   // Sync tab with initialTab when opened
   useEffect(() => {
@@ -179,7 +198,7 @@ function ActionDrawerContent({
     return () => clearTimeout(timer);
   }, [activeTab]);
 
-  // Fetch onchain balances for the stock token and USDC
+  // Fetch onchain balances: wallet stock, wallet USDC, and supplied position
   useEffect(() => {
     if (!userAddress || !option?.stockAddress) return;
     let alive = true;
@@ -190,40 +209,69 @@ function ActionDrawerContent({
         const pub = createBasePublicClient();
         const user = userAddress as `0x${string}`;
 
+        // 1. Read wallet token balances
         const [stockBalRaw, usdcBalRaw] = await Promise.all([
           pub.readContract({
             address: option!.stockAddress,
-            abi: [
-              {
-                name: "balanceOf",
-                type: "function",
-                stateMutability: "view",
-                inputs: [{ name: "account", type: "address" }],
-                outputs: [{ name: "", type: "uint256" }],
-              },
-            ],
+            abi: ERC20_ABI,
             functionName: "balanceOf",
             args: [user],
           }) as Promise<bigint>,
           pub.readContract({
             address: USDC_BASE_ADDRESS,
-            abi: [
-              {
-                name: "balanceOf",
-                type: "function",
-                stateMutability: "view",
-                inputs: [{ name: "account", type: "address" }],
-                outputs: [{ name: "", type: "uint256" }],
-              },
-            ],
+            abi: ERC20_ABI,
             functionName: "balanceOf",
             args: [user],
           }) as Promise<bigint>,
         ]);
 
+        // 2. Read supplied/collateralized balance in this specific protocol/market
+        let suppliedBal = BigInt(0);
+        try {
+          if (option!.executionType === "morpho_blue" && option!.morphoParams) {
+            const marketId = getMorphoMarketId(option!.morphoParams);
+            const pos = await pub.readContract({
+              address: MORPHO_BLUE_BASE,
+              abi: MORPHO_BLUE_ABI,
+              functionName: "position",
+              args: [marketId, user],
+            });
+            const [, , collateral] = pos as [bigint, bigint, bigint];
+            suppliedBal = collateral;
+          } else if (option!.executionType === "aave") {
+            const data = await pub.readContract({
+              address: AAVE_V3_DATA_PROVIDER_BASE,
+              abi: parseAbi([
+                "function getUserReserveData(address asset, address user) external view returns (uint256 currentATokenBalance, uint256 currentStableDebt, uint256 currentVariableDebt, uint256 principalStableDebt, uint256 scaledVariableDebt, uint256 stableBorrowRate, uint256 liquidityRate, uint40 stableRateLastUpdated, bool usageAsCollateralEnabled)",
+              ]),
+              functionName: "getUserReserveData",
+              args: [option!.stockAddress, user],
+            });
+            suppliedBal = data[0];
+          } else if (
+            option!.executionType === "beefy" ||
+            option!.executionType === "aerodrome" ||
+            option!.executionType === "pendle" ||
+            option!.executionType === "ipor"
+          ) {
+            suppliedBal = (await pub.readContract({
+              address: option!.contractAddress,
+              abi: parseAbi(["function balanceOf(address account) view returns (uint256)"]),
+              functionName: "balanceOf",
+              args: [user],
+            })) as bigint;
+          }
+        } catch {
+          suppliedBal = BigInt(0);
+        }
+
         if (alive) {
-          setStockBalance(parseFloat(formatUnits(stockBalRaw, 8))); // 8 decimals for B20 stocks
-          setUsdcBalance(parseFloat(formatUnits(usdcBalRaw, 6))); // 6 decimals for USDC
+          setRawStockBalance(stockBalRaw);
+          setStockBalance(parseFloat(formatUnits(stockBalRaw, stockDecimals)));
+          setRawUsdcBalance(usdcBalRaw);
+          setUsdcBalance(parseFloat(formatUnits(usdcBalRaw, loanDecimals)));
+          setRawSuppliedBalance(suppliedBal);
+          setSuppliedBalance(parseFloat(formatUnits(suppliedBal, stockDecimals)));
         }
       } catch {
         /* fallback to 0 */
@@ -236,7 +284,7 @@ function ActionDrawerContent({
     return () => {
       alive = false;
     };
-  }, [userAddress, option]);
+  }, [userAddress, option, stockDecimals]);
 
   // Safe Guard: Never show blank panel if option is missing or undefined
   if (!option || !option.stockSymbol) {
@@ -281,15 +329,49 @@ function ActionDrawerContent({
   }
 
   // Active token for the selected action
-  const stockEntry = option?.stockSymbol ? getTokenizedStockBySymbol(option.stockSymbol) : undefined;
   const activeTokenSymbol =
     activeTab === "borrow" || activeTab === "repay" ? "USDC" : option.stockSymbol;
+
+  // Available balance for the active tab:
+  // - Supply: user's stock wallet balance
+  // - Withdraw: user's supplied position in this market
+  // - Borrow: market liquidity available in USDC
+  // - Repay: user's USDC wallet balance
   const currentAvailableBalance =
-    activeTab === "borrow" || activeTab === "repay" ? usdcBalance : stockBalance;
+    activeTab === "borrow"
+      ? (option.availableLiquidityUsd ?? 0)
+      : activeTab === "repay"
+      ? usdcBalance
+      : activeTab === "withdraw"
+      ? suppliedBalance
+      : stockBalance;
+
+  const currentAvailableRaw =
+    activeTab === "borrow"
+      ? parseUnits(Math.floor(option.availableLiquidityUsd ?? 0).toString(), loanDecimals)
+      : activeTab === "repay"
+      ? rawUsdcBalance
+      : activeTab === "withdraw"
+      ? rawSuppliedBalance
+      : rawStockBalance;
 
   const parsedAmount = parseFloat(amount) || 0;
+
+  // Validation checks
   const isInsufficientBalance =
-    (activeTab === "supply" || activeTab === "repay") && parsedAmount > currentAvailableBalance;
+    activeTab === "supply"
+      ? parsedAmount > stockBalance
+      : activeTab === "repay"
+      ? parsedAmount > usdcBalance
+      : activeTab === "withdraw"
+      ? (suppliedBalance <= 0 || parsedAmount > suppliedBalance)
+      : false;
+
+  const isExceedsLiquidity =
+    activeTab === "borrow" &&
+    option.availableLiquidityUsd != null &&
+    option.availableLiquidityUsd > 0 &&
+    parsedAmount > option.availableLiquidityUsd;
 
   // Live financial calculations for preview
   const isFixedTerm = option.type === "fixed" && option.fixedTermDays;
@@ -335,7 +417,7 @@ function ActionDrawerContent({
     if (isExternalProtocol) {
       const targetUrl =
         option.protocol === "aave"
-          ? "https://pro.aave.com/explore/borrow"
+          ? (activeTab === "borrow" ? "https://pro.aave.com/explore/borrow" : "https://pro.aave.com/explore")
           : option.protocol === "ipor"
           ? "https://app.ipor.io/stocks"
           : option.protocol === "aerodrome"
@@ -349,7 +431,7 @@ function ActionDrawerContent({
     }
 
     if (!parsedAmount || parsedAmount <= 0) return;
-    if (isInsufficientBalance) return;
+    if (isInsufficientBalance || isExceedsLiquidity) return;
     if (needsRiskAck) return;
 
     setStepStatus("approving");
@@ -358,8 +440,7 @@ function ActionDrawerContent({
     try {
       const pub = createBasePublicClient();
       const user = userAddress as `0x${string}`;
-      const dec = activeTab === "borrow" || activeTab === "repay" ? 6 : 8;
-      const amountRaw = parseUnits(amount, dec);
+      const amountRaw = parseUnits(amount, activeDecimals);
 
       const targetToken =
         activeTab === "borrow" || activeTab === "repay"
@@ -381,6 +462,8 @@ function ActionDrawerContent({
         }
       }
 
+      const approveAmount = approveUnlimited ? maxUint256 : amountRaw;
+
       const calls = buildUnifiedProtocolCalls({
         option,
         action:
@@ -398,9 +481,16 @@ function ActionDrawerContent({
         amountRaw,
         userAddress: user,
         requiresApproval,
+        approveAmount,
       });
 
-      // Part 4: Pre-simulate every transaction first before prompting wallet
+      if (calls.length === 0) {
+        setStepStatus("error");
+        setErrorMessage("Action not supported for this protocol contract type.");
+        return;
+      }
+
+      // Pre-simulate every transaction first before prompting wallet
       const sim = await simulateCallsBeforeExecution(pub, user, calls);
       if (!sim.ok) {
         setStepStatus("error");
@@ -415,8 +505,17 @@ function ActionDrawerContent({
       setStepStatus("confirming");
       const hash = await sendAppTransactions(connType ?? "injected", user, calls);
       setTxHash(hash);
-      setStepStatus("success");
-      onSuccess?.();
+      setStepStatus("pending");
+
+      // Fund-Safety: Await verified on-chain confirmation before declaring success
+      const receipt = await pub.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+      if (receipt.status === "success") {
+        setStepStatus("success");
+        onSuccess?.();
+      } else {
+        setStepStatus("error");
+        setErrorMessage("Transaction was reverted on-chain. Please check your transaction parameters and try again.");
+      }
     } catch (e) {
       setStepStatus("error");
       setErrorMessage(e instanceof Error ? e.message : "Transaction failed");
@@ -424,9 +523,15 @@ function ActionDrawerContent({
   };
 
   const setPercentAmount = (pct: number) => {
-    if (currentAvailableBalance <= 0) return;
-    const calculated = (currentAvailableBalance * pct) / 100;
-    setAmount(calculated.toFixed(activeTokenSymbol === "USDC" ? 2 : 4));
+    if (currentAvailableRaw <= BigInt(0)) return;
+    if (pct === 100) {
+      setAmount(formatUnits(currentAvailableRaw, activeDecimals));
+    } else {
+      const calculatedRaw = (currentAvailableRaw * BigInt(pct)) / BigInt(100);
+      const str = formatUnits(calculatedRaw, activeDecimals);
+      const trimmed = str.includes(".") ? str.replace(/\.?0+$/, "") : str;
+      setAmount(trimmed);
+    }
   };
 
   return (
@@ -585,165 +690,202 @@ function ActionDrawerContent({
           </div>
         )}
 
-        {/* Amount Input */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <label className="font-bold text-[var(--ink)]">Amount</label>
-            <span className="text-[var(--ink-muted)]">
-              Available:{" "}
-              {loadingBalances ? (
-                <span className="inline-block w-16 h-3 rounded bg-[var(--border-subtle)] animate-pulse align-middle" />
-              ) : (
-                <strong className="text-[var(--ink)] font-mono">
-                  {currentAvailableBalance.toFixed(4)} {activeTokenSymbol}
-                </strong>
+        {/* Direct Protocol Action Inputs vs. External Protocol Gateway */}
+        {!isExternalProtocol ? (
+          <>
+            {/* Amount Input */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-bold text-[var(--ink)]">
+                  {activeTab === "supply"
+                    ? "Amount to Supply"
+                    : activeTab === "withdraw"
+                    ? "Amount to Withdraw"
+                    : activeTab === "borrow"
+                    ? "Amount to Borrow"
+                    : "Amount to Repay"}
+                </label>
+                <span className="text-[var(--ink-muted)]">
+                  {activeTab === "withdraw" ? "Supplied: " : activeTab === "borrow" ? "Market Liquidity: " : "In Wallet: "}
+                  {loadingBalances ? (
+                    <span className="inline-block w-16 h-3 rounded bg-[var(--border-subtle)] animate-pulse align-middle" />
+                  ) : (
+                    <strong className="text-[var(--ink)] font-mono">
+                      {activeTab === "borrow"
+                        ? `$${(option.availableLiquidityUsd ?? 0).toLocaleString()} USDC`
+                        : `${currentAvailableBalance.toFixed(activeDecimals === 6 ? 2 : 4)} ${activeTokenSymbol}`}
+                    </strong>
+                  )}
+                </span>
+              </div>
+
+              <div className="relative">
+                <input
+                  ref={amountInputRef}
+                  type="number"
+                  step="any"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full pl-3.5 pr-20 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] font-mono text-lg font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <span className="font-mono font-bold text-xs text-[var(--ink)]">
+                    {activeTokenSymbol}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick 25 / 50 / 75 / MAX percentage buttons */}
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {[25, 50, 75, 100].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    disabled={!isConnected || currentAvailableBalance <= 0}
+                    onClick={() => setPercentAmount(pct)}
+                    className="py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-mono font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand-text)] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    {pct === 100 ? "MAX" : `${pct}%`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Unlimited Approval Toggle (for Supply & Repay actions) */}
+              {(activeTab === "supply" || activeTab === "repay") && (
+                <label className="flex items-center gap-2 pt-1 text-xs text-[var(--ink-muted)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={approveUnlimited}
+                    onChange={(e) => setApproveUnlimited(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)]"
+                  />
+                  <span className="text-[11px]">Approve unlimited allowance (saves gas on future actions)</span>
+                </label>
               )}
-            </span>
-          </div>
+            </div>
 
-          <div className="relative">
-            <input
-              ref={amountInputRef}
-              type="number"
-              step="any"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full pl-3.5 pr-20 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] font-mono text-lg font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--brand-text)]"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-              <span className="font-mono font-bold text-xs text-[var(--ink)]">
-                {activeTokenSymbol}
+            {/* Live Transaction Preview */}
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2.5 text-xs">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+                Transaction Preview
               </span>
+
+              {activeTab === "supply" && (
+                <div className="space-y-1.5 text-[var(--ink-muted)]">
+                  <div className="flex justify-between">
+                    <span>{option.type === "strategy" ? "Strategy APY:" : "Supply APY:"}</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {supplyApyVal.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Est. Monthly Return:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      +${monthlySupplyEarnings.toFixed(2)} USD
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Est. Yearly Return:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      +${yearlySupplyEarnings.toFixed(2)} USD
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "borrow" && (
+                <div className="space-y-1.5 text-[var(--ink-muted)]">
+                  <div className="flex justify-between">
+                    <span>Borrow APR:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      {option.borrowApr != null ? `${option.borrowApr.toFixed(2)}%` : "3.20%"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Current Max LTV:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      {option.maxLtv != null ? `${option.maxLtv}%` : "75%"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Est. Monthly Interest:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      ~${monthlyBorrowCost.toFixed(2)} USDC
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Liquidation Buffer:</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      Safe (&gt;1.5 Health)
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "withdraw" && (
+                <div className="space-y-1.5 text-[var(--ink-muted)]">
+                  <div className="flex justify-between">
+                    <span>Asset to Withdraw:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      {activeTokenSymbol}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Settlement:</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      Instant · Base Mainnet
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "repay" && (
+                <div className="space-y-1.5 text-[var(--ink-muted)]">
+                  <div className="flex justify-between">
+                    <span>Debt Asset:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      USDC
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Collateral Status:</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      Unlocked upon settlement
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {isFixedTerm && (
+                <div className="pt-2 border-t border-[var(--border-subtle)]/60 text-[11px] space-y-1">
+                  <div className="flex justify-between text-[var(--ink-muted)]">
+                    <span>Fixed Maturity:</span>
+                    <span className="font-mono font-bold text-[var(--ink)]">
+                      {termEndDate.toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[var(--ink-dim)]">
+                    Morpho Midnight guarantees this fixed rate until term maturity.
+                  </p>
+                </div>
+              )}
             </div>
+          </>
+        ) : (
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-2.5 text-xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+              External Protocol Integration
+            </span>
+            <p className="text-[var(--ink-muted)] leading-relaxed">
+              This pool is deployed directly on <strong>{option.protocolName}</strong> on Base. Click below to open the official verified pool where you can connect your wallet and execute transactions natively.
+            </p>
           </div>
-
-          {/* Quick 25 / 50 / 75 / MAX percentage buttons */}
-          <div className="grid grid-cols-4 gap-1.5 pt-1">
-            {[25, 50, 75, 100].map((pct) => (
-              <button
-                key={pct}
-                type="button"
-                disabled={!isConnected || currentAvailableBalance <= 0}
-                onClick={() => setPercentAmount(pct)}
-                className="py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-mono font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand-text)] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-              >
-                {pct === 100 ? "MAX" : `${pct}%`}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Live Transaction Preview */}
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2.5 text-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
-            Transaction Preview
-          </span>
-
-          {activeTab === "supply" && (
-            <div className="space-y-1.5 text-[var(--ink-muted)]">
-              <div className="flex justify-between">
-                <span>{option.type === "strategy" ? "Strategy APY:" : "Supply APY:"}</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {supplyApyVal.toFixed(2)}%
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Est. Monthly Return:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  +${monthlySupplyEarnings.toFixed(2)} USD
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Est. Yearly Return:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  +${yearlySupplyEarnings.toFixed(2)} USD
-                </span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "borrow" && (
-            <div className="space-y-1.5 text-[var(--ink-muted)]">
-              <div className="flex justify-between">
-                <span>Borrow APR:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  {option.borrowApr != null ? `${option.borrowApr.toFixed(2)}%` : "3.20%"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Current Max LTV:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  {option.maxLtv != null ? `${option.maxLtv}%` : "75%"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Est. Monthly Interest:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  ~${monthlyBorrowCost.toFixed(2)} USDC
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Liquidation Buffer:</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  Safe (&gt;1.5 Health)
-                </span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "withdraw" && (
-            <div className="space-y-1.5 text-[var(--ink-muted)]">
-              <div className="flex justify-between">
-                <span>Asset to Withdraw:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  {activeTokenSymbol}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Settlement:</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  Instant · Base Mainnet
-                </span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "repay" && (
-            <div className="space-y-1.5 text-[var(--ink-muted)]">
-              <div className="flex justify-between">
-                <span>Debt Asset:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  USDC
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Collateral Status:</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  Unlocked upon settlement
-                </span>
-              </div>
-            </div>
-          )}
-
-          {isFixedTerm && (
-            <div className="pt-2 border-t border-[var(--border-subtle)]/60 text-[11px] space-y-1">
-              <div className="flex justify-between text-[var(--ink-muted)]">
-                <span>Fixed Maturity:</span>
-                <span className="font-mono font-bold text-[var(--ink)]">
-                  {termEndDate.toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <p className="text-[10px] text-[var(--ink-dim)]">
-                Morpho Midnight guarantees this fixed rate until term maturity.
-              </p>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Exit-Only & Compliance Banner */}
         {isRestrictedEntry && (
@@ -832,6 +974,26 @@ function ActionDrawerContent({
           </div>
         )}
 
+        {/* Pending Receipt (Waiting for Block Confirmation) */}
+        {stepStatus === "pending" && txHash && (
+          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-300 space-y-1.5">
+            <div className="flex items-center gap-1.5 font-bold">
+              <Loader2 size={15} className="animate-spin text-blue-600 dark:text-blue-400" />
+              <span>Confirming on Base Mainnet…</span>
+            </div>
+            <p className="text-[11px]">Transaction submitted to Base. Waiting for block confirmation.</p>
+            <a
+              href={`https://basescan.org/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--brand-text)] hover:underline pt-0.5"
+            >
+              <span>View Pending Tx on BaseScan</span>
+              <ExternalLink size={11} />
+            </a>
+          </div>
+        )}
+
         {/* Success Receipt */}
         {stepStatus === "success" && txHash && (
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-300 space-y-1.5">
@@ -866,6 +1028,16 @@ function ActionDrawerContent({
             <Wallet size={16} />
             <span>Connect Wallet</span>
           </button>
+        ) : isExternalProtocol ? (
+          <button
+            type="button"
+            disabled={isRestrictedEntry}
+            onClick={handleActionClick}
+            className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--brand)] text-white hover:opacity-90 shadow-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+          >
+            <span>Open on {option.protocolName}</span>
+            <ExternalLink size={15} />
+          </button>
         ) : (
           <button
             type="button"
@@ -873,21 +1045,24 @@ function ActionDrawerContent({
               isRestrictedEntry ||
               stepStatus === "approving" ||
               stepStatus === "confirming" ||
-              (!isExternalProtocol && (!parsedAmount || isInsufficientBalance || needsRiskAck))
+              stepStatus === "pending" ||
+              (!parsedAmount || isInsufficientBalance || isExceedsLiquidity || needsRiskAck)
             }
             onClick={handleActionClick}
             className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer ${
               isRestrictedEntry
                 ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-75"
-                : stepStatus === "approving" || stepStatus === "confirming"
+                : stepStatus === "approving" || stepStatus === "confirming" || stepStatus === "pending"
                 ? "bg-[var(--brand)] text-white opacity-80 cursor-wait"
-                : !isExternalProtocol && isInsufficientBalance
+                : isInsufficientBalance
                   ? "bg-[var(--surface-2)] text-red-500 border border-red-500/30 cursor-not-allowed"
-                  : !isExternalProtocol && needsRiskAck
-                    ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed"
-                    : !isExternalProtocol && !parsedAmount
-                      ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60"
-                      : "bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98]"
+                  : isExceedsLiquidity
+                    ? "bg-[var(--surface-2)] text-red-500 border border-red-500/30 cursor-not-allowed"
+                    : needsRiskAck
+                      ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed"
+                      : !parsedAmount
+                        ? "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60"
+                        : "bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98]"
             }`}
           >
             {isRestrictedEntry ? (
@@ -902,32 +1077,19 @@ function ActionDrawerContent({
                 <Loader2 size={16} className="animate-spin" />
                 <span>Confirming in Wallet…</span>
               </>
-            ) : isExternalProtocol ? (
-              <span className="flex items-center gap-1.5 justify-center">
-                {option.protocol === "aave" ? (
-                  <>
-                    <span>Open Aave Pro (Borrow against {option.stockSymbol})</span>
-                    <ExternalLink size={14} />
-                  </>
-                ) : option.protocol === "ipor" ? (
-                  <>
-                    <span>Open IPOR Stocks Vault ({supplyApyVal.toFixed(1)}% APY)</span>
-                    <ExternalLink size={14} />
-                  </>
-                ) : option.protocol === "beefy" ? (
-                  <>
-                    <span>Open Beefy Vault (Zap &amp; Stake)</span>
-                    <ExternalLink size={14} />
-                  </>
-                ) : (
-                  <>
-                    <span>Provide Liquidity on Aerodrome ({supplyApyVal.toFixed(1)}% APR)</span>
-                    <ExternalLink size={14} />
-                  </>
-                )}
-              </span>
+            ) : stepStatus === "pending" ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Confirming on Base (waiting for receipt)…</span>
+              </>
             ) : isInsufficientBalance ? (
-              <span>Insufficient {activeTokenSymbol} Balance</span>
+              <span>
+                {activeTab === "withdraw"
+                  ? "Insufficient Supplied Balance"
+                  : `Insufficient ${activeTokenSymbol} Balance`}
+              </span>
+            ) : isExceedsLiquidity ? (
+              <span>Exceeds Available Market Liquidity</span>
             ) : !parsedAmount ? (
               <span>Enter Amount</span>
             ) : needsRiskAck ? (

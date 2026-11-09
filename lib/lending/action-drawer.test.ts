@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { buildUnifiedProtocolCalls } from "@/lib/lending/protocol-adapters";
 import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 import { parseUnits } from "viem";
@@ -200,5 +200,79 @@ describe("ActionDrawer Protocol Calls & Action Matrix", () => {
       userAddress: dummyUser,
     });
     expect(withdrawCalls.length).toBe(1); // withdraw only
+  });
+
+  it("builds approval calls with exact amount or unlimited approval when specified", () => {
+    const exactAmount = parseUnits("15", 8);
+    const unlimitedAmount = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+    const exactCalls = buildUnifiedProtocolCalls({
+      option: mockMorphoOption,
+      action: "supply",
+      amountRaw: exactAmount,
+      userAddress: dummyUser,
+      requiresApproval: true,
+      approveAmount: exactAmount,
+    });
+    expect(exactCalls.length).toBe(2);
+
+    const unlimitedCalls = buildUnifiedProtocolCalls({
+      option: mockMorphoOption,
+      action: "supply",
+      amountRaw: exactAmount,
+      userAddress: dummyUser,
+      requiresApproval: true,
+      approveAmount: unlimitedAmount,
+    });
+    expect(unlimitedCalls.length).toBe(2);
+    // Unlimited call approves maxUint256 (0xff...ff) in data
+    expect(unlimitedCalls[0].data).toContain("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  });
+
+  it("builds Aave v3 supply, borrow, repay, and withdraw calls correctly", () => {
+    const mockAave: StockLendingOption = {
+      ...mockMorphoOption,
+      id: "aave-pro-nvdac",
+      protocol: "aave",
+      protocolName: "Aave Pro",
+      executionType: "aave",
+      contractAddress: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
+    };
+
+    const supplyCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "supply",
+      amountRaw: parseUnits("10", 8),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(supplyCalls.length).toBe(1);
+
+    const withdrawCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "withdraw",
+      amountRaw: parseUnits("10", 8),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(withdrawCalls.length).toBe(1);
+
+    const borrowCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "borrow",
+      amountRaw: parseUnits("500", 6),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(borrowCalls.length).toBe(1);
+
+    const repayCalls = buildUnifiedProtocolCalls({
+      option: mockAave,
+      action: "repay",
+      amountRaw: parseUnits("500", 6),
+      userAddress: dummyUser,
+      requiresApproval: false,
+    });
+    expect(repayCalls.length).toBe(1);
   });
 });

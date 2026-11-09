@@ -64,12 +64,14 @@ interface OrdersViewProps {
   limitOrders: ReturnType<typeof useLimitOrders>;
   onConnectWallet?: () => void;
   onSwitchChain?: () => void;
+  onSwitchSepolia?: () => void;
 }
 
 export default function OrdersView({
   limitOrders,
   onConnectWallet,
   onSwitchChain,
+  onSwitchSepolia,
 }: OrdersViewProps) {
   const {
     config,
@@ -394,6 +396,9 @@ export default function OrdersView({
   };
 
   const isWrongChain = chainId !== 8453 && chainId !== 84532;
+  const isMainnetWithoutOrderBook =
+    chainId === 8453 &&
+    (!config.orderBook || config.orderBook === "0x0000000000000000000000000000000000000000");
 
   return (
     <div className="space-y-4">
@@ -430,14 +435,41 @@ export default function OrdersView({
         </div>
       )}
 
-      {isMarketStale && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400">
-          <Info size={15} className="shrink-0" />
-          <span>
-            {`Price last updated ${activeMarket?.updatedAt ? formatTimeAgo(nowSec - activeMarket.updatedAt) : "some time"} ago. Markets may be closed; orders execute at the last known price within the protection bound.`}
-          </span>
+      {/* Mainnet Placeholder when Order Book not deployed on Base Mainnet */}
+      {isMainnetWithoutOrderBook ? (
+        <div
+          data-testid="mainnet-orders-placeholder"
+          className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] text-center space-y-4 shadow-card"
+        >
+          <div className="w-12 h-12 mx-auto rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center">
+            <Layers size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[var(--ink)]">
+              Orders aren&apos;t live on Base mainnet yet. Switch to Base Sepolia to test.
+            </h3>
+            <p className="text-xs text-[var(--ink-muted)] mt-1.5 max-w-sm mx-auto">
+              Testnet contracts are deployed on Base Sepolia. You can test limit buy, take-profit, stop-loss, trailing stop, and bracket orders.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onSwitchSepolia}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+          >
+            <span>Switch to Base Sepolia</span>
+          </button>
         </div>
-      )}
+      ) : (
+        <>
+          {isMarketStale && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400">
+              <Info size={15} className="shrink-0" />
+              <span>
+                {`Price last updated ${activeMarket?.updatedAt ? formatTimeAgo(nowSec - activeMarket.updatedAt) : "some time"} ago. Markets may be closed; orders execute at the last known price within the protection bound.`}
+              </span>
+            </div>
+          )}
 
       {/* Main Order Form Card */}
       <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-card space-y-4">
@@ -791,13 +823,56 @@ export default function OrdersView({
           </div>
         )}
 
+        {/* Pre-Flight Plain-Language Summary Box */}
+        {amountInput.trim() !== "" && parsedAmountIn !== null && parsedAmountIn > 0n && !validationMessage && (
+          <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/15 space-y-2 text-xs">
+            <div className="font-bold text-[var(--ink)] flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              <CheckCircle2 size={13} />
+              <span>Order Pre-Flight Summary</span>
+            </div>
+            <div className="space-y-1 text-[11px] text-[var(--ink-muted)]">
+              <div className="flex justify-between">
+                <span>You deposit:</span>
+                <span className="font-semibold text-[var(--ink)] tabular-nums">
+                  {formatUnits(parsedAmountIn, inDecimals)} {inSymbol}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Target trigger:</span>
+                <span className="font-semibold text-[var(--ink)] tabular-nums">
+                  {orderType === "TRAILING_STOP"
+                    ? `${trailPercent}% trail`
+                    : orderType === "BRACKET"
+                    ? `TP: $${triggerInput} · SL: $${slInput}`
+                    : `$${triggerInput}`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Min receive floor:</span>
+                <span className="font-semibold text-[var(--ink)] tabular-nums">
+                  {minOut > 0n ? `${formatUnits(minOut, outDecimals)} ${outSymbol}` : "—"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Target contract:</span>
+                <span className="font-mono text-[var(--ink)]">
+                  OrderBook ({config.orderBook.slice(0, 6)}…{config.orderBook.slice(-4)})
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] text-[var(--ink-muted)] pt-1 border-t border-blue-500/10">
+              Exact token approval only &middot; No unlimited allowance &middot; Funds remain yours until filled
+            </p>
+          </div>
+        )}
+
         {/* Action Button Flow */}
         <div>
           {!walletAddress ? (
             <button
               type="button"
               onClick={onConnectWallet}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition shadow-xs flex items-center justify-center"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition shadow-xs flex items-center justify-center cursor-pointer"
             >
               Connect Wallet
             </button>
@@ -805,7 +880,7 @@ export default function OrdersView({
             <button
               type="button"
               onClick={onSwitchChain}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition flex items-center justify-center"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition flex items-center justify-center cursor-pointer"
             >
               Switch to Base
             </button>
@@ -830,7 +905,7 @@ export default function OrdersView({
               type="button"
               onClick={handleApprove}
               disabled={txSubmitting}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 cursor-pointer"
             >
               {txSubmitting ? (
                 <>
@@ -846,7 +921,7 @@ export default function OrdersView({
               type="button"
               onClick={handleSubmitOrder}
               disabled={Boolean(validationMessage) || txSubmitting}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-xs"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-xs cursor-pointer"
             >
               {txSubmitting ? (
                 <>
@@ -885,6 +960,8 @@ export default function OrdersView({
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* "My orders" Panel */}
       <MyOrdersPanel

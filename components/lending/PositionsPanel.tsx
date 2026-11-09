@@ -193,7 +193,7 @@ export default function PositionsPanel({
                 <button
                   type="button"
                   onClick={() => onRetryProtocol(protocol)}
-                  className="px-2 py-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-[11px] hover:border-[#0052FF] flex items-center gap-1 cursor-pointer"
+                  className="px-2 py-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-bold text-[11px] hover:border-[var(--brand)] flex items-center gap-1 cursor-pointer"
                 >
                   <RotateCcw size={10} />
                   <span>Retry</span>
@@ -310,8 +310,32 @@ export default function PositionsPanel({
             </div>
           ))}
         </div>
+      ) : !hasPositions && errorKeys.length > 0 ? (
+        /* D1. Position Read Failure State */
+        <div className="p-6 rounded-xl border border-amber-500/25 bg-amber-500/10 text-center space-y-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <AlertCircle size={20} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-[var(--ink)]">Unable to query on-chain positions</p>
+            <p className="text-xs text-[var(--ink-muted)] max-w-sm mx-auto">
+              We encountered an issue reading your positions from Base RPC. Your wallet is connected, but protocol reads timed out or failed.
+            </p>
+          </div>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+              <span>Retry Reading Positions</span>
+            </button>
+          )}
+        </div>
       ) : !hasPositions ? (
-        /* D. Empty State (Zero positions on-chain) */
+        /* D2. Empty State (Zero positions on-chain) */
         <div className="p-6 rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)]/40 text-center space-y-2">
           <p className="text-sm font-bold text-[var(--ink)]">You have no open positions yet</p>
           <p className="text-xs text-[var(--ink-muted)] max-w-md mx-auto">
@@ -417,7 +441,7 @@ export default function PositionsPanel({
                     <button
                       type="button"
                       onClick={() => onOpenAction?.(pos.marketId, "supply")}
-                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[#0052FF] cursor-pointer"
+                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[var(--brand)] cursor-pointer"
                     >
                       Add
                     </button>
@@ -437,7 +461,7 @@ export default function PositionsPanel({
                     <button
                       type="button"
                       onClick={() => onOpenAction?.(pos.marketId, "borrow")}
-                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[#0052FF] cursor-pointer"
+                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-bold text-[11px] text-[var(--ink)] hover:border-[var(--brand)] cursor-pointer"
                     >
                       Borrow
                     </button>
@@ -447,7 +471,7 @@ export default function PositionsPanel({
                     <button
                       type="button"
                       onClick={() => onOpenAction?.(pos.marketId, "repay")}
-                      className="pop-pill px-2.5 py-1 rounded-lg bg-[#0052FF] text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                      className="pop-pill px-2.5 py-1 rounded-lg bg-[var(--brand)] hover:opacity-90 text-white font-bold text-[11px] shadow-xs cursor-pointer"
                     >
                       Repay
                     </button>
