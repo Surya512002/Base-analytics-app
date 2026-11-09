@@ -838,13 +838,8 @@ function useWalletAppController() {
       setWalletRefreshing(true);
       setAnalyticsSyncing(false);
 
-      // Auto-trigger sign-in immediately after connect
-      void (async () => {
-        const hasSession = await refreshSiweSession();
-        if (!hasSession) {
-          void siweSignIn();
-        }
-      })();
+      // Refresh session state on connect without prompting unprompted signature requests
+      void refreshSiweSession();
 
       void (async () => {
         const [basename, bootstrap, quick, miniIdentity] = await Promise.all([
