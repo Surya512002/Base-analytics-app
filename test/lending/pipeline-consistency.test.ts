@@ -23,7 +23,7 @@ describe("Lend & Stake Pipeline Consistency (Phase 1)", () => {
         isStock: false,
       },
       collateralAsset: {
-        address: "0x12b32109F40847b2c58De15c0a359cfc6A763E4a",
+        address: "0x12B32109F40847B2c58dE15c0A359cfc6a763e4a",
         symbol: "TSLAc",
         name: "Tesla Inc",
         decimals: 8,
@@ -59,7 +59,7 @@ describe("Lend & Stake Pipeline Consistency (Phase 1)", () => {
         isStock: false,
       },
       collateralAsset: {
-        address: "0x2055DEb59f33b1bC6f4B4731F2E0bb063678F567",
+        address: "0x2055deb59F33b1bc6f4B4731f2E0BB063678f567",
         symbol: "googc",
         name: "Alphabet Inc",
         decimals: 8,
@@ -87,7 +87,7 @@ describe("Lend & Stake Pipeline Consistency (Phase 1)", () => {
       contractAddress: "0x4444444444444444444444444444444444444444",
       type: "lend",
       supplyAsset: {
-        address: "0xF7205eb50ca944d187B0b9c5d01Fa8D1E6167Fa4",
+        address: "0xf7205EB50ca944D187B0B9c5d01fA8d1E6167fA4",
         symbol: "SPCXc",
         name: "SpaceX Tracking",
         decimals: 8,
@@ -122,7 +122,7 @@ describe("Lend & Stake Pipeline Consistency (Phase 1)", () => {
         isStock: false,
       },
       collateralAsset: {
-        address: "0xB20320427e040c5f242C648EeaAeab3b72390f77",
+        address: "0xB20320427e040C5F242c648eeaaEaB3b72390F77",
         symbol: "SKHYc",
         name: "SK Hynix",
         decimals: 8,
@@ -157,7 +157,7 @@ describe("Lend & Stake Pipeline Consistency (Phase 1)", () => {
         isStock: false,
       },
       collateralAsset: {
-        address: "0x759604aC3306637e192f153a812D328B62f1c1fB",
+        address: "0x759604aC3306637E192F153A812D328B62F1c1FB",
         symbol: "dBITX",
         name: "Dinari BITX",
         decimals: 18,
