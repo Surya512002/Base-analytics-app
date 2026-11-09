@@ -1,9 +1,6 @@
 import type { ConnectionType } from "@/lib/types/wallet";
-import {
-  detectMiniAppConnType,
-  ensureBaseNetwork,
-} from "@/lib/utils/wallet-connection";
-import { connectWallet, getEip1193Provider } from "@/app/connection";
+import { detectMiniAppConnType } from "@/lib/utils/wallet-connection";
+import { connectWallet } from "@/app/connection";
 
 const CONNECT_TIMEOUT_MS = 55_000;
 
@@ -59,7 +56,6 @@ export async function connectAppWallet(
     )) as string[];
     const address = accounts?.find((a) => a?.startsWith("0x"));
     if (!address) throw new Error("No wallet account connected");
-    await ensureBaseNetwork(provider);
     return { address, connType: "farcaster" };
   }
 
@@ -78,8 +74,8 @@ export async function connectAppWallet(
     CONNECT_TIMEOUT_MS,
     "Wallet connection"
   );
-  const provider = await getEip1193Provider(connType);
-  await ensureBaseNetwork(provider);
+  // Connect wallet without triggering unprompted chain switches on connect.
+  // Chain-switch requests only fire on an explicit user transaction click.
   return { address, connType };
 }
 
