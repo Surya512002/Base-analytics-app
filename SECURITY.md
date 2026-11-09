@@ -21,7 +21,7 @@ If you discover a security vulnerability, we appreciate your help in disclosing 
 
 ### Contact Channels
 - **GitHub Security Advisory**: Open a confidential advisory via [GitHub Security Advisories](https://github.com/Surya512002/Base-analytics-app/security/advisories/new).
-- **Direct Security Email**: `security@base-analytics.app`
+- **Direct Security Email**: [TODO: Maintainer to configure dedicated security email]
 
 ### Response Service Level Agreements (SLA)
 - **Initial Acknowledgment**: Within **24 hours**.

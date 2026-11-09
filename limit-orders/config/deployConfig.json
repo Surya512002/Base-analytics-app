@@ -1,0 +1,56 @@
+{
+  "quoteToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "router": "0x2626664c2603336E57B271c5C0b26F421741e481",
+  "keeperFeeBps": 10,
+  "defaultMaxDeviationBps": 300,
+  "markets": [
+    {
+      "symbol": "NVDAc",
+      "stockToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+      "feed": "0x04689a41629776563E6822F76f2e57D148d28513",
+      "poolFee": 3000,
+      "maxStaleness": 90000,
+      "maxStalenessReason": "25h heartbeat covers the 24h Chainlink OCR schedule while halting orders during weekend market close",
+      "maxStockIn": "100000000",
+      "maxQuoteIn": "100000000",
+      "maxDeviationBps": 300,
+      "maxDeviationReason": "0.3% pool with tight measured spreads of ~34-54 bps provides a 240 bps safety cushion against MEV"
+    },
+    {
+      "symbol": "AAPLc",
+      "stockToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+      "feed": "0x787f13dEa48Db0897CbCDD985de77809D837F988",
+      "poolFee": 3000,
+      "maxStaleness": 90000,
+      "maxStalenessReason": "25h heartbeat provides a 1h grace over daily OCR heartbeat while preventing execution over weekend market close",
+      "maxStockIn": "50000000",
+      "maxQuoteIn": "100000000",
+      "maxDeviationBps": 300,
+      "maxDeviationReason": "Highest liquidity 0.3% pool with minimal ~28-35 bps slippage allows strict 300 bps oracle protection"
+    },
+    {
+      "symbol": "MSFTc",
+      "stockToken": "0xb200000000000000000000ab99cfa739e253872b",
+      "feed": "0xeB10A6c9aa7E537aEd766C08c35Dae35B321b18c",
+      "poolFee": 10000,
+      "maxStaleness": 90000,
+      "maxStalenessReason": "25h heartbeat aligns with 86400s feed schedule and safely guards against weekend price jumps",
+      "maxStockIn": "25000000",
+      "maxQuoteIn": "100000000",
+      "maxDeviationBps": 350,
+      "maxDeviationReason": "1.0% pool base fee plus spread causes ~170 bps deviation on $100; 350 bps prevents false reverts during volatile hours"
+    },
+    {
+      "symbol": "GOOGLc",
+      "stockToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+      "feed": "0x5bF49E0ffA937CE2FfF033c739aD7C634c4D34F2",
+      "poolFee": 3000,
+      "maxStaleness": 90000,
+      "maxStalenessReason": "25h heartbeat matches Chainlink 24/5 equity schedule while halting executions when markets are closed",
+      "maxStockIn": "50000000",
+      "maxQuoteIn": "100000000",
+      "maxDeviationBps": 300,
+      "maxDeviationReason": "0.3% pool with measured deviation of ~93 bps comfortably executes under a 300 bps oracle bound"
+    }
+  ]
+}

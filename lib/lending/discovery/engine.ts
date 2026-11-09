@@ -10,6 +10,7 @@ import { beefyAdapter } from "./adapters/beefy";
 import { pendleAdapter } from "./adapters/pendle";
 import { zkfiAdapter } from "./adapters/zkfi";
 import { aaveAdapter } from "./adapters/aave";
+import { moonwellAdapter } from "./adapters/moonwell";
 import { iporAdapter } from "./adapters/ipor";
 import { aerodromeAdapter } from "./adapters/aerodrome";
 import { eulerAdapter } from "./adapters/euler";
@@ -92,6 +93,7 @@ export async function runMarketDiscovery(
     pendleAdapter,
     zkfiAdapter,
     aaveAdapter,
+    moonwellAdapter,
     iporAdapter,
     aerodromeAdapter,
     eulerAdapter,

@@ -18,10 +18,7 @@ import {
   computeLiquidationStatus,
   simulateCollateralDrop,
 } from "@/lib/lending/liquidation-math";
-import {
-  HEALTH_THRESHOLDS,
-  type UserProtocolPosition,
-} from "@/lib/lending/user-positions";
+import type { UserProtocolPosition } from "@/lib/lending/user-positions";
 
 interface LiquidationGuardBannerProps {
   positions: UserProtocolPosition[];
@@ -29,14 +26,12 @@ interface LiquidationGuardBannerProps {
     marketId: string,
     action: "supply" | "withdraw" | "borrow" | "repay" | "stake" | "unstake"
   ) => void;
-  onShowToast?: (title: string, desc?: string) => void;
   className?: string;
 }
 
 export default function LiquidationGuardBanner({
   positions,
   onOpenAction,
-  onShowToast,
   className = "",
 }: LiquidationGuardBannerProps) {
   const [simulatedDrop, setSimulatedDrop] = useState<number>(0);
@@ -81,7 +76,7 @@ export default function LiquidationGuardBanner({
 
   const handleToggleNotification = async () => {
     if (typeof window === "undefined" || !("Notification" in window)) {
-      onShowToast?.("Browser notifications unsupported", "Notifications are not supported in this browser environment.");
+      alert("Browser notifications are not supported in this environment.");
       return;
     }
 
@@ -89,10 +84,6 @@ export default function LiquidationGuardBanner({
       const next = !notificationsEnabled;
       setNotificationsEnabled(next);
       localStorage.setItem("base_liquidation_alert_enabled", next ? "true" : "false");
-      onShowToast?.(
-        next ? "Browser alerts enabled" : "Browser alerts disabled",
-        next ? `You'll be alerted when Health Factor falls below ${HEALTH_THRESHOLDS.WATCH}.` : "Alerts muted."
-      );
       return;
     }
 
@@ -102,23 +93,20 @@ export default function LiquidationGuardBanner({
       if (permission === "granted") {
         setNotificationsEnabled(true);
         localStorage.setItem("base_liquidation_alert_enabled", "true");
-        onShowToast?.("Browser alerts enabled", `We'll warn you if your Health Factor falls below ${HEALTH_THRESHOLDS.WATCH}.`);
         new Notification("Base Terminal Liquidation Guard", {
-          body: `Liquidation alerts enabled. We'll warn you if your Health Factor falls below ${HEALTH_THRESHOLDS.WATCH}.`,
+          body: "Liquidation alerts enabled. We'll warn you if your Health Factor falls below 1.25.",
           icon: "/favicon.ico",
         });
-      } else {
-        onShowToast?.("Permission denied", "Browser desktop notifications were blocked.");
       }
     } catch {
-      onShowToast?.("Notification request failed", "Could not request browser notification permission.");
+      // Permission request denied or failed
     }
   };
 
   // If user has no active debt, only show a compact reassurance bar or nothing
   const hasDebt = totalDebtUsd > 0 && lowestHF !== null;
-  const isCritical = hasDebt && lowestHF < HEALTH_THRESHOLDS.WATCH;
-  const isCaution = hasDebt && lowestHF >= HEALTH_THRESHOLDS.WATCH && lowestHF < HEALTH_THRESHOLDS.SAFE;
+  const isCritical = hasDebt && lowestHF < 1.25;
+  const isCaution = hasDebt && lowestHF >= 1.25 && lowestHF < 1.5;
 
   if (!FEATURES.LIQUIDATION_GUARD) {
     return null;
@@ -217,7 +205,7 @@ export default function LiquidationGuardBanner({
           <button
             type="button"
             onClick={handleToggleNotification}
-            title="Toggle browser desktop notifications when Health Factor drops"
+            title="Toggle Liquidation Alerts"
             className={`pop-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
               notificationsEnabled
                 ? "bg-[var(--brand-soft)] border-[var(--brand)] text-[var(--brand-text)]"
@@ -229,7 +217,7 @@ export default function LiquidationGuardBanner({
             ) : (
               <Bell size={13} />
             )}
-            <span>{notificationsEnabled ? "Browser Alerts On" : "Browser Alerts"}</span>
+            <span>{notificationsEnabled ? "Alerts On" : "Set Alert"}</span>
           </button>
 
           {isCritical && primaryDebtPosition && onOpenAction && (
@@ -297,42 +285,38 @@ export default function LiquidationGuardBanner({
             <span className="text-[11px] font-mono text-[var(--ink-muted)]">-50%</span>
           </div>
 
-          {hasDebt && lowestHF !== null ? (
-            <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs flex-wrap">
-              <div>
-                <span className="text-[var(--ink-muted)]">Projected Health Factor: </span>
-                <strong
-                  className={`font-mono text-sm ${
-                    simulatedHF !== null && simulatedHF <= 1.05
-                      ? "text-rose-500"
-                      : simulatedHF !== null && simulatedHF < HEALTH_THRESHOLDS.WATCH
-                        ? "text-amber-500"
-                        : "text-emerald-500"
-                  }`}
-                >
-                  {simulatedHF?.toFixed(2)}
-                </strong>
-              </div>
+          <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs flex-wrap">
+            <div>
+              <span className="text-[var(--ink-muted)]">Projected Health Factor: </span>
+              <strong
+                className={`font-mono text-sm ${
+                  simulatedHF !== null && simulatedHF <= 1.05
+                    ? "text-rose-500"
+                    : simulatedHF !== null && simulatedHF < 1.25
+                      ? "text-amber-500"
+                      : "text-emerald-500"
+                }`}
+              >
+                {lowestHF !== null
+                  ? simulatedHF?.toFixed(2)
+                  : `${simulatedHF?.toFixed(2)} (Benchmark 1.50)`}
+              </strong>
+            </div>
 
-              <div className="text-[var(--ink-muted)]">
-                {simulatedHF !== null && simulatedHF <= 1.0 ? (
-                  <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
-                    <AlertTriangle size={13} />
-                    Position would be liquidated at this drop level!
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 size={13} />
-                    Safe from liquidation at -{simulatedDrop}% drop
-                  </span>
-                )}
-              </div>
+            <div className="text-[var(--ink-muted)]">
+              {simulatedHF !== null && simulatedHF <= 1.0 ? (
+                <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                  <AlertTriangle size={13} />
+                  Position would be liquidated at this drop level!
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 size={13} />
+                  Safe from liquidation at -{simulatedDrop}% drop
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-xs text-[var(--ink-muted)]">
-              No active debt positions to simulate. Supply stock collateral and borrow USDC to track your real Health Factor and liquidation buffer.
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>

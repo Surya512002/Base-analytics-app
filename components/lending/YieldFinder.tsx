@@ -256,7 +256,7 @@ export default function YieldFinder({
       {/* 1. Header with View Toggle & Result Count */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-[var(--brand)]/10 text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shadow-xs shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shadow-xs shrink-0">
             <Compass size={22} className="text-[var(--brand-text)]" />
           </div>
           <div>

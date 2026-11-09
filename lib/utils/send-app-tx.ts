@@ -584,6 +584,8 @@ export type SendAppTxOptions = {
   skipBuilderCompanion?: boolean;
   /** When true (default), approve + swap + fee transfers run in one wallet_sendCalls batch. */
   atomicBatch?: boolean;
+  /** Target chain id for transaction execution (8453 for Base Mainnet, 84532 for Base Sepolia) */
+  targetChainId?: 8453 | 84532;
 };
 
 /** Sends one or more app contract calls — sponsored via paymaster in Base App / Coinbase Wallet. */
@@ -603,7 +605,7 @@ export async function sendAppTransactions(
 
   const provider = (await getEip1193Provider(connType)) as unknown as Eip1193;
 
-  await ensureBaseNetwork(provider);
+  await ensureBaseNetwork(provider, options?.targetChainId ?? 8453);
   await ensureActiveAccount(provider, from);
 
   const inMiniApp = Boolean(await detectMiniAppConnType());

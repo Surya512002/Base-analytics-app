@@ -1,0 +1,31 @@
+{
+  "name": "base-limit-orders",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:fork": "hardhat test test-fork/ForkLifecycle.test.js",
+    "keeper": "tsx keeper/keeper.ts",
+    "test:math": "tsx shared/orderMath.test.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "deploy:sepolia-mocks": "hardhat run scripts/deploy-testnet-mocks.js --network baseSepolia",
+    "deploy": "hardhat run scripts/deploy.js --network base",
+    "feeds:audit": "node scripts/feeds-audit.js",
+    "e2e:local": "node scripts/e2e/run-e2e.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "5.0.0",
+    "@openzeppelin/contracts": "5.6.1",
+    "@types/node": "26.6.6",
+    "dotenv": "16.4.7",
+    "hardhat": "2.29.1",
+    "solc": "0.8.24",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "viem": "2.57.16"
+  },
+  "private": true
+}

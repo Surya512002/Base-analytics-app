@@ -1,5 +1,4 @@
 import type { LendingMarket, MarketProtocol } from "@/lib/lending/types";
-import type { StockLendingOption } from "@/lib/lending/unified-comparison";
 import type { ContractCall } from "@/lib/utils/tx";
 
 export type RiskLevel = "low" | "medium" | "high";

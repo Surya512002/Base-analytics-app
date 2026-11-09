@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getComplianceConfig, evaluateRegionCompliance } from "@/src/config/compliance";
+import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 
 /**
  * Next.js Edge Middleware for Server-Side Compliance & Geolocation Header Injection
@@ -30,6 +31,7 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("x-compliance-mode", evaluation.mode);
   requestHeaders.set("x-compliance-can-enter", evaluation.canEnter ? "true" : "false");
   requestHeaders.set("x-compliance-can-exit", evaluation.canExit ? "true" : "false");
+  requestHeaders.set("x-limit-orders-enabled", isLimitOrdersFeatureEnabled() ? "true" : "false");
 
   const response = NextResponse.next({
     request: {
@@ -40,6 +42,7 @@ export function middleware(request: NextRequest) {
   // Also reflect headers on response for client inspection if needed
   response.headers.set("x-compliance-restricted", evaluation.isRestricted ? "true" : "false");
   response.headers.set("x-compliance-mode", evaluation.mode);
+  response.headers.set("x-limit-orders-enabled", isLimitOrdersFeatureEnabled() ? "true" : "false");
 
   return response;
 }

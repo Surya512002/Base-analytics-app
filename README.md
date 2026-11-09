@@ -230,6 +230,70 @@ To report a vulnerability responsibly, please refer to our **[Security Policy](S
 
 ---
 
+## Pro Orders & Keeper Bot (Tokenized Stocks on Base)
+
+The Swap section features institutional-grade order types for Base tokenized equities:
+- **Bracket orders:** Set take-profit and stop-loss in one transaction from a single escrowed deposit. When one fills, the other is cancelled automatically.
+- **Trailing stops:** The stop rises dynamically with the highest price seen and never moves down, protecting accrued gains.
+- **Edit in place:** Update triggers or minimum outputs on open orders without cancelling and re-escrowing.
+- **Oracle-bounded fills:** Fills must land within `maxDeviationBps` (default 3%) of the Chainlink price feed, preventing bad fills and sandwich exploits.
+- **Recurring buys (DCA):** Scheduled USDC accumulation with an optional price ceiling to automatically skip buys during sudden spikes.
+- **Always-exit & Stale-price protection:** Users can cancel and withdraw funds at any time (even while paused). Orders will not execute when price feeds are stale.
+
+### Feature Flag & Production Access
+
+In production environments, the **Orders** and **Recurring** tabs in the Swap terminal as well as the `/api/limit-orders/region-check` route are protected by a feature flag:
+- `NEXT_PUBLIC_LIMIT_ORDERS_ENABLED="true"`: Enables the Orders and Recurring tabs in the UI and permits access to the region verification route.
+- When unset or set to any value other than `"true"` in production, the Orders and Recurring tabs are hidden entirely, and `/api/limit-orders/region-check` returns HTTP 404. In non-production environments (development / test), the tabs and route remain accessible by default for testing.
+
+> [!IMPORTANT]
+> **Trailing stops and DCA buys require an active keeper bot.**  
+> A trailing stop only ratchets upward while the keeper monitors the price. A DCA buy only executes after its scheduled interval when triggered by a keeper. In production, the protocol operator (or decentralized keeper networks such as Chainlink Automation / Gelato) runs keeper instances. Anyone can run a keeper and earn the on-chain `keeperFeeBps` reward on each executed fill.
+
+### Running the Keeper Bot
+
+The keeper bot monitors open orders, ratchets trailing stops via `updateTrailing` when prices make new highs, executes triggered orders (`executeOrder`), processes scheduled DCA buys (`executeDca`), and refunds expired orders (`refundExpired`).
+
+```bash
+cd limit-orders
+cp .env.example .env
+# Edit .env with:
+# ORDER_BOOK=0x... (LimitOrderBook address)
+# RPC_URL=https://mainnet.base.org (or Base Sepolia RPC)
+# KEEPER_PK=0x... (Dedicated wallet holding ONLY gas ETH — never user funds)
+# CHAIN=base (or baseSepolia)
+npm run keeper
+```
+
+Optional Base validity transactions (`VALIDITY_TX=1`) can be enabled with `SEQUENCER_RPC_URL` from Base docs to enforce block number bounds on execution transactions.
+
+### Testing on Base Sepolia (Testnet Mocks & Simulation)
+
+To test the entire pro order flow without real capital on Base Sepolia:
+
+1. **Deploy Testnet Mocks:**
+   ```bash
+   cd limit-orders
+   # Ensure DEPLOYER_PK is funded with Base Sepolia ETH in limit-orders/.env
+   npx hardhat run scripts/deploy-testnet-mocks.js --network baseSepolia
+   ```
+   This deploys `mNVDA` (Mock NVDA, 18 decimals), `mUSDC` (Mock USDC, 6 decimals), `MockFeed` (initialized at $100), `MockAdapter`, and `LimitOrderBook`. It prints the deployed addresses in JSON format.
+
+2. **Simulate Price Movements:**
+   To move the oracle price and adapter rate to trigger limit buys, take-profits, or stop-losses:
+   ```bash
+   FEED=0x... ADAPTER=0x... STOCK=0x... QUOTE=0x... PRICE=85 npx hardhat run scripts/testnet-set-price.js --network baseSepolia
+   ```
+   Note that `testnet-set-price.js` requires the environment variables `FEED`, `ADAPTER`, `STOCK`, `QUOTE`, and `PRICE`.
+
+3. **Start the Keeper:**
+   ```bash
+   ORDER_BOOK=0x... RPC_URL=https://sepolia.base.org KEEPER_PK=0x... CHAIN=baseSepolia npm run keeper
+   ```
+   The keeper will call `updateTrailing` as mock prices rise, and execute triggered orders as prices cross user thresholds.
+
+---
+
 ## License
 
 This project is open-source software licensed under the **[MIT License](MITLICENCE)** (see also [`LICENSE`](LICENSE)).

@@ -149,7 +149,7 @@ export default function GaugesTable({
               }`}
             >
               <span>Beefy Vaults</span>
-              <span className="text-[10px] bg-white/20 px-1 py-0.5 rounded font-mono">Auto</span>
+              <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">Auto</span>
             </button>
             <button
               type="button"
@@ -161,7 +161,7 @@ export default function GaugesTable({
               }`}
             >
               <span>Aerodrome Gauges</span>
-              <span className="text-[10px] bg-white/20 px-1 py-0.5 rounded font-mono">AERO</span>
+              <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">AERO</span>
             </button>
           </div>
 
@@ -203,14 +203,7 @@ export default function GaugesTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]/60 text-xs">
-            {filteredGauges.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-12 text-center text-xs text-[var(--ink-muted)]">
-                  No staking gauges or vaults found matching your criteria.
-                </td>
-              </tr>
-            ) : (
-              filteredGauges.map((gauge) => {
+            {filteredGauges.map((gauge) => {
               const isBeefy = gauge.rewardToken === "BEEFY" || gauge.id.includes("beefy") || gauge.pairName.includes("Beefy");
               const isPendle = gauge.rewardToken === "PENDLE" || gauge.id.includes("pendle");
 
@@ -231,12 +224,12 @@ export default function GaugesTable({
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                            className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono ${
                               isBeefy
                                 ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
                                 : isPendle
                                   ? "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20"
-                                  : "bg-[var(--brand)]/10 text-[var(--brand-text)] border border-[var(--brand)]/20"
+                                  : "bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand)]/20"
                             }`}
                           >
                             {isBeefy ? "Beefy Finance" : isPendle ? "Pendle Finance" : "Aerodrome Gauge"}
@@ -332,8 +325,7 @@ export default function GaugesTable({
                   </td>
                 </tr>
               );
-            })
-          )}
+            })}
           </tbody>
         </table>
       </div>

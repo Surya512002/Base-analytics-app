@@ -10,22 +10,20 @@ interface LendingViewTabsProps {
   onChange: (tab: LendingViewTab) => void;
   stocksCount?: number;
   vaultsCount?: number;
-  protocolsCount?: number;
 }
 
 export default function LendingViewTabs({
   value,
   onChange,
-  stocksCount,
+  stocksCount = 12,
   vaultsCount,
-  protocolsCount,
 }: LendingViewTabsProps) {
   const tabs = [
     {
       id: "stocks" as LendingViewTab,
       label: "Tokenized Stocks",
       icon: Sparkles,
-      countBadge: stocksCount && stocksCount > 0 ? stocksCount.toString() : undefined,
+      countBadge: stocksCount > 0 ? stocksCount.toString() : undefined,
     },
     {
       id: "vaults" as LendingViewTab,
@@ -43,7 +41,7 @@ export default function LendingViewTabs({
       id: "compare" as LendingViewTab,
       label: "Compare Protocols",
       icon: ArrowLeftRight,
-      countBadge: protocolsCount && protocolsCount > 0 ? `${protocolsCount} Protocols` : "Protocols",
+      countBadge: "8 Protocols",
     },
   ];
 

@@ -53,6 +53,33 @@ export type BaseStock = {
 export const BASE_STOCK_DECIMALS = 8;
 export const B20_PREFIX = "0xb200000000000000000000";
 
+/** Central stock symbol alias mapping (e.g. IPOR/Aerodrome GOOGc <-> Canonical GOOGLc) */
+export const STOCK_SYMBOL_ALIASES: Record<string, string> = {
+  GOOGc: "GOOGLc",
+  googc: "GOOGLc",
+  GOOG: "GOOGLc",
+  goog: "GOOGLc",
+};
+
+/** Normalize any external or protocol symbol to its canonical registry symbol */
+export function normalizeStockSymbol(symbol: string): string {
+  if (!symbol) return "";
+  const clean = symbol.trim();
+  return STOCK_SYMBOL_ALIASES[clean] || STOCK_SYMBOL_ALIASES[clean.toLowerCase()] || clean;
+}
+
+/** Check if two stock symbols or variants refer to the same underlying stock */
+export function areStockSymbolsEquivalent(symA: string, symB: string): boolean {
+  if (!symA || !symB) return false;
+  const normA = normalizeStockSymbol(symA).toLowerCase();
+  const normB = normalizeStockSymbol(symB).toLowerCase();
+  if (normA === normB) return true;
+  // Also match ticker without 'c' suffix if applicable
+  const baseA = normA.endsWith("c") ? normA.slice(0, -1) : normA;
+  const baseB = normB.endsWith("c") ? normB.slice(0, -1) : normB;
+  return baseA === baseB;
+}
+
 /** Verified OpenLaunch deployments on Base mainnet */
 export const OPENLAUNCH_FACTORY_BASE = getAddress("0x815542E8b392389A1389E22E588E4B62A67Ade72");
 export const OPENLAUNCH_LOCKER_BASE = getAddress("0xcd1680D26922fcd9CabFbb8a56bA40C333fD842a");
@@ -89,7 +116,9 @@ export function getBaseStockByAddress(address: string): BaseStock | null {
 }
 
 export function getBaseStockBySymbol(symbol: string): BaseStock | null {
-  const found = getTokenizedStockBySymbol(symbol);
+  if (!symbol) return null;
+  const canonical = normalizeStockSymbol(symbol);
+  const found = getTokenizedStockBySymbol(canonical) || getTokenizedStockBySymbol(symbol);
   return found ? mapEntryToBaseStock(found) : null;
 }
 
