@@ -119,3 +119,11 @@ export const OFFICIAL_TRADE_VENUES: readonly TradeVenue[] = [
     logo: "/tokens/jumper.png",
   },
 ] as const;
+
+export function formatUsdLarge(val: number | null | undefined): string {
+  if (val == null || !Number.isFinite(val) || val <= 0) return "—";
+  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
+  return `$${val.toFixed(2)}`;
+}
