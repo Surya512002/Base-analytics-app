@@ -12,7 +12,7 @@ import {
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import ExploreHero from "./ExploreHero";
-import DiscoveryRow from "./DiscoveryRow";
+import DiscoveryHub from "./DiscoveryHub";
 import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
@@ -337,73 +337,32 @@ export default function ExploreHub({
         onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
       />
 
-      {/* 2. DISCOVERY ROWS (Max 8 compact cards, snap-scroll on mobile, grid on desktop) */}
-      <div className="space-y-7">
-        {/* Row 1: Trending on Base */}
-        <DiscoveryRow
-          title="Trending on Base"
-          description="Tokens with highest 24h trading volume and community DEX activity."
-          tokens={trendingTokens}
-          onTrade={handleTrade}
-          onSelect={(t) => setSelectedQuickViewToken(t)}
-          onToggleWatch={handleToggleWatch}
-          watchlist={watchlist}
-          onViewAll={() => {
+      {/* 2. DISCOVERY HUB (Segmented Tabs: Trending | Top Gainers | New Launches | Stocks) */}
+      <DiscoveryHub
+        trendingTokens={trendingTokens}
+        topMoversTokens={topMoversTokens}
+        recentlyLaunchedTokens={recentlyLaunchedTokens}
+        stockTokens={stockTokens}
+        onTrade={handleTrade}
+        onSelect={(t) => setSelectedQuickViewToken(t)}
+        onToggleWatch={handleToggleWatch}
+        watchlist={watchlist}
+        moversHideLowLiquidity={moversHideLowLiquidity}
+        onToggleLowLiquidity={() => setMoversHideLowLiquidity((prev) => !prev)}
+        onLaunch={onRequestCreateToken}
+        onViewAllCategory={(cat) => {
+          if (cat === "trending") {
             setFilters((prev) => ({ ...prev, sort: "trending", catalogTab: "all" }));
-            handleScrollToExplorer();
-          }}
-        />
-
-        {/* Row 2: Top Movers (with toggle for low liquidity) */}
-        <DiscoveryRow
-          title="Top Movers"
-          description="Tokens exhibiting largest price momentum over the last 24 hours."
-          tokens={topMoversTokens}
-          onTrade={handleTrade}
-          onSelect={(t) => setSelectedQuickViewToken(t)}
-          onToggleWatch={handleToggleWatch}
-          watchlist={watchlist}
-          showLiquidityToggle
-          hideLowLiquidity={moversHideLowLiquidity}
-          onToggleLowLiquidity={() => setMoversHideLowLiquidity((prev) => !prev)}
-          onViewAll={() => {
+          } else if (cat === "gainers") {
             setFilters((prev) => ({ ...prev, sort: "gainers", catalogTab: "all" }));
-            handleScrollToExplorer();
-          }}
-        />
-
-        {/* Row 3: Recently Launched (shows slim inline banner if empty) */}
-        <DiscoveryRow
-          title="Recently Launched"
-          description="Latest tokens deployed on Base mainnet with liquidity lockers."
-          tokens={recentlyLaunchedTokens}
-          onTrade={handleTrade}
-          onSelect={(t) => setSelectedQuickViewToken(t)}
-          onToggleWatch={handleToggleWatch}
-          watchlist={watchlist}
-          onLaunch={onRequestCreateToken}
-          emptyLabel="No new launches in this block. Be the first creator."
-          onViewAll={() => {
+          } else if (cat === "new") {
             setFilters((prev) => ({ ...prev, sort: "newest", catalogTab: "all" }));
-            handleScrollToExplorer();
-          }}
-        />
-
-        {/* Row 4: Tokenized Stocks (Top Equities on Base) */}
-        <DiscoveryRow
-          title="Tokenized US Stocks (RWA)"
-          description="Coinbase B20 securities backed 1:1 by custodial shares on Base."
-          tokens={stockTokens}
-          onTrade={handleTrade}
-          onSelect={(t) => setSelectedQuickViewToken(t)}
-          onToggleWatch={handleToggleWatch}
-          watchlist={watchlist}
-          onViewAll={() => {
+          } else if (cat === "stocks") {
             setFilters((prev) => ({ ...prev, catalogTab: "stocks" }));
-            handleScrollToExplorer();
-          }}
-        />
-      </div>
+          }
+          handleScrollToExplorer();
+        }}
+      />
 
       {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}
       <MarketIntelligenceHub

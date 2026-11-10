@@ -7,10 +7,16 @@ import {
   Lock,
   Info,
   RefreshCw,
-  Clock,
   Layers,
 } from "lucide-react";
 import type { MarketsOverview, ActivitySeries, PricePoint } from "@/lib/markets/types";
+
+function formatChartDate(dStr?: string): string {
+  if (!dStr) return "";
+  const d = new Date(dStr);
+  if (isNaN(d.getTime())) return dStr;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 interface MarketsOverviewStripProps {
   overview: MarketsOverview | null;
@@ -140,8 +146,14 @@ export default function MarketsOverviewStrip({
 
           {overview?.dataAsOf && (
             <div className="flex items-center gap-1.5 text-[11px] text-[var(--ink-muted)] px-2.5 py-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-              <Clock size={12} />
-              <span>Data as of {new Date(overview.dataAsOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span>
+                Live · {new Date(overview.dataAsOf).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })},{" "}
+                {new Date(overview.dataAsOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
               {overview.isStale && (
                 <span className="text-amber-500 font-bold ml-1">· Stale</span>
               )}
@@ -307,13 +319,13 @@ export default function MarketsOverviewStrip({
 
                 {/* Range Labels */}
                 <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[10px] text-[var(--ink-muted)] tabular-nums pointer-events-none">
-                  <span>{chartPoints[0]?.date}</span>
+                  <span>{formatChartDate(chartPoints[0]?.date)}</span>
                   <span className="font-semibold text-[var(--brand-text)]">
                     {hoveredPoint
-                      ? `${hoveredPoint.date}: ${formatUsdLarge(hoveredPoint.value)}`
+                      ? `${formatChartDate(hoveredPoint.date)}: ${formatUsdLarge(hoveredPoint.value)}`
                       : `Latest: ${formatUsdLarge(chartPoints[chartPoints.length - 1]?.value ?? 0)}`}
                   </span>
-                  <span>{chartPoints[chartPoints.length - 1]?.date}</span>
+                  <span>{formatChartDate(chartPoints[chartPoints.length - 1]?.date)}</span>
                 </div>
               </>
             ) : (

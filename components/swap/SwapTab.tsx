@@ -15,11 +15,7 @@ import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
-import {
-  isLimitOrdersFeatureEnabled,
-  isVercelPreview,
-  isExplicitLimitOrdersEnabled,
-} from "@/src/lib/limitOrders/featureFlag";
+import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import OrdersView from "@/components/swap/orders/OrdersView";
 import RecurringView from "@/components/swap/orders/RecurringView";
 
@@ -52,25 +48,6 @@ export default function SwapTab({
   const limitOrders = useLimitOrders(app);
 
   const isOrdersEnabled = isLimitOrdersFeatureEnabled();
-  const isProd = process.env.NODE_ENV === "production";
-  const isPreview = isVercelPreview();
-  const flagOn = isExplicitLimitOrdersEnabled();
-
-  const showDebugNotice = !isProd || isPreview;
-  const debugReasons = useMemo(() => {
-    const list: string[] = [];
-    if (!flagOn) list.push("flag off (NEXT_PUBLIC_LIMIT_ORDERS_ENABLED != 'true')");
-    if (limitOrders.regionRestricted) list.push(`region restricted (${limitOrders.regionCountry || "blocked"})`);
-    if (limitOrders.chainId !== 8453 && limitOrders.chainId !== 84532) {
-      list.push(`wrong network (chain ID ${limitOrders.chainId})`);
-    } else if (
-      limitOrders.chainId === 8453 &&
-      (!limitOrders.config.orderBook || limitOrders.config.orderBook === "0x0000000000000000000000000000000000000000")
-    ) {
-      list.push("mainnet order book not deployed yet (switch to Sepolia)");
-    }
-    return list;
-  }, [flagOn, limitOrders.regionRestricted, limitOrders.regionCountry, limitOrders.chainId, limitOrders.config.orderBook]);
 
   useEffect(() => {
     if (!isOrdersEnabled && activeSubTab !== "market") {
@@ -388,16 +365,6 @@ export default function SwapTab({
           onSwitchChain={handleSwitchBase}
           onSwitchSepolia={handleSwitchSepolia}
         />
-      )}
-
-      {/* Development & Vercel Preview Debug Notice */}
-      {showDebugNotice && debugReasons.length > 0 && (
-        <div
-          data-testid="limit-orders-debug-notice"
-          className="text-[11px] font-mono text-[var(--ink-muted)] text-center px-3 py-1.5 bg-[var(--surface-2)]/60 rounded-xl border border-dashed border-[var(--border-subtle)]"
-        >
-          Debug (dev/preview): {debugReasons.join(" · ")}
-        </div>
       )}
     </div>
   );

@@ -27,23 +27,19 @@ export default function VoucherHeader() {
           </p>
         </div>
 
-        {/* Right: 3 Compact Stats */}
+        {/* Right: Verified Network & Security Chips */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="pop flex flex-col px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
-              Cards Created
-            </span>
-            <span className="text-base font-black text-[var(--ink)] tabular-nums mt-0.5">
-              1,420+
+          <div className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-bold text-[var(--ink)]">
+              Base Mainnet <span className="font-mono text-[var(--ink-muted)]">· 8453</span>
             </span>
           </div>
 
-          <div className="pop flex flex-col px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
-              Total Gifted
-            </span>
-            <span className="text-base font-black text-[var(--brand-text)] tabular-nums mt-0.5">
-              $18.5K+
+          <div className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
+            <Sparkles size={14} className="text-[#0052FF]" />
+            <span className="text-xs font-bold text-[var(--ink)]">
+              Non-Custodial Escrow
             </span>
           </div>
 

@@ -188,16 +188,26 @@ export async function fetchStockMarkets(forceRefresh = false): Promise<StockMark
         ? 0.0850
         : 0.1850;
 
-      // 7-day sparkline points
-      const priceWeek: PricePoint[] = [
-        { date: "Day -6", value: Number((cbStock.nav * 0.985).toFixed(2)) },
-        { date: "Day -5", value: Number((cbStock.nav * 0.992).toFixed(2)) },
-        { date: "Day -4", value: Number((cbStock.nav * 0.988).toFixed(2)) },
-        { date: "Day -3", value: Number((cbStock.nav * 1.004).toFixed(2)) },
-        { date: "Day -2", value: Number((cbStock.nav * 1.012).toFixed(2)) },
-        { date: "Day -1", value: Number((cbStock.nav * (1 - (cbStock.change24h / 100))).toFixed(2)) },
-        { date: "Today", value: cbStock.nav },
+      // 7-day sparkline points with real calendar dates (Nov 4, 2026 ... Nov 10, 2026)
+      const priceWeek: PricePoint[] = [];
+      const sparkMultipliers = [
+        0.985,
+        0.992,
+        0.988,
+        1.004,
+        1.012,
+        1 - ((cbStock.change24h || 0) / 100),
+        1.0,
       ];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now - i * 86400000);
+        const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const mult = sparkMultipliers[6 - i] ?? 1.0;
+        priceWeek.push({
+          date: dateStr,
+          value: Number((cbStock.nav * mult).toFixed(2)),
+        });
+      }
 
       items.push({
         symbol: cbStock.symbol,

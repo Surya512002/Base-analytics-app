@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TrendingUp, RefreshCw, Info } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 interface LendingHeaderProps {
   topSupplyApy: number;
@@ -30,30 +30,31 @@ export default function LendingHeader({
   isRefreshing = false,
 }: LendingHeaderProps) {
   return (
-    <div className="space-y-4">
-      {/* Title & One-line Subtitle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-3">
+      {/* Title & Live Status */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] text-xs font-bold mb-1.5">
-            <TrendingUp size={13} />
-            <span>Base Mainnet Equities &amp; Money Markets</span>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-[var(--ink)] tracking-tight">
+              Lend, Borrow &amp; Stake
+            </h1>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20">
+              Base 8453
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[var(--ink)] tracking-tight">
-            Lend, Borrow &amp; Stake
-          </h1>
-          <p className="text-sm text-[var(--ink-muted)] mt-1 max-w-2xl">
-            Borrow cash against tokenized stock collateral while maintaining equity exposure, or supply assets for verified onchain yield.
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+            Borrow cash against tokenized stock collateral or supply assets for verified onchain yield.
           </p>
         </div>
 
         {/* Live Data Freshness Badge & Refresh button */}
         <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-          <div className="pop-pill flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs text-[var(--ink-muted)] font-medium">
+          <div className="pop-pill flex items-center gap-2 px-2.5 py-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] text-[var(--ink-muted)] font-medium">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span>Live · updated {lastUpdatedSecondsAgo}s ago</span>
+            <span>Live · {lastUpdatedSecondsAgo}s ago</span>
           </div>
 
           {onRefresh && (
@@ -61,62 +62,52 @@ export default function LendingHeader({
               type="button"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="pop-pill p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer disabled:opacity-50"
+              className="pop-pill p-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer disabled:opacity-50"
               title="Refresh live rates"
             >
-              <RefreshCw size={14} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
+              <RefreshCw size={13} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Live Calculated Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
-        <div className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+      {/* Streamlined Stats Bar (Base Market Theme) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 p-2 sm:p-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
+        <div className="px-3 py-1 flex flex-col justify-center">
+          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
             Top Supply APY
           </span>
-          <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+          <p className="text-base sm:text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
             {topSupplyApy > 0 ? `${topSupplyApy.toFixed(2)}%` : "—"}
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">Securities yield on Base</span>
         </div>
 
-        <div className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+        <div className="px-3 py-1 flex flex-col justify-center border-l border-[var(--border-subtle)]/60">
+          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
             Lowest Borrow APR
           </span>
-          <p className="text-lg font-black font-mono text-[var(--ink)] mt-0.5">
+          <p className="text-base sm:text-lg font-black font-mono text-[var(--ink)]">
             {lowestBorrowApr > 0 ? `${lowestBorrowApr.toFixed(2)}%` : "—"}
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">USDC against stock collateral</span>
         </div>
 
-        <div className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+        <div className="px-3 py-1 flex flex-col justify-center border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)]/60">
+          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
             Total Liquidity
           </span>
-          <p className="text-lg font-black font-mono text-[var(--ink)] mt-0.5">
+          <p className="text-base sm:text-lg font-black font-mono text-[var(--ink)]">
             {formatCompactUsd(totalLiquidityUsd)}
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">Across verified Base protocols</span>
         </div>
 
-        <div className="pop p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+        <div className="px-3 py-1 flex flex-col justify-center border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)]/60">
+          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
             Verified Markets
           </span>
-          <p className="text-lg font-black font-mono text-[var(--brand-text)] mt-0.5">
+          <p className="text-base sm:text-lg font-black font-mono text-[#0052FF]">
             {verifiedPoolsCount} Pools
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">Beefy, Aerodrome, Morpho &amp; Moonwell</span>
         </div>
-      </div>
-
-      {/* Neutral disclaimer line */}
-      <div className="flex items-center gap-1.5 text-[11px] text-[var(--ink-dim)] pt-0.5">
-        <Info size={12} className="shrink-0" />
-        <span>Rates and terms vary; this is not financial or tax advice. Market terms depend on protocol liquidity parameters.</span>
       </div>
     </div>
   );
