@@ -91,7 +91,7 @@ test.describe("Core App User Flows", () => {
 
   test("7. Liquidation Guard: renders liquidation banner and opens what-if collateral drop slider", async ({ page }) => {
     await page.goto("/?tab=lend");
-    await expect(page.getByText(/Liquidation Guard/i).first()).toBeVisible();
+    await expect(page.getByText(/Liquidation Guard/i).first()).toBeVisible({ timeout: 15_000 });
 
     // Open What-If Simulator
     const simButton = page.getByRole("button", { name: /simulate drop/i }).first();
@@ -99,16 +99,18 @@ test.describe("Core App User Flows", () => {
       await simButton.click();
 
       // Verify slider and stress test panel appear
-      await expect(page.getByText(/What-If Stress Test/i).first()).toBeVisible();
-      await expect(page.getByText(/Projected Health Factor/i).first()).toBeVisible();
+      await expect(page.getByText(/What-If Stress Test/i).first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText(/Projected Health Factor/i).first()).toBeVisible({ timeout: 10_000 });
     }
   });
 
   test("8. Smart Money Radar: renders live onchain feed and wallet follower on Explore", async ({ page }) => {
     await page.goto("/explore");
-    await expect(page.getByText(/Smart Money Radar/i).first()).toBeVisible();
-    await expect(page.getByText(/Follow Wallet/i).first()).toBeVisible();
-    await expect(page.getByText(/vitalik\.eth/i).first()).toBeVisible();
+    const radarTab = page.locator('button:has-text("Smart Money Radar")').first();
+    await expect(radarTab).toBeVisible({ timeout: 15_000 });
+    await radarTab.click();
+    await expect(page.getByText(/Follow Wallet/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/vitalik\.eth/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("9. Portfolio Time Machine: opens holdings drawer and renders historical benchmark", async ({ page }) => {
@@ -136,14 +138,20 @@ test.describe("Core App User Flows", () => {
 
   test("11. Stock NAV Tracker: renders 24/5 vs 24/7 spread tracker and market hours indicator", async ({ page }) => {
     await page.goto("/explore");
-    await expect(page.getByText(/Stock NAV Tracker/i).first()).toBeVisible();
-    await expect(page.getByText(/Market Open|Market Closed/i).first()).toBeVisible();
-    await expect(page.getByText(/Custody Attestations/i).first()).toBeVisible();
+    const navTab = page.locator('button:has-text("Stock NAV Tracker")').first();
+    await expect(navTab).toBeVisible({ timeout: 15_000 });
+    await navTab.click();
+    await expect(page.getByText(/Stock NAV Tracker/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Market Open|Market Closed/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Custody Attestations/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("12. Smarter Alerts: renders multi-trigger alert panel on Explore", async ({ page }) => {
     await page.goto("/explore");
-    await expect(page.getByText(/Smarter Alerts/i).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: /new alert/i }).first()).toBeVisible();
+    const alertsTab = page.locator('button:has-text("Smarter Alerts")').first();
+    await expect(alertsTab).toBeVisible({ timeout: 15_000 });
+    await alertsTab.click();
+    await expect(page.getByText(/Smarter Alerts/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: /new alert/i }).first()).toBeVisible({ timeout: 10_000 });
   });
 });

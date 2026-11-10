@@ -261,7 +261,7 @@ export default function MarketIntelligenceHub({
             }`}
           >
             <Radar size={13} />
-            <span>Smart Money</span>
+            <span>Smart Money Radar</span>
             <span
               className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === "smart_money" ? "bg-white/20 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
@@ -281,7 +281,7 @@ export default function MarketIntelligenceHub({
             }`}
           >
             <Bell size={13} />
-            <span>Alerts</span>
+            <span>Smarter Alerts</span>
             {alerts.length > 0 && (
               <span
                 className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold ${

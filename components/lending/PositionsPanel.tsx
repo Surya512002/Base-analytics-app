@@ -93,28 +93,35 @@ export default function PositionsPanel({
   // ─────────────────────────────────────────────────────────────
   if (!isConnected) {
     return (
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shrink-0">
-            <Wallet size={16} />
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 sm:p-4 shadow-xs space-y-3 transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shrink-0">
+              <Wallet size={16} />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
+              <p className="text-[11px] text-[var(--ink-muted)]">
+                Connect your wallet on Base to query live collateral deposits, debt, and gauge positions.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
-            <p className="text-[11px] text-[var(--ink-muted)]">
-              Connect your wallet on Base to query live collateral deposits, debt, and gauge positions.
-            </p>
-          </div>
+          {onRequestConnect && (
+            <button
+              type="button"
+              onClick={onRequestConnect}
+              className="pop-pill px-3.5 py-1.5 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <Wallet size={13} />
+              <span>Connect Wallet</span>
+            </button>
+          )}
         </div>
-        {onRequestConnect && (
-          <button
-            type="button"
-            onClick={onRequestConnect}
-            className="pop-pill px-3.5 py-1.5 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <Wallet size={13} />
-            <span>Connect Wallet</span>
-          </button>
-        )}
+
+        {/* Liquidation Guard Simulator Preview */}
+        <LiquidationGuardBanner
+          positions={[]}
+        />
       </div>
     );
   }
@@ -190,62 +197,70 @@ export default function PositionsPanel({
   }
 
   // ─────────────────────────────────────────────────────────────
-  // E. ZERO POSITIONS STATE (Small & Simple single-tier bar - Image 2 fix)
+  // E. ZERO POSITIONS STATE (Small & Simple with Liquidation Guard Simulator)
   // ─────────────────────────────────────────────────────────────
   if (!hasPositions) {
     return (
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
-            <ShieldCheck size={16} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Safe · No Debt
-              </span>
-              {isMockData && (
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
-                  Demo
-                </span>
-              )}
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 sm:p-4 shadow-xs space-y-3 transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+              <ShieldCheck size={16} />
             </div>
-            <p className="text-[11px] text-[var(--ink-muted)]">
-              No active loans, collateral, or gauge deposits on Base mainnet.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Safe · No Debt
+                </span>
+                {isMockData && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                    Demo
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--ink-muted)]">
+                No active loans, collateral, or gauge deposits on Base mainnet.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              const el =
-                document.getElementById("lending-view-tabs") ||
-                document.getElementById("market-opportunities");
-              if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }
-            }}
-            className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--brand-text)] hover:border-[var(--brand)] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-          >
-            <span>Explore Markets</span>
-            <span>↓</span>
-          </button>
-
-          {onRefresh && (
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
             <button
               type="button"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="pop-pill p-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer"
-              title={lastUpdatedSecondsAgo > 0 ? `Updated ${lastUpdatedSecondsAgo}s ago` : "Refresh positions"}
+              onClick={() => {
+                const el =
+                  document.getElementById("lending-view-tabs") ||
+                  document.getElementById("market-opportunities");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+              className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--brand-text)] hover:border-[var(--brand)] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
             >
-              <RefreshCw size={13} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
+              <span>Explore Markets</span>
+              <span>↓</span>
             </button>
-          )}
+
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="pop-pill p-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer"
+                title={lastUpdatedSecondsAgo > 0 ? `Updated ${lastUpdatedSecondsAgo}s ago` : "Refresh positions"}
+              >
+                <RefreshCw size={13} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Liquidation Guard Banner with Simulate Drop */}
+        <LiquidationGuardBanner
+          positions={positions}
+          onOpenAction={onOpenAction}
+        />
       </div>
     );
   }
