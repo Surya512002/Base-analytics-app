@@ -872,7 +872,7 @@ export default function LendingHub({
       />
 
       {/* 4. UNIFIED WORKSPACE NAVIGATION (Directly controlling showcase view below) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+      <div id="lending-view-tabs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <LendingViewTabs
           value={activeTab}
           onChange={(newTab) => {

@@ -16,9 +16,7 @@ import DiscoveryRow from "./DiscoveryRow";
 import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
-import SmartMoneyRadar from "./SmartMoneyRadar";
-import StockNavTracker from "@/components/stocks/StockNavTracker";
-import SmarterAlertsPanel from "@/components/alerts/SmarterAlertsPanel";
+import MarketIntelligenceHub from "./MarketIntelligenceHub";
 import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
 import MoversSignalsStrip from "@/components/markets/MoversSignalsStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
@@ -405,22 +403,17 @@ export default function ExploreHub({
             handleScrollToExplorer();
           }}
         />
-
-        {/* 2.5 Stock NAV Tracker (24/5 custodian NAV vs 24/7 DEX AMM spread) */}
-        <StockNavTracker stocks={BASE_STOCKS} />
       </div>
 
-      {/* 3. SMART MONEY RADAR (Live Whale Inflow Stream & Followed Traders) */}
-      <SmartMoneyRadar
+      {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}
+      <MarketIntelligenceHub
         userWallet={userAddress}
         onTradeToken={(addr) => {
           const matched = allUnifiedTokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
           if (matched) handleTrade(matched);
         }}
+        stockMarkets={stockMarketsList}
       />
-
-      {/* 3.5 SMARTER ALERTS (Whale swaps, yield spikes, liquidity drops, price targets) */}
-      <SmarterAlertsPanel walletAddress={userAddress} />
 
       {/* 4. MAIN EXPLORER SECTION */}
       <div ref={explorerRef} className="space-y-4 pt-2 scroll-mt-20">

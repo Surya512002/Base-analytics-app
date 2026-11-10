@@ -88,11 +88,174 @@ export default function PositionsPanel({
   const errorKeys = Object.keys(errors);
   const hasPositions = positions.length > 0;
 
+  // ─────────────────────────────────────────────────────────────
+  // A. NOT CONNECTED STATE (Compact, clean banner)
+  // ─────────────────────────────────────────────────────────────
+  if (!isConnected) {
+    return (
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shrink-0">
+            <Wallet size={16} />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
+            <p className="text-[11px] text-[var(--ink-muted)]">
+              Connect your wallet on Base to query live collateral deposits, debt, and gauge positions.
+            </p>
+          </div>
+        </div>
+        {onRequestConnect && (
+          <button
+            type="button"
+            onClick={onRequestConnect}
+            className="pop-pill px-3.5 py-1.5 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <Wallet size={13} />
+            <span>Connect Wallet</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // B. WRONG NETWORK STATE (Compact warning)
+  // ─────────────────────────────────────────────────────────────
+  if (isWrongNetwork) {
+    return (
+      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+          <span className="text-[var(--ink)] font-medium">
+            Please switch your wallet to <strong>Base mainnet</strong> (Chain ID 8453) to load on-chain positions.
+          </span>
+        </div>
+        {onSwitchNetwork && (
+          <button
+            type="button"
+            onClick={onSwitchNetwork}
+            className="pop-pill px-3.5 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold shadow-xs transition shrink-0 cursor-pointer"
+          >
+            Switch to Base
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // C. SKELETON LOADING STATE (Compact shimmer)
+  // ─────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 sm:p-4 shadow-xs flex items-center justify-between animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-[var(--border-subtle)]" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 w-36 bg-[var(--border-subtle)] rounded" />
+            <div className="h-2.5 w-56 bg-[var(--border-subtle)] rounded" />
+          </div>
+        </div>
+        <div className="h-7 w-20 bg-[var(--border-subtle)] rounded-xl" />
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // D. PROTOCOL READ FAILURE (When 0 positions found due to RPC error)
+  // ─────────────────────────────────────────────────────────────
+  if (!hasPositions && errorKeys.length > 0) {
+    return (
+      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+          <span className="text-[var(--ink)]">
+            Base RPC query error: Couldn&apos;t read {errorKeys.join(", ")} positions.
+          </span>
+        </div>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="pop-pill px-3 py-1 rounded-xl bg-[var(--brand)] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+            <span>Retry</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // E. ZERO POSITIONS STATE (Small & Simple single-tier bar - Image 2 fix)
+  // ─────────────────────────────────────────────────────────────
+  if (!hasPositions) {
+    return (
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+            <ShieldCheck size={16} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                Safe · No Debt
+              </span>
+              {isMockData && (
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                  Demo
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[var(--ink-muted)]">
+              No active loans, collateral, or gauge deposits on Base mainnet.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              const el =
+                document.getElementById("lending-view-tabs") ||
+                document.getElementById("market-opportunities");
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }}
+            className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--brand-text)] hover:border-[var(--brand)] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+          >
+            <span>Explore Markets</span>
+            <span>↓</span>
+          </button>
+
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="pop-pill p-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer"
+              title={lastUpdatedSecondsAgo > 0 ? `Updated ${lastUpdatedSecondsAgo}s ago` : "Refresh positions"}
+            >
+              <RefreshCw size={13} className={isRefreshing ? "animate-spin text-[var(--brand-text)]" : ""} />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // F. ACTIVE POSITIONS STATE (Full management panel when user has open positions)
+  // ─────────────────────────────────────────────────────────────
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs space-y-4">
-      {/* ─────────────────────────────────────────────────────────────
-          1. HEADER (Title, Health Badge, Refresh Timestamp)
-          ───────────────────────────────────────────────────────────── */}
+      {/* 1. Header with title, health badge, refresh */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]/60">
         <div className="flex items-center gap-2.5">
           <span className="p-1.5 rounded-lg bg-[var(--brand-soft)] text-[var(--brand-text)]">
@@ -115,35 +278,33 @@ export default function PositionsPanel({
 
         {/* Right Header Status: Health Chip & Refresh */}
         <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-          {isConnected && !isWrongNetwork && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--ink-muted)]">Health:</span>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 ${
-                  healthStatus === "Safe"
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                    : healthStatus === "Watch"
-                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                      : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-                }`}
-              >
-                {healthStatus === "Safe" ? (
-                  <ShieldCheck size={13} />
-                ) : healthStatus === "Watch" ? (
-                  <AlertTriangle size={13} />
-                ) : (
-                  <AlertCircle size={13} />
-                )}
-                <span>
-                  {overallHealthFactor !== null
-                    ? `${overallHealthFactor.toFixed(2)} · ${healthStatus}`
-                    : "Safe (No Debt)"}
-                </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--ink-muted)]">Health:</span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 ${
+                healthStatus === "Safe"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                  : healthStatus === "Watch"
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                    : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+              }`}
+            >
+              {healthStatus === "Safe" ? (
+                <ShieldCheck size={13} />
+              ) : healthStatus === "Watch" ? (
+                <AlertTriangle size={13} />
+              ) : (
+                <AlertCircle size={13} />
+              )}
+              <span>
+                {overallHealthFactor !== null
+                  ? `${overallHealthFactor.toFixed(2)} · ${healthStatus}`
+                  : "Safe (No Debt)"}
               </span>
-            </div>
-          )}
+            </span>
+          </div>
 
-          {isConnected && onRefresh && (
+          {onRefresh && (
             <button
               type="button"
               onClick={onRefresh}
@@ -157,9 +318,7 @@ export default function PositionsPanel({
         </div>
       </div>
 
-      {/* ─────────────────────────────────────────────────────────────
-          2. DEMO DATA WARNING BANNER (When Dev Flag Is Active)
-          ───────────────────────────────────────────────────────────── */}
+      {/* Demo Data Warning Banner (When Dev Flag Is Active) */}
       {isMockData && (
         <div className="p-3 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -175,9 +334,7 @@ export default function PositionsPanel({
         </div>
       )}
 
-      {/* ─────────────────────────────────────────────────────────────
-          3. PARTIAL PROTOCOL FAILURE BANNER
-          ───────────────────────────────────────────────────────────── */}
+      {/* Partial Protocol Failure Banner */}
       {errorKeys.length > 0 && (
         <div className="space-y-1.5">
           {errorKeys.map((protocol) => (
@@ -204,14 +361,12 @@ export default function PositionsPanel({
         </div>
       )}
 
-      {/* ─────────────────────────────────────────────────────────────
-          3.5 LIQUIDATION GUARD (Distance to Liquidation & Stress Test)
-          ───────────────────────────────────────────────────────────── */}
-      <LiquidationGuardBanner positions={positions} onOpenAction={onOpenAction} />
+      {/* 2. Liquidation Guard Banner (ONLY shown when user has active debt!) */}
+      {totalBorrowedUsd > 0 && (
+        <LiquidationGuardBanner positions={positions} onOpenAction={onOpenAction} />
+      )}
 
-      {/* ─────────────────────────────────────────────────────────────
-          4. FOUR REAL OVERVIEW METRIC CHIPS
-          ───────────────────────────────────────────────────────────── */}
+      {/* 3. Real Overview Metric Chips */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div className="pop p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
           <span className="text-[11px] text-[var(--ink-muted)]">Total Supplied</span>
@@ -240,111 +395,8 @@ export default function PositionsPanel({
             {positions.length} Positions
           </p>
         </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          5. STATE RENDERING (Not Connected, Wrong Network, Loading, Empty, List)
-          ───────────────────────────────────────────────────────────── */}
-
-      {/* A. Not Connected State */}
-      {!isConnected ? (
-        <div className="p-6 rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)]/40 text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)] flex items-center justify-center mx-auto">
-            <Wallet size={20} />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-[var(--ink)]">Connect your wallet to see your positions</p>
-            <p className="text-xs text-[var(--ink-muted)] max-w-sm mx-auto">
-              Connect your wallet on Base mainnet to query live collateral deposits, USDC credit lines, and gauge positions.
-            </p>
-          </div>
-          {onRequestConnect && (
-            <button
-              type="button"
-              onClick={onRequestConnect}
-              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer"
-            >
-              <Wallet size={14} />
-              <span>Connect Wallet</span>
-            </button>
-          )}
-        </div>
-      ) : isWrongNetwork ? (
-        /* B. Wrong Network State */
-        <div className="p-6 rounded-xl border border-amber-500/25 bg-amber-500/10 text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-            <AlertTriangle size={20} />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-[var(--ink)]">Unsupported Network</p>
-            <p className="text-xs text-[var(--ink-muted)] max-w-sm mx-auto">
-              Please switch your wallet to Base mainnet (Chain ID 8453) to load your on-chain positions.
-            </p>
-          </div>
-          {onSwitchNetwork && (
-            <button
-              type="button"
-              onClick={onSwitchNetwork}
-              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Switch to Base</span>
-            </button>
-          )}
-        </div>
-      ) : isLoading ? (
-        /* C. Skeleton Loading State */
-        <div className="space-y-2.5">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex items-center justify-between animate-pulse"
-            >
-              <div className="space-y-2">
-                <div className="h-4 w-32 bg-[var(--border-subtle)] rounded" />
-                <div className="h-3 w-48 bg-[var(--border-subtle)] rounded" />
-              </div>
-              <div className="flex gap-2">
-                <div className="h-7 w-16 bg-[var(--border-subtle)] rounded-lg" />
-                <div className="h-7 w-16 bg-[var(--border-subtle)] rounded-lg" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : !hasPositions && errorKeys.length > 0 ? (
-        /* D1. Position Read Failure State */
-        <div className="p-6 rounded-xl border border-amber-500/25 bg-amber-500/10 text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-            <AlertCircle size={20} />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-[var(--ink)]">Unable to query on-chain positions</p>
-            <p className="text-xs text-[var(--ink-muted)] max-w-sm mx-auto">
-              We encountered an issue reading your positions from Base RPC. Your wallet is connected, but protocol reads timed out or failed.
-            </p>
-          </div>
-          {onRefresh && (
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="px-4 py-2 rounded-xl bg-[var(--brand)] text-white hover:opacity-90 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
-              <span>Retry Reading Positions</span>
-            </button>
-          )}
-        </div>
-      ) : !hasPositions ? (
-        /* D2. Empty State (Zero positions on-chain) */
-        <div className="p-6 rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)]/40 text-center space-y-2">
-          <p className="text-sm font-bold text-[var(--ink)]">You have no open positions yet</p>
-          <p className="text-xs text-[var(--ink-muted)] max-w-md mx-auto">
-            Pick a market below to supply collateral, borrow USDC, or stake in Aerodrome gauges.
-          </p>
-        </div>
-      ) : (
-        /* E. Real On-chain Positions Rows */
-        <div className="space-y-2">
+      {/* 4. Real On-chain Positions Rows */}
+      <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-[var(--ink-muted)] px-1">
             <span>Asset &amp; Protocol</span>
             <span>Position &amp; Actions</span>
@@ -481,7 +533,7 @@ export default function PositionsPanel({
             ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
