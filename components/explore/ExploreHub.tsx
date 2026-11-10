@@ -21,6 +21,8 @@ import StockNavTracker from "@/components/stocks/StockNavTracker";
 import SmarterAlertsPanel from "@/components/alerts/SmarterAlertsPanel";
 import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
+import StockDetailDrawer from "@/components/markets/StockDetailDrawer";
+import type { StockMarketItem } from "@/lib/markets/types";
 import { useMarketsOverview, useStockMarkets } from "@/hooks/useMarketsData";
 import {
   readTokenWatchlist,
@@ -92,6 +94,7 @@ export default function ExploreHub({
 
   // Quick view drawer state
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
+  const [selectedStockForDrawer, setSelectedStockForDrawer] = useState<StockMarketItem | null>(null);
 
   // Filter state
   const [filters, setFilters] = useState<ExploreFiltersState>({
@@ -485,12 +488,7 @@ export default function ExploreHub({
             loading={stockMarketsLoading}
             watchlist={watchlist}
             onToggleWatchlist={handleToggleWatchByAddress}
-            onSelectStock={(stock) => {
-              const matched = allUnifiedTokens.find(
-                (t) => t.address.toLowerCase() === stock.address.toLowerCase()
-              );
-              if (matched) setSelectedQuickViewToken(matched);
-            }}
+            onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
           />
         ) : (
           <TokenTable
@@ -516,6 +514,19 @@ export default function ExploreHub({
         onTrade={handleTrade}
         onToggleWatch={handleToggleWatch}
         isWatched={selectedQuickViewToken ? watchlist.includes(selectedQuickViewToken.address.toLowerCase()) : false}
+      />
+
+      {/* 5.5 STOCK DETAIL DRAWER (Slide-over desktop, bottom-sheet mobile with full venues & 1-tap swap) */}
+      <StockDetailDrawer
+        stock={selectedStockForDrawer}
+        open={Boolean(selectedStockForDrawer)}
+        onClose={() => setSelectedStockForDrawer(null)}
+        isWatched={
+          selectedStockForDrawer
+            ? watchlist.includes(selectedStockForDrawer.address.toLowerCase())
+            : false
+        }
+        onToggleWatchlist={handleToggleWatchByAddress}
       />
     </div>
   );

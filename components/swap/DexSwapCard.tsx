@@ -179,13 +179,11 @@ export default function DexSwapCard({
   const lastBuyPropRef = useRef<SwapCounter | null>(currentBuyToken ?? null);
   const lastFromPropRef = useRef<SwapCounter | null>(prefillFromCounter ?? null);
 
-  // Sync with external buy token pick (e.g. from Popular chips)
+  // Sync with external buy token pick (e.g. from Popular chips, URL params, or prefill)
   useEffect(() => {
     if (!currentBuyToken) return;
-    if (!lastBuyPropRef.current || !sameCounter(currentBuyToken, lastBuyPropRef.current)) {
-      lastBuyPropRef.current = currentBuyToken;
-      setTo(currentBuyToken);
-    }
+    setTo(currentBuyToken);
+    lastBuyPropRef.current = currentBuyToken;
   }, [currentBuyToken]);
 
   const route = useMemo(() => {

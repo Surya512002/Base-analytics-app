@@ -15,7 +15,11 @@ import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
-import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
+import {
+  isLimitOrdersFeatureEnabled,
+  isVercelPreview,
+  isExplicitLimitOrdersEnabled,
+} from "@/src/lib/limitOrders/featureFlag";
 import OrdersView from "@/components/swap/orders/OrdersView";
 import RecurringView from "@/components/swap/orders/RecurringView";
 
@@ -49,10 +53,10 @@ export default function SwapTab({
 
   const isOrdersEnabled = isLimitOrdersFeatureEnabled();
   const isProd = process.env.NODE_ENV === "production";
-  const isVercelPreview = process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
-  const flagOn = process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED === "true";
+  const isPreview = isVercelPreview();
+  const flagOn = isExplicitLimitOrdersEnabled();
 
-  const showDebugNotice = !isProd || isVercelPreview;
+  const showDebugNotice = !isProd || isPreview;
   const debugReasons = useMemo(() => {
     const list: string[] = [];
     if (!flagOn) list.push("flag off (NEXT_PUBLIC_LIMIT_ORDERS_ENABLED != 'true')");
@@ -193,11 +197,13 @@ export default function SwapTab({
         setLoadingBuyMetadata(false);
         if (res.counter) {
           const verified = isVerifiedBaseToken(res.counter);
-          setBuyToken({
+          const fullCounter = {
             ...res.counter,
             isVerified: verified,
             isUnverified: verified ? false : Boolean(res.counter.isUnverified),
-          });
+          };
+          setBuyToken(fullCounter);
+          setSidebarPick(fullCounter);
         } else if (res.error) {
           showToastRef.current(res.error, "");
         }
