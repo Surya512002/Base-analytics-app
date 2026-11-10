@@ -15,6 +15,8 @@ import { deriveStockMarketOptions } from "@/lib/lending/market-classifier";
 import { MIN_TVL_USD } from "@/lib/lending/constants";
 import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
+import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
+import { useMarketsOverview } from "@/hooks/useMarketsData";
 import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
 import PositionsPanel from "./PositionsPanel";
 import {
@@ -77,6 +79,12 @@ export default function LendingHub({
   const { wallet, connType, showToast } = app;
   const userAddress = wallet?.address ?? null;
   const isConnected = !!userAddress;
+
+  const {
+    overview: marketsOverview,
+    loading: overviewLoading,
+    refresh: refreshOverview,
+  } = useMarketsOverview();
 
   // Level & Navigation state
   const [activeTab, setActiveTab] = useState<LendingViewTab>(() => {
@@ -744,6 +752,13 @@ export default function LendingHub({
 
   return (
     <div className="space-y-6 pb-16 animate-meridian-rise">
+      {/* 0. BASE MARKETS OVERVIEW STRIP (24h Volume, Total Supplied, Total Borrowed, 1M/3M/All Chart) */}
+      <MarketsOverviewStrip
+        overview={marketsOverview}
+        loading={overviewLoading}
+        onRefresh={refreshOverview}
+      />
+
       {/* 1. COMPACT HEADER WITH LIVE STATS & DISCLAIMER */}
       <LendingHeader
         topSupplyApy={headerStats.topSupplyApy}

@@ -19,6 +19,9 @@ import TokenQuickView from "./TokenQuickView";
 import SmartMoneyRadar from "./SmartMoneyRadar";
 import StockNavTracker from "@/components/stocks/StockNavTracker";
 import SmarterAlertsPanel from "@/components/alerts/SmarterAlertsPanel";
+import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
+import StockMarketsTable from "@/components/markets/StockMarketsTable";
+import { useMarketsOverview, useStockMarkets } from "@/hooks/useMarketsData";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
@@ -76,6 +79,17 @@ export default function ExploreHub({
     setWatchlist(readTokenWatchlist());
   }, []);
 
+  const handleToggleWatchByAddress = useCallback((address: string) => {
+    toggleTokenWatch(address);
+    setWatchlist(readTokenWatchlist());
+  }, []);
+
+  const {
+    overview: marketsOverview,
+    loading: overviewLoading,
+    refresh: refreshOverview,
+  } = useMarketsOverview();
+
   // Quick view drawer state
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
 
@@ -91,6 +105,13 @@ export default function ExploreHub({
     minVolume100k: false,
     breakoutOnly: false,
     viewMode: "table",
+  });
+
+  const {
+    stocks: stockMarketsList,
+    loading: stockMarketsLoading,
+  } = useStockMarkets({
+    query: filters.searchQuery,
   });
 
   // Top movers discovery row liquidity toggle
@@ -300,6 +321,13 @@ export default function ExploreHub({
         }}
       />
 
+      {/* 1.5 BASE MARKETS OVERVIEW STRIP (24h Volume, Total Supplied, Total Borrowed, 1M/3M/All Mini Chart) */}
+      <MarketsOverviewStrip
+        overview={marketsOverview}
+        loading={overviewLoading}
+        onRefresh={refreshOverview}
+      />
+
       {/* 2. DISCOVERY ROWS (Max 8 compact cards, snap-scroll on mobile, grid on desktop) */}
       <div className="space-y-7">
         {/* Row 1: Trending on Base */}
@@ -451,6 +479,19 @@ export default function ExploreHub({
               </button>
             )}
           </div>
+        ) : filters.catalogTab === "stocks" ? (
+          <StockMarketsTable
+            stocks={stockMarketsList}
+            loading={stockMarketsLoading}
+            watchlist={watchlist}
+            onToggleWatchlist={handleToggleWatchByAddress}
+            onSelectStock={(stock) => {
+              const matched = allUnifiedTokens.find(
+                (t) => t.address.toLowerCase() === stock.address.toLowerCase()
+              );
+              if (matched) setSelectedQuickViewToken(matched);
+            }}
+          />
         ) : (
           <TokenTable
             tokens={filteredTokens}
