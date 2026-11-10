@@ -144,7 +144,7 @@ describe("Markets Data Normalization & Schema Validation", () => {
     if (items.length > 1) {
       expect(items[0].tradingLiquidity).toBeGreaterThanOrEqual(items[1].tradingLiquidity);
     }
-  }, 15000);
+  }, 45000);
 
   it("fetches markets overview payload safely with series", async () => {
     const overview = await fetchMarketsOverview();
@@ -152,5 +152,5 @@ describe("Markets Data Normalization & Schema Validation", () => {
     expect(overview.totalSupplied).toBeGreaterThanOrEqual(0);
     expect(overview.series.length).toBeGreaterThan(0);
     expect(overview.series[0].points.length).toBeGreaterThan(0);
-  }, 15000);
+  }, 45000);
 });

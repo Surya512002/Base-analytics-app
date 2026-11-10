@@ -10,6 +10,22 @@ export interface FeatureFlagOptions {
   nodeEnv?: string;
 }
 
+export function isVercelPreview(options?: FeatureFlagOptions): boolean {
+  const vercelEnv =
+    options?.vercelEnv !== undefined
+      ? options.vercelEnv
+      : process.env.NEXT_PUBLIC_VERCEL_ENV;
+  return vercelEnv === "preview";
+}
+
+export function isExplicitLimitOrdersEnabled(options?: FeatureFlagOptions): boolean {
+  const flag =
+    options?.limitOrdersEnabled !== undefined
+      ? options.limitOrdersEnabled
+      : process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
+  return flag === "true";
+}
+
 /**
  * Returns true if the limit orders feature is enabled.
  *

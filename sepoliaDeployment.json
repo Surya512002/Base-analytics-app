@@ -1,0 +1,60 @@
+{
+  "chainId": 84532,
+  "orderBook": "0xC7fBA8EB5442760F83266C32F3Bc2E5c65079e46",
+  "swapAdapter": "0xbDa98551b18431bD95fdF21D06cBc37dA9dE943D",
+  "quoteToken": {
+    "address": "0x19468e9fe5dBfdbD786D9b09Da7caC07c1367187",
+    "symbol": "mUSDC",
+    "decimals": 6
+  },
+  "markets": [
+    {
+      "symbol": "mNVDA",
+      "name": "Mock NVDA (Testnet)",
+      "stockToken": "0xCCc66590BA8a67fe51bC2eB552B24f30c30263F2",
+      "decimals": 18,
+      "feed": "0x8836DF0Aa5F499B8E53649e6662EBE1C668F767f",
+      "poolFee": 3000,
+      "maxStalenessSeconds": 604800,
+      "maxStockIn": "1000000000000000000",
+      "maxQuoteIn": "100000000",
+      "category": "Testnet"
+    },
+    {
+      "symbol": "mAAPL",
+      "name": "Mock Apple Inc (Testnet)",
+      "stockToken": "0xeA43d6436f1a6ea337cF2e683D849370c7E34a47",
+      "decimals": 8,
+      "feed": "0x788B4d1737aeC2cFd0Af5F21f6F3D4C3CabCC41A",
+      "poolFee": 3000,
+      "maxStalenessSeconds": 604800,
+      "maxStockIn": "30000000",
+      "maxQuoteIn": "100000000",
+      "category": "Testnet"
+    },
+    {
+      "symbol": "mMSFT",
+      "name": "Mock Microsoft Corp (Testnet)",
+      "stockToken": "0xD36f172a140F7055cCC52C5c79719687374113c4",
+      "decimals": 8,
+      "feed": "0x05112FEa2F1755Da8786f8E8A461541E04f5947a",
+      "poolFee": 3000,
+      "maxStalenessSeconds": 604800,
+      "maxStockIn": "20000000",
+      "maxQuoteIn": "100000000",
+      "category": "Testnet"
+    },
+    {
+      "symbol": "mGOOGL",
+      "name": "Mock Alphabet Inc (Testnet)",
+      "stockToken": "0xC6185FA052550F8806483f236911A7a47EEEE0Ea",
+      "decimals": 8,
+      "feed": "0xd0980DE134C2676dD0F711447B9Bb09CB3A10125",
+      "poolFee": 3000,
+      "maxStalenessSeconds": 604800,
+      "maxStockIn": "35000000",
+      "maxQuoteIn": "100000000",
+      "category": "Testnet"
+    }
+  ]
+}

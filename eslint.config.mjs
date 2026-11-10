@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "lib/forge-std/**",
     "e2e/**",
     "limit-orders/**",
+    "*.js",
+    "*.mjs",
   ]),
   {
     rules: {

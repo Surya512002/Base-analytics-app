@@ -1,10 +1,16 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/limit-orders/region-check/route";
+import {
+  isLimitOrdersFeatureEnabled,
+  isVercelPreview,
+  isExplicitLimitOrdersEnabled,
+} from "@/src/lib/limitOrders/featureFlag";
 
 describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
   const origNodeEnv = process.env.NODE_ENV;
   const origFlag = process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
+  const origVercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV;
 
   afterEach(() => {
     (process.env as Record<string, string | undefined>).NODE_ENV = origNodeEnv;
@@ -12,6 +18,11 @@ describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
       process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED = origFlag;
     } else {
       delete process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
+    }
+    if (origVercelEnv !== undefined) {
+      process.env.NEXT_PUBLIC_VERCEL_ENV = origVercelEnv;
+    } else {
+      delete process.env.NEXT_PUBLIC_VERCEL_ENV;
     }
   });
 
@@ -55,5 +66,25 @@ describe("G5: NEXT_PUBLIC_LIMIT_ORDERS_ENABLED Feature Flag Suite", () => {
     });
     const res = await GET(req);
     expect(res.status).toBe(200);
+  });
+
+  it("evaluates isVercelPreview and isExplicitLimitOrdersEnabled helpers correctly", () => {
+    // isVercelPreview
+    delete process.env.NEXT_PUBLIC_VERCEL_ENV;
+    expect(isVercelPreview()).toBe(false);
+    expect(isVercelPreview({ vercelEnv: "preview" })).toBe(true);
+    expect(isVercelPreview({ vercelEnv: "production" })).toBe(false);
+
+    // isExplicitLimitOrdersEnabled
+    delete process.env.NEXT_PUBLIC_LIMIT_ORDERS_ENABLED;
+    expect(isExplicitLimitOrdersEnabled()).toBe(false);
+    expect(isExplicitLimitOrdersEnabled({ limitOrdersEnabled: "true" })).toBe(true);
+    expect(isExplicitLimitOrdersEnabled({ limitOrdersEnabled: "false" })).toBe(false);
+
+    // isLimitOrdersFeatureEnabled
+    expect(isLimitOrdersFeatureEnabled({ nodeEnv: "production", limitOrdersEnabled: "false" })).toBe(false);
+    expect(isLimitOrdersFeatureEnabled({ nodeEnv: "production", limitOrdersEnabled: "true" })).toBe(true);
+    expect(isLimitOrdersFeatureEnabled({ nodeEnv: "production", vercelEnv: "preview" })).toBe(true);
+    expect(isLimitOrdersFeatureEnabled({ nodeEnv: "development" })).toBe(true);
   });
 });

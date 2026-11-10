@@ -9,6 +9,7 @@
  */
 
 import { getAddress, type Address } from "viem";
+import sepoliaDeployment from "./sepoliaDeployment.json";
 
 export interface StockMarketConfig {
   stockToken: Address;
@@ -131,39 +132,67 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
   },
 ];
 
-/** Base Sepolia Testnet Mock Config (Chain ID 84532) */
-export const BASE_SEPOLIA_CONFIG: LimitOrdersConfig = {
-  orderBook: (process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA as Address) ||
-    getAddress("0xC7fBA8EB5442760F83266C32F3Bc2E5c65079e46"),
-  swapAdapter: (process.env.NEXT_PUBLIC_LIMIT_ORDER_ADAPTER_SEPOLIA as Address) ||
-    getAddress("0xbDa98551b18431bD95fdF21D06cBc37dA9dE943D"),
-  quoteToken: {
-    address: (process.env.NEXT_PUBLIC_LIMIT_ORDER_QUOTE_SEPOLIA as Address) ||
-      getAddress("0x19468e9fe5dBfdbD786D9b09Da7caC07c1367187"),
-    symbol: "mUSDC",
-    decimals: 6,
-  },
-  markets: [
-    {
-      symbol: "mNVDA",
-      name: "Mock NVDA (Testnet)",
-      stockToken: (process.env.NEXT_PUBLIC_LIMIT_ORDER_STOCK_SEPOLIA as Address) ||
-        getAddress("0xCCc66590BA8a67fe51bC2eB552B24f30c30263F2"),
-      decimals: 18,
-      feed: (process.env.NEXT_PUBLIC_LIMIT_ORDER_FEED_SEPOLIA as Address) ||
-        getAddress("0x8836DF0Aa5F499B8E53649e6662EBE1C668F767f"),
-      poolFee: 3000,
-      maxStalenessSeconds: 86400 * 7,
-      maxStockIn: 1n * 10n ** 18n, // 1 mNVDA ($100 cap)
-      maxQuoteIn: 100n * 10n ** 6n, // 100 mUSDC ($100 cap)
-      category: "Testnet",
+/** Build Base Sepolia Testnet Mock Config (Chain ID 84532) */
+export function buildSepoliaConfig(): LimitOrdersConfig {
+  const envBook = process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA;
+  const envAdapter = process.env.NEXT_PUBLIC_LIMIT_ORDER_ADAPTER_SEPOLIA;
+  const envQuote = process.env.NEXT_PUBLIC_LIMIT_ORDER_QUOTE_SEPOLIA;
+  const envStock = process.env.NEXT_PUBLIC_LIMIT_ORDER_STOCK_SEPOLIA;
+  const envFeed = process.env.NEXT_PUBLIC_LIMIT_ORDER_FEED_SEPOLIA;
+
+  const orderBook = (envBook && envBook.startsWith("0x")
+    ? getAddress(envBook)
+    : getAddress(sepoliaDeployment.orderBook)) as Address;
+
+  const swapAdapter = (envAdapter && envAdapter.startsWith("0x")
+    ? getAddress(envAdapter)
+    : getAddress(sepoliaDeployment.swapAdapter)) as Address;
+
+  const quoteAddress = (envQuote && envQuote.startsWith("0x")
+    ? getAddress(envQuote)
+    : getAddress(sepoliaDeployment.quoteToken.address)) as Address;
+
+  const markets: StockMarketConfig[] = sepoliaDeployment.markets.map((m) => {
+    const isOverrideTarget = m.symbol === "mNVDA";
+    const stockToken = (isOverrideTarget && envStock && envStock.startsWith("0x")
+      ? getAddress(envStock)
+      : getAddress(m.stockToken)) as Address;
+    const feed = (isOverrideTarget && envFeed && envFeed.startsWith("0x")
+      ? getAddress(envFeed)
+      : getAddress(m.feed)) as Address;
+
+    return {
+      symbol: m.symbol,
+      name: m.name,
+      stockToken,
+      decimals: m.decimals,
+      feed,
+      poolFee: m.poolFee,
+      maxStalenessSeconds: m.maxStalenessSeconds,
+      maxStockIn: BigInt(m.maxStockIn),
+      maxQuoteIn: BigInt(m.maxQuoteIn),
+      category: m.category,
+    };
+  });
+
+  return {
+    orderBook,
+    swapAdapter,
+    quoteToken: {
+      address: quoteAddress,
+      symbol: sepoliaDeployment.quoteToken.symbol,
+      decimals: sepoliaDeployment.quoteToken.decimals,
     },
-  ],
-  defaultMaxDeviationBps: 500,
-  defaultKeeperFeeBps: 10,
-  maxStockIn: 1n * 10n ** 18n,
-  maxQuoteIn: 100n * 10n ** 6n,
-};
+    markets,
+    defaultMaxDeviationBps: 500,
+    defaultKeeperFeeBps: 10,
+    maxStockIn: BigInt(sepoliaDeployment.markets[0]?.maxStockIn || "1000000000000000000"),
+    maxQuoteIn: BigInt(sepoliaDeployment.markets[0]?.maxQuoteIn || "100000000"),
+  };
+}
+
+/** Base Sepolia Testnet Mock Config (Chain ID 84532) */
+export const BASE_SEPOLIA_CONFIG: LimitOrdersConfig = buildSepoliaConfig();
 
 /** Base Mainnet Config (Chain ID 8453) */
 export const BASE_MAINNET_CONFIG: LimitOrdersConfig = {
@@ -188,7 +217,41 @@ export const BASE_MAINNET_CONFIG: LimitOrdersConfig = {
 /** Get configuration for active chain */
 export function getLimitOrdersConfig(chainId?: number): LimitOrdersConfig {
   if (chainId === 84532) {
-    return BASE_SEPOLIA_CONFIG;
+    return buildSepoliaConfig();
   }
   return BASE_MAINNET_CONFIG;
+}
+
+/**
+ * Validates if the required contracts & markets are configured for the active chain.
+ * Returns an explanatory string if missing or misconfigured, or null if valid.
+ */
+export function getOrdersConfigError(config: LimitOrdersConfig, chainId?: number): string | null {
+  if (chainId !== 8453 && chainId !== 84532) {
+    return `Unsupported network (chain ID ${chainId || "unknown"}). Orders are supported on Base (8453) and Base Sepolia (84532).`;
+  }
+  const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+
+  if (chainId === 84532) {
+    if (!config.orderBook || config.orderBook === ZERO_ADDR) {
+      return "Sepolia order book address not configured";
+    }
+    if (!config.swapAdapter || config.swapAdapter === ZERO_ADDR) {
+      return "Sepolia swap adapter not configured";
+    }
+    if (!config.quoteToken?.address || config.quoteToken.address === ZERO_ADDR) {
+      return "Sepolia quote token address not configured";
+    }
+    if (!config.markets || config.markets.length === 0) {
+      return "No trading markets configured for Base Sepolia";
+    }
+  }
+
+  if (chainId === 8453) {
+    if (config.orderBook && config.orderBook !== ZERO_ADDR && (!config.markets || config.markets.length === 0)) {
+      return "No trading markets configured for Base mainnet";
+    }
+  }
+
+  return null;
 }

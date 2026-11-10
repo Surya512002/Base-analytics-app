@@ -20,6 +20,7 @@ import {
   validateDca,
 } from "@/src/lib/limitOrders/orderMath";
 import type { useLimitOrders, MarketState } from "@/src/lib/limitOrders/useLimitOrders";
+import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyPlansPanel from "./MyPlansPanel";
 
 const INTERVAL_PRESETS = [
@@ -164,6 +165,8 @@ export default function RecurringView({
     chainId === 8453 &&
     (!config.orderBook || config.orderBook === "0x0000000000000000000000000000000000000000");
 
+  const configError = useMemo(() => getOrdersConfigError(config, chainId), [config, chainId]);
+
   const intervalLabel = useMemo(() => {
     if (activeInterval === 3600) return "hour";
     if (activeInterval === 86400) return "day";
@@ -203,8 +206,45 @@ export default function RecurringView({
         </div>
       )}
 
-      {/* Mainnet Placeholder when Order Book not deployed on Base Mainnet */}
-      {isMainnetWithoutOrderBook ? (
+      {/* Configuration Error Notice when feature flag is ON but required deployment/market is missing */}
+      {configError && !isMainnetWithoutOrderBook ? (
+        <div
+          data-testid="recurring-config-error"
+          className="p-6 rounded-2xl bg-[var(--surface)] border border-rose-500/30 text-center space-y-4 shadow-card"
+        >
+          <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <AlertTriangle size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[var(--ink)]">
+              Configuration Notice
+            </h3>
+            <p className="text-xs text-[var(--ink-muted)] mt-1.5 max-w-sm mx-auto font-medium">
+              {configError}
+            </p>
+          </div>
+          <div className="flex justify-center gap-2 pt-1">
+            {chainId !== 84532 && (
+              <button
+                type="button"
+                onClick={onSwitchSepolia}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+              >
+                <span>Switch to Base Sepolia</span>
+              </button>
+            )}
+            {chainId !== 8453 && (
+              <button
+                type="button"
+                onClick={onSwitchChain}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-2)] text-[var(--ink)] text-xs font-bold hover:bg-[var(--surface-3)] transition cursor-pointer border border-[var(--border-subtle)]"
+              >
+                <span>Switch to Base Mainnet</span>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : isMainnetWithoutOrderBook ? (
         <div
           data-testid="mainnet-recurring-placeholder"
           className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] text-center space-y-4 shadow-card"

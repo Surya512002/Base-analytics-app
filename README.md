@@ -294,6 +294,36 @@ To test the entire pro order flow without real capital on Base Sepolia:
 
 ---
 
+## Pro Orders (Beta, Base Sepolia)
+
+### Overview & Built Architecture
+Base Terminal Pro Orders provides non-custodial, automated limit, take-profit, stop-loss, trailing stop, bracket (OCO), and recurring DCA order execution directly on-chain.
+- **Built Order Types**: Limit Buy, Limit Sell (Take-Profit), Stop-Loss (with explicit "Not guaranteed" warning for gap volatility), Trailing Stop (ratchet mechanism updating stop-price when oracle marks higher highs), Bracket (atomic single-collateral escrow where one fill cancels the alternate leg), and Recurring DCA streams.
+- **Mock Equities Supported (Base Sepolia)**: Four verified mock equity markets (`mNVDA`, `mAAPL`, `mMSFT`, `mGOOGL`) configured with 8-decimal and 18-decimal token compatibility, Chainlink mock feeds, and fixed pool fee tiers.
+- **Keeper Daemon**: Open-source off-chain keeper (`limit-orders/src/keeper.js`) continuously tracking order trigger conditions, oracle feeds, trailing stop adjustments, fill executions, and expired order refunds.
+- **Hardened Wallet Routing**: Enforces sequential `eth_sendTransaction` for injected EOA wallets (MetaMask, Rabby) to eliminate unexpected EIP-7702 account upgrade prompts, while smart accounts (Coinbase Smart Wallet, Base Account, Farcaster) retain atomic batching. Exact token approvals are enforced with a +0.1% buffer on debt repay actions.
+
+### What is Verified
+- **Unit and Mathematical Integrity**: Automated Vitest test suites verifying tick math, 8-decimal token scaling, fill floors, minimum amounts out, and trailing stop ratchet equations (`test/limitOrders/`).
+- **On-Chain Lifecycle on Base Sepolia**: Verified order creation, bracket splitting, cancellation, fee accounting, and keeper execution on Base Sepolia (`chainId: 84532`).
+- **Edge Regional Protection & Exit-Only Mode**: Edge middleware verifies user region via `/api/limit-orders/region-check`. Prohibited jurisdictions are placed in Exit-Only Mode (new orders blocked, while cancellations and token refunds remain accessible).
+- **Responsive Interface**: Playwright browser test coverage across desktop (1280px) and mobile (360px) viewports with strict selector verification.
+
+### What is NOT Verified
+- **Real Tokenized Stock Tokens**: Real equity tokens (e.g. Backed / Coinbase tokenized stocks on Base mainnet) have **NOT** been routed or executed through the `LimitOrderBook` contract.
+- **Third-Party Security Audit**: Smart contracts and keeper scripts have **NOT** undergone a formal external security audit.
+- **Basescan Contract Source Verification**: Deployed testnet contracts on Base Sepolia have **NOT** been verified on the Basescan block explorer.
+- **Base Mainnet Deployment**: No order book smart contracts are deployed or active on Base Mainnet (`chainId: 8453`). Mainnet orders tab functions strictly as a read-only informational display.
+
+> [!WARNING]
+> **UNAUDITED AND EXPERIMENTAL SOFTWARE**:
+> The Pro Orders contracts and off-chain keepers have NOT been audited by a third-party security firm. Do NOT deposit real assets or deploy to mainnet with real capital. All current deployments and demonstrations are strictly restricted to the Base Sepolia testnet (`chainId: 84532`) using mock test tokens.
+
+### Regional Gating Policy (U.S. Restriction)
+Pro Orders trading is strictly restricted for residents and IP addresses originating from the United States and other prohibited territories in compliance with tokenized equity guidelines. Incoming requests from restricted regions are detected by Edge Middleware and placed into Exit-Only Mode, ensuring existing positions can be cancelled and refunded without allowing new order creation.
+
+---
+
 ## License
 
 This project is open-source software licensed under the **[MIT License](MITLICENCE)** (see also [`LICENSE`](LICENSE)).

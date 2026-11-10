@@ -15,6 +15,8 @@ import {
 } from "@/src/lib/limitOrders/calls";
 import {
   getLimitOrdersConfig,
+  buildSepoliaConfig,
+  getOrdersConfigError,
   BASE_SEPOLIA_CONFIG,
   BASE_MAINNET_CONFIG,
 } from "@/src/config/limitOrders";
@@ -63,15 +65,17 @@ describe("Problem 1: Tab Visibility & Chain Configuration", () => {
     const config = getLimitOrdersConfig(84532);
     expect(config.orderBook).toBeDefined();
     expect(config.orderBook.toLowerCase()).not.toBe("0x0000000000000000000000000000000000000000");
-    expect(config.markets.length).toBeGreaterThan(0);
+    expect(config.markets.length).toBe(4);
+    expect(config.markets.map((m) => m.symbol)).toEqual(["mNVDA", "mAAPL", "mMSFT", "mGOOGL"]);
     expect(config.quoteToken.symbol).toBe("mUSDC");
   });
 
-  it("returns Mainnet config on chain 8453 where order book is not yet deployed (zero address)", () => {
+  it("returns Mainnet config on chain 8453 with exactly 4 verified stock markets", () => {
     const config = getLimitOrdersConfig(8453);
     // Verified that on Base Mainnet, no order book is deployed yet
     expect(config.orderBook.toLowerCase()).toBe("0x0000000000000000000000000000000000000000");
-    expect(config.markets.length).toBe(4); // NVDAc, AAPLc, MSFTc, GOOGLc
+    expect(config.markets.length).toBe(4);
+    expect(config.markets.map((m) => m.symbol)).toEqual(["NVDAc", "AAPLc", "MSFTc", "GOOGLc"]);
     expect(config.quoteToken.symbol).toBe("USDC");
   });
 
@@ -313,6 +317,85 @@ describe("K5: Hardened Allowlist Guard (assertAllowedLimitOrderTx)", () => {
       expect(() => assertAllowedLimitOrderTx(badTx, mockConfig)).toThrow(
         /Security policy violation: Target 0x.* is not an allowlisted Limit Orders contract/
       );
+    });
+  });
+
+  describe("S2: Sepolia Deployment JSON & Configuration Error Diagnostics", () => {
+    it("reads default public testnet deployment from sepoliaDeployment.json without env vars", () => {
+      const origBook = process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA;
+      delete process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA;
+
+      const config = buildSepoliaConfig();
+      expect(config.orderBook).toBe("0xC7fBA8EB5442760F83266C32F3Bc2E5c65079e46");
+      expect(config.swapAdapter).toBe("0xbDa98551b18431bD95fdF21D06cBc37dA9dE943D");
+      expect(config.quoteToken.address).toBe("0x19468e9fe5dBfdbD786D9b09Da7caC07c1367187");
+      expect(config.quoteToken.symbol).toBe("mUSDC");
+      expect(config.markets.length).toBeGreaterThanOrEqual(1);
+      expect(config.markets[0].symbol).toBe("mNVDA");
+
+      if (origBook) process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA = origBook;
+    });
+
+    it("allows environment variable override when provided", () => {
+      const customBook = "0x1111111111111111111111111111111111111111";
+      process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA = customBook;
+
+      const config = buildSepoliaConfig();
+      expect(config.orderBook).toBe(customBook);
+
+      delete process.env.NEXT_PUBLIC_LIMIT_ORDER_BOOK_SEPOLIA;
+    });
+
+    it("returns null error for valid Sepolia config on chain 84532", () => {
+      const config = getLimitOrdersConfig(84532);
+      const err = getOrdersConfigError(config, 84532);
+      expect(err).toBeNull();
+    });
+
+    it("detects unsupported network IDs", () => {
+      const config = getLimitOrdersConfig(84532);
+      const err = getOrdersConfigError(config, 1);
+      expect(err).toContain("Unsupported network");
+    });
+
+    it("detects missing or zero Sepolia order book", () => {
+      const badConfig = {
+        ...getLimitOrdersConfig(84532),
+        orderBook: "0x0000000000000000000000000000000000000000" as const,
+      };
+      const err = getOrdersConfigError(badConfig, 84532);
+      expect(err).toBe("Sepolia order book address not configured");
+    });
+
+    it("detects missing or zero Sepolia swap adapter", () => {
+      const badConfig = {
+        ...getLimitOrdersConfig(84532),
+        swapAdapter: "0x0000000000000000000000000000000000000000" as const,
+      };
+      const err = getOrdersConfigError(badConfig, 84532);
+      expect(err).toBe("Sepolia swap adapter not configured");
+    });
+
+    it("detects missing or zero Sepolia quote token", () => {
+      const badConfig = {
+        ...getLimitOrdersConfig(84532),
+        quoteToken: {
+          address: "0x0000000000000000000000000000000000000000" as const,
+          symbol: "mUSDC",
+          decimals: 6,
+        },
+      };
+      const err = getOrdersConfigError(badConfig, 84532);
+      expect(err).toBe("Sepolia quote token address not configured");
+    });
+
+    it("detects empty trading markets on Sepolia", () => {
+      const badConfig = {
+        ...getLimitOrdersConfig(84532),
+        markets: [],
+      };
+      const err = getOrdersConfigError(badConfig, 84532);
+      expect(err).toBe("No trading markets configured for Base Sepolia");
     });
   });
 });

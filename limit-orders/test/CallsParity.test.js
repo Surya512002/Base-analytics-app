@@ -51,11 +51,11 @@ describe("Part 2: UI Calls Parity & Custom Errors Verification", () => {
     await stock.mint(user.address, STOCK(10));
     await usdc.mint(user.address, USDC(1000));
 
-    // User approves order book using raw calls.ts buildApproveCall
-    const approveStock = calls.buildApproveCall(stock.target, book.target);
+    // User approves order book using raw calls.ts buildApproveCall with exact amount
+    const approveStock = calls.buildApproveCall(stock.target, book.target, STOCK(10));
     await user.sendTransaction({ to: approveStock.to, data: approveStock.data });
 
-    const approveUsdc = calls.buildApproveCall(usdc.target, book.target);
+    const approveUsdc = calls.buildApproveCall(usdc.target, book.target, USDC(1000));
     await user.sendTransaction({ to: approveUsdc.to, data: approveUsdc.data });
 
     return { owner, user, keeper, other, stock, usdc, feed, adapter, book, setPrice };
