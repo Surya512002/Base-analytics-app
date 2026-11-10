@@ -33,10 +33,6 @@ export function normalizeTokenAddress(raw?: string | null): string | null {
   if (isAddress(trimmed)) {
     return trimmed.toLowerCase();
   }
-  // Accept valid token symbols and tickers (e.g. "NVDAc", "AMZNc", "USDC", "cbETH") for downstream resolution
-  if (/^[a-zA-Z0-9_.-]{2,20}$/.test(trimmed)) {
-    return trimmed.toLowerCase();
-  }
   return null;
 }
 
@@ -114,8 +110,8 @@ export function parseSwapUrlParams(source?: string | URLSearchParams | null): Pa
   const rawSell = searchParams.get("sell")?.trim() || null;
   const rawAmount = searchParams.get("amount")?.trim() || null;
 
-  const buy = normalizeTokenAddress(rawBuy) || (rawBuy ? rawBuy.trim().toLowerCase() : null);
-  const sell = normalizeTokenAddress(rawSell) || (rawSell ? rawSell.trim().toLowerCase() : null);
+  const buy = normalizeTokenAddress(rawBuy);
+  const sell = normalizeTokenAddress(rawSell);
 
   let amount: string | null = null;
   if (rawAmount) {
