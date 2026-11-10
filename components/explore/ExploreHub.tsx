@@ -20,6 +20,7 @@ import SmartMoneyRadar from "./SmartMoneyRadar";
 import StockNavTracker from "@/components/stocks/StockNavTracker";
 import SmarterAlertsPanel from "@/components/alerts/SmarterAlertsPanel";
 import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
+import MoversSignalsStrip from "@/components/markets/MoversSignalsStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
 import StockDetailDrawer from "@/components/markets/StockDetailDrawer";
 import type { StockMarketItem } from "@/lib/markets/types";
@@ -329,6 +330,13 @@ export default function ExploreHub({
         overview={marketsOverview}
         loading={overviewLoading}
         onRefresh={refreshOverview}
+      />
+
+      {/* 1.6 MARKET SIGNALS & MOVERS (Top Gainer, Most Liquid, Top Collateral, Lowest Impact) */}
+      <MoversSignalsStrip
+        stocks={stockMarketsList}
+        loading={stockMarketsLoading}
+        onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
       />
 
       {/* 2. DISCOVERY ROWS (Max 8 compact cards, snap-scroll on mobile, grid on desktop) */}

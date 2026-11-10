@@ -61,6 +61,7 @@ import StockRiskModal from "@/components/compliance/StockRiskModal";
 import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import { computeTradeSafety } from "@/lib/markets/price-impact-service";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto Best" },
@@ -174,6 +175,7 @@ export default function DexSwapCard({
 
   // Transaction Status Animation State
   const [txSuccessHash, setTxSuccessHash] = useState<string | null>(null);
+  const [confirmHighImpact, setConfirmHighImpact] = useState(false);
 
   // Ref to prevent circular state ping-pong between parent and child
   const lastBuyPropRef = useRef<SwapCounter | null>(currentBuyToken ?? null);
@@ -192,6 +194,11 @@ export default function DexSwapCard({
   }, [from, to]);
 
   const fromDecimals = counterDecimalsOf(from);
+
+  // Reset high impact acknowledgement when pair or amount changes
+  useEffect(() => {
+    setConfirmHighImpact(false);
+  }, [amount, from, to]);
 
   // Handle prefill tokens
   useEffect(() => {
@@ -564,6 +571,11 @@ export default function DexSwapCard({
     [quoteImpactBps]
   );
 
+  const tradeSafety = useMemo(
+    () => computeTradeSafety(priceImpactPct),
+    [priceImpactPct]
+  );
+
   const insufficientBalance =
     Boolean(wallet) &&
     !guestMode &&
@@ -633,6 +645,13 @@ export default function DexSwapCard({
     if (swapLoading) {
       return { label: "Confirming in wallet…", disabled: true, action: "confirming" };
     }
+    if (tradeSafety.tier === "critical" && !confirmHighImpact) {
+      return {
+        label: `Critical Impact (${tradeSafety.impactPct}%) — Acknowledge Risk Below`,
+        disabled: true,
+        action: "high_impact_blocked",
+      };
+    }
 
     // Two-step approval check for non-native tokens in EOA wallets
     const isEoa = app.connType !== "baseAccount" && app.connType !== "farcaster";
@@ -671,6 +690,8 @@ export default function DexSwapCard({
     fromAllowance,
     isApproving,
     app.connType,
+    tradeSafety,
+    confirmHighImpact,
   ]);
 
   // Execute Swap or Approval
@@ -764,26 +785,20 @@ export default function DexSwapCard({
     return `1 ${fromSym} ≈ ${formatTokenAmount(rate, counterDecimalsOf(to))} ${toSym}`;
   }, [to, from, payAmountNum, quoteOutNum, invertRate, fromDecimals]);
 
-  // Price Impact Color Class
+  // Price Impact Color Class & Tier
   const priceImpactBadge = useMemo(() => {
     if (priceImpactPct == null) return null;
-    if (priceImpactPct < 1) {
-      return {
-        label: `< 1%`,
-        colorClass: "text-emerald-600 dark:text-emerald-400 font-semibold",
-      };
-    }
-    if (priceImpactPct <= 3) {
-      return {
-        label: `${priceImpactPct.toFixed(2)}%`,
-        colorClass: "text-amber-600 dark:text-amber-400 font-bold",
-      };
-    }
     return {
-      label: `${priceImpactPct.toFixed(2)}%`,
-      colorClass: "text-rose-600 dark:text-rose-400 font-black",
+      label: tradeSafety.badgeLabel,
+      colorClass:
+        tradeSafety.tier === "safe"
+          ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+          : tradeSafety.tier === "moderate"
+            ? "text-amber-600 dark:text-amber-400 font-bold"
+            : "text-rose-600 dark:text-rose-400 font-black",
+      tier: tradeSafety.tier,
     };
-  }, [priceImpactPct]);
+  }, [priceImpactPct, tradeSafety]);
 
   // Slippage validation warning
   const slippageWarning = useMemo(() => {
@@ -1288,6 +1303,63 @@ export default function DexSwapCard({
                 ? "Tokenized stock swaps are temporarily paused via safety kill switch."
                 : "Exit-only mode is active: buying tokenized stocks is unavailable in your region, but you can sell existing tokenized stock holdings."}
             </p>
+          </div>
+        )}
+
+        {/* Real-time Price Impact Safety Layer (Warn on 5-15%, Block / Require Confirmation on >15%) */}
+        {tradeSafety && (tradeSafety.tier === "high" || tradeSafety.tier === "critical") && (
+          <div
+            className={`p-3.5 rounded-2xl border text-xs space-y-2.5 transition-all ${
+              tradeSafety.tier === "critical"
+                ? "bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-200"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle
+                size={16}
+                className={`shrink-0 mt-0.5 ${
+                  tradeSafety.tier === "critical"
+                    ? "text-rose-600 dark:text-rose-400"
+                    : "text-amber-600 dark:text-amber-400"
+                }`}
+              />
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">{tradeSafety.title}</span>
+                  <span
+                    className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded-full border ${tradeSafety.badgeColorClass}`}
+                  >
+                    {tradeSafety.badgeLabel}
+                  </span>
+                </div>
+                <p className="text-[11px] opacity-90 leading-relaxed">{tradeSafety.message}</p>
+                {tradeSafety.suggestion && (
+                  <div className="flex items-center justify-between pt-1 text-[11px]">
+                    <span className="font-semibold opacity-95">💡 {tradeSafety.suggestion}</span>
+                    <a
+                      href="/swap?mode=orders"
+                      className="inline-flex items-center gap-0.5 text-[#0052FF] dark:text-blue-400 font-bold underline shrink-0 ml-1 hover:opacity-80 cursor-pointer"
+                    >
+                      <span>Limit Orders</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {tradeSafety.tier === "critical" && (
+              <label className="flex items-center gap-2 pt-2 border-t border-rose-500/20 cursor-pointer text-[11px] font-medium select-none">
+                <input
+                  type="checkbox"
+                  checked={confirmHighImpact}
+                  onChange={(e) => setConfirmHighImpact(e.target.checked)}
+                  className="rounded border-rose-400 text-[#0052FF] focus:ring-[#0052FF] cursor-pointer"
+                />
+                <span>I acknowledge high price impact ({tradeSafety.impactPct}%) and accept the risk of loss.</span>
+              </label>
+            )}
           </div>
         )}
 

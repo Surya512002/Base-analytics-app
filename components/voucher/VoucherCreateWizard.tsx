@@ -23,6 +23,7 @@ import {
   getVaultShareBySymbol,
 } from "@/lib/utils/voucher";
 import { getBaseStockBySymbol, BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
+import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import {
   OCCASION_TEMPLATES,
   CARD_THEME_OPTIONS,
@@ -103,6 +104,11 @@ export default function VoucherCreateWizard({
   const isStock = isStockAsset(asset);
   const stockInfo = !isVault && isStock ? getBaseStockBySymbol(asset) : null;
   const vaultInfo = isVault ? getVaultShareBySymbol(asset) : null;
+
+  const stockTradability = useMemo(() => {
+    if (!isStock) return null;
+    return getStockTradability(stockInfo?.address || asset);
+  }, [isStock, stockInfo?.address, asset]);
 
   // Identify current asset category
   const activeCategory: VoucherAssetCategory = isVault
@@ -352,6 +358,46 @@ export default function VoucherCreateWizard({
                   </button>
                 )}
               </div>
+
+              {/* Tokenized Stock Liquidity & Tradability Safety Badge */}
+              {isStock && stockTradability && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                    stockTradability.status === "tradable"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300"
+                      : stockTradability.status === "low_liquidity"
+                        ? "bg-amber-500/10 border-amber-500/20 text-amber-800 dark:text-amber-300"
+                        : "bg-rose-500/10 border-rose-500/20 text-rose-800 dark:text-rose-300"
+                  }`}
+                >
+                  <AlertTriangle
+                    size={14}
+                    className={`shrink-0 mt-0.5 ${
+                      stockTradability.status === "tradable"
+                        ? "text-emerald-500"
+                        : stockTradability.status === "low_liquidity"
+                          ? "text-amber-500"
+                          : "text-rose-500"
+                    }`}
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-bold block">
+                      {stockTradability.status === "tradable"
+                        ? "Verified DEX Liquidity"
+                        : stockTradability.status === "low_liquidity"
+                          ? "Low DEX Liquidity Warning"
+                          : "No Secondary Market Pool"}
+                    </span>
+                    <p className="text-[11px] opacity-90 leading-relaxed">
+                      {stockTradability.status === "tradable"
+                        ? "This tokenized stock has active liquidity on Base DEXes (Aerodrome / Uniswap)."
+                        : stockTradability.status === "low_liquidity"
+                          ? "This stock has limited DEX liquidity. Recipients may experience higher price impact if swapping."
+                          : "No DEX pool is active on Base yet. Recipients cannot swap directly on DEXes, but can hold or use in supported lending protocols."}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* User Balance Display with "Max" button */}
               <div className="flex items-center justify-between px-1 text-xs">
