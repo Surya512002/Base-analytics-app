@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
+import VoucherCampaignPanel from "@/components/voucher/VoucherCampaignPanel";
+import { parseCampaignLink } from "@/lib/voucher/campaign";
 import VoucherHeader from "@/components/voucher/VoucherHeader";
 import VoucherSegmentTabs from "@/components/voucher/VoucherSegmentTabs";
 import VoucherCreateWizard from "@/components/voucher/VoucherCreateWizard";
@@ -31,6 +33,19 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   } = modals;
   const { setExpandedBatchId } = mine;
   const { setRedeemCardId, setRedeemSecret } = redeem;
+
+  // Shared-link campaign URLs (…#camp=12&k=SECRET) open the one-link claim view.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const parsed = parseCampaignLink({
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+    });
+    if (parsed.campaignId || sp.get("view") === "campaign") setView("campaign");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Prepare tokens list for real-time stock and vault balances
   const voucherTokens = useMemo(() => {
@@ -73,6 +88,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           onNavigateTab={(tab) => setTab(tab as any)}
         />
       )}
+
+      {view === "campaign" && <VoucherCampaignPanel app={app} />}
 
       {view === "mine" && (
         <VoucherMyCards

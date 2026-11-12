@@ -1,6 +1,6 @@
 import type { VoucherAsset } from "@/lib/utils/voucher";
 
-export type VoucherView = "create" | "redeem" | "mine" | "view";
+export type VoucherView = "create" | "redeem" | "mine" | "view" | "campaign";
 
 export type CardTheme = "base-blue" | "midnight" | "stock" | "mint";
 

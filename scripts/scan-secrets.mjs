@@ -53,6 +53,12 @@ const WHITELIST = new Set([
   "0xfef5641f70e19a87e369304daa9ba823754f3db1e6481d757fcae0442cffe479", // Morpho Blue Base canonical marketId
   "0x52467d5bbbf878d6b8ec1159385ffca5f76b1f868c2d2aa6ffc5d57bba91f7a4", // Mock test txHash in unique-users unit tests
   "0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000", // Dummy test key in EnvLoading.test.js
+  "0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0", // secp256k1 n/2 (low-s check) in BaseVoucherCampaign.sol
+  "0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", // keccak256("abc") in campaign.test.ts
+  "0xb4ab73d14dc9db84c78082baca4f4c3c3c520f71e41d63185b228ff9a71c0626", // public tx hash: campaign contract deploy
+  "0xf159c5c2a0bd1054bd0de6c2cc2bcabd23b6144e098cce9e2a029261ebc7b791", // public tx hash: campaign #1 create
+  "0x6e1c8c0732b94dc2d3ec8e97d0498eda08280e01b3fe5955e906dfe8c6e62842", // public tx hash: campaign #1 claim 1
+  "0xf6d771d565c3500ce6d9f469fe2577b1ccbb2aa00fcf2ce349bd4a8a0e4d949f", // public tx hash: campaign #1 claim 2
 ]);
 
 console.log("==================================================");

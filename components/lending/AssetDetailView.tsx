@@ -13,6 +13,7 @@ import ProtocolCard from "./ProtocolCard";
 import CompareTable from "./CompareTable";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
 import TokenLogo from "@/components/ui/TokenLogo";
+import LoanPlanner from "./LoanPlanner";
 
 interface AssetDetailViewProps {
   comparison: StockLendingComparison;
@@ -298,6 +299,9 @@ export default function AssetDetailView({
           </div>
         </div>
       </div>
+
+      {/* Stock-backed loan planner: cost, conservative limit, gap stress, repay options */}
+      <LoanPlanner comparison={comparison} marketOpen={isMarketOpen} walletBalanceUsd={walletBalanceUsd} />
 
       {/* View Toggle Bar (Cards vs Compare Table) */}
       <div className="flex items-center justify-between">

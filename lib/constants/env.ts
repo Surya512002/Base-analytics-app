@@ -41,7 +41,16 @@ export const BUILDER_CODE =
   process.env.NEXT_PUBLIC_BUILDER_CODE || "bc_4uoh9iu2";
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";
 
-const RAW_VOUCHER_CONTRACT = (process.env.NEXT_PUBLIC_VOUCHER_CONTRACT || "").trim();
+/**
+ * BaseVoucherCampaign (one shared link, first N wallets claim).
+ * Empty until deployed — the UI shows "not live yet" instead of failing.
+ */
+const RAW_CAMPAIGN_CONTRACT = (process.env.NEXT_PUBLIC_CAMPAIGN_CONTRACT || "").trim();
+export const CAMPAIGN_CONTRACT: `0x${string}` | "" = /^0x[0-9a-fA-F]{40}$/.test(RAW_CAMPAIGN_CONTRACT)
+  ? (RAW_CAMPAIGN_CONTRACT as `0x${string}`)
+  : "";
+
+const RAW_VOUCHER_CONTRACT =(process.env.NEXT_PUBLIC_VOUCHER_CONTRACT || "").trim();
 // 0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25 is legacy BaseVoucher v1 (only ETH/USDC, lacks createTokenBatch).
 // 0xc118afff969db6cd6d2de639e2c8ba1223768fce is BaseVoucher v2 (supports ERC20 tokenized stocks + custom configs).
 export const VOUCHER_CONTRACT =
