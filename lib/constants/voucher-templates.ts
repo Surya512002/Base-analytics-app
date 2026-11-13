@@ -84,13 +84,13 @@ export const VOUCHER_TEMPLATES: VoucherTemplate[] = [
     message: "0.5 share of Tesla (TSLA) on Base! To the future. ⚡",
   },
   {
-    id: "coin-stock",
-    label: "Coinbase stock",
-    emoji: "🪙",
+    id: "spacex-stock",
+    label: "SpaceX stock",
+    emoji: "🚀",
     total: "1",
     cards: "1",
-    asset: "COINc",
-    message: "1 share of Coinbase (COIN) — backing crypto infrastructure on Base. 🛡️",
+    asset: "SPCXc",
+    message: "1 share of SpaceX — to the moon, onchain on Base. 🚀",
   },
   {
     id: "eth-gm",

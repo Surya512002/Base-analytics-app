@@ -14,11 +14,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import {
-  getActiveTokenizedStocks,
   type TokenizedStockEntry,
   type StockCategory,
 } from "@/lib/stocks/tokenized-stocks-registry";
 import type { BaseStock } from "@/lib/stocks/base-stocks";
+import { getVerifiedTokenizedStocks } from "@/lib/stocks/base-verified";
 import { isUSMarketOpenNow } from "@/lib/launchpad/launch-configs";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -137,17 +137,14 @@ export default function StockQuotePicker({
     return { eligible: true };
   };
 
+  // Only categories that actually contain a verified stock (no empty tabs).
   const categoryTabs: Array<StockCategory | "All"> = [
     "All",
-    "Tech",
-    "Finance",
-    "Consumer",
-    "Crypto-related",
-    "Healthcare",
+    ...Array.from(new Set(getVerifiedTokenizedStocks().map((s) => s.category))),
   ];
 
   const filteredStocks = useMemo(() => {
-    let list = [...getActiveTokenizedStocks()];
+    let list = [...getVerifiedTokenizedStocks()];
 
     if (selectedCategory !== "All") {
       list = list.filter((s) => s.category === selectedCategory);
@@ -182,7 +179,7 @@ export default function StockQuotePicker({
   }, [searchQuery, selectedCategory, favorites, recents]);
 
   const selectedStockEntry = useMemo(() => {
-    const activeStocks = getActiveTokenizedStocks();
+    const activeStocks = getVerifiedTokenizedStocks();
     return (
       activeStocks.find(
         (s) => s.address.toLowerCase() === selectedStock.address.toLowerCase()

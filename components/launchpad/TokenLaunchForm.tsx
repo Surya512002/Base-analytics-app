@@ -21,7 +21,8 @@ import {
   type SeedDex,
 } from "@/lib/launchpad/seed-liquidity";
 import { grindVanityAddress } from "@/lib/launchpad/vanity-salt";
-import { BASE_STOCKS, OPENLAUNCH_LOCKER_BASE, type BaseStock } from "@/lib/stocks/base-stocks";
+import { OPENLAUNCH_LOCKER_BASE, type BaseStock } from "@/lib/stocks/base-stocks";
+import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import {
   DEFAULT_STARTING_PRICE_USD,
   DEFAULT_LOCK_DURATION_DAYS,
@@ -71,7 +72,7 @@ export default function TokenLaunchForm({
   // Form State
   const [currentStep, setCurrentStep] = useState(1);
   const [launchType, setLaunchType] = useState<LaunchTokenType>("b20");
-  const [selectedStock, setSelectedStock] = useState<BaseStock>(BASE_STOCKS[1]); // NVDAc by default
+  const [selectedStock, setSelectedStock] = useState<BaseStock>(BASE_VERIFIED_STOCKS[0]); // NVDAc (first on Base's official list)
   const [stockPrices, setStockPrices] = useState<Record<string, number>>({});
   const [nonImpersonationConfirmed, setNonImpersonationConfirmed] = useState(false);
 
@@ -142,7 +143,8 @@ export default function TokenLaunchForm({
       if (draft.antiSnipeBlocks !== undefined) setAntiSnipeBlocks(draft.antiSnipeBlocks);
       if (draft.metadataEditable !== undefined) setMetadataEditable(draft.metadataEditable);
       if (draft.selectedStockSymbol) {
-        const found = BASE_STOCKS.find((s) => s.symbol === draft.selectedStockSymbol);
+        // Saved drafts may name a stock that is not on Base's official list; ignore those.
+        const found = BASE_VERIFIED_STOCKS.find((s) => s.symbol === draft.selectedStockSymbol);
         if (found) setSelectedStock(found);
       }
     }

@@ -15,7 +15,8 @@ import {
 import { formatUnits, parseEther, parseEventLogs, parseUnits } from "viem";
 import SectionCard from "@/components/ui/SectionCard";
 import ActivePill from "@/components/ui/motion/ActivePill";
-import { BASE_STOCKS, BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
+import { BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
+import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import { APP_URL_WEB, CAMPAIGN_CONTRACT } from "@/lib/constants/env";
 import { ERC20_ABI, USDC_BASE } from "@/lib/constants/contracts";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
@@ -103,7 +104,7 @@ function fmtDate(sec: number) {
 function decimalsFor(asset: string): number {
   if (asset === "ETH") return 18;
   if (asset === "USDC") return 6;
-  return BASE_STOCKS.find((s) => s.symbol === asset)?.decimals ?? BASE_STOCK_DECIMALS;
+  return BASE_VERIFIED_STOCKS.find((s) => s.symbol === asset)?.decimals ?? BASE_STOCK_DECIMALS;
 }
 
 function toBaseUnits(asset: string, total: string): bigint | null {
@@ -119,7 +120,7 @@ function toBaseUnits(asset: string, total: string): bigint | null {
 function assetAddress(asset: string): `0x${string}` {
   if (asset === "ETH") return ZERO_ADDRESS;
   if (asset === "USDC") return USDC_BASE as `0x${string}`;
-  return (BASE_STOCKS.find((s) => s.symbol === asset)?.address ?? ZERO_ADDRESS) as `0x${string}`;
+  return (BASE_VERIFIED_STOCKS.find((s) => s.symbol === asset)?.address ?? ZERO_ADDRESS) as `0x${string}`;
 }
 
 async function copy(text: string) {
@@ -502,7 +503,7 @@ function CreateCampaign({
           >
             <option value="USDC">USDC</option>
             <option value="ETH">ETH</option>
-            {BASE_STOCKS.slice(0, 40).map((s) => (
+            {BASE_VERIFIED_STOCKS.map((s) => (
               <option key={s.address} value={s.symbol}>
                 {s.symbol} — {s.name} (tokenized stock)
               </option>
@@ -967,7 +968,9 @@ function ClaimCampaign({
 
               {!view.asset.recognised && (
                 <p className="text-xs text-amber-500">
-                  This token isn&apos;t one the app recognises. Check the contract on Basescan before claiming.
+                  {view.asset.kind === "stock"
+                    ? "This stock token is not on Base's official registry (base.org/stocks), so Coinbase did not issue it. Check the contract on Basescan before claiming."
+                    : "This token isn't one the app recognises. Check the contract on Basescan before claiming."}
                 </p>
               )}
             </div>

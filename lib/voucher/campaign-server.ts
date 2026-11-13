@@ -4,6 +4,7 @@ import { CAMPAIGN_CONTRACT } from "@/lib/constants/env";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { resolveBasename } from "@/lib/utils/resolve-basename";
 import { getBaseStockByAddress } from "@/lib/stocks/base-stocks";
+import { isBaseVerifiedStockAddress } from "@/lib/stocks/base-verified";
 import { getVaultShareByAddress, USDC_BASE, USDC_DECIMALS } from "@/lib/utils/voucher";
 import { CAMPAIGN_ABI } from "@/lib/voucher/campaign-abi";
 import {
@@ -55,7 +56,15 @@ export async function describeCampaignAsset(token: `0x${string}`): Promise<Campa
   }
   const stock = getBaseStockByAddress(token);
   if (stock) {
-    return { kind: "stock", symbol: stock.symbol, decimals: stock.decimals, regulated: true, recognised: true };
+    // Only stocks on Base's official registry count as recognised; other stock-like tokens still
+    // get the stock compliance rules (regulated) but carry an "unrecognised token" warning.
+    return {
+      kind: "stock",
+      symbol: stock.symbol,
+      decimals: stock.decimals,
+      regulated: true,
+      recognised: isBaseVerifiedStockAddress(token),
+    };
   }
   const vault = getVaultShareByAddress(token);
   if (vault) {

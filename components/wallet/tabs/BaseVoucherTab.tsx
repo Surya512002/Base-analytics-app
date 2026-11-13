@@ -13,7 +13,7 @@ import VoucherShareSuccessModal from "@/components/voucher/VoucherShareSuccessMo
 import VoucherRedeemReveal from "@/components/wallet/VoucherRedeemReveal";
 import { useVoucherTab } from "@/hooks/useVoucherTab";
 import { useTokenHoldings } from "@/hooks/useTokenHoldings";
-import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
+import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import { YIELD_VAULT_SHARES } from "@/lib/utils/voucher";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
@@ -49,7 +49,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
 
   // Prepare tokens list for real-time stock and vault balances
   const voucherTokens = useMemo(() => {
-    const stockTokens = BASE_STOCKS.map((s) => ({
+    const stockTokens = BASE_VERIFIED_STOCKS.map((s) => ({
       address: s.address,
       decimals: s.decimals,
     }));

@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "lib/forge-std/**",
     "e2e/**",
     "limit-orders/**",
+    // Local Claude Code state, incl. git worktrees created by other sessions (not repo source).
+    ".claude/**",
     "*.js",
     "*.mjs",
     // Plain-Node CommonJS helpers (e.g. test/campaign-evm). The shared rules block below

@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { Search, X, Sparkles, TrendingUp, Check, AlertTriangle } from "lucide-react";
-import { BASE_STOCKS, type BaseStock } from "@/lib/stocks/base-stocks";
+import { type BaseStock } from "@/lib/stocks/base-stocks";
+import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import { YIELD_VAULT_SHARES, type VaultShareInfo } from "@/lib/utils/voucher";
 import type { VoucherAsset } from "@/lib/utils/voucher";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -62,7 +63,7 @@ export default function VoucherAssetPickerModal({
   const items = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (category === "stock") {
-      return BASE_STOCKS.filter((s) => {
+      return BASE_VERIFIED_STOCKS.filter((s) => {
         const matchesQuery =
           !q ||
           s.symbol.toLowerCase().includes(q) ||

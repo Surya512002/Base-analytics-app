@@ -107,17 +107,18 @@ export const OCCASION_TEMPLATES: OccasionTemplate[] = [
   },
 ];
 
+/** Every stock on Base's official registry (lib/stocks/base-verified.ts) — nothing else. */
 export const POPULAR_GIFT_STOCKS = [
   { symbol: "NVDAc", name: "NVIDIA", icon: "🤖" },
   { symbol: "AAPLc", name: "Apple", icon: "🍏" },
   { symbol: "TSLAc", name: "Tesla", icon: "⚡" },
-  { symbol: "COINc", name: "Coinbase", icon: "🪙" },
   { symbol: "GOOGLc", name: "Alphabet", icon: "🔍" },
   { symbol: "MSFTc", name: "Microsoft", icon: "💻" },
   { symbol: "AMZNc", name: "Amazon", icon: "📦" },
   { symbol: "METAc", name: "Meta", icon: "🌐" },
-  { symbol: "PLTRc", name: "Palantir", icon: "🔮" },
-  { symbol: "MSTRc", name: "MicroStrategy", icon: "₿" },
+  { symbol: "MSTRc", name: "Strategy", icon: "₿" },
+  { symbol: "SNDKc", name: "SanDisk", icon: "💾" },
+  { symbol: "SPCXc", name: "SpaceX", icon: "🚀" },
 ] as const;
 
 export const POPULAR_GIFT_VAULTS = [

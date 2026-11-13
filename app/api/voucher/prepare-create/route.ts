@@ -3,7 +3,14 @@ import {
   prepareCreateBatch,
   voucherContractReady,
 } from "@/lib/voucher/agent-api";
-import { MAX_VOUCHER_CARDS, isStockAsset, type VoucherAsset } from "@/lib/utils/voucher";
+import { MAX_VOUCHER_CARDS, isStockAsset, isVaultShareAsset, type VoucherAsset } from "@/lib/utils/voucher";
+import { isBaseVerifiedStockSymbol } from "@/lib/stocks/base-verified";
+
+/** Gifts may only use USDC, ETH, vault shares, or stocks on Base's official registry. */
+function isAllowedGiftAsset(asset: string): boolean {
+  if (isVaultShareAsset(asset)) return true;
+  return isStockAsset(asset) && isBaseVerifiedStockSymbol(asset);
+}
 import {
   complianceConfig,
   evaluateRegionCompliance,
@@ -30,8 +37,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const rawAsset = (searchParams.get("asset") || "USDC").trim();
   const asset = (rawAsset.toUpperCase() === "ETH" ? "ETH" : rawAsset.toUpperCase() === "USDC" ? "USDC" : rawAsset) as VoucherAsset;
-  if (asset !== "USDC" && asset !== "ETH" && !isStockAsset(asset)) {
-    return NextResponse.json({ error: "asset must be USDC, ETH, or a supported stock (e.g. NVDAc, AAPLc, TSLAc)" }, { status: 400 });
+  if (asset !== "USDC" && asset !== "ETH" && !isAllowedGiftAsset(asset)) {
+    return NextResponse.json({ error: "asset must be USDC, ETH, a vault share, or a stock on Base's official registry (base.org/stocks)" }, { status: 400 });
   }
 
   if (isStockAsset(asset)) {
@@ -130,8 +137,8 @@ export async function POST(req: Request) {
 
     const rawAsset = (body.asset || "USDC").trim();
     const asset = (rawAsset.toUpperCase() === "ETH" ? "ETH" : rawAsset.toUpperCase() === "USDC" ? "USDC" : rawAsset) as VoucherAsset;
-    if (asset !== "USDC" && asset !== "ETH" && !isStockAsset(asset)) {
-      return NextResponse.json({ error: "asset must be USDC, ETH, or a supported stock (e.g. NVDAc, AAPLc, TSLAc)" }, { status: 400 });
+    if (asset !== "USDC" && asset !== "ETH" && !isAllowedGiftAsset(asset)) {
+      return NextResponse.json({ error: "asset must be USDC, ETH, a vault share, or a stock on Base's official registry (base.org/stocks)" }, { status: 400 });
     }
 
     if (isStockAsset(asset)) {
