@@ -15,9 +15,11 @@ One prize per project, but you may enter more than one track. Lead with Track 1.
 
 ## What was built during the Quest (say this on the form — pre-existing code is allowed if disclosed)
 Built Nov 12, 2026 on top of the existing Base Analytics app:
-- `BaseVoucherCampaign` contract — one shared link, first N wallets claim, one claim per wallet, optional verified-claim
-  tickets, committed mode, unlock date, expiry, creator refund. Deployed to Base mainnet:
-  `0xf764dcce3ddd898fc6e7bc642ae61789e2541e0c`.
+- `BaseVoucherCampaign` v2 contract — one shared link, first N wallets claim, one claim per wallet, wallet-bound link
+  proofs (nothing reusable is published onchain), optional verified-claim tickets, committed mode, unlock date, expiry,
+  creator refund. Verified on Basescan, Base mainnet: `0x477919fc62b28ae4947724f7b67219d4a533a449`.
+  (v1 `0xf764dcce3ddd898fc6e7bc642ae61789e2541e0c` is retired after a security review found its claim secret could be
+  reused from public calldata; it was fixed and migrated within a day.)
 - Sender identification: onchain creator address + Basename check; typed names that don't match are flagged.
 - Verified-claim ticket API (rate limits, kill switch, region rules for tokenized stocks).
 - `/claim/:id` landing page that shows sender + slots before any wallet connects.
@@ -25,6 +27,15 @@ Built Nov 12, 2026 on top of the existing Base Analytics app:
 Pre-existing (not Quest work): the legacy BaseVoucher card flow, swap, launchpad, lending discovery.
 
 ## Onchain evidence (Base mainnet)
+**v2 (current)** — `0x477919fc62b28ae4947724f7b67219d4a533a449`
+- Deploy: `0x78c7e9dd6958f988733506a96b05d057da5e653871e03cc8cd1342cdc998b440`
+- Gift #1 (verified claims) created: `0x67813ad159e8c8d67cf2f40be9f4c3388a44fdb5c7e4e7ddfd7bd9c7877b5279`
+- Ticket without a link proof → refused (400); ticket using someone else's proof → refused (403)
+- Claim with the claimer's own proof: `0xd56768181a2e22346023b2a9f48cae20ce7c3f52f3b517968d5fe26166a19f32`
+- Another wallet replaying that published claim → reverts "Invalid link"
+- Sender closes, unclaimed share refunded exactly: `0x9bdaaabccbc92ac80057fc43447c52cbd912d583d55f585a89b4b59e15f1d355`
+
+**v1 (retired)** — `0xf764dcce3ddd898fc6e7bc642ae61789e2541e0c`
 - Contract deploy: `0xb4ab73d14dc9db84c78082baca4f4c3c3c520f71e41d63185b228ff9a71c0626`
 - Campaign #1 (verified claims, 2 slots) created: `0xf159c5c2a0bd1054bd0de6c2cc2bcabd23b6144e098cce9e2a029261ebc7b791`
 - Claim 1: `0x6e1c8c0732b94dc2d3ec8e97d0498eda08280e01b3fe5955e906dfe8c6e62842`

@@ -1,4 +1,4 @@
-// Generated from contracts/BaseVoucherCampaign.sol (solc 0.8.28). Do not edit by hand.
+// Generated from contracts/BaseVoucherCampaign.sol v2 (solc 0.8.28, optimizer 200). Do not edit by hand.
 export const CAMPAIGN_ABI = [
   {
     "anonymous": false,
@@ -131,6 +131,19 @@ export const CAMPAIGN_ABI = [
   },
   {
     "inputs": [],
+    "name": "LINK_TAG",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "MAX_CLAIMS",
     "outputs": [
       {
@@ -182,6 +195,19 @@ export const CAMPAIGN_ABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "TICKET_TAG",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -189,9 +215,9 @@ export const CAMPAIGN_ABI = [
         "type": "uint256"
       },
       {
-        "internalType": "string",
-        "name": "secret",
-        "type": "string"
+        "internalType": "bytes",
+        "name": "linkSig",
+        "type": "bytes"
       },
       {
         "internalType": "uint64",
@@ -290,9 +316,9 @@ export const CAMPAIGN_ABI = [
             "type": "uint32"
           },
           {
-            "internalType": "bytes32",
-            "name": "secretHash",
-            "type": "bytes32"
+            "internalType": "address",
+            "name": "linkSigner",
+            "type": "address"
           },
           {
             "internalType": "uint64",
@@ -361,9 +387,9 @@ export const CAMPAIGN_ABI = [
             "type": "uint32"
           },
           {
-            "internalType": "bytes32",
-            "name": "secretHash",
-            "type": "bytes32"
+            "internalType": "address",
+            "name": "linkSigner",
+            "type": "address"
           },
           {
             "internalType": "uint64",
@@ -465,9 +491,9 @@ export const CAMPAIGN_ABI = [
             "type": "address"
           },
           {
-            "internalType": "bytes32",
-            "name": "secretHash",
-            "type": "bytes32"
+            "internalType": "address",
+            "name": "linkSigner",
+            "type": "address"
           },
           {
             "internalType": "bool",
@@ -517,6 +543,30 @@ export const CAMPAIGN_ABI = [
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "campaignId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "claimer",
+        "type": "address"
+      }
+    ],
+    "name": "linkDigest",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",

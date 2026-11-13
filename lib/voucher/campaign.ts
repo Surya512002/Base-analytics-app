@@ -1,9 +1,11 @@
 /**
- * Shared-link voucher campaigns ("one link, first N wallets claim").
+ * Shared-link voucher campaigns ("one link, first N wallets claim") — contract v2.
  *
- * Pure helpers (no network) shared by the creator UI, claim UI and API routes.
- * The campaign secret is generated in the creator's browser and only ever travels
- * in the URL *fragment* (never sent to any server); only its hash goes onchain.
+ * Pure helpers shared by the creator UI, claim UI and API routes.
+ * The link carries a private *link key* (generated in the creator's browser, only ever in the
+ * URL fragment, never sent to a server). The contract stores only the key's address. To claim,
+ * the recipient's browser signs (chain, contract, campaign, their own wallet) with the link key;
+ * that signature is useless for any other wallet, so nothing reusable is ever published onchain.
  */
 import {
   encodeAbiParameters,
@@ -11,8 +13,10 @@ import {
   isAddress,
   keccak256,
   parseAbiParameters,
+  recoverMessageAddress,
   toBytes,
 } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 export const CAMPAIGN_MAX_CLAIMS = 1000;
 export const CAMPAIGN_MAX_MESSAGE = 280;
@@ -20,28 +24,78 @@ export const CAMPAIGN_MAX_LABEL = 40;
 export const CAMPAIGN_TICKET_TTL_SEC = 10 * 60;
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
-// ───────────────────────────── secret / link ─────────────────────────────
+/** Domain tags — must match LINK_TAG / TICKET_TAG in BaseVoucherCampaign v2. */
+export const CAMPAIGN_LINK_TAG = keccak256(toBytes("BaseVoucherCampaign.v2.link"));
+export const CAMPAIGN_TICKET_TAG = keccak256(toBytes("BaseVoucherCampaign.v2.ticket"));
 
-/** 160-bit random secret, hex. Uses WebCrypto (browser + Node 20). */
+// ───────────────────────────── link key ─────────────────────────────
+
+/** New random link key: 64 hex chars (no 0x) so it sits cleanly in the URL fragment. */
 export function generateCampaignSecret(): string {
-  const bytes = new Uint8Array(20);
-  globalThis.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-export function hashCampaignSecret(secret: string): `0x${string}` {
-  return keccak256(toBytes(secret));
+  return generatePrivateKey().slice(2);
 }
 
 export function normalizeCampaignSecret(raw: string): string {
-  return raw.trim().replace(/\s/g, "");
+  return raw.trim().replace(/s/g, "").replace(/^0x/i, "").toLowerCase();
 }
 
 export function isValidCampaignSecret(secret: string): boolean {
-  return /^[A-Za-z0-9_-]{16,128}$/.test(secret);
+  return /^[0-9a-f]{64}$/.test(secret);
 }
 
-/** Link the creator shares. Secret lives in the fragment so servers/CDNs/referrers never see it. */
+/** Address the contract stores for this link key (CreateParams.linkSigner). */
+export function campaignLinkSigner(secret: string): `0x${string}` {
+  return privateKeyToAccount(`0x${normalizeCampaignSecret(secret)}`).address;
+}
+
+/** Inner hash the link key signs for one claimer. Mirrors BaseVoucherCampaign.linkDigest. */
+export function campaignLinkInnerHash(args: {
+  chainId: number;
+  contract: `0x${string}`;
+  campaignId: bigint;
+  claimer: `0x${string}`;
+}): `0x${string}` {
+  return keccak256(
+    encodeAbiParameters(parseAbiParameters("bytes32, uint256, address, uint256, address"), [
+      CAMPAIGN_LINK_TAG,
+      BigInt(args.chainId),
+      args.contract,
+      args.campaignId,
+      args.claimer,
+    ])
+  );
+}
+
+/** Wallet-bound proof of link possession, made in the claimer's browser. */
+export async function signCampaignLink(
+  secret: string,
+  args: { chainId: number; contract: `0x${string}`; campaignId: bigint; claimer: `0x${string}` }
+): Promise<`0x${string}`> {
+  const key = privateKeyToAccount(`0x${normalizeCampaignSecret(secret)}`);
+  return key.signMessage({ message: { raw: campaignLinkInnerHash(args) } });
+}
+
+/** Server-side check of a link proof (no secret needed — only the onchain linkSigner). */
+export async function verifyCampaignLinkSig(args: {
+  chainId: number;
+  contract: `0x${string}`;
+  campaignId: bigint;
+  claimer: `0x${string}`;
+  linkSigner: `0x${string}`;
+  signature: `0x${string}`;
+}): Promise<boolean> {
+  try {
+    const signer = await recoverMessageAddress({
+      message: { raw: campaignLinkInnerHash(args) },
+      signature: args.signature,
+    });
+    return signer.toLowerCase() === args.linkSigner.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+/** Link the creator shares. The link key lives in the fragment so servers/CDNs/referrers never see it. */
 export function buildCampaignLink(
   campaignId: number | bigint | string,
   secret: string,
@@ -87,9 +141,8 @@ export function parseCampaignLink(input: {
 // ───────────────────────────── claim tickets ─────────────────────────────
 
 /**
- * The 32-byte inner hash the claim signer personal_signs. Must match
- * keccak256(abi.encode(block.chainid, address(this), campaignId, claimer, deadline))
- * in BaseVoucherCampaign.claimDigest.
+ * Inner hash the claim signer personal_signs. Mirrors BaseVoucherCampaign.claimDigest:
+ * keccak256(abi.encode(TICKET_TAG, chainid, contract, campaignId, claimer, deadline)).
  */
 export function campaignTicketInnerHash(args: {
   chainId: number;
@@ -99,10 +152,14 @@ export function campaignTicketInnerHash(args: {
   deadline: bigint;
 }): `0x${string}` {
   return keccak256(
-    encodeAbiParameters(
-      parseAbiParameters("uint256, address, uint256, address, uint64"),
-      [BigInt(args.chainId), args.contract, args.campaignId, args.claimer, args.deadline]
-    )
+    encodeAbiParameters(parseAbiParameters("bytes32, uint256, address, uint256, address, uint64"), [
+      CAMPAIGN_TICKET_TAG,
+      BigInt(args.chainId),
+      args.contract,
+      args.campaignId,
+      args.claimer,
+      args.deadline,
+    ])
   );
 }
 
@@ -177,6 +234,7 @@ export interface OnchainCampaign {
   unlockAt: number;
   expiresAt: number;
   claimSigner: `0x${string}`;
+  linkSigner: `0x${string}`;
   committed: boolean;
   closed: boolean;
 }

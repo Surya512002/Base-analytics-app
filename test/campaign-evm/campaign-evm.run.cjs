@@ -34,11 +34,17 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   const abi = camp.abi;
   const enc = (fn, args) => viem.encodeFunctionData({ abi, functionName: fn, args });
   const lastId = async () => BigInt((await call(creator, C, enc('nextCampaignId', []))).ret) - 1n;
-  const secret = 'SHAREDSECRET1234';
-  const sh = viem.keccak256(viem.toBytes(secret));
+  // v2: the share link carries a private link key; the contract only knows its address.
+  const link = privateKeyToAccount('0x' + '22'.repeat(32));
+  const wrongLink = privateKeyToAccount('0x' + '33'.repeat(32));
+  const LINK_TAG = viem.keccak256(viem.toBytes('BaseVoucherCampaign.v2.link'));
+  const TICKET_TAG = viem.keccak256(viem.toBytes('BaseVoucherCampaign.v2.ticket'));
+  const linkSig = (key, id, claimer) =>
+    key.signMessage({ message: { raw: viem.keccak256(viem.encodeAbiParameters(viem.parseAbiParameters('bytes32,uint256,address,uint256,address'), [LINK_TAG, 1n, C, id, claimer])) } });
   const ZERO = '0x0000000000000000000000000000000000000000';
-  const P = (o = {}) => ({ token: ZERO, totalAmount: 50n * 10n ** 16n, maxClaims: 50, secretHash: sh, unlockAt: 0n, expiresAt: 0n, claimSigner: ZERO, committed: false, message: 'gm', senderLabel: 'alice.base.eth', ...o });
-  const claim = (from, id, s = secret, dl = 0n, t = '0x') => call(from, C, enc('claim', [id, s, dl, t]));
+  const P = (o = {}) => ({ token: ZERO, totalAmount: 50n * 10n ** 16n, maxClaims: 50, linkSigner: link.address, unlockAt: 0n, expiresAt: 0n, claimSigner: ZERO, committed: false, message: 'gm', senderLabel: 'alice.base.eth', ...o });
+  const claim = async (from, id, key = link, dl = 0n, t = '0x') => call(from, C, enc('claim', [id, await linkSig(key, id, from), dl, t]));
+  const claimRaw = (from, id, sig, dl = 0n, t = '0x') => call(from, C, enc('claim', [id, sig, dl, t]));
 
   console.log('ETH campaign: first 50 claim from ONE link');
   let r = await call(creator, C, enc('createEthCampaign', [P()]), 50n * 10n ** 16n);
@@ -50,14 +56,24 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   ok(revertMsg(r) === 'All claims taken', '51st claim rejected: ' + revertMsg(r));
   ok((await bal(C)) === 0n, 'contract drained exactly to 0');
 
-  console.log('Per-wallet / secret / creator rules');
+  console.log('Per-wallet / link / creator rules');
   await call(creator, C, enc('createEthCampaign', [P()]), 50n * 10n ** 16n);
   const id2 = await lastId();
-  r = await claim(addr(0x1001), id2, 'wrong'); ok(revertMsg(r) === 'Invalid secret', 'wrong secret rejected');
+  r = await claim(addr(0x1001), id2, wrongLink); ok(revertMsg(r) === 'Invalid link', 'wrong link key rejected');
   r = await claim(addr(0x1001), id2); ok(r.ok, 'first claim ok');
   r = await claim(addr(0x1001), id2); ok(revertMsg(r) === 'Already claimed', 'same wallet cannot double-claim');
   r = await claim(creator, id2); ok(revertMsg(r) === 'Creator cannot claim', 'creator cannot self-claim');
   r = await claim(addr(0x1002), 999n); ok(revertMsg(r) === 'Invalid campaign', 'unknown campaign rejected');
+
+  console.log('Replay protection (Vercel Security Review base-analytics-app/1)');
+  await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 5, totalAmount: 5n * 10n ** 18n })]), 5n * 10n ** 18n);
+  const idX = await lastId();
+  const victimSig = await linkSig(link, idX, addr(0x1050));
+  r = await claimRaw(addr(0x1050), idX, victimSig); ok(r.ok, 'first claimer claims with their wallet-bound proof');
+  r = await claimRaw(addr(0x1051), idX, victimSig); ok(revertMsg(r) === 'Invalid link', 'observer replaying the published proof from another wallet is rejected');
+  r = await claimRaw(addr(0x1051), idX + 1n, victimSig); ok(!r.ok, 'proof cannot be moved to another campaign');
+  const tkt = await signerAcct.signMessage({ message: { raw: viem.keccak256(viem.encodeAbiParameters(viem.parseAbiParameters('bytes32,uint256,address,uint256,address,uint64'), [TICKET_TAG, 1n, C, idX, addr(0x1052), 0n])) } });
+  r = await claimRaw(addr(0x1052), idX, tkt); ok(revertMsg(r) === 'Invalid link', 'a ticket signature cannot be used as a link proof');
 
   console.log('Create validation');
   r = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 1001, totalAmount: 1001n })]), 1001n); ok(revertMsg(r) === 'Invalid claim count', '>1000 claims rejected');
@@ -66,7 +82,7 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   r = await call(creator, C, enc('createEthCampaign', [P()]), 1n); ok(revertMsg(r) === 'ETH amount mismatch', 'msg.value mismatch rejected');
   r = await call(creator, C, enc('createEthCampaign', [P({ committed: true })]), 50n * 10n ** 16n); ok(revertMsg(r) === 'Committed needs expiry', 'committed without expiry rejected');
   r = await call(creator, C, enc('createEthCampaign', [P({ senderLabel: 'x'.repeat(41) })]), 50n * 10n ** 16n); ok(revertMsg(r) === 'Label too long', 'long sender label rejected');
-  r = await call(creator, C, enc('createEthCampaign', [P({ secretHash: '0x' + '00'.repeat(32) })]), 50n * 10n ** 16n); ok(revertMsg(r) === 'Empty secret hash', 'empty secret hash rejected');
+  r = await call(creator, C, enc('createEthCampaign', [P({ linkSigner: ZERO })]), 50n * 10n ** 16n); ok(revertMsg(r) === 'Empty link signer', 'empty link signer rejected');
   r = await call(creator, C, enc('createEthCampaign', [P({ expiresAt: now - 1n })]), 50n * 10n ** 16n); ok(revertMsg(r) === 'Already expired', 'already-expired rejected');
 
   console.log('Time lock / expiry / close');
@@ -96,17 +112,17 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 5, totalAmount: 5n * 10n ** 18n, claimSigner: signerAcct.address })]), 5n * 10n ** 18n);
   const idS = await lastId();
   const mk = async (claimer, deadline, id = idS) => {
-    const inner = viem.keccak256(viem.encodeAbiParameters(viem.parseAbiParameters('uint256,address,uint256,address,uint64'), [1n, C, id, claimer, deadline]));
+    const inner = viem.keccak256(viem.encodeAbiParameters(viem.parseAbiParameters('bytes32,uint256,address,uint256,address,uint64'), [TICKET_TAG, 1n, C, id, claimer, deadline]));
     return signerAcct.signMessage({ message: { raw: inner } });
   };
   const w = addr(0x1030), dl = now + 600n;
   r = await claim(w, idS); ok(revertMsg(r) === 'Ticket expired', 'missing ticket rejected');
-  r = await claim(w, idS, secret, dl, await mk(addr(0x1031), dl)); ok(revertMsg(r) === 'Invalid ticket', 'ticket for another wallet rejected');
-  r = await claim(w, idS, secret, now + 7200n, await mk(w, now + 7200n)); ok(revertMsg(r) === 'Ticket TTL too long', 'over-long ticket TTL rejected');
-  r = await claim(w, idS, secret, dl, await mk(w, dl, idS + 1n)); ok(revertMsg(r) === 'Invalid ticket', 'ticket for another campaign rejected');
-  r = await claim(w, idS, secret, dl, await mk(w, dl)); ok(r.ok, 'valid ticket claims ' + (r.ok ? '' : revertMsg(r)));
+  r = await claim(w, idS, link, dl, await mk(addr(0x1031), dl)); ok(revertMsg(r) === 'Invalid ticket', 'ticket for another wallet rejected');
+  r = await claim(w, idS, link, now + 7200n, await mk(w, now + 7200n)); ok(revertMsg(r) === 'Ticket TTL too long', 'over-long ticket TTL rejected');
+  r = await claim(w, idS, link, dl, await mk(w, dl, idS + 1n)); ok(revertMsg(r) === 'Invalid ticket', 'ticket for another campaign rejected');
+  r = await claim(w, idS, link, dl, await mk(w, dl)); ok(r.ok, 'valid ticket claims ' + (r.ok ? '' : revertMsg(r)));
   now = dl + 1n;
-  r = await claim(addr(0x1032), idS, secret, dl, await mk(addr(0x1032), dl)); ok(revertMsg(r) === 'Ticket expired', 'expired ticket rejected');
+  r = await claim(addr(0x1032), idS, link, dl, await mk(addr(0x1032), dl)); ok(revertMsg(r) === 'Ticket expired', 'expired ticket rejected');
   now = t0;
 
   console.log('ERC20 (tokenized-stock-like)');
@@ -131,7 +147,7 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   const A = await deployRaw(creator, mock.Attacker.bytecode + viem.encodeAbiParameters(viem.parseAbiParameters('address'), [C]).slice(2));
   await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 3, totalAmount: 3n * 10n ** 18n })]), 3n * 10n ** 18n);
   const idR = await lastId();
-  await call(creator, A, viem.encodeFunctionData({ abi: mock.Attacker.abi, functionName: 'go', args: [idR, secret] }));
+  await call(creator, A, viem.encodeFunctionData({ abi: mock.Attacker.abi, functionName: 'go', args: [idR, await linkSig(link, idR, A)] }));
   ok((await bal(A)) === 10n ** 18n, 'reentrant attacker received exactly one share (' + (await bal(A)) + ')');
 
   console.log(`\n${passed} passed, ${failed} failed`);

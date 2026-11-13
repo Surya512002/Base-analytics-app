@@ -32,8 +32,11 @@ import {
   buildCampaignShortLink,
   explainCampaignError,
   generateCampaignSecret,
-  hashCampaignSecret,
+  campaignLinkSigner,
+  signCampaignLink,
   isRetiredCampaignContract,
+  isValidCampaignSecret,
+  normalizeCampaignSecret,
   parseCampaignLink,
   validateCampaignInput,
 } from "@/lib/voucher/campaign";
@@ -316,7 +319,7 @@ function CreateCampaign({
     if (totalUnits === null || !splitsEvenly) return setError("Total must split evenly across the claim slots.");
     if (gated && !cfg?.claimSigner) return setError("Verified claims aren't available right now.");
 
-    const secret = generateCampaignSecret(); // never leaves this browser
+    const secret = generateCampaignSecret(); // private link key — never leaves this browser except inside the link
     const token = assetAddress(asset);
     const createdAt = Math.floor(Date.now() / 1000);
     const unlockAt = unlockSecs ? BigInt(createdAt + unlockSecs) : 0n;
@@ -325,7 +328,7 @@ function CreateCampaign({
       token,
       totalAmount: totalUnits,
       maxClaims: slots,
-      secretHash: hashCampaignSecret(secret),
+      linkSigner: campaignLinkSigner(secret),
       unlockAt,
       expiresAt,
       claimSigner: (gated ? cfg!.claimSigner : ZERO_ADDRESS) as `0x${string}`,
@@ -814,10 +817,21 @@ function ClaimCampaign({
   const claim = useCallback(async () => {
     setError("");
     if (!address || !view || !CAMPAIGN_CONTRACT) return;
-    const clean = secret.trim();
-    if (!clean) return setError("This link is missing its secret key. Open the full link from the sender.");
+    const clean = normalizeCampaignSecret(secret);
+    if (!isValidCampaignSecret(clean)) {
+      return setError("This link is missing its key or is incomplete. Open the full link from the sender.");
+    }
 
     try {
+      // Wallet-bound proof of link possession, made locally. The link key itself never leaves
+      // this browser, and this proof only works for the connected wallet.
+      const linkSig = await signCampaignLink(clean, {
+        chainId: 8453,
+        contract: CAMPAIGN_CONTRACT,
+        campaignId: BigInt(view.campaignId),
+        claimer: address,
+      });
+
       let deadline = 0n;
       let ticket: `0x${string}` = "0x";
       if (view.gated) {
@@ -825,7 +839,7 @@ function ClaimCampaign({
         const r = await fetch(`/api/voucher/campaign/${view.campaignId}/ticket`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ claimer: address }),
+          body: JSON.stringify({ claimer: address, linkSig }),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data?.error || "Verification failed.");
@@ -833,7 +847,7 @@ function ClaimCampaign({
         deadline = BigInt(data.deadline);
       }
 
-      const args = [BigInt(view.campaignId), clean, deadline, ticket] as const;
+      const args = [BigInt(view.campaignId), linkSig, deadline, ticket] as const;
 
       // Simulate first: a doomed claim costs the user nothing and shows a readable reason.
       setBusy("Checking…");

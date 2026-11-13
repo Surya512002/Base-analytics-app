@@ -8,8 +8,8 @@ import { createBasePublicClient } from "@/lib/utils/base-rpc";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** Block the mainnet BaseVoucherCampaign was deployed in — nothing to scan before it. */
-const DEPLOY_BLOCK = BigInt(process.env.CAMPAIGN_DEPLOY_BLOCK || "56557355");
+/** Block BaseVoucherCampaign v2 was deployed in on Base mainnet — nothing to scan before it. */
+const DEPLOY_BLOCK = BigInt(process.env.CAMPAIGN_DEPLOY_BLOCK || "56762521");
 
 /**
  * GET /api/voucher/campaign/by-creator?address=0x…

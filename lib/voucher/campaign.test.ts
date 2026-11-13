@@ -6,9 +6,12 @@ import {
   campaignStatus,
   campaignTicketInnerHash,
   explainCampaignError,
+  campaignLinkInnerHash,
+  campaignLinkSigner,
   generateCampaignSecret,
-  hashCampaignSecret,
   isValidCampaignSecret,
+  signCampaignLink,
+  verifyCampaignLinkSig,
   parseCampaignLink,
   validateCampaignInput,
   type OnchainCampaign,
@@ -23,6 +26,7 @@ const base: OnchainCampaign = {
   unlockAt: 0,
   expiresAt: 0,
   claimSigner: "0x0000000000000000000000000000000000000000",
+  linkSigner: "0x00000000000000000000000000000000000000dd",
   committed: false,
   closed: false,
 };
@@ -37,49 +41,69 @@ const input = {
   gated: true,
 };
 
-describe("campaign secrets & links", () => {
-  it("generates unique, valid 160-bit secrets", () => {
+describe("campaign link keys & links", () => {
+  it("generates unique 256-bit link keys", () => {
     const a = generateCampaignSecret();
     const b = generateCampaignSecret();
-    expect(a).toMatch(/^[0-9a-f]{40}$/);
+    expect(a).toMatch(/^[0-9a-f]{64}$/);
     expect(a).not.toBe(b);
     expect(isValidCampaignSecret(a)).toBe(true);
+    expect(campaignLinkSigner(a)).toMatch(/^0x[0-9a-fA-F]{40}$/);
   });
 
-  it("hashes deterministically (matches contract keccak256(abi.encodePacked(secret)))", () => {
-    expect(hashCampaignSecret("abc")).toBe(
-      "0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
-    );
-  });
-
-  it("keeps the secret in the URL fragment, never the query/path", () => {
-    const secret = "a".repeat(40);
-    for (const link of [buildCampaignLink(12, secret, "https://x.app/"), buildCampaignShortLink(12, secret, "https://x.app")]) {
+  it("keeps the link key in the URL fragment, never the query/path", () => {
+    const key = "a".repeat(64);
+    for (const link of [buildCampaignLink(12, key, "https://x.app/"), buildCampaignShortLink(12, key, "https://x.app")]) {
       const u = new URL(link);
-      expect(u.search.includes(secret)).toBe(false);
-      expect(u.pathname.includes(secret)).toBe(false);
-      expect(u.hash.includes(secret)).toBe(true);
+      expect(u.search.includes(key)).toBe(false);
+      expect(u.pathname.includes(key)).toBe(false);
+      expect(u.hash.includes(key)).toBe(true);
     }
   });
 
   it("round-trips both link shapes", () => {
-    const secret = "b".repeat(40);
-    const long = new URL(buildCampaignLink(7, secret, "https://x.app"));
-    expect(parseCampaignLink({ pathname: long.pathname, search: long.search, hash: long.hash })).toEqual({
-      campaignId: "7",
-      secret,
-    });
-    const short = new URL(buildCampaignShortLink(7, secret, "https://x.app"));
-    expect(parseCampaignLink({ pathname: short.pathname, search: short.search, hash: short.hash })).toEqual({
-      campaignId: "7",
-      secret,
-    });
+    const key = "b".repeat(64);
+    const long = new URL(buildCampaignLink(7, key, "https://x.app"));
+    expect(parseCampaignLink({ pathname: long.pathname, search: long.search, hash: long.hash })).toEqual({ campaignId: "7", secret: key });
+    const short = new URL(buildCampaignShortLink(7, key, "https://x.app"));
+    expect(parseCampaignLink({ pathname: short.pathname, search: short.search, hash: short.hash })).toEqual({ campaignId: "7", secret: key });
   });
 
-  it("rejects junk ids and weak secrets", () => {
-    expect(parseCampaignLink({ hash: "#camp=abc&k=" + "a".repeat(40) }).campaignId).toBeNull();
+  it("rejects junk ids and malformed keys", () => {
+    expect(parseCampaignLink({ hash: "#camp=abc&k=" + "a".repeat(64) }).campaignId).toBeNull();
     expect(parseCampaignLink({ hash: "#camp=1&k=short" }).secret).toBeNull();
-    expect(parseCampaignLink({ hash: "#camp=1&k=" + "x".repeat(200) }).secret).toBeNull();
+    expect(parseCampaignLink({ hash: "#camp=1&k=" + "a".repeat(40) }).secret).toBeNull(); // v1-style secret
+    expect(parseCampaignLink({ hash: "#camp=1&k=" + "x".repeat(64) }).secret).toBeNull();
+  });
+});
+
+describe("wallet-bound link proofs (fix for Vercel Security Review base-analytics-app/1)", () => {
+  const key = generateCampaignSecret();
+  const ctx = { chainId: 8453, contract: "0x00000000000000000000000000000000000000aa" as const, campaignId: 3n };
+  const alice = "0x000000000000000000000000000000000000a11c" as const;
+  const mallory = "0x000000000000000000000000000000000000ba0d" as const;
+
+  it("accepts the proof for the wallet it was made for", async () => {
+    const sig = await signCampaignLink(key, { ...ctx, claimer: alice });
+    expect(await verifyCampaignLinkSig({ ...ctx, claimer: alice, linkSigner: campaignLinkSigner(key), signature: sig })).toBe(true);
+  });
+
+  it("rejects a published proof replayed for another wallet, campaign or chain", async () => {
+    const sig = await signCampaignLink(key, { ...ctx, claimer: alice });
+    const signer = campaignLinkSigner(key);
+    expect(await verifyCampaignLinkSig({ ...ctx, claimer: mallory, linkSigner: signer, signature: sig })).toBe(false);
+    expect(await verifyCampaignLinkSig({ ...ctx, campaignId: 4n, claimer: alice, linkSigner: signer, signature: sig })).toBe(false);
+    expect(await verifyCampaignLinkSig({ ...ctx, chainId: 1, claimer: alice, linkSigner: signer, signature: sig })).toBe(false);
+  });
+
+  it("rejects a proof made with a different link key", async () => {
+    const sig = await signCampaignLink(generateCampaignSecret(), { ...ctx, claimer: alice });
+    expect(await verifyCampaignLinkSig({ ...ctx, claimer: alice, linkSigner: campaignLinkSigner(key), signature: sig })).toBe(false);
+  });
+
+  it("keeps link proofs and tickets in separate domains", () => {
+    const args = { ...ctx, claimer: alice };
+    expect(campaignLinkInnerHash(args)).not.toBe(campaignTicketInnerHash({ ...args, deadline: 0n }));
   });
 });
 
@@ -97,9 +121,7 @@ describe("claim tickets", () => {
     expect(campaignTicketInnerHash({ ...args, chainId: 1 })).not.toBe(h);
     expect(campaignTicketInnerHash({ ...args, campaignId: 2n })).not.toBe(h);
     expect(campaignTicketInnerHash({ ...args, deadline: args.deadline + 1n })).not.toBe(h);
-    expect(
-      campaignTicketInnerHash({ ...args, claimer: "0x00000000000000000000000000000000000000cc" })
-    ).not.toBe(h);
+    expect(campaignTicketInnerHash({ ...args, claimer: "0x00000000000000000000000000000000000000cc" })).not.toBe(h);
   });
 });
 

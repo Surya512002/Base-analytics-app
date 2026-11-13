@@ -12,6 +12,7 @@ const campaign: OnchainCampaign = {
   unlockAt: 0,
   expiresAt: now + 3600,
   claimSigner: "0x00000000000000000000000000000000000000ee",
+  linkSigner: "0x00000000000000000000000000000000000000dd",
   committed: false,
   closed: false,
 };

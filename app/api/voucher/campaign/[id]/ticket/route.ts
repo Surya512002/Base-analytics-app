@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
-import { CAMPAIGN_TICKET_TTL_SEC, isCampaignGated } from "@/lib/voucher/campaign";
+import { CAMPAIGN_TICKET_TTL_SEC, isCampaignGated, verifyCampaignLinkSig } from "@/lib/voucher/campaign";
+import { CAMPAIGN_CONTRACT } from "@/lib/constants/env";
 import {
   campaignContractReady,
   countryFromRequest,
@@ -34,20 +35,26 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // Rate limits only ever charge identities the caller actually controls. The claimer address in
   // the body is unauthenticated, so it is never used as a rate-limit key (anyone could otherwise
   // burn a victim wallet's quota). Order: requester IP → input validation → campaign exists →
-  // per-campaign quota.
+  // proof of link possession for this exact (campaign, wallet) → per-campaign quota. Without the
+  // link key a caller can't get a ticket or touch the campaign quota.
   const ip = getClientIp(req);
   const perIp = await checkRateLimitAsync(`campaign-ticket-ip:${ip}`, 12, 10 * 60_000);
   if (!perIp.ok) return rateLimitResponse(perIp.retryAfterSec);
 
   let claimer: string | undefined;
+  let linkSig: string | undefined;
   try {
-    const body = (await req.json()) as { claimer?: string };
+    const body = (await req.json()) as { claimer?: string; linkSig?: string };
     claimer = body.claimer?.trim();
+    linkSig = body.linkSig?.trim();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
   if (!claimer || !isAddress(claimer)) {
     return NextResponse.json({ error: "claimer must be a valid address" }, { status: 400 });
+  }
+  if (!linkSig || !/^0x[0-9a-fA-F]{130}$/.test(linkSig)) {
+    return NextResponse.json({ error: "A valid link proof is required. Open the full link from the sender." }, { status: 400 });
   }
 
   try {
@@ -55,6 +62,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const onchain = await readCampaignOnchain(campaignId);
     if (!onchain) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const { campaign } = onchain;
+
+    const linkOk = await verifyCampaignLinkSig({
+      chainId: 8453,
+      contract: CAMPAIGN_CONTRACT as `0x${string}`,
+      campaignId,
+      claimer: claimer as `0x${string}`,
+      linkSigner: campaign.linkSigner,
+      signature: linkSig as `0x${string}`,
+    });
+    if (!linkOk) {
+      return NextResponse.json({ error: "This link isn't valid for this gift. Open the full link from the sender." }, { status: 403 });
+    }
 
     const perCampaign = await checkRateLimitAsync(`campaign-ticket-campaign:${id}`, 600, 60_000);
     if (!perCampaign.ok) return rateLimitResponse(perCampaign.retryAfterSec);

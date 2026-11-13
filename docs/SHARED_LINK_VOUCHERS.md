@@ -17,9 +17,10 @@ The first N distinct wallets to claim each receive `total / N`. Replaces generat
 ## Safety model
 | Risk | Mitigation |
 |---|---|
-| Secret leaks to servers/CDN/referrers | Generated in the creator's browser; lives only in the URL fragment; only its hash is onchain |
+| Link key leaks to servers/CDN/referrers | Generated in the creator's browser; lives only in the URL fragment; only its *address* is onchain |
+| Claims published onchain get reused (v1 flaw) | **v2:** a claim carries a link-key signature over (chain, contract, campaign, claimer). It only works for the wallet it was made for, so watching the chain reveals nothing reusable. Link proofs and tickets use separate domain tags |
 | One wallet drains the pool | `hasClaimed[campaign][wallet]` enforced onchain; creator can't self-claim |
-| Bots cycling wallets from one machine | Optional **verified claims**: claim needs a 10-min ticket bound to (chain, contract, campaign, claimer, deadline), issued after per-IP / per-wallet / per-campaign rate limits |
+| Bots cycling wallets from one machine | Optional **verified claims**: claim also needs a 10-min ticket bound to (chain, contract, campaign, claimer, deadline). The ticket API requires a valid link proof for that wallet first, and rate-limits only the requester IP and the campaign — never a wallet address the caller merely names |
 | Tokenized stocks in restricted regions | Stocks force verified claims; ticket route applies the existing kill switch + region rules (entry blocked in exit-only/blocked regions) |
 | Creator rug-pull after promising a gift | **Committed** mode: creator cannot close before expiry (enforced onchain, shown to claimers) |
 | Funds stuck forever | Creator can always `close()` (after expiry if committed); refund is exactly the unclaimed shares |
@@ -30,9 +31,10 @@ The first N distinct wallets to claim each receive `total / N`. Replaces generat
 ## Known limits (be honest with users)
 - **A public link is a bearer instrument.** Without verified claims, anyone with the link — including sybil bots using many
   wallets — can take slots. Verified claims reduce but do not eliminate this; they are not identity/KYC.
-- The first claim's calldata reveals the secret; this only matters for open (ungated) campaigns, where a mempool watcher could
-  claim with their own wallet. Gated campaigns also need a ticket for that exact wallet.
-- If a creator loses the link *and* clears browser storage, the secret is unrecoverable (funds can still be refunded via close()).
+- If a creator loses the link *and* clears browser storage, the link key is unrecoverable (funds can still be refunded via close()).
+- **v1 is retired.** v1 (`0xf764dcce3ddd898fc6e7bc642ae61789e2541e0c`) sent a plaintext shared secret in `claim()` calldata, so
+  after the first claim observers could take remaining slots (Vercel Security Review base-analytics-app/1). The app no longer
+  creates campaigns on it; its two campaigns were already fully claimed / refunded.
 - Region checks use CDN geo headers — a product safeguard, not legal compliance.
 
 ## Deploy
@@ -43,4 +45,4 @@ The first N distinct wallets to claim each receive `total / N`. Replaces generat
 
 ## Tests
 - `npx vitest run lib/voucher/campaign.test.ts` — link/secret/ticket/validation/identity logic.
-- `test/campaign-evm/` — 40 checks against the compiled contract in an in-process EVM (see its README).
+- `test/campaign-evm/` — 44 checks against the compiled contract (incl. the replay attack) in an in-process EVM (see its README).

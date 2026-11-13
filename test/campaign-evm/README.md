@@ -1,6 +1,6 @@
 # BaseVoucherCampaign EVM tests
 
-Runs the real compiled contract in an in-process EVM (no Foundry needed). 40 checks: 50-claim
+Runs the real compiled contract in an in-process EVM (no Foundry needed). 44 checks: 50-claim
 cap, one claim per wallet, tickets, expiry/commit, refunds, fee-on-transfer, reentrancy.
 
 ```bash

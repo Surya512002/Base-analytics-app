@@ -101,6 +101,7 @@ export async function readCampaignOnchain(id: bigint): Promise<{
       unlockAt: bigint;
       expiresAt: bigint;
       claimSigner: `0x${string}`;
+      linkSigner: `0x${string}`;
       committed: boolean;
       closed: boolean;
     },
@@ -118,6 +119,7 @@ export async function readCampaignOnchain(id: bigint): Promise<{
       unlockAt: Number(c.unlockAt),
       expiresAt: Number(c.expiresAt),
       claimSigner: c.claimSigner,
+      linkSigner: c.linkSigner,
       committed: c.committed,
       closed: c.closed,
     },

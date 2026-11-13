@@ -7,11 +7,15 @@ interface ICampaignERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-/// @title BaseVoucherCampaign — ONE shared link, first N wallets claim.
+/// @title BaseVoucherCampaign v2 — ONE shared link, first N wallets claim.
 /// @notice A creator funds a campaign (ETH or any ERC20, incl. tokenized stocks) and shares a
 ///         single link. The first `maxClaims` distinct wallets to claim each receive an equal share.
 ///
 /// Safety properties
+///  - The link carries a private "link key"; the contract stores only its address. A claim must
+///    include a link-key signature over (chain, contract, campaign, claimer), so what a claimer
+///    publishes onchain is bound to their own wallet and useless to anyone else. (v1 put a
+///    plaintext shared secret in calldata, which observers could reuse after the first claim.)
 ///  - One claim per wallet per campaign, enforced onchain.
 ///  - Funds are escrowed in full at creation; unclaimed funds can only ever go back to the creator.
 ///  - Optional `claimSigner`: claims then also need a short-lived ticket signed by that address
@@ -36,8 +40,8 @@ contract BaseVoucherCampaign {
         uint32 claimedCount;
         uint64 unlockAt; // 0 = none
         uint64 expiresAt; // 0 = never
-        address claimSigner; // 0 = open claim (secret only)
-        bytes32 secretHash;
+        address claimSigner; // 0 = open claim (link signature only)
+        address linkSigner; // address of the private link key carried in the share link
         bool committed; // creator cannot cancel before expiry
         bool closed; // cancelled / fully refunded
     }
@@ -46,7 +50,7 @@ contract BaseVoucherCampaign {
         address token;
         uint256 totalAmount;
         uint32 maxClaims;
-        bytes32 secretHash;
+        address linkSigner; // address of the private link key carried in the share link
         uint64 unlockAt;
         uint64 expiresAt;
         address claimSigner;
@@ -62,6 +66,10 @@ contract BaseVoucherCampaign {
     mapping(uint256 => mapping(address => bool)) public hasClaimed;
 
     uint256 private _lock = 1;
+
+    /// Domain tags so a link signature can never be replayed as a ticket (and vice versa).
+    bytes32 public constant LINK_TAG = keccak256("BaseVoucherCampaign.v2.link");
+    bytes32 public constant TICKET_TAG = keccak256("BaseVoucherCampaign.v2.ticket");
 
     event CampaignCreated(
         uint256 indexed campaignId,
@@ -112,7 +120,7 @@ contract BaseVoucherCampaign {
 
     function _create(CreateParams calldata p) internal returns (uint256 id) {
         require(p.maxClaims > 0 && p.maxClaims <= MAX_CLAIMS, "Invalid claim count");
-        require(p.secretHash != bytes32(0), "Empty secret hash");
+        require(p.linkSigner != address(0), "Empty link signer");
         require(p.totalAmount % p.maxClaims == 0, "Amount must split evenly");
         require(bytes(p.message).length <= MAX_MESSAGE_BYTES, "Message too long");
         require(bytes(p.senderLabel).length <= MAX_LABEL_BYTES, "Label too long");
@@ -133,7 +141,7 @@ contract BaseVoucherCampaign {
             unlockAt: p.unlockAt,
             expiresAt: p.expiresAt,
             claimSigner: p.claimSigner,
-            secretHash: p.secretHash,
+            linkSigner: p.linkSigner,
             committed: p.committed,
             closed: false
         });
@@ -157,10 +165,10 @@ contract BaseVoucherCampaign {
 
     // ───────────────────────────── claim ──────────────────────────────
 
-    /// @param secret   the shared secret from the link fragment
+    /// @param linkSig  65-byte signature by the campaign's link key over linkDigest(campaignId, msg.sender)
     /// @param deadline ticket expiry (ignored when the campaign has no claimSigner)
     /// @param ticket   65-byte signature from claimSigner (ignored when none is set)
-    function claim(uint256 campaignId, string calldata secret, uint64 deadline, bytes calldata ticket)
+    function claim(uint256 campaignId, bytes calldata linkSig, uint64 deadline, bytes calldata ticket)
         external
         nonReentrant
     {
@@ -172,7 +180,8 @@ contract BaseVoucherCampaign {
         require(msg.sender != c.creator, "Creator cannot claim");
         require(c.unlockAt == 0 || block.timestamp >= c.unlockAt, "Not unlocked yet");
         require(c.expiresAt == 0 || block.timestamp < c.expiresAt, "Campaign expired");
-        require(keccak256(abi.encodePacked(secret)) == c.secretHash, "Invalid secret");
+        // Wallet-bound proof of link possession: the signature only works for msg.sender.
+        require(_recover(linkDigest(campaignId, msg.sender), linkSig) == c.linkSigner, "Invalid link");
 
         if (c.claimSigner != address(0)) {
             require(block.timestamp <= deadline, "Ticket expired");
@@ -197,12 +206,22 @@ contract BaseVoucherCampaign {
         emit CampaignClaimed(campaignId, msg.sender, amount, c.claimedCount);
     }
 
-    /// @notice Digest the claimSigner signs (EIP-191 personal_sign over this hash).
+    /// @notice Digest the link key signs for one claimer (EIP-191 personal_sign over the inner hash).
+    function linkDigest(uint256 campaignId, address claimer) public view returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                "\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encode(LINK_TAG, block.chainid, address(this), campaignId, claimer))
+            )
+        );
+    }
+
+    /// @notice Digest the claimSigner signs (EIP-191 personal_sign over the inner hash).
     function claimDigest(uint256 campaignId, address claimer, uint64 deadline) public view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encode(block.chainid, address(this), campaignId, claimer, deadline))
+                keccak256(abi.encode(TICKET_TAG, block.chainid, address(this), campaignId, claimer, deadline))
             )
         );
     }
