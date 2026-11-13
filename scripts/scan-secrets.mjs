@@ -59,6 +59,8 @@ const WHITELIST = new Set([
   "0xf159c5c2a0bd1054bd0de6c2cc2bcabd23b6144e098cce9e2a029261ebc7b791", // public tx hash: campaign #1 create
   "0x6e1c8c0732b94dc2d3ec8e97d0498eda08280e01b3fe5955e906dfe8c6e62842", // public tx hash: campaign #1 claim 1
   "0xf6d771d565c3500ce6d9f469fe2577b1ccbb2aa00fcf2ce349bd4a8a0e4d949f", // public tx hash: campaign #1 claim 2
+  "0x2d9fbf6ac82f936be605b2b4c21adcfc4d0e3744f1e98410149df49d54fd40f5", // public tx hash: gift #2 create
+  "0x5320cf326fbdb7093f8057dec6d09cee3181644796df9ed35065afe117c97301", // public tx hash: gift #2 refund
 ]);
 
 console.log("==================================================");

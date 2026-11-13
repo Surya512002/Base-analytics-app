@@ -30,6 +30,28 @@ Pre-existing (not Quest work): the legacy BaseVoucher card flow, swap, launchpad
 - Claim 1: `0x6e1c8c0732b94dc2d3ec8e97d0498eda08280e01b3fe5955e906dfe8c6e62842`
 - Claim 2: `0xf6d771d565c3500ce6d9f469fe2577b1ccbb2aa00fcf2ce349bd4a8a0e4d949f`
 - 3rd wallet: ticket refused — "Campaign is full"; claim without ticket reverts "Ticket expired".
+- Expired-gift refund: see gift #2 above.
+
+## Track 1.4 brief → where it is in the app
+| Brief asks for | Where | Proof |
+|---|---|---|
+| Package a stock position as a gift, with a message | Vouchers → One link → pick a tokenized stock, 1 · single gift (or N slots), message | create form |
+| Optional unlock date | “Opens (unlock date)”: right away / 1h / tomorrow / 7 days; enforced onchain (`Not unlocked yet`) | contract + EVM tests |
+| Check the recipient's eligibility **before** they claim | “Can you claim?” checklist (gift open, not sender, not already claimed, kill switch, stock gifts enabled, region, sanctions screen). Claim button stays disabled when not eligible; the ticket server enforces the same checks | `/api/voucher/campaign/:id/eligibility`, 5 unit tests incl. restricted region |
+| Make clear who owns the assets before acceptance | “Ownership, expiry & refunds” box on the claim page and in-app: escrow in the contract until the claim confirms | claim page |
+| When unclaimed gifts expire | Same box + expiry chip; expiry enforced onchain | claim page |
+| How senders get refunds if a recipient can't legally receive | Ineligible claims are refused before anything moves; the share stays in escrow; sender refunds from “My links”, which lists every campaign the wallet funded from chain (any device) | live demo below |
+| Identify the sender | Name (Basename verified, or typed name flagged unverified) **and** the full creator wallet address from the contract, with copy + Basescan | claim page |
+
+## Live mainnet demo: expired gift refunds cleanly (gift #2)
+1. Committed 1-slot gift, 0.000001 ETH, 75 s expiry — tx `0x2d9fbf6ac82f936be605b2b4c21adcfc4d0e3744f1e98410149df49d54fd40f5`
+2. Sender tries to pull it back before expiry → reverted (committed)
+3. Recipient claims after expiry → reverted; eligibility API: “This gift has expired; unclaimed funds go back to the sender.”
+4. Sender closes → `CampaignClosed` refunded exactly 0.000001 ETH — tx `0x5320cf326fbdb7093f8057dec6d09cee3181644796df9ed35065afe117c97301`
+5. Onchain: closed = true, claims remaining = 0. Any later claim reverts “Campaign closed”.
+
+For the **ineligible** shot in your video: gift a tiny amount of a tokenized stock you own, open the link from a
+restricted region (e.g. US via VPN) → “Not eligible — nothing will be sent”, then refund from My links.
 
 ## Demo video script (≈2 min, Loom)
 1. **Hook (10s):** "Sending a stock gift to 50 people used to mean 50 links. Now it's one."

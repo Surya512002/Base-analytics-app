@@ -2,7 +2,8 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, AlertTriangle, Gift, ArrowRight } from "lucide-react";
+import { Gift, ArrowRight } from "lucide-react";
+import { EligibilityChecklist, OwnershipTerms, SenderIdentity } from "@/components/voucher/CampaignTrust";
 import AppLogo from "@/components/ui/AppLogo";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
 import type { CampaignPublicView } from "@/lib/voucher/campaign-server";
@@ -33,7 +34,6 @@ function ClaimLanding({ id }: { id: string }) {
   }, [id]);
 
   const href = `/?tab=basehub&view=campaign#camp=${encodeURIComponent(id)}${secret ? `&k=${encodeURIComponent(secret)}` : ""}`;
-  const verified = view?.sender.trust === "basename-verified";
 
   return (
     <div className="min-h-screen bg-[var(--bg-deep)] text-[var(--ink)]">
@@ -54,27 +54,14 @@ function ClaimLanding({ id }: { id: string }) {
 
           {view && (
             <>
-              <div className={`rounded-2xl border p-4 ${verified ? "border-emerald-500/30" : "border-amber-500/30"}`}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Sent by</p>
-                <p className="text-lg font-black mt-1 flex items-center gap-2 flex-wrap">
-                  {view.sender.basename ?? `${view.sender.address.slice(0, 6)}…${view.sender.address.slice(-4)}`}
-                  {verified ? (
-                    <span className="text-[11px] text-emerald-500 inline-flex items-center gap-1">
-                      <BadgeCheck size={14} /> Verified Basename
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-amber-500 inline-flex items-center gap-1">
-                      <AlertTriangle size={14} /> No verified name
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs font-mono text-[var(--ink-muted)] break-all mt-1">{view.sender.address}</p>
-              </div>
+              <SenderIdentity sender={view.sender} />
               <p className="text-3xl font-black">{view.perClaimFormatted}</p>
               {view.message && <p className="italic text-sm text-[var(--ink-muted)]">&ldquo;{view.message}&rdquo;</p>}
               <p className="text-sm text-[var(--ink-muted)]">
                 {view.claimsRemaining} of {view.maxClaims} claims left · {view.status}
               </p>
+              <OwnershipTerms view={view} />
+              <EligibilityChecklist campaignId={view.campaignId} wallet={undefined} />
               {view.status === "open" ? (
                 <Link
                   href={href}

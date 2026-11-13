@@ -204,3 +204,132 @@ export async function hasClaimedOnchain(id: bigint, claimer: `0x${string}`): Pro
     args: [id, claimer],
   }) as Promise<boolean>;
 }
+
+// ───────────────────────────── recipient eligibility ─────────────────────────────
+
+export interface EligibilityCheck {
+  id: "campaign" | "self" | "already" | "killswitch" | "feature" | "region" | "sanctions";
+  label: string;
+  /** "pass" | "fail" — or "skipped" when a check doesn't apply / isn't configured (never shown as a pass). */
+  result: "pass" | "fail" | "skipped";
+  detail: string;
+}
+
+export interface EligibilityResult {
+  eligible: boolean;
+  checks: EligibilityCheck[];
+  /** First failing check's detail, for a one-line message. */
+  reason: string | null;
+}
+
+/**
+ * Everything we can check about a recipient *before* they claim. Used by the public
+ * eligibility endpoint (shown to the recipient up front) and by the ticket route
+ * (enforced). Region comes from the CDN geo header; on Vercel the client can't set it.
+ */
+export async function evaluateClaimEligibility(args: {
+  campaignId: bigint;
+  campaign: OnchainCampaign;
+  claimer: `0x${string}` | null;
+  country: string | null;
+  /** Optional pre-resolved asset info (tests / callers that already have it). */
+  asset?: CampaignAssetInfo;
+}): Promise<EligibilityResult> {
+  const { campaign, claimer, country } = args;
+  const checks: EligibilityCheck[] = [];
+  const status = campaignStatus(campaign);
+  checks.push({
+    id: "campaign",
+    label: "Gift can be claimed now",
+    result: status === "open" ? "pass" : "fail",
+    detail:
+      status === "open"
+        ? "Open, with slots left."
+        : status === "locked"
+          ? `Opens ${new Date(campaign.unlockAt * 1000).toUTCString()}.`
+          : status === "full"
+            ? "All slots have been claimed."
+            : status === "expired"
+              ? "This gift has expired; unclaimed funds go back to the sender."
+              : "The sender closed this gift.",
+  });
+
+  if (claimer) {
+    const self = claimer.toLowerCase() === campaign.creator.toLowerCase();
+    checks.push({
+      id: "self",
+      label: "You're not the sender",
+      result: self ? "fail" : "pass",
+      detail: self ? "Senders can't claim their own gift." : "OK.",
+    });
+    const already = await hasClaimedOnchain(args.campaignId, claimer).catch(() => false);
+    checks.push({
+      id: "already",
+      label: "This wallet hasn't claimed yet",
+      result: already ? "fail" : "pass",
+      detail: already ? "One claim per wallet — this wallet already claimed." : "OK.",
+    });
+  }
+
+  const asset = args.asset ?? (await describeCampaignAsset(campaign.token));
+  if (asset.regulated) {
+    const { complianceConfig, evaluateRegionCompliance, fetchRemoteKillSwitch } = await import("@/src/config/compliance");
+    const killed = await fetchRemoteKillSwitch().catch(() => false);
+    checks.push({
+      id: "killswitch",
+      label: "Tokenized stock gifts are running",
+      result: killed ? "fail" : "pass",
+      detail: killed ? "Paused by the safety kill switch." : "OK.",
+    });
+    const enabled = Boolean(complianceConfig.features["stocks.vouchers"]);
+    checks.push({
+      id: "feature",
+      label: "Stock gifts enabled",
+      result: enabled ? "pass" : "fail",
+      detail: enabled ? "OK." : "Tokenized stock vouchers are currently disabled.",
+    });
+    const region = evaluateRegionCompliance(country, "stocks.vouchers");
+    // Fail closed: if the region can't be verified, a stock gift can't be claimed.
+    const blocked = !country || (region.isRestricted && !region.canEnter);
+    checks.push({
+      id: "region",
+      label: "Tokenized stocks available in your region",
+      result: blocked ? "fail" : "pass",
+      detail: !country
+        ? "Your region couldn't be verified, so this stock gift can't be claimed here. Your share stays in escrow and goes back to the sender."
+        : blocked
+          ? `Not available in your region (${country}). Your share stays in escrow and goes back to the sender.`
+          : `Region ${country}: allowed.`,
+    });
+  }
+
+  if (claimer) {
+    const { screenWalletAddress } = await import("@/lib/compliance/sanctions");
+    const s = await screenWalletAddress(claimer).catch(() => null);
+    checks.push({
+      id: "sanctions",
+      label: "Wallet sanctions screen",
+      result: !s || s.provider === "disabled" ? "skipped" : s.isSanctioned ? "fail" : "pass",
+      detail:
+        !s || s.provider === "disabled"
+          ? "Not configured on this deployment."
+          : s.isSanctioned
+            ? "This wallet can't receive this gift."
+            : `Clear (${s.provider}).`,
+    });
+  }
+
+  const firstFail = checks.find((c) => c.result === "fail") ?? null;
+  return { eligible: !firstFail, checks, reason: firstFail?.detail ?? null };
+}
+
+export function countryFromRequest(req: Request): string | null {
+  // On Vercel x-vercel-ip-country is set by the edge and can't be spoofed by the client.
+  // x-user-country is only honoured outside Vercel (local dev / tests).
+  const vercel = req.headers.get("x-vercel-ip-country");
+  if (vercel) return vercel;
+  const cf = req.headers.get("cf-ipcountry");
+  if (cf) return cf;
+  if (process.env.VERCEL) return null;
+  return req.headers.get("x-user-country");
+}

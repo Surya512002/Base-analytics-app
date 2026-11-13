@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  BadgeCheck,
   CheckCircle2,
   Clock,
   Copy,
-  ExternalLink,
   Link2,
   Loader2,
   Lock,
@@ -37,7 +35,8 @@ import {
   parseCampaignLink,
   validateCampaignInput,
 } from "@/lib/voucher/campaign";
-import type { CampaignPublicView } from "@/lib/voucher/campaign-server";
+import type { CampaignPublicView, EligibilityResult } from "@/lib/voucher/campaign-server";
+import { EligibilityChecklist, OwnershipTerms, SenderIdentity } from "@/components/voucher/CampaignTrust";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 
 // ───────────────────────────── local link vault ─────────────────────────────
@@ -90,11 +89,7 @@ const EXPIRY_OPTIONS = [
   { id: "30d", label: "30 days", secs: 30 * 86_400 },
 ] as const;
 
-const SLOT_PRESETS = [10, 50, 100, 500] as const;
-
-function shortAddr(a: string) {
-  return `${a.slice(0, 6)}…${a.slice(-4)}`;
-}
+const SLOT_PRESETS = [1, 10, 50, 100, 500] as const;
 
 function fmtDate(sec: number) {
   return sec ? new Date(sec * 1000).toLocaleString() : "";
@@ -222,58 +217,6 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
         />
       )}
       {mode === "mine" && <MyCampaigns address={address} connType={connType} />}
-    </div>
-  );
-}
-
-// ───────────────────────────── sender identity card ─────────────────────────────
-
-function SenderCard({ sender }: { sender: CampaignPublicView["sender"] }) {
-  const verified = sender.trust === "basename-verified";
-  return (
-    <div
-      className={`rounded-2xl border p-4 ${
-        verified ? "border-emerald-500/30 bg-emerald-500/8" : "border-amber-500/30 bg-amber-500/8"
-      }`}
-    >
-      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Sent by</p>
-      <div className="mt-1 flex items-center gap-2 flex-wrap">
-        {sender.basename ? (
-          <span className="text-lg font-black text-[var(--ink)]">{sender.basename}</span>
-        ) : (
-          <span className="text-lg font-black text-[var(--ink)] font-mono">{shortAddr(sender.address)}</span>
-        )}
-        {verified ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500">
-            <BadgeCheck size={14} /> Verified Basename
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500">
-            <AlertTriangle size={14} /> No verified name
-          </span>
-        )}
-      </div>
-      {sender.trust === "unverified-label" && (
-        <p className="mt-1 text-xs text-amber-500">
-          The sender typed the name &ldquo;{sender.label}&rdquo; but it is <strong>not</strong> linked to this wallet.
-          Only trust it if you know the address below.
-        </p>
-      )}
-      <p className="mt-2 text-xs text-[var(--ink-muted)] font-mono break-all">
-        {sender.address}{" "}
-        <a
-          href={sender.basescanUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-0.5 font-sans font-bold text-[var(--brand)] hover:underline"
-        >
-          Basescan <ExternalLink size={11} />
-        </a>
-      </p>
-      <p className="mt-1 text-[11px] text-[var(--ink-dim)]">
-        This address comes from the onchain contract and can&apos;t be faked. Never claim from a sender you don&apos;t
-        recognise if the message asks you to pay, connect elsewhere, or share a seed phrase.
-      </p>
     </div>
   );
 }
@@ -584,7 +527,7 @@ function CreateCampaign({
                       : "border-[var(--border-subtle)] text-[var(--ink-muted)]"
                   }`}
                 >
-                  {n}
+                  {n === 1 ? "1 · single gift" : n}
                 </button>
               ))}
             </div>
@@ -731,6 +674,26 @@ function CreateCampaign({
           </p>
         )}
 
+        {/* Terms the sender agrees to — the same terms claimers see before accepting */}
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-1.5 text-xs">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">What claimers will see</p>
+          <p className="text-[var(--ink)]">
+            <strong>Sender:</strong> {label.trim() || "(no name)"} and your wallet address{address ? ` ${address}` : ""} — recorded by the contract.
+          </p>
+          <p className="text-[var(--ink)]">
+            <strong>Owner until claimed:</strong> the campaign contract holds it in escrow for you. It becomes the recipient&apos;s only when their claim confirms.
+          </p>
+          <p className="text-[var(--ink)]">
+            <strong>Opens:</strong> {unlockSecs ? new Date((nowSec + unlockSecs) * 1000).toLocaleString() : "right away"} ·{" "}
+            <strong>Expires:</strong> {expirySecs ? new Date((nowSec + unlockSecs + expirySecs) * 1000).toLocaleString() : "never"}
+          </p>
+          <p className="text-[var(--ink)]">
+            <strong>Refunds:</strong> recipients who aren&apos;t eligible (region, sanctions, already claimed) are refused
+            before anything moves, so their share stays in escrow. You get every unclaimed share back from “My links”
+            {committed ? " once the gift expires" : " at any time, or after it expires"} — from any device with this wallet.
+          </p>
+        </div>
+
         <label className="flex items-start gap-3 text-sm">
           <input type="checkbox" className="mt-1" checked={ackSafety} onChange={(e) => setAckSafety(e.target.checked)} />
           <span className="text-[var(--ink)]">
@@ -790,6 +753,8 @@ function ClaimCampaign({
   const [busy, setBusy] = useState("");
   const [done, setDone] = useState<{ hash: string } | null>(null);
   const [claimedBefore, setClaimedBefore] = useState(false);
+  const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
+  const [eligKey, setEligKey] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!/^\d{1,12}$/.test(id)) {
@@ -871,6 +836,7 @@ function ClaimCampaign({
       const hash = await sendAppTransactions(connType ?? "injected", address, [call]);
       setDone({ hash });
       refresh();
+      setEligKey((k) => k + 1);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const friendly = explainCampaignError(msg);
@@ -881,7 +847,9 @@ function ClaimCampaign({
   }, [address, connType, refresh, secret, view]);
 
   const pct = view ? Math.round((view.claimedCount / view.maxClaims) * 100) : 0;
-  const canClaim = view?.status === "open" && !claimedBefore && !done && !disabled;
+  // Eligibility is checked and shown BEFORE claiming; an ineligible wallet never sends a transaction.
+  const canClaim =
+    view?.status === "open" && !claimedBefore && !done && !disabled && eligibility?.eligible !== false;
 
   return (
     <SectionCard>
@@ -925,7 +893,7 @@ function ClaimCampaign({
 
         {view && (
           <div className="space-y-4">
-            <SenderCard sender={view.sender} />
+            <SenderIdentity sender={view.sender} />
 
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-3">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -973,13 +941,18 @@ function ClaimCampaign({
                   This token isn&apos;t one the app recognises. Check the contract on Basescan before claiming.
                 </p>
               )}
-              {view.asset.regulated && (
-                <p className="text-xs text-[var(--ink-muted)]">
-                  Tokenized stock: availability depends on your region, and holding it gives no shareholder rights. Not
-                  investment advice.
-                </p>
-              )}
             </div>
+
+            <OwnershipTerms view={view} />
+
+            {!done && (
+              <EligibilityChecklist
+                campaignId={view.campaignId}
+                wallet={address}
+                onResult={setEligibility}
+                refreshKey={eligKey}
+              />
+            )}
 
             {done ? (
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/8 p-4 text-sm text-[var(--ink)]">
@@ -1012,6 +985,8 @@ function ClaimCampaign({
                   "This wallet already claimed"
                 ) : view.status !== "open" ? (
                   view.status === "full" ? "All slots taken" : `Campaign ${view.status}`
+                ) : eligibility && !eligibility.eligible ? (
+                  "Not eligible — nothing will be sent"
                 ) : (
                   `Claim ${view.perClaimFormatted}`
                 )}
@@ -1035,7 +1010,7 @@ function MyCampaigns({
   address: `0x${string}` | undefined;
   connType: WalletAppState["connType"];
 }) {
-  const [items, setItems] = useState<SavedCampaign[]>([]);
+  const [items, setItems] = useState<Array<Omit<SavedCampaign, "secret"> & { secret?: string }>>([]);
   const [views, setViews] = useState<Record<string, CampaignPublicView | null>>({});
   const [busyId, setBusyId] = useState("");
   const [msg, setMsg] = useState("");
@@ -1045,12 +1020,23 @@ function MyCampaigns({
     if (!address) return;
     const saved = loadSaved(address);
     setItems(saved);
-    saved.forEach((c) => {
-      fetch(`/api/voucher/campaign/${c.id}`, { cache: "no-store" })
+    const fetchView = (id: string) =>
+      fetch(`/api/voucher/campaign/${id}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
-        .then((v) => setViews((prev) => ({ ...prev, [c.id]: v })))
+        .then((v) => setViews((prev) => ({ ...prev, [id]: v })))
         .catch(() => undefined);
-    });
+    saved.forEach((c) => fetchView(c.id));
+    // Also list every campaign this wallet created onchain, so refunds work from any device.
+    fetch(`/api/voucher/campaign/by-creator?address=${address}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { ids: [] }))
+      .then((d: { ids?: string[] }) => {
+        const known = new Set(saved.map((c) => c.id));
+        const extra = (d.ids ?? []).filter((id) => !known.has(id));
+        if (!extra.length) return;
+        setItems((prev) => [...prev, ...extra.map((id) => ({ id, createdAt: 0, asset: "", slots: 0 }))]);
+        extra.forEach(fetchView);
+      })
+      .catch(() => undefined);
   }, [address]);
 
   useEffect(load, [load]);
@@ -1098,7 +1084,7 @@ function MyCampaigns({
         <p className="section-eyebrow">Your shared links</p>
         {empty && (
           <p className="text-sm text-[var(--ink-muted)]">
-            Nothing here yet. Links created in this browser appear here (secrets never leave your device).
+            Nothing here yet. Every campaign this wallet funds shows up here on any device. Claim links can only be copied on the device that created them, because the secret never leaves it.
           </p>
         )}
         {msg && <p className="text-sm text-[var(--ink)]">{msg}</p>}
@@ -1110,25 +1096,31 @@ function MyCampaigns({
             <div key={c.id} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="font-black text-[var(--ink)]">
-                  #{c.id} · {v ? v.perClaimFormatted : c.asset} × {c.slots}
+                  #{c.id} · {v ? `${v.perClaimFormatted} × ${v.maxClaims}` : c.asset ? `${c.asset} × ${c.slots}` : "loading…"}
                 </p>
                 <span className="text-[11px] font-bold text-[var(--ink-muted)]">
                   {v ? `${v.claimedCount}/${v.maxClaims} claimed · ${v.status}` : "loading…"}
                 </span>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <button
-                  type="button"
-                  className="rounded-xl px-3 py-2 text-xs font-bold border border-[var(--border-subtle)] text-[var(--ink)] inline-flex items-center gap-1.5"
-                  onClick={async () => {
-                    if (await copy(buildCampaignLink(c.id, c.secret, APP_URL_WEB))) {
-                      setCopiedId(c.id);
-                      setTimeout(() => setCopiedId(""), 1500);
-                    }
-                  }}
-                >
-                  <Copy size={12} /> {copiedId === c.id ? "Copied" : "Copy link"}
-                </button>
+                {c.secret ? (
+                  <button
+                    type="button"
+                    className="rounded-xl px-3 py-2 text-xs font-bold border border-[var(--border-subtle)] text-[var(--ink)] inline-flex items-center gap-1.5"
+                    onClick={async () => {
+                      if (c.secret && (await copy(buildCampaignLink(c.id, c.secret, APP_URL_WEB)))) {
+                        setCopiedId(c.id);
+                        setTimeout(() => setCopiedId(""), 1500);
+                      }
+                    }}
+                  >
+                    <Copy size={12} /> {copiedId === c.id ? "Copied" : "Copy link"}
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-[var(--ink-dim)] self-center">
+                    Claim link is only on the device that created it — refunds still work here.
+                  </span>
+                )}
                 {canClose && (
                   <button
                     type="button"

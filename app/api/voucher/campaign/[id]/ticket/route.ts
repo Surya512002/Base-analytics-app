@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
-import { campaignStatus, CAMPAIGN_TICKET_TTL_SEC, isCampaignGated } from "@/lib/voucher/campaign";
+import { CAMPAIGN_TICKET_TTL_SEC, isCampaignGated } from "@/lib/voucher/campaign";
 import {
   campaignContractReady,
-  describeCampaignAsset,
+  countryFromRequest,
+  evaluateClaimEligibility,
   getClaimSigner,
-  hasClaimedOnchain,
   readCampaignOnchain,
   signClaimTicket,
 } from "@/lib/voucher/campaign-server";
-import {
-  complianceConfig,
-  evaluateRegionCompliance,
-  fetchRemoteKillSwitch,
-} from "@/src/config/compliance";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -70,43 +65,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (campaign.claimSigner.toLowerCase() !== getClaimSigner()!.address.toLowerCase()) {
       return NextResponse.json({ error: "This campaign was created for a different verifier." }, { status: 400 });
     }
-    if (claimer.toLowerCase() === campaign.creator.toLowerCase()) {
-      return NextResponse.json({ error: "The sender can't claim their own campaign." }, { status: 400 });
-    }
-
-    const status = campaignStatus(campaign);
-    if (status !== "open") {
-      return NextResponse.json({ error: `Campaign is ${status}.`, status }, { status: 409 });
-    }
-
-    const asset = await describeCampaignAsset(campaign.token);
-    if (asset.regulated) {
-      if (await fetchRemoteKillSwitch()) {
-        return NextResponse.json(
-          { error: "Tokenized stock features are temporarily paused via safety kill switch." },
-          { status: 403 }
-        );
-      }
-      if (!complianceConfig.features["stocks.vouchers"]) {
-        return NextResponse.json({ error: "Tokenized stock vouchers are currently disabled." }, { status: 403 });
-      }
-      const country =
-        req.headers.get("x-vercel-ip-country") ||
-        req.headers.get("cf-ipcountry") ||
-        req.headers.get("x-user-country") ||
-        null;
-      const region = evaluateRegionCompliance(country, "stocks.vouchers");
-      // Claiming is an *entry* into a stock position — exit-only regions may not enter.
-      if (region.isRestricted && !region.canEnter) {
-        return NextResponse.json(
-          { error: "Tokenized stocks aren't available in your region, so this claim can't be verified." },
-          { status: 403 }
-        );
-      }
-    }
-
-    if (await hasClaimedOnchain(campaignId, claimer as `0x${string}`)) {
-      return NextResponse.json({ error: "This wallet has already claimed.", status: "already-claimed" }, { status: 409 });
+    // Same checks the recipient saw up front (eligibility endpoint) — enforced here.
+    const elig = await evaluateClaimEligibility({
+      campaignId,
+      campaign,
+      claimer: claimer as `0x${string}`,
+      country: countryFromRequest(req),
+    });
+    if (!elig.eligible) {
+      const failed = elig.checks.find((c) => c.result === "fail");
+      const code = failed?.id === "campaign" || failed?.id === "already" ? 409 : failed?.id === "self" ? 400 : 403;
+      return NextResponse.json({ error: elig.reason, check: failed?.id, checks: elig.checks }, { status: code });
     }
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + CAMPAIGN_TICKET_TTL_SEC);
