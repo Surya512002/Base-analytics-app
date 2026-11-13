@@ -16,6 +16,11 @@ export default function GiftBox({
   autoOpen = false,
   onOpen,
   className = "",
+  open: openProp,
+  wiggle = false,
+  locked = false,
+  disabled = false,
+  ariaLabel = "Open the gift box",
 }: {
   size?: number;
   cardLabel?: string;
@@ -24,20 +29,44 @@ export default function GiftBox({
   autoOpen?: boolean;
   onOpen?: () => void;
   className?: string;
+  /**
+   * Controlled mode (claim screens): the box stays shut until this is true and never closes by
+   * itself. Clicking only calls onOpen, which should start the claim.
+   */
+  open?: boolean;
+  /** Shake while something is in progress (e.g. waiting for the wallet). */
+  wiggle?: boolean;
+  /** Show a padlock on the box (gift not open yet). */
+  locked?: boolean;
+  disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const reduce = useReducedMotion();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? Boolean(openProp) : openState;
   const [hover, setHover] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const closeTimer = useRef<number | null>(null);
 
   const pop = useCallback(() => {
+    if (controlled) {
+      onOpen?.();
+      return;
+    }
     setOpen(true);
     setBurstKey((k) => k + 1);
     onOpen?.();
     if (closeTimer.current) window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(() => setOpen(false), 2600);
-  }, [onOpen]);
+  }, [onOpen, controlled]);
+
+  // Controlled: burst once each time the box actually opens.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (controlled && prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setBurstKey((k) => k + 1);
+  }
 
   useEffect(() => {
     if (!autoOpen || reduce) return;
@@ -52,17 +81,21 @@ export default function GiftBox({
   const s = size / 260; // all measurements below are designed at 260px
   const px = (n: number) => n * s;
 
-  const lidY = open ? -px(78) : hover ? -px(10) : 0;
-  const lidRotate = open ? -14 : hover ? -3 : 0;
+  // A claimed box throws its lid right off; the hero box just lifts it.
+  const lidY = open ? -px(controlled ? 120 : 78) : hover && !disabled ? -px(10) : 0;
+  const lidRotate = open ? (controlled ? -28 : -14) : hover && !disabled ? -3 : 0;
 
   return (
     <button
       type="button"
-      aria-label="Open the gift box"
-      onClick={pop}
+      aria-label={ariaLabel}
+      aria-disabled={disabled || undefined}
+      onClick={() => {
+        if (!disabled && !wiggle && !(controlled && open)) pop();
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`relative isolate select-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] rounded-3xl ${className}`}
+      className={`relative isolate select-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] rounded-3xl ${disabled ? "cursor-not-allowed" : "cursor-pointer"} ${className}`}
       style={{ width: size, height: size }}
     >
       {/* soft glow */}
@@ -91,8 +124,10 @@ export default function GiftBox({
 
       <motion.div
         className="absolute inset-0"
-        animate={reduce ? undefined : { y: [0, -px(8), 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        animate={
+          reduce ? undefined : wiggle ? { rotate: [0, -4, 4, -3, 3, 0], y: 0 } : { y: [0, -px(8), 0], rotate: 0 }
+        }
+        transition={wiggle ? { duration: 0.6, repeat: Infinity, ease: "easeInOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* light beam + rising card when open */}
         <AnimatePresence>
@@ -164,6 +199,15 @@ export default function GiftBox({
           >
             Base
           </div>
+          {locked && (
+            <div
+              aria-hidden
+              className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#1E3A8A] shadow-lg"
+              style={{ width: px(46), height: px(46), fontSize: px(22) }}
+            >
+              🔒
+            </div>
+          )}
         </div>
 
         {/* lid + bow */}

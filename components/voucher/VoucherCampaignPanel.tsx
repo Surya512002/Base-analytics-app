@@ -23,6 +23,8 @@ import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import { encodeContractCall, type ContractCall } from "@/lib/utils/tx";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { resolveBasenameClient } from "@/lib/utils/resolve-basename";
+import GiftClaimStage, { shareGiftOnX } from "@/components/voucher/GiftClaimStage";
+import { buildSwapLink } from "@/lib/swap/swap-link";
 import { CAMPAIGN_ABI } from "@/lib/voucher/campaign-abi";
 import {
   CAMPAIGN_MAX_CLAIMS,
@@ -153,6 +155,7 @@ export default function VoucherCampaignPanel({
   section,
   onCreated,
   preset,
+  onCreateOwn,
 }: {
   app: WalletAppState;
   /** Render only one part (no inner tabs). Used where Create / Claim / My gifts host it. */
@@ -161,6 +164,8 @@ export default function VoucherCampaignPanel({
   onCreated?: () => void;
   /** Prefilled values from the gift wizard (create section only). */
   preset?: CampaignPreset;
+  /** After claiming: "Send a gift back" goes to the create flow. */
+  onCreateOwn?: () => void;
 }) {
   const address = app.wallet?.address as `0x${string}` | undefined;
   const connType = app.connType;
@@ -264,6 +269,7 @@ export default function VoucherCampaignPanel({
           initialId={claimId}
           initialSecret={claimSecret}
           disabled={notLive}
+          onCreateOwn={onCreateOwn}
         />
       )}
       {mode === "mine" && <MyCampaigns address={address} connType={connType} />}
@@ -806,12 +812,14 @@ function ClaimCampaign({
   initialId,
   initialSecret,
   disabled,
+  onCreateOwn,
 }: {
   address: `0x${string}` | undefined;
   connType: WalletAppState["connType"];
   initialId: string;
   initialSecret: string;
   disabled: boolean;
+  onCreateOwn?: () => void;
 }) {
   const [id, setId] = useState(initialId);
   const [secret, setSecret] = useState(initialSecret);
@@ -975,6 +983,47 @@ function ClaimCampaign({
 
         {view && (
           <div className="space-y-4">
+            {/* Tap the gift box to claim: wobbles while the wallet confirms, then opens */}
+            <GiftClaimStage
+              status={done ? "opened" : busy ? "claiming" : canClaim && address ? "ready" : "unavailable"}
+              statusText={
+                busy ||
+                (!address
+                  ? "Connect your wallet to open it"
+                  : claimedBefore
+                    ? "This wallet already claimed this gift"
+                    : view.status === "full"
+                      ? "Every gift in this link has been claimed"
+                      : view.status === "expired"
+                        ? "This gift has expired"
+                        : view.status !== "open" && view.status !== "locked"
+                          ? `This gift is ${view.status}`
+                          : eligibility && !eligibility.eligible
+                            ? "Not eligible: nothing will be sent"
+                            : undefined)
+              }
+              amountLabel={view.perClaimFormatted}
+              message={view.message}
+              sender={view.sender}
+              left={view.claimsRemaining}
+              total={view.maxClaims}
+              unlockAt={view.status === "locked" ? view.unlockAt : undefined}
+              expiresAt={view.expiresAt || undefined}
+              claimer={address}
+              txHash={done?.hash}
+              error={error}
+              onTap={() => void claim()}
+              onShare={() => shareGiftOnX(view.perClaimFormatted)}
+              onCreateOwn={onCreateOwn}
+              onSwap={
+                view.asset.recognised
+                  ? () => {
+                      window.location.href = buildSwapLink({ sell: assetAddress(view.asset.symbol) });
+                    }
+                  : undefined
+              }
+            />
+
             <SenderIdentity sender={view.sender} />
 
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-3">
@@ -1038,48 +1087,10 @@ function ClaimCampaign({
               />
             )}
 
-            {done ? (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/8 p-4 text-sm text-[var(--ink)]">
-                <p className="font-black flex items-center gap-2">
-                  <CheckCircle2 className="text-emerald-500" size={18} /> Claimed!
-                </p>
-                <p className="text-[var(--ink-muted)] mt-1">
-                  {view.perClaimFormatted} is on its way to your wallet.{" "}
-                  {done.hash.startsWith("0x") && done.hash.length === 66 && (
-                    <a className="font-bold text-[var(--brand)]" target="_blank" rel="noopener noreferrer" href={`https://basescan.org/tx/${done.hash}`}>
-                      View transaction
-                    </a>
-                  )}
-                </p>
-              </div>
-            ) : (
-              <button
-                type="button"
-                disabled={!canClaim || !!busy || !address}
-                onClick={claim}
-                className="w-full py-4 rounded-2xl font-black btn-primary text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              >
-                {busy ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> {busy}
-                  </>
-                ) : !address ? (
-                  "Connect wallet to claim"
-                ) : claimedBefore ? (
-                  "This wallet already claimed"
-                ) : view.status !== "open" ? (
-                  view.status === "full" ? "All slots taken" : `Campaign ${view.status}`
-                ) : eligibility && !eligibility.eligible ? (
-                  "Not eligible — nothing will be sent"
-                ) : (
-                  `Claim ${view.perClaimFormatted}`
-                )}
-              </button>
-            )}
           </div>
         )}
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && !view && <p className="text-sm text-red-400">{error}</p>}
       </div>
     </SectionCard>
   );

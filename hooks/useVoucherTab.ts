@@ -1017,6 +1017,10 @@ export function useVoucherTab(app: WalletAppState) {
           redeemed: cardStatus?.redeemed ?? false,
           contractAddress: targetContract,
           creator: batch.creator,
+          cardCount: batch.cardCount,
+          redeemedCount: data.cards ? data.cards.filter((c) => c.redeemed).length : undefined,
+          unlockAt: batch.unlockTimestamp ?? 0,
+          expiresAt: batch.expirationTimestamp ?? 0,
         };
         setRedeemPreview(preview);
         redeemPreviewRef.current = preview;

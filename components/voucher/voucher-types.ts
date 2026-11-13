@@ -49,6 +49,12 @@ export interface RedeemPreview {
   contractAddress?: string;
   /** Wallet that funded the gift, as recorded by the voucher contract. */
   creator?: string;
+  /** Cards in the batch and how many are already claimed ("gifts left"). */
+  cardCount?: number;
+  redeemedCount?: number;
+  /** Unix seconds; 0 = none. */
+  unlockAt?: number;
+  expiresAt?: number;
 }
 
 export interface RedeemSuccess {

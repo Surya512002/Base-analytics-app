@@ -123,6 +123,10 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             shared={shared}
             redeem={redeem}
             onNavigateTab={(tab) => setTab(tab as any)}
+            success={redeemSuccess}
+            claimer={app.wallet?.address}
+            onCreateOwn={() => setView("create")}
+            onSwapAsset={() => setTab("swap")}
           />
           <button
             type="button"
@@ -141,7 +145,9 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       )}
 
       {/* Claiming from a shared one-link gift (opened by the link, or from Claim) */}
-      {view === "campaign" && <VoucherCampaignPanel app={app} section="claim" />}
+      {view === "campaign" && (
+        <VoucherCampaignPanel app={app} section="claim" onCreateOwn={() => setView("create")} />
+      )}
 
       {view === "mine" && (
         <div className="space-y-8">
@@ -182,7 +188,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       {/* 6. Redeem Reveal with "View in wallet" and "Swap this" shortcuts */}
       <VoucherRedeemReveal
         key={redeemSuccess?.cardId ?? "closed"}
-        data={redeemSuccess}
+        // On the Claim tab the gift box opens in place, so the pop-up is only for other views.
+        data={view === "redeem" ? null : redeemSuccess}
         onViewWallet={() => {
           setTab("profile");
         }}

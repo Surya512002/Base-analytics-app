@@ -3,13 +3,14 @@
 import React, { useEffect, useCallback } from "react";
 import {
   RefreshCcw,
-  Loader2,
   Info,
   Gift,
 } from "lucide-react";
 import VoucherRedeemStatusBanner from "@/components/voucher/VoucherRedeemStatusBanner";
-import VoucherCardPreview from "@/components/voucher/VoucherCardPreview";
-import { PersonalGiftSender } from "@/components/voucher/SenderPreview";
+import { PersonalGiftSender, useSenderIdentity } from "@/components/voucher/SenderPreview";
+import GiftClaimStage, { shareGiftOnX } from "@/components/voucher/GiftClaimStage";
+import { formatVoucherAmount } from "@/lib/utils/voucher";
+import type { RedeemPreview, RedeemSuccess } from "@/components/voucher/voucher-types";
 import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 
@@ -19,12 +20,22 @@ interface VoucherRedeemPanelProps {
   shared: VoucherTab["shared"];
   redeem: VoucherTab["redeem"];
   onNavigateTab?: (tab: string) => void;
+  /** Set once a card is claimed: the box opens and shows it. */
+  success?: RedeemSuccess | null;
+  /** Wallet the gift lands in. */
+  claimer?: string;
+  onCreateOwn?: () => void;
+  onSwapAsset?: () => void;
 }
 
 export default function VoucherRedeemPanel({
   shared,
   redeem,
   onNavigateTab: _onNavigateTab,
+  success,
+  claimer,
+  onCreateOwn,
+  onSwapAsset,
 }: VoucherRedeemPanelProps) {
   const { contractReady } = shared;
   const {
@@ -35,7 +46,6 @@ export default function VoucherRedeemPanel({
     redeemError,
     redeemPreview,
     redeemPreviewLoading,
-    redeemPreviewRefreshing,
     redeemParsedForTx,
     redeemCall,
     directRedeeming,
@@ -161,96 +171,111 @@ export default function VoucherRedeemPanel({
           loading={redeemPreviewLoading && !redeemPreview}
         />
 
-        {/* Live Card Preview if card ID or preview is active */}
-        {(redeemParsedForTx || redeemPreview) && (
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 relative overflow-hidden">
-            {redeemPreviewLoading && !redeemPreview ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2 text-[var(--ink-muted)]">
-                <RefreshCcw size={20} className="animate-spin text-[var(--brand-text)]" />
-                <span className="text-xs font-bold">Verifying card on Base…</span>
-              </div>
-            ) : redeemPreview ? (
-              <div
-                className={`transition-opacity duration-200 ${
-                  redeemPreviewRefreshing ? "opacity-60" : "opacity-100"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
-                    Gift Card Contents
-                  </span>
-                  {redeemPreview.redeemed && (
-                    <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
-                      Already Redeemed
-                    </span>
-                  )}
-                </div>
-
-                <VoucherCardPreview
-                  cardId={redeemPreview.cardId}
-                  asset={redeemPreview.asset}
-                  amount={redeemPreview.amountPerCard}
-                  message={redeemPreview.message}
-                  redeemed={redeemPreview.redeemed}
-                  showSecret={false}
-                  showRedeemedNotice={redeemPreview.redeemed}
-                  compact
-                />
-
-                {/* Who sent it: verified Basename + the creator address recorded by the contract */}
-                {redeemPreview.creator && (
-                  <div className="mt-3">
-                    <PersonalGiftSender creator={redeemPreview.creator} />
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Single Primary Action Button */}
-        <div className="pt-2">
-          {contractReady && redeemCall.length > 0 && !redeemPreview?.redeemed && !redeemError ? (
-            <button
-              type="button"
-              disabled={directRedeeming}
-              onClick={() => void executeDirectRedeem()}
-              className="w-full py-4 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 active:scale-[0.98] transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-            >
-              {directRedeeming ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Claiming to Wallet…</span>
-                </>
-              ) : (
-                <span>Claim to Wallet</span>
-              )}
-            </button>
-          ) : (
+        {redeemPreview ? (
+          <PersonalClaim
+            preview={redeemPreview}
+            success={success && success.cardId === redeemPreview.cardId ? success : null}
+            claiming={directRedeeming}
+            canClaim={contractReady && redeemCall.length > 0 && !redeemPreview.redeemed && !redeemError}
+            reason={
+              redeemPreview.redeemed
+                ? "This gift card was already claimed"
+                : redeemError
+                  ? redeemError
+                  : !claimer
+                    ? "Connect your wallet to open it"
+                    : !redeemSecret.trim()
+                      ? "Enter the secret key to unlock it"
+                      : undefined
+            }
+            claimer={claimer}
+            onTap={() => void executeDirectRedeem()}
+            onCreateOwn={onCreateOwn}
+            onSwapAsset={onSwapAsset}
+          />
+        ) : (
+        <>
+          {/* No card found yet: checking state, then what to fill in */}
+          {redeemParsedForTx && redeemPreviewLoading && (
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] py-12 flex flex-col items-center justify-center gap-2 text-[var(--ink-muted)]">
+              <RefreshCcw size={20} className="animate-spin text-[var(--brand-text)]" />
+              <span className="text-xs font-bold">Finding your gift on Base…</span>
+            </div>
+          )}
+          <div className="pt-2">
             <button
               type="button"
               disabled
               className={`w-full py-4 rounded-xl font-black text-sm border transition ${
-                redeemPreview?.redeemed || redeemError
+                redeemError
                   ? "bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed"
                   : "bg-[var(--surface-2)] border-[var(--border-subtle)] text-[var(--ink-muted)] cursor-not-allowed"
               }`}
             >
-              {redeemPreviewLoading && !redeemPreview
+              {redeemPreviewLoading
                 ? "Checking card validity…"
-                : redeemPreview?.redeemed
-                  ? "Card Already Redeemed"
-                  : redeemError
-                    ? redeemError
-                    : !redeemCardId.trim()
-                      ? "Enter Card ID"
-                      : !redeemSecret.trim()
-                        ? "Enter Secret Key"
-                        : "Enter Valid Card ID & Secret"}
+                : redeemError
+                  ? redeemError
+                  : !redeemCardId.trim()
+                    ? "Enter Card ID"
+                    : !redeemSecret.trim()
+                      ? "Enter Secret Key"
+                      : "Enter Valid Card ID & Secret"}
             </button>
-          )}
-        </div>
+          </div>
+        </>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Personal gift card claim: the tap-to-open box with batch counts, sender and timing. */
+function PersonalClaim({
+  preview,
+  success,
+  claiming,
+  canClaim,
+  reason,
+  claimer,
+  onTap,
+  onCreateOwn,
+  onSwapAsset,
+}: {
+  preview: RedeemPreview;
+  success: RedeemSuccess | null;
+  claiming: boolean;
+  canClaim: boolean;
+  reason?: string;
+  claimer?: string;
+  onTap: () => void;
+  onCreateOwn?: () => void;
+  onSwapAsset?: () => void;
+}) {
+  const sender = useSenderIdentity(preview.creator);
+  const amountLabel = `${formatVoucherAmount(preview.asset, preview.amountPerCard)} ${preview.asset}`;
+  const total = preview.cardCount;
+  const left = total != null && preview.redeemedCount != null ? Math.max(0, total - preview.redeemedCount) : undefined;
+  return (
+    <div className="space-y-4">
+      <GiftClaimStage
+        status={success ? "opened" : claiming ? "claiming" : canClaim ? "ready" : "unavailable"}
+        statusText={claiming ? "Confirm in your wallet…" : reason}
+        amountLabel={amountLabel}
+        message={preview.message}
+        sender={sender}
+        left={left}
+        total={left != null ? total : undefined}
+        unlockAt={preview.unlockAt || undefined}
+        expiresAt={preview.expiresAt || undefined}
+        claimer={claimer}
+        txHash={success?.txHash}
+        onTap={onTap}
+        onShare={() => shareGiftOnX(amountLabel)}
+        onCreateOwn={onCreateOwn}
+        onSwap={onSwapAsset}
+      />
+      {preview.creator && <PersonalGiftSender creator={preview.creator} />}
     </div>
   );
 }
