@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 
 console.log('===============================================================');
 console.log('PART 1.3: PUBLIC-REPO SECRET SCAN OVER ALL HISTORY');
@@ -37,13 +36,14 @@ if (keeperPk) {
   if (keeperPk.startsWith('0x')) patterns.add(keeperPk.slice(2));
 }
 
-const tempFile = path.join(os.tmpdir(), `secret-scan-patterns-${Date.now()}.txt`);
-fs.writeFileSync(tempFile, Array.from(patterns).join('\n'), 'utf8');
+// Private-key patterns are passed to git through stdin (`-f -`) and never written to disk,
+// so no other local user can read them from a temp file while the scan runs.
+const patternInput = Array.from(patterns).join('\n') + '\n';
 
 let walletMatches = [];
 
-try {
-  const allCommits = execSync('git rev-list --all', { encoding: 'utf8' })
+{
+  const allCommits = execFileSync('git', ['rev-list', '--all'], { encoding: 'utf8' })
     .split('\n')
     .map(c => c.trim())
     .filter(Boolean);
@@ -52,8 +52,11 @@ try {
   const chunkSize = 50;
   for (let i = 0; i < allCommits.length; i += chunkSize) {
     const chunk = allCommits.slice(i, i + chunkSize);
+    if (!patterns.size) break;
     try {
-      const grepOutput = execSync(`git grep -F -f "${tempFile}" ${chunk.join(' ')}`, {
+      // Argument array (no shell) + patterns on stdin.
+      const grepOutput = execFileSync('git', ['grep', '-F', '-f', '-', ...chunk], {
+        input: patternInput,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'], // ignore stderr if grep returns non-zero
         maxBuffer: 10 * 1024 * 1024
@@ -71,10 +74,6 @@ try {
     } catch (e) {
       // git grep returns exit code 1 if no matches found in chunk
     }
-  }
-} finally {
-  if (fs.existsSync(tempFile)) {
-    fs.unlinkSync(tempFile);
   }
 }
 
