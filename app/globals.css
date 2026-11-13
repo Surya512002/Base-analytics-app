@@ -3533,3 +3533,11 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   .marquee { overflow-x: auto; }
   .marquee-track { animation: none; }
 }
+
+/* Theme switch reveal (components/ui/ThemeToggle.tsx): the JS animates the new snapshot's
+   clip-path, so turn off the browser's default cross-fade for the root transition. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
