@@ -42,7 +42,7 @@ import {
 } from "./voucher-constants";
 import type { CardTheme, VoucherAssetCategory } from "./voucher-types";
 import VoucherCardPreview from "./VoucherCardPreview";
-import { SplitVisual, StepHeader, StepSlide, WizardStepper } from "./WizardChrome";
+import { SplitVisual, StepHeader, StepSlide, TimingCard, WizardStepper } from "./WizardChrome";
 import VoucherAssetPickerModal from "./VoucherAssetPickerModal";
 import TokenLogo from "@/components/ui/TokenLogo";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
@@ -681,81 +681,13 @@ export default function VoucherCreateWizard({
                 />
               </div>
 
-              {/* Time-Lock & Expiration Controls (Optional) */}
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🔒</span>
-                    <span className="text-xs font-bold text-[var(--ink)]">
-                      Time-Lock &amp; Expiration (Optional)
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-text)] bg-[var(--brand-soft)] px-2 py-0.5 rounded-full">
-                    Base Contract v2
-                  </span>
-                </div>
-
-                {/* Unlock Schedule */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-[var(--ink-muted)]">
-                    Unlock Time (Cannot be redeemed before)
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { hours: 0, label: "Immediate" },
-                      { hours: 24, label: "24 Hours" },
-                      { hours: 72, label: "3 Days" },
-                      { hours: 168, label: "7 Days" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.hours}
-                        type="button"
-                        onClick={() => setUnlockHours(opt.hours)}
-                        className={`py-2 px-2 rounded-lg text-xs font-bold transition text-center cursor-pointer ${
-                          unlockHours === opt.hours
-                            ? "bg-[var(--brand)] text-white shadow-sm"
-                            : "bg-[var(--surface)] text-[var(--ink)] border border-[var(--border-subtle)] hover:border-[var(--brand-text)]"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Expiration & Reclaim Window */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-[var(--ink-muted)]">
-                      Expiration &amp; Reclaim Window
-                    </label>
-                    <span className="text-[10px] text-[var(--ink-muted)]">
-                      Creator can reclaim unredeemed tokens
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { days: 0, label: "Never" },
-                      { days: 14, label: "14 Days" },
-                      { days: 30, label: "30 Days" },
-                      { days: 90, label: "90 Days" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.days}
-                        type="button"
-                        onClick={() => setExpirationDays(opt.days)}
-                        className={`py-2 px-2 rounded-lg text-xs font-bold transition text-center cursor-pointer ${
-                          expirationDays === opt.days
-                            ? "bg-[var(--brand)] text-white shadow-sm"
-                            : "bg-[var(--surface)] text-[var(--ink)] border border-[var(--border-subtle)] hover:border-[var(--brand-text)]"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              {/* When can they open it? — optional unlock + expiry (same setters as before) */}
+              <TimingCard
+                unlockHours={unlockHours}
+                onUnlock={setUnlockHours}
+                expirationDays={expirationDays}
+                onExpire={setExpirationDays}
+              />
 
               {/* Navigation Buttons */}
               <div className="flex gap-3 pt-2">

@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { Check, type LucideIcon } from "lucide-react";
+import { Check, Clock, Hourglass, LockOpen, type LucideIcon } from "lucide-react";
+import ActivePill from "@/components/ui/motion/ActivePill";
 import type { ReactNode } from "react";
 
 export interface WizardStepDef {
@@ -165,5 +166,158 @@ export function SplitVisual({ count, perCard }: { count: number; perCard: string
         <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold truncate">{perCard} each</p>
       </div>
     </div>
+  );
+}
+
+const UNLOCK_OPTIONS = [
+  { value: 0, label: "Now" },
+  { value: 24, label: "1 day" },
+  { value: 72, label: "3 days" },
+  { value: 168, label: "7 days" },
+] as const;
+
+const EXPIRY_OPTIONS = [
+  { value: 0, label: "Never" },
+  { value: 14, label: "14 days" },
+  { value: 30, label: "30 days" },
+  { value: 90, label: "90 days" },
+] as const;
+
+function Segmented({
+  id,
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  id: string;
+  options: ReadonlyArray<{ value: number; label: string }>;
+  value: number;
+  onChange: (v: number) => void;
+  label: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="grid grid-cols-4 gap-1 rounded-xl bg-[var(--surface)] p-1 border border-[var(--border-subtle)]">
+      {options.map((o) => {
+        const selected = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(o.value)}
+            className={`relative isolate rounded-lg px-1 py-2 text-xs font-bold transition-colors ${
+              selected ? "text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            {selected && <ActivePill layoutId={`timing-${id}`} className="bg-[var(--brand)] shadow-sm" />}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const dayLabel = (hours: number) =>
+  hours % 24 === 0 ? `${hours / 24} day${hours === 24 ? "" : "s"}` : `${hours} hours`;
+
+/**
+ * "When can they open it?" — optional unlock delay and expiry, with a mini timeline and a
+ * plain-English summary. Only calls the provided setters; no logic of its own.
+ */
+export function TimingCard({
+  unlockHours,
+  onUnlock,
+  expirationDays,
+  onExpire,
+}: {
+  unlockHours: number;
+  onUnlock: (h: number) => void;
+  expirationDays: number;
+  onExpire: (d: number) => void;
+}) {
+  const reduce = useReducedMotion();
+  const opens = unlockHours > 0 ? `Opens in ${dayLabel(unlockHours)}` : "Can be claimed right away";
+  const expires =
+    expirationDays > 0
+      ? `unclaimed cards come back to you after ${expirationDays} days`
+      : "it never expires (you can't reclaim unclaimed cards)";
+
+  // Timeline positions (0..100%): opens point grows with unlock; expiry sits at the end when set.
+  const opensAt = unlockHours > 0 ? Math.min(55, 15 + unlockHours / 4) : 0;
+
+  return (
+    <section aria-label="When can they open it" className="rounded-2xl border border-[var(--border-subtle)] bg-gradient-to-br from-[var(--surface-2)] to-[var(--surface)] p-4 sm:p-5 space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-[var(--brand)] text-white shadow-md">
+          <Clock size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-black text-[var(--ink)]">When can they open it?</h3>
+            <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] font-bold text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+              Optional
+            </span>
+          </div>
+          <p className="text-xs text-[var(--ink-muted)]">Hold the gift until a date, and decide when unclaimed cards come back.</p>
+        </div>
+      </div>
+
+      {/* mini timeline */}
+      <div className="relative h-10 px-1" aria-hidden>
+        <div className="absolute left-1 right-1 top-3 h-1 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)]" />
+        <motion.div
+          className="absolute top-3 h-1 rounded-full bg-gradient-to-r from-emerald-400 to-[var(--brand)]"
+          initial={false}
+          animate={{ left: `${opensAt}%`, right: expirationDays > 0 ? "4%" : "1%" }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 160, damping: 22 }}
+        />
+        <div className="absolute left-0 top-0 flex flex-col items-start">
+          <span className="h-7 w-0.5 rounded bg-[var(--ink-dim)]" />
+          <span className="text-[10px] font-semibold text-[var(--ink-dim)]">Today</span>
+        </div>
+        <motion.div
+          className="absolute top-0 flex flex-col items-center -translate-x-1/2"
+          initial={false}
+          animate={{ left: `${Math.max(opensAt, 8)}%` }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 160, damping: 22 }}
+        >
+          <span className="mt-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+          <span className="text-[10px] font-bold text-emerald-500 whitespace-nowrap">
+            {unlockHours > 0 ? "Opens" : "Open"}
+          </span>
+        </motion.div>
+        <div className="absolute right-0 top-0 flex flex-col items-end">
+          <span
+            className={`mt-1.5 flex h-4 w-4 items-center justify-center rounded-full ${
+              expirationDays > 0 ? "bg-amber-500 ring-4 ring-amber-500/20" : "bg-[var(--surface)] border border-[var(--border-subtle)]"
+            }`}
+          />
+          <span className={`text-[10px] font-bold ${expirationDays > 0 ? "text-amber-500" : "text-[var(--ink-dim)]"}`}>
+            {expirationDays > 0 ? "Expires" : "No expiry"}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-[var(--ink-soft)]">
+          <LockOpen size={13} className="text-emerald-500" /> Claimable from
+        </p>
+        <Segmented id="unlock" label="Claimable from" options={UNLOCK_OPTIONS} value={unlockHours} onChange={onUnlock} />
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-[var(--ink-soft)]">
+          <Hourglass size={13} className="text-amber-500" /> Unclaimed cards come back after
+        </p>
+        <Segmented id="expiry" label="Unclaimed cards come back after" options={EXPIRY_OPTIONS} value={expirationDays} onChange={onExpire} />
+      </div>
+
+      <p className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+        <span className="font-bold text-[var(--ink)]">{opens}</span> · {expires}.
+      </p>
+    </section>
   );
 }
