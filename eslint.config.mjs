@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     "limit-orders/**",
     "*.js",
     "*.mjs",
+    // Plain-Node CommonJS helpers (e.g. test/campaign-evm). The shared rules block below
+    // references react-hooks rules, whose plugin is only registered for JS/TS source files.
+    "**/*.cjs",
   ]),
   {
     rules: {

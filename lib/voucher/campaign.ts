@@ -251,3 +251,14 @@ export function explainCampaignError(message: string): string {
   for (const [needle, text] of table) if (m.includes(needle)) return text;
   return "Transaction failed. Nothing was sent — please try again.";
 }
+
+/**
+ * v1 campaign contract (Base mainnet). Its claim() sent the link secret in plain calldata, so
+ * after the first claim anyone could reuse it (Vercel Security Review base-analytics-app/1).
+ * New campaigns must not be created on it; existing ones can still be viewed, claimed and refunded.
+ */
+export const RETIRED_CAMPAIGN_CONTRACTS = new Set(["0xf764dcce3ddd898fc6e7bc642ae61789e2541e0c"]);
+
+export function isRetiredCampaignContract(address: string | null | undefined): boolean {
+  return Boolean(address && RETIRED_CAMPAIGN_CONTRACTS.has(address.toLowerCase()));
+}

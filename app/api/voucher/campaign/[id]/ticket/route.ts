@@ -31,6 +31,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "Verified claims are not available on this deployment." }, { status: 503 });
   }
 
+  // Rate limits only ever charge identities the caller actually controls. The claimer address in
+  // the body is unauthenticated, so it is never used as a rate-limit key (anyone could otherwise
+  // burn a victim wallet's quota). Order: requester IP → input validation → campaign exists →
+  // per-campaign quota.
+  const ip = getClientIp(req);
+  const perIp = await checkRateLimitAsync(`campaign-ticket-ip:${ip}`, 12, 10 * 60_000);
+  if (!perIp.ok) return rateLimitResponse(perIp.retryAfterSec);
+
   let claimer: string | undefined;
   try {
     const body = (await req.json()) as { claimer?: string };
@@ -42,22 +50,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "claimer must be a valid address" }, { status: 400 });
   }
 
-  const ip = getClientIp(req);
-  // Per-IP: stops one machine cycling wallets. Per-campaign: caps ticket spam for a single campaign.
-  const [perIp, perWallet, perCampaign] = await Promise.all([
-    checkRateLimitAsync(`campaign-ticket-ip:${ip}`, 12, 10 * 60_000),
-    checkRateLimitAsync(`campaign-ticket-wallet:${claimer.toLowerCase()}`, 6, 10 * 60_000),
-    checkRateLimitAsync(`campaign-ticket-campaign:${id}`, 600, 60_000),
-  ]);
-  for (const rl of [perIp, perWallet, perCampaign]) {
-    if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
-  }
-
   try {
     const campaignId = BigInt(id);
     const onchain = await readCampaignOnchain(campaignId);
     if (!onchain) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     const { campaign } = onchain;
+
+    const perCampaign = await checkRateLimitAsync(`campaign-ticket-campaign:${id}`, 600, 60_000);
+    if (!perCampaign.ok) return rateLimitResponse(perCampaign.retryAfterSec);
 
     if (!isCampaignGated(campaign)) {
       return NextResponse.json({ error: "This campaign does not use claim tickets." }, { status: 400 });

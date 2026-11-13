@@ -33,6 +33,7 @@ import {
   explainCampaignError,
   generateCampaignSecret,
   hashCampaignSecret,
+  isRetiredCampaignContract,
   parseCampaignLink,
   validateCampaignInput,
 } from "@/lib/voucher/campaign";
@@ -163,6 +164,8 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
   }, []);
 
   const notLive = cfg !== null && !cfg.ready;
+  // Never create new campaigns on a retired (vulnerable) contract version.
+  const creationPaused = isRetiredCampaignContract(CAMPAIGN_CONTRACT);
 
   return (
     <div className="space-y-4">
@@ -200,12 +203,22 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
         </div>
       )}
 
+      {mode === "create" && creationPaused && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-[var(--ink)] flex gap-3">
+          <AlertTriangle size={18} className="shrink-0 text-amber-500 mt-0.5" />
+          <p>
+            Creating new one-link gifts is paused while we move to an upgraded, more secure contract. Existing gifts
+            can still be claimed, and senders can still refund unclaimed shares from “My links”.
+          </p>
+        </div>
+      )}
+
       {mode === "create" && (
         <CreateCampaign
           address={address}
           connType={connType}
           cfg={cfg}
-          disabled={notLive}
+          disabled={notLive || creationPaused}
           onCreated={() => setMode("mine")}
         />
       )}
