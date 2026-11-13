@@ -29,6 +29,7 @@ export default function ExploreHero({
     <div className="space-y-2">
       <PageHero
         as="h2"
+        size="sm"
         eyebrow="Explore Base"
         title={
           <>
@@ -53,7 +54,7 @@ export default function ExploreHero({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search by name, symbol ($AERO, $NVDAc) or 0x address…"
-            className="w-full rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] py-3.5 pl-11 pr-16 text-sm text-[var(--ink)] shadow-sm outline-none transition placeholder:text-[var(--ink-dim)] focus:border-[var(--brand)]"
+            className="w-full rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] py-3 pl-11 pr-16 text-sm text-[var(--ink)] shadow-sm outline-none transition placeholder:text-[var(--ink-dim)] focus:border-[var(--brand)]"
           />
           <button
             type="button"

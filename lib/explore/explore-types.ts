@@ -19,6 +19,9 @@ export interface UnifiedToken {
   volume24h: number;
   liquidityUsd: number;
   marketCapUsd: number;
+  /** 24h buy / sell transaction counts, when the market source reports them. */
+  buys24h?: number;
+  sells24h?: number;
   hasPool: boolean;
   pairAddress?: string;
   dexId?: string;

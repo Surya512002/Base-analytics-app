@@ -12,6 +12,7 @@ import {
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import ExploreHero from "./ExploreHero";
+import LiveMarketMap from "./LiveMarketMap";
 import DiscoveryHub from "./DiscoveryHub";
 import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
@@ -357,6 +358,11 @@ export default function ExploreHub({
           handleScrollToExplorer();
         }}
       />
+      </BlurFade>
+
+      {/* 2.5 LIVE MARKET: volume bubbles + latest buys/sells feed */}
+      <BlurFade>
+        <LiveMarketMap tokens={allUnifiedTokens} onOpenToken={(t) => setSelectedQuickViewToken(t)} />
       </BlurFade>
 
       {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}

@@ -58,6 +58,8 @@ function poolToMarket(address: string, pool: GeckoPool): TokenMarketSummary {
     liquidityUsd: liquidity,
     priceChange24h: change,
     txns24h: buys + sells,
+    buys24h: buys,
+    sells24h: sells,
     dexId: "geckoterminal",
     pairAddress: attrs.address ?? null,
     hasPool: (liquidity ?? 0) > 0,

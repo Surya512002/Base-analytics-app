@@ -19,6 +19,7 @@ import {
   isExtremeMove,
 } from "@/lib/explore/explore-config";
 import TokenCard from "./TokenCard";
+import { BuySellBar } from "./LiveMarketMap";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import TokenSparkline from "@/components/ui/TokenSparkline";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
@@ -81,6 +82,7 @@ export default function TokenTable({
               <th className="py-3 px-3.5 text-right">24h %</th>
               <th className="py-3 px-3.5 text-center">24h Trend</th>
               <th className="py-3 px-3.5 text-right">24h Volume</th>
+              <th className="py-3 px-3.5 w-28">Buys / Sells</th>
               <th className="py-3 px-3.5 text-right">Liquidity</th>
               <th className="py-3 px-3.5 text-right">Market Cap</th>
               <th className="py-3 px-3.5 text-center">Status</th>
@@ -210,6 +212,11 @@ export default function TokenTable({
                     title={`Exact 24h Volume: ${formatExactUsd(token.volume24h)}`}
                   >
                     {formatCompactUsd(token.volume24h)}
+                  </td>
+
+                  {/* 24h buys vs sells */}
+                  <td className="py-3 px-3.5">
+                    <BuySellBar buys={token.buys24h} sells={token.sells24h} showCounts />
                   </td>
 
                   {/* Liquidity */}

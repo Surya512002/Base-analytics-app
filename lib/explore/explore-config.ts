@@ -91,6 +91,8 @@ export function normalizeLaunchedToken(
     volume24h: market?.volume24h ?? 0,
     liquidityUsd: market?.liquidityUsd ?? 0,
     marketCapUsd: market?.fdv ?? 0,
+    buys24h: market?.buys24h ?? undefined,
+    sells24h: market?.sells24h ?? undefined,
     hasPool: Boolean(market?.hasPool && (market?.liquidityUsd ?? 0) > 0),
     pairAddress: market?.pairAddress ?? undefined,
     dexId: market?.dexId ?? undefined,

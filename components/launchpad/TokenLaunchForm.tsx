@@ -35,6 +35,7 @@ import {
 
 // Sub-components
 import LaunchHeader from "@/components/launchpad/LaunchHeader";
+import LaunchBoard, { LaunchStatsStrip } from "@/components/launchpad/LaunchBoard";
 import LaunchTypeSelector from "@/components/launchpad/LaunchTypeSelector";
 import QuoteAssetPicker from "@/components/launchpad/QuoteAssetPicker";
 import IdentityStep from "@/components/launchpad/IdentityStep";
@@ -515,8 +516,9 @@ export default function TokenLaunchForm({
 
   return (
     <div className="space-y-6">
-      {/* 1. Header with 3 Facts */}
+      {/* 1. Header with 3 Facts + live launch stats */}
       <LaunchHeader />
+      <LaunchStatsStrip />
 
       {/* 2. Main 5-Step Guided Flow & Sticky Summary Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
@@ -801,7 +803,10 @@ export default function TokenLaunchForm({
         </div>
       </div>
 
-      {/* 3. Collapsible "What you get" section at the bottom */}
+      {/* 3. Launch board: trending today / just launched (app launches) */}
+      <LaunchBoard />
+
+      {/* 4. Collapsible "What you get" section at the bottom */}
       <WhatYouGetSection />
     </div>
   );

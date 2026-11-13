@@ -35,6 +35,9 @@ export type TokenMarketSummary = {
   liquidityUsd: number | null;
   priceChange24h: number | null;
   txns24h: number | null;
+  /** 24h buy / sell counts (optional: not every source provides them). */
+  buys24h?: number | null;
+  sells24h?: number | null;
   dexId: string | null;
   pairAddress: string | null;
   hasPool: boolean;
@@ -81,6 +84,8 @@ export function summarizePair(address: string, pair: DexScreenerPair | null): To
     liquidityUsd: pair.liquidity?.usd ?? null,
     priceChange24h: pair.priceChange?.h24 ?? null,
     txns24h: buys + sells,
+    buys24h: buys,
+    sells24h: sells,
     dexId: pair.dexId ?? null,
     pairAddress: pair.pairAddress ?? null,
     hasPool: (pair.liquidity?.usd ?? 0) > 0,

@@ -71,7 +71,9 @@ const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "o1", label: "o1 Router" },
 ];
 
-const SLIPPAGE_PRESETS = ["0.1", "0.5", "1"];
+const SLIPPAGE_PRESETS = ["0.5", "1", "3"];
+/** One-tap pay amounts when paying with ETH. */
+const QUICK_ETH_AMOUNTS = ["0.01", "0.05", "0.1", "0.5"];
 const MAX_ETH_FRACTION = 0.97;
 const MAX_TOKEN_FRACTION = 0.995;
 const DOLLAR_PEGGED = new Set(["USDC", "USDT", "DAI", "USDBC", "USDbC", "USDS", "USDE"]);
@@ -900,6 +902,26 @@ export default function DexSwapCard({
               <ChevronDown size={14} className="text-[var(--ink-dim)]" />
             </button>
           </div>
+
+          {from.kind === "eth" && (
+            <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Quick amounts">
+              {QUICK_ETH_AMOUNTS.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={amount === v}
+                  onClick={() => setAmount(v)}
+                  className={`cursor-pointer rounded-full border px-2.5 py-1 font-mono text-[11px] font-bold transition ${
+                    amount === v
+                      ? "border-[var(--brand)] bg-[var(--brand)] text-white"
+                      : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--brand)]/50 hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {v} ETH
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="mt-1 flex items-center justify-between text-xs text-[var(--ink-dim)] font-mono">
             <span>{formatUsdSide(payUsd)}</span>

@@ -14,6 +14,7 @@ import DexSwapCard from "@/components/swap/DexSwapCard";
 import PageHero from "@/components/ui/PageHero";
 import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
+import SwapTokenActivity from "@/components/swap/SwapTokenActivity";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
@@ -341,6 +342,9 @@ export default function SwapTab({
             currentBuyToken={buyToken}
             onSelectBuyToken={handleBuyTokenChange}
           />
+
+          {/* Live buys / sells of the token being bought, with Share and Chart */}
+          <SwapTokenActivity token={buyToken} />
 
           {/* Holdings Drawer */}
           <HoldingsDrawer
