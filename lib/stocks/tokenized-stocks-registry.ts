@@ -1,4 +1,5 @@
 import { getAddress, type Address } from "viem";
+import { BASE_OFFICIAL_REGISTRY, BASE_OFFICIAL_REGISTRY_READ_AT } from "./base-official-registry";
 
 export type StockCategory =
   | "Tech"
@@ -56,7 +57,7 @@ export interface TokenizedStockEntry {
  * Verified against official Base Tokenized Stocks Registry (https://www.base.org/stocks#registry & https://api.coinbase.com/v1/tokenized-stocks).
  * Over 260+ live tokenized equities and ETFs backed 1:1 on Base.
  */
-export const TOKENIZED_STOCKS_REGISTRY: readonly TokenizedStockEntry[] = [
+const CURATED_STOCKS: readonly TokenizedStockEntry[] = [
   {
     symbol: "RKTc",
     name: "Rocket Companies, Inc.",
@@ -4035,22 +4036,67 @@ export const TOKENIZED_STOCKS_REGISTRY: readonly TokenizedStockEntry[] = [
 ];
 
 /**
+ * Every stock on Base's official registry that has no curated entry above, generated from
+ * lib/stocks/base-official-registry.ts (read from https://www.base.org/stocks#registry).
+ * All are Coinbase B20 tokenized stocks with 8 decimals (spot-checked onchain). They get a DEX
+ * price feed and the "Other" category until curated; logos are self-hosted in public/tokens
+ * (Coinbase icon from api.coinbase.com/v1/tokenized-stocks, or a ticker badge when it has none).
+ */
+const curatedAddresses = new Set(CURATED_STOCKS.map((e) => e.address.toLowerCase()));
+const OFFICIAL_ONLY_STOCKS: TokenizedStockEntry[] = BASE_OFFICIAL_REGISTRY.filter(
+  ([, , address]) => !curatedAddresses.has(address.toLowerCase())
+).map(([symbol, name, address]) => ({
+  symbol,
+  name,
+  underlyingTicker: symbol.replace(/c$/, ""),
+  address: getAddress(address),
+  decimals: 8,
+  category: "Other",
+  issuer: "Coinbase",
+  priceFeed: { type: "dex" },
+  logo: `/tokens/${address.toLowerCase()}.png`,
+  status: "active",
+  addedAt: `${BASE_OFFICIAL_REGISTRY_READ_AT}T00:00:00Z`,
+  restrictions: {
+    transferRestricted: false,
+    allowlistOnly: false,
+    pausable: false,
+    rebasingOrSplits: true,
+    legalNote: "Coinbase Tokenized Stock listed on Base's official registry (base.org/stocks).",
+  },
+}));
+
+/** Curated entries plus every remaining stock on Base's official registry. */
+export const TOKENIZED_STOCKS_REGISTRY: readonly TokenizedStockEntry[] = [...CURATED_STOCKS, ...OFFICIAL_ONLY_STOCKS];
+
+/**
  * Quick O(1) Lookup Maps by lowercased address and uppercase symbol
  */
 const STOCKS_BY_ADDRESS_MAP = new Map<string, TokenizedStockEntry>();
+/**
+ * Symbol lookup is done in three layers so look-alike tickers can't shadow each other
+ * (e.g. "BAc" = Boeing vs "BACc" = Bank of America, which collide case-insensitively):
+ *   1. exact, case-sensitive symbol ("BAc", "BACc")
+ *   2. plain ticker of a Coinbase "…c" token ("BA" → Boeing, "BAC" → Bank of America)
+ *   3. case-insensitive full symbol, first registered entry wins ("nvdac")
+ */
+const STOCKS_BY_EXACT_SYMBOL_MAP = new Map<string, TokenizedStockEntry>();
+const STOCKS_BY_TICKER_MAP = new Map<string, TokenizedStockEntry>();
 const STOCKS_BY_SYMBOL_MAP = new Map<string, TokenizedStockEntry>();
 
 for (const entry of TOKENIZED_STOCKS_REGISTRY) {
   STOCKS_BY_ADDRESS_MAP.set(entry.address.toLowerCase(), entry);
-  STOCKS_BY_SYMBOL_MAP.set(entry.symbol.toUpperCase(), entry);
-  // Also register ticker without 'c' or 'd' prefix for convenience
+  if (!STOCKS_BY_EXACT_SYMBOL_MAP.has(entry.symbol)) STOCKS_BY_EXACT_SYMBOL_MAP.set(entry.symbol, entry);
+  const upper = entry.symbol.toUpperCase();
+  if (!STOCKS_BY_SYMBOL_MAP.has(upper)) STOCKS_BY_SYMBOL_MAP.set(upper, entry);
   if (entry.symbol.endsWith("c") && entry.symbol.length > 1) {
-    STOCKS_BY_SYMBOL_MAP.set(entry.symbol.slice(0, -1).toUpperCase(), entry);
+    const ticker = entry.symbol.slice(0, -1).toUpperCase();
+    if (!STOCKS_BY_TICKER_MAP.has(ticker)) STOCKS_BY_TICKER_MAP.set(ticker, entry);
   }
-  // Register GOOGc and GOOG alias for Alphabet Inc (GOOGLc)
-  if (entry.symbol.toUpperCase() === "GOOGLC") {
-    STOCKS_BY_SYMBOL_MAP.set("GOOGC", entry);
-    STOCKS_BY_SYMBOL_MAP.set("GOOG", entry);
+  // GOOG / GOOGc aliases for Alphabet Inc (GOOGLc)
+  if (entry.symbol === "GOOGLc") {
+    STOCKS_BY_TICKER_MAP.set("GOOG", entry);
+    STOCKS_BY_EXACT_SYMBOL_MAP.set("GOOGc", entry);
   }
 }
 
@@ -4087,7 +4133,9 @@ export const VERIFIED_BASE_STOCKS_8 = VERIFIED_BASE_STOCKS;
  * Get all active verified tokenized stocks on Base mainnet.
  */
 export function getActiveTokenizedStocks(): TokenizedStockEntry[] {
-  return VERIFIED_BASE_STOCKS.map((sym) => STOCKS_BY_SYMBOL_MAP.get(sym.toUpperCase())!).filter(Boolean);
+  return VERIFIED_BASE_STOCKS.map((sym) => getTokenizedStockBySymbol(sym)).filter(
+    (e): e is TokenizedStockEntry => e !== null
+  );
 }
 
 /**
@@ -4103,7 +4151,13 @@ export function getTokenizedStockByAddress(address: string): TokenizedStockEntry
  */
 export function getTokenizedStockBySymbol(symbol: string): TokenizedStockEntry | null {
   if (!symbol) return null;
-  return STOCKS_BY_SYMBOL_MAP.get(symbol.trim().toUpperCase()) ?? null;
+  const s = symbol.trim();
+  return (
+    STOCKS_BY_EXACT_SYMBOL_MAP.get(s) ??
+    STOCKS_BY_TICKER_MAP.get(s.toUpperCase()) ??
+    STOCKS_BY_SYMBOL_MAP.get(s.toUpperCase()) ??
+    null
+  );
 }
 
 /**

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getAddress } from "viem";
 import {
+  getVerifiedTokenizedStocks,
   BASE_OFFICIAL_STOCKS,
   BASE_VERIFIED_STOCKS,
   isBaseVerifiedStockAddress,
@@ -33,5 +34,18 @@ describe("Base official (verified) stock list", () => {
     }
     expect(isBaseVerifiedStockAddress("0x0000000000000000000000000000000000000001")).toBe(false);
     expect(isBaseVerifiedStockAddress(undefined)).toBe(false);
+  });
+
+  it("every official stock is in the app registry, so Launch and voucher checks see all 348", () => {
+    const entries = getVerifiedTokenizedStocks();
+    expect(entries).toHaveLength(348);
+    for (const e of entries) {
+      expect(e.status).toBe("active");
+      expect(e.decimals).toBe(8);
+      expect(e.issuer).toBe("Coinbase");
+    }
+    for (const sym of ["CSCOc", "BAc", "USARc", "ZSc"]) {
+      expect(getTokenizedStockBySymbol(sym)?.symbol).toBe(sym);
+    }
   });
 });
