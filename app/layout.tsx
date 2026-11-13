@@ -28,16 +28,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Base Analytics — 260+ Tokenized Stocks, Beefy Yields & B20 Launchpad on Base",
+  title: "Base Analytics — Tokenized stocks on Base, made simple",
   description:
-    "The onchain equities & yield terminal on Base: trade 260+ tokenized US stocks ($NVDA, $AAPL, $TSLA), earn auto-compounding yields up to 1,070% APY on Beefy & Aerodrome, launch vanity B20 tokens with 50% creator fee share, and route multi-DEX swaps.",
+    "Explore, swap, borrow against and gift tokenized stocks on Base — non-custodial, with live onchain data. Not financial advice.",
   metadataBase: new URL(APP_URL),
   manifest: "/manifest.json",
   applicationName: "Base Analytics",
   openGraph: {
-    title: "Base Analytics — 260+ Tokenized Stocks, Beefy Yields & B20 Launchpad on Base",
+    title: "Base Analytics — Tokenized stocks on Base, made simple",
     description:
-      "Trade 260+ tokenized US equities ($NVDA, $AAPL, $TSLA) with 24/5 liquidity, auto-compounding stock vaults on Beefy & Aerodrome up to 1,070% APY, vanity B20 token launches with 50% creator fees, and smart multi-DEX swaps on Base.",
+      "Explore, swap, borrow against and gift tokenized stocks on Base. Non-custodial, with live onchain data.",
     url: APP_URL,
     siteName: "Base Analytics",
     images: [
@@ -45,16 +45,16 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: "Base Analytics — 260+ Tokenized Stocks, Beefy Yields & B20 Launchpad on Base",
+        alt: "Base Analytics — Tokenized stocks on Base, made simple",
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Base Analytics — 260+ Tokenized Stocks, Beefy Yields & B20 Launchpad on Base",
+    title: "Base Analytics — Tokenized stocks on Base, made simple",
     description:
-      "Trade 260+ tokenized stocks, earn up to 1,070% APY on Beefy & Aerodrome vaults, launch B20 vanity tokens with 50% creator fees, and route multi-DEX swaps on Base.",
+      "Explore, swap, borrow against and gift tokenized stocks on Base. Non-custodial, with live onchain data.",
     images: [OG_IMAGE],
   },
   other: {
@@ -73,13 +73,6 @@ export const metadata: Metadata = {
       },
     }),
     "fc:frame:image": OG_IMAGE,
-    "twitter:image": OG_IMAGE,
-    "twitter:image:alt": "Base Analytics — 260+ Tokenized Stocks, Beefy Yields & B20 Launchpad on Base",
-    "og:image": OG_IMAGE,
-    "og:image:secure_url": OG_IMAGE,
-    "og:image:width": "1200",
-    "og:image:height": "630",
-    "og:image:alt": "Base Analytics — 260+ Tokenized Stocks, Beefy Yields & B20 Launchpad on Base",
   },
 };
 

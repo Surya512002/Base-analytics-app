@@ -4,7 +4,7 @@ import { OG_VERSION } from "@/lib/og/brand-kit";
 
 describe("renderAppThumbnail", () => {
   it("renders thumbnail tree with correct version and structure", () => {
-    expect(OG_VERSION).toBe("20");
+    expect(OG_VERSION).toBe("21");
     const el = renderAppThumbnail();
     expect(el).toBeDefined();
     expect(el.props).toBeDefined();

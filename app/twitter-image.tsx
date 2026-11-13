@@ -1,17 +1,13 @@
-import { ImageResponse } from "next/og";
-import { fetchOgTrendingB20 } from "@/lib/marketing/og-trending";
-import { renderAppThumbnail } from "@/lib/marketing/render-thumbnail";
+import { homeShareImage } from "@/lib/og/home-share";
 import { OG_SIZE } from "@/lib/og/types";
 
 export const runtime = "nodejs";
-export const alt =
-  "Base Analytics — 260+ Tokenized Stocks, Beefy Yields, Multi-DEX Swaps & B20 Launchpad on Base.";
+export const alt = "Base Analytics — tokenized stocks on Base: explore, swap, borrow and gift.";
 export const size = OG_SIZE;
 export const contentType = "image/png";
-export const revalidate = 120;
+export const revalidate = 300;
 
-/** Twitter Card link preview for X. */
+/** X (Twitter) card preview — same design as the Open Graph image. */
 export default async function Image() {
-  const trending = await fetchOgTrendingB20(3);
-  return new ImageResponse(renderAppThumbnail(trending), { ...OG_SIZE });
+  return homeShareImage();
 }

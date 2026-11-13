@@ -1,4 +1,4 @@
-export const OG_VERSION = "20";
+export const OG_VERSION = "21";
 
 export const OG_COLORS = {
   bg: "#030712",
@@ -217,7 +217,7 @@ export function OgHeader({
                 lineHeight: 1.1,
               }}
             >
-              BASE TERMINAL
+              BASE ANALYTICS
             </span>
             <div
               style={{
