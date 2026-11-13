@@ -64,6 +64,8 @@ describe("Base Mainnet Fork, MOCKED stock tokens", function () {
     );
 
     for (const m of deployConfig.markets) {
+      // Coin markets (WETH, cbBTC) are real tokens; only the B20 stocks need the mock-bytecode swap.
+      if (m.kind === "coin") continue;
       const stockAddr = ethers.getAddress(m.stockToken);
       await network.provider.send("hardhat_setCode", [stockAddr, mockBytecode]);
 

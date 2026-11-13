@@ -18,6 +18,7 @@ export const SUPPORTED_LOCALES: LocaleMeta[] = [
 
 export interface TranslationDictionary {
   nav: {
+    trade: string;
     explore: string;
     swap: string;
     lend: string;

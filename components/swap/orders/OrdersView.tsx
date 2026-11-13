@@ -66,6 +66,15 @@ interface OrdersViewProps {
   onConnectWallet?: () => void;
   onSwitchChain?: () => void;
   onSwitchSepolia?: () => void;
+  /** Trade page: controlled stock (lowercase token address) so the chart and ticket stay in sync. */
+  selectedStockAddress?: string;
+  onStockChange?: (stockToken: string) => void;
+  /** Trade page: price clicked on the chart; applied to the trigger / take-profit / stop fields. */
+  priceFromChart?: { price: string; nonce: number } | null;
+  /** Trade page renders open orders next to the chart instead. */
+  hideOrdersPanel?: boolean;
+  /** Exchange-style Buy/Sell ticket instead of the five-tab order-type grid. */
+  cexLayout?: boolean;
 }
 
 export default function OrdersView({
@@ -73,6 +82,11 @@ export default function OrdersView({
   onConnectWallet,
   onSwitchChain,
   onSwitchSepolia,
+  selectedStockAddress,
+  onStockChange,
+  priceFromChart,
+  hideOrdersPanel = false,
+  cexLayout = false,
 }: OrdersViewProps) {
   const {
     config,
@@ -121,6 +135,30 @@ export default function OrdersView({
       setSlippagePercent(2.0); // Stop-loss, trailing, bracket
     }
   }, [orderType]);
+
+  // Controlled selection from the Trade page
+  useEffect(() => {
+    if (!selectedStockAddress) return;
+    const next = selectedStockAddress.toLowerCase();
+    if (config.markets.some((m) => m.stockToken.toLowerCase() === next)) {
+      setSelectedStock(next);
+    }
+  }, [selectedStockAddress, config.markets]);
+
+  // Price picked on the chart fills the field the current order type needs
+  useEffect(() => {
+    if (!priceFromChart) return;
+    if (orderType === "BRACKET") {
+      const cp = marketStates[selectedStock]?.currentPrice;
+      const px = parseFloat(priceFromChart.price);
+      const cur = cp ? Number(cp) / 1e8 : null;
+      if (cur !== null && Number.isFinite(px) && px < cur) setSlInput(priceFromChart.price);
+      else setTpInput(priceFromChart.price);
+    } else if (orderType !== "TRAILING_STOP") {
+      setTriggerInput(priceFromChart.price);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceFromChart?.nonce]);
 
   // Keep selectedStock valid across chain switches (e.g. Sepolia vs Mainnet)
   useEffect(() => {
@@ -330,6 +368,13 @@ export default function OrdersView({
     }
   };
 
+  const handlePercent = (pct: number) => {
+    if (userBalance <= 0n) return;
+    const part = (userBalance * BigInt(pct)) / 100n;
+    const capped = part > maxInCap ? maxInCap : part;
+    setAmountInput(formatUnits(capped, inDecimals));
+  };
+
   const handleApprove = async () => {
     if (!parsedAmountIn) return;
     const tokenAddr = isBuy ? config.quoteToken.address : (selectedStock as Address);
@@ -514,38 +559,87 @@ export default function OrdersView({
       {/* Main Order Form Card */}
       <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-card space-y-4">
         {/* Type selector */}
-        <div className="space-y-1.5">
-          <label className="block text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
-            Order Type
-          </label>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-            {(
-              [
-                ["LIMIT_BUY", "Limit buy"],
-                ["LIMIT_SELL", "Take-profit"],
-                ["STOP_LOSS", "Stop-loss"],
-                ["TRAILING_STOP", "Trailing stop"],
-                ["BRACKET", "Bracket"],
-              ] as const
-            ).map(([t, label]) => (
+        {cexLayout ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Order side">
               <button
-                key={t}
                 type="button"
-                onClick={() => setOrderType(t)}
-                className={`text-[11px] font-semibold py-2 px-2 min-h-[44px] flex items-center justify-center rounded-lg transition text-center truncate ${
-                  orderType === t
-                    ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
-                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-                }`}
+                aria-pressed={orderType === "LIMIT_BUY"}
+                onClick={() => setOrderType("LIMIT_BUY")}
+                className={`min-h-[40px] rounded-lg text-sm font-bold transition ${orderType === "LIMIT_BUY" ? "bg-green-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
               >
-                {label}
+                Buy
               </button>
-            ))}
+              <button
+                type="button"
+                aria-pressed={orderType !== "LIMIT_BUY"}
+                onClick={() => orderType === "LIMIT_BUY" && setOrderType("LIMIT_SELL")}
+                className={`min-h-[40px] rounded-lg text-sm font-bold transition ${orderType !== "LIMIT_BUY" ? "bg-red-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+              >
+                Sell
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1" role="group" aria-label="Order type">
+              {(
+                orderType === "LIMIT_BUY"
+                  ? ([["LIMIT_BUY", "Limit"]] as const)
+                  : ([
+                      ["LIMIT_SELL", "Limit / Take-profit"],
+                      ["STOP_LOSS", "Stop-loss"],
+                      ["TRAILING_STOP", "Trailing stop"],
+                      ["BRACKET", "OCO (TP + SL)"],
+                    ] as const)
+              ).map(([t, label]) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={orderType === t}
+                  onClick={() => setOrderType(t)}
+                  className={`min-h-[32px] rounded-lg px-3 text-xs font-semibold ${orderType === t ? "bg-[var(--ink)] text-[var(--surface)]" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-[var(--ink-muted)] min-h-[18px]">{TYPE_EXPLANATIONS[orderType]}</p>
           </div>
-          <p className="text-xs text-[var(--ink-muted)] min-h-[18px]">
-            {TYPE_EXPLANATIONS[orderType]}
-          </p>
-        </div>
+        ) : (
+          <>
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
+              Order Type
+            </label>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
+              {(
+                [
+                  ["LIMIT_BUY", "Limit buy"],
+                  ["LIMIT_SELL", "Take-profit"],
+                  ["STOP_LOSS", "Stop-loss"],
+                  ["TRAILING_STOP", "Trailing stop"],
+                  ["BRACKET", "Bracket"],
+                ] as const
+              ).map(([t, label]) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setOrderType(t)}
+                  className={`text-[11px] font-semibold py-2 px-2 min-h-[44px] flex items-center justify-center rounded-lg transition text-center truncate ${
+                    orderType === t
+                      ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-[var(--ink-muted)] min-h-[18px]">
+              {TYPE_EXPLANATIONS[orderType]}
+            </p>
+          </div>
+
+          </>
+        )}
 
         {/* Stock Selector & Live Price */}
         <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between gap-3">
@@ -554,14 +648,17 @@ export default function OrdersView({
               htmlFor="stock-select"
               className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mb-0.5"
             >
-              Stock Asset
+              {cexLayout ? "Market" : "Stock Asset"}
             </label>
             <div className="relative">
               <select
                 id="stock-select"
-                aria-label="Stock Asset"
+                aria-label={cexLayout ? "Market" : "Stock Asset"}
                 value={selectedStock}
-                onChange={(e) => setSelectedStock(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStock(e.target.value);
+                  onStockChange?.(e.target.value);
+                }}
                 className="w-full bg-transparent text-sm font-bold text-[var(--ink)] focus:outline-hidden cursor-pointer appearance-none pr-6"
               >
                 {config.markets.map((m) => (
@@ -604,6 +701,17 @@ export default function OrdersView({
               <span>
                 Balance: {formatUnits(userBalance, inDecimals)} {inSymbol}
               </span>
+              {[25, 50, 75].map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => handlePercent(pct)}
+                  aria-label={`Use ${pct}% of balance`}
+                  className="text-[10px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] px-1 py-0.5 rounded-sm bg-[var(--surface-2)]"
+                >
+                  {pct}%
+                </button>
+              ))}
               <button
                 type="button"
                 onClick={handleMaxAmount}
@@ -1004,7 +1112,7 @@ export default function OrdersView({
       )}
 
       {/* "My orders" Panel */}
-      <MyOrdersPanel
+      {!hideOrdersPanel && <MyOrdersPanel
         openOrders={openOrders}
         historyOrders={historyOrders}
         markets={marketStates}
@@ -1014,7 +1122,7 @@ export default function OrdersView({
         onRefundExpired={refundExpired}
         onUpdateOrder={updateOrder}
         isSubmitting={txSubmitting}
-      />
+      />}
     </div>
   );
 }

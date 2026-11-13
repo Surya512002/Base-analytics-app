@@ -39,6 +39,8 @@ export function hrefForAppTab(
   opts?: SwapLinkParams & { token?: string | null }
 ): string {
   switch (tab) {
+    case "trade":
+      return "/trade";
     case "launchpad":
       return "/explore";
     case "swap":

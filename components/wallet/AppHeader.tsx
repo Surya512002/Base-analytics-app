@@ -36,6 +36,7 @@ interface AppHeaderProps {
 }
 
 const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
+  { tab: "trade", label: "Trade", guestOk: true },
   { tab: "launchpad", label: "Explore", guestOk: true },
   { tab: "swap", label: "Swap", guestOk: true },
   { tab: "lend", label: "Lend & Stake", guestOk: true },
@@ -73,6 +74,8 @@ export default function AppHeader({
 
   const getNavLabel = (navTab: AppTab, fallback: string) => {
     switch (navTab) {
+      case "trade":
+        return t.nav.trade;
       case "launchpad":
         return t.nav.explore;
       case "swap":

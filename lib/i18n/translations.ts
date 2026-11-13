@@ -3,6 +3,7 @@ import type { SupportedLocale, TranslationDictionary } from "./types";
 export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   en: {
     nav: {
+      trade: "Trade",
       explore: "Explore",
       swap: "Swap",
       lend: "Lend & Stake",
@@ -32,6 +33,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   hi: {
     nav: {
+      trade: "Trade",
       explore: "खोजें",
       swap: "स्वैप",
       lend: "ऋण और स्टेक",
@@ -61,6 +63,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   ta: {
     nav: {
+      trade: "Trade",
       explore: "ஆராய்க",
       swap: "மாற்று",
       lend: "கடன் & ஸ்டேக்",
@@ -90,6 +93,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   es: {
     nav: {
+      trade: "Trade",
       explore: "Explorar",
       swap: "Intercambiar",
       lend: "Prestar y Stake",
@@ -119,6 +123,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   pt: {
     nav: {
+      trade: "Trade",
       explore: "Explorar",
       swap: "Trocar",
       lend: "Emprestar e Stake",
@@ -148,6 +153,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   id: {
     nav: {
+      trade: "Trade",
       explore: "Jelajahi",
       swap: "Tukar",
       lend: "Pinjam & Stake",

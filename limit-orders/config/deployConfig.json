@@ -14,7 +14,8 @@
       "maxStockIn": "100000000",
       "maxQuoteIn": "100000000",
       "maxDeviationBps": 300,
-      "maxDeviationReason": "0.3% pool with tight measured spreads of ~34-54 bps provides a 240 bps safety cushion against MEV"
+      "maxDeviationReason": "0.3% pool with tight measured spreads of ~34-54 bps provides a 240 bps safety cushion against MEV",
+      "kind": "stock"
     },
     {
       "symbol": "AAPLc",
@@ -26,7 +27,8 @@
       "maxStockIn": "50000000",
       "maxQuoteIn": "100000000",
       "maxDeviationBps": 300,
-      "maxDeviationReason": "Highest liquidity 0.3% pool with minimal ~28-35 bps slippage allows strict 300 bps oracle protection"
+      "maxDeviationReason": "Highest liquidity 0.3% pool with minimal ~28-35 bps slippage allows strict 300 bps oracle protection",
+      "kind": "stock"
     },
     {
       "symbol": "MSFTc",
@@ -38,7 +40,8 @@
       "maxStockIn": "25000000",
       "maxQuoteIn": "100000000",
       "maxDeviationBps": 350,
-      "maxDeviationReason": "1.0% pool base fee plus spread causes ~170 bps deviation on $100; 350 bps prevents false reverts during volatile hours"
+      "maxDeviationReason": "1.0% pool base fee plus spread causes ~170 bps deviation on $100; 350 bps prevents false reverts during volatile hours",
+      "kind": "stock"
     },
     {
       "symbol": "GOOGLc",
@@ -50,7 +53,34 @@
       "maxStockIn": "50000000",
       "maxQuoteIn": "100000000",
       "maxDeviationBps": 300,
-      "maxDeviationReason": "0.3% pool with measured deviation of ~93 bps comfortably executes under a 300 bps oracle bound"
+      "maxDeviationReason": "0.3% pool with measured deviation of ~93 bps comfortably executes under a 300 bps oracle bound",
+      "kind": "stock"
+    },
+    {
+      "symbol": "WETH",
+      "kind": "coin",
+      "stockToken": "0x4200000000000000000000000000000000000006",
+      "feed": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
+      "poolFee": 3000,
+      "maxStaleness": 3600,
+      "maxStalenessReason": "Chainlink ETH/USD updates at least every 20 min; 1h tolerates a missed round and blocks fills if the feed halts",
+      "maxStockIn": "50000000000000000",
+      "maxQuoteIn": "100000000",
+      "maxDeviationBps": 200,
+      "maxDeviationReason": "Uniswap V3 0.3% WETH/USDC pool (~$127M liquidity) fills within ~30 bps; 200 bps keeps a wide MEV cushion without false reverts"
+    },
+    {
+      "symbol": "cbBTC",
+      "kind": "coin",
+      "stockToken": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "feed": "0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D",
+      "poolFee": 500,
+      "maxStaleness": 3600,
+      "maxStalenessReason": "Chainlink cbBTC/USD feed observed 17 min old in normal operation; 1h tolerates a missed round and blocks fills if the feed halts",
+      "maxStockIn": "140000",
+      "maxQuoteIn": "100000000",
+      "maxDeviationBps": 200,
+      "maxDeviationReason": "Uniswap V3 0.05% cbBTC/USDC pool (~$7.7M liquidity); 200 bps oracle bound"
     }
   ]
 }

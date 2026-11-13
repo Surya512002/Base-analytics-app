@@ -2,6 +2,7 @@ import type { AnalyzeWalletResult } from "@/lib/types/wallet";
 import { resolveTabFromUrl } from "@/lib/utils/app-url";
 
 export type AppTab =
+  | "trade"
   | "launchpad"
   | "swap"
   | "lend"
@@ -10,6 +11,7 @@ export type AppTab =
 
 export function resolveInitialTab(): AppTab {
   if (typeof window !== "undefined") {
+    if (window.location.pathname.startsWith("/trade")) return "trade";
     if (window.location.pathname.startsWith("/swap")) return "swap";
     if (window.location.pathname.startsWith("/lend") || window.location.pathname.startsWith("/earn")) return "lend";
     if (window.location.pathname.startsWith("/explore")) return "launchpad";

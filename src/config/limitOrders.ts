@@ -24,6 +24,8 @@ export interface StockMarketConfig {
   maxDeviationBps?: number;
   logo?: string;
   category?: string;
+  /** "stock" = Coinbase tokenized equity, "coin" = crypto asset (WETH, cbBTC). Defaults to stock. */
+  kind?: "stock" | "coin";
 }
 
 export interface QuoteTokenConfig {
@@ -66,6 +68,12 @@ export const DEFAULT_KEEPER_FEE_BPS = 10; // 0.10%
  * safely halting execution over weekend market closures.
  */
 export const EQUITY_MAX_STALENESS_SECONDS = 90000;
+
+/**
+ * 3,600s (1 hour) maxStaleness for crypto feeds: Chainlink ETH/USD and cbBTC/USD update at least every ~20 minutes
+ * (observed 10-17 min old on mainnet). One hour tolerates a missed round and still halts fills if the feed stops.
+ */
+export const CRYPTO_MAX_STALENESS_SECONDS = 3600;
 
 /** Verified markets on Base Mainnet (Chain ID 8453) with active single-hop Uniswap V3 USDC pools */
 export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
@@ -129,6 +137,40 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/0e80e31df40f7c42b49a3c7f6d23c6351625d73f235aeb69006ddee9221702b0.png",
+  },
+  // ---- Crypto coins (same contract, Chainlink 24/7 feeds). Verified on-chain against Base mainnet. ----
+  {
+    symbol: "WETH",
+    name: "Wrapped Ether",
+    kind: "coin",
+    stockToken: getAddress("0x4200000000000000000000000000000000000006"),
+    decimals: 18,
+    // Chainlink ETH / USD (8 decimals)
+    feed: getAddress("0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"),
+    // Uniswap V3 WETH/USDC 0.3% pool 0x6c561B446416E1A00E8E93E221854d6eA4171372 (~$127M liquidity)
+    poolFee: 3000,
+    maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
+    maxDeviationBps: 200,
+    maxStockIn: 50_000_000_000_000_000n, // 0.05 WETH (~$96 cap)
+    maxQuoteIn: 100_000_000n, // 100 USDC
+    category: "Crypto",
+    logo: "https://assets.coingecko.com/coins/images/2518/small/weth.png",
+  },
+  {
+    symbol: "cbBTC",
+    name: "Coinbase Wrapped BTC",
+    kind: "coin",
+    stockToken: getAddress("0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf"),
+    decimals: 8,
+    // Chainlink cbBTC / USD (8 decimals)
+    feed: getAddress("0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D"),
+    // Uniswap V3 cbBTC/USDC 0.05% pool 0xfBB6Eed8e7aa03B138556eeDaF5D271A5E1e43ef (~$7.7M liquidity)
+    poolFee: 500,
+    maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
+    maxDeviationBps: 200,
+    maxStockIn: 140_000n, // 0.0014 cbBTC (~$96 cap)
+    maxQuoteIn: 100_000_000n, // 100 USDC
+    category: "Crypto",
   },
 ];
 

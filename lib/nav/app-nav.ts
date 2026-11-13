@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  CandlestickChart,
   Coins,
   Gift,
   Rocket,
@@ -17,6 +18,12 @@ export type AppNavItem = {
 
 /** Single source of truth — desktop sidebar + mobile bottom nav */
 export const APP_NAV: AppNavItem[] = [
+  {
+    id: "trade",
+    label: "Trade",
+    icon: CandlestickChart,
+    hint: "Charts, limit & stop orders",
+  },
   {
     id: "launchpad",
     label: "Explore",

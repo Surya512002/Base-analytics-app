@@ -20,6 +20,10 @@ import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-re
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 
+const TradeTab = dynamic(
+  () => import("@/components/trade/TradeTab"),
+  { loading: () => <TabSkeleton /> }
+);
 const SwapTab = dynamic(
   () => import("@/components/swap/SwapTab"),
   { loading: () => <TabSkeleton /> }
@@ -113,7 +117,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
       next: AppTab,
       opts?: { token?: string | null; buy?: string | null; sell?: string | null; amount?: string | number | null }
     ) => {
-      if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
+      if (guest && next !== "launchpad" && next !== "trade" && next !== "swap" && next !== "lend") {
         openConnect();
         return;
       }
@@ -202,6 +206,9 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         )}
 
         <div className="tab-content-enter w-full min-w-0">
+          {activeTab === "trade" && (
+            <TradeTab app={app} guestMode={guest} onRequestConnect={openConnect} />
+          )}
           {activeTab === "launchpad" && (
             <LaunchpadTab
               app={app}

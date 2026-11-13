@@ -70,12 +70,13 @@ describe("Problem 1: Tab Visibility & Chain Configuration", () => {
     expect(config.quoteToken.symbol).toBe("mUSDC");
   });
 
-  it("returns Mainnet config on chain 8453 with exactly 4 verified stock markets", () => {
+  it("returns Mainnet config on chain 8453 with 4 verified stock markets and 2 verified coin markets", () => {
     const config = getLimitOrdersConfig(8453);
     // Verified that on Base Mainnet, no order book is deployed yet
     expect(config.orderBook.toLowerCase()).toBe("0x0000000000000000000000000000000000000000");
-    expect(config.markets.length).toBe(4);
-    expect(config.markets.map((m) => m.symbol)).toEqual(["NVDAc", "AAPLc", "MSFTc", "GOOGLc"]);
+    expect(config.markets.length).toBe(6);
+    expect(config.markets.map((m) => m.symbol)).toEqual(["NVDAc", "AAPLc", "MSFTc", "GOOGLc", "WETH", "cbBTC"]);
+    expect(config.markets.filter((m) => m.kind === "coin").map((m) => m.symbol)).toEqual(["WETH", "cbBTC"]);
     expect(config.quoteToken.symbol).toBe("USDC");
   });
 
