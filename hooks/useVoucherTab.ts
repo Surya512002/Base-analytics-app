@@ -977,6 +977,7 @@ export function useVoucherTab(app: WalletAppState) {
 
         const data = (await res.json()) as {
           batch?: {
+            creator?: string;
             asset: VoucherAsset;
             amountPerCard: string;
             message: string;
@@ -1015,6 +1016,7 @@ export function useVoucherTab(app: WalletAppState) {
           message: batch.message ?? "",
           redeemed: cardStatus?.redeemed ?? false,
           contractAddress: targetContract,
+          creator: batch.creator,
         };
         setRedeemPreview(preview);
         redeemPreviewRef.current = preview;

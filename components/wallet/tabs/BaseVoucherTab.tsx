@@ -5,10 +5,9 @@ import VoucherCampaignPanel from "@/components/voucher/VoucherCampaignPanel";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
 import { AnimatePresence, motion } from "motion/react";
 import { Link2, Wallet } from "lucide-react";
-import GiftKindPicker, { type GiftKind } from "@/components/voucher/GiftKindPicker";
 import VoucherGiftHero from "@/components/voucher/VoucherGiftHero";
 import VoucherSegmentTabs from "@/components/voucher/VoucherSegmentTabs";
-import VoucherCreateWizard from "@/components/voucher/VoucherCreateWizard";
+import VoucherCreateWizard, { type ShareMode } from "@/components/voucher/VoucherCreateWizard";
 import VoucherRedeemPanel from "@/components/voucher/panels/VoucherRedeemPanel";
 import VoucherMyCards from "@/components/voucher/VoucherMyCards";
 import VoucherHowItWorks from "@/components/voucher/VoucherHowItWorks";
@@ -23,8 +22,8 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const { shared, create, redeem, mine, modals } = useVoucherTab(app);
   const { view, setView } = shared;
-  // Create hosts both flows: a personal gift (wizard) or one shared link for many people.
-  const [giftKind, setGiftKind] = useState<GiftKind>("personal");
+  // One create wizard for both: a link per person, or one link the first N people claim from.
+  const [giftKind, setGiftKind] = useState<ShareMode>("personal");
   const {
     cardsReadyGate,
     setCardsReadyGate,
@@ -104,30 +103,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
       {view === "create" && (
-        <div className="space-y-4">
-          <GiftKindPicker value={giftKind} onChange={setGiftKind} />
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={giftKind}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {giftKind === "personal" ? (
-                <VoucherCreateWizard
-                  shared={shared}
-                  create={create}
-                  userBalances={userBalances}
-                  ethBalance={app.walletCore?.balance ?? "0.00"}
-                  usdcBalance={app.walletCore?.usdcBalance ?? "0.00"}
-                />
-              ) : (
-                <VoucherCampaignPanel app={app} section="create" onCreated={() => setView("mine")} />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        <VoucherCreateWizard
+          shared={shared}
+          create={create}
+          userBalances={userBalances}
+          ethBalance={app.walletCore?.balance ?? "0.00"}
+          usdcBalance={app.walletCore?.usdcBalance ?? "0.00"}
+          shareMode={giftKind}
+          onShareModeChange={setGiftKind}
+          renderOneLinkCreate={(preset) => (
+            <VoucherCampaignPanel app={app} section="create" preset={preset} onCreated={() => setView("mine")} />
+          )}
+        />
       )}
 
       {view === "redeem" && (

@@ -81,6 +81,19 @@ function saveCampaign(addr: string, entry: SavedCampaign) {
 // ───────────────────────────── helpers ─────────────────────────────
 
 export type CampaignSection = "claim" | "create" | "mine";
+
+/**
+ * Values already chosen in the gift wizard. When given, the create form skips asking for
+ * them again and shows only what's left: sender name, verification, terms and the button.
+ */
+export type CampaignPreset = {
+  asset: string;
+  total: string;
+  slots: number;
+  message: string;
+  unlockSecs: number;
+  expirySecs: number;
+};
 type Mode = CampaignSection;
 const UNLOCK_OPTIONS = [
   { id: "now", label: "Right away", secs: 0 },
@@ -139,12 +152,15 @@ export default function VoucherCampaignPanel({
   app,
   section,
   onCreated,
+  preset,
 }: {
   app: WalletAppState;
   /** Render only one part (no inner tabs). Used where Create / Claim / My gifts host it. */
   section?: CampaignSection;
   /** Called after a link is created (defaults to switching to "My links"). */
   onCreated?: () => void;
+  /** Prefilled values from the gift wizard (create section only). */
+  preset?: CampaignPreset;
 }) {
   const address = app.wallet?.address as `0x${string}` | undefined;
   const connType = app.connType;
@@ -238,6 +254,7 @@ export default function VoucherCampaignPanel({
           cfg={cfg}
           disabled={notLive || creationPaused}
           onCreated={onCreated ?? (() => setMode("mine"))}
+          preset={preset}
         />
       )}
       {mode === "claim" && (
@@ -262,21 +279,28 @@ function CreateCampaign({
   cfg,
   disabled,
   onCreated,
+  preset,
 }: {
   address: `0x${string}` | undefined;
   connType: WalletAppState["connType"];
   cfg: { claimSigner: string | null; verifiedClaimsAvailable: boolean } | null;
   disabled: boolean;
   onCreated: () => void;
+  preset?: CampaignPreset;
 }) {
-  const [asset, setAsset] = useState("USDC");
-  const [total, setTotal] = useState("50");
-  const [slots, setSlots] = useState(50);
-  const [message, setMessage] = useState("");
+  const [assetState, setAsset] = useState("USDC");
+  const [totalState, setTotal] = useState("50");
+  const [slotsState, setSlots] = useState(50);
+  const [messageState, setMessage] = useState("");
+  // With a wizard preset, its values win (they're edited in the wizard, not here).
+  const asset = preset?.asset ?? assetState;
+  const total = preset?.total ?? totalState;
+  const slots = preset?.slots ?? slotsState;
+  const message = preset?.message ?? messageState;
   const [label, setLabel] = useState("");
   const [expiry, setExpiry] = useState<(typeof EXPIRY_OPTIONS)[number]["id"]>("7d");
   const [unlock, setUnlock] = useState<(typeof UNLOCK_OPTIONS)[number]["id"]>("now");
-  const [committed, setCommitted] = useState(false);
+  const [committedPref, setCommitted] = useState(false);
   const [gatedPref, setGatedPref] = useState(true);
   const [ackSafety, setAckSafety] = useState(false);
   const [busy, setBusy] = useState("");
@@ -308,8 +332,11 @@ function CreateCampaign({
       ? formatUnits(totalUnits / BigInt(slots), decimalsFor(asset))
       : null;
 
-  const expirySecs = EXPIRY_OPTIONS.find((o) => o.id === expiry)?.secs ?? 0;
-  const unlockSecs = UNLOCK_OPTIONS.find((o) => o.id === unlock)?.secs ?? 0;
+  const expirySecs = preset ? preset.expirySecs : EXPIRY_OPTIONS.find((o) => o.id === expiry)?.secs ?? 0;
+  const unlockSecs = preset ? preset.unlockSecs : UNLOCK_OPTIONS.find((o) => o.id === unlock)?.secs ?? 0;
+  const noExpiry = expirySecs === 0;
+  // "Committed" only means something with an expiry date.
+  const committed = committedPref && !noExpiry;
   const validation = validateCampaignInput(
     {
     asset,
@@ -494,6 +521,8 @@ function CreateCampaign({
   return (
     <SectionCard>
       <div className="space-y-5">
+        {!preset && (
+        <>
         <div className="page-hero">
           <p className="section-eyebrow">One link · first {slots || "N"} claim</p>
           <p className="readable-body mt-2">
@@ -580,6 +609,9 @@ function CreateCampaign({
           </p>
         </div>
 
+        </>
+        )}
+
         {/* Sender identity */}
         <div>
           <label className="section-eyebrow mb-2 block" htmlFor="camp-label">Sender name (shown to claimers)</label>
@@ -600,6 +632,7 @@ function CreateCampaign({
           </p>
         </div>
 
+        {!preset && (
         <div>
           <label className="section-eyebrow mb-2 block" htmlFor="camp-msg">Message (optional)</label>
           <textarea
@@ -611,9 +644,12 @@ function CreateCampaign({
             className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--ink)]"
           />
         </div>
+        )}
 
         {/* Safety options */}
         <div className="space-y-3">
+          {!preset && (
+          <>
           <div>
             <label className="section-eyebrow mb-2 block">Opens (unlock date)</label>
             <div className="flex gap-1.5 flex-wrap">
@@ -656,12 +692,14 @@ function CreateCampaign({
               ))}
             </div>
           </div>
+          </>
+          )}
 
-          <label className={`flex items-start gap-3 text-sm ${expiry === "none" ? "opacity-50" : ""}`}>
+          <label className={`flex items-start gap-3 text-sm ${noExpiry ? "opacity-50" : ""}`}>
             <input
               type="checkbox"
               className="mt-1"
-              disabled={expiry === "none"}
+              disabled={noExpiry}
               checked={committed}
               onChange={(e) => setCommitted(e.target.checked)}
             />

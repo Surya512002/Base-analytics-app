@@ -45,6 +45,9 @@ import VoucherCardPreview from "./VoucherCardPreview";
 import { SplitVisual, StepHeader, StepSlide, TimingCard, WizardStepper } from "./WizardChrome";
 import VoucherAssetPickerModal from "./VoucherAssetPickerModal";
 import TokenLogo from "@/components/ui/TokenLogo";
+import { SenderPreviewCard } from "./SenderPreview";
+import type { CampaignPreset } from "./VoucherCampaignPanel";
+import { Link2, Users } from "lucide-react";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 
 type VoucherTab = ReturnType<typeof useVoucherTab>;
@@ -55,7 +58,17 @@ interface VoucherCreateWizardProps {
   userBalances?: Record<string, number>;
   ethBalance?: string;
   usdcBalance?: string;
+  /** How the gift is shared: a link per person, or one link the first N people claim from. */
+  shareMode?: ShareMode;
+  onShareModeChange?: (mode: ShareMode) => void;
+  /** Renders the one-link create step with the values chosen in this wizard. */
+  renderOneLinkCreate?: (preset: CampaignPreset) => React.ReactNode;
 }
+
+export type ShareMode = "personal" | "link";
+/** One-link gifts can be claimed by up to this many people. */
+const MAX_LINK_CLAIMS = 500;
+const LINK_COUNT_PRESETS = [10, 50, 100, 500] as const;
 
 export default function VoucherCreateWizard({
   shared,
@@ -63,6 +76,9 @@ export default function VoucherCreateWizard({
   userBalances = {},
   ethBalance = "0.00",
   usdcBalance = "0.00",
+  shareMode = "personal",
+  onShareModeChange,
+  renderOneLinkCreate,
 }: VoucherCreateWizardProps) {
   const { contractReady, address } = shared;
   const {
@@ -123,6 +139,13 @@ export default function VoucherCreateWizard({
 
   const isVault = isVaultShareAsset(asset);
   const isStock = isStockAsset(asset);
+  // Vault shares only work as personal gift cards; one-link gifts take USDC, ETH or verified stocks.
+  const linkAvailable = !isVault && Boolean(renderOneLinkCreate);
+  const isLink = shareMode === "link" && linkAvailable;
+  const maxCount = isLink ? MAX_LINK_CLAIMS : MAX_VOUCHER_CARDS;
+  const countNum = Math.max(1, parseInt(cardCountInput, 10) || 1);
+  const totalNum = parseFloat(totalAmount);
+  const linkAmountValid = Number.isFinite(totalNum) && totalNum > 0 && countNum >= 1 && countNum <= MAX_LINK_CLAIMS;
   const stockInfo = !isVault && isStock ? getBaseStockBySymbol(asset) : null;
   const vaultInfo = isVault ? getVaultShareBySymbol(asset) : null;
 
@@ -177,7 +200,7 @@ export default function VoucherCreateWizard({
 
   // Card count adjustments
   const incrementCardCount = () => {
-    const next = Math.min(MAX_VOUCHER_CARDS, Math.max(1, (parseInt(cardCountInput, 10) || 1) + 1));
+    const next = Math.min(maxCount, Math.max(1, (parseInt(cardCountInput, 10) || 1) + 1));
     setCardCountInput(String(next));
   };
 
@@ -232,7 +255,7 @@ export default function VoucherCreateWizard({
       <WizardStepper
         steps={[
           { step: 1, title: "Asset", hint: asset, icon: Coins },
-          { step: 2, title: "Amount", hint: `${cardCountInput || 1} ${cardCountInput === "1" ? "card" : "cards"}`, icon: Layers },
+          { step: 2, title: "Amount", hint: isLink ? `${countNum} via 1 link` : `${cardCountInput || 1} ${cardCountInput === "1" ? "card" : "cards"}`, icon: Layers },
           { step: 3, title: "Personalize", hint: CARD_THEME_OPTIONS.find((t) => t.id === cardTheme)?.label ?? cardTheme, icon: Palette },
           { step: 4, title: "Send", hint: "Review & create", icon: Send },
         ]}
@@ -429,7 +452,58 @@ export default function VoucherCreateWizard({
           {/* STEP 2: AMOUNT & SPLIT */}
           {currentStep === 2 && (
             <div className="space-y-5">
-              <StepHeader icon={Layers} step={2} total={4} title="How much, for how many?" description="Set the total and split it into equal gift cards (1 to 50)." />
+              <StepHeader
+                icon={Layers}
+                step={2}
+                total={4}
+                title="How much, for how many?"
+                description={
+                  isLink
+                    ? `One link; the first people to open it each claim an equal share (up to ${MAX_LINK_CLAIMS}).`
+                    : `Split the total into equal gift cards, each with its own link (1 to ${MAX_VOUCHER_CARDS}).`
+                }
+              />
+
+              {/* How will you share it? Both use the same amount, message and timing. */}
+              <div role="radiogroup" aria-label="How will you share it?" className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { id: "personal" as const, icon: Users, title: "A link each", note: "Every person gets their own claim link." },
+                    { id: "link" as const, icon: Link2, title: "One link for all", note: "Share once; first come, first served." },
+                  ]
+                ).map((o) => {
+                  const selected = (o.id === "link") === isLink;
+                  const disabled = o.id === "link" && !linkAvailable;
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      disabled={disabled}
+                      onClick={() => {
+                        onShareModeChange?.(o.id);
+                        // keep the count inside the new mode's limit
+                        if (o.id === "personal" && countNum > MAX_VOUCHER_CARDS) setCardCountInput(String(MAX_VOUCHER_CARDS));
+                      }}
+                      className={`relative isolate flex items-start gap-2.5 rounded-2xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        selected
+                          ? "border-[var(--brand)] text-white"
+                          : "cursor-pointer border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] hover:border-[var(--brand)]/50"
+                      }`}
+                    >
+                      {selected && <ActivePill layoutId="gift-share-mode" className="bg-[var(--brand)]" />}
+                      <o.icon size={18} className={`mt-0.5 shrink-0 ${selected ? "text-white" : "text-[var(--brand-text)]"}`} />
+                      <span>
+                        <span className="block text-sm font-black">{o.title}</span>
+                        <span className={`block text-[11px] leading-snug ${selected ? "text-white/85" : "text-[var(--ink-muted)]"}`}>
+                          {disabled ? "Not available for vault shares." : o.note}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
               {/* Total Amount Input with USD value below */}
               <div>
@@ -470,7 +544,7 @@ export default function VoucherCreateWizard({
               {/* Number of Cards Stepper (1-50) */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)] mb-1.5 block">
-                  Number of Cards (Max {MAX_VOUCHER_CARDS})
+                  {isLink ? `People who can claim (max ${MAX_LINK_CLAIMS})` : `Number of cards (max ${MAX_VOUCHER_CARDS})`}
                 </label>
                 <div className="flex items-center gap-3">
                   <button
@@ -495,8 +569,8 @@ export default function VoucherCreateWizard({
                       const n = parseInt(cardCountInput, 10);
                       if (!cardCountInput || !Number.isFinite(n) || n < 1) {
                         setCardCountInput("1");
-                      } else if (n > MAX_VOUCHER_CARDS) {
-                        setCardCountInput(String(MAX_VOUCHER_CARDS));
+                      } else if (n > maxCount) {
+                        setCardCountInput(String(maxCount));
                       }
                     }}
                     className="flex-1 text-center text-xl font-black rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] py-3 text-[var(--ink)] outline-none focus:border-[var(--brand-text)] transition tabular-nums"
@@ -512,7 +586,7 @@ export default function VoucherCreateWizard({
 
                 {/* Quick Presets: 1 / 5 / 10 / 25 */}
                 <div className="flex gap-2 mt-2.5">
-                  {QUICK_CARD_PRESETS.map((p) => (
+                  {(isLink ? LINK_COUNT_PRESETS : QUICK_CARD_PRESETS).map((p) => (
                     <button
                       key={p}
                       type="button"
@@ -524,20 +598,23 @@ export default function VoucherCreateWizard({
                       }`}
                     >
                       {cardCountInput === String(p) && <ActivePill layoutId="gift-count-pill" className="bg-[var(--brand)]" />}
-                      {p} {p === 1 ? "card" : "cards"}
+                      {p} {isLink ? "people" : p === 1 ? "card" : "cards"}
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Compact Split Breakdown Line */}
-              {split && split.valid && !isStep2OverBalance && perCardWei && (
+              {isLink && linkAmountValid && (
+                <SplitVisual count={countNum} perCard={`${+(totalNum / countNum).toPrecision(6)} ${asset}`} />
+              )}
+              {!isLink && split && split.valid && !isStep2OverBalance && perCardWei && (
                 <SplitVisual
                   count={Math.max(1, parseInt(cardCountInput, 10) || 1)}
                   perCard={formatVoucherAmount(asset, perCardWei)}
                 />
               )}
-              {split && (
+              {!isLink && split && (
                 <div
                   className={`rounded-xl p-3 border text-xs flex items-center justify-between ${
                     split.valid && !isStep2OverBalance
@@ -582,7 +659,7 @@ export default function VoucherCreateWizard({
                 </button>
                 <button
                   type="button"
-                  disabled={!perCardWei || isStep2OverBalance}
+                  disabled={isLink ? !linkAmountValid || isStep2OverBalance : !perCardWei || isStep2OverBalance}
                   onClick={() => setCurrentStep(3)}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition cursor-pointer shadow-sm"
                 >
@@ -681,6 +758,9 @@ export default function VoucherCreateWizard({
                 />
               </div>
 
+              {/* Who it's from: same verified identity for personal and one-link gifts */}
+              <SenderPreviewCard address={address} />
+
               {/* When can they open it? — optional unlock + expiry (same setters as before) */}
               <TimingCard
                 unlockHours={unlockHours}
@@ -711,8 +791,31 @@ export default function VoucherCreateWizard({
             </div>
           )}
 
+          {/* STEP 4 (one link): sender name, verification, terms and funding */}
+          {currentStep === 4 && isLink && renderOneLinkCreate && (
+            <div className="space-y-5">
+              <StepHeader icon={Send} step={4} total={4} title="Ready to share" description="Check who it's from and the terms, then fund your one link on Base." />
+              {renderOneLinkCreate({
+                asset,
+                total: totalAmount.trim(),
+                slots: countNum,
+                message,
+                unlockSecs: unlockHours * 3600,
+                expirySecs: expirationDays * 86_400,
+              })}
+              <button
+                type="button"
+                onClick={() => setCurrentStep(3)}
+                className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 transition cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+                <span>Back</span>
+              </button>
+            </div>
+          )}
+
           {/* STEP 4: REVIEW & CREATE */}
-          {currentStep === 4 && (
+          {currentStep === 4 && !isLink && (
             <div className="space-y-5">
               <StepHeader icon={Send} step={4} total={4} title="Ready to send" description="Check the details, then fund your gift cards on Base." />
 

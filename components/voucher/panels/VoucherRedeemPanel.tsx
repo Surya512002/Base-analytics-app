@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import VoucherRedeemStatusBanner from "@/components/voucher/VoucherRedeemStatusBanner";
 import VoucherCardPreview from "@/components/voucher/VoucherCardPreview";
+import { PersonalGiftSender } from "@/components/voucher/SenderPreview";
 import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
 
@@ -195,6 +196,13 @@ export default function VoucherRedeemPanel({
                   showRedeemedNotice={redeemPreview.redeemed}
                   compact
                 />
+
+                {/* Who sent it: verified Basename + the creator address recorded by the contract */}
+                {redeemPreview.creator && (
+                  <div className="mt-3">
+                    <PersonalGiftSender creator={redeemPreview.creator} />
+                  </div>
+                )}
               </div>
             ) : null}
           </div>

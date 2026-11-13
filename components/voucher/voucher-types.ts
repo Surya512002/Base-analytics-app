@@ -47,6 +47,8 @@ export interface RedeemPreview {
   message: string;
   redeemed: boolean;
   contractAddress?: string;
+  /** Wallet that funded the gift, as recorded by the voucher contract. */
+  creator?: string;
 }
 
 export interface RedeemSuccess {
