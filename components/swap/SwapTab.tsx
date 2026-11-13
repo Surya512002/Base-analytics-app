@@ -15,6 +15,8 @@ import PageHero from "@/components/ui/PageHero";
 import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
 import SwapTokenActivity from "@/components/swap/SwapTokenActivity";
+import SwapPortfolio from "@/components/swap/SwapPortfolio";
+import SwapTokenInsight, { RecentSwapTokens } from "@/components/swap/SwapTokenInsight";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
@@ -133,6 +135,7 @@ export default function SwapTab({
     totalUsd,
     unpricedTokens,
     loading: holdingsLoading,
+    refresh: refreshHoldings,
   } = holdingsState;
 
   const showToastRef = useRef(app.showToast);
@@ -209,13 +212,6 @@ export default function SwapTab({
 
   return (
     <div className="w-full max-w-[480px] mx-auto space-y-3 pb-8">
-      <PageHero
-        size="md"
-        as="h2"
-        eyebrow="Swap on Base"
-        title={<>Trade any token — <span className="text-[var(--brand-text)]">best route, one tap.</span></>}
-        subtitle="Quotes from Base DEXs, a clear preview before you sign, and nothing held by us."
-      />
       {/* Top Navigation Bar: Market | Orders | Recurring (Orders & Recurring gated by feature flag) */}
       {isOrdersEnabled && (
         <div className="p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center shadow-xs">
@@ -343,8 +339,33 @@ export default function SwapTab({
             onSelectBuyToken={handleBuyTokenChange}
           />
 
+          {/* Tokens picked recently (this browser only) */}
+          <RecentSwapTokens current={buyToken} onSelect={handleBuyTokenChange} />
+
+          {/* What you're buying: price, liquidity, volume, buy/sell split and warnings */}
+          <SwapTokenInsight token={buyToken} />
+
           {/* Live buys / sells of the token being bought, with Share and Chart */}
           <SwapTokenActivity token={buyToken} />
+
+          {/* Your holdings: one tap to sell a token or buy more of it */}
+          <SwapPortfolio
+            tokens={allTokens}
+            totalUsd={totalUsd}
+            loading={holdingsLoading}
+            connected={Boolean(app.wallet?.address) && !guestMode}
+            onConnect={onRequestConnect}
+            onSell={(counter) => {
+              setFromPick(counter);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onBuy={(counter) => {
+              setSidebarPick(counter);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onOpenAll={() => setHoldingsDrawerOpen(true)}
+            onRefresh={() => void refreshHoldings()}
+          />
 
           {/* Holdings Drawer */}
           <HoldingsDrawer
@@ -378,6 +399,15 @@ export default function SwapTab({
           onSwitchSepolia={handleSwitchSepolia}
         />
       )}
+
+      {/* About Swap (moved under the swap section) */}
+      <PageHero
+        size="sm"
+        as="h2"
+        eyebrow="Swap on Base"
+        title={<>Trade any token — <span className="text-[var(--brand-text)]">best route, one tap.</span></>}
+        subtitle="Quotes from Base DEXs, a clear preview before you sign, and nothing held by us."
+      />
     </div>
   );
 }
