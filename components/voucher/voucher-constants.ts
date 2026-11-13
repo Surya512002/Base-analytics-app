@@ -154,7 +154,7 @@ export const POPULAR_GIFT_VAULTS = [
 
 export const VOUCHER_VIEW_TABS = [
   ["create", "Create"],
-  ["redeem", "Redeem"],
+  ["redeem", "Claim"],
   ["campaign", "One link"],
-  ["mine", "My Cards"],
+  ["mine", "My gifts"],
 ] as const;

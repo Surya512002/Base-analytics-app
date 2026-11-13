@@ -3541,3 +3541,20 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   animation: none;
   mix-blend-mode: normal;
 }
+
+/* Shiny text sweep (voucher hero accents) */
+@keyframes shiny-sweep {
+  0% { background-position: 100% 50%; }
+  100% { background-position: -100% 50%; }
+}
+.shiny-text {
+  background-image: linear-gradient(110deg, var(--brand-text) 35%, #ffffff 50%, var(--brand-text) 65%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shiny-sweep 3.2s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shiny-text { animation: none; color: var(--brand-text); background: none; }
+}

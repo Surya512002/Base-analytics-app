@@ -2,7 +2,8 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
-import { Gift, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import GiftBox from "@/components/ui/motion/GiftBox";
 import { EligibilityChecklist, OwnershipTerms, SenderIdentity } from "@/components/voucher/CampaignTrust";
 import AppLogo from "@/components/ui/AppLogo";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
@@ -44,9 +45,18 @@ function ClaimLanding({ id }: { id: string }) {
         </div>
 
         <div className="hero-card rounded-3xl p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <Gift size={22} className="text-[var(--ink-muted)]" />
-            <h1 className="text-2xl font-black">You&apos;ve been sent a gift</h1>
+          <div className="flex flex-col items-center gap-1 pt-2 text-center">
+            {/* Opens once the gift has loaded, revealing the real amount */}
+            <GiftBox
+              key={view ? "loaded" : "loading"}
+              size={200}
+              autoOpen={Boolean(view)}
+              cardLabel="GIFT"
+              cardValue={view ? view.perClaimFormatted : "On Base"}
+            />
+            <h1 className="text-2xl font-black">
+              You&apos;ve been sent <span className="shiny-text">a gift</span>
+            </h1>
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

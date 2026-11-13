@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import VoucherCampaignPanel from "@/components/voucher/VoucherCampaignPanel";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
-import VoucherHeader from "@/components/voucher/VoucherHeader";
+import { AnimatePresence, motion } from "motion/react";
+import VoucherGiftHero from "@/components/voucher/VoucherGiftHero";
 import VoucherSegmentTabs from "@/components/voucher/VoucherSegmentTabs";
 import VoucherCreateWizard from "@/components/voucher/VoucherCreateWizard";
 import VoucherRedeemPanel from "@/components/voucher/panels/VoucherRedeemPanel";
@@ -61,16 +62,33 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   }, []);
 
   const userBalances = useTokenHoldings(app.wallet?.address, voucherTokens);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* 1. Compact Header: Title "Gift on Base", 1-line description, 3 small stats */}
-      <VoucherHeader />
+      {/* 1. Hero: animated gift box + one headline + three clear actions */}
+      <VoucherGiftHero
+        view={view}
+        onNavigate={(v) => {
+          setView(v);
+          tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
 
-      {/* 2. Segmented Tabs directly under header: Create | Redeem | My Cards */}
-      <VoucherSegmentTabs view={view} onChange={setView} />
+      {/* 2. Segmented tabs: Create | Claim | One link | My gifts */}
+      <div ref={tabsRef} className="scroll-mt-20">
+        <VoucherSegmentTabs view={view} onChange={setView} />
+      </div>
 
-      {/* 3. Tab Contents */}
+      {/* 3. Tab contents — cross-fade between views (logic untouched) */}
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={view}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      >
       {view === "create" && (
         <VoucherCreateWizard
           shared={shared}
@@ -98,6 +116,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
           onCreateFirstGift={() => setView("create")}
         />
       )}
+      </motion.div>
+      </AnimatePresence>
 
       {/* 4. Collapsible "How it works" (3 steps + FAQ) placed at bottom */}
       <VoucherHowItWorks />

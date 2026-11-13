@@ -12,13 +12,14 @@ import {
   ShieldCheck,
   X,
   ExternalLink,
-  Gift,
   Mail,
   MessageCircle,
 } from "lucide-react";
 import type { StoredVoucherBatch, VoucherCard } from "@/lib/utils/voucher";
 import { formatVoucherAmount } from "@/lib/utils/voucher";
 import { generateQrMatrix, generateQrSvgPath } from "@/lib/utils/qr-code";
+import GiftBox from "@/components/ui/motion/GiftBox";
+import SparkleBurst from "@/components/ui/motion/SparkleBurst";
 
 interface VoucherShareSuccessModalProps {
   batch: StoredVoucherBatch | null;
@@ -186,11 +187,13 @@ export default function VoucherShareSuccessModal({
     >
       <div className="w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-[var(--border-subtle)] bg-emerald-500/10 shrink-0">
+        <div className="relative px-6 pt-6 pb-4 border-b border-[var(--border-subtle)] bg-emerald-500/10 shrink-0">
+          {/* Celebration: confetti burst + a gift box that pops open once */}
+          <SparkleBurst count={30} spread={220} />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                <Gift size={24} />
+              <div className="shrink-0 -my-3 -ml-2">
+                <GiftBox size={72} autoOpen cardValue="Ready" />
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">

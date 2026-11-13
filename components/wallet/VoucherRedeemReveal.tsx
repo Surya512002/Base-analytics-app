@@ -10,6 +10,7 @@ import { BaseNetworkBadge } from "@/components/wallet/VoucherGiftCard3D";
 import { basescanTxUrl } from "@/lib/utils/tx";
 import { FEATURES } from "@/lib/constants/features";
 import { buildGiftCapsuleShareUrls } from "@/lib/voucher/gift-capsule";
+import SparkleBurst from "@/components/ui/motion/SparkleBurst";
 
 export interface VoucherRedeemRevealData {
   cardId: string;
@@ -146,7 +147,9 @@ export default function VoucherRedeemReveal({
           </h2>
         </div>
 
-        <div className="voucher-flip-stage mx-auto">
+        <div className="voucher-flip-stage relative mx-auto">
+          {/* Celebration burst the moment the card opens */}
+          {phase === "reveal" && <SparkleBurst count={34} spread={210} />}
           <div className={`voucher-flip-card ${isOpen ? "voucher-flip-card-open" : ""}`}>
             <div className="voucher-flip-face voucher-flip-front">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_0%,rgba(255,77,122,0.35),transparent_55%)]" />
