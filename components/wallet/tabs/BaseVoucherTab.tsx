@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import VoucherCampaignPanel from "@/components/voucher/VoucherCampaignPanel";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
 import { AnimatePresence, motion } from "motion/react";
+import { Link2, Wallet } from "lucide-react";
+import GiftKindPicker, { type GiftKind } from "@/components/voucher/GiftKindPicker";
 import VoucherGiftHero from "@/components/voucher/VoucherGiftHero";
 import VoucherSegmentTabs from "@/components/voucher/VoucherSegmentTabs";
 import VoucherCreateWizard from "@/components/voucher/VoucherCreateWizard";
@@ -21,6 +23,8 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
   const { shared, create, redeem, mine, modals } = useVoucherTab(app);
   const { view, setView } = shared;
+  // Create hosts both flows: a personal gift (wizard) or one shared link for many people.
+  const [giftKind, setGiftKind] = useState<GiftKind>("personal");
   const {
     cardsReadyGate,
     setCardsReadyGate,
@@ -44,7 +48,11 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       search: window.location.search,
       hash: window.location.hash,
     });
-    if (parsed.campaignId || sp.get("view") === "campaign") setView("campaign");
+    if (parsed.campaignId) setView("campaign");
+    else if (sp.get("view") === "campaign") {
+      setGiftKind("link");
+      setView("create");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -70,12 +78,18 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
       <VoucherGiftHero
         view={view}
         onNavigate={(v) => {
-          setView(v);
+          if (v === "campaign") {
+            setGiftKind("link");
+            setView("create");
+          } else {
+            if (v === "create") setGiftKind("personal");
+            setView(v);
+          }
           tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }}
       />
 
-      {/* 2. Segmented tabs: Create | Claim | One link | My gifts */}
+      {/* 2. Segmented tabs: Create | Claim | My gifts (one-link gifts live inside each) */}
       <div ref={tabsRef} className="scroll-mt-20">
         <VoucherSegmentTabs view={view} onChange={setView} />
       </div>
@@ -90,31 +104,75 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
       {view === "create" && (
-        <VoucherCreateWizard
-          shared={shared}
-          create={create}
-          userBalances={userBalances}
-          ethBalance={app.walletCore?.balance ?? "0.00"}
-          usdcBalance={app.walletCore?.usdcBalance ?? "0.00"}
-        />
+        <div className="space-y-4">
+          <GiftKindPicker value={giftKind} onChange={setGiftKind} />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={giftKind}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {giftKind === "personal" ? (
+                <VoucherCreateWizard
+                  shared={shared}
+                  create={create}
+                  userBalances={userBalances}
+                  ethBalance={app.walletCore?.balance ?? "0.00"}
+                  usdcBalance={app.walletCore?.usdcBalance ?? "0.00"}
+                />
+              ) : (
+                <VoucherCampaignPanel app={app} section="create" onCreated={() => setView("mine")} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       )}
 
       {view === "redeem" && (
-        <VoucherRedeemPanel
-          shared={shared}
-          redeem={redeem}
-          onNavigateTab={(tab) => setTab(tab as any)}
-        />
+        <div className="space-y-4">
+          <VoucherRedeemPanel
+            shared={shared}
+            redeem={redeem}
+            onNavigateTab={(tab) => setTab(tab as any)}
+          />
+          <button
+            type="button"
+            onClick={() => setView("campaign")}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-4 text-left transition hover:border-[var(--brand)]"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand-text)]">
+              <Link2 size={18} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-[var(--ink)]">Got a one-link gift?</span>
+              <span className="block text-xs text-[var(--ink-muted)]">Open the shared link, or paste its number and key here.</span>
+            </span>
+          </button>
+        </div>
       )}
 
-      {view === "campaign" && <VoucherCampaignPanel app={app} />}
+      {/* Claiming from a shared one-link gift (opened by the link, or from Claim) */}
+      {view === "campaign" && <VoucherCampaignPanel app={app} section="claim" />}
 
       {view === "mine" && (
-        <VoucherMyCards
-          shared={shared}
-          mine={mine}
-          onCreateFirstGift={() => setView("create")}
-        />
+        <div className="space-y-8">
+          <VoucherMyCards
+            shared={shared}
+            mine={mine}
+            onCreateFirstGift={() => {
+              setGiftKind("personal");
+              setView("create");
+            }}
+          />
+          <section className="space-y-3">
+            <h3 className="flex items-center gap-2 text-base font-black text-[var(--ink)]">
+              <Wallet size={16} className="text-[var(--brand-text)]" /> Your one-link gifts
+            </h3>
+            <VoucherCampaignPanel app={app} section="mine" />
+          </section>
+        </div>
       )}
       </motion.div>
       </AnimatePresence>

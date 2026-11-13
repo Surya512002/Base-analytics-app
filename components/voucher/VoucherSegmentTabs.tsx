@@ -26,7 +26,8 @@ export default function VoucherSegmentTabs({
       className="flex gap-1 glass-panel p-1 rounded-2xl overflow-x-auto no-scrollbar"
     >
       {VOUCHER_VIEW_TABS.map(([id, label]) => {
-        const selected = view === id;
+        // Claiming a one-link gift lives under Claim.
+        const selected = view === id || (id === "redeem" && view === "campaign");
         return (
           <button
             key={id}

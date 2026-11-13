@@ -80,7 +80,8 @@ function saveCampaign(addr: string, entry: SavedCampaign) {
 
 // ───────────────────────────── helpers ─────────────────────────────
 
-type Mode = "claim" | "create" | "mine";
+export type CampaignSection = "claim" | "create" | "mine";
+type Mode = CampaignSection;
 const UNLOCK_OPTIONS = [
   { id: "now", label: "Right away", secs: 0 },
   { id: "1h", label: "In 1 hour", secs: 3_600 },
@@ -134,10 +135,21 @@ async function copy(text: string) {
 
 // ───────────────────────────── component ─────────────────────────────
 
-export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
+export default function VoucherCampaignPanel({
+  app,
+  section,
+  onCreated,
+}: {
+  app: WalletAppState;
+  /** Render only one part (no inner tabs). Used where Create / Claim / My gifts host it. */
+  section?: CampaignSection;
+  /** Called after a link is created (defaults to switching to "My links"). */
+  onCreated?: () => void;
+}) {
   const address = app.wallet?.address as `0x${string}` | undefined;
   const connType = app.connType;
-  const [mode, setMode] = useState<Mode>("create");
+  const [modeState, setMode] = useState<Mode>("create");
+  const mode: Mode = section ?? modeState;
   const [cfg, setCfg] = useState<{
     ready: boolean;
     claimSigner: string | null;
@@ -173,6 +185,7 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
 
   return (
     <div className="space-y-4">
+      {!section && (
       <div role="tablist" aria-label="Shared link actions" className="flex gap-1 glass-panel p-1 rounded-2xl">
         {(
           [
@@ -196,6 +209,7 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
           </button>
         ))}
       </div>
+      )}
 
       {notLive && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-[var(--ink)] flex gap-3">
@@ -212,7 +226,7 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
           <AlertTriangle size={18} className="shrink-0 text-amber-500 mt-0.5" />
           <p>
             Creating new one-link gifts is paused while we move to an upgraded, more secure contract. Existing gifts
-            can still be claimed, and senders can still refund unclaimed shares from “My links”.
+            can still be claimed, and senders can still refund unclaimed shares from “My gifts”.
           </p>
         </div>
       )}
@@ -223,7 +237,7 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
           connType={connType}
           cfg={cfg}
           disabled={notLive || creationPaused}
-          onCreated={() => setMode("mine")}
+          onCreated={onCreated ?? (() => setMode("mine"))}
         />
       )}
       {mode === "claim" && (
@@ -391,7 +405,7 @@ function CreateCampaign({
       }
       if (createdId === null) {
         throw new Error(
-          "Your deposit was sent but the campaign ID couldn't be read yet. Open “My links” in a minute — it will appear there."
+          "Your deposit was sent but the campaign ID couldn't be read yet. Open “My gifts” in a minute — it will appear there."
         );
       }
 
@@ -464,7 +478,7 @@ function CreateCampaign({
             </p>
             <p className="text-[var(--ink-muted)]">
               The secret in the link is created in your browser and is <strong>not stored on our servers</strong>. Anyone
-              with the link can claim until the slots run out. We keep a copy in this browser under “My links”; if you
+              with the link can claim until the slots run out. We keep a copy in this browser under “My gifts”; if you
               clear site data, you can still cancel the campaign from this wallet and get unclaimed funds back
               {committed ? " (after it expires, since you chose a committed campaign)" : ""}.
             </p>
@@ -708,7 +722,7 @@ function CreateCampaign({
           </p>
           <p className="text-[var(--ink)]">
             <strong>Refunds:</strong> recipients who aren&apos;t eligible (region, sanctions, already claimed) are refused
-            before anything moves, so their share stays in escrow. You get every unclaimed share back from “My links”
+            before anything moves, so their share stays in escrow. You get every unclaimed share back from “My gifts”
             {committed ? " once the gift expires" : " at any time, or after it expires"} — from any device with this wallet.
           </p>
         </div>
