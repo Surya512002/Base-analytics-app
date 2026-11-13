@@ -17,14 +17,13 @@ import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
 import MarketIntelligenceHub from "./MarketIntelligenceHub";
-import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
 import BlurFade from "@/components/ui/motion/BlurFade";
 import StockTickerTape from "@/components/markets/StockTickerTape";
 import MoversSignalsStrip from "@/components/markets/MoversSignalsStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
 import StockDetailDrawer from "@/components/markets/StockDetailDrawer";
 import type { StockMarketItem } from "@/lib/markets/types";
-import { useMarketsOverview, useStockMarkets } from "@/hooks/useMarketsData";
+import { useStockMarkets } from "@/hooks/useMarketsData";
 import {
   readTokenWatchlist,
   toggleTokenWatch,
@@ -86,12 +85,6 @@ export default function ExploreHub({
     toggleTokenWatch(address);
     setWatchlist(readTokenWatchlist());
   }, []);
-
-  const {
-    overview: marketsOverview,
-    loading: overviewLoading,
-    refresh: refreshOverview,
-  } = useMarketsOverview();
 
   // Quick view drawer state
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
@@ -327,15 +320,6 @@ export default function ExploreHub({
 
       {/* 1.4 LIVE STOCK TICKER TAPE (real prices from the stock markets feed) */}
       <StockTickerTape stocks={stockMarketsList} onSelect={(stock) => setSelectedStockForDrawer(stock)} />
-
-      {/* 1.5 BASE MARKETS OVERVIEW STRIP (24h Volume, Total Supplied, Total Borrowed, 1M/3M/All Mini Chart) */}
-      <BlurFade>
-        <MarketsOverviewStrip
-          overview={marketsOverview}
-          loading={overviewLoading}
-          onRefresh={refreshOverview}
-        />
-      </BlurFade>
 
       {/* 1.6 MARKET SIGNALS & MOVERS (Top Gainer, Most Liquid, Top Collateral, Lowest Impact) */}
       <BlurFade>
