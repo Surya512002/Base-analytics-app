@@ -35,6 +35,8 @@ import {
 
 // Sub-components
 import LaunchHeader from "@/components/launchpad/LaunchHeader";
+import { FirstBuyPicker, LaunchLivePreview, SignChecklist, StartingCapPicker } from "@/components/launchpad/LaunchExtras";
+import { START_CAP_PRESETS } from "@/lib/launchpad/first-buy";
 import LaunchBoard, { LaunchStatsStrip } from "@/components/launchpad/LaunchBoard";
 import LaunchTypeSelector from "@/components/launchpad/LaunchTypeSelector";
 import QuoteAssetPicker from "@/components/launchpad/QuoteAssetPicker";
@@ -104,7 +106,10 @@ export default function TokenLaunchForm({
   const [lockDurationDays, setLockDurationDays] = useState(DEFAULT_LOCK_DURATION_DAYS);
   const [antiSnipeBlocks, setAntiSnipeBlocks] = useState(DEFAULT_ANTI_SNIPE_BLOCKS);
   const [metadataEditable, setMetadataEditable] = useState(false);
-  const startPriceUsd = DEFAULT_STARTING_PRICE_USD;
+  // Opening price: today's default or a higher starting market cap (see START_CAP_PRESETS).
+  const [startPriceUsd, setStartPriceUsd] = useState<string>(DEFAULT_STARTING_PRICE_USD);
+  // Suggested first buy (ETH), offered as a separate step after the launch confirms. "" = none.
+  const [firstBuyEth, setFirstBuyEth] = useState<string>("0.01");
 
   // Background Vanity & ETH data
   const [vanitySalt, setVanitySalt] = useState<`0x${string}` | null>(null);
@@ -143,6 +148,10 @@ export default function TokenLaunchForm({
       if (draft.lockDurationDays) setLockDurationDays(draft.lockDurationDays);
       if (draft.antiSnipeBlocks !== undefined) setAntiSnipeBlocks(draft.antiSnipeBlocks);
       if (draft.metadataEditable !== undefined) setMetadataEditable(draft.metadataEditable);
+      // Only restore a starting price that is one of the offered presets.
+      if (draft.startPriceUsd && START_CAP_PRESETS.some((p) => p.priceUsd === draft.startPriceUsd)) {
+        setStartPriceUsd(draft.startPriceUsd);
+      }
       if (draft.selectedStockSymbol) {
         // Saved drafts may name a stock that is not on Base's official list; ignore those.
         const found = BASE_VERIFIED_STOCKS.find((s) => s.symbol === draft.selectedStockSymbol);
@@ -510,6 +519,7 @@ export default function TokenLaunchForm({
         onTrade={() => onTrade?.(launchedToken)}
         onExplore={() => onExplore?.()}
         onCopied={() => showToast("Contract address copied", "")}
+        firstBuyEth={firstBuyEth}
       />
     );
   }
@@ -678,12 +688,57 @@ export default function TokenLaunchForm({
                   ethUsd={ethUsd}
                   startPriceUsd={startPriceUsd}
                 />
+                <div className="mt-5 space-y-5">
+                  <StartingCapPicker
+                    startPriceUsd={startPriceUsd}
+                    onChange={setStartPriceUsd}
+                    ethUsd={ethUsd}
+                    seedLiquidityEth={seedLiquidityEth}
+                    autoSeedLiquidity={autoSeedLiquidity}
+                  />
+                  <FirstBuyPicker
+                    value={firstBuyEth}
+                    onChange={setFirstBuyEth}
+                    startPriceUsd={startPriceUsd}
+                    ethUsd={ethUsd}
+                    seedLiquidityEth={seedLiquidityEth}
+                    autoSeedLiquidity={autoSeedLiquidity}
+                    seedDex={seedDex}
+                  />
+                </div>
               </div>
             )}
 
             {/* Step 5: Review & Deploy */}
             {currentStep === 5 && (
-              <div className="animate-meridian-fade">
+              <div className="animate-meridian-fade space-y-5">
+                <LaunchLivePreview
+                  name={name}
+                  symbol={symbol}
+                  description={description}
+                  imagePreview={imagePreview}
+                  startPriceUsd={startPriceUsd}
+                  quoteSymbol={effectiveQuoteSymbol}
+                  liquidityLocked={liquidityLocked}
+                  antiSnipeBlocks={antiSnipeBlocks}
+                />
+                <SignChecklist
+                  launchType={launchType}
+                  symbol={symbol}
+                  quoteSymbol={effectiveQuoteSymbol}
+                  vanityAddress={vanityAddress}
+                  creatorPct={creatorPct}
+                  vestedTotalPct={vestedTotalPct}
+                  autoSeedLiquidity={autoSeedLiquidity}
+                  seedDex={seedDex}
+                  seedLiquidityEth={seedLiquidityEth}
+                  startPriceUsd={startPriceUsd}
+                  liquidityLocked={liquidityLocked}
+                  lockDurationDays={lockDurationDays}
+                  antiSnipeBlocks={antiSnipeBlocks}
+                  metadataEditable={metadataEditable}
+                  firstBuyEth={firstBuyEth}
+                />
                 <ReviewStep
                   launchType={launchType}
                   selectedStock={selectedStock}

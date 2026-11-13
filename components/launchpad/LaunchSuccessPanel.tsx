@@ -23,6 +23,8 @@ interface LaunchSuccessPanelProps {
   onTrade: () => void;
   onExplore?: () => void;
   onCopied?: () => void;
+  /** Suggested first buy chosen in the form (ETH); "" or undefined = none. */
+  firstBuyEth?: string;
 }
 
 export default function LaunchSuccessPanel({
@@ -30,6 +32,7 @@ export default function LaunchSuccessPanel({
   onTrade,
   onExplore: _onExplore,
   onCopied,
+  firstBuyEth,
 }: LaunchSuccessPanelProps) {
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
@@ -154,6 +157,22 @@ export default function LaunchSuccessPanel({
             </a>
           )}
         </div>
+
+        {/* Suggested first buy: opens Swap prefilled. Optional, the launch already stands. */}
+        {firstBuyEth && parseFloat(firstBuyEth) > 0 && (
+          <div className="flex flex-col gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs">
+              <p className="font-black text-[var(--ink)]">Open the chart with your first buy</p>
+              <p className="text-[var(--ink-muted)]">A token with no buys looks dead on screeners. Optional: the launch already stands.</p>
+            </div>
+            <Link
+              href={buildSwapLink({ buy: token.address, amount: firstBuyEth })}
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--brand)] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:opacity-90"
+            >
+              <Coins size={14} /> Buy {firstBuyEth} ETH
+            </Link>
+          </div>
+        )}
 
         {/* Action Buttons: Token Page + Swap Page */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
