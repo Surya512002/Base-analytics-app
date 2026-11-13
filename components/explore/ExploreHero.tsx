@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, Rocket, ChevronDown, Command } from "lucide-react";
+import { Search, Command } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import SpotlightCarousel from "./SpotlightCarousel";
-import HeroBackdrop from "@/components/ui/motion/HeroBackdrop";
+import PageHero from "@/components/ui/PageHero";
 
 interface ExploreHeroProps {
   spotlightTokens: UnifiedToken[];
@@ -26,75 +26,50 @@ export default function ExploreHero({
   onOpenCommandPalette,
 }: ExploreHeroProps) {
   return (
-    <div className="relative isolate overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-7 lg:p-8 shadow-card">
-      <HeroBackdrop className="-z-10" />
-      <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-center">
-        {/* Left Column: Headline, Subtitle, Integrated Search, 2 Buttons */}
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--ink)] tracking-tight leading-[1.15]">
-              Discover Tokens.{" "}
-              <span className="text-[var(--brand-text)]">Swap in App.</span>
-            </h1>
-            <p className="text-sm sm:text-base text-[var(--ink-muted)] leading-relaxed max-w-xl">
-              Live liquidity rails, B20 vanity standards, and Coinbase tokenized equities on Base.
-            </p>
-          </div>
-
-          {/* ONE Integrated Search Field with visible ⌘K hint — hidden on phones, where the
-              global "Search tokens & pages" bar sits directly above and does the same job */}
-          <div className="relative max-w-lg hidden sm:block">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none"
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search by name, symbol ($AERO, $NVDAc) or 0x address…"
-              className="w-full pl-10 pr-16 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-sm text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand-text)] transition shadow-xs"
-            />
-            <button
-              type="button"
-              onClick={onOpenCommandPalette}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--ink-muted)] hover:text-[var(--ink)] hover:border-[var(--brand)] transition cursor-pointer"
-              title="Open command palette (⌘K)"
-            >
-              <Command size={11} />
-              <span>K</span>
-            </button>
-          </div>
-
-          {/* Exactly Two Buttons: "Browse tokens" and "Launch token" */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onBrowseTokens}
-              className="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-xs transition cursor-pointer"
-            >
-              <span>Browse tokens</span>
-              <ChevronDown size={16} />
-            </button>
-
-            <button
-              type="button"
-              onClick={onLaunchToken}
-              className="px-5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-sm font-bold text-[var(--ink)] transition cursor-pointer flex items-center gap-2"
-            >
-              <Rocket size={16} className="text-[var(--brand-text)]" />
-              <span>Launch token</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Right Column: ONE Spotlight Card (rotates top 3) */}
-        <div>
-          <SpotlightCarousel
-            tokens={spotlightTokens}
-            onOpenToken={onOpenToken}
+    <div className="space-y-2">
+      <PageHero
+        as="h2"
+        eyebrow="Explore Base"
+        title={
+          <>
+            Find tokens on Base —{" "}
+            <span className="text-[var(--brand-text)]">swap in seconds.</span>
+          </>
+        }
+        subtitle="Live prices, verified tokenized stocks and new launches on Base, all in one place."
+        actions={[
+          { label: "Browse tokens", onClick: onBrowseTokens, primary: true },
+          { label: "Launch token", onClick: onLaunchToken },
+        ]}
+      >
+        {/* Search — hidden on phones, where the global search bar above does the same job */}
+        <div className="relative hidden w-full max-w-xl sm:block">
+          <Search
+            size={18}
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]"
           />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search by name, symbol ($AERO, $NVDAc) or 0x address…"
+            className="w-full rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] py-3.5 pl-11 pr-16 text-sm text-[var(--ink)] shadow-sm outline-none transition placeholder:text-[var(--ink-dim)] focus:border-[var(--brand)]"
+          />
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            className="absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2.5 py-1 font-mono text-[11px] text-[var(--ink-muted)] transition hover:border-[var(--brand)] hover:text-[var(--ink)]"
+            title="Open command palette (⌘K)"
+          >
+            <Command size={11} />
+            <span>K</span>
+          </button>
         </div>
+      </PageHero>
+
+      {/* Today's spotlight — one calm card under the hero */}
+      <div className="mx-auto w-full max-w-xl">
+        <SpotlightCarousel tokens={spotlightTokens} onOpenToken={onOpenToken} />
       </div>
     </div>
   );

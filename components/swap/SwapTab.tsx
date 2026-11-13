@@ -11,6 +11,7 @@ import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import DexSwapCard from "@/components/swap/DexSwapCard";
+import PageHero from "@/components/ui/PageHero";
 import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
@@ -207,13 +208,20 @@ export default function SwapTab({
 
   return (
     <div className="w-full max-w-[480px] mx-auto space-y-3 pb-8">
+      <PageHero
+        size="md"
+        as="h2"
+        eyebrow="Swap on Base"
+        title={<>Trade any token — <span className="text-[var(--brand-text)]">best route, one tap.</span></>}
+        subtitle="Quotes from Base DEXs, a clear preview before you sign, and nothing held by us."
+      />
       {/* Top Navigation Bar: Market | Orders | Recurring (Orders & Recurring gated by feature flag) */}
       {isOrdersEnabled && (
-        <div className="p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center shadow-xs">
+        <div className="p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center shadow-xs">
           <button
             type="button"
             onClick={() => setActiveSubTab("market")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
               activeSubTab === "market"
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -226,7 +234,7 @@ export default function SwapTab({
           <button
             type="button"
             onClick={() => setActiveSubTab("orders")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
               activeSubTab === "orders"
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -244,7 +252,7 @@ export default function SwapTab({
           <button
             type="button"
             onClick={() => setActiveSubTab("recurring")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
               activeSubTab === "recurring"
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"

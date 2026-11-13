@@ -9,7 +9,7 @@ import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { feeShareLabels } from "@/lib/launchpad/fee-split";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
 import { hrefForAppTab, readPersistedWalletAddress } from "@/lib/utils/wallet-persist";
-import { Users } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 
 export default function ProfilePage() {
@@ -86,28 +86,41 @@ export default function ProfilePage() {
               </p>
             </div>
           ) : (
-            <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)] sm:p-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-semibold mb-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <Users size={13} />
-                <span>{totalUsersFormatted} Unique Users Connected on Base</span>
-              </div>
-              <h1 className="text-2xl font-bold text-[var(--ink)]">Creator profile</h1>
-              <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                Connect wallet, then sign in (free, no gas) to create your public profile and track
-                creator revenue.
-              </p>
-              <p className="mt-3 text-[12px] text-[var(--ink-dim)]">
-                B20 launches earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of
-                every {formatPlatformFeeLabel()} swap fee — paid instantly on each trade.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowModal(true)}
-                className="btn-primary mt-6 px-6 py-3"
-              >
-                Connect wallet
-              </button>
+            <div className="mx-auto max-w-3xl">
+              <PageHero
+                eyebrow={totalUsersFormatted !== "0" ? `Creator profile · ${totalUsersFormatted} users on Base` : "Creator profile"}
+                title={
+                  <>
+                    Your creator profile —{" "}
+                    <span className="text-[var(--brand-text)]">one page, every launch.</span>
+                  </>
+                }
+                subtitle={
+                  <>
+                    B20 launches earn <strong className="text-[var(--ink)]">{shares.creator}</strong> of every{" "}
+                    {formatPlatformFeeLabel()} swap fee — paid instantly on each trade.
+                  </>
+                }
+                actions={[{ label: "Connect wallet", onClick: () => setShowModal(true), primary: true }]}
+              />
+              <ol className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  { title: "Connect", note: "Use any Base wallet." },
+                  { title: "Sign in", note: "One free signature — no gas." },
+                  { title: "Share", note: "Your public page tracks launches and revenue." },
+                ].map((step, i) => (
+                  <li
+                    key={step.title}
+                    className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 text-left shadow-sm"
+                  >
+                    <span className="inline-flex rounded-full border border-[var(--brand)]/40 bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand-text)]">
+                      Step {i + 1}
+                    </span>
+                    <p className="mt-3 text-base font-bold text-[var(--ink)]">{step.title}</p>
+                    <p className="mt-1 text-sm text-[var(--ink-muted)]">{step.note}</p>
+                  </li>
+                ))}
+              </ol>
             </div>
           )}
         </div>

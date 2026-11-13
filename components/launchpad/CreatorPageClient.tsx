@@ -69,7 +69,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
         <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8 w-full min-w-0">
           <Link
             href="/explore"
-            className="mb-6 inline-block text-sm font-semibold text-[var(--brand-dark)] hover:text-[var(--brand)]"
+            className="mb-6 inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-1.5 text-sm font-semibold text-[var(--brand-text)] transition hover:border-[var(--brand)]/50"
           >
             ← All tokens
           </Link>
