@@ -34,7 +34,7 @@ export default function VoucherSegmentTabs({
             role="tab"
             aria-selected={selected}
             onClick={() => onChange(id as VoucherView)}
-            className={`relative isolate flex flex-1 min-w-[5.5rem] min-h-[48px] items-center justify-center gap-2 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${
+            className={`relative isolate flex flex-1 min-w-0 min-h-[52px] flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl text-[11px] font-bold transition-colors sm:min-w-[5.5rem] sm:flex-row sm:gap-2 sm:text-sm ${
               selected ? "text-[var(--ink)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]"
             }`}
           >

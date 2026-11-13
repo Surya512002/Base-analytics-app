@@ -3558,3 +3558,23 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 @media (prefers-reduced-motion: reduce) {
   .shiny-text { animation: none; color: var(--brand-text); background: none; }
 }
+
+/* Shine sweep across primary gift buttons */
+@keyframes shine-button-sweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  60%, 100% { transform: translateX(220%) skewX(-20deg); }
+}
+.shine-button { position: relative; overflow: hidden; }
+.shine-button::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shine-button-sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.shine-button:disabled::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .shine-button::after { animation: none; display: none; }
+}
