@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ActivePill from "@/components/ui/motion/ActivePill";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -129,12 +130,12 @@ export default function AppHeader({
             key={item.label}
             type="button"
             onClick={() => pickTab(item.tab, item.guestOk)}
-            className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer ${
-              active
-                ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
-                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            aria-current={active ? "page" : undefined}
+            className={`relative isolate shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors touch-manipulation cursor-pointer ${
+              active ? "font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
             }`}
           >
+            {active && <ActivePill layoutId="header-nav-pill" className="bg-[var(--brand-soft)]" />}
             {getNavLabel(item.tab, item.label)}
           </button>
         );

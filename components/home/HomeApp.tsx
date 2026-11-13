@@ -7,7 +7,6 @@ import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
-import AppFeatureStrip from "@/components/wallet/AppFeatureStrip";
 import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import ToastNotification from "@/components/wallet/ToastNotification";
@@ -191,22 +190,6 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
           onSkip={() => setSiweSkipped(true)}
         />
 
-        {guest && (
-          <div className="mb-4 flex flex-col gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <p className="min-w-0 text-[12px] text-[var(--ink-muted)]">
-              Browsing as guest —{" "}
-              <span className="text-[var(--ink-soft)]">connect to trade &amp; launch</span>
-            </p>
-            <button
-              type="button"
-              onClick={openConnect}
-              className="btn-primary shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
-            >
-              Connect
-            </button>
-          </div>
-        )}
-
         <BaseAppPinBanner
           walletAddress={wallet?.address}
           onToast={(msg) => setToast({ msg, hash: "" })}
@@ -215,9 +198,6 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         {!guest && (
           <>
             <OnboardingTour onNavigate={handleTabChange} ready={walletScanComplete} />
-            {activeTab !== "swap" && activeTab !== "basehub" && activeTab !== "launchpad" && (
-              <AppFeatureStrip onNavigate={handleTabChange} />
-            )}
           </>
         )}
 

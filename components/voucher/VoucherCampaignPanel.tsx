@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatUnits, parseEther, parseEventLogs, parseUnits } from "viem";
 import SectionCard from "@/components/ui/SectionCard";
+import ActivePill from "@/components/ui/motion/ActivePill";
 import { BASE_STOCKS, BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
 import { APP_URL_WEB, CAMPAIGN_CONTRACT } from "@/lib/constants/env";
 import { ERC20_ABI, USDC_BASE } from "@/lib/constants/contracts";
@@ -179,10 +180,11 @@ export default function VoucherCampaignPanel({ app }: { app: WalletAppState }) {
             role="tab"
             aria-selected={mode === id}
             onClick={() => setMode(id)}
-            className={`flex-1 min-h-[40px] rounded-xl text-[11px] font-black uppercase tracking-wide transition ${
-              mode === id ? "tab-active" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            className={`relative isolate flex-1 min-h-[40px] rounded-xl text-[11px] font-black uppercase tracking-wide transition-colors ${
+              mode === id ? "text-[var(--ink)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
+            {mode === id && <ActivePill layoutId="campaign-mode-pill" className="tab-active" />}
             {label}
           </button>
         ))}

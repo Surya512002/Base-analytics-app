@@ -18,6 +18,8 @@ import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
 import MarketIntelligenceHub from "./MarketIntelligenceHub";
 import MarketsOverviewStrip from "@/components/markets/MarketsOverviewStrip";
+import BlurFade from "@/components/ui/motion/BlurFade";
+import StockTickerTape from "@/components/markets/StockTickerTape";
 import MoversSignalsStrip from "@/components/markets/MoversSignalsStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
 import StockDetailDrawer from "@/components/markets/StockDetailDrawer";
@@ -323,21 +325,29 @@ export default function ExploreHub({
         }}
       />
 
+      {/* 1.4 LIVE STOCK TICKER TAPE (real prices from the stock markets feed) */}
+      <StockTickerTape stocks={stockMarketsList} onSelect={(stock) => setSelectedStockForDrawer(stock)} />
+
       {/* 1.5 BASE MARKETS OVERVIEW STRIP (24h Volume, Total Supplied, Total Borrowed, 1M/3M/All Mini Chart) */}
-      <MarketsOverviewStrip
-        overview={marketsOverview}
-        loading={overviewLoading}
-        onRefresh={refreshOverview}
-      />
+      <BlurFade>
+        <MarketsOverviewStrip
+          overview={marketsOverview}
+          loading={overviewLoading}
+          onRefresh={refreshOverview}
+        />
+      </BlurFade>
 
       {/* 1.6 MARKET SIGNALS & MOVERS (Top Gainer, Most Liquid, Top Collateral, Lowest Impact) */}
-      <MoversSignalsStrip
-        stocks={stockMarketsList}
-        loading={stockMarketsLoading}
-        onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
-      />
+      <BlurFade>
+        <MoversSignalsStrip
+          stocks={stockMarketsList}
+          loading={stockMarketsLoading}
+          onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
+        />
+      </BlurFade>
 
       {/* 2. DISCOVERY HUB (Segmented Tabs: Trending | Top Gainers | New Launches | Stocks) */}
+      <BlurFade>
       <DiscoveryHub
         trendingTokens={trendingTokens}
         topMoversTokens={topMoversTokens}
@@ -363,6 +373,7 @@ export default function ExploreHub({
           handleScrollToExplorer();
         }}
       />
+      </BlurFade>
 
       {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}
       <MarketIntelligenceHub

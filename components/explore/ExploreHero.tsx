@@ -4,6 +4,7 @@ import React from "react";
 import { Search, Rocket, ChevronDown, Command } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import SpotlightCarousel from "./SpotlightCarousel";
+import HeroBackdrop from "@/components/ui/motion/HeroBackdrop";
 
 interface ExploreHeroProps {
   spotlightTokens: UnifiedToken[];
@@ -25,7 +26,8 @@ export default function ExploreHero({
   onOpenCommandPalette,
 }: ExploreHeroProps) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-7 lg:p-8 shadow-card">
+    <div className="relative isolate overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 sm:p-7 lg:p-8 shadow-card">
+      <HeroBackdrop className="-z-10" />
       <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-center">
         {/* Left Column: Headline, Subtitle, Integrated Search, 2 Buttons */}
         <div className="space-y-5">
@@ -39,8 +41,9 @@ export default function ExploreHero({
             </p>
           </div>
 
-          {/* ONE Integrated Search Field with visible ⌘K hint */}
-          <div className="relative max-w-lg">
+          {/* ONE Integrated Search Field with visible ⌘K hint — hidden on phones, where the
+              global "Search tokens & pages" bar sits directly above and does the same job */}
+          <div className="relative max-w-lg hidden sm:block">
             <Search
               size={18}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none"

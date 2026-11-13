@@ -10,6 +10,7 @@ import {
   Layers,
 } from "lucide-react";
 import type { MarketsOverview, ActivitySeries, PricePoint } from "@/lib/markets/types";
+import NumberTicker from "@/components/ui/motion/NumberTicker";
 
 function formatChartDate(dStr?: string): string {
   if (!dStr) return "";
@@ -191,7 +192,7 @@ export default function MarketsOverviewStrip({
             </div>
           </div>
           <div className="text-2xl font-black text-[var(--ink)] tabular-nums">
-            {overview ? formatUsdLarge(overview.volume24h) : "—"}
+            {overview ? <NumberTicker value={overview.volume24h} format={formatUsdLarge} /> : "—"}
           </div>
           <div className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
             <span>Base Liquid List (DEX)</span>
@@ -213,7 +214,7 @@ export default function MarketsOverviewStrip({
             </div>
           </div>
           <div className="text-2xl font-black text-[var(--ink)] tabular-nums text-emerald-600 dark:text-emerald-400">
-            {overview ? formatUsdLarge(overview.totalSupplied) : "—"}
+            {overview ? <NumberTicker value={overview.totalSupplied} format={formatUsdLarge} /> : "—"}
           </div>
           <div className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
             <span>Morpho · Moonwell · Euler</span>
@@ -235,7 +236,7 @@ export default function MarketsOverviewStrip({
             </div>
           </div>
           <div className="text-2xl font-black text-[var(--ink)] tabular-nums text-indigo-600 dark:text-indigo-400">
-            {overview ? formatUsdLarge(overview.totalBorrowed) : "—"}
+            {overview ? <NumberTicker value={overview.totalBorrowed} format={formatUsdLarge} /> : "—"}
           </div>
           <div className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
             <span>Active DeFi loans on Base</span>

@@ -3,6 +3,7 @@
 import ScrollPerf from '@/components/ui/ScrollPerf';
 import { ReactNode, useEffect, useState } from 'react';
 import { WagmiProvider } from 'wagmi';
+import { MotionConfig } from 'motion/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { base } from 'wagmi/chains';
@@ -53,12 +54,14 @@ export function Providers({ children }: { children: ReactNode }) {
             paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL || undefined,
           }}
         >
+          <MotionConfig reducedMotion="user">
           <WalletAppProvider>
             <I18nProvider>
               <ScrollPerf />
               {children}
             </I18nProvider>
           </WalletAppProvider>
+          </MotionConfig>
         </OnchainKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
