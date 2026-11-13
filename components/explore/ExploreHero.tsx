@@ -67,8 +67,8 @@ export default function ExploreHero({
         </div>
       </PageHero>
 
-      {/* Today's spotlight — one calm card under the hero */}
-      <div className="mx-auto w-full max-w-xl">
+      {/* Spotlight strip: top tokens by volume, swipeable */}
+      <div className="mx-auto w-full max-w-6xl">
         <SpotlightCarousel tokens={spotlightTokens} onOpenToken={onOpenToken} />
       </div>
     </div>

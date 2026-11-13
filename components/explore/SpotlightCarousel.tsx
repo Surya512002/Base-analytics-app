@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { TrendingUp, TrendingDown, ArrowRight, Sparkles } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "motion/react";
+import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Sparkles } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import { formatCompactUsd, formatExactUsd } from "@/lib/explore/explore-config";
 import TokenAvatar from "@/components/ui/TokenAvatar";
@@ -12,153 +13,227 @@ interface SpotlightCarouselProps {
   onOpenToken: (token: UnifiedToken) => void;
 }
 
-export default function SpotlightCarousel({
-  tokens,
-  onOpenToken,
-}: SpotlightCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+/** Time each step of the auto-slide waits. */
+const STEP_MS = 3500;
 
-  const topThree = tokens.slice(0, 3);
-  const activeToken = topThree[currentIndex] ?? topThree[0];
+/**
+ * Spotlight strip: small token cards side by side (5 across on desktop), in a scroll-snap
+ * track. Swipe either way on touch, drag with the mouse, or use the arrows; it also slides on
+ * its own and pauses while the pointer or focus is inside it.
+ */
+export default function SpotlightCarousel({ tokens, onOpenToken }: SpotlightCarouselProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const [holding, setHolding] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pages, setPages] = useState(1);
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+
+  const cardStep = useCallback(() => {
+    const track = trackRef.current;
+    const first = track?.firstElementChild as HTMLElement | null;
+    if (!track || !first) return 0;
+    const gap = parseFloat(getComputedStyle(track).columnGap || "0") || 0;
+    return first.offsetWidth + gap;
+  }, []);
+
+  const scrollByCards = useCallback(
+    (dir: 1 | -1) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const max = track.scrollWidth - track.clientWidth;
+      const atEnd = track.scrollLeft >= max - 4;
+      const atStart = track.scrollLeft <= 4;
+      // Wrap around at the ends so the strip keeps moving.
+      const left = dir === 1 && atEnd ? 0 : dir === -1 && atStart ? max : track.scrollLeft + dir * cardStep();
+      track.scrollTo({ left, behavior: reduceMotion ? "auto" : "smooth" });
+    },
+    [cardStep, reduceMotion]
+  );
+
+  // Dots: one per "page" of visible cards.
+  const measure = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const step = cardStep() || 1;
+    const perView = Math.max(1, Math.round(track.clientWidth / step));
+    const total = Math.max(1, Math.ceil(tokens.length / perView));
+    setPages(total);
+    const max = track.scrollWidth - track.clientWidth;
+    setPage(max <= 0 ? 0 : Math.min(total - 1, Math.round((track.scrollLeft / max) * (total - 1))));
+  }, [cardStep, tokens.length]);
 
   useEffect(() => {
-    if (topThree.length <= 1) return;
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
 
-    // Check prefers-reduced-motion
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  useEffect(() => {
+    if (holding || reduceMotion || tokens.length <= 1) return;
+    const t = window.setInterval(() => {
+      if (!document.hidden) scrollByCards(1);
+    }, STEP_MS);
+    return () => window.clearInterval(t);
+  }, [holding, reduceMotion, tokens.length, scrollByCards]);
 
-    if (prefersReducedMotion || isPaused) return;
-
-    timerRef.current = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % topThree.length);
-    }, 5000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+  // Mouse drag (touch already scrolls natively).
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse" || !trackRef.current) return;
+    drag.current = { x: e.clientX, left: trackRef.current.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const track = trackRef.current;
+    if (!d || !track) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved && Math.abs(dx) > 5) {
+      d.moved = true;
+      track.style.scrollSnapType = "none";
+      track.style.scrollBehavior = "auto";
+    }
+    if (d.moved) track.scrollLeft = d.left - dx;
+  };
+  const endDrag = () => {
+    const d = drag.current;
+    const track = trackRef.current;
+    drag.current = null;
+    if (!d?.moved || !track) return;
+    track.style.scrollSnapType = "";
+    track.style.scrollBehavior = "";
+    const step = cardStep() || 1;
+    track.scrollTo({ left: Math.round(track.scrollLeft / step) * step, behavior: "smooth" });
+    // Swallow the click that follows a drag so it doesn't open a token.
+    const block = (ev: MouseEvent) => {
+      ev.stopPropagation();
+      ev.preventDefault();
     };
-  }, [topThree.length, isPaused]);
+    track.addEventListener("click", block, { capture: true, once: true });
+    window.setTimeout(() => track.removeEventListener("click", block, { capture: true }), 50);
+  };
 
-  if (!activeToken) return null;
-
-  const isUp = activeToken.priceChange24h >= 0;
+  if (tokens.length === 0) return null;
 
   return (
     <div
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onClick={() => onOpenToken(activeToken)}
-      className="pop-lg group relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 sm:p-5 shadow-card cursor-pointer flex flex-col justify-between"
+      className="w-full"
+      aria-roledescription="carousel"
+      aria-label="Spotlight tokens"
+      onPointerEnter={() => setHolding(true)}
+      onPointerLeave={() => {
+        setHolding(false);
+        endDrag();
+      }}
+      onFocusCapture={() => setHolding(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHolding(false);
+      }}
     >
-      {/* Top Accent Ribbon */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0052FF] via-blue-400 to-indigo-500" />
-
-      <div className="space-y-3.5">
-        {/* Spotlight Eyebrow & Carousel Dots */}
-        <div className="flex items-center justify-between">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] text-[10px] font-bold uppercase tracking-wider">
-            <Sparkles size={11} />
-            <span>Spotlight #{currentIndex + 1}</span>
-          </div>
-
-          {/* Dots Indicator */}
-          {topThree.length > 1 && (
-            <div
-              className="flex items-center gap-1.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {topThree.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  data-pop="off"
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    currentIndex === idx
-                      ? "w-4 bg-[var(--brand)]"
-                      : "w-1.5 bg-[var(--ink-dim)] hover:bg-[var(--ink-muted)]"
-                  }`}
-                  aria-label={`Go to spotlight slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Token Identity Row */}
-        <div className="flex items-center gap-3">
-          <TokenAvatar
-            src={activeToken.imageUrl}
-            address={activeToken.address}
-            symbol={activeToken.symbol}
-            className="w-12 h-12 rounded-xl shadow-xs"
-            textClassName="text-sm"
-          />
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-base text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
-                {activeToken.name}
-              </h3>
-              {activeToken.isVerified && <VerifiedBadge size={14} />}
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
-                {activeToken.type.toUpperCase()}
-              </span>
-            </div>
-            <p className="font-mono text-xs text-[var(--ink-muted)]">${activeToken.symbol}</p>
-          </div>
-        </div>
-
-        {/* Price & 24h Change Row */}
-        <div className="flex items-baseline justify-between pt-1">
-          <div>
-            <span className="text-[10px] text-[var(--ink-muted)] block">Price</span>
-            <span className="text-xl font-mono font-black text-[var(--ink)] tabular-nums">
-              {formatExactUsd(activeToken.priceUsd)}
-            </span>
-          </div>
-
-          <div
-            className={`flex items-center gap-1 font-mono font-bold text-xs px-2 py-0.5 rounded-lg ${
-              isUp
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-            }`}
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
+          <Sparkles size={11} />
+          Spotlight · top volume
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => scrollByCards(-1)}
+            aria-label="Previous tokens"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] transition hover:border-[var(--brand)] hover:text-[var(--brand-text)]"
           >
-            {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            <span>
-              {isUp ? "+" : ""}
-              {activeToken.priceChange24h.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-
-        {/* Mini Stats Bar */}
-        <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-xs">
-          <div>
-            <span className="text-[10px] text-[var(--ink-muted)] block">24h Volume</span>
-            <span className="font-mono font-bold text-[var(--ink)] tabular-nums">
-              {formatCompactUsd(activeToken.volume24h)}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[10px] text-[var(--ink-muted)] block">Liquidity</span>
-            <span className="font-mono font-bold text-[var(--ink)] tabular-nums">
-              {formatCompactUsd(activeToken.liquidityUsd)}
-            </span>
-          </div>
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollByCards(1)}
+            aria-label="Next tokens"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] transition hover:border-[var(--brand)] hover:text-[var(--brand-text)]"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
 
-      {/* CTA Button */}
-      <div className="pt-3 mt-3 border-t border-[var(--border-subtle)]/60 flex items-center justify-between text-xs font-bold text-[var(--brand-text)]">
-        <span>Trade now with USD routing</span>
-        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+      <div
+        ref={trackRef}
+        onScroll={measure}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 no-scrollbar select-none [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)] sm:cursor-grab sm:active:cursor-grabbing"
+      >
+        {tokens.map((token, i) => {
+          const up = token.priceChange24h >= 0;
+          return (
+            <button
+              key={token.id}
+              type="button"
+              onClick={() => onOpenToken(token)}
+              aria-label={`${token.name}, ${formatExactUsd(token.priceUsd)}`}
+              className="group flex w-[calc((100%-12px)/2)] shrink-0 snap-start cursor-pointer flex-col gap-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--brand)]/50 hover:shadow-md sm:w-[calc((100%-36px)/4)] lg:w-[calc((100%-48px)/5)]"
+            >
+              <div className="flex items-center gap-2">
+                <TokenAvatar
+                  src={token.imageUrl}
+                  address={token.address}
+                  symbol={token.symbol}
+                  className="h-8 w-8 shrink-0 rounded-full"
+                  textClassName="text-[10px]"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className="truncate text-sm font-bold text-[var(--ink)] group-hover:text-[var(--brand-text)]">
+                      {token.symbol}
+                    </span>
+                    {token.isVerified && <VerifiedBadge size={12} />}
+                  </div>
+                  <span className="block truncate text-[11px] text-[var(--ink-muted)]">{token.name}</span>
+                </div>
+                <span className="text-[10px] font-bold text-[var(--ink-dim)]">#{i + 1}</span>
+              </div>
+
+              <div className="flex items-end justify-between gap-2">
+                <span className="truncate font-mono text-base font-black tabular-nums text-[var(--ink)]">
+                  {formatExactUsd(token.priceUsd)}
+                </span>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[11px] font-bold ${
+                    up
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  {up ? "+" : ""}
+                  {token.priceChange24h.toFixed(1)}%
+                </span>
+              </div>
+
+              <div className="flex justify-between text-[11px] text-[var(--ink-muted)]">
+                <span>
+                  Vol <b className="font-mono text-[var(--ink)]">{formatCompactUsd(token.volume24h)}</b>
+                </span>
+                <span>
+                  Liq <b className="font-mono text-[var(--ink)]">{formatCompactUsd(token.liquidityUsd)}</b>
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
+
+      {pages > 1 && (
+        <div className="mt-2 flex justify-center gap-1.5" aria-hidden>
+          {Array.from({ length: pages }, (_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${
+                i === page ? "w-4 bg-[var(--brand)]" : "w-1.5 bg-[var(--ink-dim)]/50"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

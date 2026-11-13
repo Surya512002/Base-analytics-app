@@ -173,12 +173,12 @@ export default function ExploreHub({
   }, [allUnifiedTokens]);
 
   // 2. DISCOVERY ROW DATASETS
-  // 2a. Spotlight Tokens: Top 3 by Volume
+  // 2a. Spotlight Tokens: Top 10 by Volume (5 visible at once, swipe for the rest)
   const spotlightTokens = useMemo(() => {
     return [...allUnifiedTokens]
       .filter((t) => t.hasPool && t.volume24h > 0)
       .sort((a, b) => b.volume24h - a.volume24h)
-      .slice(0, 3);
+      .slice(0, 10);
   }, [allUnifiedTokens]);
 
   // 2b. Trending (Top by volume / liquidity)

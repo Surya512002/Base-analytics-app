@@ -109,6 +109,17 @@ export function tokenLogoUrl(address: string, symbol?: string): string {
 }
 
 /** Secondary fallback when primary logo needs local fallback. */
+/**
+ * Our own vetted logo for a well-known token (self-hosted or a fixed CDN URL), or null.
+ * Third-party feeds sometimes attach the wrong image (e.g. cbBTC showing the USDC logo),
+ * so these win over feed metadata.
+ */
+export function trustedTokenLogo(address: string): string | null {
+  const key = address.trim().toLowerCase();
+  if (SELF_HOSTED_LOGOS.has(key)) return `/tokens/${key}.png`;
+  return KNOWN_LOGO[key] ?? null;
+}
+
 export function tokenLogoFallbackUrl(address: string): string {
   const key = address.trim().toLowerCase();
   return `/tokens/${key}.png`;

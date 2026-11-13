@@ -6,6 +6,7 @@ import {
   type TokenMarketSummary,
 } from "@/lib/launchpad/dexscreener";
 import { isB20TokenAddress } from "@/lib/launchpad/token-meta";
+import { trustedTokenLogo } from "@/lib/launchpad/token-logo";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { discoverGeckoTrendingBase } from "@/lib/launchpad/gecko-discovery";
 
@@ -122,7 +123,7 @@ function pairToExternalToken(
     txHash: "",
     createdAt: 0,
     source: "external",
-    imageUrl: meta?.imageUrl,
+    imageUrl: trustedTokenLogo(address) ?? meta?.imageUrl,
     description: meta?.description,
     website: meta?.websites?.[0]?.url,
     twitter: meta?.socials?.find((s) => s.type === "twitter")?.url,
@@ -150,7 +151,7 @@ export async function discoverTrendingBaseTokens(): Promise<{
     byAddr.set(key, {
       ...prev,
       ...token,
-      imageUrl: token.imageUrl || prev?.imageUrl,
+      imageUrl: trustedTokenLogo(key) ?? (token.imageUrl || prev?.imageUrl),
       description: token.description || prev?.description,
     });
   }
