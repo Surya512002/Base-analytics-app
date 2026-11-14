@@ -120,6 +120,13 @@ export function finalizeAppTransactionBatch(
     return [buildBuilderAttributionCall(), ...normalized];
   }
 
+  // Every app transaction batch must carry the builder code at least once. If every call has
+  // to be sent byte-for-byte (e.g. an aggregator other than 0x AllowanceHolder), add the
+  // zero-value attribution call after them.
+  if (!normalized.some((c) => hasBuilderSuffix(c.data))) {
+    return [...normalized, buildBuilderAttributionCall()];
+  }
+
   return normalized;
 }
 
@@ -153,12 +160,24 @@ export function buildContractCall(
   };
 }
 
-/** 0x / aggregator swaps — calldata is validated on-chain and cannot carry a builder suffix. */
+/** 0x AllowanceHolder on Base: what 0x's allowance-holder quotes send to. */
+export const ZEROX_ALLOWANCE_HOLDER = "0x0000000000001fF3684f28c67538d4D072C22734" as const;
+
+/**
+ * Aggregator swaps. 0x AllowanceHolder ABI-decodes its arguments and ignores trailing bytes,
+ * so it carries the builder suffix like any other call (verified by replaying real Base 0x
+ * swaps with the suffix appended: test/fork/builder-code-fork.test.ts). Other aggregator
+ * targets are sent exactly as quoted; their batch still gets attribution (see
+ * finalizeAppTransactionBatch).
+ */
 export function buildExternalSwapCall(
   to: `0x${string}`,
   data: Hex,
   value?: bigint
 ): ContractCall {
+  if (to.toLowerCase() === ZEROX_ALLOWANCE_HOLDER.toLowerCase()) {
+    return buildContractCall(to, data, value);
+  }
   return {
     to,
     data,
