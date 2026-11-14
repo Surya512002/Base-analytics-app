@@ -17,6 +17,7 @@ import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
 import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
 import StockMarketsExplorer from "@/components/lending/StockMarketsExplorer";
+import SmartVaultDrawer, { type SmartVaultTarget } from "@/components/lending/SmartVaultDrawer";
 import PositionsPanel from "./PositionsPanel";
 import {
   fetchAllUserPositions,
@@ -99,6 +100,7 @@ export default function LendingHub({
 
   // Level 3 Action Drawer state (stock lending options)
   const [drawerOption, setDrawerOption] = useState<StockLendingOption | null>(null);
+  const [smartTarget, setSmartTarget] = useState<SmartVaultTarget | null>(null);
   const [drawerInitialTab, setDrawerInitialTab] = useState<DrawerActionTab>("supply");
 
   // Fallback modal for non-stock markets or gauge deposit/withdraw
@@ -895,6 +897,11 @@ export default function LendingHub({
           markets={discoveredMarkets}
           loading={isLoadingDiscovered}
           onAction={handleExplorerAction}
+          onSmart={(t) => {
+            const next = t.mode === "get" ? t.onContinue : undefined;
+            // "Continue" closes this drawer, then opens the market's own drawer.
+            setSmartTarget(t.mode === "get" && next ? { ...t, onContinue: () => (setSmartTarget(null), next()) } : t);
+          }}
         />
       ) : activeTab === "vaults" ? (
         /* STAKE & GAUGES VIEW */
@@ -1004,6 +1011,19 @@ export default function LendingHub({
           secondsAgo={secondsAgo}
         />
       )}
+
+      {/* Smart Deposit for pair vaults + "Get {stock}" first, all in-app */}
+      <SmartVaultDrawer
+        target={smartTarget}
+        onClose={() => setSmartTarget(null)}
+        connType={connType}
+        userAddress={userAddress}
+        onRequestConnect={onRequestConnect}
+        onDone={(msg) => {
+          showToast(msg, "Attributed with Base Builder Code");
+          void fetchDiscoveredMarkets(true, true);
+        }}
+      />
 
       {/* 5. LEVEL 3: ACTION DRAWER (Stock Lending & Borrowing) */}
       {drawerOption && (

@@ -288,6 +288,19 @@ export async function GET(req: Request) {
         quoteToken,
         allowUsdcHop: !isUsdcLeg,
       });
+      // The DexScreener venue is only a hint. When it has no pool for this leg (e.g. stocks hinted
+      // to Uniswap while their USDC liquidity is on Slipstream), compare every venue instead.
+      if (!directQuote.hasLiquidity && dex === "auto" && quoteDex !== "auto") {
+        directQuote = await quoteLaunchSwap({
+          token: tokenAddr,
+          direction,
+          amountIn,
+          slippageBps: effectiveSlippageBps,
+          dex: "auto",
+          quoteToken,
+          allowUsdcHop: !isUsdcLeg,
+        });
+      }
     }
 
     const aggQuote = await tryAggregatorQuote({

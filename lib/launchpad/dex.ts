@@ -8,7 +8,6 @@ import {
 import {
   quoteSlipstreamExactIn,
   SLIPSTREAM_SWAP_ROUTER,
-  type SlipstreamTickSpacing,
 } from "@/lib/launchpad/slipstream";
 import {
   quoteSwapExactIn,
@@ -39,7 +38,7 @@ export type DexQuoteResult = {
   uniswapMultiHop?: boolean;
   aerodromeStable?: boolean;
   aerodromeHops?: AerodromeHop[];
-  slipstreamTickSpacing?: SlipstreamTickSpacing;
+  slipstreamTickSpacing?: number;
 };
 
 export async function quoteLaunchSwap(params: {
@@ -99,7 +98,7 @@ export async function quoteLaunchSwap(params: {
       amountOut,
       amountOutMinimum: applySlippage(amountOut, params.slippageBps),
       hasLiquidity,
-      router: routers[dex],
+      router: dex === "slipstream" ? slip.router : routers[dex],
       uniswapHasLiquidity: uni.hasLiquidity || Boolean(extras?.uniswapMultiHop),
       aerodromeHasLiquidity: aero.hasLiquidity || Boolean(extras?.aerodromeHops?.length),
       slipstreamHasLiquidity: slip.hasLiquidity,

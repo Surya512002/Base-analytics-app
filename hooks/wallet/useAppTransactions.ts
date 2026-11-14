@@ -51,6 +51,7 @@ import {
 import {
   encodeSlipstreamBuy,
   encodeSlipstreamSell,
+  encodeSlipstreamExactInput,
 } from "@/lib/launchpad/slipstream";
 import { dexLabel } from "@/lib/launchpad/dex";
 import {
@@ -656,13 +657,22 @@ export function useAppTransactions({
                         hops: aeroHops,
                       }))
                 : swapDex === "slipstream"
-                  ? encodeSlipstreamBuy({
-                      tokenOut: token,
-                      recipient,
-                      amountIn: buySwapAmount,
-                      amountOutMinimum: minOut,
-                      tickSpacing: slipTick,
-                    })
+                  ? payIsNative
+                    ? encodeSlipstreamBuy({
+                        tokenOut: token,
+                        recipient,
+                        amountIn: buySwapAmount,
+                        amountOutMinimum: minOut,
+                        tickSpacing: slipTick,
+                      })
+                    : encodeSlipstreamExactInput({
+                        tokenIn: payTokenAddr as `0x${string}`,
+                        tokenOut: token,
+                        recipient,
+                        amountIn: buySwapAmount,
+                        amountOutMinimum: minOut,
+                        tickSpacing: slipTick,
+                      })
                   : uniPath
                     ? encodeExactInputMultiHop({
                         path: uniPath,
@@ -743,13 +753,22 @@ export function useAppTransactions({
                         hops: aeroHops,
                       }))
                 : swapDex === "slipstream"
-                  ? encodeSlipstreamSell({
-                      tokenIn: token,
-                      recipient,
-                      amountIn: sellAmount,
-                      amountOutMinimum: minOut,
-                      tickSpacing: slipTick,
-                    })
+                  ? receiveAsset === "eth"
+                    ? encodeSlipstreamSell({
+                        tokenIn: token,
+                        recipient,
+                        amountIn: sellAmount,
+                        amountOutMinimum: minOut,
+                        tickSpacing: slipTick,
+                      })
+                    : encodeSlipstreamExactInput({
+                        tokenIn: token,
+                        tokenOut: (receiveAsset === "usdc" ? USDC_BASE : args.receiveToken || USDC_BASE) as `0x${string}`,
+                        recipient,
+                        amountIn: sellAmount,
+                        amountOutMinimum: minOut,
+                        tickSpacing: slipTick,
+                      })
                   : uniPath
                     ? (receiveAsset === "eth"
                         ? encodeExactInputMultiHopToEth({

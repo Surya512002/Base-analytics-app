@@ -1,0 +1,36 @@
+import { encodeFunctionData, decodeFunctionResult, parseAbi, type Address, type Hex, type PublicClient } from "viem";
+
+/**
+ * Runtime bytecode of contracts/SimQuoter.sol (solc 0.8.28, optimizer 200 runs, shanghai).
+ * It is never deployed: it's injected at a throwaway address inside an eth_call (state
+ * override). It starts a swap on a Uniswap-v3-style pool and reverts from the swap callback
+ * with the exact amounts, so it returns the pool's own quote and nothing executes.
+ */
+export const SIM_QUOTER_RUNTIME: Hex =
+  "0x608060405234801561000f575f5ffd5b5060043610610034575f3560e01c8063343afba514610038578063fa461e331461005d575b5f5ffd5b61004b610046366004610201565b610072565b60405190815260200160405180910390f35b61007061006b36600461024e565b6101f0565b005b5f836001600160a01b031663128acb08308585876100a45773fffd8963efd1fc6a506488495d951d5263988d256100ab565b6401000276a45b60405160e086901b6001600160e01b03191681526001600160a01b03948516600482015292151560248401526044830191909152909116606482015260a060848201525f60a482015260c40160408051808303815f875af1925050508015610130575060408051601f3d908101601f1916820190925261012d918101906102ca565b60015b6101ae573d80801561015d576040519150601f19603f3d011682016040523d82523d5f602084013e610162565b606091505b50805160401461017457805160208201fd5b5f5f8280602001905181019061018a91906102ca565b9150915085610199578161019b565b805b6101a4906102ec565b93505050506101e9565b505060405162461bcd60e51b815260206004820152600a6024820152691d5b995e1c1958dd195960b21b604482015260640160405180910390fd5b9392505050565b604051848152836020820152604081fd5b5f5f5f60608486031215610213575f5ffd5b83356001600160a01b0381168114610229575f5ffd5b92506020840135801515811461023d575f5ffd5b929592945050506040919091013590565b5f5f5f5f60608587031215610261575f5ffd5b8435935060208501359250604085013567ffffffffffffffff811115610285575f5ffd5b8501601f81018713610295575f5ffd5b803567ffffffffffffffff8111156102ab575f5ffd5b8760208284010111156102bc575f5ffd5b949793965060200194505050565b5f5f604083850312156102db575f5ffd5b505080516020909101519092909150565b5f600160ff1b820161030c57634e487b7160e01b5f52601160045260245ffd5b505f039056fea2646970667358221220c8261f86b4b71175ed8d917abe2c3578683683e9f1c6ebce0c1ee2d1cf2f2a8064736f6c634300081c0033";
+
+/** Throwaway address the code is injected at for the call. */
+export const SIM_QUOTER_ADDRESS: Address = "0x000000000000000000000000000000000000c0de";
+
+const ABI = parseAbi(["function quote(address pool, bool zeroForOne, uint256 amountIn) returns (uint256 amountOut)"]);
+
+/** Exact-input quote from any Uniswap-v3-style pool (incl. Aerodrome Slipstream). 0 if none. */
+export async function simQuoteExactIn(
+  client: Pick<PublicClient, "call">,
+  pool: Address,
+  zeroForOne: boolean,
+  amountIn: bigint
+): Promise<bigint> {
+  if (amountIn <= BigInt(0)) return BigInt(0);
+  try {
+    const res = await client.call({
+      to: SIM_QUOTER_ADDRESS,
+      data: encodeFunctionData({ abi: ABI, functionName: "quote", args: [pool, zeroForOne, amountIn] }),
+      stateOverride: [{ address: SIM_QUOTER_ADDRESS, code: SIM_QUOTER_RUNTIME }],
+    });
+    if (!res.data) return BigInt(0);
+    return decodeFunctionResult({ abi: ABI, functionName: "quote", data: res.data });
+  } catch {
+    return BigInt(0);
+  }
+}

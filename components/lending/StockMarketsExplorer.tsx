@@ -19,8 +19,10 @@ import {
   X,
 } from "lucide-react";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
+import type { SmartVaultTarget } from "@/components/lending/SmartVaultDrawer";
 import {
   borrowCapacity,
+  classifyStockMarket,
   groupMarketsByStock,
   isApyUnreliable,
   marketDepthUsd,
@@ -66,13 +68,27 @@ export default function StockMarketsExplorer({
   markets,
   loading,
   onAction,
+  onSmart,
 }: {
   markets: NormalizedMarket[];
   loading?: boolean;
-  /** In-app action (Morpho borrow, single-stock vault deposit). LPs open the protocol instead. */
+  /** In-app action (Morpho borrow, single-stock vault deposit). */
   onAction: (market: NormalizedMarket, action: "borrow" | "supply") => void;
+  /** In-app Smart Deposit for pair vaults, and "Get {stock}" before single-stock markets. */
+  onSmart?: (target: SmartVaultTarget) => void;
 }) {
   const reduce = useReducedMotion();
+  // Best managed pair vault per stock: Aerodrome-only pools route users here in-app.
+  const pairVaultBySymbol = useMemo(() => {
+    const map = new Map<string, NormalizedMarket>();
+    for (const m of markets) {
+      if (m.protocol !== "beefy" || classifyStockMarket(m) !== "lp" || m.canSupply === false || !m.contractAddress) continue;
+      const sym = (m.collateralAsset ?? m.supplyAsset).symbol;
+      const prev = map.get(sym);
+      if (!prev || marketDepthUsd(m) > marketDepthUsd(prev)) map.set(sym, m);
+    }
+    return map;
+  }, [markets]);
   const [mode, setMode] = useState<Mode>("all");
   const [query, setQuery] = useState("");
   const [venue, setVenue] = useState<string | null>(null);
@@ -327,7 +343,7 @@ export default function StockMarketsExplorer({
                       transition={{ duration: 0.25 }}
                       className="border-t border-[var(--border-subtle)]"
                     >
-                      <StockDetail group={g} onAction={onAction} />
+                      <StockDetail group={g} onAction={onAction} onSmart={onSmart} pairVault={pairVaultBySymbol.get(g.symbol)} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -385,9 +401,13 @@ export default function StockMarketsExplorer({
 function StockDetail({
   group,
   onAction,
+  onSmart,
+  pairVault,
 }: {
   group: StockMarketGroup;
   onAction: (market: NormalizedMarket, action: "borrow" | "supply") => void;
+  onSmart?: (target: SmartVaultTarget) => void;
+  pairVault?: NormalizedMarket;
 }) {
   const [amount, setAmount] = useState("1000");
   const amt = parseFloat(amount) || 0;
@@ -399,7 +419,7 @@ function StockDetail({
       {/* Markets */}
       <ul className="space-y-2">
         {group.markets.map((m) => (
-          <MarketRow key={`${m.protocol}-${m.marketId}`} m={m} onAction={onAction} />
+          <MarketRow key={`${m.protocol}-${m.marketId}`} m={m} onAction={onAction} onSmart={onSmart} pairVault={pairVault} />
         ))}
       </ul>
 
@@ -442,9 +462,45 @@ function StockDetail({
   );
 }
 
-function MarketRow({ m, onAction }: { m: GroupMarket; onAction: (market: NormalizedMarket, action: "borrow" | "supply") => void }) {
+function MarketRow({
+  m,
+  onAction,
+  onSmart,
+  pairVault,
+}: {
+  m: GroupMarket;
+  onAction: (market: NormalizedMarket, action: "borrow" | "supply") => void;
+  onSmart?: (target: SmartVaultTarget) => void;
+  pairVault?: NormalizedMarket;
+}) {
   const small = marketDepthUsd(m) < 1000;
   const unreliable = isApyUnreliable(m);
+  const stock = m.collateralAsset ?? m.supplyAsset;
+  const openVault = (v: NormalizedMarket) =>
+    onSmart?.({
+      mode: "lp",
+      vault: v.contractAddress as `0x${string}`,
+      stockSymbol: stock.symbol,
+      apy: v.supplyApy,
+      venue: "Beefy on Aerodrome",
+      sourceLink: v.sourceLink,
+    });
+  // LP: Beefy pair vaults deposit in-app; Aerodrome-only pools hand off to the same stock's vault.
+  const smartLp = m.kind === "lp" && onSmart ? (m.protocol === "beefy" && m.contractAddress && m.canSupply !== false ? (m as NormalizedMarket) : pairVault) : undefined;
+  const lpViaVault = !!smartLp && smartLp !== (m as NormalizedMarket);
+  // Single-stock markets need the stock first.
+  const getStock =
+    m.kind !== "lp" && onSmart && /^0x[0-9a-fA-F]{40}$/.test(stock.address)
+      ? () =>
+          onSmart({
+            mode: "get",
+            token: stock.address as `0x${string}`,
+            symbol: stock.symbol,
+            decimals: stock.decimals ?? 18,
+            purpose: m.kind === "borrow" ? `borrow USDC against it on ${m.venue}` : `deposit it on ${m.venue}`,
+            onContinue: () => onAction(m, m.kind === "borrow" ? "borrow" : "supply"),
+          })
+      : undefined;
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-[var(--border-subtle)] p-2.5 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -483,6 +539,16 @@ function MarketRow({ m, onAction }: { m: GroupMarket; onAction: (market: Normali
             </>
           )}
         </div>
+        {getStock && m.canSupply !== false && (
+          <button
+            type="button"
+            onClick={getStock}
+            title={`Buy ${stock.symbol} with USDC or ETH, right here`}
+            className="cursor-pointer rounded-lg border border-[var(--brand)]/60 px-2.5 py-1.5 text-[11px] font-black text-[var(--brand-text)] transition hover:bg-[var(--brand-soft)]"
+          >
+            Get {stock.symbol}
+          </button>
+        )}
         {m.kind !== "lp" && m.canSupply !== false && (
           <button
             type="button"
@@ -492,15 +558,34 @@ function MarketRow({ m, onAction }: { m: GroupMarket; onAction: (market: Normali
             {m.kind === "borrow" ? "Borrow" : "Deposit"}
           </button>
         )}
+        {smartLp && (
+          <button
+            type="button"
+            onClick={() => openVault(smartLp)}
+            title={
+              lpViaVault
+                ? `Aerodrome pools need both tokens and active range management. The ${stock.symbol}-USDC vault does both for you, in-app.`
+                : "Pay with USDC, the stock or ETH. We swap the missing part and deposit."
+            }
+            className="cursor-pointer rounded-lg bg-[var(--brand)] px-3 py-1.5 text-[11px] font-black text-white transition hover:opacity-90"
+          >
+            {lpViaVault ? "Deposit via vault" : "Deposit"}
+          </button>
+        )}
         <a
           href={m.sourceLink}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--ink-muted)] transition hover:border-[var(--brand)]/50 hover:text-[var(--ink)]"
         >
-          {m.kind === "lp" ? `Open on ${m.venue}` : "Details"} <ExternalLink size={11} />
+          {m.kind === "lp" && !smartLp ? `Open on ${m.venue}` : "Details"} <ExternalLink size={11} />
         </a>
       </div>
+      {lpViaVault && (
+        <p className="text-[10px] text-[var(--ink-dim)] sm:hidden">
+          Deposits through the managed {stock.symbol}-USDC vault, which keeps the position in range for you.
+        </p>
+      )}
     </li>
   );
 }
