@@ -1,16 +1,17 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Coins, Compass, ArrowLeftRight } from "lucide-react";
+import { Sparkles, Coins, Compass, ArrowLeftRight, BadgeCheck } from "lucide-react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 
-export type LendingViewTab = "stocks" | "vaults" | "finder" | "compare";
+export type LendingViewTab = "markets" | "stocks" | "vaults" | "finder" | "compare";
 
 interface LendingViewTabsProps {
   value: LendingViewTab;
   onChange: (tab: LendingViewTab) => void;
   stocksCount?: number;
   vaultsCount?: number;
+  marketsCount?: number;
 }
 
 export default function LendingViewTabs({
@@ -18,11 +19,18 @@ export default function LendingViewTabs({
   onChange,
   stocksCount = 12,
   vaultsCount,
+  marketsCount,
 }: LendingViewTabsProps) {
   const tabs = [
     {
+      id: "markets" as LendingViewTab,
+      label: "Stock Markets",
+      icon: BadgeCheck,
+      countBadge: marketsCount && marketsCount > 0 ? `${marketsCount} verified` : undefined,
+    },
+    {
       id: "stocks" as LendingViewTab,
-      label: "Tokenized Stocks",
+      label: "All Stocks",
       icon: Sparkles,
       countBadge: stocksCount > 0 ? stocksCount.toString() : undefined,
     },

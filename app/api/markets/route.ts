@@ -11,11 +11,15 @@ export async function GET(request: Request) {
     const chainId = chainIdParam ? parseInt(chainIdParam, 10) : 8453;
 
     const result = await runMarketDiscovery(chainId, forceRefresh);
+    // Morpho market params carry lltv as a BigInt, which JSON can't encode: send it as a string.
+    const markets = JSON.parse(
+      JSON.stringify(result.markets, (_k, v) => (typeof v === "bigint" ? v.toString() : v))
+    );
 
     return NextResponse.json(
       {
         ok: true,
-        markets: result.markets,
+        markets,
         protocolStatus: result.protocolStatus,
         lastUpdated: result.lastUpdated,
         cached: result.cached,

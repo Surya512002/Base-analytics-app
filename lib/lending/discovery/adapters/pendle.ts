@@ -27,22 +27,14 @@ export const pendleAdapter: DiscoveryAdapter = {
       const items = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
 
       for (const item of items) {
-        const itemTokens = [
-          item.name || "",
-          item.proName || "",
-          item.underlyingAsset?.symbol || "",
-          item.accountingAsset?.symbol || "",
-          item.pt?.symbol || "",
-          item.yt?.symbol || "",
-        ].map((t) => t.toLowerCase());
-
-        // Check if market has tokenized stock asset strictly
-        const matchedStock = TOKENIZED_STOCKS_REGISTRY.find((stock) => {
-          const sym = stock.symbol.toLowerCase();
-          const ticker = stock.underlyingTicker.toLowerCase();
-          return itemTokens.some((t) => t === sym || t === ticker || t.includes(`-${sym}`) || t.includes(`${sym}-`));
-        });
-
+        // Verified only: the market's underlying / accounting token must BE an official stock
+        // contract. Name matching let "S", "W", "USDE" and wrapped "superTSLA" markets through.
+        const officialByAddress = new Map(TOKENIZED_STOCKS_REGISTRY.map((st) => [st.address.toLowerCase(), st]));
+        const candidateAddrs = [item.underlyingAsset?.address, item.accountingAsset?.address]
+          .filter((x: unknown): x is string => typeof x === "string")
+          .map((x: string) => x.toLowerCase());
+        const matchedStock = candidateAddrs.map((x: string) => officialByAddress.get(x)).find(Boolean);
+        if (item.isActive === false) continue;
         if (!matchedStock) continue;
 
         try {

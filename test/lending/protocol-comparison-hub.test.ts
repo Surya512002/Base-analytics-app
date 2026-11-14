@@ -57,7 +57,11 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(protocols).toContain("aerodrome");
     // Synthetic Aave Pro and unverified IPOR are removed in Phase 2
     expect(protocols).not.toContain("aave");
-    expect(protocols).not.toContain("morpho_blue");
+    // Morpho appears only through Morpho-listed, warning-free markets, with real market params
+    for (const o of comp.options.filter((x) => x.protocol === "morpho_blue")) {
+      expect(o.morphoParams?.lltv).toBeTypeOf("bigint");
+      expect(o.maxLtv ?? 0).toBeGreaterThan(0);
+    }
 
     const beefyOpt = comp.options.find((o) => o.protocol === "beefy")!;
     expect(beefyOpt.type).toBe("vault");

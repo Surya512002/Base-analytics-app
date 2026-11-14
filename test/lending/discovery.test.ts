@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { morphoAdapter } from "@/lib/lending/discovery/adapters/morpho";
+import { isVerifiedMorphoMarket, morphoAdapter } from "@/lib/lending/discovery/adapters/morpho";
+import { beefyVaultStock } from "@/lib/lending/discovery/adapters/beefy";
 import { beefyAdapter } from "@/lib/lending/discovery/adapters/beefy";
 import { pendleAdapter } from "@/lib/lending/discovery/adapters/pendle";
 import { zkfiAdapter } from "@/lib/lending/discovery/adapters/zkfi";
@@ -20,6 +21,8 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
           items: [
             {
               marketId: "0x1234567890abcdef",
+              listed: true,
+              warnings: [],
               lltv: "770000000000000000", // 77%
               oracle: {
                 address: "0x04689a41629776563E6822F76f2e57D148d28513",
@@ -79,6 +82,24 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  it("shows only Morpho markets that Morpho lists and that carry no warnings", () => {
+    expect(isVerifiedMorphoMarket({ listed: true, warnings: [] })).toBe(true);
+    expect(isVerifiedMorphoMarket({ listed: false, warnings: [] })).toBe(false);
+    expect(isVerifiedMorphoMarket({ listed: true, warnings: [{ type: "oracle_unusable" }] })).toBe(false);
+    expect(isVerifiedMorphoMarket({ warnings: [] })).toBe(false);
+  });
+
+  it("matches Beefy vaults to stocks by contract address, never by a shared ticker", () => {
+    const official = new Map(TOKENIZED_STOCKS_REGISTRY.map((s) => [s.address.toLowerCase(), s]));
+    const googl = TOKENIZED_STOCKS_REGISTRY.find((s) => s.symbol === "GOOGLc")!;
+    const tokens = { GOOGLc: googl.address, USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", VVV: "0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf", WETH: "0x4200000000000000000000000000000000000006" };
+    expect(beefyVaultStock({ assets: ["USDC", "GOOGLc"], tokenAddress: "0x0000000000000000000000000000000000000001" }, tokens, official)?.symbol).toBe("GOOGLc");
+    // VVV (Venice) shares a ticker with a stock but is a different contract
+    expect(beefyVaultStock({ assets: ["VVV", "WETH"] }, tokens, official)).toBeNull();
+    // single-stock vault (Aave v4): the vault token is the stock itself
+    expect(beefyVaultStock({ assets: [], tokenAddress: googl.address }, tokens, official)?.symbol).toBe("GOOGLc");
   });
 
   it("verifies Aave V4 is explicitly noted as not deployed on Base and V3 is queried", () => {

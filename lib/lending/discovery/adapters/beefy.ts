@@ -5,6 +5,30 @@ import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registr
 const BEEFY_VAULTS_URL = "https://api.beefy.finance/vaults";
 const BEEFY_APY_URL = "https://api.beefy.finance/apy";
 const BEEFY_TVL_URL = "https://api.beefy.finance/tvl";
+/** Beefy's own symbol -> contract map for Base: lets us verify vault assets by ADDRESS. */
+const BEEFY_TOKENS_URL = "https://api.beefy.finance/tokens/base";
+
+/**
+ * The official stock a Beefy vault holds, matched by contract address only (never by
+ * ticker: "VVV", "CAKE", "PLAY", "COMP" are crypto tokens that share stock tickers).
+ */
+export function beefyVaultStock(
+  vault: { assets?: string[]; tokenAddress?: string },
+  tokenAddressBySymbol: Record<string, string | undefined>,
+  officialByAddress: Map<string, (typeof TOKENIZED_STOCKS_REGISTRY)[number]>
+) {
+  const addrs = [
+    vault.tokenAddress,
+    ...(Array.isArray(vault.assets) ? vault.assets.map((sym) => tokenAddressBySymbol[sym]) : []),
+  ]
+    .filter((a): a is string => typeof a === "string")
+    .map((a) => a.toLowerCase());
+  for (const a of addrs) {
+    const hit = officialByAddress.get(a);
+    if (hit) return hit;
+  }
+  return null;
+}
 
 export const beefyAdapter: DiscoveryAdapter = {
   protocol: "beefy",
@@ -15,10 +39,11 @@ export const beefyAdapter: DiscoveryAdapter = {
     const markets: NormalizedMarket[] = [];
 
     try {
-      const [vaultsRes, apyRes, tvlRes] = await Promise.all([
+      const [vaultsRes, apyRes, tvlRes, tokensRes] = await Promise.all([
         fetch(BEEFY_VAULTS_URL, { next: { revalidate: 300 } }),
         fetch(BEEFY_APY_URL, { next: { revalidate: 300 } }).catch(() => null),
         fetch(BEEFY_TVL_URL, { next: { revalidate: 300 } }).catch(() => null),
+        fetch(BEEFY_TOKENS_URL, { next: { revalidate: 3600 } }).catch(() => null),
       ]);
 
       if (!vaultsRes.ok) {
@@ -29,9 +54,14 @@ export const beefyAdapter: DiscoveryAdapter = {
       const allVaults = (await vaultsRes.json()) as any[];
       const apyMap = apyRes && apyRes.ok ? ((await apyRes.json()) as Record<string, number>) : {};
       const tvlMap = tvlRes && tvlRes.ok ? ((await tvlRes.json()) as Record<string, any>) : {};
+      const tokensJson =
+        tokensRes && tokensRes.ok ? ((await tokensRes.json()) as Record<string, { address?: string }>) : {};
+      const tokenAddressBySymbol: Record<string, string | undefined> = {};
+      for (const [sym, t] of Object.entries(tokensJson)) tokenAddressBySymbol[sym] = t?.address;
+      const officialByAddress = new Map(TOKENIZED_STOCKS_REGISTRY.map((st) => [st.address.toLowerCase(), st]));
 
       const baseVaults = allVaults.filter(
-        (v) => v.chain === "base" || v.network === "base"
+        (v) => (v.chain === "base" || v.network === "base") && v.status === "active"
       );
 
       // Sort candidate vaults: active vaults first, then highest TVL descending
@@ -50,37 +80,14 @@ export const beefyAdapter: DiscoveryAdapter = {
       for (const v of baseVaults) {
         if (!v.earnContractAddress) continue;
 
-        const rawAssets: string[] = Array.isArray(v.assets) ? v.assets : [];
-        const tokenParts = (v.token || "").toLowerCase().split(/[-_]/);
-        const idParts = (v.id || "").toLowerCase().split(/[-_]/);
-        const assetsLower = rawAssets.map((a) => a.toLowerCase());
-
-        // Match against tokenized stocks registry strictly
-        const matchedStock = TOKENIZED_STOCKS_REGISTRY.find((stock) => {
-          const sym = stock.symbol.toLowerCase();
-          const ticker = stock.underlyingTicker.toLowerCase();
-          if (ticker.length <= 2) {
-            return (
-              assetsLower.includes(sym) ||
-              tokenParts.includes(sym) ||
-              idParts.includes(sym)
-            );
-          }
-          return (
-            assetsLower.includes(sym) ||
-            assetsLower.includes(ticker) ||
-            tokenParts.includes(sym) ||
-            tokenParts.includes(ticker) ||
-            idParts.includes(sym) ||
-            idParts.includes(ticker)
-          );
-        });
-
+        const matchedStock = beefyVaultStock(v, tokenAddressBySymbol, officialByAddress);
         if (!matchedStock) continue;
 
-        // Keep the best active vault per stock
-        if (seenStocks.has(matchedStock.symbol)) continue;
-        seenStocks.add(matchedStock.symbol);
+        if (seenStocks.has(v.id)) continue;
+        seenStocks.add(v.id);
+        // Single-asset vault that lends the stock itself (e.g. Beefy's Aave v4 vaults)
+        const singleAsset = (v.tokenAddress || "").toLowerCase() === matchedStock.address.toLowerCase();
+        const venue = String(v.platformId || "").toLowerCase();
 
         try {
           const earnAddr = getAddress(v.earnContractAddress);
@@ -100,7 +107,7 @@ export const beefyAdapter: DiscoveryAdapter = {
             marketId: `beefy-${v.id}`,
             type: "stake",
             supplyAsset: {
-              symbol: v.token || `${matchedStock.symbol}-USDC`,
+              symbol: singleAsset ? matchedStock.symbol : v.token || `${matchedStock.symbol}-USDC`,
               name: v.name || `${matchedStock.name} Beefy Vault`,
               address: earnAddr,
               decimals: v.tokenDecimals || 18,
@@ -121,7 +128,7 @@ export const beefyAdapter: DiscoveryAdapter = {
             tvlUsd,
             utilization: 100,
             oracle: {
-              name: "Beefy / Aerodrome LP Oracle",
+              name: singleAsset ? `Beefy vault on ${venue || "lending"}` : "Beefy / Aerodrome LP Oracle",
               isVerified: true,
               type: "composite",
             },
@@ -132,7 +139,11 @@ export const beefyAdapter: DiscoveryAdapter = {
             sourceLink: `https://app.beefy.com/vault/${v.id}`,
             lastUpdated: new Date().toISOString(),
             status,
-            badgeText: v.status === "active" ? "Beefy Auto-Compounder" : "Beefy Vault (Paused)",
+            badgeText: singleAsset
+              ? venue.startsWith("aave")
+                ? "Lends your stock on Aave v4"
+                : "Single-stock vault"
+              : "Auto-compounding LP",
             contractAddress: earnAddr,
           });
         } catch (mktErr) {

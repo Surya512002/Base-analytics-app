@@ -1,3 +1,4 @@
+import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import { createPublicClient, http, getAddress, type Address } from "viem";
 import { base } from "viem/chains";
 import type { DiscoveryAdapter, NormalizedMarket } from "../types";
@@ -105,14 +106,15 @@ export const aerodromeAdapter: DiscoveryAdapter = {
           (p: any) => p.chain === "Base" && (p.project === "aerodrome" || p.project === "aerodrome-slipstream")
         );
 
-        for (const stock of targetStocks) {
-          const symUpper = stock.symbol.toUpperCase();
-          const match =
-            aeroBase.find((p: any) => {
-              const pSym = (p.symbol || "").toUpperCase();
-              return pSym.includes(symUpper) && (pSym.includes("USDC") || pSym.includes("USD"));
-            }) ||
-            aeroBase.find((p: any) => (p.symbol || "").toUpperCase().includes(symUpper));
+        // Verified by ADDRESS: every official stock with a live Aerodrome pool (DefiLlama lists
+        // each pool's underlying token contracts), deepest pool per stock.
+        for (const stock of BASE_VERIFIED_STOCKS) {
+          const addr = stock.address.toLowerCase();
+          const match = aeroBase
+            .filter((p: any) =>
+              Array.isArray(p.underlyingTokens) && p.underlyingTokens.some((t: string) => String(t).toLowerCase() === addr)
+            )
+            .sort((x: any, y: any) => Number(y.tvlUsd || 0) - Number(x.tvlUsd || 0))[0];
 
           if (match) {
             const apy = Math.round(Number(match.apy || 0) * 100) / 100;

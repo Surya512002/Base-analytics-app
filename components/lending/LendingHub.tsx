@@ -16,6 +16,7 @@ import { MIN_TVL_USD } from "@/lib/lending/constants";
 import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
 import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
+import StockMarketsExplorer from "@/components/lending/StockMarketsExplorer";
 import PositionsPanel from "./PositionsPanel";
 import {
   fetchAllUserPositions,
@@ -83,11 +84,12 @@ export default function LendingHub({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const v = params.get("view");
-      if (v === "finder" || v === "vaults" || v === "compare" || v === "stocks") {
+      if (v === "finder" || v === "vaults" || v === "compare" || v === "stocks" || v === "markets") {
         return v;
       }
     }
-    return "stocks";
+    // A stock deep link (initialStock) opens its detail in the All Stocks view.
+    return initialStock ? "stocks" : "markets";
   });
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(initialStock ?? null);
 
@@ -579,6 +581,22 @@ export default function LendingHub({
     setDrawerInitialTab(tab);
   };
 
+  // Stock Markets explorer → the exact market in the in-app drawer (falls back to the protocol).
+  const handleExplorerAction = (
+    market: import("@/lib/lending/discovery/types").NormalizedMarket,
+    action: "borrow" | "supply"
+  ) => {
+    const sym = (market.collateralAsset ?? market.supplyAsset).symbol;
+    getUnifiedStockLendingComparison(sym, undefined, false, discoveredMarkets)
+      .then((res) => {
+        setComparison(res);
+        const opt = res.options.find((o) => o.id === `${market.protocol}-${market.marketId}`);
+        if (opt) handleOpenStockDrawer(opt, action);
+        else window.open(market.sourceLink, "_blank", "noopener,noreferrer");
+      })
+      .catch(() => window.open(market.sourceLink, "_blank", "noopener,noreferrer"));
+  };
+
   // Open Action Modal for non-stock markets or gauges
   const handleOpenMarketModal = (
     market: LendingMarket,
@@ -866,11 +884,19 @@ export default function LendingHub({
           }}
           stocksCount={BASE_STOCKS.length}
           vaultsCount={gaugeRows.length}
+          marketsCount={discoveredMarkets.length}
         />
       </div>
 
       {/* 5. ACTIVE SHOWCASE VIEW */}
-      {activeTab === "vaults" ? (
+      {activeTab === "markets" ? (
+        /* VERIFIED STOCK MARKETS: one row per stock, compare, calculator */
+        <StockMarketsExplorer
+          markets={discoveredMarkets}
+          loading={isLoadingDiscovered}
+          onAction={handleExplorerAction}
+        />
+      ) : activeTab === "vaults" ? (
         /* STAKE & GAUGES VIEW */
         <GaugesTable
           gauges={gaugeRows}

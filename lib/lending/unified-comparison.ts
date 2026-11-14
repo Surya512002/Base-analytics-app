@@ -539,6 +539,10 @@ export async function getUnifiedStockLendingComparison(
     contractAddress: opt.contractAddress,
     executionType: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : "aave") as any,
     sourceLink: opt.sourceLink,
+    morphoParams: (() => {
+      const src = discoveredMarkets.find((m) => `${m.protocol}-${m.marketId}` === opt.id)?.morphoParams;
+      return src ? { ...src, lltv: BigInt(src.lltv as unknown as string | bigint) } : undefined;
+    })(),
     role: opt.role,
     kindChip: opt.kindChip,
     isLowLiquidity: opt.isLowLiquidity,

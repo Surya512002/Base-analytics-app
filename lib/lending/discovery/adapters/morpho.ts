@@ -18,6 +18,11 @@ const STOCK_MARKETS_QUERY = `
         marketId
         lltv
         irmAddress
+        listed
+        warnings {
+          type
+          level
+        }
         oracle {
           address
           type
@@ -27,6 +32,7 @@ const STOCK_MARKETS_QUERY = `
           borrowApy
           utilization
           liquidityAssets
+          liquidityAssetsUsd
           supplyAssetsUsd
           borrowAssetsUsd
         }
@@ -35,14 +41,12 @@ const STOCK_MARKETS_QUERY = `
           symbol
           name
           decimals
-          priceUsd
         }
         collateralAsset {
           address
           symbol
           name
           decimals
-          priceUsd
         }
       }
     }
@@ -61,6 +65,11 @@ const GENERAL_MARKETS_QUERY = `
         marketId
         lltv
         irmAddress
+        listed
+        warnings {
+          type
+          level
+        }
         oracle {
           address
           type
@@ -70,6 +79,7 @@ const GENERAL_MARKETS_QUERY = `
           borrowApy
           utilization
           liquidityAssets
+          liquidityAssetsUsd
           supplyAssetsUsd
           borrowAssetsUsd
         }
@@ -78,19 +88,25 @@ const GENERAL_MARKETS_QUERY = `
           symbol
           name
           decimals
-          priceUsd
         }
         collateralAsset {
           address
           symbol
           name
           decimals
-          priceUsd
         }
       }
     }
   }
 `;
+
+/**
+ * A market we show: whitelisted by Morpho (`listed`) and carrying no warnings at all
+ * (e.g. not_whitelisted, oracle_unusable, oracle_price_derivation, bad debt).
+ */
+export function isVerifiedMorphoMarket(item: { listed?: boolean; warnings?: Array<{ type?: string }> | null }): boolean {
+  return item.listed === true && (!item.warnings || item.warnings.length === 0);
+}
 
 export const morphoAdapter: DiscoveryAdapter = {
   protocol: "morpho",
@@ -103,7 +119,7 @@ export const morphoAdapter: DiscoveryAdapter = {
       const rawItems: any[] = [];
 
       // 1. Fetch tokenized stock markets by chunking active tokenized stock addresses (50 per chunk)
-      const stockAddrs = TOKENIZED_STOCKS_REGISTRY.map((s) => s.address);
+      const stockAddrs = TOKENIZED_STOCKS_REGISTRY.map((s) => s.address.toLowerCase());
       const chunkSize = 50;
       const chunks: string[][] = [];
       for (let i = 0; i < stockAddrs.length; i += chunkSize) {
@@ -127,6 +143,9 @@ export const morphoAdapter: DiscoveryAdapter = {
             });
             if (resp.ok) {
               const json = await resp.json();
+              if (json.errors) {
+                throw new Error(`Morpho API: ${JSON.stringify(json.errors).slice(0, 300)}`);
+              }
               const items = json.data?.markets?.items;
               if (Array.isArray(items)) {
                 rawItems.push(...items);
@@ -165,6 +184,7 @@ export const morphoAdapter: DiscoveryAdapter = {
 
       for (const item of rawItems) {
         if (!item.collateralAsset || !item.loanAsset) continue;
+        if (!isVerifiedMorphoMarket(item)) continue;
 
         try {
           const loanAddr = getAddress(item.loanAsset.address);
@@ -182,7 +202,7 @@ export const morphoAdapter: DiscoveryAdapter = {
           const supplyAssetsUsd = Number(item.state?.supplyAssetsUsd || 0);
           const borrowAssetsUsd = Number(item.state?.borrowAssetsUsd || 0);
           const tvlUsd = Math.round(supplyAssetsUsd + borrowAssetsUsd);
-          const liquidityUsd = Math.max(0, supplyAssetsUsd - borrowAssetsUsd);
+          const liquidityUsd = Number(item.state?.liquidityAssetsUsd ?? Math.max(0, supplyAssetsUsd - borrowAssetsUsd));
 
           const supplyApy = Number((item.state?.supplyApy || 0) * 100);
           const borrowApr = Number((item.state?.borrowApy || 0) * 100);
@@ -224,7 +244,7 @@ export const morphoAdapter: DiscoveryAdapter = {
             utilization: Number(utilization.toFixed(1)),
             oracle: {
               address: oracleAddr,
-              name: isKnownOracle ? `Chainlink Feed (${oracleAddr.slice(0, 6)}…)` : "Unknown Oracle",
+              name: isKnownOracle ? `Morpho-listed oracle (${oracleAddr.slice(0, 6)}…)` : "Unknown Oracle",
               isVerified: isKnownOracle,
               type: "chainlink",
             },
@@ -232,7 +252,7 @@ export const morphoAdapter: DiscoveryAdapter = {
             canBorrow: isKnownOracle,
             canUseAsCollateral: true,
             riskFlags: isKnownOracle ? [] : ["UNKNOWN_ORACLE"],
-            sourceLink: `https://app.morpho.org/market?id=${marketKey}&network=base`,
+            sourceLink: `https://app.morpho.org/base/market/${marketKey}`,
             lastUpdated: new Date().toISOString(),
             status: utilization >= 95 ? "cap_reached" : "active",
             morphoParams: {
