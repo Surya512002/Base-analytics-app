@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity ^0.8.20;
 
 /// @title SimQuoter
 /// @notice Read-only price quoter for Uniswap-v3-style pools (incl. Aerodrome Slipstream).
