@@ -1,4 +1,4 @@
-import { getRedisClient } from "@/lib/redis-cache";
+import { getRedisClient, ensureRedisReady } from "@/lib/redis-cache";
 import { readDiskJson, writeDiskJson } from "@/lib/utils/disk-store";
 import type { StoredVoucherBatch } from "@/lib/utils/voucher";
 
@@ -39,7 +39,7 @@ export async function readCreatorCredentials(
   try {
     const redis = getRedisClient();
     if (redis) {
-      if (redis.status !== "ready") await redis.connect();
+      await ensureRedisReady(redis);
       const raw = await redis.get(credentialsKey(normalized));
       if (raw) {
         const parsed = JSON.parse(raw) as StoredVoucherBatch[];
@@ -93,7 +93,7 @@ export async function upsertCreatorBatch(
   try {
     const redis = getRedisClient();
     if (redis) {
-      if (redis.status !== "ready") await redis.connect();
+      await ensureRedisReady(redis);
       await redis.set(credentialsKey(normalized), JSON.stringify(existing));
     }
   } catch (err) {

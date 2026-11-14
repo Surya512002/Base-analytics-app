@@ -68,6 +68,38 @@ function getRedis(): Redis | null {
   return client;
 }
 
+let connecting: Promise<void> | null = null;
+
+/**
+ * Connect once and share it: concurrent callers wait on the same connect instead of racing
+ * ("Redis is already connecting" / "Connection is closed"). ioredis can reconnect a client
+ * whose connection ended (serverless idle timeout, no retry strategy) with connect() again.
+ */
+export async function ensureRedisReady(redis: Redis): Promise<void> {
+  if (redis.status === "ready") return;
+  if (!connecting) {
+    connecting = redis.connect().finally(() => {
+      connecting = null;
+    });
+  }
+  await connecting;
+}
+
+/** Ready-to-use client (connected), or null when Redis isn't configured / reachable. */
+export async function getReadyRedis(): Promise<Redis | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const redis = getRedis();
+    if (!redis) return null;
+    try {
+      await ensureRedisReady(redis);
+      return redis;
+    } catch (err) {
+      handleCacheError(err);
+    }
+  }
+  return null;
+}
+
 function handleCacheError(err: unknown) {
   const msg = err instanceof Error ? err.message : String(err);
   if (AUTH_ERROR.test(msg)) {
@@ -79,7 +111,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   const redis = getRedis();
   if (!redis) return null;
   try {
-    if (redis.status !== "ready") await redis.connect();
+    await ensureRedisReady(redis);
     const raw = await redis.get(key);
     if (!raw) return null;
     return JSON.parse(raw) as T;
@@ -97,7 +129,7 @@ export async function cacheSet(
   const redis = getRedis();
   if (!redis) return;
   try {
-    if (redis.status !== "ready") await redis.connect();
+    await ensureRedisReady(redis);
     await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
   } catch (err) {
     handleCacheError(err);
@@ -118,7 +150,7 @@ export async function pingRedis(): Promise<{
   if (!redis) return { ok: false, error: "KV_REDIS_URL not set" };
   const start = Date.now();
   try {
-    if (redis.status !== "ready") await redis.connect();
+    await ensureRedisReady(redis);
     const pong = await redis.ping();
     return {
       ok: pong === "PONG",

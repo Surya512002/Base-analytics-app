@@ -1,4 +1,4 @@
-import { getRedisClient } from "@/lib/redis-cache";
+import { getRedisClient, ensureRedisReady } from "@/lib/redis-cache";
 import { readDiskJson, writeDiskJson } from "@/lib/utils/disk-store";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
@@ -14,6 +14,24 @@ const INITIAL_ONCHAIN_CREATORS = [
   "0xbcddd1bc8f3c0c24bedee41720287ff50a7b7148",
   "0xc63177ef5e738d65020723f5ce64dc5e8dd9c5c2",
 ];
+
+// Daily activity: one set of wallets per UTC day, plus a "new wallets" counter per day.
+const DAY_USERS_PREFIX = "app:active_users:";
+const DAY_NEW_PREFIX = "app:new_users:";
+const DAY_TTL_SECONDS = 8 * 86_400;
+
+/** UTC day key, e.g. "2026-11-14". */
+export function utcDay(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/** The last `n` UTC days, oldest first. */
+export function lastUtcDays(n: number, now = new Date()): string[] {
+  return Array.from({ length: n }, (_, i) => utcDay(new Date(now.getTime() - (n - 1 - i) * 86_400_000)));
+}
+
+const localDayUsers = new Map<string, Set<string>>();
+const localDayNew = new Map<string, number>();
 
 // In-memory set for local fallback/caching if Redis is unconfigured or temporarily down
 const localUniqueUsers = new Set<string>();
@@ -63,6 +81,33 @@ export function isValidTxHash(txHash: unknown): txHash is `0x${string}` {
 }
 
 /**
+ * Mark a wallet active today (and count it as new if it has never been seen).
+ * `isNew` is whether the all-time set just gained this wallet.
+ */
+async function markActiveToday(
+  redis: ReturnType<typeof getRedisClient>,
+  addr: string,
+  isNew: boolean
+): Promise<void> {
+  const day = utcDay();
+  if (!localDayUsers.has(day)) localDayUsers.set(day, new Set());
+  localDayUsers.get(day)!.add(addr);
+  if (isNew) localDayNew.set(day, (localDayNew.get(day) ?? 0) + 1);
+  if (!redis) return;
+  try {
+    const dayKey = DAY_USERS_PREFIX + day;
+    const ops: Array<Promise<unknown>> = [redis.sadd(dayKey, addr), redis.expire(dayKey, DAY_TTL_SECONDS)];
+    if (isNew) {
+      const newKey = DAY_NEW_PREFIX + day;
+      ops.push(redis.incr(newKey), redis.expire(newKey, DAY_TTL_SECONDS));
+    }
+    await Promise.all(ops);
+  } catch (err) {
+    console.warn("[Redis Unique Users] daily activity write failed:", err);
+  }
+}
+
+/**
  * Record a verified unique user address in Redis and local persistent storage.
  * Uses Redis SADD (Set Add) for O(1) deduplicated user tracking.
  */
@@ -73,20 +118,23 @@ export async function recordUniqueUser(address: string): Promise<number> {
     return getUniqueUserCount();
   }
 
+  const wasKnownLocally = localUniqueUsers.has(cleanAddr);
   localUniqueUsers.add(cleanAddr);
   if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
     writeDiskJson(DISK_USERS_FILE, [...localUniqueUsers]);
   }
 
   const redis = getRedisClient();
+  let isNew = !wasKnownLocally;
   if (redis) {
     try {
-      if (redis.status !== "ready") await redis.connect();
-      await redis.sadd(REDIS_UNIQUE_USERS_KEY, cleanAddr);
+      await ensureRedisReady(redis);
+      isNew = (await redis.sadd(REDIS_UNIQUE_USERS_KEY, cleanAddr)) === 1;
     } catch (err) {
       console.warn("[Redis Unique Users] SADD failed:", err);
     }
   }
+  await markActiveToday(redis, cleanAddr, isNew);
 
   return getUniqueUserCount();
 }
@@ -116,7 +164,7 @@ export async function verifyAndRecordUserTransaction(
   const redis = getRedisClient();
   if (redis) {
     try {
-      if (redis.status !== "ready") await redis.connect();
+      await ensureRedisReady(redis);
       const alreadyUsed = await redis.sismember(REDIS_VERIFIED_TXS_KEY, cleanTx);
       if (alreadyUsed) {
         return { success: true, count: await getUniqueUserCount() };
@@ -171,16 +219,19 @@ export async function verifyAndRecordUserTransaction(
       writeDiskJson(DISK_TXS_FILE, [...localVerifiedTxs]);
     }
 
+    let isNew = false;
     if (redis) {
       try {
-        await Promise.all([
+        const [, added] = await Promise.all([
           redis.sadd(REDIS_VERIFIED_TXS_KEY, cleanTx),
           redis.sadd(REDIS_UNIQUE_USERS_KEY, cleanAddr),
         ]);
+        isNew = added === 1;
       } catch (err) {
         console.warn("[Redis Unique Users] Failed to save verified tx/user to Redis:", err);
       }
     }
+    await markActiveToday(redis, cleanAddr, isNew);
 
     const count = await getUniqueUserCount();
     return { success: true, count };
@@ -200,7 +251,7 @@ export async function getUniqueUserCount(): Promise<number> {
   const redis = getRedisClient();
   if (redis) {
     try {
-      if (redis.status !== "ready") await redis.connect();
+      await ensureRedisReady(redis);
       const count = await redis.scard(REDIS_UNIQUE_USERS_KEY);
       if (typeof count === "number" && count > 0) {
         return count;
@@ -233,4 +284,50 @@ export async function getUniqueUserCount(): Promise<number> {
 export async function getFormattedUniqueUserCount(): Promise<string> {
   const count = await getUniqueUserCount();
   return count.toLocaleString();
+}
+
+export type UserActivityStats = {
+  /** All-time unique wallets. */
+  total: number;
+  /** Unique wallets active today (UTC). */
+  today: number;
+  /** Wallets seen for the first time today. */
+  newToday: number;
+  /** Unique wallets per day for the last 7 days, oldest first (last item = today). */
+  last7: Array<{ day: string; users: number }>;
+  /** Where the numbers came from. */
+  source: "redis" | "local";
+};
+
+/** Total + today + new today + 7-day series, from Redis (or the local fallback). */
+export async function getUserActivityStats(): Promise<UserActivityStats> {
+  const total = await getUniqueUserCount();
+  const days = lastUtcDays(7);
+  const today = days[days.length - 1];
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      await ensureRedisReady(redis);
+      const [counts, newToday] = await Promise.all([
+        Promise.all(days.map((d) => redis.scard(DAY_USERS_PREFIX + d))),
+        redis.get(DAY_NEW_PREFIX + today),
+      ]);
+      return {
+        total,
+        today: counts[counts.length - 1] ?? 0,
+        newToday: Number(newToday ?? 0) || 0,
+        last7: days.map((day, i) => ({ day, users: counts[i] ?? 0 })),
+        source: "redis",
+      };
+    } catch (err) {
+      console.warn("[Redis Unique Users] activity read failed:", err);
+    }
+  }
+  return {
+    total,
+    today: localDayUsers.get(today)?.size ?? 0,
+    newToday: localDayNew.get(today) ?? 0,
+    last7: days.map((day) => ({ day, users: localDayUsers.get(day)?.size ?? 0 })),
+    source: "local",
+  };
 }

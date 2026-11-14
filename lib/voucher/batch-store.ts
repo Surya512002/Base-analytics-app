@@ -1,4 +1,4 @@
-import { getRedisClient } from "@/lib/redis-cache";
+import { getRedisClient, ensureRedisReady } from "@/lib/redis-cache";
 import { readDiskJson, writeDiskJson } from "@/lib/utils/disk-store";
 import type { VoucherBatchMeta } from "@/lib/types/voucher";
 
@@ -12,7 +12,7 @@ export async function readStoredBatches(): Promise<VoucherBatchMeta[]> {
   try {
     const redis = getRedisClient();
     if (redis) {
-      if (redis.status !== "ready") await redis.connect();
+      await ensureRedisReady(redis);
       const raw = await redis.get(DB_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as VoucherBatchMeta[];
@@ -40,7 +40,7 @@ export async function writeStoredBatches(batches: VoucherBatchMeta[]): Promise<v
   try {
     const redis = getRedisClient();
     if (redis) {
-      if (redis.status !== "ready") await redis.connect();
+      await ensureRedisReady(redis);
       await redis.set(DB_KEY, JSON.stringify(batches));
     }
   } catch (e) {

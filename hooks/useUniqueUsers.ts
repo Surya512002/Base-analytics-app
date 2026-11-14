@@ -2,17 +2,33 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
+export interface DailyUsers {
+  day: string;
+  users: number;
+}
+
 interface UniqueUsersState {
   count: number;
   formatted: string;
   loading: boolean;
+  /** Unique wallets active today (UTC). */
+  today: number;
+  /** Wallets seen for the first time today. */
+  newToday: number;
+  /** Last 7 days, oldest first. */
+  last7: DailyUsers[];
 }
+
+type Activity = { today?: number; newToday?: number; last7?: DailyUsers[] };
 
 // Module-level store ensuring all components on the same page remain 100% in sync
 let globalState: UniqueUsersState = {
   count: 0,
   formatted: "0",
   loading: true,
+  today: 0,
+  newToday: 0,
+  last7: [],
 };
 
 const listeners = new Set<() => void>();
@@ -23,19 +39,28 @@ function emitChange() {
   }
 }
 
-function updateGlobalState(count: number, formatted?: string) {
+function updateGlobalState(count: number, formatted?: string, activity?: Activity) {
   const validCount = typeof count === "number" && !isNaN(count) ? count : globalState.count;
   const validFormatted = formatted || validCount.toLocaleString();
+  const today = typeof activity?.today === "number" ? activity.today : globalState.today;
+  const newToday = typeof activity?.newToday === "number" ? activity.newToday : globalState.newToday;
+  const last7 = Array.isArray(activity?.last7) ? activity.last7 : globalState.last7;
 
   if (
     globalState.count !== validCount ||
     globalState.formatted !== validFormatted ||
-    globalState.loading
+    globalState.loading ||
+    globalState.today !== today ||
+    globalState.newToday !== newToday ||
+    JSON.stringify(globalState.last7) !== JSON.stringify(last7)
   ) {
     globalState = {
       count: validCount,
       formatted: validFormatted,
       loading: false,
+      today,
+      newToday,
+      last7,
     };
     emitChange();
   }
@@ -56,6 +81,9 @@ const serverSnapshot: UniqueUsersState = {
   count: 0,
   formatted: "0",
   loading: false,
+  today: 0,
+  newToday: 0,
+  last7: [],
 };
 
 function getServerSnapshot(): UniqueUsersState {
@@ -73,7 +101,11 @@ async function fetchUniqueUsersCount(): Promise<void> {
       if (res.ok) {
         const data = await res.json();
         if (data.ok && typeof data.count === "number") {
-          updateGlobalState(data.count, data.formatted);
+          updateGlobalState(data.count, data.formatted, {
+            today: data.today,
+            newToday: data.newToday,
+            last7: data.last7,
+          });
         }
       }
     } catch (err) {
@@ -130,6 +162,10 @@ export function useUniqueUsers(connectedAddress?: string | null) {
 
   useEffect(() => {
     void fetchUniqueUsersCount();
+    const t = window.setInterval(() => {
+      if (!document.hidden) void fetchUniqueUsersCount();
+    }, 60_000);
+    return () => window.clearInterval(t);
   }, []);
 
   useEffect(() => {
@@ -147,6 +183,8 @@ export function useUniqueUsers(connectedAddress?: string | null) {
         if (data?.ok && typeof data.count === "number") {
           updateGlobalState(data.count, data.formatted);
         }
+        // pick up today's numbers including this wallet
+        void fetchUniqueUsersCount();
       })
       .catch(() => {});
   }, [connectedAddress]);

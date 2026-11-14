@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  getUniqueUserCount,
-  getFormattedUniqueUserCount,
+  getUserActivityStats,
   verifyAndRecordUserTransaction,
   isValidEthAddress,
   isValidTxHash,
@@ -34,13 +33,16 @@ function isRateLimited(ip: string): boolean {
 }
 
 export async function GET() {
-  const count = await getUniqueUserCount();
-  const formatted = await getFormattedUniqueUserCount();
+  const stats = await getUserActivityStats();
   return NextResponse.json(
     {
       ok: true,
-      count,
-      formatted,
+      count: stats.total,
+      formatted: stats.total.toLocaleString(),
+      today: stats.today,
+      newToday: stats.newToday,
+      last7: stats.last7,
+      source: stats.source,
     },
     { headers: NO_CACHE_HEADERS }
   );

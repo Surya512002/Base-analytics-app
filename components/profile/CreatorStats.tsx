@@ -2,9 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { Rocket, Users } from "lucide-react";
-import { useUniqueUsers } from "@/hooks/useUniqueUsers";
+import { BarChart3, Coins, Gem, Rocket, type LucideIcon } from "lucide-react";
 import { formatUsd } from "@/lib/launchpad/format";
+import CommunityPulse from "@/components/profile/CommunityPulse";
 
 interface CreatorStatsProps {
   address?: string;
@@ -18,7 +18,7 @@ interface CreatorStatsProps {
 }
 
 export default function CreatorStats({
-  address,
+  address: _address,
   loading = false,
   launches,
   earningsDisplay,
@@ -27,7 +27,6 @@ export default function CreatorStats({
   totalMcap,
   isOwner = false,
 }: CreatorStatsProps) {
-  const { formatted: uniqueUsersFormatted } = useUniqueUsers(address);
 
   if (loading) {
     return (
@@ -43,24 +42,32 @@ export default function CreatorStats({
   }
   const isAllEmpty = launches === 0 && volume24h === 0 && totalMcap === 0;
 
-  const statItems = [
+  const statItems: Array<{ label: string; value: string; subtext: string; isEst?: boolean; icon: LucideIcon; accent: string }> = [
     {
+      icon: Rocket,
+      accent: "#0052FF",
       label: "Launches",
       value: String(launches),
       subtext: launches === 1 ? "1 Token" : `${launches} Tokens`,
     },
     {
+      icon: Coins,
+      accent: "#10B981",
       label: "Creator Earnings",
       value: earningsDisplay || "0 ETH",
       isEst: isEstimatedEarnings,
       subtext: "50% of platform fees",
     },
     {
+      icon: BarChart3,
+      accent: "#6366F1",
       label: "24H Volume",
       value: volume24h > 0 ? formatUsd(volume24h) : "$0.00",
       subtext: volume24h > 0 ? "Past 24 hours" : "No volume yet",
     },
     {
+      icon: Gem,
+      accent: "#F59E0B",
       label: "Total Mcap",
       value: totalMcap > 0 ? formatUsd(totalMcap) : "$0.00",
       subtext: totalMcap > 0 ? "Cumulative tokens" : "No tokens yet",
@@ -74,11 +81,20 @@ export default function CreatorStats({
         {statItems.map((item) => (
           <div
             key={item.label}
-            className="pop flex flex-col justify-between min-w-0 p-3 sm:p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs transition overflow-hidden"
+            className="pop relative flex flex-col justify-between min-w-0 p-3 sm:p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs transition overflow-hidden"
           >
+            <span aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ background: item.accent }} />
             <div className="flex items-center justify-between gap-1 min-w-0">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
-                {item.label}
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: `${item.accent}1f`, color: item.accent }}
+                >
+                  <item.icon size={13} />
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
+                  {item.label}
+                </span>
               </span>
               {item.isEst && (
                 <span
@@ -103,29 +119,8 @@ export default function CreatorStats({
         ))}
       </div>
 
-      {/* Community Unique Users Banner */}
-      <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Users size={17} />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
-              Base Community &amp; Active App Users
-            </div>
-            <div className="text-[11px] text-[var(--ink-dim)] truncate">
-              Unique wallet addresses connected and tracked via Redis backend
-            </div>
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="text-base sm:text-xl font-black text-[var(--ink)] font-mono tabular-nums flex items-center gap-1.5 justify-end">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {uniqueUsersFormatted}
-          </div>
-          <span className="text-[10px] font-semibold text-[var(--ink-muted)]">Total Connected</span>
-        </div>
-      </div>
+      {/* Community pulse: people using the app today + 7-day trend (live from Redis) */}
+      <CommunityPulse />
 
       {/* Guidance Line when empty */}
       {isAllEmpty && isOwner && (

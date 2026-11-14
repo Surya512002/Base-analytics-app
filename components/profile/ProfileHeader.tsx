@@ -46,7 +46,7 @@ export default function ProfileHeader({
   const [copiedLink, setCopiedLink] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [basename, setBasename] = useState<string | null>(null);
-  const { formatted: uniqueUsersFormatted } = useUniqueUsers(address);
+  const { today: activeToday } = useUniqueUsers();
 
   // Check Basename resolution on Base mainnet
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function ProfileHeader({
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <Users size={11} />
-                  <span>{uniqueUsersFormatted} Unique Users</span>
+                  <span>{activeToday} active today</span>
                 </span>
               </div>
 

@@ -1,4 +1,4 @@
-import { getRedisClient } from "@/lib/redis-cache";
+import { getRedisClient, ensureRedisReady } from "@/lib/redis-cache";
 
 type Bucket = { count: number; resetAt: number };
 type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number };
@@ -62,7 +62,7 @@ async function checkRateLimitRedis(
   const windowSec = Math.max(1, Math.ceil(windowMs / 1000));
 
   try {
-    if (redis.status !== "ready") await redis.connect();
+    await ensureRedisReady(redis);
     const count = await redis.incr(redisKey);
     if (count === 1) {
       await redis.expire(redisKey, windowSec);

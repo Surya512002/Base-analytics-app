@@ -143,7 +143,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     resolveAlias: {
       "@react-native-async-storage/async-storage": "./lib/stubs/async-storage.ts",
-      ioredis: "./lib/stubs/ioredis-stub.ts",
+      // Browser only: the server must load the real ioredis (aliasing it everywhere silently
+      // disabled Redis in production: "e.connect is not a function").
+      ioredis: { browser: "./lib/stubs/ioredis-stub.ts" },
       "@x402/svm/exact/client": "./lib/stubs/empty.ts",
       "@x402/svm": "./lib/stubs/empty.ts",
     },

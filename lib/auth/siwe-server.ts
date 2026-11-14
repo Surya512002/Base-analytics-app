@@ -3,7 +3,7 @@ import { SiweMessage } from "siwe";
 import { getAddress, type Hex } from "viem";
 import { verifyMessage } from "viem/actions";
 import { getAppUrl } from "@/lib/constants/app-url";
-import { cacheGet, cacheSet, getRedisClient } from "@/lib/redis-cache";
+import { cacheGet, cacheSet, getRedisClient, ensureRedisReady } from "@/lib/redis-cache";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
 const BASE_CHAIN_ID = 8453;
@@ -127,7 +127,7 @@ async function markNonceUsed(nonce: string): Promise<boolean> {
   const redis = getRedisClient();
   if (!redis) return true; // no redis — signed nonce TTL and in-memory set is used
   try {
-    if (redis.status !== "ready") await redis.connect();
+    await ensureRedisReady(redis);
     const key = `siwe:used:${nonce}`;
     const set = await redis.set(key, "1", "EX", NONCE_TTL_SEC, "NX");
     return set === "OK";

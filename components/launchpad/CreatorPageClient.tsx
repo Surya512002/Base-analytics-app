@@ -1,5 +1,6 @@
 "use client";
 
+import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
@@ -29,6 +30,8 @@ export default function CreatorPageClient({ address }: { address: string }) {
     siweSigningIn,
     siweSignIn,
   } = useWalletApp();
+  // Count the visitor's own connected wallet as active today (never the profile being viewed).
+  useUniqueUsers(wallet?.address);
 
   const guest = sessionBootstrapped ? !wallet : false;
   const openConnect = () => setShowModal(true);
