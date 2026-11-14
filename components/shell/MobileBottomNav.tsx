@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
 import { Compass, ArrowLeftRight, Coins, Gift, Rocket, User } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -122,9 +123,10 @@ export default function MobileBottomNav({
   return (
     <nav
       aria-label="Mobile navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-50 w-full border-t border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur-lg pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_32px_rgba(11,21,38,0.08)]"
+      className="md:hidden fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] z-50 rounded-[1.6rem] border border-[var(--border-subtle)] bg-[var(--surface)]/90 backdrop-blur-xl shadow-[0_12px_40px_-8px_rgba(11,21,38,0.35)]"
     >
-      <div className="flex w-full items-stretch justify-around px-0.5 py-1">
+      {/* Floating dock: the active tab gets a soft blue pill that slides between tabs */}
+      <div className="flex w-full items-stretch justify-around gap-0.5 p-1.5">
         {tabs.map((item) => {
           const Icon = item.icon;
           const locked = guest && !item.guestOk;
@@ -157,12 +159,13 @@ export default function MobileBottomNav({
               onClick={handleClick}
               aria-current={item.active ? "page" : undefined}
               aria-label={item.label}
-              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[48px] py-1 px-0.5 rounded-xl transition-all touch-manipulation select-none relative ${
+              className={`relative isolate flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[50px] py-1 px-0.5 rounded-2xl transition-colors touch-manipulation select-none ${
                 item.active
                   ? "text-[#0052FF] dark:text-[#3888ff] font-bold"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)] font-semibold"
               }`}
             >
+              {item.active && <ActivePill layoutId="mobile-dock-pill" className="bg-[var(--brand-soft)]" />}
               <div className="relative">
                 <Icon
                   size={19}
@@ -173,9 +176,6 @@ export default function MobileBottomNav({
                       : "stroke-current"
                   }
                 />
-                {item.active && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#0052FF] dark:bg-[#3888ff]" />
-                )}
               </div>
               <span className="max-w-full truncate text-[10px] sm:text-[11px] tracking-tight leading-none">
                 {item.label}

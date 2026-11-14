@@ -43,7 +43,7 @@ export default function LendingHeader({
       }
       subtitle="Borrow cash against tokenized stock collateral, or supply assets for verified onchain yield."
     >
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-start gap-3 sm:items-center">
         <HeroStats
           items={[
             {

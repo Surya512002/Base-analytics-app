@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   RefreshCcw,
   ChevronDown,
@@ -14,7 +14,11 @@ import {
   ShieldCheck,
   Globe,
   ExternalLink,
+  Menu,
+  Search,
+  X,
 } from "lucide-react";
+import MobileMenuSheet from "@/components/shell/MobileMenuSheet";
 import AppLogo from "@/components/ui/AppLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import LanguageSelector from "@/components/ui/LanguageSelector";
@@ -60,6 +64,7 @@ export default function AppHeader({
   onSiweSignIn,
 }: AppHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isProfile = Boolean(
     pathname && (pathname.startsWith("/profile") || pathname.startsWith("/creator"))
   );
@@ -85,6 +90,25 @@ export default function AppHeader({
         return fallback;
     }
   };
+
+  // Phone menu sheet + "floating pill" header once the page is scrolled (openlaunch-style)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const mobileActiveId = isProfile
+    ? "profile"
+    : isLaunch
+      ? "launch"
+      : tab === "launchpad"
+        ? "explore"
+        : tab === "basehub"
+          ? "vouchers"
+          : tab;
 
   // Account Menu dropdown state
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -166,10 +190,22 @@ export default function AppHeader({
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md pt-[env(safe-area-inset-top,0px)]">
+    <header
+      className={`sticky top-0 ${mobileMenuOpen ? "z-[70]" : "z-50"} w-full pt-[env(safe-area-inset-top,0px)] transition-colors duration-300 ${
+        scrolled
+          ? "border-b border-transparent max-md:bg-transparent md:border-[var(--border)] md:bg-[var(--surface)]/90 md:backdrop-blur-md"
+          : "border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md"
+      }`}
+    >
       <div className="app-container">
-        {/* Main Header Bar */}
-        <div className="flex min-w-0 items-center justify-between gap-3 py-2.5 sm:py-3">
+        {/* Main Header Bar — on phones it becomes a floating rounded pill after scrolling */}
+        <div
+          className={`flex min-w-0 items-center justify-between gap-3 py-2.5 transition-all duration-300 sm:py-3 ${
+            scrolled
+              ? "max-md:mt-2 max-md:rounded-2xl max-md:border max-md:border-[var(--border-subtle)] max-md:bg-[var(--surface)]/95 max-md:px-3 max-md:shadow-lg max-md:backdrop-blur-md"
+              : ""
+          }`}
+        >
           {/* Left: Brand Logo & Title */}
           <Link href="/explore" className="group flex shrink-0 items-center gap-2.5">
             <AppLogo size="sm" />
@@ -189,10 +225,39 @@ export default function AppHeader({
 
           {/* Right: ONE Unified Account Area */}
           <div className="flex shrink-0 items-center gap-2">
+            {/* Phones: one pill with search + menu (language & theme live in the menu) */}
+            <div className="flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] md:hidden">
+              <button
+                type="button"
+                aria-label="Search tokens and pages"
+                onClick={() => {
+                  // Pages inside the app shell have the command palette; others go to Explore search.
+                  if (document.querySelector("[data-command-palette-host]")) {
+                    window.dispatchEvent(new Event("open-command-palette"));
+                  } else {
+                    router.push("/explore");
+                  }
+                }}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--surface)]"
+              >
+                <Search size={17} />
+              </button>
+              <button
+                type="button"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((v) => !v)}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--surface)]"
+              >
+                {mobileMenuOpen ? <X size={17} /> : <Menu size={17} />}
+              </button>
+            </div>
             {guest || !walletAddress ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <LanguageSelector />
-                <ThemeToggle />
+                <div className="hidden items-center gap-2 md:flex">
+                  <LanguageSelector />
+                  <ThemeToggle />
+                </div>
                 <button
                   type="button"
                   onClick={onConnect}
@@ -336,6 +401,18 @@ export default function AppHeader({
           </div>
         </div>
       </div>
+
+      <MobileMenuSheet
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        activeId={mobileActiveId}
+        guest={Boolean(guest)}
+        walletAddress={walletAddress}
+        profileHref={profileHref}
+        onPickTab={pickTab}
+        onConnect={onConnect}
+        onDisconnect={onDisconnect}
+      />
 
       {/* Sync strip — below nav, never covers links */}
       {walletRefreshing && (

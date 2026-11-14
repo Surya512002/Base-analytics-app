@@ -198,7 +198,7 @@ export default function CommandPalette({
           </kbd>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 min-h-0">
           {/* Smart Natural-Language Intent Match */}
           {matchedIntent && (
             <div className="mb-4">

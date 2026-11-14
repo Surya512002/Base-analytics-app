@@ -13,6 +13,7 @@ import {
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import ExploreHero from "./ExploreHero";
 import LiveMarketMap from "./LiveMarketMap";
+import LatestTradeTicker from "./LatestTradeTicker";
 import DiscoveryHub from "./DiscoveryHub";
 import FilterBar from "./FilterBar";
 import TokenTable from "./TokenTable";
@@ -318,6 +319,9 @@ export default function ExploreHub({
           }
         }}
       />
+
+      {/* 1.2 LATEST TRADE: live pill cycling the newest buys / sells */}
+      <LatestTradeTicker tokens={allUnifiedTokens} />
 
       {/* 1.4 LIVE STOCK TICKER TAPE (real prices from the stock markets feed) */}
       <StockTickerTape stocks={stockMarketsList} onSelect={(stock) => setSelectedStockForDrawer(stock)} />

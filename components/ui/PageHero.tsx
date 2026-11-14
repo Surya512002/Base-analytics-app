@@ -60,10 +60,10 @@ export default function PageHero({
       <div
         aria-hidden
         className={`pointer-events-none absolute -z-10 h-56 w-[min(42rem,100%)] rounded-full bg-[var(--brand)] opacity-[0.16] blur-3xl ${
-          centered ? "left-1/2 top-1/3 -translate-x-1/2" : "left-0 top-1/4"
+          centered ? "left-0 top-1/4 sm:left-1/2 sm:top-1/3 sm:-translate-x-1/2" : "left-0 top-1/4"
         }`}
       />
-      <div className={`flex flex-col ${size === "sm" ? "gap-3" : "gap-4 sm:gap-5"} ${centered ? "items-center text-center" : "items-start text-left"}`}>
+      <div className={`flex flex-col ${size === "sm" ? "gap-3" : "gap-4 sm:gap-5"} ${centered ? "items-start text-left sm:items-center sm:text-center" : "items-start text-left"}`}>
         <motion.span
           {...enter(0)}
           className="inline-flex items-center rounded-full border border-[var(--brand)]/40 bg-[var(--brand-soft)] px-3.5 py-1 text-xs font-semibold text-[var(--brand-text)]"
@@ -91,7 +91,7 @@ export default function PageHero({
         )}
 
         {actions.length > 0 && (
-          <motion.div {...enter(0.15)} className={`flex flex-wrap gap-3 ${centered ? "justify-center" : ""}`}>
+          <motion.div {...enter(0.15)} className={`flex w-full flex-wrap gap-3 sm:w-auto ${centered ? "sm:justify-center" : ""}`}>
             {actions.map((a) => {
               const cls = a.primary
                 ? "bg-[var(--brand)] text-white shadow-lg shadow-[var(--brand)]/30 hover:bg-[var(--brand-hover)]"
@@ -103,7 +103,7 @@ export default function PageHero({
                   <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </>
               );
-              const base = `group inline-flex ${size === "sm" ? "min-h-[40px] px-4 text-[13px]" : "min-h-[44px] px-5 text-sm"} items-center gap-2 rounded-full font-semibold transition active:scale-[0.97] ${cls}`;
+              const base = `group inline-flex ${a.primary ? "max-sm:flex-1 max-sm:justify-center" : ""} ${size === "sm" ? "min-h-[40px] px-4 text-[13px]" : "min-h-[44px] px-5 text-sm"} items-center gap-2 rounded-full font-semibold transition active:scale-[0.97] ${cls}`;
               return a.href ? (
                 <a key={a.label} href={a.href} className={base}>
                   {inner}
@@ -118,7 +118,7 @@ export default function PageHero({
         )}
 
         {children && (
-          <motion.div {...enter(0.2)} className={`w-full ${centered ? "flex justify-center" : ""}`}>
+          <motion.div {...enter(0.2)} className={`w-full ${centered ? "sm:flex sm:justify-center" : ""}`}>
             {children}
           </motion.div>
         )}
@@ -130,7 +130,7 @@ export default function PageHero({
 /** Small rounded stat pills shown under a hero (e.g. "Top APY 17.6%"). */
 export function HeroStats({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
   return (
-    <div className="flex flex-wrap justify-center gap-2.5">
+    <div className="flex flex-wrap gap-2.5 sm:justify-center">
       {items.map((s) => (
         <div
           key={s.label}
