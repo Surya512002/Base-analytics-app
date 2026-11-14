@@ -255,6 +255,9 @@ export const morphoAdapter: DiscoveryAdapter = {
             sourceLink: `https://app.morpho.org/base/market/${marketKey}`,
             lastUpdated: new Date().toISOString(),
             status: utilization >= 95 ? "cap_reached" : "active",
+            // The spender for collateral approvals and the contract every call goes to. Without
+            // it the app fell back to the USDC address and approvals targeted the wrong spender.
+            contractAddress: MORPHO_BLUE_BASE as Address,
             morphoParams: {
               loanToken: loanAddr,
               collateralToken: colAddr,
