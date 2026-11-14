@@ -114,6 +114,9 @@ describe("Base Mainnet Fork & On-Chain Protocol Verification", () => {
         lltv: BigInt("770000000000000000"),
       },
       contractAddress: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      // Current StockLendingOption shape (what the Lend page passes to the builder)
+      stockAddress: nvdaStock.address,
+      loanAddress: BASE_MAINNET_REGISTRY.USDC.address,
       asset: {
         symbol: "USDC",
         name: "USD Coin",

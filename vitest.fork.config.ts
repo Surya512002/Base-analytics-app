@@ -8,6 +8,8 @@ export default defineConfig({
     testTimeout: 120_000,
     hookTimeout: 60_000,
     include: ["test/fork/**/*.test.ts"],
+    // One file at a time: the public Base RPC rate-limits bursts (HTTP 429).
+    fileParallelism: false,
   },
   resolve: {
     alias: {
