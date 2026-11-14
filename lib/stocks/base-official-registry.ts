@@ -2,13 +2,13 @@
  * Base's official tokenized-stock registry — Coinbase Tokenized Stocks on Base.
  *
  * Source: https://www.base.org/stocks#registry (Listings), read from the rendered page on
- * 2026-11-13: 348 entries. Addresses are taken verbatim from each row's basescan link.
+ * 2026-11-14: 358 entries. Addresses are taken verbatim from each row's basescan link.
  * Base: "If a token is not on this list, Coinbase did not issue it."
  *
  * Format: [ticker, company name, contract address]. Do not edit by hand except to mirror the
  * official page; test/stocks/base-verified.test.ts checks checksums and uniqueness.
  */
-export const BASE_OFFICIAL_REGISTRY_READ_AT = "2026-11-13";
+export const BASE_OFFICIAL_REGISTRY_READ_AT = "2026-11-14";
 export const BASE_OFFICIAL_REGISTRY_URL = "https://www.base.org/stocks#registry";
 
 export const BASE_OFFICIAL_REGISTRY: ReadonlyArray<readonly [string, string, `0x${string}`]> = [
@@ -360,4 +360,15 @@ export const BASE_OFFICIAL_REGISTRY: ReadonlyArray<readonly [string, string, `0x
   ["ZBRAc", "Zebra Technologies Corporation", "0xb200000000000000000000e2C4CB0F18B68Cc776"],
   ["ZMc", "Zoom Communications, Inc.", "0xB2000000000000000000000E63b7B0b6BC5B9213"],
   ["ZSc", "Zscaler, Inc.", "0xB20000000000000000000076A288B15B61Ec78F6"],
+  // Added to Base's registry since the last read (re-checked 2026-11-14).
+  ["ALLc", "The Allstate Corporation", "0xb2000000000000000000009B05748Ece723cc6A6"],
+  ["AXPc", "American Express Company", "0xb2000000000000000000009CFe164A21cB5a11C5"],
+  ["EVERc", "EverQuote, Inc.", "0xb200000000000000000000ad4Ca95Ce451578243"],
+  ["FOURc", "Shift4 Payments, Inc.", "0xB2000000000000000000008C02BE39ba2CbdA822"],
+  ["GTc", "The Goodyear Tire & Rubber Company", "0xb200000000000000000000264d3A9dea68aA6631"],
+  ["JBLUc", "JetBlue Airways Corporation", "0xB20000000000000000000064832d0d2d38E2F4fc"],
+  ["OWLc", "Blue Owl Capital Inc.", "0xb200000000000000000000b1E11478cdd89Ef7B2"],
+  ["UALc", "United Airlines Holdings, Inc.", "0xb200000000000000000000Cdbf3E786FF34DBE51"],
+  ["WUc", "The Western Union Company", "0xb20000000000000000000033be01089Cf02a2025"],
+  ["YOUc", "CLEAR Secure, Inc.", "0xb2000000000000000000003cdB2c0F94e4EBf605"],
 ];

@@ -22,7 +22,7 @@ import {
 
 export const BASE_VERIFIED_SOURCE_URL = BASE_OFFICIAL_REGISTRY_URL;
 
-/** All stocks on Base's official registry (348, read 2026-11-13). */
+/** All stocks on Base's official registry (358, read 2026-11-14). */
 export const BASE_OFFICIAL_STOCKS: ReadonlyArray<{ symbol: string; name: string; address: Address }> =
   BASE_OFFICIAL_REGISTRY.map(([symbol, name, address]) => ({ symbol, name, address }));
 
