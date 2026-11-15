@@ -4,7 +4,21 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchAnalyzeJson<T>(
+/**
+ * Identical requests already in flight share one response. On connect, the connect flow and the
+ * background analysis both asked for bootstrap + quick analyze for the same wallet at the same
+ * time, doubling the heaviest serverless calls.
+ */
+const inflight = new Map<string, Promise<unknown>>();
+function fetchAnalyzeJson<T>(path: string, timeoutMs: number, retries = 2, address?: string): Promise<T | null> {
+  const hit = inflight.get(path);
+  if (hit) return hit as Promise<T | null>;
+  const p = fetchAnalyzeJsonUncached<T>(path, timeoutMs, retries, address).finally(() => inflight.delete(path));
+  inflight.set(path, p);
+  return p;
+}
+
+async function fetchAnalyzeJsonUncached<T>(
   path: string,
   timeoutMs: number,
   retries = 2,
@@ -91,6 +105,10 @@ export async function pollWalletHistorySync(
   const addr = address.toLowerCase();
   let attempts = 0;
   const maxAttempts = 120;
+  // Each pass is a ~55s serverless call. Stop when the server says the history source is
+  // unavailable, or after 2 passes in a row that find nothing new.
+  let lastProgress = -1;
+  let idlePasses = 0;
 
   while (attempts < maxAttempts) {
     if (callbacks.shouldCancel?.()) return false;
@@ -109,10 +127,22 @@ export async function pollWalletHistorySync(
         AnalyzeWalletResult & {
           historyComplete?: boolean;
           partial?: boolean;
-          sync?: { complete?: boolean; uniqueDays?: number };
+          stalled?: boolean;
+          sync?: { complete?: boolean; uniqueDays?: number; transferLegs?: number };
         }
       >(`/api/wallet-sync?${qs.toString()}`, 115_000, 1, addr);
       if (!data) break;
+      if (data.stalled) return false;
+      const progress = (data.sync?.uniqueDays ?? 0) * 1_000_000 + (data.sync?.transferLegs ?? 0);
+      if (!(data.historyComplete === true || data.sync?.complete === true)) {
+        if (progress <= lastProgress) {
+          idlePasses++;
+          if (idlePasses >= 2) return false;
+        } else {
+          idlePasses = 0;
+        }
+        lastProgress = Math.max(lastProgress, progress);
+      }
 
       callbacks.onUpdate({
         ...data,

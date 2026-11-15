@@ -24,5 +24,6 @@
       "path": "/api/cron/price-alerts",
       "schedule": "*/5 * * * *"
     }
-  ]
+  ],
+  "ignoreCommand": "bash scripts/vercel-ignore-build.sh"
 }

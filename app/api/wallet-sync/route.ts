@@ -14,6 +14,7 @@ import { runWalletSyncBurst } from "@/lib/wallet/sync-engine";
 import { buildWalletMetricsPatch } from "@/lib/wallet/metrics-patch";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
 import { buildRecentTxPreview } from "@/lib/utils/wallet-activity";
+import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,6 +23,24 @@ export const maxDuration = 120;
 const ANALYZE_CACHE_TTL = ANALYZE_CACHE_TTL_SECONDS;
 /** Stay under Vercel's function wall — leave room for analyze + JSON response. */
 const HANDLER_BUDGET_MS = 95_000;
+
+/**
+ * When a sync pass finds nothing (the history indexer is unreachable or blocked, e.g. a Cloudflare
+ * challenge), remember it per wallet for 30 minutes and answer instantly instead of burning
+ * another ~55s pass. Shared through Redis when configured, with an in-process fallback.
+ */
+const STALL_TTL_SECONDS = 30 * 60;
+const stallMem = new Map<string, number>();
+const stallKey = (address: string) => `wallet-sync:stalled:${address}`;
+async function isSyncStalled(address: string): Promise<boolean> {
+  const until = stallMem.get(address);
+  if (until && until > Date.now()) return true;
+  return Boolean(await cacheGet<number>(stallKey(address)).catch(() => null));
+}
+async function markSyncStalled(address: string): Promise<void> {
+  stallMem.set(address, Date.now() + STALL_TTL_SECONDS * 1000);
+  await cacheSet(stallKey(address), Date.now(), STALL_TTL_SECONDS).catch(() => {});
+}
 
 async function buildPartialSyncResponse(
   address: string,
@@ -87,15 +106,42 @@ export async function GET(req: Request) {
   try {
     if (reset) {
       await saveWalletHistory(address, emptyHistoryState());
+    } else {
+      // Full history already synced and analyzed within the cache window (1h): serve it. Without
+      // this, every connect re-ran the complete analysis (~30–45s of function time per call).
+      const fresh = await getCachedAnalyze(address).catch(() => null);
+      if (fresh?.wallet && fresh.historyComplete === true) {
+        return NextResponse.json({
+          ...fresh,
+          cached: true,
+          historyComplete: true,
+          partial: false,
+          sync: {
+            complete: true,
+            uniqueDays: fresh.wallet.uniqueDays,
+            uniqueHashes: fresh.wallet.txCount,
+          },
+        });
+      }
     }
 
     const syncBudget = Math.min(
       52_000,
       Math.max(12_000, handlerDeadline - Date.now() - 35_000)
     );
+    if (!reset && (await isSyncStalled(address))) {
+      return NextResponse.json({ historyComplete: false, partial: true, stalled: true, sync: { complete: false, transferLegs: 0, uniqueDays: 0 } });
+    }
+
     const { transfers, state } = await runWalletSyncBurst(address, syncBudget);
 
     if (!state.historyComplete) {
+      if (transfers.length === 0 && !state.activityDays.length && !Object.keys(state.tpd ?? {}).length) {
+        await markSyncStalled(address);
+        const res = await buildPartialSyncResponse(address, transfers, state);
+        const body = await res.json();
+        return NextResponse.json({ ...body, stalled: true });
+      }
       return buildPartialSyncResponse(address, transfers, state);
     }
 
