@@ -1,9 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ShieldCheck, AlertTriangle, ShieldAlert, Sparkles, X } from "lucide-react";
 import type { TokenXRayReport } from "@/lib/launchpad/token-xray";
 import { computeTokenXRayScore } from "@/lib/launchpad/token-xray";
+
+/**
+ * One X-Ray request per token per 10 minutes, shared across every badge on the page. Lists
+ * render many badges and re-render often (liquidity updates), which made this route the
+ * second most-invoked function on Vercel.
+ */
+const XRAY_TTL_MS = 10 * 60_000;
+const xrayCache = new Map<string, { at: number; p: Promise<TokenXRayReport | null> }>();
+function loadXRay(address: string): Promise<TokenXRayReport | null> {
+  const key = address.toLowerCase();
+  const hit = xrayCache.get(key);
+  if (hit && Date.now() - hit.at < XRAY_TTL_MS) return hit.p;
+  const p = fetch(`/api/launchpad/xray?token=${encodeURIComponent(address)}`)
+    .then((r) => (r.ok ? (r.json() as Promise<TokenXRayReport>) : null))
+    .catch(() => null);
+  xrayCache.set(key, { at: Date.now(), p });
+  p.then((data) => {
+    if (!data) xrayCache.delete(key); // don't pin a failure for 10 minutes
+  });
+  return p;
+}
 
 interface TokenXRayBadgeProps {
   address: string;
@@ -24,6 +45,29 @@ export default function TokenXRayBadge({
 }: TokenXRayBadgeProps) {
   const [report, setReport] = useState<TokenXRayReport | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // Fetch the on-chain report only once the badge is on screen (or opened); until then the
+  // locally computed score shows. Explore renders ~110 cards, most of them off-screen.
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [wanted, setWanted] = useState(false);
+  useEffect(() => {
+    if (wanted) return;
+    const el = btnRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      if (el) setWanted(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setWanted(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [wanted, report]);
 
   useEffect(() => {
     let alive = true;
@@ -34,10 +78,10 @@ export default function TokenXRayBadge({
       isVerified,
     });
     setReport(fallback);
+    if (!wanted && !modalOpen) return;
 
-    fetch(`/api/launchpad/xray?token=${encodeURIComponent(address)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: TokenXRayReport | null) => {
+    loadXRay(address)
+      .then((data) => {
         if (!alive || !data) return;
         setReport(data);
       })
@@ -46,7 +90,7 @@ export default function TokenXRayBadge({
     return () => {
       alive = false;
     };
-  }, [address, symbol, liquidityUsd, isVerified]);
+  }, [address, symbol, liquidityUsd, isVerified, wanted, modalOpen]);
 
   if (!report) return null;
 
@@ -64,6 +108,7 @@ export default function TokenXRayBadge({
   return (
     <>
       <button
+        ref={btnRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();

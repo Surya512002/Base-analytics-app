@@ -43,6 +43,32 @@ const DEFAULT_STATE: ComplianceStatusState = {
 
 let cachedState: ComplianceStatusState | null = null;
 
+/**
+ * One request per page session, shared by every component using this hook (8 of them, many
+ * mounted at once). Re-checked after 10 minutes. Previously each mount fetched with no-store,
+ * which made /api/compliance/status the most-invoked function on Vercel.
+ */
+const COMPLIANCE_TTL_MS = 10 * 60_000;
+let inflight: Promise<ComplianceStatusState | null> | null = null;
+let fetchedAt = 0;
+function loadComplianceStatus(): Promise<ComplianceStatusState | null> {
+  if (cachedState && Date.now() - fetchedAt < COMPLIANCE_TTL_MS) return Promise.resolve(cachedState);
+  if (inflight) return inflight;
+  inflight = fetch("/api/compliance/status", { cache: "no-store" })
+    .then(async (res) => {
+      if (!res.ok) return cachedState;
+      const data: ComplianceStatusState = await res.json();
+      cachedState = data;
+      fetchedAt = Date.now();
+      return data;
+    })
+    .catch(() => cachedState)
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
+}
+
 export function useCompliance() {
   const [status, setStatus] = useState<ComplianceStatusState>(cachedState || DEFAULT_STATE);
   const [hasAcknowledged, setHasAcknowledged] = useState<boolean>(true); // default true before check to avoid flicker
@@ -69,20 +95,13 @@ export function useCompliance() {
   // Fetch server-verified compliance status
   useEffect(() => {
     let unmounted = false;
-    async function loadStatus() {
-      try {
-        const res = await fetch("/api/compliance/status", { cache: "no-store" });
-        if (!res.ok) return;
-        const data: ComplianceStatusState = await res.json();
-        if (!unmounted) {
-          cachedState = data;
-          setStatus(data);
-        }
-      } catch {
+    loadComplianceStatus()
+      .then((data) => {
+        if (data && !unmounted) setStatus(data);
+      })
+      .catch(() => {
         // Fall back to default
-      }
-    }
-    loadStatus();
+      });
     return () => {
       unmounted = true;
     };
