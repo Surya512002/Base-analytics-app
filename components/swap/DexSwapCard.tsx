@@ -594,6 +594,24 @@ export default function DexSwapCard({
     }
     return null;
   }, [to, from]);
+  // The static pool list lags new deployments (stock/USDC pools on the newer Slipstream), so the
+  // chain decides: a small probe quote runs on open, and "no pool" shows only when neither the probe
+  // nor the user's live quote finds a route.
+  const [probeHasRoute, setProbeHasRoute] = useState<boolean | null>(null);
+  const noPoolListed = stockTradability?.status === "no_pool";
+  const noPoolToken = noPoolListed ? stockTradability?.address : undefined;
+  useEffect(() => {
+    setProbeHasRoute(null);
+    if (!noPoolToken) return;
+    let live = true;
+    fetchSwapQuote({ token: noPoolToken, direction: "buy", amount: "0.002", decimals: 18, slippageBps: 100, payAsset: "eth" })
+      .then((q) => live && setProbeHasRoute(Boolean(q.hasLiquidity)))
+      .catch(() => live && setProbeHasRoute(false));
+    return () => {
+      live = false;
+    };
+  }, [noPoolToken]);
+  const stockHasNoPool = noPoolListed && hasLiquidity !== true && probeHasRoute === false;
 
   const compliance = useCompliance();
 
@@ -626,7 +644,7 @@ export default function DexSwapCard({
       }
       return { label: "Tokenized stock features are not available in your region", disabled: true, action: "region_restricted" };
     }
-    if (stockTradability && stockTradability.status === "no_pool") {
+    if (stockHasNoPool) {
       return { label: "No DEX Liquidity Pool Yet", disabled: true, action: "no_pool" };
     }
     if (stockTradability && stockTradability.status === "restricted") {
@@ -680,6 +698,7 @@ export default function DexSwapCard({
     isStockBuyRestricted,
     isStockSwapDisabled,
     stockTradability,
+    stockHasNoPool,
     amount,
     payAmountNum,
     insufficientBalance,
@@ -1268,7 +1287,7 @@ export default function DexSwapCard({
         )}
 
         {/* Non-Tradable Stock State Details & Alternative Action */}
-        {stockTradability && stockTradability.status === "no_pool" && (
+        {stockHasNoPool && stockTradability && (
           <div className="p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between text-xs gap-3">
             <div className="flex items-center gap-2 text-[var(--ink-muted)]">
               <AlertTriangle size={15} className="text-amber-500 shrink-0" />

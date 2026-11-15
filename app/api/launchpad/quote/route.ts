@@ -355,6 +355,7 @@ export async function GET(req: Request) {
           aerodromeStable: directQuote.aerodromeStable,
           aerodromeHops: directQuote.aerodromeHops,
           slipstreamTickSpacing: directQuote.slipstreamTickSpacing,
+          slipstreamPath: directQuote.slipstreamPath,
           o1Available: Boolean(o1Quote?.hasLiquidity),
         }
       : {

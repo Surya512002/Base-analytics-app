@@ -1,4 +1,4 @@
-import { encodeFunctionData, getAddress, parseAbi, type Address, type Hex } from "viem";
+import { encodeFunctionData, encodePacked, getAddress, parseAbi, type Address, type Hex } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { simQuoteExactIn } from "@/lib/onchain/sim-quoter";
 import { WETH_BASE } from "@/lib/launchpad/uniswap";
@@ -84,6 +84,25 @@ const QUOTER_ABI = [
 ] as const;
 
 const SWAP_ROUTER_ABI = [
+  {
+    name: "exactInput",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      {
+        name: "params",
+        type: "tuple",
+        components: [
+          { name: "path", type: "bytes" },
+          { name: "recipient", type: "address" },
+          { name: "deadline", type: "uint256" },
+          { name: "amountIn", type: "uint256" },
+          { name: "amountOutMinimum", type: "uint256" },
+        ],
+      },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+  },
   {
     name: "exactInputSingle",
     type: "function",
@@ -331,4 +350,87 @@ export function encodeSlipstreamSell(params: {
     functionName: "multicall",
     args: [[swap, unwrap]],
   });
+}
+
+// ───────────── Two-pool routes through USDC (e.g. ETH ↔ stock) ─────────────
+
+const USDC_MID = getAddress("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
+
+/** Slipstream path: token (20 bytes) · tickSpacing (int24) · token · tickSpacing · token. */
+export function encodeSlipstreamPath(tokens: Address[], tickSpacings: number[]): Hex {
+  const types: Array<"address" | "int24"> = [];
+  const values: Array<Address | number> = [];
+  tokens.forEach((t, i) => {
+    types.push("address");
+    values.push(t);
+    if (i < tickSpacings.length) {
+      types.push("int24");
+      values.push(tickSpacings[i]!);
+    }
+  });
+  return encodePacked(types, values);
+}
+
+/**
+ * tokenIn → USDC → tokenOut on the newer Slipstream deployment, where both the stock/USDC pools
+ * and a deep WETH/USDC pool live, so one router call does both hops. Each hop is priced on its
+ * pool with SimQuoter; hop 2 is quoted with hop 1's full output (they execute back to back).
+ */
+export async function quoteSlipstreamV2ViaUsdc(
+  tokenIn: Address,
+  tokenOut: Address,
+  amountIn: bigint
+): Promise<{ amountOut: bigint; hasLiquidity: boolean; path: Hex | null; router: Address }> {
+  const none = { amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_V2_ROUTER };
+  if (amountIn <= BigInt(0)) return none;
+  const usdc = USDC_MID.toLowerCase();
+  if (tokenIn.toLowerCase() === usdc || tokenOut.toLowerCase() === usdc) return none;
+  const hop1 = await quoteSlipstreamV2ExactIn(tokenIn, USDC_MID, amountIn);
+  if (hop1.amountOut <= BigInt(0)) return none;
+  const hop2 = await quoteSlipstreamV2ExactIn(USDC_MID, tokenOut, hop1.amountOut);
+  if (hop2.amountOut <= BigInt(0)) return none;
+  return {
+    amountOut: hop2.amountOut,
+    hasLiquidity: true,
+    path: encodeSlipstreamPath([tokenIn, USDC_MID, tokenOut], [hop1.tickSpacing, hop2.tickSpacing]),
+    router: SLIPSTREAM_V2_ROUTER,
+  };
+}
+
+/** Multi-pool exact-input swap paid in tokens (or in ETH: pass `amountIn` as tx value; the router wraps it). */
+export function encodeSlipstreamPathSwap(params: {
+  path: Hex;
+  recipient: Address;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+}): Hex {
+  return encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "exactInput",
+    args: [
+      {
+        path: params.path,
+        recipient: params.recipient,
+        deadline: swapDeadline(),
+        amountIn: params.amountIn,
+        amountOutMinimum: params.amountOutMinimum,
+      },
+    ],
+  });
+}
+
+/** Multi-pool swap ending in WETH, unwrapped to native ETH for the recipient in the same call. */
+export function encodeSlipstreamPathSwapToEth(params: {
+  path: Hex;
+  recipient: Address;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+}): Hex {
+  const swap = encodeSlipstreamPathSwap({ ...params, recipient: ROUTER_ADDRESS_THIS });
+  const unwrap = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "unwrapWETH9",
+    args: [params.amountOutMinimum, params.recipient],
+  });
+  return encodeFunctionData({ abi: SWAP_ROUTER_ABI, functionName: "multicall", args: [[swap, unwrap]] });
 }

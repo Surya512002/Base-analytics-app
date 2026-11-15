@@ -96,6 +96,8 @@ export type SwapQuoteResponse = {
   aerodromeStable?: boolean;
   aerodromeHops?: Array<{ from: string; to: string; stable: boolean }>;
   slipstreamTickSpacing?: number;
+  /** Multi-pool Slipstream route (e.g. WETH → USDC → stock). */
+  slipstreamPath?: string;
   /**
    * Impact of this order's size on the winning route, measured server-side by
    * re-quoting the same pool with a sliver of the amount. Null when it could

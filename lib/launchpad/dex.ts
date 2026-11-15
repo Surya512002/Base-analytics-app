@@ -7,6 +7,7 @@ import {
 } from "@/lib/launchpad/aerodrome";
 import {
   quoteSlipstreamExactIn,
+  quoteSlipstreamV2ViaUsdc,
   SLIPSTREAM_SWAP_ROUTER,
 } from "@/lib/launchpad/slipstream";
 import {
@@ -39,6 +40,8 @@ export type DexQuoteResult = {
   aerodromeStable?: boolean;
   aerodromeHops?: AerodromeHop[];
   slipstreamTickSpacing?: number;
+  /** Multi-pool Slipstream route (e.g. WETH → USDC → stock), executed with exactInput on `router`. */
+  slipstreamPath?: Hex;
 };
 
 export async function quoteLaunchSwap(params: {
@@ -88,6 +91,8 @@ export async function quoteLaunchSwap(params: {
       amountOut?: bigint;
       hasLiquidity?: boolean;
       aerodromeStable?: boolean;
+      slipstreamPath?: Hex;
+      router?: `0x${string}`;
     }
   ) => {
     const q = dex === "uniswap" ? uni : dex === "aerodrome" ? aero : slip;
@@ -98,7 +103,7 @@ export async function quoteLaunchSwap(params: {
       amountOut,
       amountOutMinimum: applySlippage(amountOut, params.slippageBps),
       hasLiquidity,
-      router: dex === "slipstream" ? slip.router : routers[dex],
+      router: extras?.router ?? (dex === "slipstream" ? slip.router : routers[dex]),
       uniswapHasLiquidity: uni.hasLiquidity || Boolean(extras?.uniswapMultiHop),
       aerodromeHasLiquidity: aero.hasLiquidity || Boolean(extras?.aerodromeHops?.length),
       slipstreamHasLiquidity: slip.hasLiquidity,
@@ -108,6 +113,7 @@ export async function quoteLaunchSwap(params: {
       aerodromeStable: extras?.aerodromeStable ?? aero.stable,
       aerodromeHops: extras?.aerodromeHops,
       slipstreamTickSpacing: slip.tickSpacing,
+      slipstreamPath: extras?.slipstreamPath,
     };
   };
 
@@ -166,7 +172,7 @@ export async function quoteLaunchSwap(params: {
       tokenIn.toLowerCase() !== WETH_BASE.toLowerCase() &&
       tokenOut.toLowerCase() !== WETH_BASE.toLowerCase();
 
-    const [aeroHop, uniUsdcHop, uniWethHop] = await Promise.all([
+    const [aeroHop, uniUsdcHop, uniWethHop, slipUsdcHop] = await Promise.all([
       quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn),
       isUsdcMid
         ? quoteUniswapMultiHop({
@@ -196,10 +202,14 @@ export async function quoteLaunchSwap(params: {
             fee1: 500,
             fee2: 3000,
           }),
+      // Stocks only pair with USDC; ETH ↔ stock goes WETH → USDC → stock in one Slipstream call.
+      isUsdcMid
+        ? quoteSlipstreamV2ViaUsdc(tokenIn, tokenOut, params.amountIn)
+        : Promise.resolve({ amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_SWAP_ROUTER }),
     ]);
 
     const multiCandidates: Array<{
-      dex: "uniswap" | "aerodrome";
+      dex: "uniswap" | "aerodrome" | "slipstream";
       out: bigint;
       extras: Parameters<typeof pick>[1];
     }> = [];
@@ -239,6 +249,19 @@ export async function quoteLaunchSwap(params: {
         extras: {
           aerodromeHops: aeroHop.hops,
           amountOut: aeroHop.amountOut,
+          hasLiquidity: true,
+        },
+      });
+    }
+
+    if (slipUsdcHop.hasLiquidity && slipUsdcHop.path) {
+      multiCandidates.push({
+        dex: "slipstream",
+        out: slipUsdcHop.amountOut,
+        extras: {
+          slipstreamPath: slipUsdcHop.path,
+          router: slipUsdcHop.router,
+          amountOut: slipUsdcHop.amountOut,
           hasLiquidity: true,
         },
       });

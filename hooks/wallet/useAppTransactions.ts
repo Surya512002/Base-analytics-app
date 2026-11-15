@@ -51,7 +51,7 @@ import {
 import {
   encodeSlipstreamBuy,
   encodeSlipstreamSell,
-  encodeSlipstreamExactInput,
+  encodeSlipstreamExactInput, encodeSlipstreamPathSwap, encodeSlipstreamPathSwapToEth,
 } from "@/lib/launchpad/slipstream";
 import { dexLabel } from "@/lib/launchpad/dex";
 import {
@@ -563,6 +563,7 @@ export function useAppTransactions({
           stable: h.stable,
         }));
         const slipTick = quote.slipstreamTickSpacing ?? 200;
+        const slipPath = quote.slipstreamPath as `0x${string}` | undefined;
         const creator = quote.creator as `0x${string}` | undefined;
         const referrer = (quote.referrer || args.referrer) as `0x${string}` | null;
 
@@ -656,6 +657,8 @@ export function useAppTransactions({
                         stable: aeroStable,
                         hops: aeroHops,
                       }))
+                : swapDex === "slipstream" && slipPath
+                  ? encodeSlipstreamPathSwap({ path: slipPath, recipient, amountIn: buySwapAmount, amountOutMinimum: minOut })
                 : swapDex === "slipstream"
                   ? payIsNative
                     ? encodeSlipstreamBuy({
@@ -752,6 +755,10 @@ export function useAppTransactions({
                         stable: aeroStable,
                         hops: aeroHops,
                       }))
+                : swapDex === "slipstream" && slipPath
+                  ? receiveAsset === "eth"
+                    ? encodeSlipstreamPathSwapToEth({ path: slipPath, recipient, amountIn: sellAmount, amountOutMinimum: minOut })
+                    : encodeSlipstreamPathSwap({ path: slipPath, recipient, amountIn: sellAmount, amountOutMinimum: minOut })
                 : swapDex === "slipstream"
                   ? receiveAsset === "eth"
                     ? encodeSlipstreamSell({

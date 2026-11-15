@@ -45,8 +45,8 @@ test.describe("Tokenized Stocks Swap & Status E2E Suite", () => {
     // Verify COINc is preselected
     await expect(page.locator("body")).toContainText(/COINc/i, { timeout: 15_000 });
 
-    // Verify no pool banner renders
-    await expect(page.locator("body")).toContainText(/No DEX liquidity pool deployed/i);
+    // Verify no pool banner renders (after the on-open probe quote confirms there's no route)
+    await expect(page.locator("body")).toContainText(/No DEX liquidity pool deployed/i, { timeout: 20_000 });
 
     // Verify BaseScan link is provided
     const basescanLink = page.locator('a[href*="basescan.org/token/"]');
