@@ -835,12 +835,12 @@ export default function DexSwapCard({
       {/* Swap Card Frame */}
       <div className="relative rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-6 shadow-[var(--shadow-card)] space-y-3.5 transition-all">
         {/* Card Header: Swap Title + Slippage & Settings Button */}
-        <div className="flex items-center justify-between pb-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black tracking-tight text-[var(--ink)]">Swap</h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--brand-soft)] text-[var(--brand)] border border-[var(--brand)]/20">
-              Base Mainnet
-            </span>
+        <div className="pulse-surface -mx-4 -mt-4 !mb-4 flex items-center justify-between rounded-b-none rounded-t-[calc(1.5rem-1px)] px-4 py-4 shadow-none sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-5">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className="pulse-eyebrow">
+              <span className="pulse-status-dot" aria-hidden /> Live quotes · Base mainnet
+            </p>
+            <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Swap</h1>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -851,11 +851,11 @@ export default function DexSwapCard({
                 onClick={() => executeQuoteFetch(false)}
                 disabled={quoteLoading}
                 aria-label="Refresh quote"
-                className="h-8 w-8 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--brand)] hover:border-[var(--brand)] flex items-center justify-center transition-all cursor-pointer relative"
+                className="h-9 w-9 rounded-full border border-white/25 bg-white/15 text-white hover:bg-white/25 flex items-center justify-center transition-all cursor-pointer relative"
                 title={`Auto-refreshing in ${countdown}s. Click to refresh now.`}
               >
-                <RotateCcw size={13} className={quoteLoading ? "animate-spin text-[var(--brand)]" : ""} />
-                <span className="absolute -bottom-1 -right-1 text-[8px] font-mono font-bold bg-[var(--surface)] text-[var(--ink-dim)] px-1 rounded-sm border border-[var(--border-subtle)]">
+                <RotateCcw size={13} className={quoteLoading ? "animate-spin" : ""} />
+                <span className="absolute -bottom-1 -right-1 text-[8px] font-mono font-bold bg-white text-[#0041cc] px-1 rounded-full">
                   {countdown}s
                 </span>
               </button>
@@ -911,7 +911,7 @@ export default function DexSwapCard({
             <button
               type="button"
               onClick={() => setPickerSide("from")}
-              className="pop-pill shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] shadow-xs transition-all cursor-pointer"
+              className="pop-pill shrink-0 flex items-center gap-2 px-3 py-2 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] shadow-xs transition-all cursor-pointer"
             >
               <CounterAvatar counter={from} size={24} />
               <div className="flex items-center gap-1">

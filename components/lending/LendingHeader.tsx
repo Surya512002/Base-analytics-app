@@ -49,7 +49,7 @@ export default function LendingHeader({
             {
               label: "Top supply APY",
               value: (
-                <span className="text-emerald-600 dark:text-emerald-400">
+                <span className="text-[var(--success-text)]">
                   {topSupplyApy > 0 ? `${topSupplyApy.toFixed(2)}%` : "—"}
                 </span>
               ),
@@ -63,11 +63,8 @@ export default function LendingHeader({
           ]}
         />
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-1 text-[11px] font-medium text-[var(--ink-muted)]">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
+          <div className="pulse-chip">
+            <span className="pulse-status-dot" aria-hidden />
             <span>Live · {lastUpdatedSecondsAgo}s ago</span>
           </div>
           {onRefresh && (
@@ -75,7 +72,7 @@ export default function LendingHeader({
               type="button"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="cursor-pointer rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1.5 text-[var(--ink-muted)] transition hover:border-[var(--brand)] hover:text-[var(--ink)] disabled:opacity-50"
+              className="pulse-chip cursor-pointer p-1.5 text-[var(--ink-muted)] transition hover:border-[var(--brand)] hover:text-[var(--ink)] disabled:opacity-50"
               title="Refresh live rates"
               aria-label="Refresh live rates"
             >

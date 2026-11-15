@@ -118,7 +118,7 @@ export default function SmartVaultDrawer(props: Props) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border-subtle)] bg-[var(--surface-3)] shadow-2xl sm:h-[100dvh] sm:max-h-[100dvh] sm:max-w-md sm:rounded-none sm:border-l sm:border-t-0"
+        className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-[var(--border-subtle)] bg-[var(--surface-3)] shadow-2xl sm:my-3 sm:mr-3 sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-md sm:rounded-3xl sm:border"
       >
         {target.mode === "lp" ? <LpPanel {...props} target={target} /> : <GetPanel {...props} target={target} />}
       </div>
@@ -131,8 +131,11 @@ export default function SmartVaultDrawer(props: Props) {
 
 function Header({ title, subtitle, onClose }: { title: string; subtitle: string; onClose: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-[var(--border-subtle)] p-4">
+    <div className="pulse-surface flex shrink-0 items-start justify-between gap-3 rounded-none p-4 shadow-none sm:p-5">
       <div className="min-w-0">
+        <p className="pulse-eyebrow mb-1.5">
+          <span className="pulse-status-dot" aria-hidden /> Smart deposit
+        </p>
         <h2 id="smart-vault-title" className="truncate text-base font-black text-[var(--ink)]">
           {title}
         </h2>
@@ -142,7 +145,7 @@ function Header({ title, subtitle, onClose }: { title: string; subtitle: string;
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="cursor-pointer rounded-lg p-1.5 text-[var(--ink-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+        className="cursor-pointer rounded-full bg-white/15 p-1.5 text-white transition hover:bg-white/25"
       >
         <X size={18} />
       </button>

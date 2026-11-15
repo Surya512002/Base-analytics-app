@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { PulseEyebrow } from "@/components/ui/pulse";
 
 export interface HeroAction {
   label: string;
@@ -13,8 +14,9 @@ export interface HeroAction {
 }
 
 /**
- * Page hero in the Clario style, in our blue & white: an outlined eyebrow pill, one large
- * clean headline, a short line of copy, pill buttons with an arrow, and a soft blue glow.
+ * Page hero in the Pulse language (see components/ui/pulse.tsx): a blue→violet gradient
+ * surface with a dot grid, an uppercase eyebrow with a glowing status dot, a large white
+ * headline, soft copy, white/glass pill buttons and frosted children (search, stat chips…).
  * Used at the top of Explore, Swap, Lend & Stake, Launch and Profile so they feel like one app.
  */
 export default function PageHero({
@@ -52,28 +54,18 @@ export default function PageHero({
 
   return (
     <section
-      className={`relative isolate ${
-        size === "lg" ? "pt-6 pb-8 sm:pt-12 sm:pb-12" : size === "md" ? "pt-4 pb-6 sm:pt-8 sm:pb-8" : "pt-3 pb-4 sm:pt-5 sm:pb-6"
+      className={`pulse-surface ${
+        size === "lg" ? "px-5 py-7 sm:px-10 sm:py-12" : size === "md" ? "px-5 py-6 sm:px-8 sm:py-9" : "px-5 py-5 sm:px-7 sm:py-7"
       }`}
     >
-      {/* soft blue glow */}
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute -z-10 h-56 w-[min(42rem,100%)] rounded-full bg-[var(--brand)] opacity-[0.16] blur-3xl ${
-          centered ? "left-0 top-1/4 sm:left-1/2 sm:top-1/3 sm:-translate-x-1/2" : "left-0 top-1/4"
-        }`}
-      />
       <div className={`flex flex-col ${size === "sm" ? "gap-3" : "gap-4 sm:gap-5"} ${centered ? "items-start text-left sm:items-center sm:text-center" : "items-start text-left"}`}>
-        <motion.span
-          {...enter(0)}
-          className="inline-flex items-center rounded-full border border-[var(--brand)]/40 bg-[var(--brand-soft)] px-3.5 py-1 text-xs font-semibold text-[var(--brand-text)]"
-        >
-          {eyebrow}
-        </motion.span>
+        <motion.div {...enter(0)}>
+          <PulseEyebrow as="span">{eyebrow}</PulseEyebrow>
+        </motion.div>
 
         <Heading
           {...enter(0.05)}
-          className={`max-w-3xl font-bold tracking-tight text-[var(--ink)] ${
+          className={`max-w-3xl font-black tracking-tight text-white ${
             size === "lg"
               ? "text-4xl leading-[1.08] sm:text-5xl lg:text-6xl"
               : size === "md"
@@ -94,8 +86,8 @@ export default function PageHero({
           <motion.div {...enter(0.15)} className={`flex w-full flex-wrap gap-3 sm:w-auto ${centered ? "sm:justify-center" : ""}`}>
             {actions.map((a) => {
               const cls = a.primary
-                ? "bg-[var(--brand)] text-white shadow-lg shadow-[var(--brand)]/30 hover:bg-[var(--brand-hover)]"
-                : "border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--brand)]/50";
+                ? "bg-white text-[#0041cc] shadow-lg shadow-black/15 hover:bg-white/90"
+                : "border border-white/25 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25";
               const inner = (
                 <>
                   {a.icon}
@@ -127,17 +119,14 @@ export default function PageHero({
   );
 }
 
-/** Small rounded stat pills shown under a hero (e.g. "Top APY 17.6%"). */
+/** Frosted glass stat pills shown under a hero (e.g. "Top APY 17.6%"). */
 export function HeroStats({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
   return (
     <div className="flex flex-wrap gap-2.5 sm:justify-center">
       {items.map((s) => (
-        <div
-          key={s.label}
-          className="inline-flex items-baseline gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2 text-sm shadow-sm"
-        >
-          <span className="text-[var(--ink-muted)]">{s.label}</span>
-          <span className="font-bold tabular-nums text-[var(--ink)]">{s.value}</span>
+        <div key={s.label} className="pulse-chip min-h-9 gap-2 px-3.5 py-1.5 text-sm">
+          <span className="font-semibold text-[var(--ink-muted)]">{s.label}</span>
+          <span className="font-mono font-black tabular-nums text-[var(--ink)]">{s.value}</span>
         </div>
       ))}
     </div>

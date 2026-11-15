@@ -3578,3 +3578,367 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 @media (prefers-reduced-motion: reduce) {
   .shine-button::after { animation: none; display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Pulse design language
+   Lifted from the Community Pulse card (components/profile/CommunityPulse.tsx)
+   and shared app-wide: a vivid blue-to-violet gradient surface with a soft
+   dot grid, an uppercase eyebrow with a glowing status dot, huge white
+   numbers, frosted glass pills and rounded translucent bars.
+   Primitives live in components/ui/pulse.tsx. Presentation only.
+   ══════════════════════════════════════════════════════════════ */
+:root,
+.dark,
+[data-theme="dark"] {
+  --pulse-from: #0047e6;
+  --pulse-mid: #2a5ff5;
+  --pulse-to: #5b55e8;
+  --pulse-gradient: linear-gradient(135deg, var(--pulse-from) 0%, var(--pulse-mid) 45%, var(--pulse-to) 100%);
+  --pulse-shadow: 0 22px 44px -24px rgba(37, 84, 255, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --pulse-dot: #6ee7b7;
+  --pulse-dot-glow: 0 0 0 3px rgba(110, 231, 183, 0.22), 0 0 10px rgba(110, 231, 183, 0.75);
+  --pulse-glass: rgba(255, 255, 255, 0.15);
+  --pulse-glass-hover: rgba(255, 255, 255, 0.24);
+  --pulse-glass-border: rgba(255, 255, 255, 0.2);
+  --pulse-bar: rgba(255, 255, 255, 0.35);
+  --pulse-radius: 1.5rem;
+  /* Glass pill on ordinary (non-gradient) surfaces */
+  --pill-bg: rgba(108, 155, 255, 0.12);
+  --pill-border: rgba(108, 155, 255, 0.24);
+  --pill-ink: #c9d9ff;
+}
+
+[data-theme="light"] {
+  --pulse-from: #0052ff;
+  --pulse-mid: #2f6bff;
+  --pulse-to: #6366f1;
+  --pulse-shadow: 0 22px 44px -22px rgba(0, 82, 255, 0.45), 0 2px 6px -2px rgba(30, 41, 59, 0.12);
+  --pill-bg: rgba(0, 82, 255, 0.07);
+  --pill-border: rgba(0, 82, 255, 0.16);
+  --pill-ink: #0041cc;
+}
+
+@layer components {
+/* The gradient surface. It re-scopes the theme tokens so anything rendered
+   inside (inputs, stat tiles, chips written against --surface / --ink) turns
+   into frosted glass on blue with white text, in both themes. */
+.pulse-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--pulse-radius);
+  background: var(--pulse-gradient);
+  box-shadow: var(--pulse-shadow);
+  color: #ffffff;
+  color-scheme: dark;
+
+  --ink: #ffffff;
+  --foreground: #ffffff;
+  --text-primary: #ffffff;
+  --ink-soft: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.92);
+  --ink-muted: rgba(255, 255, 255, 0.86);
+  --text-muted: rgba(255, 255, 255, 0.86);
+  --muted: rgba(255, 255, 255, 0.86);
+  --ink-dim: rgba(255, 255, 255, 0.78);
+  --text-dim: rgba(255, 255, 255, 0.78);
+  --brand-text: #e3ebff;
+  --primary-text: #e3ebff;
+  --brand-dark: #ffffff;
+  --brand-soft: rgba(255, 255, 255, 0.16);
+  --surface: var(--pulse-glass);
+  --surface-1: var(--pulse-glass);
+  --surface-2: rgba(255, 255, 255, 0.12);
+  --surface-3: rgba(255, 255, 255, 0.2);
+  --bg-raised: var(--pulse-glass);
+  --border: var(--pulse-glass-border);
+  --border-subtle: var(--pulse-glass-border);
+  --border-strong: rgba(255, 255, 255, 0.36);
+  --success: #a7f3d0;
+  --success-text: #a7f3d0;
+  --success-soft: rgba(255, 255, 255, 0.15);
+  --success-border: rgba(255, 255, 255, 0.2);
+  --danger-text: #fecaca;
+  --warning-text: #fde68a;
+  --ring: #ffffff;
+  --border-focus: #ffffff;
+  --pill-bg: var(--pulse-glass);
+  --pill-border: var(--pulse-glass-border);
+  --pill-ink: #ffffff;
+  --pop-bg-hover: rgba(255, 255, 255, 0.22);
+  --pop-border-hover: rgba(255, 255, 255, 0.45);
+}
+
+/* Dot grid + top-right glow, painted under the content (no extra DOM). */
+.pulse-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.95) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.12;
+}
+.pulse-surface::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -5rem;
+  right: -4rem;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 70%);
+}
+.pulse-surface ::placeholder {
+  color: rgba(255, 255, 255, 0.74);
+}
+.pulse-surface :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Stand-alone dot grid for any surface (inherits currentColor). */
+.pulse-dots {
+  pointer-events: none;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.12;
+}
+
+/* Eyebrow: tiny uppercase, letter-spaced label. */
+.pulse-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-muted);
+}
+
+/* Glowing status dot. */
+.pulse-status-dot {
+  position: relative;
+  display: inline-flex;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--pulse-dot);
+  box-shadow: var(--pulse-dot-glow);
+}
+.pulse-status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: pulse-dot-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+[data-theme="light"] .pulse-status-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18), 0 0 8px rgba(16, 185, 129, 0.55);
+}
+[data-theme="light"] .pulse-surface .pulse-status-dot {
+  background: var(--pulse-dot);
+  box-shadow: var(--pulse-dot-glow);
+}
+@keyframes pulse-dot-ping {
+  75%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Huge stat number. */
+.pulse-big {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* Frosted glass pill chip. White glass on the gradient; a soft brand-tinted
+   glass elsewhere that reads in both themes. */
+.pulse-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1.1;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--pill-ink);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.pulse-chip-muted {
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  border-color: var(--border-subtle);
+}
+.pulse-chip-up {
+  color: var(--success-text);
+  background: var(--success-soft);
+  border-color: var(--success-border);
+}
+.pulse-surface .pulse-chip-muted,
+.pulse-surface .pulse-chip-up {
+  color: #ffffff;
+  background: var(--pulse-glass);
+  border-color: var(--pulse-glass-border);
+}
+
+/* Section card that echoes the pulse surface without the full gradient:
+   a theme surface with a gradient hairline across the top. */
+.pulse-card {
+  position: relative;
+  border-radius: var(--pulse-radius);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.pulse-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--pulse-gradient);
+  pointer-events: none;
+}
+
+/* Gradient fill for the active tab / segment. */
+.pulse-tab-on {
+  background: var(--pulse-gradient);
+  color: #ffffff;
+  box-shadow: 0 6px 16px -8px rgba(37, 84, 255, 0.7);
+}
+}
+
+/* ── App-wide adoption ─────────────────────────────────────────── */
+
+.accent-bar {
+  height: 3px;
+  background: var(--pulse-gradient);
+}
+.tab-active {
+  background: var(--pulse-gradient) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 6px 16px -8px rgba(37, 84, 255, 0.7) !important;
+}
+/* Buttons whose sliding ActivePill carries .tab-active read white on the gradient. */
+:has(> .tab-active),
+:has(> .tab-active) svg,
+.tab-active svg {
+  color: #ffffff;
+}
+.filter-tab-active {
+  color: var(--brand-text) !important;
+  border-bottom-color: transparent !important;
+}
+.filter-tab-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--pulse-gradient);
+}
+
+.glass-panel,
+.glass-panel-accent,
+.card,
+.card-glass,
+.card-quiet {
+  border-radius: var(--pulse-radius);
+}
+
+.btn-primary,
+.btn-action,
+.dex-swap-submit {
+  background: var(--pulse-gradient);
+}
+.btn-primary:hover:not(:disabled),
+.btn-action:hover:not(:disabled),
+.dex-swap-submit:hover:not(:disabled) {
+  background: var(--pulse-gradient);
+  filter: brightness(1.08);
+}
+.dex-swap-submit {
+  border-radius: 9999px;
+  box-shadow: 0 12px 26px -12px rgba(37, 84, 255, 0.75);
+}
+
+.dex-swap-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--pulse-radius);
+}
+.dex-swap-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--pulse-gradient);
+  pointer-events: none;
+}
+.dex-swap-field {
+  border-radius: 1.125rem;
+}
+.dex-swap-chip,
+.dex-swap-settings,
+.dex-swap-quick-chip,
+.dex-swap-token-btn {
+  border-radius: 9999px;
+}
+.dex-swap-chip-on {
+  background: var(--pulse-gradient) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* Solid brand fills (buttons, active pills, progress) pick up the gradient.
+   Exact class-token match, so tints like bg-[var(--brand)]/10 are untouched. */
+[class~="bg-[var(--brand)]"],
+[class~="bg-[#0052FF]"],
+[class~="bg-[#0052ff]"] {
+  background-image: var(--pulse-gradient);
+}
+/* …but on the gradient itself they flip to white so they stay visible. */
+.pulse-surface [class~="bg-[var(--brand)]"],
+.pulse-surface [class~="bg-[#0052FF]"],
+.pulse-surface [class~="bg-[#0052ff]"] {
+  background: #ffffff;
+  color: #0041cc;
+}
+
+/* Keyboard focus stays visible on the gradient. */
+.pulse-surface :focus-visible {
+  outline-color: #ffffff !important;
+}
+.pulse-surface :is(.pop, .pop-pill, .pop-lg, .hover-pop, .hover-pop-sm, .card-pop):focus-visible {
+  border-color: #ffffff !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-status-dot::after {
+    animation: none;
+    display: none;
+  }
+}

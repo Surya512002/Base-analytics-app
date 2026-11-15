@@ -100,7 +100,7 @@ export default function ProfileHeader({
   return (
     <div className="space-y-4 w-full min-w-0">
       {/* Main Identity Card */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-7 shadow-sm w-full min-w-0 overflow-hidden">
+      <div className="pulse-surface p-4 sm:p-7 w-full min-w-0">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-5 min-w-0">
           {/* Left: Avatar & Identity Details */}
           <div className="flex items-start gap-3.5 sm:gap-5 min-w-0 flex-1">
@@ -120,9 +120,9 @@ export default function ProfileHeader({
                 )}
                 <span
                   title="Total verified unique wallet addresses connected and tracked via Redis on Base"
-                  className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1.5 cursor-default"
+                  className="pulse-chip min-h-0 px-2.5 py-0.5 text-[10px] gap-1.5 cursor-default"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="pulse-status-dot h-1.5 w-1.5" aria-hidden />
                   <Users size={11} />
                   <span>{activeToday} active today</span>
                 </span>
@@ -221,9 +221,9 @@ export default function ProfileHeader({
             <a
               href={`/pay/${address.toLowerCase()}`}
               title={isOwner ? "View & share your personal Pay Link" : "Pay or tip this creator on Base"}
-              className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+              className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full border border-white/25 bg-white/15 text-xs font-bold text-white hover:bg-white/25 transition cursor-pointer"
             >
-              <Zap size={14} className="text-emerald-500" />
+              <Zap size={14} className="text-emerald-200" />
               <span>{isOwner ? "My Pay Link" : "Pay / Tip"}</span>
             </a>
 
@@ -231,7 +231,7 @@ export default function ProfileHeader({
             <button
               type="button"
               onClick={shareProfile}
-              className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 transition cursor-pointer"
+              className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--border-subtle)]/40 transition cursor-pointer"
             >
               {copiedLink ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} />}
               <span>{copiedLink ? "Link Copied!" : "Share profile"}</span>
@@ -242,7 +242,7 @@ export default function ProfileHeader({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
-                className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-xs bg-[#0052FF] text-white hover:bg-[#0047e0] transition shadow-xs cursor-pointer"
+                className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full font-black text-xs bg-[#0052FF] text-white hover:bg-[#0047e0] transition shadow-xs cursor-pointer"
               >
                 <Edit3 size={14} />
                 <span>Edit profile</span>

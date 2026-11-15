@@ -291,7 +291,7 @@ function ActionDrawerContent({
     return (
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:h-[100dvh] sm:max-h-[100dvh] bg-[var(--surface-3)] border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] shadow-2xl flex flex-col justify-between overflow-hidden rounded-t-3xl sm:rounded-none"
+        className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:my-3 sm:mr-3 sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] bg-[var(--surface-3)] border-t sm:border border-[var(--border-subtle)] shadow-2xl flex flex-col justify-between overflow-hidden rounded-t-3xl sm:rounded-3xl"
       >
         <div className="p-5 pb-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
           <span className="font-mono font-bold text-sm text-[var(--ink)]">Market Action</span>
@@ -299,7 +299,7 @@ function ActionDrawerContent({
             type="button"
             onClick={onClose}
             aria-label="Close action drawer"
-            className="p-1.5 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition cursor-pointer"
+            className="p-1.5 rounded-full bg-white/15 text-white hover:bg-white/25 transition cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -537,16 +537,19 @@ function ActionDrawerContent({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:h-[100dvh] sm:max-h-[100dvh] bg-[var(--surface-3)] border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] shadow-2xl flex flex-col min-h-0 overflow-hidden rounded-t-3xl sm:rounded-none"
+      className="w-full sm:max-w-md h-auto max-h-[90dvh] sm:my-3 sm:mr-3 sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] bg-[var(--surface-3)] border-t sm:border border-[var(--border-subtle)] shadow-2xl flex flex-col min-h-0 overflow-hidden rounded-t-3xl sm:rounded-3xl"
     >
       {/* ─────────────────────────────────────────────────────────────
           1. HEADER (Pinned at Top)
           ───────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 p-5 pb-3 border-b border-[var(--border-subtle)] bg-[var(--surface)] space-y-3">
+      <div className="pulse-surface shrink-0 rounded-none p-5 pb-4 shadow-none space-y-3">
         <div className="flex items-center justify-between">
           <div>
+            <p className="pulse-eyebrow mb-1.5">
+              <span className="pulse-status-dot" aria-hidden /> {option.protocolName}
+            </p>
             <div className="flex items-center gap-2">
-              <span id="action-drawer-title" className="font-mono font-black text-sm text-[var(--ink)]">
+              <span id="action-drawer-title" className="font-mono font-black text-xl text-[var(--ink)]">
                 {option.stockSymbol}
               </span>
               <span className="text-xs text-[var(--ink-muted)]">· {option.protocolName}</span>
@@ -564,7 +567,7 @@ function ActionDrawerContent({
         </div>
 
         {/* Action Tabs: Supply / Deposit | Withdraw | Borrow | Repay */}
-        <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
+        <div className="grid grid-cols-4 gap-1 p-1 rounded-full bg-white/12 border border-white/20">
           {(["supply", "withdraw", "borrow", "repay"] as DrawerActionTab[]).map((tab) => {
             const isSelected = activeTab === tab;
             const disabled =
@@ -583,7 +586,7 @@ function ActionDrawerContent({
                   setActiveTab(tab);
                   setAmount("");
                 }}
-                className={`py-1.5 rounded-lg text-xs font-bold capitalize transition cursor-pointer ${
+                className={`py-1.5 rounded-full text-xs font-bold capitalize transition cursor-pointer ${
                   isSelected
                     ? "bg-[var(--brand)] text-white shadow-xs"
                     : "text-[var(--ink-muted)] hover:text-[var(--ink)] disabled:opacity-35 disabled:cursor-not-allowed"

@@ -144,7 +144,7 @@ export default function StockMarketsExplorer({
   return (
     <section className="space-y-4">
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <div className="pulse-surface grid grid-cols-2 gap-px p-1.5 lg:grid-cols-4">
         {[
           { label: "Stocks with markets", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#0052FF" },
           {
@@ -163,13 +163,12 @@ export default function StockMarketsExplorer({
           },
           { label: "Total depth", value: usd(stats.depth), note: `${stats.venues} protocols`, icon: Layers, color: "#F59E0B" },
         ].map((s) => (
-          <div key={s.label} className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 shadow-xs">
-            <span aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ background: s.color }} />
-            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
-              <s.icon size={12} style={{ color: s.color }} /> {s.label}
+          <div key={s.label} className="min-w-0 rounded-[1.1rem] p-3.5 sm:p-4">
+            <p className="pulse-eyebrow gap-1.5 text-[10px] tracking-[0.14em]">
+              <s.icon size={12} aria-hidden /> <span className="truncate">{s.label}</span>
             </p>
-            <p className="mt-1 font-mono text-xl font-black tabular-nums text-[var(--ink)] sm:text-2xl">{loading && !stats.markets ? "…" : s.value}</p>
-            <p className="truncate text-[11px] text-[var(--ink-muted)]">{s.note}</p>
+            <p className="pulse-big mt-2 text-2xl sm:text-3xl">{loading && !stats.markets ? "…" : s.value}</p>
+            <p className="mt-1 truncate text-[11px] text-[var(--ink-dim)]">{s.note}</p>
           </div>
         ))}
       </div>

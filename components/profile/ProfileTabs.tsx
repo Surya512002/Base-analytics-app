@@ -89,7 +89,7 @@ export default function ProfileTabs({
       <div
         role="tablist"
         aria-label="Profile navigation"
-        className="flex gap-1 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto no-scrollbar w-full min-w-0"
+        className="flex gap-1 p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto no-scrollbar w-full min-w-0"
       >
         {TABS.map((t) => {
           const isSelected = activeTab === t.id;
@@ -101,7 +101,7 @@ export default function ProfileTabs({
               role="tab"
               aria-selected={isSelected}
               onClick={() => setActiveTab(t.id)}
-              className={`flex-1 min-w-[6.5rem] py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer ${
+              className={`flex-1 min-w-[6.5rem] py-2.5 px-3 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer ${
                 isSelected
                   ? "bg-[#0052FF] text-white shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"

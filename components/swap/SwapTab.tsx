@@ -220,7 +220,7 @@ export default function SwapTab({
             onClick={() => setActiveSubTab("market")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
               activeSubTab === "market"
-                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                ? "pulse-tab-on"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
@@ -233,7 +233,7 @@ export default function SwapTab({
             onClick={() => setActiveSubTab("orders")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
               activeSubTab === "orders"
-                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                ? "pulse-tab-on"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
@@ -251,7 +251,7 @@ export default function SwapTab({
             onClick={() => setActiveSubTab("recurring")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
               activeSubTab === "recurring"
-                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                ? "pulse-tab-on"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >

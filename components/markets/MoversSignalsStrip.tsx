@@ -148,28 +148,25 @@ export default function MoversSignalsStrip({
   if (signals.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-[var(--ink)] tracking-tight">
-            Market Signals & Key Movers
-          </span>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#0052FF]/10 text-[#0052FF] font-mono">
-            Live On-Chain
-          </span>
-        </div>
+    <div className="pulse-surface space-y-3 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="pulse-eyebrow">
+          <span className="pulse-status-dot" aria-hidden />
+          Market Signals & Key Movers
+        </span>
+        <span className="pulse-chip min-h-0 py-0.5 font-mono text-[10px]">Live On-Chain</span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {signals.map((sig) => (
           <button
             key={sig.key}
             type="button"
             onClick={() => onSelectStock?.(sig.stock)}
-            className={`pop-pill text-left p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] hover:bg-[var(--surface-2)] bg-gradient-to-b ${sig.bgGradient} transition-all shadow-xs group cursor-pointer flex flex-col justify-between`}
+            className="pop-pill text-left p-3 rounded-2xl border border-white/20 bg-white/12 hover:bg-white/20 backdrop-blur-sm transition-all group cursor-pointer flex flex-col justify-between"
           >
             <div className="flex items-center justify-between w-full mb-1.5">
-              <span className="text-[10px] font-bold text-[var(--ink-muted)] flex items-center gap-1">
+              <span className="text-[10px] font-bold text-[var(--ink-muted)] flex items-center gap-1 [&_svg]:text-white">
                 {sig.icon}
                 <span>{sig.badge}</span>
               </span>
@@ -180,7 +177,7 @@ export default function MoversSignalsStrip({
 
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-bold text-sm text-[var(--ink)]">
+                <span className="font-black text-base text-[var(--ink)]">
                   {sig.stock.symbol}
                 </span>
                 <span className="text-[10px] text-[var(--ink-muted)] truncate max-w-[80px]">
@@ -192,7 +189,7 @@ export default function MoversSignalsStrip({
                 <span className="text-[10px] text-[var(--ink-muted)]">
                   {sig.metricLabel}
                 </span>
-                <span className={`font-mono font-bold ${sig.metricColor} tabular-nums`}>
+                <span className="font-mono font-black text-white tabular-nums">
                   {sig.metricValue}
                 </span>
               </div>

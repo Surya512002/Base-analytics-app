@@ -6,7 +6,7 @@ import { VOUCHER_CONTRACT } from "@/lib/constants/env";
 import GiftBox from "@/components/ui/motion/GiftBox";
 import ClickSpark from "@/components/ui/motion/ClickSpark";
 import RotatingWords from "@/components/ui/motion/RotatingWords";
-import HeroBackdrop from "@/components/ui/motion/HeroBackdrop";
+import { GlassChip, PulseEyebrow } from "@/components/ui/pulse";
 import type { VoucherView } from "@/components/voucher/voucher-types";
 
 const OCCASIONS = ["birthday", "thank-you", "team bonus", "holiday", "first stock"];
@@ -36,21 +36,17 @@ export default function VoucherGiftHero({
   return (
     <section
       aria-label="Gift on Base"
-      className="relative isolate overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-card"
+      className="pulse-surface"
     >
-      <HeroBackdrop className="-z-10" />
       <div className="grid items-center gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr] lg:gap-10 lg:p-10">
         <div className="order-2 space-y-5 lg:order-1">
-          <motion.span
-            {...enter(0)}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-1 text-[11px] font-bold text-[var(--ink-soft)]"
-          >
-            <Gift size={13} className="text-[var(--brand-text)]" /> Gifts on Base
-          </motion.span>
+          <motion.div {...enter(0)}>
+            <PulseEyebrow as="span">Gifts on Base</PulseEyebrow>
+          </motion.div>
 
           <motion.h1
             {...enter(0.06)}
-            className="text-3xl font-black leading-[1.1] tracking-tight text-[var(--ink)] sm:text-4xl lg:text-5xl"
+            className="text-3xl font-black leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl"
           >
             Send a{" "}
             <RotatingWords words={OCCASIONS} className="shiny-text" />
@@ -68,7 +64,7 @@ export default function VoucherGiftHero({
               <button
                 type="button"
                 onClick={() => onNavigate("create")}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl btn-primary px-5 text-sm font-black text-white shadow-lg shadow-[var(--brand)]/25 transition active:scale-[0.97]"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#0041cc] shadow-lg shadow-black/15 transition hover:bg-white/90 active:scale-[0.97]"
               >
                 <Gift size={16} /> Create a gift
               </button>
@@ -77,7 +73,7 @@ export default function VoucherGiftHero({
               <button
                 type="button"
                 onClick={() => onNavigate("campaign")}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-5 text-sm font-bold text-[var(--ink)] transition hover:border-[var(--brand)]/50 active:scale-[0.97]"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/15 px-5 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/25 active:scale-[0.97]"
               >
                 <Link2 size={16} className="text-[var(--brand-text)]" /> One link for many
               </button>
@@ -85,26 +81,22 @@ export default function VoucherGiftHero({
             <button
               type="button"
               onClick={() => onNavigate("redeem")}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-3 text-sm font-bold text-[var(--ink-muted)] transition hover:text-[var(--ink)]"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-3 text-sm font-bold text-[var(--ink-muted)] transition hover:text-white"
             >
               <Ticket size={16} /> Got a gift? Claim it
             </button>
           </motion.div>
 
-          <motion.div {...enter(0.24)} className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-semibold text-[var(--ink-muted)]">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Base mainnet
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-emerald-500" /> Non-custodial escrow
-            </span>
+          <motion.div {...enter(0.24)} className="flex flex-wrap items-center gap-2">
+            <GlassChip icon={<span className="pulse-status-dot" aria-hidden />}>Base mainnet</GlassChip>
+            <GlassChip icon={<ShieldCheck size={12} aria-hidden />}>Non-custodial escrow</GlassChip>
             <a
               href={basescan}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-[var(--brand-text)]"
+              className="pulse-chip transition hover:bg-white/25"
             >
-              Verified contract <ExternalLink size={11} />
+              Verified contract <ExternalLink size={11} aria-hidden />
             </a>
           </motion.div>
         </div>
