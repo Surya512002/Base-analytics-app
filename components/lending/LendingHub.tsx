@@ -647,10 +647,12 @@ export default function LendingHub({
     // Pair markets (e.g. NVDAc-USDC) are LP positions nobody holds as a token. Open Smart
     // Deposit instead: pay with USDC, the stock or ETH → swap the missing half → add liquidity
     // → stake, in one batch. Other venues for the same pair deposit through the stock's Beefy
-    // vault; withdrawing from those stays on the market's own flow.
+    // vault. Withdrawing from a Beefy CLM "CoW pool" listing pulls its CLM shares straight
+    // from the wallet (the drawer checks on-chain that the vault wraps that exact CLM).
     const route = resolvePairVault(market, discoveredMarkets, BASE_LENDING_MARKETS);
     const withdrawing = action === "withdraw" || action === "unstake";
-    if (route && !(withdrawing && route.viaStockVault)) {
+    const cowPool = BASE_LENDING_MARKETS.some((m) => m.id === market.id && m.contractType === "aerodrome_gauge");
+    if (route && !(withdrawing && route.viaStockVault && !cowPool)) {
       setSelectedMarketModal(null);
       setSmartTarget({
         mode: "lp",
@@ -660,7 +662,12 @@ export default function LendingHub({
         venue: "Beefy on Aerodrome",
         sourceLink: route.sourceLink,
         initialTab: withdrawing ? "withdraw" : "deposit",
-        note: route.viaStockVault
+        ...(withdrawing && route.viaStockVault && cowPool
+          ? { withdrawFrom: "clm" as const, clm: market.contractAddress as `0x${string}` }
+          : {}),
+        note: withdrawing && route.viaStockVault
+          ? `Withdraws your ${market.name} shares straight back to ${route.stockSymbol} and USDC (or all USDC). If you also hold the auto-compounder, switch between the two above.`
+          : route.viaStockVault
           ? `${market.name} needs both ${route.stockSymbol} and USDC in the pool's ratio. This deposits through Beefy's ${route.stockSymbol}-USDC auto-compounder on Aerodrome, which manages that liquidity and reinvests the fees for you. The rate shown is the vault's.`
           : undefined,
       });

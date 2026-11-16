@@ -316,12 +316,17 @@ export type ClmWithdrawPlan = {
   expected: { out0: bigint; out1: bigint; clmShares: bigint; valueInToken0: number };
 };
 
-/** Withdraw `vaultShares` (or all) → both tokens back, optionally swapping token1 to token0. */
+/**
+ * Withdraw → both tokens back, optionally swapping token1 to token0. Pass `vaultShares` for a
+ * position in the auto-compounding vault, or `clmShares` for CLM ("cow") shares held directly
+ * in the wallet (the CoW pool listing), which skips the unstake step.
+ */
 export async function planClmWithdraw(params: {
   client: ZapClient;
   info: ClmVault;
   user: Address;
-  vaultShares: bigint;
+  vaultShares?: bigint;
+  clmShares?: bigint;
   toToken0?: boolean;
   slippageBps?: number;
 }): Promise<ClmWithdrawPlan> {
@@ -329,10 +334,17 @@ export async function planClmWithdraw(params: {
   const slip = params.slippageBps ?? 100;
   const steps: ClmWithdrawPlan["steps"] = [];
   const calls: ContractCall[] = [];
-  const ppfs = (await client.readContract({ address: info.vault, abi: BEEFY_VAULT_ABI, functionName: "getPricePerFullShare" })) as bigint;
-  const clmShares = (params.vaultShares * ppfs) / BigInt(10) ** BigInt(18);
-  calls.push(encodeContractCall(info.vault, BEEFY_VAULT_ABI, "withdraw", [params.vaultShares]));
-  steps.push({ kind: "unstake", label: "Unstake from the vault" });
+  let clmShares: bigint;
+  if (params.clmShares !== undefined) {
+    clmShares = params.clmShares;
+  } else {
+    const vaultShares = params.vaultShares ?? BigInt(0);
+    const ppfs = (await client.readContract({ address: info.vault, abi: BEEFY_VAULT_ABI, functionName: "getPricePerFullShare" })) as bigint;
+    clmShares = (vaultShares * ppfs) / BigInt(10) ** BigInt(18);
+    calls.push(encodeContractCall(info.vault, BEEFY_VAULT_ABI, "withdraw", [vaultShares]));
+    steps.push({ kind: "unstake", label: "Unstake from the vault" });
+  }
+  if (clmShares <= BigInt(0)) throw new Error("Nothing to withdraw");
 
   const [a0, a1] = (await client.readContract({ address: info.clm, abi: CLM_ABI, functionName: "previewWithdraw", args: [clmShares] })) as readonly [bigint, bigint];
   const min0 = minus(a0, Math.max(50, slip));

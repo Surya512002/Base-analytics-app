@@ -45,6 +45,10 @@ export type SmartVaultTarget =
       initialTab?: "deposit" | "withdraw";
       /** Why the user landed here, e.g. they clicked a pool that deposits through this vault. */
       note?: string;
+      /** Withdraw CLM ("cow") shares held directly in the wallet instead of vault shares. */
+      withdrawFrom?: "vault" | "clm";
+      /** The CLM the user clicked; direct withdrawals only run when the vault wraps exactly this. */
+      clm?: Address;
     }
   | {
       mode: "get";
@@ -293,8 +297,14 @@ async function execute(
   return hash;
 }
 
-function useBalances(pub: Pub, user: Address | null, tokens: Array<{ address: Address; decimals: number }>, vault?: Address) {
-  const [bal, setBal] = useState<{ eth: number; tokens: number[]; raw: bigint[]; vaultShares: bigint } | null>(null);
+function useBalances(
+  pub: Pub,
+  user: Address | null,
+  tokens: Array<{ address: Address; decimals: number }>,
+  vault?: Address,
+  clm?: Address
+) {
+  const [bal, setBal] = useState<{ eth: number; tokens: number[]; raw: bigint[]; vaultShares: bigint; clmShares: bigint } | null>(null);
   const key = tokens.map((t) => t.address).join(",");
   const refresh = useCallback(async () => {
     if (!user) return setBal(null);
@@ -303,6 +313,7 @@ function useBalances(pub: Pub, user: Address | null, tokens: Array<{ address: Ad
         pub.getBalance({ address: user }),
         ...tokens.map((t) => pub.readContract({ address: t.address, abi: erc20Abi, functionName: "balanceOf", args: [user] })),
         ...(vault ? [pub.readContract({ address: vault, abi: BEEFY_VAULT_ABI, functionName: "balanceOf", args: [user] })] : []),
+        ...(clm ? [pub.readContract({ address: clm, abi: erc20Abi, functionName: "balanceOf", args: [user] })] : []),
       ]);
       const raw = rest.slice(0, tokens.length) as bigint[];
       setBal({
@@ -310,12 +321,13 @@ function useBalances(pub: Pub, user: Address | null, tokens: Array<{ address: Ad
         raw,
         tokens: raw.map((r, i) => Number(formatUnits(r, tokens[i].decimals))),
         vaultShares: vault ? (rest[tokens.length] as bigint) : BigInt(0),
+        clmShares: clm ? (rest[tokens.length + (vault ? 1 : 0)] as bigint) : BigInt(0),
       });
     } catch {
       /* keep the last good numbers */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pub, user, key, vault]);
+  }, [pub, user, key, vault, clm]);
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -362,7 +374,9 @@ function LpPanel({
   }, [pub, target.vault]);
 
   const tokens = useMemo(() => (info ? [info.token0, info.token1] : []), [info]);
-  const { bal, refresh } = useBalances(pub, user, tokens, target.vault);
+  // Direct CLM ("cow") shares: only when this vault wraps the exact CLM the user clicked.
+  const clmMatches = !!info && (!target.clm || info.clm.toLowerCase() === target.clm.toLowerCase());
+  const { bal, refresh } = useBalances(pub, user, tokens, target.vault, clmMatches ? info?.clm : undefined);
 
   // Beefy CLMs pause deposits while the pool price is off its 2-minute TWAP. Watch it live.
   const [calm, setCalm] = useState<boolean | null>(null);
@@ -383,6 +397,14 @@ function LpPanel({
   const [pay, setPay] = useState<PayAsset>("token0");
   const [amount, setAmount] = useState("");
   const [pctOut, setPctOut] = useState(100);
+  const [source, setSource] = useState<"vault" | "clm">(target.withdrawFrom ?? "vault");
+  // Follow the money: if the chosen source is empty but the other holds shares, switch to it.
+  useEffect(() => {
+    if (!bal) return;
+    if (source === "vault" && bal.vaultShares === BigInt(0) && bal.clmShares > BigInt(0)) setSource("clm");
+    if (source === "clm" && bal.clmShares === BigInt(0) && bal.vaultShares > BigInt(0)) setSource("vault");
+  }, [bal, source]);
+  const sourceShares = !bal ? BigInt(0) : source === "clm" ? bal.clmShares : bal.vaultShares;
   const [toUsdc, setToUsdc] = useState(true);
   const [plan, setPlan] = useState<ClmDepositPlan | ClmWithdrawPlan | null>(null);
   const [planErr, setPlanErr] = useState<string | null>(null);
@@ -404,7 +426,7 @@ function LpPanel({
   const payBal = !bal ? null : pay === "eth" ? bal.eth : pay === "token0" ? bal.tokens[0] : bal.tokens[1];
   const amt = safeParse(amount, payDec);
   const overBalance = payBal != null && Number(amount || 0) > payBal + 1e-12;
-  const withdrawShares = bal ? (bal.vaultShares * BigInt(pctOut)) / BigInt(100) : BigInt(0);
+  const withdrawShares = (sourceShares * BigInt(pctOut)) / BigInt(100);
 
   // Debounced live plan.
   useEffect(() => {
@@ -419,7 +441,9 @@ function LpPanel({
         const p =
           tab === "deposit"
             ? await planClmDeposit({ client: pub, info, user, pay, amount: amt })
-            : await planClmWithdraw({ client: pub, info, user, vaultShares: withdrawShares, toToken0: toUsdc });
+            : source === "clm"
+              ? await planClmWithdraw({ client: pub, info, user, clmShares: withdrawShares, toToken0: toUsdc })
+              : await planClmWithdraw({ client: pub, info, user, vaultShares: withdrawShares, toToken0: toUsdc });
         if (id === reqId.current) setPlan(p);
       } catch (e) {
         if (id === reqId.current) {
@@ -431,7 +455,7 @@ function LpPanel({
       }
     }, 550);
     return () => clearTimeout(t);
-  }, [info, user, tab, pay, amt, overBalance, withdrawShares, toUsdc, pub]);
+  }, [info, user, tab, pay, amt, overBalance, withdrawShares, toUsdc, source, pub]);
 
   const onSubmit = async () => {
     if (!plan || !user) return;
@@ -553,13 +577,42 @@ function LpPanel({
               </>
             ) : (
               <>
+                {target.withdrawFrom === "clm" && !clmMatches && (
+                  <p className="rounded-xl bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+                    This pool isn&apos;t the one this vault manages, so its shares can&apos;t be withdrawn here.{" "}
+                    <a href={target.sourceLink} target="_blank" rel="noopener noreferrer" className="font-bold underline">
+                      Open it on the protocol
+                    </a>
+                    .
+                  </p>
+                )}
+                {bal && bal.vaultShares > BigInt(0) && bal.clmShares > BigInt(0) && (
+                  <div role="tablist" aria-label="Withdraw from" className="grid grid-cols-2 gap-1 rounded-full bg-[var(--surface-2)] p-1">
+                    {(["vault", "clm"] as const).map((src) => (
+                      <button
+                        key={src}
+                        type="button"
+                        role="tab"
+                        aria-selected={source === src}
+                        onClick={() => setSource(src)}
+                        className={`cursor-pointer rounded-full py-1.5 text-xs font-bold transition ${
+                          source === src ? "pulse-tab-on" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                        }`}
+                      >
+                        {src === "vault" ? "Auto-compounder" : "Pool (CoW) shares"}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 text-xs">
-                  <p className="text-[var(--ink-muted)]">Your position</p>
+                  <p className="text-[var(--ink-muted)]">
+                    Your position{source === "clm" ? " · pool shares in your wallet" : ""}
+                  </p>
                   <p className="font-mono text-lg font-black text-[var(--ink)]">
-                    {!bal ? "—" : bal.vaultShares === BigInt(0) ? "Nothing deposited yet" : position != null ? `≈ ${usd(position / (pctOut / 100))}` : "…"}
+                    {!bal ? "—" : sourceShares === BigInt(0) ? "Nothing deposited yet" : position != null ? `≈ ${usd(position / (pctOut / 100))}` : "…"}
                   </p>
                 </div>
-                {bal && bal.vaultShares > BigInt(0) && (
+                {bal && sourceShares > BigInt(0) && (
                   <>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[25, 50, 75, 100].map((p) => (
