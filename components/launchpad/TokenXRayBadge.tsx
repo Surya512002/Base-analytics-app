@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ShieldCheck, AlertTriangle, ShieldAlert, Sparkles, X } from "lucide-react";
 import type { TokenXRayReport } from "@/lib/launchpad/token-xray";
 import { computeTokenXRayScore } from "@/lib/launchpad/token-xray";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 /**
  * One X-Ray request per token per 10 minutes, shared across every badge on the page. Lists
@@ -126,7 +127,7 @@ export default function TokenXRayBadge({
 
       {/* Safety X-Ray Detail Modal */}
       {modalOpen && (
-        <div
+        <BodyPortal><div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-sm animate-in fade-in duration-150"
           onClick={(e) => {
             e.stopPropagation();
@@ -236,7 +237,7 @@ export default function TokenXRayBadge({
               Done
             </button>
           </div>
-        </div>
+        </div></BodyPortal>
       )}
     </>
   );

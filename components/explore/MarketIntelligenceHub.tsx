@@ -33,6 +33,7 @@ import {
 } from "@/lib/alerts/smarter-alerts";
 import { shortAddr } from "@/lib/launchpad/format";
 import type { StockMarketItem } from "@/lib/markets/types";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 type IntelligenceTab = "nav" | "smart_money" | "alerts";
 
@@ -691,7 +692,7 @@ export default function MarketIntelligenceHub({
 
           {/* New Alert Modal Overlay */}
           {showAlertModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <BodyPortal><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
               <div className="w-full max-w-sm rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-sm text-[var(--ink)]">Create Smart Alert</h4>
@@ -809,7 +810,7 @@ export default function MarketIntelligenceHub({
                   </div>
                 </form>
               </div>
-            </div>
+            </div></BodyPortal>
           )}
         </div>
       )}

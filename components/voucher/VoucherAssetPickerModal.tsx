@@ -8,6 +8,7 @@ import { YIELD_VAULT_SHARES, type VaultShareInfo } from "@/lib/utils/voucher";
 import type { VoucherAsset } from "@/lib/utils/voucher";
 import TokenLogo from "@/components/ui/TokenLogo";
 import { useCompliance } from "@/hooks/useCompliance";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 interface VoucherAssetPickerModalProps {
   open: boolean;
@@ -87,7 +88,7 @@ export default function VoucherAssetPickerModal({
   if (!open) return null;
 
   return (
-    <div
+    <BodyPortal><div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
@@ -286,6 +287,6 @@ export default function VoucherAssetPickerModal({
           )}
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

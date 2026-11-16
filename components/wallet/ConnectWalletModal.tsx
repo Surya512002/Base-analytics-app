@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/wallet-providers";
 import { isMobileDevice, getMobileWalletDeepLink } from "@/lib/utils/wallet-deeplink";
 import type { ConnectionType } from "@/lib/types/wallet";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 type WalletOption = {
   type: ConnectionType;
@@ -199,7 +200,7 @@ export default function ConnectWalletModal({
     : "Pick the wallet you want — each option opens that wallet only (no auto MetaMask).";
 
   return (
-    <div
+    <BodyPortal><div
       className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-3 sm:p-6 overflow-y-auto overscroll-contain"
       role="dialog"
       aria-modal="true"
@@ -305,6 +306,6 @@ export default function ConnectWalletModal({
           </p>
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

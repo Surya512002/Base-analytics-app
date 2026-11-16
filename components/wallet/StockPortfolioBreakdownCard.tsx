@@ -23,6 +23,7 @@ import {
   type UserStockPortfolioSummary,
   type UserStockPortfolioPosition,
 } from "@/lib/lending/unified-comparison";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 interface StockPortfolioBreakdownCardProps {
   wallet: WalletData;
@@ -314,7 +315,7 @@ export default function StockPortfolioBreakdownCard({
 
       {/* Share Score Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-4">
+        <BodyPortal><div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
               <h4 className="font-display font-bold text-base text-[var(--ink)]">
@@ -385,7 +386,7 @@ export default function StockPortfolioBreakdownCard({
               </button>
             </div>
           </div>
-        </div>
+        </div></BodyPortal>
       )}
     </div>
   );

@@ -30,6 +30,7 @@ import {
   type StockMarketGroup,
   type StockMarketKind,
 } from "@/lib/lending/stock-market-groups";
+import BodyPortal from "@/components/ui/BodyPortal";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import TokenLogo from "@/components/ui/TokenLogo";
 
@@ -354,6 +355,7 @@ export default function StockMarketsExplorer({
 
       <VerificationNote />
 
+      <BodyPortal>
       {/* Compare tray */}
       <AnimatePresence>
         {compare.length > 0 && (
@@ -391,6 +393,7 @@ export default function StockMarketsExplorer({
           <ComparePanel groups={compared} onClose={() => setCompareOpen(false)} />
         )}
       </AnimatePresence>
+      </BodyPortal>
     </section>
   );
 }

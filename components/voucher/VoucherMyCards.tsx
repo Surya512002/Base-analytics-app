@@ -23,6 +23,7 @@ import {
   formatVoucherAmount,
 } from "@/lib/utils/voucher";
 import { generateQrMatrix, generateQrSvgPath } from "@/lib/utils/qr-code";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 type VoucherTab = ReturnType<typeof useVoucherTab>;
 
@@ -436,7 +437,7 @@ export default function VoucherMyCards({
 
       {/* Batch Detail Drawer / Modal */}
       {selectedBatchForDrawer && (
-        <div
+        <BodyPortal><div
           className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setSelectedBatchForDrawer(null)}
         >
@@ -604,12 +605,12 @@ export default function VoucherMyCards({
               })}
             </div>
           </div>
-        </div>
+        </div></BodyPortal>
       )}
 
       {/* QR Code Modal for Drawer */}
       {activeQrCard && (
-        <div
+        <BodyPortal><div
           className="fixed inset-0 z-[220] flex items-center justify-center bg-[var(--overlay)] p-4"
           onClick={() => setActiveQrCard(null)}
         >
@@ -659,7 +660,7 @@ export default function VoucherMyCards({
               {copiedId === "qr-copied-drawer" ? "Copied Link!" : "Copy Claim Link"}
             </button>
           </div>
-        </div>
+        </div></BodyPortal>
       )}
     </div>
   );

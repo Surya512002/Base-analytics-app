@@ -7,6 +7,7 @@ import { updateCreatorProfile, uploadCreatorAvatar } from "@/lib/api/creator-cli
 import { patchCreatorProfileCache } from "@/hooks/useCreatorProfile";
 import { prepareTokenImage, revokePreviewUrl } from "@/lib/launchpad/image-upload";
 import CreatorAvatar from "@/components/launchpad/CreatorAvatar";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 interface EditProfileDrawerProps {
   open: boolean;
@@ -207,7 +208,7 @@ export default function EditProfileDrawer({
   const currentAvatar = previewUrl || avatarUrl;
 
   return (
-    <div
+    <BodyPortal><div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
@@ -418,6 +419,6 @@ export default function EditProfileDrawer({
           </div>
         </form>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

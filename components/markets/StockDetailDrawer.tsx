@@ -16,6 +16,7 @@ import {
 import type { StockMarketItem } from "@/lib/markets/types";
 import { OFFICIAL_TRADE_VENUES } from "@/lib/markets/types";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 interface StockDetailDrawerProps {
   stock: StockMarketItem | null;
@@ -59,7 +60,7 @@ export default function StockDetailDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-fade-in">
+    <BodyPortal><div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-fade-in">
       {/* Backdrop tap to close */}
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
@@ -326,6 +327,6 @@ export default function StockDetailDrawer({
           </p>
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

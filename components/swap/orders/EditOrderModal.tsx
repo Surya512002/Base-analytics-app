@@ -13,6 +13,7 @@ import {
   type OrderKind,
 } from "@/src/lib/limitOrders/orderMath";
 import type { MarketState } from "@/src/lib/limitOrders/useLimitOrders";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 interface EditOrderModalProps {
   order: OnChainOrder;
@@ -100,7 +101,7 @@ export default function EditOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <BodyPortal><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
       <div className="w-full max-w-[420px] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-2xl space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[var(--ink)]">
@@ -221,6 +222,6 @@ export default function EditOrderModal({
           </button>
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeftRight, Coins, Rocket, Sparkles, X } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 const TOUR_KEY = "base_onboarding_done_v7";
 
@@ -80,7 +81,7 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
   const current = STEPS[step];
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
+    <BodyPortal><div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
       <div className="absolute inset-0 bg-[var(--bg-deep)]/80 backdrop-blur-md" onClick={close} />
       <div
         className="relative w-full max-w-md elegant-panel rounded-3xl border border-[var(--border-strong)] overflow-hidden tab-content-enter my-auto"
@@ -117,6 +118,6 @@ export default function OnboardingTour({ onNavigate, ready = false }: Onboarding
           </div>
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

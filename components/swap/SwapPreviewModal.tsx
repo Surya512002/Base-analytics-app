@@ -4,6 +4,7 @@ import React from "react";
 import { ArrowDown, ShieldCheck, AlertTriangle, Fuel, Percent, CheckCircle2, X } from "lucide-react";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { counterSymbol } from "@/components/launchpad/TokenPickerDialog";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 interface SwapPreviewModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export default function SwapPreviewModal({
   const isHighImpact = (priceImpactPct ?? 0) > 3;
 
   return (
-    <div
+    <BodyPortal><div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-sm animate-in fade-in duration-150"
       onClick={onClose}
     >
@@ -182,6 +183,6 @@ export default function SwapPreviewModal({
           </button>
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

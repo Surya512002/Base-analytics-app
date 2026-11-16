@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Command, Rocket, Search, X } from "lucide-react";
+import BodyPortal from "@/components/ui/BodyPortal";
 
 const TOUR_KEY = "base_explore_onboarding_v1";
 
@@ -47,7 +48,7 @@ export default function ExploreOnboarding() {
   const current = STEPS[step];
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center p-3 sm:p-4 pointer-events-none overflow-y-auto overscroll-contain">
+    <BodyPortal><div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center p-3 sm:p-4 pointer-events-none overflow-y-auto overscroll-contain">
       <div
         className="absolute inset-0 bg-[var(--overlay)] pointer-events-auto"
         onClick={close}
@@ -105,6 +106,6 @@ export default function ExploreOnboarding() {
           )}
         </div>
       </div>
-    </div>
+    </div></BodyPortal>
   );
 }

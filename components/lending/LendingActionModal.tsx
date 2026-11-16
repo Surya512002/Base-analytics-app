@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import PulseModal from "@/components/ui/PulseModal";
 import {
-  X,
   ExternalLink,
   ShieldCheck,
   Loader2,
@@ -366,61 +365,47 @@ export default function LendingActionModal({
     }
   };
 
+  const headlineRate = market.category === "stocks_borrow" || market.category === "crypto_borrow" ? market.borrowApr : market.supplyApy;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] backdrop-blur-sm p-4"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-3)] shadow-2xl overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] p-5">
+    <PulseModal
+      onClose={onClose}
+      labelledBy="lending-action-title"
+      closeLabel="Close vault"
+      header={
+        <div className="space-y-4 pr-10">
           <div className="flex items-center gap-3">
-            <TokenLogo
-              address={activeAsset.address}
-              symbol={activeAsset.symbol}
-              size={40}
-              shape="rounded-xl"
-            />
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-[var(--ink)] text-base">{market.name}</h3>
-                {market.isStockFocus && (
-                  <span className="text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
-                    Stock RWA
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1">
-                <span>{market.protocolLabel}</span>
-                <span>·</span>
-                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
-                  {market.category === "stocks_borrow" || market.category === "crypto_borrow"
-                    ? `${market.borrowApr}% Borrow APR`
-                    : `${market.supplyApy}% Supply APY`}
-                </span>
+            <span className="shrink-0 rounded-2xl bg-white/15 p-1 ring-1 ring-white/25">
+              <TokenLogo address={activeAsset.address} symbol={activeAsset.symbol} size={40} shape="rounded-xl" />
+            </span>
+            <div className="min-w-0">
+              <p className="pulse-eyebrow">
+                <span className="pulse-status-dot" aria-hidden />
+                <span className="truncate">{market.protocolLabel}</span>
               </p>
+              <h3 id="lending-action-title" className="mt-1 text-lg font-black leading-tight tracking-tight text-white sm:text-xl">
+                {market.name}
+              </h3>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[var(--ink-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
 
-        {/* Content */}
-        <div className="p-5 space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="flex items-baseline gap-2">
+              <span className="pulse-big text-4xl sm:text-5xl">{headlineRate ?? 0}%</span>
+              <span className="text-sm font-bold text-[var(--ink-muted)]">
+                {market.category === "stocks_borrow" || market.category === "crypto_borrow" ? "Borrow APR" : "Supply APY"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {market.isStockFocus && <span className="pulse-chip">Stock RWA</span>}
+              <span className="pulse-chip">
+                <ShieldCheck size={12} aria-hidden /> Verified on Base
+              </span>
+            </div>
+          </div>
+
           {/* Action Tabs */}
-          <div className="flex rounded-xl bg-[var(--surface-2)] p-1 border border-[var(--border-subtle)]">
+          <div className="flex rounded-full border border-white/20 bg-white/12 p-1">
             {availableActions.map((act) => (
               <button
                 key={act}
@@ -430,17 +415,49 @@ export default function LendingActionModal({
                   setStatus("idle");
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2 text-xs font-semibold rounded-lg capitalize transition-all ${
-                  action === act
-                    ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm border border-[var(--border-subtle)]"
-                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                aria-pressed={action === act}
+                className={`flex-1 cursor-pointer rounded-full py-2 text-xs font-bold capitalize transition-all ${
+                  action === act ? "bg-white text-[#0041cc] shadow-sm" : "text-white/85 hover:text-white"
                 }`}
               >
                 {act}
               </button>
             ))}
           </div>
-
+        </div>
+      }
+      footer={
+        !userAddress ? (
+          <button
+            type="button"
+            onClick={onRequestConnect}
+            className="w-full btn-primary min-h-[48px] py-3 rounded-full font-bold text-sm shadow-md"
+          >
+            Connect Wallet to {action.toUpperCase()}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleExecute}
+            disabled={status === "submitting" || !amount || parseFloat(amount) <= 0}
+            className="w-full btn-primary min-h-[48px] py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 shadow-md transition-all"
+          >
+            {status === "submitting" ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Confirming on Base…
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={16} />
+                {action.toUpperCase()} {amount ? `${amount} ${activeAsset.symbol}` : ""}
+              </>
+            )}
+          </button>
+        )
+      }
+    >
+        <div className="space-y-4 p-5 sm:p-6">
           {/* Oracle Status Alert */}
           {market.oracleStatus === "paused" && (
             <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3 text-xs text-amber-700 dark:text-amber-400 font-bold flex items-center gap-2">
@@ -633,40 +650,7 @@ export default function LendingActionModal({
               </div>
             </div>
           )}
-
-          {/* Action CTA */}
-          <div className="pt-2">
-            {!userAddress ? (
-              <button
-                type="button"
-                onClick={onRequestConnect}
-                className="w-full btn-primary py-3 rounded-xl font-bold text-sm shadow-md"
-              >
-                Connect Wallet to {action.toUpperCase()}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleExecute}
-                disabled={status === "submitting" || !amount || parseFloat(amount) <= 0}
-                className="w-full btn-primary py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 shadow-md transition-all"
-              >
-                {status === "submitting" ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Confirming on Base…
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={16} />
-                    {action.toUpperCase()} {amount ? `${amount} ${activeAsset.symbol}` : ""}
-                  </>
-                )}
-              </button>
-            )}
-          </div>
         </div>
-      </motion.div>
-    </motion.div>
+    </PulseModal>
   );
 }
