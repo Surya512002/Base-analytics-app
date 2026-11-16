@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeFunctionData, type Address } from "viem";
 import { CLM_ABI, BEEFY_VAULT_ABI, planClmWithdraw, type ClmVault, type ZapClient } from "./clm-zap";
+import { finalizeAppTransactionBatch, getBuilderSuffix, hasBuilderSuffix, isPreservedCalldataCall } from "@/lib/utils/tx";
 
 const VAULT = "0x00000000000000000000000000000000000000a1" as Address;
 const CLM = "0x00000000000000000000000000000000000000c1" as Address;
@@ -51,5 +52,21 @@ describe("planClmWithdraw", () => {
 
   it("refuses an empty withdrawal", async () => {
     await expect(planClmWithdraw({ client, info, user: USER, clmShares: BigInt(0) })).rejects.toThrow(/Nothing to withdraw/);
+  });
+
+  it("carries the builder code on every call, before and after batch finalisation", async () => {
+    for (const plan of [
+      await planClmWithdraw({ client, info, user: USER, clmShares: BigInt(1000), toToken0: false }),
+      await planClmWithdraw({ client, info, user: USER, vaultShares: BigInt(500), toToken0: false }),
+    ]) {
+      expect(getBuilderSuffix().endsWith("80218021802180218021802180218021")).toBe(true);
+      for (const call of plan.calls) {
+        expect(isPreservedCalldataCall(call)).toBe(false);
+        expect(hasBuilderSuffix(call.data)).toBe(true);
+      }
+      const sent = finalizeAppTransactionBatch(plan.calls);
+      expect(sent).toHaveLength(plan.calls.length); // no companion needed: the real calls are attributed
+      expect(sent.every((c) => hasBuilderSuffix(c.data))).toBe(true);
+    }
   });
 });
