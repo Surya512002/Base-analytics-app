@@ -18,6 +18,7 @@ import LendingHeader from "./LendingHeader";
 import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
 import StockMarketsExplorer from "@/components/lending/StockMarketsExplorer";
 import SmartVaultDrawer, { type SmartVaultTarget } from "@/components/lending/SmartVaultDrawer";
+import { resolvePairVault } from "@/lib/lending/zap/pair-route";
 import PositionsPanel from "./PositionsPanel";
 import {
   fetchAllUserPositions,
@@ -579,6 +580,45 @@ export default function LendingHub({
 
   // Open Level 3 Action Drawer for Stock Option
   const handleOpenStockDrawer = (option: StockLendingOption, tab: DrawerActionTab) => {
+    // LP vault options are pair positions: use Smart Deposit (one batch from USDC, the stock or
+    // ETH) rather than asking for an LP token. Beefy vaults route directly (deposit + withdraw);
+    // other pair venues deposit through the stock's Beefy vault.
+    if (option.role === "lp_vault" && (tab === "supply" || (tab === "withdraw" && option.protocol === "beefy"))) {
+      const route =
+        option.protocol === "beefy"
+          ? { vault: option.contractAddress, apy: option.supplyApy, sourceLink: option.sourceLink ?? "", viaStockVault: false }
+          : resolvePairVault(
+              {
+                ...BASE_LENDING_MARKETS[0],
+                id: option.id,
+                name: `${option.protocolName} ${option.stockSymbol}-${option.loanSymbol}`,
+                protocol: option.protocol,
+                contractType: "aerodrome_gauge",
+                contractAddress: option.contractAddress,
+                supplyApy: option.supplyApy,
+                protocolUrl: option.sourceLink ?? "",
+                asset: { symbol: `${option.stockSymbol}-${option.loanSymbol}`, name: option.stockName, address: option.contractAddress, decimals: 18 },
+                collateralAsset: { symbol: option.stockSymbol, name: option.stockName, address: option.stockAddress, decimals: 8, isStock: true },
+              } as LendingMarket,
+              discoveredMarkets,
+              BASE_LENDING_MARKETS
+            );
+      if (route) {
+        setSmartTarget({
+          mode: "lp",
+          vault: route.vault,
+          stockSymbol: option.stockSymbol,
+          apy: route.apy,
+          venue: "Beefy on Aerodrome",
+          sourceLink: route.sourceLink,
+          initialTab: tab === "withdraw" ? "withdraw" : "deposit",
+          note: route.viaStockVault
+            ? `${option.protocolName} needs both ${option.stockSymbol} and ${option.loanSymbol}. This deposits through Beefy's ${option.stockSymbol} auto-compounder on Aerodrome, which manages that liquidity and reinvests the fees. The rate shown is the vault's.`
+            : undefined,
+        });
+        return;
+      }
+    }
     setDrawerOption(option);
     setDrawerInitialTab(tab);
   };
@@ -604,6 +644,28 @@ export default function LendingHub({
     market: LendingMarket,
     action: "supply" | "withdraw" | "borrow" | "repay" | "stake" | "unstake"
   ) => {
+    // Pair markets (e.g. NVDAc-USDC) are LP positions nobody holds as a token. Open Smart
+    // Deposit instead: pay with USDC, the stock or ETH → swap the missing half → add liquidity
+    // → stake, in one batch. Other venues for the same pair deposit through the stock's Beefy
+    // vault; withdrawing from those stays on the market's own flow.
+    const route = resolvePairVault(market, discoveredMarkets, BASE_LENDING_MARKETS);
+    const withdrawing = action === "withdraw" || action === "unstake";
+    if (route && !(withdrawing && route.viaStockVault)) {
+      setSelectedMarketModal(null);
+      setSmartTarget({
+        mode: "lp",
+        vault: route.vault,
+        stockSymbol: route.stockSymbol,
+        apy: route.apy,
+        venue: "Beefy on Aerodrome",
+        sourceLink: route.sourceLink,
+        initialTab: withdrawing ? "withdraw" : "deposit",
+        note: route.viaStockVault
+          ? `${market.name} needs both ${route.stockSymbol} and USDC in the pool's ratio. This deposits through Beefy's ${route.stockSymbol}-USDC auto-compounder on Aerodrome, which manages that liquidity and reinvests the fees for you. The rate shown is the vault's.`
+          : undefined,
+      });
+      return;
+    }
     setSelectedMarketModal(market);
     setMarketModalAction(action);
   };
@@ -1057,6 +1119,21 @@ export default function LendingHub({
           connType={connType}
           onClose={() => setSelectedMarketModal(null)}
           onRequestConnect={onRequestConnect}
+          onGetAsset={(asset, act) => {
+            const m = selectedMarketModal;
+            setSelectedMarketModal(null);
+            setSmartTarget({
+              mode: "get",
+              token: asset.address as `0x${string}`,
+              symbol: asset.symbol,
+              decimals: asset.decimals,
+              purpose: `${act} on ${m.protocolLabel}`,
+              onContinue: () => {
+                setSmartTarget(null);
+                handleOpenMarketModal(m, act);
+              },
+            });
+          }}
           onSuccess={() => {
             showToast("Market transaction confirmed!", "Attributed with Base Builder Code");
             void fetchDiscoveredMarkets(true, true);

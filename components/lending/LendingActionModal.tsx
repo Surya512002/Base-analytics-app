@@ -10,8 +10,11 @@ import {
   CheckCircle2,
   TrendingUp,
   Percent,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
-import type { LendingMarket, ActionModalType } from "@/lib/lending/types";
+import type { LendingMarket, ActionModalType, MarketAsset } from "@/lib/lending/types";
+import { isPairMarket, isDepositAction } from "@/lib/lending/zap/pair-route";
 import TokenLogo from "@/components/ui/TokenLogo";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import type { ConnectionType } from "@/lib/types/wallet";
@@ -51,6 +54,7 @@ export default function LendingActionModal({
   onClose,
   onRequestConnect,
   onSuccess,
+  onGetAsset,
 }: {
   market: LendingMarket;
   initialAction?: ActionModalType;
@@ -59,6 +63,8 @@ export default function LendingActionModal({
   onClose: () => void;
   onRequestConnect?: () => void;
   onSuccess?: () => void;
+  /** Buy the deposit token in-app first (USDC or ETH → token), then come back here. */
+  onGetAsset?: (asset: MarketAsset, action: ActionModalType) => void;
 }) {
   const [action, setAction] = useState<ActionModalType>(initialAction);
   const [amount, setAmount] = useState("");
@@ -465,6 +471,30 @@ export default function LendingActionModal({
               <span>⚠️ Oracle Paused (Feed Halted / Weekend Close) — Borrowing against this stock is temporarily suspended by Morpho risk rules.</span>
             </div>
           )}
+
+          {/* Don't hold the token yet? Buy it in-app, then continue here. */}
+          {onGetAsset &&
+            userAddress &&
+            walletBalance === 0 &&
+            isDepositAction(action) &&
+            activeAsset.isStock &&
+            !isPairMarket({ asset: activeAsset }) &&
+            /^0x[0-9a-fA-F]{40}$/.test(activeAsset.address) && (
+              <div className="flex flex-col gap-3 rounded-2xl border border-[var(--pill-border)] bg-[var(--pill-bg)] p-3.5 sm:flex-row sm:items-center">
+                <Sparkles size={16} className="hidden shrink-0 text-[var(--brand-text)] sm:block" aria-hidden />
+                <p className="min-w-0 flex-1 text-xs text-[var(--ink-muted)]">
+                  <span className="block font-bold text-[var(--ink)]">You don&apos;t hold {activeAsset.symbol} yet</span>
+                  Buy it here with USDC or ETH in one tap, then come straight back to {action}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onGetAsset(activeAsset, action)}
+                  className="btn-primary inline-flex min-h-[40px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-xs font-bold"
+                >
+                  Get {activeAsset.symbol} <ArrowRight size={13} aria-hidden />
+                </button>
+              </div>
+            )}
 
           {/* Amount Input */}
           <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3.5 space-y-2">

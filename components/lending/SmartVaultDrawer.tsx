@@ -34,7 +34,18 @@ import { useCompliance } from "@/hooks/useCompliance";
 type Pub = ReturnType<typeof createBasePublicClient>;
 
 export type SmartVaultTarget =
-  | { mode: "lp"; vault: Address; stockSymbol: string; apy: number; venue: string; sourceLink: string }
+  | {
+      mode: "lp";
+      vault: Address;
+      stockSymbol: string;
+      apy: number;
+      venue: string;
+      sourceLink: string;
+      /** Open on this tab (defaults to deposit). */
+      initialTab?: "deposit" | "withdraw";
+      /** Why the user landed here, e.g. they clicked a pool that deposits through this vault. */
+      note?: string;
+    }
   | {
       mode: "get";
       token: Address;
@@ -368,7 +379,7 @@ function LpPanel({
   }, [pub, info]);
   const depositPaused = calm === false;
 
-  const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
+  const [tab, setTab] = useState<"deposit" | "withdraw">(target.initialTab ?? "deposit");
   const [pay, setPay] = useState<PayAsset>("token0");
   const [amount, setAmount] = useState("");
   const [pctOut, setPctOut] = useState(100);
@@ -455,6 +466,11 @@ function LpPanel({
             add the liquidity and stake it, all in one go.
           </span>
         </div>
+        {target.note && (
+          <p className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3 text-[11px] leading-relaxed text-[var(--ink-muted)]">
+            {target.note}
+          </p>
+        )}
 
         {loadErr ? (
           <div className="space-y-2">
