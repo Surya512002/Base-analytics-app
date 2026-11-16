@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSwitchChain } from "wagmi";
 import { base } from "viem/chains";
-import { ChevronDown, Loader2, Search, Star, TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronDown, Loader2, Lock, Search, ShieldCheck, Star, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { TradeMarket } from "@/app/api/trade/markets/route";
 import DexSwapCard from "@/components/swap/DexSwapCard";
@@ -19,6 +19,7 @@ import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import { PRICE_DECIMALS } from "@/src/lib/limitOrders/orderMath";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import { useWatchlist } from "@/lib/trade/watchlist";
+import { oracleHealth } from "@/lib/trade/safety";
 import CandleChart, { formatPrice, type Candle, type ChartType, type Indicators, type PriceLine } from "./CandleChart";
 import { AlertButton, MarketInfo, Position, RecentTrades, type MarketStats } from "./TradePanels";
 
@@ -102,7 +103,7 @@ function MarketPicker({
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search coins & stocks (NVDA, ETH, 0x…)"
             aria-label="Search markets"
-            className="h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] pl-9 pr-3 text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[#0052FF]"
+            className="h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] pl-9 pr-3 text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
           />
         </div>
         <div className="mt-2 flex gap-1">
@@ -111,7 +112,7 @@ function MarketPicker({
               key={k}
               type="button"
               onClick={() => setKind(k)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize ${kind === k ? "bg-[#0052FF] text-white" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize ${kind === k ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
             >
               {k}
             </button>
@@ -175,6 +176,12 @@ export default function TradeTab({
   const [chartLoading, setChartLoading] = useState(false);
   const [chartNote, setChartNote] = useState<string | null>(null);
   const [ticket, setTicket] = useState<Ticket>("market");
+  const [orderMode, setOrderMode] = useState<"simple" | "pro">("simple");
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const t = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 10_000);
+    return () => clearInterval(t);
+  }, []);
   const [swapPick, setSwapPick] = useState<SwapCounter | null>(null);
   const [pickedPrice, setPickedPrice] = useState<{ price: string; nonce: number } | null>(null);
   const nonce = useRef(0);
@@ -268,6 +275,8 @@ export default function TradeTab({
     [limitOrders.config.markets, market?.address]
   );
   const canPlaceOrders = ordersEnabled && !!orderMarket;
+  const orderMarketState = orderMarket ? limitOrders.marketStates[orderMarket.stockToken.toLowerCase()] : undefined;
+  const feed = orderMarketState && orderMarket ? oracleHealth(orderMarketState.updatedAt, orderMarket.maxStalenessSeconds, nowSec) : null;
 
   useEffect(() => {
     if (ticket === "orders" && !ordersEnabled) setTicket("market");
@@ -308,6 +317,19 @@ export default function TradeTab({
 
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-3 px-1 sm:px-2">
+      <header className="space-y-2 px-1 pt-1">
+        <h1 className="text-2xl font-black leading-tight tracking-tight text-[var(--ink)] sm:text-3xl">
+          Trade on Base. <span className="text-[var(--brand-text)]">Stay in control.</span>
+        </h1>
+        <p className="max-w-2xl text-sm text-[var(--ink-muted)]">
+          Live charts for coins and tokenized stocks, with limit, stop-loss and take-profit orders that run while you sleep.
+        </p>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-[var(--ink-muted)]">
+          <li className="flex items-center gap-1"><ShieldCheck size={13} className="text-emerald-500" /> Non-custodial</li>
+          <li className="flex items-center gap-1"><Lock size={13} className="text-emerald-500" /> Cancel &amp; withdraw anytime</li>
+          <li className="flex items-center gap-1"><Zap size={13} className="text-emerald-500" /> Chainlink-protected fills</li>
+        </ul>
+      </header>
       {/* Market bar */}
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 shadow-card">
         <div className="relative">
@@ -333,6 +355,17 @@ export default function TradeTab({
           <div className="text-xl font-extrabold tabular-nums text-[var(--ink)]">{price != null ? `$${formatPrice(price)}` : "—"}</div>
           <div className="text-xs"><ChangePill pct={change} /> <span className="text-[var(--ink-muted)]">24h</span></div>
         </div>
+        {orderMarketState && (
+          <span
+            title="Orders execute against the on-chain Chainlink price"
+            className={`hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold md:inline-flex ${
+              feed?.state === "stale" ? "border-amber-500/30 text-amber-500" : "border-[var(--border-subtle)] text-[var(--ink-muted)]"
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${feed?.state === "fresh" ? "bg-emerald-500" : feed?.state === "stale" ? "bg-amber-500" : "bg-[var(--ink-dim)]"}`} />
+            {feed?.label}
+          </span>
+        )}
         {market && (
           <div className="flex items-center gap-0.5 sm:order-last sm:ml-auto">
             <button
@@ -361,7 +394,7 @@ export default function TradeTab({
               key={w.address}
               type="button"
               onClick={() => { setMarket({ ...w, priceUsd: null, change24h: null, volume24hUsd: null }); setPickedPrice(null); }}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${market?.address.toLowerCase() === w.address.toLowerCase() ? "border-[#0052FF] bg-[#0052FF]/10 text-[var(--ink)]" : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${market?.address.toLowerCase() === w.address.toLowerCase() ? "border-[var(--brand-text)] bg-[var(--brand-soft)] text-[var(--ink)]" : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
             >
               <Star size={11} className="fill-amber-400 text-amber-400" />
               {w.symbol}
@@ -396,7 +429,7 @@ export default function TradeTab({
                   ))}
                 </div>
                 {([["ma", "MA"], ["ema", "EMA"], ["boll", "BOLL"], ["rsi", "RSI"]] as const).map(([k, label]) => (
-                  <button key={k} type="button" aria-pressed={indicators[k]} onClick={() => setIndicators((v) => ({ ...v, [k]: !v[k] }))} className={`min-h-[28px] rounded-md px-2 text-[11px] font-semibold ${indicators[k] ? "bg-[#0052FF] text-white" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>{label}</button>
+                  <button key={k} type="button" aria-pressed={indicators[k]} onClick={() => setIndicators((v) => ({ ...v, [k]: !v[k] }))} className={`min-h-[28px] rounded-md px-2 text-[11px] font-semibold ${indicators[k] ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>{label}</button>
                 ))}
               </div>
             </div>
@@ -412,7 +445,7 @@ export default function TradeTab({
                 lines={orderLines}
                 height={400}
                 onPickPrice={
-                  ticket === "orders" && canPlaceOrders
+                  ticket === "orders" && canPlaceOrders && orderMode === "pro"
                     ? (p) => {
                         nonce.current += 1;
                         setPickedPrice({ price: p.toFixed(p >= 1 ? 2 : 6), nonce: nonce.current });
@@ -422,7 +455,7 @@ export default function TradeTab({
               />
             </div>
             {chartNote && <p className="px-2 pb-1 text-[11px] text-[var(--ink-muted)]">{chartNote}</p>}
-            {ticket === "orders" && canPlaceOrders && <p className="px-2 pt-1 text-[11px] text-[var(--ink-muted)]">Click the chart to set your order price</p>}
+            {ticket === "orders" && canPlaceOrders && orderMode === "pro" && <p className="px-2 pt-1 text-[11px] text-[var(--ink-muted)]">Click the chart to set your order price</p>}
             <p className="px-2 pt-1 text-[10px] text-[var(--ink-muted)]">Prices from on-chain DEX pools on Base (GeckoTerminal / DexScreener). Tokenized stocks trade 24/7 on-chain and may differ from the exchange price.</p>
           </section>
 
@@ -494,6 +527,15 @@ export default function TradeTab({
                   {" "}{limitOrders.config.markets.map((m) => m.symbol).join(", ") || "none"}. <b className="text-[var(--ink)]">{market.symbol}</b> can still be traded at market from the Market tab.
                 </div>
               )}
+              {canPlaceOrders && (
+                <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Order mode">
+                  {(["simple", "pro"] as const).map((m) => (
+                    <button key={m} type="button" aria-pressed={orderMode === m} onClick={() => setOrderMode(m)} className={`min-h-[34px] rounded-lg text-xs font-bold capitalize ${orderMode === m ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs" : "text-[var(--ink-muted)]"}`}>
+                      {m === "simple" ? "Simple" : "Pro"}
+                    </button>
+                  ))}
+                </div>
+              )}
               <OrdersView
                 limitOrders={limitOrders}
                 onConnectWallet={onRequestConnect}
@@ -506,6 +548,8 @@ export default function TradeTab({
                 priceFromChart={pickedPrice}
                 hideOrdersPanel
                 cexLayout
+                simple={orderMode === "simple" && canPlaceOrders}
+                liquidityUsd={summary?.liquidityUsd ?? null}
               />
             </>
           )}

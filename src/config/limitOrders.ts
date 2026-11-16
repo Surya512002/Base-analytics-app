@@ -75,6 +75,13 @@ export const EQUITY_MAX_STALENESS_SECONDS = 90000;
  */
 export const CRYPTO_MAX_STALENESS_SECONDS = 3600;
 
+/**
+ * Per-order caps, Stage 1 ("Beta"). These are deploy-time defaults: the contract enforces its own on-chain caps
+ * (set by the owner via setMarket) and the UI reads the live on-chain values. Caps are sized from measured
+ * Uniswap depth (limit-orders/scripts/recommend-caps.mjs), not guessed; stock pools are thin, so their caps
+ * are liquidity-limited. See docs/ORDER-CAPS.md for the staged rollout (Stage 2 is gated on an external audit).
+ */
+
 /** Verified markets on Base Mainnet (Chain ID 8453) with active single-hop Uniswap V3 USDC pools */
 export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
   {
@@ -87,8 +94,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x60661b315553EB81872deEA9a66d567Cf0CCd33B
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 100_000_000n, // 1.0 whole stock (~$188 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 300_000_000n, // 3.0 NVDAc (~$486 cap, Stage 1)
+    maxQuoteIn: 500_000_000n, // $500 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/1fee9b7a44e800d438dd9d96c3283e05784c925c2c871a48ff735950740b551a.png",
   },
@@ -102,8 +109,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x97F35d1E92795327614BE000cd18cba1Be2c1931
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 50_000_000n, // 0.5 whole stock (~$171 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 70_000_000n, // 0.70 AAPLc (~$250 cap, liquidity-limited)
+    maxQuoteIn: 250_000_000n, // $250 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/873819f4b14efe44b94abecbc8e8864d2998163abd0ca55b449ee6eb07d0d94c.png",
   },
@@ -118,8 +125,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     poolFee: 10000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
     maxDeviationBps: 350,
-    maxStockIn: 25_000_000n, // 0.25 whole stock (~$133 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 20_000_000n, // 0.20 MSFTc (~$104 cap, thin 1% pool)
+    maxQuoteIn: 100_000_000n, // $100 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/e90930ade985016f48816c6bd9fd1e8274b28507f4833881b3a16c77c2a3e2e7.png",
   },
@@ -133,8 +140,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x8634EE4145A63E40E44e12A6Bb1B905Fcb8856a6
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 50_000_000n, // 0.5 whole stock (~$143 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 34_000_000n, // 0.34 GOOGLc (~$100 cap, liquidity-limited)
+    maxQuoteIn: 100_000_000n, // $100 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/0e80e31df40f7c42b49a3c7f6d23c6351625d73f235aeb69006ddee9221702b0.png",
   },
@@ -151,8 +158,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     poolFee: 3000,
     maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
     maxDeviationBps: 200,
-    maxStockIn: 50_000_000_000_000_000n, // 0.05 WETH (~$96 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC
+    maxStockIn: 550_000_000_000_000_000n, // 0.55 WETH (~$1,000 cap, Stage 1)
+    maxQuoteIn: 1_000_000_000n, // $1,000 USDC
     category: "Crypto",
     logo: "https://assets.coingecko.com/coins/images/2518/small/weth.png",
   },
@@ -168,8 +175,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     poolFee: 500,
     maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
     maxDeviationBps: 200,
-    maxStockIn: 140_000n, // 0.0014 cbBTC (~$96 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC
+    maxStockIn: 1_500_000n, // 0.015 cbBTC (~$970 cap, Stage 1)
+    maxQuoteIn: 1_000_000_000n, // $1,000 USDC
     category: "Crypto",
   },
 ];

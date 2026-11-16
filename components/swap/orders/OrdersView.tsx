@@ -32,6 +32,7 @@ import {
 import type { useLimitOrders, MarketState } from "@/src/lib/limitOrders/useLimitOrders";
 import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyOrdersPanel from "./MyOrdersPanel";
+import SimpleOrderCard from "@/components/trade/SimpleOrderCard";
 
 type OrderTypeTab = "LIMIT_BUY" | "LIMIT_SELL" | "STOP_LOSS" | "TRAILING_STOP" | "BRACKET";
 
@@ -75,6 +76,10 @@ interface OrdersViewProps {
   hideOrdersPanel?: boolean;
   /** Exchange-style Buy/Sell ticket instead of the five-tab order-type grid. */
   cexLayout?: boolean;
+  /** Trade page "Simple" mode: goal-based card with plain-English summary instead of the full form. */
+  simple?: boolean;
+  /** Pool liquidity (USD) of the selected market, used for order-size warnings. */
+  liquidityUsd?: number | null;
 }
 
 export default function OrdersView({
@@ -87,6 +92,8 @@ export default function OrdersView({
   priceFromChart,
   hideOrdersPanel = false,
   cexLayout = false,
+  simple = false,
+  liquidityUsd = null,
 }: OrdersViewProps) {
   const {
     config,
@@ -556,6 +563,15 @@ export default function OrdersView({
             </div>
           )}
 
+      {simple ? (
+        <SimpleOrderCard
+          limitOrders={limitOrders}
+          stockAddress={selectedStock}
+          liquidityUsd={liquidityUsd}
+          onConnectWallet={onConnectWallet}
+        />
+      ) : (
+        <>
       {/* Main Order Form Card */}
       <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-card space-y-4">
         {/* Type selector */}
@@ -1108,6 +1124,8 @@ export default function OrdersView({
           </div>
         )}
       </div>
+        </>
+      )}
         </>
       )}
 

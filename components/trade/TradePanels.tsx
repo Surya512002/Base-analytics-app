@@ -49,7 +49,7 @@ export function MarketInfo({ stats, symbol }: { stats: MarketStats | null; symbo
         </div>
       )}
       {stats?.pairUrl && (
-        <a href={stats.pairUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-[#0052FF] hover:underline">
+        <a href={stats.pairUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--brand-text)] hover:underline">
           Pool on {stats.dex ?? "DEX"} <ExternalLink size={11} />
         </a>
       )}
@@ -190,9 +190,9 @@ export function AlertButton({ wallet, address, symbol, price, onToast }: { walle
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             placeholder={price != null ? formatPrice(price) : "0.00"}
-            className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[#0052FF]"
+            className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
           />
-          <button type="button" disabled={busy} onClick={() => void submit()} className="mt-2 h-9 w-full rounded-lg bg-[#0052FF] text-sm font-semibold text-white disabled:opacity-60">
+          <button type="button" disabled={busy} onClick={() => void submit()} className="mt-2 h-9 w-full rounded-lg bg-[var(--brand)] text-sm font-semibold text-white disabled:opacity-60">
             {busy ? "Saving…" : "Set alert"}
           </button>
         </div>
