@@ -36,7 +36,7 @@ export const BASE_RPC = (() => {
 
 export const MINIAPP_URL =
   "https://farcaster.xyz/miniapps/lYFXQz4s1wsq/base-analytics";
-export const APP_URL_WEB = "https://base-analytics-app.vercel.app";
+export const APP_URL_WEB = "https://baseanalytics.app";
 export const BUILDER_CODE =
   process.env.NEXT_PUBLIC_BUILDER_CODE || "bc_4uoh9iu2";
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_PAYMASTER_URL || "";

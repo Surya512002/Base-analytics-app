@@ -5,21 +5,33 @@ import { verifyMessage } from "viem/actions";
 import { getAppUrl } from "@/lib/constants/app-url";
 import { cacheGet, cacheSet, getRedisClient, ensureRedisReady } from "@/lib/redis-cache";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { isTrustedAppHost } from "@/lib/auth/trusted-hosts";
 
 const BASE_CHAIN_ID = 8453;
 const SESSION_COOKIE = "ba_siwe_session";
 const SESSION_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
 const NONCE_TTL_SEC = 300;
 
+let devSecret: string | null = null;
+
+/**
+ * HMAC key for session cookies and nonces. Set a dedicated SIWE_SESSION_SECRET (32+ random
+ * bytes). The existing server-only secrets remain as fallbacks so current sessions keep working.
+ * Never a public value: NEXT_PUBLIC_* ships to browsers, and a hard-coded string in this public
+ * repo would let anyone forge a login. In production with nothing set, sign-in fails closed.
+ */
 function sessionSecret(): string {
   const secret =
     process.env.SIWE_SESSION_SECRET?.trim() ||
-    process.env.DEPLOYER_PRIVATE_KEY?.trim() ||
     process.env.X402_FACILITATOR_PRIVATE_KEY?.trim() ||
-    process.env.KV_REDIS_URL?.trim() ||
-    process.env.NEXT_PUBLIC_ALCHEMY_KEY?.trim() ||
-    "base-analytics-siwe-production-session-fallback-secret-2025";
-  return secret;
+    process.env.KV_REDIS_URL?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production" && process.env.VERCEL) {
+    throw new Error("SIWE_SESSION_SECRET is not configured");
+  }
+  // Local dev / tests: a per-process random secret (sessions reset on restart).
+  devSecret ??= randomBytes(32).toString("hex");
+  return devSecret;
 }
 
 /** Host used in SIWE messages — prefer the live request host so MetaMask matches the page. */
@@ -68,11 +80,10 @@ function allowedSiweDomains(
 
   addHost(appDomain());
   addHost(normalizeHost(requestHost));
-  addHost(normalizeHost(clientDomain));
+  void clientDomain; // reported by the browser: never trusted
 
-  // Common preview/production hosts
-  set.add("localhost");
-  set.add("127.0.0.1");
+  set.add("baseanalytics.app");
+  set.add("www.baseanalytics.app");
   set.add("base-analytics-app.vercel.app");
 
   return set;
@@ -194,12 +205,10 @@ export async function verifySiweCredentials(
     const msgDomain = siwe.domain?.toLowerCase().trim() || "";
     const bareMsgDomain = msgDomain.split(":")[0];
 
+    // Only our own sites (lib/auth/trusted-hosts.ts). The browser-sent clientDomain is not
+    // trusted: it would let a phishing site's signed message log in here.
     const isAllowedDomain =
-      allowed.has(msgDomain) ||
-      allowed.has(bareMsgDomain) ||
-      msgDomain.endsWith(".vercel.app") ||
-      msgDomain.includes("localhost") ||
-      msgDomain === "127.0.0.1";
+      allowed.has(msgDomain) || allowed.has(bareMsgDomain) || isTrustedAppHost(msgDomain, requestHost);
 
     if (!isAllowedDomain) {
       return { error: "Invalid domain — refresh and try again" };

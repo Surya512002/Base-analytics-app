@@ -14,7 +14,7 @@ function getBaseAccountSdk(): BaseAccountSdk {
     appLogoUrl:
       typeof window !== "undefined"
         ? `${window.location.origin}/icon.png`
-        : "https://base-analytics-app.vercel.app/icon.png",
+        : "https://baseanalytics.app/icon.png",
     appChainIds: [base.id],
     preference: {
       telemetry: false,
