@@ -11,6 +11,7 @@ import {
   createBasePublicClient,
   withRpcRetry,
 } from "@/lib/utils/base-rpc";
+import { x402PolicyViolation, X402_NETWORK } from "@/lib/x402-policy";
 
 let _scheme: ExactEvmScheme | null = null;
 
@@ -74,7 +75,9 @@ export async function verifyX402Payment(
   paymentPayload: PaymentPayload,
   paymentRequirements: PaymentRequirements
 ) {
-  const requirements = paymentPayload.accepted ?? paymentRequirements;
+  const requirements = paymentPayload?.accepted ?? paymentRequirements;
+  const refused = x402PolicyViolation(requirements) ?? (paymentRequirements && paymentPayload?.accepted ? x402PolicyViolation(paymentRequirements) : null);
+  if (refused) return { isValid: false, invalidReason: refused };
   return withRpcRetry(() =>
     getFacilitatorScheme().verify(paymentPayload, requirements)
   );
@@ -84,7 +87,10 @@ export async function settleX402Payment(
   paymentPayload: PaymentPayload,
   paymentRequirements: PaymentRequirements
 ) {
-  const requirements = paymentPayload.accepted ?? paymentRequirements;
+  const requirements = paymentPayload?.accepted ?? paymentRequirements;
+  // Never spend the hot wallet's gas on a payment that isn't to us (see lib/x402-policy.ts).
+  const refused = x402PolicyViolation(requirements) ?? (paymentRequirements && paymentPayload?.accepted ? x402PolicyViolation(paymentRequirements) : null);
+  if (refused) return { success: false, errorReason: refused, transaction: "", network: X402_NETWORK };
   return withRpcRetry(() =>
     getFacilitatorScheme().settle(paymentPayload, requirements)
   );

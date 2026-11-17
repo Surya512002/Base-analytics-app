@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getComplianceConfig, evaluateRegionCompliance } from "@/src/config/compliance";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
+import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
 
 /**
  * Next.js Edge Middleware for Server-Side Compliance & Geolocation Header Injection
@@ -11,14 +12,8 @@ import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
  */
 export function middleware(request: NextRequest) {
   // 1. Detect country from official Vercel header, Cloudflare header, or test header
-  const countryHeader =
-    request.headers.get("x-vercel-ip-country") ||
-    request.headers.get("cf-ipcountry") ||
-    request.headers.get("x-mock-country") ||
-    process.env.COMPLIANCE_MOCK_COUNTRY ||
-    null;
-
-  const country = countryHeader?.trim().toUpperCase() || null;
+  // Only the platform's header counts in production (lib/compliance/request-country.ts).
+  const country = trustedCountryFromHeaders(request.headers);
 
   // 2. Evaluate compliance mode against central configuration
   const config = getComplianceConfig();

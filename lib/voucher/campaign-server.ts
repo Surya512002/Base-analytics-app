@@ -17,6 +17,7 @@ import {
   type OnchainCampaign,
   type SenderIdentity,
 } from "@/lib/voucher/campaign";
+import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
 
 const BASE_CHAIN_ID = 8453;
 const ERC20_META = parseAbi([
@@ -337,10 +338,5 @@ export async function evaluateClaimEligibility(args: {
 export function countryFromRequest(req: Request): string | null {
   // On Vercel x-vercel-ip-country is set by the edge and can't be spoofed by the client.
   // x-user-country is only honoured outside Vercel (local dev / tests).
-  const vercel = req.headers.get("x-vercel-ip-country");
-  if (vercel) return vercel;
-  const cf = req.headers.get("cf-ipcountry");
-  if (cf) return cf;
-  if (process.env.VERCEL) return null;
-  return req.headers.get("x-user-country");
+  return trustedCountryFromHeaders(req.headers);
 }

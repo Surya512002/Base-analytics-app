@@ -87,10 +87,21 @@ export async function POST(req: Request) {
 
     const all = await readStoredBatches();
     const idx = all.findIndex((b) => b.batchId === body.batchId);
+    // Store what the chain says, not what the caller sent: anyone can call this endpoint, so
+    // client fields (message, amounts, counts…) must not overwrite a creator's batch.
+    const txHash = typeof body.txHash === "string" && /^0x[0-9a-fA-F]{64}$/.test(body.txHash) ? body.txHash : undefined;
+    const createdAt = Number.isFinite(body.createdAt) && body.createdAt > 0 && body.createdAt <= Date.now() + 60_000 ? body.createdAt : Date.now();
     const entry: VoucherBatchMeta = {
-      ...body,
-      creator: body.creator.toLowerCase(),
-      redeemedCount: body.redeemedCount ?? 0,
+      batchId: live.batchId,
+      creator: live.creator,
+      asset: live.asset,
+      totalAmount: live.totalAmount,
+      amountPerCard: live.amountPerCard,
+      cardCount: live.cardCount,
+      message: live.message,
+      redeemedCount: live.redeemedCount,
+      createdAt: idx >= 0 ? all[idx].createdAt : createdAt,
+      txHash: txHash ?? (idx >= 0 ? all[idx].txHash : undefined),
     };
     if (idx >= 0) all[idx] = { ...all[idx], ...entry };
     else all.unshift(entry);
@@ -105,11 +116,8 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { batchId, redeemedCount } = (await req.json()) as {
-      batchId: number;
-      redeemedCount: number;
-    };
-    if (!batchId) {
+    const { batchId } = (await req.json()) as { batchId: number };
+    if (!Number.isInteger(batchId) || batchId <= 0) {
       return NextResponse.json({ success: false }, { status: 400 });
     }
 
@@ -118,7 +126,10 @@ export async function PATCH(req: Request) {
     if (idx < 0) {
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     }
-    all[idx].redeemedCount = redeemedCount;
+    // Refresh from the contract; the caller's number is ignored.
+    const live = await readOnchainBatch(batchId);
+    if (!live) return NextResponse.json({ success: false, error: "Not found onchain" }, { status: 404 });
+    all[idx].redeemedCount = live.redeemedCount;
     await writeStoredBatches(all);
     return NextResponse.json({ success: true });
   } catch (err) {

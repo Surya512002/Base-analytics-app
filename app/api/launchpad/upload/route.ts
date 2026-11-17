@@ -3,18 +3,20 @@ import {
   mediaPayloadTooLarge,
   storeLaunchpadMedia,
 } from "@/lib/launchpad/media-store";
+import { sniffImageMime } from "@/lib/launchpad/image-sniff";
+import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  // Uploads are stored in Redis: cap them per IP so nobody can fill the store.
+  const rl = await checkRateLimitAsync(`launchpad-upload:${getClientIp(req)}`, 10, 10 * 60_000);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   try {
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No image file" }, { status: 400 });
-    }
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "File must be an image" }, { status: 400 });
     }
     if (file.size > 600_000) {
       return NextResponse.json(
@@ -27,8 +29,13 @@ export async function POST(req: Request) {
     if (mediaPayloadTooLarge(buf.length)) {
       return NextResponse.json({ error: "Image too large" }, { status: 400 });
     }
+    // Trust the bytes, not the browser's file.type: only PNG, JPEG, WebP and GIF are stored
+    // (no SVG / HTML, which could run script when served from this origin).
+    const mime = sniffImageMime(buf);
+    if (!mime) {
+      return NextResponse.json({ error: "Use a PNG, JPEG, WebP or GIF image" }, { status: 400 });
+    }
 
-    const mime = file.type || "image/webp";
     const id = await storeLaunchpadMedia(mime, buf.toString("base64"));
     const origin = new URL(req.url).origin;
 

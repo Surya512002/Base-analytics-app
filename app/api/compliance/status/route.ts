@@ -4,6 +4,7 @@ import {
   evaluateRegionCompliance,
   fetchRemoteKillSwitch,
 } from "@/src/config/compliance";
+import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
 
 export const dynamic = "force-dynamic";
 
@@ -14,15 +15,7 @@ export const dynamic = "force-dynamic";
  * edge geolocation headers. Never trusts client-supplied geolocation parameters.
  */
 export async function GET(request: NextRequest) {
-  const countryHeader =
-    request.headers.get("x-user-country") ||
-    request.headers.get("x-vercel-ip-country") ||
-    request.headers.get("cf-ipcountry") ||
-    request.headers.get("x-mock-country") ||
-    process.env.COMPLIANCE_MOCK_COUNTRY ||
-    null;
-
-  const country = countryHeader?.trim().toUpperCase() || null;
+  const country = trustedCountryFromHeaders(request.headers);
 
   // Check remote kill switch if configured
   const remoteKill = await fetchRemoteKillSwitch();

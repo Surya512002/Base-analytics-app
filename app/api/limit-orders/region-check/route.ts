@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getComplianceConfig } from "@/src/config/compliance";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
+import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 1. Read edge geolocation headers (Vercel IP country, fallbacks for proxies/tests)
-  const countryHeader =
-    request.headers.get("x-vercel-ip-country") ||
-    request.headers.get("cf-ipcountry") ||
-    request.headers.get("x-user-country") ||
-    request.headers.get("x-mock-country") ||
-    process.env.COMPLIANCE_MOCK_COUNTRY ||
-    null;
+  const countryHeader = trustedCountryFromHeaders(request.headers);
 
   const country = countryHeader?.trim().toUpperCase() || null;
 

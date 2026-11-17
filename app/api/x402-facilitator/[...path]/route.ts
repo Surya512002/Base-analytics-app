@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import {
   getFacilitatorAddress,
   settleX402Payment,
@@ -14,14 +15,18 @@ async function handleSupported() {
 }
 
 async function handleVerify(req: NextRequest) {
-  const { paymentPayload, paymentRequirements } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  const { paymentPayload, paymentRequirements } = body as { paymentPayload: PaymentPayload; paymentRequirements: PaymentRequirements };
   const requirements = paymentPayload?.accepted ?? paymentRequirements;
   const result = await verifyX402Payment(paymentPayload, requirements);
   return NextResponse.json(result);
 }
 
 async function handleSettle(req: NextRequest) {
-  const { paymentPayload, paymentRequirements } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  const { paymentPayload, paymentRequirements } = body as { paymentPayload: PaymentPayload; paymentRequirements: PaymentRequirements };
   const requirements = paymentPayload?.accepted ?? paymentRequirements;
   const result = await settleX402Payment(paymentPayload, requirements);
   return NextResponse.json(result);

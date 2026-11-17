@@ -40,6 +40,7 @@ import {
 import { fetchO1TradingQuote } from "@/lib/trading/o1-api";
 import { getTokenizedStockByAddress, isActiveStockAddress } from "@/lib/stocks/tokenized-stocks-registry";
 import { evaluateRegionCompliance } from "@/src/config/compliance";
+import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
 
 export const dynamic = "force-dynamic";
 
@@ -142,13 +143,7 @@ export async function GET(req: Request) {
     const isStock = isActiveStockAddress(tokenAddr) || Boolean(getTokenizedStockByAddress(tokenAddr));
 
     if (isStock) {
-      const country =
-        req.headers.get("x-user-country") ||
-        req.headers.get("x-vercel-ip-country") ||
-        req.headers.get("cf-ipcountry") ||
-        req.headers.get("x-mock-country") ||
-        process.env.COMPLIANCE_MOCK_COUNTRY ||
-        null;
+      const country = trustedCountryFromHeaders(req.headers);
       const compliance = evaluateRegionCompliance(country, "stocks.swap");
 
       // In exit-only or blocked mode, buying is rejected. Exiting (selling) is allowed.
