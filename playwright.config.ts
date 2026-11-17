@@ -8,7 +8,10 @@ export default defineConfig({
     "**/capture-dashboard-screenshots.spec.ts",
     "**/problem1-browser-verification.spec.ts",
   ],
-  reporter: "list",
+  // CI hits live public RPCs that sometimes throttle: retry a failing test twice there and keep
+  // an HTML report (uploaded as an artifact when CI fails). Locally: no retries, list output.
+  retries: process.env.CI ? 2 : 0,
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
     trace: "on-first-retry",
