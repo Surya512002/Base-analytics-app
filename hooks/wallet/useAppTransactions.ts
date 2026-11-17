@@ -14,7 +14,8 @@ import {
   resolveActiveConnType,
   persistConnType,
 } from "@/lib/utils/wallet-connection";
-import { sendAppTransactions } from "@/lib/utils/send-app-tx";
+import { sendAppTransactions, walletBatchesCalls } from "@/lib/utils/send-app-tx";
+import { wrapSwapBatchForBrowserWallet } from "@/lib/swap/zap-batch";
 import { preflightB20Launch, simulateB20Create } from "@/lib/b20/preflight";
 import { LAUNCHPAD_TREASURY } from "@/lib/constants/launchpad";
 import { splitGrossAmount } from "@/lib/launchpad/fees";
@@ -619,11 +620,13 @@ export function useAppTransactions({
               functionName: "allowance",
               args: [recipient, spender],
             });
-            if (allowance < grossAmount) {
+            // Exactly what the swap pulls: the gross for the aggregator (its fee is inside the
+            // quote), the net for router paths (the fee is a separate transfer).
+            if (allowance < buySwapAmount) {
               calls.push(
                 buildContractCall(
                   payTokenAddr,
-                  encodeB20ApproveCalldata(spender, grossAmount)
+                  encodeB20ApproveCalldata(spender, buySwapAmount)
                 )
               );
             }
@@ -820,7 +823,22 @@ export function useAppTransactions({
           }
         }
 
-        const hash = await sendAppTransactions(activeConn, wallet.address, calls, {
+        // Browser wallets sign each call separately: approve, swap and every fee transfer
+        // would be its own prompt, and a failed swap would leave the approval behind. Run the
+        // same calls as one atomic Beefy Zap Router order instead (≤ 2 prompts, 1 for ETH).
+        // Smart wallets already sign the whole batch at once, and the aggregator path is
+        // already approve + swap with its fee inside the quote.
+        let toSend = calls;
+        if (!isAggregator && calls.length > 1 && !(await walletBatchesCalls(activeConn))) {
+          const wrapped = await wrapSwapBatchForBrowserWallet(
+            createBasePublicClient() as never,
+            recipient,
+            calls
+          ).catch(() => null);
+          if (wrapped && wrapped.calls.length < calls.length) toSend = wrapped.calls;
+        }
+
+        const hash = await sendAppTransactions(activeConn, wallet.address, toSend, {
           atomicBatch: true,
         });
         if (setSponsored) setSponsored((s) => s + 1);

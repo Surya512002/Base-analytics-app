@@ -13,7 +13,7 @@ import { erc20Abi, formatUnits, parseUnits, type Address } from "viem";
 import { AlertTriangle, ArrowDownUp, Check, ExternalLink, Loader2, ShieldCheck, Sparkles, X } from "lucide-react";
 import type { ConnectionType } from "@/lib/types/wallet";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { sendAppTransactions } from "@/lib/utils/send-app-tx";
+import { sendAppTransactions, walletBatchesCalls } from "@/lib/utils/send-app-tx";
 import { finalizeAppTransactionBatch, type ContractCall } from "@/lib/utils/tx";
 import {
   BEEFY_VAULT_ABI,
@@ -29,6 +29,12 @@ import {
   type PayAsset,
 } from "@/lib/lending/zap/clm-zap";
 import { planGetToken, USDC_ADDRESS, type GetTokenPlan } from "@/lib/lending/zap/get-token";
+import {
+  planClmDepositZap,
+  planClmWithdrawZap,
+  planGetTokenWithEthZap,
+  zapRouterAvailable,
+} from "@/lib/lending/zap/zap-router";
 import { useCompliance } from "@/hooks/useCompliance";
 
 type Pub = ReturnType<typeof createBasePublicClient>;
@@ -280,19 +286,38 @@ async function execute(
   connType: ConnectionType | null,
   user: Address,
   calls: ContractCall[],
-  set: { phase: (p: Phase) => void; hash: (h: string) => void }
+  set: { phase: (p: Phase) => void; hash: (h: string) => void },
+  /** For router plans: rebuild the order on fresh chain state (used after a separate approval). */
+  replan?: () => Promise<ContractCall[]>
 ) {
+  const conn = connType ?? "injected";
+  const waitOk = async (hash: string) => {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) return;
+    const r = await pub.waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120_000 });
+    if (r.status !== "success") throw new Error("The transaction reverted on-chain. Nothing was deposited.");
+  };
   set.phase("simulating");
   const simErr = await simulateInOrder(pub, user, calls);
   if (simErr) throw new Error(simErr);
+
+  let action = calls;
+  // Browser wallets sign one call at a time. Sign the exact approval first, then rebuild the
+  // order on fresh state so its minimums are current when it is signed.
+  if (replan && calls.length > 1 && !(await walletBatchesCalls(conn))) {
+    set.phase("signing");
+    const approveHash = await sendAppTransactions(conn, user, calls.slice(0, -1), { atomicBatch: true });
+    set.phase("confirming");
+    await waitOk(approveHash);
+    set.phase("simulating");
+    action = await replan();
+    const err = await simulateInOrder(pub, user, action);
+    if (err) throw new Error(err);
+  }
   set.phase("signing");
-  const hash = await sendAppTransactions(connType ?? "injected", user, calls, { atomicBatch: true });
+  const hash = await sendAppTransactions(conn, user, action, { atomicBatch: true });
   set.hash(hash);
   set.phase("confirming");
-  if (/^0x[0-9a-fA-F]{64}$/.test(hash)) {
-    const r = await pub.waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120_000 });
-    if (r.status !== "success") throw new Error("The transaction reverted on-chain. Nothing was deposited.");
-  }
+  await waitOk(hash);
   set.phase("done");
   return hash;
 }
@@ -391,6 +416,7 @@ function LpPanel({
       clearInterval(t);
     };
   }, [pub, info]);
+  // The CLM refuses deposits AND withdrawals while it isn't calm (NotCalm), so pause both.
   const depositPaused = calm === false;
 
   const [tab, setTab] = useState<"deposit" | "withdraw">(target.initialTab ?? "deposit");
@@ -428,6 +454,26 @@ function LpPanel({
   const overBalance = payBal != null && Number(amount || 0) > payBal + 1e-12;
   const withdrawShares = (sourceShares * BigInt(pctOut)) / BigInt(100);
 
+  // Beefy's Zap Router runs the whole route atomically (one exact approval + one transaction).
+  // Call-by-call execution is only the fallback for when the router is paused.
+  const routerLive = useRef<Promise<boolean> | null>(null);
+  const routerUp = useCallback(() => (routerLive.current ??= zapRouterAvailable(pub)), [pub]);
+  const buildPlan = useCallback(async (): Promise<ClmDepositPlan | ClmWithdrawPlan | null> => {
+    if (!info || !user) return null;
+    const viaRouter = await routerUp();
+    if (tab === "deposit") {
+      return viaRouter
+        ? planClmDepositZap({ client: pub, info, user, pay, amount: amt })
+        : planClmDeposit({ client: pub, info, user, pay, amount: amt });
+    }
+    // CoW shares back to both tokens is a single call with no approval: keep it direct.
+    if (source === "clm" && !toUsdc) return planClmWithdraw({ client: pub, info, user, clmShares: withdrawShares, toToken0: false });
+    const shares = source === "clm" ? { clmShares: withdrawShares } : { vaultShares: withdrawShares };
+    return viaRouter
+      ? planClmWithdrawZap({ client: pub, info, user, ...shares, toToken0: toUsdc })
+      : planClmWithdraw({ client: pub, info, user, ...shares, toToken0: toUsdc });
+  }, [info, user, tab, pay, amt, source, toUsdc, withdrawShares, pub, routerUp]);
+
   // Debounced live plan.
   useEffect(() => {
     if (!info || !user) return setPlan(null);
@@ -438,12 +484,7 @@ function LpPanel({
     setPlanning(true);
     const t = setTimeout(async () => {
       try {
-        const p =
-          tab === "deposit"
-            ? await planClmDeposit({ client: pub, info, user, pay, amount: amt })
-            : source === "clm"
-              ? await planClmWithdraw({ client: pub, info, user, clmShares: withdrawShares, toToken0: toUsdc })
-              : await planClmWithdraw({ client: pub, info, user, vaultShares: withdrawShares, toToken0: toUsdc });
+        const p = await buildPlan();
         if (id === reqId.current) setPlan(p);
       } catch (e) {
         if (id === reqId.current) {
@@ -455,14 +496,26 @@ function LpPanel({
       }
     }, 550);
     return () => clearTimeout(t);
-  }, [info, user, tab, pay, amt, overBalance, withdrawShares, toUsdc, source, pub]);
+  }, [info, user, tab, amt, overBalance, withdrawShares, buildPlan]);
 
   const onSubmit = async () => {
     if (!plan || !user) return;
     setTxErr(null);
     setHash(null);
     try {
-      await execute(pub, connType, user, plan.calls, { phase: setPhase, hash: setHash });
+      // Re-plan at the click: quotes and the pool's ratio move while the drawer sits open.
+      setPhase("simulating");
+      const fresh = (await buildPlan()) ?? plan;
+      setPlan(fresh);
+      const isRouter = "router" in fresh && fresh.router === true;
+      await execute(
+        pub,
+        connType,
+        user,
+        fresh.calls,
+        { phase: setPhase, hash: setHash },
+        isRouter ? async () => ((await buildPlan()) ?? fresh).calls : undefined
+      );
       onDone?.(tab === "deposit" ? `Deposited into ${target.stockSymbol}-USDC vault` : `Withdrew from ${target.stockSymbol}-USDC vault`);
       setAmount("");
       refresh();
@@ -637,7 +690,7 @@ function LpPanel({
               </>
             )}
 
-            {tab === "deposit" && depositPaused && (
+            {depositPaused && (
               <p className="flex items-start gap-1.5 rounded-xl bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
                 <Loader2 size={13} className="mt-0.5 shrink-0 animate-spin" />
                 <span>{NOT_CALM_MESSAGE} The button turns on by itself when it does.</span>
@@ -710,11 +763,13 @@ function LpPanel({
                         : plan
                           ? `Deposit ${amount || ""} ${paySym}`.trim()
                           : "Enter an amount"
-                      : plan
-                        ? `Withdraw ${pctOut === 100 ? "all" : `${pctOut}%`}`
-                        : "Nothing to withdraw"
+                      : depositPaused && plan
+                        ? "Waiting for the pool to settle…"
+                        : plan
+                          ? `Withdraw ${pctOut === 100 ? "all" : `${pctOut}%`}`
+                          : "Nothing to withdraw"
             }
-            disabled={!plan || planning || (tab === "deposit" && depositPaused)}
+            disabled={!plan || planning || depositPaused}
             busy={busy}
             onClick={onSubmit}
           />
@@ -776,6 +831,15 @@ function GetPanel({
   const payBal = !bal ? null : pay === "eth" ? bal.eth : bal.tokens[0];
   const amt = safeParse(amount, dec);
   const overBalance = payBal != null && Number(amount || 0) > payBal + 1e-12;
+  const routerLive = useRef<Promise<boolean> | null>(null);
+  // ETH: ETH → USDC → stock as one router transaction. USDC: a direct exact approve + swap.
+  const buildGetPlan = useCallback(async (): Promise<GetTokenPlan | null> => {
+    if (!user) return null;
+    if (pay === "eth" && (await (routerLive.current ??= zapRouterAvailable(pub)))) {
+      return planGetTokenWithEthZap({ user, amount: amt, tokenOut: target.token, tokenOutSymbol: target.symbol });
+    }
+    return planGetToken({ user, pay, amount: amt, tokenOut: target.token, tokenOutSymbol: target.symbol });
+  }, [user, pay, amt, target.token, target.symbol, pub]);
 
   useEffect(() => {
     if (!user || amt <= BigInt(0) || overBalance) return setPlan(null);
@@ -784,7 +848,7 @@ function GetPanel({
     setPlanning(true);
     const t = setTimeout(async () => {
       try {
-        const p = await planGetToken({ user, pay, amount: amt, tokenOut: target.token, tokenOutSymbol: target.symbol });
+        const p = await buildGetPlan();
         if (id === reqId.current) setPlan(p);
       } catch (e) {
         if (id === reqId.current) {
@@ -796,14 +860,17 @@ function GetPanel({
       }
     }, 550);
     return () => clearTimeout(t);
-  }, [user, pay, amt, overBalance, target.token, target.symbol]);
+  }, [user, amt, overBalance, buildGetPlan]);
 
   const onSubmit = async () => {
     if (!plan || !user) return;
     setTxErr(null);
     setHash(null);
     try {
-      await execute(pub, connType, user, plan.calls, { phase: setPhase, hash: setHash });
+      setPhase("simulating");
+      const fresh = (await buildGetPlan()) ?? plan;
+      setPlan(fresh);
+      await execute(pub, connType, user, fresh.calls, { phase: setPhase, hash: setHash }, async () => ((await buildGetPlan()) ?? fresh).calls);
       onDone?.(`Bought ${target.symbol}`);
       setAmount("");
       refresh();

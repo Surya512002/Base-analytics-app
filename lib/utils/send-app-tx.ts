@@ -535,6 +535,12 @@ async function sendGroupedAppCalls(
  * In contrast, smart contract wallets (Coinbase Smart Wallet, Base Account, Farcaster miniapp)
  * natively support batching and continue to use wallet_sendCalls.
  */
+/** True when this wallet signs a whole batch at once (smart wallets, mini apps); false for
+ * browser wallets, which get one prompt per call. */
+export async function walletBatchesCalls(connType: ConnectionType): Promise<boolean> {
+  return prefersWalletSendCalls(connType, Boolean(await detectMiniAppConnType()));
+}
+
 export function prefersWalletSendCalls(
   connType: ConnectionType,
   inMiniApp: boolean

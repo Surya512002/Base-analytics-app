@@ -67,7 +67,11 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(beefyOpt.type).toBe("vault");
     expect(beefyOpt.supplyApy).toBeGreaterThanOrEqual(0);
     expect(beefyOpt.sourceLink).toContain("beefy.com");
-    expect(beefyOpt.contractAddress).toBe("0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025");
+    // Beefy can list several NVDAc vaults (e.g. the Aave v4 single-stock vault); the verified
+    // NVDAc-USDC pair vault must be among them.
+    expect(comp.options.filter((o) => o.protocol === "beefy").map((o) => o.contractAddress)).toContain(
+      "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025"
+    );
 
     const aeroOpt = comp.options.find((o) => o.protocol === "aerodrome")!;
     expect(aeroOpt.type).toBe("strategy");

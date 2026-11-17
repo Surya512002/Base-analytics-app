@@ -118,7 +118,7 @@ export async function readClmVault(client: ZapClient, vault: Address): Promise<C
 /** Beefy CLM error when the pool price is off its 2-minute TWAP (anti-manipulation). */
 export const NOT_CALM_SELECTOR = "0x26c87876";
 export const NOT_CALM_MESSAGE =
-  "The pool's price moved in the last couple of minutes, so the vault pauses deposits until it settles (an anti-manipulation guard). This usually clears within 2 minutes.";
+  "The pool's price moved in the last couple of minutes, so the vault pauses deposits and withdrawals until it settles (an anti-manipulation guard). This usually clears within 2 minutes.";
 
 /**
  * Whether the CLM accepts deposits right now (price within maxTickDeviation of the TWAP).
@@ -145,47 +145,86 @@ export type ClmDepositPlan = {
   warnings: string[];
 };
 
+/** One swap the deposit needs (or an ETH wrap), independent of who executes it. */
+export type ClmLeg =
+  | { kind: "wrap"; amount: bigint }
+  | {
+      kind: "swap";
+      router: Address;
+      /** "eth" = pay native ETH (the router wraps it). */
+      tokenIn: Address | "eth";
+      tokenOut: Address;
+      amountIn: bigint;
+      amountOutMinimum: bigint;
+      tickSpacing: number;
+      /** Later hop of a multi-hop route: its input is the previous hop's output. */
+      chained: boolean;
+    };
+
+export type ClmDepositCore = {
+  legs: ClmLeg[];
+  swapLabels: string[];
+  used0: bigint;
+  used1: bigint;
+  shares: bigint;
+  minShares: bigint;
+  warnings: string[];
+};
+
+/** Encode a swap leg for a given recipient (the user, or a router executing for them). */
+export function encodeClmLeg(leg: Extract<ClmLeg, { kind: "swap" }>, recipient: Address): { value: bigint; data: `0x${string}` } {
+  return leg.tokenIn === "eth"
+    ? {
+        value: leg.amountIn,
+        data: encodeSlipstreamBuy({ tokenOut: leg.tokenOut, recipient, amountIn: leg.amountIn, amountOutMinimum: leg.amountOutMinimum, tickSpacing: leg.tickSpacing }),
+      }
+    : {
+        value: BigInt(0),
+        data: encodeSlipstreamExactInput({
+          tokenIn: leg.tokenIn,
+          tokenOut: leg.tokenOut,
+          recipient,
+          amountIn: leg.amountIn,
+          amountOutMinimum: leg.amountOutMinimum,
+          tickSpacing: leg.tickSpacing,
+        }),
+      };
+}
+
 /**
- * Plan a deposit of `amount` of the pay asset. `slippageBps` guards swaps and the CLM deposit.
+ * The deposit math, shared by every executor: which swaps to make, what the CLM will take and
+ * the minimum-shares guard. Reads only (quotes + previewDeposit).
  */
-export async function planClmDeposit(params: {
+export async function computeClmDeposit(params: {
   client: ZapClient;
   info: ClmVault;
-  user: Address;
   pay: PayAsset;
   amount: bigint;
   slippageBps?: number;
-}): Promise<ClmDepositPlan> {
-  const { client, info, user, pay } = params;
+}): Promise<ClmDepositCore> {
+  const { client, info, pay } = params;
   const slip = params.slippageBps ?? 100;
-  const steps: ClmDepositPlan["steps"] = [];
-  const calls: ContractCall[] = [];
+  const legs: ClmLeg[] = [];
+  const swapLabels: string[] = [];
   const warnings: string[] = [];
   const t0 = info.token0;
   const t1 = info.token1;
 
-  // 1. ETH in: swap it to token0 first (deep WETH pools), then continue as token0.
+  // 1. ETH in: wrap it for a WETH pair, otherwise swap it to token0 first (deep WETH pools).
   let have0 = BigInt(0);
   let have1 = BigInt(0);
   const isWeth = (a: Address) => a.toLowerCase() === (WETH_BASE as string).toLowerCase();
   if (pay === "eth" && (isWeth(t0.address) || isWeth(t1.address))) {
-    // A WETH pair: wrap the ETH (1:1, no swap), then rebalance like any other token.
-    calls.push(buildContractCall(WETH_BASE as Address, encodeFunctionData({ abi: WETH_ABI, functionName: "deposit" }), params.amount));
-    steps.push({ kind: "swap", label: "Wrap ETH → WETH" });
+    legs.push({ kind: "wrap", amount: params.amount });
+    swapLabels.push("Wrap ETH → WETH");
     if (isWeth(t0.address)) have0 = params.amount;
     else have1 = params.amount;
   } else if (pay === "eth") {
     const q = await quoteSlipstreamExactIn(WETH_BASE as Address, t0.address, params.amount);
     if (!q.hasLiquidity) throw new Error(`No route from ETH to ${t0.symbol}`);
     const min = minus(q.amountOut, slip);
-    calls.push(
-      buildContractCall(
-        q.router,
-        encodeSlipstreamBuy({ tokenOut: t0.address, recipient: user, amountIn: params.amount, amountOutMinimum: min, tickSpacing: q.tickSpacing }),
-        params.amount
-      )
-    );
-    steps.push({ kind: "swap", label: `Swap ETH → ${t0.symbol}` });
+    legs.push({ kind: "swap", router: q.router, tokenIn: "eth", tokenOut: t0.address, amountIn: params.amount, amountOutMinimum: min, tickSpacing: q.tickSpacing, chained: false });
+    swapLabels.push(`Swap ETH → ${t0.symbol}`);
     have0 = min;
   } else if (pay === "token0") {
     have0 = params.amount;
@@ -193,12 +232,10 @@ export async function planClmDeposit(params: {
     have1 = params.amount;
   }
 
-  // 2. Rebalance to the CLM's current mix, swapping only the needed part on the CLM's own pool.
+  // 2. Rebalance to the CLM's current mix, swapping only the needed part.
   const price = info.priceToken1InToken0;
   const totalValue0 = toNum(have0, t0.decimals) + toNum(have1, t1.decimals) * price;
   const want0Value = totalValue0 * info.token0ValueShare;
-  const approveRouter = (token: Address, amount: bigint, router: Address) =>
-    calls.push(encodeContractCall(token, erc20Abi, "approve", [router, amount]));
   // Price impact vs the pool's spot price. Thin pools get refused instead of filling badly, and
   // the impact bounds how far the CLM's share price can move between preview and deposit.
   let impactBps = 0;
@@ -216,7 +253,7 @@ export async function planClmDeposit(params: {
     const isUsdc = (a: Address) => a.toLowerCase() === USDC_ADDRESS.toLowerCase();
     if (!direct && !isUsdc(tIn.address) && !isUsdc(tOut.address)) hops.push({ address: USDC_ADDRESS, symbol: "USDC", decimals: 6 });
     hops.push(tOut);
-    const planned: Array<{ router: Address; data: `0x${string}`; approve: [Address, bigint, Address] }> = [];
+    const planned: ClmLeg[] = [];
     let amt = amountIn;
     let quoted = BigInt(0);
     for (let i = 0; i < hops.length - 1; i++) {
@@ -226,33 +263,24 @@ export async function planClmDeposit(params: {
         throw new Error(`No route ${tIn.symbol} → ${tOut.symbol}`);
       }
       const min = minus(q.amountOut, slip);
-      planned.push({
-        router: q.router,
-        approve: [hops[i].address, amt, q.router],
-        data: encodeSlipstreamExactInput({ tokenIn: hops[i].address, tokenOut: hops[i + 1].address, recipient: user, amountIn: amt, amountOutMinimum: min, tickSpacing: q.tickSpacing }),
-      });
+      planned.push({ kind: "swap", router: q.router, tokenIn: hops[i].address, tokenOut: hops[i + 1].address, amountIn: amt, amountOutMinimum: min, tickSpacing: q.tickSpacing, chained: i > 0 });
       quoted = q.amountOut;
       amt = min;
     }
-    for (const h of planned) {
-      approveRouter(...h.approve);
-      calls.push(buildContractCall(h.router, h.data));
-    }
-    steps.push({ kind: "swap", label: `Swap ${hops.map((h) => h.symbol).join(" → ")}` });
+    legs.push(...planned);
+    swapLabels.push(`Swap ${hops.map((h) => h.symbol).join(" → ")}`);
     return { quoted, min: amt };
   };
   const swapVia = async (tIn: ClmVault["token0"], tOut: ClmVault["token0"], amountIn: bigint) =>
     (await addSwap(tIn, tOut, amountIn, false)) ?? (await addSwap(tIn, tOut, amountIn, true))!;
 
   if (toNum(have0, t0.decimals) > want0Value * 1.0001) {
-    // too much token0 → swap the excess to token1
     const swap0 = fromNum(toNum(have0, t0.decimals) - want0Value, t0.decimals);
     const { quoted, min } = await swapVia(t0, t1, swap0);
     checkImpact(toNum(swap0, t0.decimals) / toNum(quoted, t1.decimals) / price - 1);
     have0 -= swap0;
     have1 += min;
   } else if (toNum(have1, t1.decimals) * price > (totalValue0 - want0Value) * 1.0001) {
-    // too much token1 → swap the excess to token0
     const excessValue = toNum(have1, t1.decimals) * price - (totalValue0 - want0Value);
     const swap1 = fromNum(excessValue / price, t1.decimals);
     const { quoted, min } = await swapVia(t1, t0, swap1);
@@ -261,7 +289,7 @@ export async function planClmDeposit(params: {
     have0 += min;
   }
 
-  // 3. Deposit into the CLM with a minimum-shares guard.
+  // 3. What the CLM takes, with a minimum-shares guard.
   const [shares, used0, used1] = (await client.readContract({
     address: info.clm,
     abi: CLM_ABI,
@@ -271,18 +299,6 @@ export async function planClmDeposit(params: {
   if (shares <= BigInt(0)) throw new Error("The vault isn't accepting this deposit right now");
   // The preview is read before this batch's own swap moves the pool, so allow for that impact.
   const minShares = minus(shares, Math.max(50, slip + 2 * impactBps));
-  if (used0 > BigInt(0)) calls.push(encodeContractCall(t0.address, erc20Abi, "approve", [info.clm, used0]));
-  if (used1 > BigInt(0)) calls.push(encodeContractCall(t1.address, erc20Abi, "approve", [info.clm, used1]));
-  steps.push({ kind: "approve", label: `Approve ${[used0 > BigInt(0) ? t0.symbol : "", used1 > BigInt(0) ? t1.symbol : ""].filter(Boolean).join(" + ")} (exact amounts)` });
-  calls.push(encodeContractCall(info.clm, CLM_ABI, "deposit", [used0, used1, minShares]));
-  steps.push({ kind: "deposit", label: `Add liquidity to the ${t1.symbol}/${t0.symbol} pool` });
-
-  // 4. Stake the CLM shares in the auto-compounding vault with depositAll(). The swap above can make
-  // the CLM mint a little more than the pre-swap preview (bounded by MAX_IMPACT), so the approval
-  // covers preview + 2×MAX_IMPACT; the vault only pulls what was actually minted.
-  calls.push(encodeContractCall(info.clm, erc20Abi, "approve", [info.vault, (shares * BigInt(10_000 + 2 * MAX_IMPACT * 10_000)) / BPS]));
-  calls.push(encodeContractCall(info.vault, BEEFY_VAULT_ABI, "depositAll", []));
-  steps.push({ kind: "stake", label: "Stake into the auto-compounding vault" });
 
   const leftover0 = have0 - used0;
   const leftover1 = have1 - used1;
@@ -296,6 +312,52 @@ export async function planClmDeposit(params: {
         .join(" and ")} will stay in your wallet.`
     );
   }
+  return { legs, swapLabels, used0, used1, shares, minShares, warnings };
+}
+
+/**
+ * Plan a deposit executed call-by-call from the user's own wallet. `slippageBps` guards swaps
+ * and the CLM deposit. Prefer planClmDepositZap (one approval, one atomic transaction).
+ */
+export async function planClmDeposit(params: {
+  client: ZapClient;
+  info: ClmVault;
+  user: Address;
+  pay: PayAsset;
+  amount: bigint;
+  slippageBps?: number;
+}): Promise<ClmDepositPlan> {
+  const { info, user } = params;
+  const core = await computeClmDeposit(params);
+  const t0 = info.token0;
+  const t1 = info.token1;
+  const steps: ClmDepositPlan["steps"] = [];
+  const calls: ContractCall[] = [];
+  let label = 0;
+  for (const leg of core.legs) {
+    if (leg.kind === "wrap") {
+      calls.push(buildContractCall(WETH_BASE as Address, encodeFunctionData({ abi: WETH_ABI, functionName: "deposit" }), leg.amount));
+      steps.push({ kind: "swap", label: core.swapLabels[label++] });
+      continue;
+    }
+    if (leg.tokenIn !== "eth") calls.push(encodeContractCall(leg.tokenIn, erc20Abi, "approve", [leg.router, leg.amountIn]));
+    const { value, data } = encodeClmLeg(leg, user);
+    calls.push(buildContractCall(leg.router, data, value));
+    if (!leg.chained) steps.push({ kind: "swap", label: core.swapLabels[label++] });
+  }
+  const { used0, used1, shares, minShares } = core;
+  if (used0 > BigInt(0)) calls.push(encodeContractCall(t0.address, erc20Abi, "approve", [info.clm, used0]));
+  if (used1 > BigInt(0)) calls.push(encodeContractCall(t1.address, erc20Abi, "approve", [info.clm, used1]));
+  steps.push({ kind: "approve", label: `Approve ${[used0 > BigInt(0) ? t0.symbol : "", used1 > BigInt(0) ? t1.symbol : ""].filter(Boolean).join(" + ")} (exact amounts)` });
+  calls.push(encodeContractCall(info.clm, CLM_ABI, "deposit", [used0, used1, minShares]));
+  steps.push({ kind: "deposit", label: `Add liquidity to the ${t1.symbol}/${t0.symbol} pool` });
+
+  // Stake the CLM shares with depositAll(). The swap above can make the CLM mint a little more
+  // than the pre-swap preview (bounded by MAX_IMPACT), so the approval covers preview +
+  // 2×MAX_IMPACT; the vault only pulls what was actually minted.
+  calls.push(encodeContractCall(info.clm, erc20Abi, "approve", [info.vault, (shares * BigInt(10_000 + 2 * MAX_IMPACT * 10_000)) / BPS]));
+  calls.push(encodeContractCall(info.vault, BEEFY_VAULT_ABI, "depositAll", []));
+  steps.push({ kind: "stake", label: "Stake into the auto-compounding vault" });
 
   return {
     steps,
@@ -304,9 +366,9 @@ export async function planClmDeposit(params: {
       deposit0: used0,
       deposit1: used1,
       minClmShares: minShares,
-      valueInToken0: toNum(used0, t0.decimals) + toNum(used1, t1.decimals) * price,
+      valueInToken0: toNum(used0, t0.decimals) + toNum(used1, t1.decimals) * info.priceToken1InToken0,
     },
-    warnings,
+    warnings: core.warnings,
   };
 }
 
