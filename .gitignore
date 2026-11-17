@@ -71,3 +71,6 @@ next-env.d.ts
 
 .data/
 .data
+
+# Playwright HTML report (CI artifact)
+/playwright-report/
