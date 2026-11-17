@@ -23,7 +23,7 @@ export const C = {
   amber: "#FBBF24",
 } as const;
 
-const SITE = "base-analytics-app.vercel.app";
+const SITE = "baseanalytics.app";
 
 function Frame({ children }: { children: ReactElement | ReactElement[] }) {
   return (

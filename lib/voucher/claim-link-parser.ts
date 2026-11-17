@@ -166,7 +166,7 @@ export function formatClaimLink(
     mode?: "fragment" | "query";
   }
 ): string {
-  const base = options?.baseUrl || (typeof window !== "undefined" ? window.location.origin : "https://base-analytics-app.vercel.app");
+  const base = options?.baseUrl || (typeof window !== "undefined" ? window.location.origin : "https://baseanalytics.app");
   const mode = options?.mode || "fragment";
 
   if (mode === "fragment") {

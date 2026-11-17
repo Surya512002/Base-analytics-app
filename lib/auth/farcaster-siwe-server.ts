@@ -2,6 +2,7 @@ import { SiweMessage } from "siwe";
 import { createClient, decodeJwt } from "@farcaster/quick-auth";
 import { getAddress } from "viem";
 import { getAppUrl } from "@/lib/constants/app-url";
+import { isTrustedAppHost, trustedAppHosts } from "@/lib/auth/trusted-hosts";
 
 function appHostname(): string {
   try {
@@ -33,9 +34,10 @@ export function farcasterAuthDomains(
   clientDomain?: string | null
 ): string[] {
   const domains: string[] = [];
-  pushDomain(domains, normalizeHost(clientDomain));
+  void clientDomain; // reported by the browser: never trusted
   pushDomain(domains, normalizeHost(requestHost));
   pushDomain(domains, appHostname());
+  for (const h of trustedAppHosts(requestHost)) pushDomain(domains, h);
   return domains;
 }
 
@@ -45,9 +47,11 @@ function domainsForJwt(
   clientDomain?: string | null
 ): string[] {
   const domains: string[] = [];
+  // The token's own audience is only used if it's one of our sites: a token minted for another
+  // app (another domain) must never log in here.
   try {
     const decoded = decodeJwt(token);
-    if (typeof decoded.aud === "string") pushDomain(domains, decoded.aud);
+    if (typeof decoded.aud === "string" && isTrustedAppHost(decoded.aud, requestHost)) pushDomain(domains, decoded.aud);
   } catch {
     // ignore malformed token — verifyJwt will fail below
   }
@@ -99,13 +103,16 @@ export async function verifyFarcasterQuickAuthToken(
     try {
       const payload = await client.verifyJwt({ token, domain });
       const jwtAddress = addressFromPayload(payload);
-      // After verifyJwt: bind to connected wallet when provided (Base App smart wallets),
-      // otherwise the address in the JWT.
-      const sessionAddress =
-        expectedAddress?.toLowerCase() ?? jwtAddress ?? null;
-      if (!sessionAddress?.startsWith("0x")) {
+      // Bind the session only to the address the token proves. A wallet the browser merely
+      // names (expectedAddress) can't be trusted: anyone with their own valid token could
+      // claim someone else's wallet. On a mismatch the client falls back to a wallet signature.
+      if (!jwtAddress?.startsWith("0x")) {
         return { error: "Farcaster sign-in did not include a wallet address" };
       }
+      if (expectedAddress && expectedAddress.toLowerCase() !== jwtAddress) {
+        return { error: "This Farcaster account isn't this wallet — sign with your wallet instead" };
+      }
+      const sessionAddress = jwtAddress;
       const fid =
         typeof payload === "object" && payload && "sub" in payload
           ? Number((payload as { sub?: string | number }).sub)
@@ -135,6 +142,9 @@ export async function verifyFarcasterSignIn(
 ): Promise<{ address: string } | { error: string }> {
   const client = createClient();
   const msgDomain = domainFromSiwfMessage(message);
+  if (msgDomain && !isTrustedAppHost(msgDomain, requestHost)) {
+    return { error: "Invalid domain — refresh and try again" };
+  }
   const domains = [
     ...(msgDomain ? [msgDomain] : []),
     ...farcasterAuthDomains(requestHost, clientDomain),
@@ -171,14 +181,15 @@ export async function verifyFarcasterSignIn(
       }
 
       const jwtAddress = addressFromPayload(payload);
-      const sessionAddress =
-        expectedAddress?.toLowerCase() ?? jwtAddress ?? undefined;
-
-      if (!sessionAddress?.startsWith("0x")) {
+      // Same rule as Quick Auth: only the address the signature proves, never one the browser names.
+      if (!jwtAddress?.startsWith("0x")) {
         return { error: "Farcaster sign-in did not include a wallet address" };
       }
+      if (expectedAddress && expectedAddress.toLowerCase() !== jwtAddress) {
+        return { error: "This Farcaster account isn't this wallet — sign with your wallet instead" };
+      }
 
-      return { address: sessionAddress };
+      return { address: jwtAddress };
     } catch (e) {
       lastError = e instanceof Error ? e.message : lastError;
     }

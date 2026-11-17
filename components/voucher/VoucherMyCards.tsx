@@ -66,7 +66,7 @@ export default function VoucherMyCards({
 
   const origin = useMemo(() => {
     if (typeof window !== "undefined") return window.location.origin;
-    return "https://base-analytics-app.vercel.app";
+    return "https://baseanalytics.app";
   }, []);
 
   const getClaimLink = useCallback(

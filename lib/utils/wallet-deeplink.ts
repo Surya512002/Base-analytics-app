@@ -15,7 +15,7 @@ export function getMobileWalletDeepLink(
 ): string {
   const rawUrl =
     currentUrl ||
-    (typeof window !== "undefined" ? window.location.href : "https://base-analytics-app.vercel.app");
+    (typeof window !== "undefined" ? window.location.href : "https://baseanalytics.app");
 
   if (type === "metamask") {
     // MetaMask app.link expects the domain and path without protocol scheme

@@ -329,10 +329,10 @@ const handler = createMcpHandler(
           streakDays: 7,
           activeDays: 45,
           transactions: 132,
-          ogCardImageUrl: `https://base-analytics-app.vercel.app/api/og?address=${wallet}&activeDays=45&txs=132&streak=7`,
+          ogCardImageUrl: `https://baseanalytics.app/api/og?address=${wallet}&activeDays=45&txs=132&streak=7`,
           shareLinks: {
-            warpcast: `https://warpcast.com/~/compose?text=My+Base+Onchain+Streak:+7+days&embeds[]=https://base-analytics-app.vercel.app/api/og?address=${wallet}&streak=7`,
-            twitter: `https://twitter.com/intent/tweet?text=My+Base+Onchain+Streak:+7+days&url=https://base-analytics-app.vercel.app/api/og?address=${wallet}&streak=7`,
+            warpcast: `https://warpcast.com/~/compose?text=My+Base+Onchain+Streak:+7+days&embeds[]=https://baseanalytics.app/api/og?address=${wallet}&streak=7`,
+            twitter: `https://twitter.com/intent/tweet?text=My+Base+Onchain+Streak:+7+days&url=https://baseanalytics.app/api/og?address=${wallet}&streak=7`,
           },
         };
         return { content: [{ type: "text", text: JSON.stringify(dna, null, 2) }] };

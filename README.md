@@ -10,9 +10,9 @@
 one tap, earn yield on stock/USDC pools without holding both tokens, launch your own token with
 creator revenue, and send crypto gift cards, all in one non-custodial app on **Base mainnet**.
 
-**Live app:** [base-analytics-app.vercel.app](https://base-analytics-app.vercel.app) ·
-**Docs & API tester:** [/docs](https://base-analytics-app.vercel.app/docs) ·
-**Restricted regions:** [/restricted-regions](https://base-analytics-app.vercel.app/restricted-regions)
+**Live app:** [baseanalytics.app](https://baseanalytics.app) ·
+**Docs & API tester:** [/docs](https://baseanalytics.app/docs) ·
+**Restricted regions:** [/restricted-regions](https://baseanalytics.app/restricted-regions)
 
 ---
 
@@ -29,8 +29,8 @@ creator revenue, and send crypto gift cards, all in one non-custodial app on **B
 | **AI agents (MCP)** | A public Model Context Protocol server at `/api/mcp` with 9 tools (see below). |
 
 > [!TIP]
-> Guests can browse **[Explore](https://base-analytics-app.vercel.app/explore)** and
-> **[Lend & Stake](https://base-analytics-app.vercel.app/lend)** without connecting a wallet.
+> Guests can browse **[Explore](https://baseanalytics.app/explore)** and
+> **[Lend & Stake](https://baseanalytics.app/lend)** without connecting a wallet.
 
 ---
 
@@ -94,7 +94,7 @@ These are product safeguards pending legal review, not legal advice; the app doe
 
 ## Public API
 
-All endpoints are served from `https://base-analytics-app.vercel.app`. Try them live at **[/docs](https://base-analytics-app.vercel.app/docs)**.
+All endpoints are served from `https://baseanalytics.app`. Try them live at **[/docs](https://baseanalytics.app/docs)**.
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -113,16 +113,16 @@ All endpoints are served from `https://base-analytics-app.vercel.app`. Try them 
 
 ## MCP server for AI agents
 
-Remote MCP endpoint: `https://base-analytics-app.vercel.app/api/mcp`
+Remote MCP endpoint: `https://baseanalytics.app/api/mcp`
 
 ```bash
 # Claude Code
-claude mcp add --transport http base-analytics https://base-analytics-app.vercel.app/api/mcp
+claude mcp add --transport http base-analytics https://baseanalytics.app/api/mcp
 ```
 
 ```json
 // Cursor / Claude Desktop: mcpServers
-{ "mcpServers": { "baseAnalytics": { "url": "https://base-analytics-app.vercel.app/api/mcp" } } }
+{ "mcpServers": { "baseAnalytics": { "url": "https://baseanalytics.app/api/mcp" } } }
 ```
 
 | Tool | What it does |

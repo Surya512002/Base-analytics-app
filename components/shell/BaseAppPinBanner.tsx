@@ -26,7 +26,7 @@ export default function BaseAppPinBanner({
       } else if (r.reason === "rejected") {
         onToast?.("Pin cancelled — you can pin anytime from the banner");
       } else if (r.reason === "invalid_manifest") {
-        onToast?.("Could not pin — open from base-analytics-app.vercel.app in Base App");
+        onToast?.("Could not pin — open from baseanalytics.app in Base App");
       }
     });
   };

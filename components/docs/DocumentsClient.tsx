@@ -73,7 +73,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { name: "page_token", type: "string", required: false, description: "Cursor for pagination" },
       { name: "refresh", type: "string", required: false, description: "Set to '1' to bypass cache and force fresh data" },
     ],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/stocks?sort=volume&limit=10'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/stocks?sort=volume&limit=10'",
     exampleResponse: JSON.stringify(
       {
         stocks: [
@@ -111,7 +111,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { name: "protocol", type: "string", required: false, description: "Filter by 'morpho', 'aave', 'superform', or 'all'" },
       { name: "stocks", type: "boolean", required: false, description: "Set to 'true' to only view stock-focused vaults" },
     ],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/markets/lending?protocol=morpho'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/markets/lending?protocol=morpho'",
     exampleResponse: JSON.stringify(
       {
         markets: [
@@ -148,7 +148,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     description:
       "Returns aggregate launchpad volume, market cap, total tokens launched, fee distributions, and top performers across Base Terminal.",
     params: [],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/launchpad/market'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/launchpad/market'",
     exampleResponse: JSON.stringify(
       {
         totalTokens: 142,
@@ -176,7 +176,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { name: "limit", type: "number", required: false, description: "Number of tokens per page (default: 20)" },
       { name: "cursor", type: "string", required: false, description: "Cursor for pagination" },
     ],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/launchpad/tokens?limit=10'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/launchpad/tokens?limit=10'",
     exampleResponse: JSON.stringify(
       {
         tokens: [
@@ -217,7 +217,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { name: "taker", type: "string", required: false, description: "User wallet address for exact approval checks" },
     ],
     exampleCurl:
-      "curl -X GET 'https://base-analytics-app.vercel.app/api/launchpad/quote?sellToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&buyToken=0x4200000000000000000000000000000000000006&amountIn=100000000'",
+      "curl -X GET 'https://baseanalytics.app/api/launchpad/quote?sellToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&buyToken=0x4200000000000000000000000000000000000006&amountIn=100000000'",
     exampleResponse: JSON.stringify(
       {
         bestDex: "aerodrome",
@@ -251,7 +251,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { name: "limit", type: "number", required: false, description: "Number of events (default: 50)" },
       { name: "token", type: "string", required: false, description: "Filter by specific token address" },
     ],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/launchpad/activity?limit=15'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/launchpad/activity?limit=15'",
     exampleResponse: JSON.stringify(
       {
         activity: [
@@ -283,7 +283,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     params: [
       { name: "card", type: "string", required: true, description: "Card ID in format 'batchId-cardIndex' (e.g. '12-3')" },
     ],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/voucher/card-preview?card=12-3'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/voucher/card-preview?card=12-3'",
     exampleResponse: JSON.stringify(
       {
         cardId: "12-3",
@@ -313,7 +313,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { name: "method", type: "string", required: true, description: "MCP method: 'tools/list' or 'tools/call'" },
       { name: "params", type: "object", required: true, description: "Tool name and arguments object" },
     ],
-    exampleCurl: `curl -X POST 'https://base-analytics-app.vercel.app/api/mcp' \\
+    exampleCurl: `curl -X POST 'https://baseanalytics.app/api/mcp' \\
   -H 'Content-Type: application/json' \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"voucher_lookup_batch","arguments":{"batchId":12}}}'`,
     exampleResponse: JSON.stringify(
@@ -347,7 +347,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     params: [
       { name: "address", type: "string", required: true, description: "Creator wallet address (0x...)" },
     ],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/creator/0x33445566778899aabbccddeeff00112233445566'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/creator/0x33445566778899aabbccddeeff00112233445566'",
     exampleResponse: JSON.stringify(
       {
         address: "0x3344...5566",
@@ -377,7 +377,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     description:
       "Returns server-verified visitor compliance state evaluated at Vercel's edge network, including ISO country code, active region mode ('full' | 'exit-only' | 'blocked'), global kill switch state, and active feature flags.",
     params: [],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/compliance/status'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/compliance/status'",
     exampleResponse: JSON.stringify(
       {
         country: "DE",
@@ -409,7 +409,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     description:
       "Checks application status, Redis cache latency, Base RPC block height, and aggregator connectivity.",
     params: [],
-    exampleCurl: "curl -X GET 'https://base-analytics-app.vercel.app/api/health'",
+    exampleCurl: "curl -X GET 'https://baseanalytics.app/api/health'",
     exampleResponse: JSON.stringify(
       {
         ok: true,
@@ -924,7 +924,7 @@ export default function DocumentsClient() {
               <p className="text-sm text-[var(--ink-muted)] leading-relaxed">
                 Base Terminal exposes an official remote MCP server at{" "}
                 <code className="rounded bg-[var(--surface-2)] px-2 py-0.5 font-mono text-xs text-[var(--ink)] font-bold">
-                  https://base-analytics-app.vercel.app/api/mcp
+                  https://baseanalytics.app/api/mcp
                 </code>
                 . AI agents running in Claude Desktop, Cursor, OpenAI GPTs, or autonomous scripts can
                 autonomously query vouchers, prepare unsigned batches, and manage crypto gift commerce on Base.
@@ -937,12 +937,12 @@ export default function DocumentsClient() {
                     Claude Code / CLI Setup
                   </span>
                   <div className="flex items-center justify-between rounded-lg bg-[var(--surface)] p-2.5 font-mono text-xs text-[var(--ink-muted)]">
-                    <span className="truncate">claude mcp add --transport http base-voucher https://base-analytics-app.vercel.app/api/mcp</span>
+                    <span className="truncate">claude mcp add --transport http base-voucher https://baseanalytics.app/api/mcp</span>
                     <button
                       type="button"
                       onClick={() =>
                         copyToClipboard(
-                          "claude mcp add --transport http base-voucher https://base-analytics-app.vercel.app/api/mcp",
+                          "claude mcp add --transport http base-voucher https://baseanalytics.app/api/mcp",
                           "mcp-cli"
                         )
                       }
@@ -959,7 +959,7 @@ export default function DocumentsClient() {
                     Cursor / Claude Desktop Config
                   </span>
                   <div className="flex items-center justify-between rounded-lg bg-[var(--surface)] p-2.5 font-mono text-xs text-[var(--ink-muted)]">
-                    <span className="truncate">{`{"mcpServers":{"baseVoucher":{"url":"https://base-analytics-app.vercel.app/api/mcp"}}}`}</span>
+                    <span className="truncate">{`{"mcpServers":{"baseVoucher":{"url":"https://baseanalytics.app/api/mcp"}}}`}</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -968,7 +968,7 @@ export default function DocumentsClient() {
                             {
                               mcpServers: {
                                 baseVoucher: {
-                                  url: "https://base-analytics-app.vercel.app/api/mcp",
+                                  url: "https://baseanalytics.app/api/mcp",
                                 },
                               },
                             },

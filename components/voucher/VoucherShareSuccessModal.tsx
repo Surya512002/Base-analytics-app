@@ -60,7 +60,7 @@ export default function VoucherShareSuccessModal({
     if (typeof window !== "undefined") {
       return window.location.origin;
     }
-    return "https://base-analytics-app.vercel.app";
+    return "https://baseanalytics.app";
   }, []);
 
   // Generate safe claim link with secret in fragment (#)
