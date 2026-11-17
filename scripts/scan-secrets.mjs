@@ -50,6 +50,7 @@ const WHITELIST = new Set([
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // standard Anvil account #1
   "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // standard Hardhat account #2
   "0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f", // ERC-4337 UserOperationEvent topic
+  "0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00", // OpenZeppelin v5 ERC20 namespaced storage slot (public constant) in scripts/audit/find-balance-slot.mts
   "0xfef5641f70e19a87e369304daa9ba823754f3db1e6481d757fcae0442cffe479", // Morpho Blue Base canonical marketId
   "0x52467d5bbbf878d6b8ec1159385ffca5f76b1f868c2d2aa6ffc5d57bba91f7a4", // Mock test txHash in unique-users unit tests
   "0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000", // Dummy test key in EnvLoading.test.js
