@@ -24,6 +24,7 @@ import {
 } from "@/lib/utils/voucher";
 import { generateQrMatrix, generateQrSvgPath } from "@/lib/utils/qr-code";
 import BodyPortal from "@/components/ui/BodyPortal";
+import VoucherVaultPanel from "@/components/voucher/VoucherVaultPanel";
 
 type VoucherTab = ReturnType<typeof useVoucherTab>;
 
@@ -249,6 +250,8 @@ export default function VoucherMyCards({
           </button>
         </div>
       </div>
+
+      <VoucherVaultPanel address={shared.address} onChanged={refreshMyBatches} />
 
       {/* Skeletons while initial sync */}
       {mineStatusesLoading && myBatches.length === 0 ? (

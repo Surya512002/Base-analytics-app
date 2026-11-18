@@ -43,6 +43,19 @@ export function auditServerEnv(): EnvAuditItem[] {
       : "Missing — wallet history won't persist between sessions",
   });
 
+  const voucherKeyRaw = process.env.VOUCHER_SECRETS_KEY?.trim();
+  const voucherKeyOk = Boolean(voucherKeyRaw && Buffer.from(voucherKeyRaw, "base64").length === 32);
+  items.push({
+    key: "VOUCHER_SECRETS_KEY",
+    ok: voucherKeyOk,
+    required: isProd,
+    detail: voucherKeyOk
+      ? "Set — saved gift-card claim links are encrypted at rest"
+      : voucherKeyRaw
+        ? "Invalid — must be 32 random bytes, base64 (openssl rand -base64 32)"
+        : "Missing — saved gift-card claim links are stored unencrypted",
+  });
+
   items.push({
     key: "ZEROX_API_KEY",
     ok: zeroXConfigured(),

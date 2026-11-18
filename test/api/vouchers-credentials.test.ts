@@ -11,6 +11,8 @@ vi.mock("@/lib/voucher/credentials-store", () => ({
   upsertCreatorBatch: (...a: unknown[]) => upsert(...a),
 }));
 vi.mock("@/lib/voucher/batch-read", () => ({ readOnchainBatches: vi.fn(async () => []) }));
+const vault = vi.fn(async () => null);
+vi.mock("@/lib/voucher/vault-store", () => ({ readVault: () => vault() }));
 vi.mock("@/lib/api/rate-limit", () => ({
   checkRateLimitAsync: vi.fn(async () => ({ ok: true })),
   getClientIp: () => "1.2.3.4",
@@ -62,6 +64,15 @@ describe("POST /api/vouchers/credentials", () => {
     const res = await post(body);
     expect(res.status).toBe(200);
     expect(upsert).toHaveBeenCalledWith(CREATOR, expect.objectContaining({ batchId: 1, contractAddress: V1 }));
+  });
+
+  it("won't store readable secrets for a creator who turned on the private vault", async () => {
+    session.mockResolvedValue({ ok: true, address: CREATOR });
+    vault.mockResolvedValueOnce({ version: 1 } as never);
+    const res = await post(body);
+    expect(res.status).toBe(409);
+    expect(verify).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
   });
 
   it("rejects malformed input before touching the session", async () => {

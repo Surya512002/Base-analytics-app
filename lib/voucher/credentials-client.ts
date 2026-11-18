@@ -1,4 +1,5 @@
 import type { StoredVoucherBatch } from "@/lib/utils/voucher";
+import { hasLocalVaultKey, syncVaultInBackground } from "@/lib/voucher/vault-client";
 
 /**
  * Saving secrets needs a wallet sign-in (SIWE) for the creator. Saves made before the creator
@@ -57,8 +58,18 @@ export async function saveWalletCredentials(
     return false;
   }
 
+  // Private vault unlocked here: back up end-to-end encrypted, never as server-readable data.
+  // (The secrets are already in this device's batch store, which the vault sync reads.)
+  if (hasLocalVaultKey(creator)) {
+    syncVaultInBackground(creator);
+    return true;
+  }
+
   try {
     const status = await postCredentials(creator, batch);
+    // 409: this wallet has a private vault that isn't unlocked on this device. The secrets stay
+    // here and go into the vault once the creator unlocks it with their phrase.
+    if (status === 409) return false;
     if (status === 401 || status === 403) {
       queuePending(creator, batch);
       return false;
