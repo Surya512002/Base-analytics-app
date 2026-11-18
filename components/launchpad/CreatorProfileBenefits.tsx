@@ -18,7 +18,7 @@ const perks = [
   {
     icon: Gift,
     title: "Stock & B20 Pairs",
-    detail: "Quote in NVDAc, AAPLc, TSLAc, COINc and unlock stock collateral loans",
+    detail: "Quote in NVDAc, AAPLc, TSLAc, MSFTc and unlock stock collateral loans",
   },
   {
     icon: BarChart3,

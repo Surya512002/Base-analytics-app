@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { buildSwapLink } from "@/lib/swap/swap-link";
-import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import type { CoinbaseTokenizedStock, LiquidityHealthTier } from "@/lib/stocks/coinbase-api";
 import TokenLogo from "@/components/ui/TokenLogo";
 import TokenSparkline from "@/components/ui/TokenSparkline";
@@ -150,7 +149,7 @@ export default function StocksExploreSection({
 
   const handleSetAlert = (stock: CoinbaseTokenizedStock) => {
     setActiveAlertStock(stock);
-    setAlertTargetPrice(stock.nav.toFixed(2));
+    setAlertTargetPrice(stock.nav != null ? stock.nav.toFixed(2) : "");
     setAlertSaved(false);
   };
 
@@ -179,20 +178,28 @@ export default function StocksExploreSection({
             Good Depth
           </span>
         );
-      case "paused":
+      case "low":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            Oracle Pause
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"
+            title="Thin pool on Base: expect higher slippage"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Low Liq
+          </span>
+        );
+      case "none":
+        return (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/25"
+            title="No DEX pool on Base yet"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            No Pool
           </span>
         );
       default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            Active
-          </span>
-        );
+        return null;
     }
   };
 
@@ -302,7 +309,7 @@ export default function StocksExploreSection({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-grid">
           {filteredStocks.map((stock) => {
-            const isPositive = stock.change24h >= 0;
+            const isPositive = (stock.change24h ?? 0) >= 0;
             const isWatched = watchlist.includes(stock.symbol);
 
             return (
@@ -328,44 +335,8 @@ export default function StocksExploreSection({
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase">
                             {stock.category}
                           </span>
-                          {(() => {
-                            const t = getStockTradability(stock.address);
-                            if (t.status === "tradable") {
-                              return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  Tradable
-                                </span>
-                              );
-                            }
-                            if (t.status === "low_liquidity") {
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"
-                                  title="Low on-chain liquidity — higher slippage expected"
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                  Low Liq
-                                </span>
-                              );
-                            }
-                            if (t.status === "no_pool") {
-                              return (
-                                <a
-                                  href={t.suggestedAction?.url || `https://basescan.org/token/${stock.address}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/25 hover:underline"
-                                  title="No DEX pool deployed — View on BaseScan"
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                  No Pool
-                                </a>
-                              );
-                            }
-                            return renderLiquidityBadge(stock.liquidityHealth);
-                          })()}
+                          {/* From the stock's real Base pools (DexScreener), not a fixed list */}
+                          {renderLiquidityBadge(stock.liquidityHealth)}
                         </div>
                         <p className="text-xs text-[var(--ink-muted)] font-medium line-clamp-1 mt-0.5">
                           {stock.name}
@@ -375,8 +346,9 @@ export default function StocksExploreSection({
 
                     <div className="text-right shrink-0 flex flex-col items-end">
                       <p className="font-mono text-lg font-black text-[var(--ink)]">
-                        ${stock.nav.toFixed(2)}
+                        {stock.nav != null ? `$${stock.nav.toFixed(2)}` : "—"}
                       </p>
+                      {stock.change24h != null && (
                       <div className="flex items-center gap-1.5 justify-end mt-0.5">
                         <TokenSparkline
                           change24h={stock.change24h}
@@ -399,19 +371,24 @@ export default function StocksExploreSection({
                           </span>
                         </p>
                       </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Multiplier, Status & Contract Strip */}
                   <div className="grid grid-cols-2 gap-2 py-2 px-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[11px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-[var(--ink-dim)]">Multiplier:</span>
-                      <span className="font-mono font-bold text-[var(--ink)]">{stock.multiplier.toFixed(1)}x Split</span>
+                      <span className="text-[var(--ink-dim)]">24h volume:</span>
+                      <span className="font-mono font-bold text-[var(--ink)]">
+                        {stock.volume24hUsd != null ? `$${Math.round(stock.volume24hUsd).toLocaleString("en-US")}` : "—"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[var(--ink-dim)]">Status:</span>
-                      <span className={`font-bold ${stock.isPaused ? "text-rose-600 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
-                        {stock.isPaused ? "Halted / Paused" : "24/5 Trading"}
+                      <span className="text-[var(--ink-dim)]">Pool liquidity:</span>
+                      <span className="font-mono font-bold text-[var(--ink)]">
+                        {stock.liquidityUsd != null && stock.liquidityUsd > 0
+                          ? `$${Math.round(stock.liquidityUsd).toLocaleString("en-US")}`
+                          : "—"}
                       </span>
                     </div>
                   </div>
@@ -470,12 +447,11 @@ export default function StocksExploreSection({
                   >
                     <TrendingUp size={13} />
                     <span>
-                      {(() => {
-                        const t = getStockTradability(stock.address);
-                        if (t.status === "low_liquidity") return "Trade (Low Liq)";
-                        if (t.status === "no_pool") return "Swap Info";
-                        return "Trade";
-                      })()}
+                      {stock.liquidityHealth === "low"
+                        ? "Trade (Low Liq)"
+                        : stock.liquidityHealth === "none"
+                          ? "Swap Info"
+                          : "Trade"}
                     </span>
                   </button>
 
@@ -516,7 +492,7 @@ export default function StocksExploreSection({
 
             <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
               Notify me when <strong>{activeAlertStock.name}</strong> moves above or below target price. Current NAV:{" "}
-              <strong>${activeAlertStock.nav.toFixed(2)}</strong>.
+              <strong>{activeAlertStock.nav != null ? `$${activeAlertStock.nav.toFixed(2)}` : "—"}</strong>.
             </p>
 
             <div className="space-y-1.5">

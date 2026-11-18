@@ -15,7 +15,6 @@ describe("IPOR Fusion Markets & Canonical Stocks Verification", () => {
       "GOOGLc",
       "AMZNc",
       "METAc",
-      "COINc",
       "SPCXc",
     ];
     for (const sym of canonical) {

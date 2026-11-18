@@ -19,6 +19,7 @@ import { mergeMarketSummaries, type TokenMarketSummary } from "@/lib/launchpad/d
 import { readExploreCache, writeExploreCache, hasExploreCache } from "@/lib/launchpad/explore-cache";
 import { mergeExploreTokens } from "@/lib/launchpad/merge-tokens";
 import { isAppLaunched, isB20ExploreToken } from "@/lib/launchpad/token-meta";
+import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
 import ExploreHub from "@/components/explore/ExploreHub";
@@ -146,8 +147,12 @@ export default function LaunchpadTab({
           const m = nextMarkets[a];
           return !m?.hasPool || (m.liquidityUsd ?? 0) < 1_000;
         });
-      if (missingPool.length > 0) {
-        const dexMarkets = await fetchMarketBatch(missingPool.slice(0, 60));
+      // Live tokenized stocks ride along in the same batch call: their real price, volume
+      // and liquidity come from their own Base pools.
+      const stockAddrs = BASE_STOCKS.map((s) => s.address.toLowerCase()).filter((a) => !nextMarkets[a]?.hasPool);
+      const batchAddrs = [...new Set([...stockAddrs, ...missingPool])].slice(0, 80);
+      if (batchAddrs.length > 0) {
+        const dexMarkets = await fetchMarketBatch(batchAddrs);
         nextMarkets = mergeMarketSummaries(nextMarkets, dexMarkets);
       }
 

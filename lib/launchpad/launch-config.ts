@@ -1,7 +1,7 @@
 export const FIXED_LAUNCH_SUPPLY = "1000000000";
 export const FIXED_LAUNCH_SUPPLY_LABEL = "1B";
 
-export type QuoteToken = "ETH" | "USDC" | "NVDAc" | "AAPLc" | "TSLAc" | "COINc" | string;
+export type QuoteToken = "ETH" | "USDC" | "NVDAc" | "AAPLc" | "TSLAc" | string;
 
 export interface InsiderAllocation {
   id: string;

@@ -34,13 +34,13 @@ export async function GET(request: Request) {
 
     // Sort order
     if (sortBy === "volume") {
-      stocks.sort((a, b) => b.volume24hUsd - a.volume24hUsd);
+      stocks.sort((a, b) => (b.volume24hUsd ?? -1) - (a.volume24hUsd ?? -1));
     } else if (sortBy === "gainers") {
-      stocks.sort((a, b) => b.change24h - a.change24h);
+      stocks.sort((a, b) => (b.change24h ?? -Infinity) - (a.change24h ?? -Infinity));
     } else if (sortBy === "mcap") {
-      stocks.sort((a, b) => b.mcapUsd - a.mcapUsd);
+      stocks.sort((a, b) => (b.mcapUsd ?? -1) - (a.mcapUsd ?? -1));
     } else if (sortBy === "nav") {
-      stocks.sort((a, b) => b.nav - a.nav);
+      stocks.sort((a, b) => (b.nav ?? -1) - (a.nav ?? -1));
     }
 
     const total = stocks.length;

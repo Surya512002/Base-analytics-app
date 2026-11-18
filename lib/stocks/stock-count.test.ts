@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { BASE_VERIFIED_STOCKS } from "./base-verified";
-import { stockCountLabel, TOKENIZED_STOCKS_LABEL } from "./stock-count";
+import { LIVE_STOCK_COUNT, stockCountLabel, TOKENIZED_STOCKS_LABEL } from "./stock-count";
 
 describe("TOKENIZED_STOCKS_LABEL", () => {
-  it("matches the real number of supported stocks", () => {
-    // If this fails, the stock list grew: update TOKENIZED_STOCKS_LABEL.
-    expect(TOKENIZED_STOCKS_LABEL).toBe(stockCountLabel(BASE_VERIFIED_STOCKS.length));
+  it("is the real number of live stocks the app offers", () => {
+    expect(TOKENIZED_STOCKS_LABEL).toBe(String(BASE_VERIFIED_STOCKS.length));
+    expect(LIVE_STOCK_COUNT).toBe(BASE_VERIFIED_STOCKS.length);
   });
-  it("rounds down to the nearest 50", () => {
-    expect(stockCountLabel(358)).toBe("350+");
-    expect(stockCountLabel(400)).toBe("400+");
+  it("rounds down to the nearest 10 for round-number copy", () => {
+    expect(stockCountLabel(87)).toBe("80+");
+    expect(stockCountLabel(120)).toBe("120+");
+    expect(stockCountLabel(7)).toBe("7");
   });
 });

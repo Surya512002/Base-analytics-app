@@ -407,7 +407,7 @@ export default function StockQuotePicker({
               <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
                 <div>
                   <h3 className="text-base font-black text-[var(--ink)]">Select Quote Asset</h3>
-                  <p className="text-xs text-[var(--ink-muted)]">8 verified tokenized stocks available</p>
+                  <p className="text-xs text-[var(--ink-muted)]">{getVerifiedTokenizedStocks().length} live tokenized stocks available</p>
                 </div>
                 <button
                   type="button"
@@ -490,7 +490,7 @@ export default function StockQuotePicker({
             />
             <input
               type="text"
-              placeholder="Search 8 canonical stocks by ticker (e.g. NVDAc), company (e.g. Apple), or 0xb20… address"
+              placeholder="Search live stocks by ticker (e.g. NVDAc), company (e.g. Apple), or 0xb20… address"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-8 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-base sm:text-xs text-[var(--ink)] placeholder-[var(--ink-dim)] focus:outline-none focus:border-[var(--brand-text)]"

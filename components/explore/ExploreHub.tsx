@@ -148,7 +148,7 @@ export default function ExploreHub({
         seenAddresses.add(lower);
         const isWatched = watchlist.includes(lower);
         const holding = holdings[lower];
-        list.push(normalizeBaseStock(stk, userAddress, isWatched, holding));
+        list.push(normalizeBaseStock(stk, userAddress, isWatched, holding, markets[lower] ?? null));
       }
     });
 

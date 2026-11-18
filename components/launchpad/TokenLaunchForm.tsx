@@ -238,9 +238,10 @@ export default function TokenLaunchForm({
   useEffect(() => {
     void fetch("/api/stocks")
       .then((r) => r.json())
-      .then((d: { stocks?: Array<{ symbol: string; nav: number }>; data?: Array<{ symbol: string; nav: number }> }) => {
+      .then((d: { stocks?: Array<{ symbol: string; nav: number | null }>; data?: Array<{ symbol: string; nav: number | null }> }) => {
         const list = d.stocks || d.data; if (list && Array.isArray(list)) { const map: Record<string, number> = {}; list.forEach((s) => {
-            map[s.symbol] = s.nav;
+            // Only real DEX prices; a stock without a pool has no price.
+            if (typeof s.nav === "number" && s.nav > 0) map[s.symbol] = s.nav;
           });
           setStockPrices(map);
         }

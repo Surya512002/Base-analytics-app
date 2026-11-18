@@ -1,5 +1,7 @@
 import { formatUnits, parseAbi } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { getStockPricesUsd } from "@/lib/stocks/stock-prices";
+import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import {
   AAVE_V3_POOL_BASE,
   USDC_BASE_ADDRESS,
@@ -69,17 +71,19 @@ const AERODROME_GAUGE_VIEW_ABI = parseAbi([
   "function earned(address account) external view returns (uint256)",
 ]);
 
-// Estimated baseline NAV prices for stocks when computing USD values
-const STOCK_PRICES: Record<string, number> = {
-  NVDAc: 138.25,
-  AAPLc: 232.5,
-  TSLAc: 221.8,
-  COINc: 245.0,
-  GOOGLc: 182.4,
-  MSFTc: 428.0,
-  AMZNc: 196.5,
-  METAc: 585.0,
-};
+// Live stock prices (USD) from each stock's Base DEX pool. A stock without a price counts as 0,
+// so its USD value reads as unknown rather than a made-up number.
+const PRICED_STOCKS = ["NVDAc", "AAPLc", "TSLAc", "GOOGLc", "MSFTc", "AMZNc", "METAc"] as const;
+async function liveStockPrices(): Promise<Record<string, number>> {
+  const addrs = PRICED_STOCKS.map((sym) => getBaseStockBySymbol(sym)?.address).filter((a): a is `0x${string}` => Boolean(a));
+  const px = await getStockPricesUsd(addrs).catch(() => new Map<string, number>());
+  const out: Record<string, number> = {};
+  for (const sym of PRICED_STOCKS) {
+    const a = getBaseStockBySymbol(sym)?.address.toLowerCase();
+    out[sym] = (a && px.get(a)) || 0;
+  }
+  return out;
+}
 
 /**
  * 1. Read real Beefy Finance auto-compounding stock vault positions on Base
@@ -87,6 +91,7 @@ const STOCK_PRICES: Record<string, number> = {
 export async function readBeefyPositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
+  const STOCK_PRICES = await liveStockPrices();
   const client = createBasePublicClient();
   const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
   const vaultEntries = [
@@ -200,6 +205,7 @@ export async function readBeefyPositions(
 export async function readIporPositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
+  const STOCK_PRICES = await liveStockPrices();
   const client = createBasePublicClient();
   const markets = [
     {
@@ -301,6 +307,7 @@ export async function readIporPositions(
 export async function readAerodromeGaugePositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
+  const STOCK_PRICES = await liveStockPrices();
   const client = createBasePublicClient();
   const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
   const gaugeMarkets = [

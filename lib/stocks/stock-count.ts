@@ -1,13 +1,16 @@
 /**
- * Marketing count of Coinbase tokenized stocks the app supports, e.g. "350+".
+ * How many Coinbase tokenized stocks are live on Base (tokens in circulation), e.g. "87".
  *
- * Kept as a tiny constant so OG images and other lightweight bundles don't import the full
- * registry. `stock-count.test.ts` fails CI when the real list (BASE_VERIFIED_STOCKS) moves
- * past the next 50, so this can't silently go stale again.
+ * Taken from the generated live list (refreshed by `npm run stocks:sync`), so the number in
+ * OG images and copy always matches the stocks the app actually offers. base.org lists more
+ * stocks than this, but the rest have not launched yet (zero supply).
  */
-export const TOKENIZED_STOCKS_LABEL = "350+";
+import { COINBASE_LIVE_STOCKS } from "./live-stocks.generated";
 
-/** Round a count down to the nearest 50 and add "+" (358 → "350+"). */
+export const LIVE_STOCK_COUNT = COINBASE_LIVE_STOCKS.length;
+export const TOKENIZED_STOCKS_LABEL = String(LIVE_STOCK_COUNT);
+
+/** Round a count down to the nearest 10 and add "+" (87 → "80+"), for places that want a round number. */
 export function stockCountLabel(count: number): string {
-  return `${Math.floor(count / 50) * 50}+`;
+  return count < 10 ? String(count) : `${Math.floor(count / 10) * 10}+`;
 }

@@ -157,8 +157,23 @@ export async function fetchMarketSummaries(
   for (const addr of addresses) {
     const lower = addr.toLowerCase();
     const pairs = batch.get(lower) ?? [];
-    const best = pickBestPair(pairs);
-    out[lower] = summarizePair(lower, best);
+    // A pair's priceUsd is the price of its BASE token. Prefer pools where this token is the
+    // base; otherwise the pool's price would be the other token's price.
+    const asBase = pairs.filter((p) => (p.baseToken?.address ?? "").toLowerCase() === lower);
+    const best = pickBestPair(asBase.length ? asBase : pairs);
+    const summary = summarizePair(lower, best);
+    if (best && (best.baseToken?.address ?? "").toLowerCase() !== lower) {
+      // Token is the quote side: its USD price = base USD price / base price in quote units.
+      const baseUsd = best.priceUsd ? parseFloat(best.priceUsd) : NaN;
+      const baseInQuote = best.priceNative ? parseFloat(best.priceNative) : NaN;
+      const derived = baseUsd / baseInQuote;
+      summary.priceUsd = Number.isFinite(derived) && derived > 0 ? derived : null;
+      summary.priceNative = null;
+      summary.priceChange24h = null;
+      summary.marketCap = null;
+      summary.fdv = null;
+    }
+    out[lower] = summary;
   }
 
   return out;

@@ -41,28 +41,8 @@ import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { getStockQuotes, type StockQuote } from "@/lib/stocks/stock-prices";
 
-const STOCK_REFERENCE_PRICES: Record<string, number> = {
-  NVDAc: 138.25,
-  AAPLc: 232.5,
-  TSLAc: 221.8,
-  COINc: 184.5,
-  MSFTc: 428.1,
-  GOOGLc: 182.2,
-  METAc: 590.4,
-  AMZNc: 198.8,
-  MSTRc: 242.0,
-  INTCc: 23.4,
-  AMDc: 156.3,
-  SKHYc: 138.0,
-  ORCLc: 176.5,
-  NFLXc: 715.0,
-  HIMSc: 24.2,
-  LLYc: 825.0,
-  CBRSc: 38.0,
-  PYPLc: 81.2,
-  RBLXc: 47.5,
-};
 
 interface LendingHubProps {
   app: WalletAppState;
@@ -127,6 +107,18 @@ export default function LendingHub({
   const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
   const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
   const [showAllStocks, setShowAllStocks] = useState(false);
+  // Real prices and 24h change from each stock's Base pool (shared, cached helper).
+  const [stockQuotes, setStockQuotes] = useState<Map<string, StockQuote>>(new Map());
+  useEffect(() => {
+    let alive = true;
+    const list = showAllStocks ? ALL_BASE_STOCKS : BASE_STOCKS;
+    void getStockQuotes(list.map((s) => s.address)).then((q) => {
+      if (alive) setStockQuotes(q);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [showAllStocks]);
 
   const fetchDiscoveredMarkets = useCallback(async (refresh = false, silent = false) => {
     if (!silent) setIsLoadingDiscovered(true);
@@ -326,10 +318,11 @@ export default function LendingHub({
       const oracleVerified =
         summary.options.length > 0 ? !riskFlags.includes("UNKNOWN_ORACLE") : false;
 
-      const priceUsd = STOCK_REFERENCE_PRICES[stk.symbol] ?? 125.0;
+      const quote = stockQuotes.get(stk.address.toLowerCase());
+      const priceUsd = quote?.price ?? null;
 
       const bal = walletBalances[stk.symbol] ?? null;
-      const balUsd = bal !== null ? bal * priceUsd : null;
+      const balUsd = bal !== null && priceUsd !== null ? bal * priceUsd : null;
 
       return {
         symbol: stk.symbol,
@@ -337,7 +330,7 @@ export default function LendingHub({
         category: stk.category ?? "tech",
         address: stk.address,
         priceUsd,
-        priceChange24h: 1.25,
+        priceChange24h: quote?.change24h ?? undefined,
         bestSupplyApy,
         bestSupplyProtocol,
         supplyKindChip,
@@ -355,7 +348,7 @@ export default function LendingHub({
         protocolRates,
       };
     });
-  }, [discoveredMarkets, walletBalances, showAllStocks]);
+  }, [discoveredMarkets, walletBalances, showAllStocks, stockQuotes]);
 
   // All Markets Rows (strictly verified tokenized stocks)
   const allMarketsRows: AssetMarketRow[] = useMemo(() => {

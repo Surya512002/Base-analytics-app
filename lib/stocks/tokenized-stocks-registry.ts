@@ -1,5 +1,6 @@
 import { getAddress, type Address } from "viem";
 import { BASE_OFFICIAL_REGISTRY, BASE_OFFICIAL_REGISTRY_READ_AT } from "./base-official-registry";
+import { COINBASE_LIVE_STOCKS, OTHER_LIVE_STOCK_ADDRESSES } from "./live-stocks.generated";
 
 export type StockCategory =
   | "Tech"
@@ -4066,8 +4067,39 @@ const OFFICIAL_ONLY_STOCKS: TokenizedStockEntry[] = BASE_OFFICIAL_REGISTRY.filte
   },
 }));
 
-/** Curated entries plus every remaining stock on Base's official registry. */
-export const TOKENIZED_STOCKS_REGISTRY: readonly TokenizedStockEntry[] = [...CURATED_STOCKS, ...OFFICIAL_ONLY_STOCKS];
+/**
+ * Stocks with tokens actually in circulation (lib/stocks/live-stocks.generated.ts, refreshed by
+ * `npm run stocks:sync`). base.org also lists stocks Coinbase has deployed but not launched:
+ * they have zero supply, so nobody can buy, swap, lend or gift them yet.
+ */
+const LIVE_STOCK_ADDRESSES = new Set<string>([
+  ...COINBASE_LIVE_STOCKS.map(([, , address]) => address.toLowerCase()),
+  ...OTHER_LIVE_STOCK_ADDRESSES,
+]);
+const COINBASE_LIVE_NAMES = new Map(COINBASE_LIVE_STOCKS.map(([, name, address]) => [address.toLowerCase(), name]));
+
+/** True when the stock has tokens in circulation on Base. */
+export function isLiveStockAddress(address: string | null | undefined): boolean {
+  return Boolean(address && LIVE_STOCK_ADDRESSES.has(address.trim().toLowerCase()));
+}
+
+/**
+ * Curated entries plus every remaining stock on Base's official registry. Entries that are not
+ * live are kept for address lookups but marked "pending", so no list offers them.
+ */
+export const TOKENIZED_STOCKS_REGISTRY: readonly TokenizedStockEntry[] = [...CURATED_STOCKS, ...OFFICIAL_ONLY_STOCKS].map(
+  (entry) => {
+    const addr = entry.address.toLowerCase();
+    const live = LIVE_STOCK_ADDRESSES.has(addr);
+    const officialName = COINBASE_LIVE_NAMES.get(addr);
+    return {
+      ...entry,
+      // Official-only rows carry base.org's short label; prefer Coinbase's full company name.
+      name: officialName && !curatedAddresses.has(addr) ? officialName : entry.name,
+      status: entry.status === "active" && !live ? "pending" : entry.status,
+    };
+  }
+);
 
 /**
  * Quick O(1) Lookup Maps by lowercased address and uppercase symbol
@@ -4113,7 +4145,6 @@ export const VERIFIED_BASE_STOCKS = [
   "GOOGLc",
   "AMZNc",
   "METAc",
-  "COINc",
   "SPCXc",
   "INTCc",
   "AMDc",
@@ -4134,7 +4165,7 @@ export const VERIFIED_BASE_STOCKS_8 = VERIFIED_BASE_STOCKS;
  */
 export function getActiveTokenizedStocks(): TokenizedStockEntry[] {
   return VERIFIED_BASE_STOCKS.map((sym) => getTokenizedStockBySymbol(sym)).filter(
-    (e): e is TokenizedStockEntry => e !== null
+    (e): e is TokenizedStockEntry => e !== null && e.status === "active"
   );
 }
 

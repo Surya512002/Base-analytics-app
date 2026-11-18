@@ -1,4 +1,5 @@
 import type { PublicClient } from "viem";
+import { getStockPricesUsd } from "@/lib/stocks/stock-prices";
 import {
   USDC_BASE_ADDRESS,
   IPOR_FUSION_FACTORY_BASE,
@@ -477,24 +478,12 @@ export async function getUnifiedStockLendingComparison(
     }
   }
 
-  // Reference NAV (tailored by volatility profile)
-  const isHighBeta =
-    stock.symbol === "TSLAc" ||
-    stock.symbol === "NVDAc" ||
-    stock.symbol === "MSTRc" ||
-    stock.symbol === "SPCXc";
-  const isBlueChip =
-    stock.symbol === "AAPLc" || stock.symbol === "MSFTc" || stock.symbol === "GOOGLc";
-
-  const navUsd = isHighBeta
-    ? stock.symbol === "NVDAc"
-      ? 138.25
-      : stock.symbol === "SPCXc"
-        ? 145.0
-        : 221.8
-    : isBlueChip
-      ? 232.5
-      : 125.0;
+  // Real price from the stock's Base DEX pool. 0 when there is none: the loan planner hides
+  // itself rather than size a loan or a liquidation price on a made-up number.
+  const navUsd =
+    (await getStockPricesUsd([stock.address]).catch(() => new Map<string, number>())).get(
+      stock.address.toLowerCase()
+    ) ?? 0;
 
   // Load markets: use preloaded if available, otherwise fetch live without 1200ms timeout
   let discoveredMarkets: NormalizedMarket[] = [];
