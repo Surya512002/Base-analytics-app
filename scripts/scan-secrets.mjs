@@ -55,6 +55,9 @@ const WHITELIST = new Set([
   "0x52467d5bbbf878d6b8ec1159385ffca5f76b1f868c2d2aa6ffc5d57bba91f7a4", // Mock test txHash in unique-users unit tests
   "0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000", // Dummy test key in EnvLoading.test.js
   "0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0", // secp256k1 n/2 (low-s check) in BaseVoucherCampaign.sol
+  "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", // secp256k1 curve order n (high-s test) in test/BaseDrops.t.sol
+  "0x7e65f7cda80b310b68d9556b527e1e6298eeffaba8fb3ac1171db55484673639", // keccak256("BaseDrops.v1.ticket") public constant
+  "0x45e8ca94ebc4de05d3755066ba32aff42355df663965901c4bc386e488018c71", // BaseDrops ticket digest test fixture (lib/drops/drops.test.ts)
   "0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", // keccak256("abc") in campaign.test.ts
   "0xb4ab73d14dc9db84c78082baca4f4c3c3c520f71e41d63185b228ff9a71c0626", // public tx hash: campaign contract deploy
   "0xf159c5c2a0bd1054bd0de6c2cc2bcabd23b6144e098cce9e2a029261ebc7b791", // public tx hash: campaign #1 create
