@@ -18,6 +18,13 @@ if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
   exit 1
 fi
 
+# Same commit as the last deployment = a deliberate Redeploy (e.g. after changing environment
+# variables, which only reach a deployment when it's built). Always build those.
+if [ "$(git rev-parse "$BASE^{commit}")" = "$(git rev-parse HEAD)" ]; then
+  echo "Build: redeploy of the already-deployed commit $BASE"
+  exit 1
+fi
+
 git diff --quiet "$BASE" HEAD -- . \
   ':(exclude)test/**' \
   ':(exclude)e2e/**' \
