@@ -8,6 +8,9 @@ import SparkleBurst from "./SparkleBurst";
  * Big animated gift box (pure DOM + motion, no images). Floats gently, lifts its lid on hover,
  * and on click pops open: the lid flies up, a light beam and a gift card rise out, sparkles burst.
  * Closes again by itself. Fully static when the user prefers reduced motion.
+ *
+ * `peek` is the resting pose of a claim screen: the lid sits tilted up and the gift card peeks
+ * out, so it reads as "a gift for you" before anything is claimed.
  */
 export default function GiftBox({
   size = 260,
@@ -21,6 +24,7 @@ export default function GiftBox({
   locked = false,
   disabled = false,
   ariaLabel = "Open the gift box",
+  peek = false,
 }: {
   size?: number;
   cardLabel?: string;
@@ -40,6 +44,8 @@ export default function GiftBox({
   locked?: boolean;
   disabled?: boolean;
   ariaLabel?: string;
+  /** Rest with the lid tilted up and the card peeking out (claim screens). */
+  peek?: boolean;
 }) {
   const reduce = useReducedMotion();
   const [openState, setOpen] = useState(false);
@@ -82,8 +88,23 @@ export default function GiftBox({
   const px = (n: number) => n * s;
 
   // A claimed box throws its lid right off; the hero box just lifts it.
-  const lidY = open ? -px(controlled ? 120 : 78) : hover && !disabled ? -px(10) : 0;
-  const lidRotate = open ? (controlled ? -28 : -14) : hover && !disabled ? -3 : 0;
+  const lifted = hover && !disabled;
+  const lidY = open
+    ? -px(controlled ? 120 : 78)
+    : peek
+      ? -px(lifted ? 74 : 64) - (wiggle ? px(6) : 0)
+      : lifted
+        ? -px(10)
+        : 0;
+  const lidRotate = open ? (controlled ? -28 : -14) : peek ? (lifted ? -14 : -11) : lifted ? -3 : 0;
+  const showCard = open || peek;
+  // Claimed: the little card shoots up and fades, handing over to the claim screen's big card.
+  const cardTarget =
+    open && controlled
+      ? { y: -px(150), opacity: 0, rotate: -10, scale: 1.2 }
+      : open
+        ? { y: -px(40), opacity: 1, rotate: -6, scale: 1 }
+        : { y: -px(lifted ? 30 : 22), opacity: 1, rotate: -6, scale: 1 };
 
   return (
     <button
@@ -131,7 +152,7 @@ export default function GiftBox({
       >
         {/* light beam + rising card when open */}
         <AnimatePresence>
-          {open && (
+          {showCard && (
             <>
               <motion.div
                 key="beam"
@@ -145,7 +166,7 @@ export default function GiftBox({
                   clipPath: "polygon(30% 100%, 70% 100%, 100% 0, 0 0)",
                 }}
                 initial={{ opacity: 0, scaleY: 0.2 }}
-                animate={{ opacity: 1, scaleY: 1 }}
+                animate={{ opacity: open ? 1 : 0.55, scaleY: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
               />
@@ -160,10 +181,14 @@ export default function GiftBox({
                   padding: px(10),
                   background: "linear-gradient(135deg, #0052FF 0%, #6366F1 100%)",
                 }}
-                initial={{ y: px(60), opacity: 0, rotate: 0 }}
-                animate={{ y: -px(40), opacity: 1, rotate: -6 }}
+                initial={peek && !open ? false : { y: px(60), opacity: 0, rotate: 0 }}
+                animate={cardTarget}
                 exit={{ y: px(60), opacity: 0 }}
-                transition={{ type: "spring", stiffness: 220, damping: 18, delay: 0.12 }}
+                transition={
+                  open && controlled
+                    ? { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }
+                    : { type: "spring", stiffness: 220, damping: 18, delay: open ? 0.12 : 0 }
+                }
               >
                 <span className="font-black tracking-[0.2em]" style={{ fontSize: px(9) }}>{cardLabel}</span>
                 <span className="font-black leading-none" style={{ fontSize: px(cardValue.length > 9 ? 13 : 17) }}>
@@ -214,8 +239,14 @@ export default function GiftBox({
         <motion.div
           className="absolute left-1/2"
           style={{ bottom: px(140), width: px(212), marginLeft: -px(106), height: px(44), originX: 0.15, originY: 1 }}
-          animate={{ y: lidY, rotate: lidRotate }}
-          transition={{ type: "spring", stiffness: 260, damping: 16 }}
+          animate={{ y: lidY, rotate: lidRotate, opacity: open && controlled ? 0 : 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 260,
+            damping: 16,
+            // A claimed lid flies off, then fades away instead of landing on the content above.
+            opacity: { duration: 0.35, delay: open && controlled ? 0.45 : 0 },
+          }}
         >
           <div
             className="absolute inset-0 overflow-hidden rounded-[14px] shadow-lg"

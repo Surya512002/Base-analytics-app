@@ -1,5 +1,5 @@
 import { TOKENIZED_STOCKS_LABEL } from "@/lib/stocks/stock-count";
-export const OG_VERSION = "22";
+export const OG_VERSION = "23";
 
 export const OG_COLORS = {
   bg: "#030712",
