@@ -173,6 +173,28 @@ export default function LaunchSpotlightStrip({
             </div>
           </article>
         ))}
+
+        {/* While launches are few, invite the next one instead of leaving the row empty. */}
+        {onLaunch && items.length < 4 && (
+          <button
+            type="button"
+            onClick={onLaunch}
+            className="flex w-[70%] shrink-0 cursor-pointer snap-start flex-col items-start justify-between gap-3 rounded-[1.25rem] border border-dashed border-[var(--pill-border)] bg-[var(--pill-bg)] p-3.5 text-left transition hover:brightness-105 sm:w-[260px]"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--brand-text)] ring-1 ring-[var(--pill-border)]">
+              <Rocket size={16} aria-hidden />
+            </span>
+            <span>
+              <span className="block text-sm font-black text-[var(--ink)]">Your token here</span>
+              <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--ink-muted)]">
+                Launch in minutes with a $0 platform fee and earn on every trade. New launches land in this spotlight.
+              </span>
+            </span>
+            <span className="pulse-chip min-h-8 px-3 text-[11px]">
+              Launch a token <ArrowUpRight size={12} aria-hidden />
+            </span>
+          </button>
+        )}
       </div>
     </section>
   );
