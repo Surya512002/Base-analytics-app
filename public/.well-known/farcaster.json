@@ -1,19 +1,19 @@
 {
   "accountAssociation": {
     "header": "eyJmaWQiOjI3OTQ3NCwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDE0MmY1QzU0OGFBNDY0MzU2MkRkNEQ3NkMxM0Y4YzRBMzM3MDcyOGMifQ",
-    "payload": "eyJkb21haW4iOiJiYXNlLWFuYWx5dGljcy1hcHAudmVyY2VsLmFwcCJ9",
-    "signature": "MaIracNiIcapcbKYTFRZ7wsFgmw5v7lxi4Zgoy5WF1AX8oz3iCJFK6iby9/xFAcGF/RPpAqsPEBAszRzKpWG9hs="
+    "payload": "eyJkb21haW4iOiJiYXNlYW5hbHl0aWNzLmFwcCJ9",
+    "signature": "67UB8Wqo4PTOaGfc/DHMfMUYcEW3eoiI60ZsxhNVcN1+kvsexElqEqJwcybEXVXNigU+2XCaB9/vbrdCklJsthw="
   },
   "frame": {
     "version": "1",
     "name": "Base Analytics",
-    "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
-    "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?ogv=15",
+    "iconUrl": "https://baseanalytics.app/icon.png",
+    "homeUrl": "https://baseanalytics.app",
+    "imageUrl": "https://baseanalytics.app/opengraph-image?ogv=15",
     "buttonTitle": "Open Base Analytics",
-    "splashImageUrl": "https://base-analytics-app.vercel.app/splash.png",
+    "splashImageUrl": "https://baseanalytics.app/splash.png",
     "splashBackgroundColor": "#030712",
-    "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
+    "webhookUrl": "https://baseanalytics.app/api/webhook",
     "primaryCategory": "finance",
     "tags": [
       "stocks",
@@ -31,13 +31,13 @@
   "miniapp": {
     "version": "1",
     "name": "Base Analytics",
-    "iconUrl": "https://base-analytics-app.vercel.app/icon.png",
-    "homeUrl": "https://base-analytics-app.vercel.app",
-    "imageUrl": "https://base-analytics-app.vercel.app/opengraph-image?ogv=15",
+    "iconUrl": "https://baseanalytics.app/icon.png",
+    "homeUrl": "https://baseanalytics.app",
+    "imageUrl": "https://baseanalytics.app/opengraph-image?ogv=15",
     "buttonTitle": "Open Base Analytics",
-    "splashImageUrl": "https://base-analytics-app.vercel.app/splash.png",
+    "splashImageUrl": "https://baseanalytics.app/splash.png",
     "splashBackgroundColor": "#030712",
-    "webhookUrl": "https://base-analytics-app.vercel.app/api/webhook",
+    "webhookUrl": "https://baseanalytics.app/api/webhook",
     "primaryCategory": "finance",
     "requiredCapabilities": [
       "actions.signIn",
