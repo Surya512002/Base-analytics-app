@@ -83,6 +83,27 @@ export const BASE_MAINNET_REGISTRY: Record<string, ContractRegistryEntry> = {
     matchesDocs: true,
   },
 
+  VOUCHER_CAMPAIGN_V3: {
+    id: "voucher-campaign-v3",
+    name: "BaseVoucherCampaign v3 (one-link gifts, up to 1,000,000 claims)",
+    address: getAddress("0x291469ee894561E169518ab9e73c188e4f6971d7"),
+    category: "core",
+    officialDocsUrl: "https://basescan.org/address/0x291469ee894561E169518ab9e73c188e4f6971d7#code",
+    verifiedOnBasescan: true,
+    matchesDocs: true,
+    notes: "New one-link gifts. Campaign ids start at 1,000,000,001 (FIRST_CAMPAIGN_ID). Env: NEXT_PUBLIC_CAMPAIGN_CONTRACT.",
+  },
+  VOUCHER_CAMPAIGN_V2: {
+    id: "voucher-campaign-v2",
+    name: "BaseVoucherCampaign v2 (legacy one-link gifts, up to 1,000 claims)",
+    address: getAddress("0x477919fc62b28ae4947724f7b67219d4a533a449"),
+    category: "core",
+    officialDocsUrl: "https://basescan.org/address/0x477919fc62b28ae4947724f7b67219d4a533a449#code",
+    verifiedOnBasescan: true,
+    matchesDocs: true,
+    notes: "Existing one-link gifts (ids below 1,000,000,001) stay claimable/refundable here. Env: NEXT_PUBLIC_CAMPAIGN_CONTRACT_LEGACY.",
+  },
+
   // ── DEFI PROTOCOLS ──
   MORPHO_BLUE: {
     id: "morpho-blue",

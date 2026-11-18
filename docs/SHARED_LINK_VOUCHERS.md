@@ -44,6 +44,10 @@ The first N distinct wallets to claim each receive `total / N`. Replaces generat
 4. Get an independent audit before enabling stock campaigns on mainnet.
 
 ## Upgrading v2 → v3 (1,000,000 claims per link)
+
+**Status: live.** v3 deployed 2026-11-18 at
+[`0x291469ee894561E169518ab9e73c188e4f6971d7`](https://basescan.org/address/0x291469ee894561E169518ab9e73c188e4f6971d7#code)
+(block 58,947,219, source verified on Basescan); v2 `0x477919fc62b28ae4947724f7b67219d4a533a449` is the legacy contract.
 v3 is the same contract with two changes: `MAX_CLAIMS = 1_000_000` and campaign ids starting at
 `FIRST_CAMPAIGN_ID = 1_000_000_001`. Claim and close are O(1), so gas per claim is identical at any size
 (45,120 gas in the EVM tests for a 10-slot and a 1,000,000-slot campaign). Because ids never overlap, the app
