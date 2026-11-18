@@ -95,5 +95,8 @@
       "maxQuoteEscrow": "100000000000"
     }
   ],
-  "sequencerUptimeFeed": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433"
+  "sequencerUptimeFeed": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
+  "keepers": [
+    "0x8EB3a657B75087D1D289eCfE47e85854cdF9A628"
+  ]
 }

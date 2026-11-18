@@ -38,8 +38,10 @@ Tokenized stocks cannot be simulated locally (Coinbase B20 precompile). Their fi
 Put the deployer key in `limit-orders/.env` (git-ignored) as `DEPLOYER_PK=0x…` and a private RPC as `BASE_RPC_URL=…`. Then:
 
 ```bash
-DEPLOY_CONFIG=config/mainnet-canary.json EXPECTED_DEPLOYER=0xbCDDd1bc8F3c0c24BEDEE41720287ff50a7B7148 OWNER_ADDRESS=0x5b2247D29b44510E3E857879470925ccFFE696C3 KEEPER_ADDRESS=0xYourKeeperWallet CONFIRM_MAINNET=yes npx hardhat run scripts/deploy.js --network base
+DEPLOY_CONFIG=config/mainnet-canary.json EXPECTED_DEPLOYER=0xbCDDd1bc8F3c0c24BEDEE41720287ff50a7B7148 OWNER_ADDRESS=0x5b2247D29b44510E3E857879470925ccFFE696C3 CONFIRM_MAINNET=yes npx hardhat run scripts/deploy.js --network base
 ```
+
+The keeper `0x8EB3…A628` is allowlisted automatically (it is in `keepers` in the config and `KEEPER_ADDRESS` in `limit-orders/.env`). Fund it with ~0.005 ETH on Base before starting it.
 
 Owner Safe `0x5b22…96C3` was checked on 2026-11-16: 2 of 3 signatures on Base. Add `GUARDIAN_ADDRESS=0x…` to the command if you have a guardian ready; otherwise set it later from the Safe with `setGuardian(address)` on the order book.
 

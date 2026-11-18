@@ -97,5 +97,8 @@
   ],
   "profile": "mainnet-canary",
   "profileNote": "First mainnet stage: $50 per order, $500 total per market. Raise with scripts/plan-cap-update.mjs after the canary runbook passes. Token-unit caps are scaled from deployConfig.json at the same price.",
-  "sequencerUptimeFeed": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433"
+  "sequencerUptimeFeed": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
+  "keepers": [
+    "0x8EB3a657B75087D1D289eCfE47e85854cdF9A628"
+  ]
 }
