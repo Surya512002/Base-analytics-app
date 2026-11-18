@@ -11,6 +11,7 @@ import {
   Share2,
   Wallet,
 } from "lucide-react";
+import { TOKENIZED_STOCKS_LABEL } from "@/lib/stocks/stock-count";
 
 export default function VoucherHowItWorks() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +36,7 @@ export default function VoucherHowItWorks() {
     },
     {
       q: "Can I gift tokenized stocks and yield vault positions?",
-      a: "Yes! You can split all 32 Coinbase B20 tokenized equities (e.g. NVDA, AAPL, TSLA, COIN) and Morpho/SuperStocks yield-bearing vault shares into gift cards.",
+      a: `Yes! You can gift any of ${TOKENIZED_STOCKS_LABEL} Coinbase tokenized stocks (e.g. NVDA, AAPL, TSLA, COIN), plus Beefy auto-compounding vault shares, as gift cards.`,
     },
   ];
 

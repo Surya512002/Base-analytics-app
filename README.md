@@ -20,7 +20,7 @@ creator revenue, and send crypto gift cards, all in one non-custodial app on **B
 
 | Section | What you can do |
 | :--- | :--- |
-| **Explore** | Browse 19 Coinbase tokenized stocks (NVDAc, AAPLc, MSFTc, TSLAc, GOOGLc, METAc, AMZNc…) and Base tokens with live prices, market signals and key movers, a live market map, **Token X-Ray** safety scores and price alerts. |
+| **Explore** | Browse 350+ Coinbase tokenized stocks (NVDAc, AAPLc, MSFTc, TSLAc, GOOGLc, METAc, AMZNc…) and Base tokens with live prices, market signals and key movers, a live market map, **Token X-Ray** safety scores and price alerts. |
 | **Swap** | Best-route quotes across Base DEXs (Uniswap v3, Aerodrome, Slipstream) and the 0x aggregator, a clear preview before you sign, price-impact guards and a **0.25% fee**. Browser wallets get the whole swap as one atomic transaction. |
 | **Lend & Stake** | Verified stock markets across Morpho, Beefy, Aerodrome, Aave and Moonwell. **Smart Deposit** puts USDC, ETH or a stock into stock/USDC vaults in one step: no need to hold both tokens. Includes positions, a liquidation guard, Yield Finder and protocol comparison. |
 | **Vouchers** | Onchain gift cards in **ETH, USDC, tokenized stocks or vault shares**. Split one deposit into up to 50 cards or one shareable link; unclaimed gifts return to you. |

@@ -22,6 +22,7 @@ import MarketIntelligenceHub from "./MarketIntelligenceHub";
 import BlurFade from "@/components/ui/motion/BlurFade";
 import StockTickerTape from "@/components/markets/StockTickerTape";
 import MoversSignalsStrip from "@/components/markets/MoversSignalsStrip";
+import LaunchSpotlightStrip from "./LaunchSpotlightStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
 import StockDetailDrawer from "@/components/markets/StockDetailDrawer";
 import type { StockMarketItem } from "@/lib/markets/types";
@@ -205,6 +206,12 @@ export default function ExploreHub({
       .slice(0, 8);
   }, [allUnifiedTokens, moversHideLowLiquidity]);
 
+  // Address → unified token (prices, market cap) for the launch spotlight.
+  const unifiedByAddress = useMemo(
+    () => new Map(allUnifiedTokens.map((t) => [t.address.toLowerCase(), t] as const)),
+    [allUnifiedTokens]
+  );
+
   // 2d. Recently Launched
   const recentlyLaunchedTokens = useMemo(() => {
     return [...allUnifiedTokens]
@@ -332,6 +339,17 @@ export default function ExploreHub({
           stocks={stockMarketsList}
           loading={stockMarketsLoading}
           onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
+        />
+      </BlurFade>
+
+      {/* 1.7 LAUNCH SPOTLIGHT: tokens launched through Base Analytics, newest first */}
+      <BlurFade>
+        <LaunchSpotlightStrip
+          tokens={tokens}
+          unifiedByAddress={unifiedByAddress}
+          onOpen={(t) => setSelectedQuickViewToken(t)}
+          onTrade={handleTrade}
+          onLaunch={onRequestCreateToken}
         />
       </BlurFade>
 
