@@ -186,13 +186,15 @@ export interface CampaignValidation {
 
 export function validateCampaignInput(
   input: CampaignInput,
-  nowSec = Math.floor(Date.now() / 1000)
+  nowSec = Math.floor(Date.now() / 1000),
+  /** MAX_CLAIMS of the target contract: 1,000 on v2, 1,000,000 on v3. */
+  maxClaimsLimit: number = CAMPAIGN_MAX_CLAIMS
 ): CampaignValidation {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (!Number.isInteger(input.maxClaims) || input.maxClaims < 1 || input.maxClaims > CAMPAIGN_MAX_CLAIMS) {
-    errors.push(`Claim slots must be a whole number from 1 to ${CAMPAIGN_MAX_CLAIMS}.`);
+  if (!Number.isInteger(input.maxClaims) || input.maxClaims < 1 || input.maxClaims > maxClaimsLimit) {
+    errors.push(`Claim slots must be a whole number from 1 to ${maxClaimsLimit.toLocaleString("en-US")}.`);
   }
   if (!/^\d+(\.\d+)?$/.test(input.total.trim()) || Number(input.total) <= 0) {
     errors.push("Enter a total amount greater than zero.");

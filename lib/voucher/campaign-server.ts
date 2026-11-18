@@ -1,6 +1,7 @@
 import { formatUnits, isAddress, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { CAMPAIGN_CONTRACT } from "@/lib/constants/env";
+import { contractForCampaignId } from "@/lib/voucher/campaign-contracts";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { resolveBasename } from "@/lib/utils/resolve-basename";
 import { getBaseStockByAddress } from "@/lib/stocks/base-stocks";
@@ -94,10 +95,12 @@ export async function readCampaignOnchain(id: bigint): Promise<{
   message: string;
   senderLabel: string;
 } | null> {
-  if (!CAMPAIGN_CONTRACT) return null;
+  // Each campaign lives on the contract its id belongs to (v2 ids < 1,000,000,001 ≤ v3 ids).
+  const contract = contractForCampaignId(id);
+  if (!contract) return null;
   const client = createBasePublicClient();
   const [c, message, senderLabel] = (await client.readContract({
-    address: CAMPAIGN_CONTRACT,
+    address: contract,
     abi: CAMPAIGN_ABI,
     functionName: "getCampaign",
     args: [id],
@@ -167,7 +170,7 @@ export async function readCampaignPublicView(id: bigint): Promise<CampaignPublic
   const status = campaignStatus(campaign);
   return {
     campaignId: id.toString(),
-    contract: CAMPAIGN_CONTRACT,
+    contract: contractForCampaignId(id) ?? CAMPAIGN_CONTRACT,
     status,
     asset,
     perClaim: campaign.amountPerClaim.toString(),
@@ -195,10 +198,12 @@ export async function signClaimTicket(args: {
   deadline: bigint;
 }): Promise<`0x${string}` | null> {
   const signer = getClaimSigner();
-  if (!signer || !CAMPAIGN_CONTRACT || !isAddress(args.claimer)) return null;
+  const contract = contractForCampaignId(args.campaignId);
+  if (!signer || !contract || !isAddress(args.claimer)) return null;
+  // The ticket names the campaign's own contract, so it only verifies there.
   const inner = campaignTicketInnerHash({
     chainId: BASE_CHAIN_ID,
-    contract: CAMPAIGN_CONTRACT,
+    contract,
     campaignId: args.campaignId,
     claimer: args.claimer,
     deadline: args.deadline,
@@ -207,10 +212,11 @@ export async function signClaimTicket(args: {
 }
 
 export async function hasClaimedOnchain(id: bigint, claimer: `0x${string}`): Promise<boolean> {
-  if (!CAMPAIGN_CONTRACT) return false;
+  const contract = contractForCampaignId(id);
+  if (!contract) return false;
   const client = createBasePublicClient();
   return client.readContract({
-    address: CAMPAIGN_CONTRACT,
+    address: contract,
     abi: CAMPAIGN_ABI,
     functionName: "hasClaimed",
     args: [id, claimer],

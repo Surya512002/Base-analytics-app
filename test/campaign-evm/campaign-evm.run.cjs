@@ -18,7 +18,7 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   const bal = async (a) => (await vm.stateManager.getAccount(Address.fromString(a))).balance;
   const call = async (from, to, data, value = 0n) => {
     const r = await vm.evm.runCall({ caller: Address.fromString(from), to: to ? Address.fromString(to) : undefined, data: hexToBytes(data), value, gasLimit: 15_000_000n, block: blk() });
-    return { ok: !r.execResult.exceptionError, ret: bytesToHex(r.execResult.returnValue), created: r.createdAddress && r.createdAddress.toString(), err: r.execResult.exceptionError && r.execResult.exceptionError.error };
+    return { ok: !r.execResult.exceptionError, gas: r.execResult.executionGasUsed, ret: bytesToHex(r.execResult.returnValue), created: r.createdAddress && r.createdAddress.toString(), err: r.execResult.exceptionError && r.execResult.exceptionError.error };
   };
   const deployRaw = async (from, bytecode) => { const r = await call(from, null, bytecode); if (!r.created) throw new Error('deploy failed ' + r.err); return r.created; };
   const revertMsg = (r) => {
@@ -49,10 +49,12 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   console.log('ETH campaign: first 50 claim from ONE link');
   let r = await call(creator, C, enc('createEthCampaign', [P()]), 50n * 10n ** 16n);
   ok(r.ok, 'create ok ' + (r.ok ? '' : revertMsg(r)));
+  const id1 = await lastId();
+  ok(id1 === 1_000_000_001n, 'v3 ids start at 1,000,000,001 (no overlap with v2 ids): ' + id1);
   let all50 = true;
-  for (let i = 1; i <= 50; i++) { r = await claim(addr(0x1000 + i), 1n); if (!r.ok) { all50 = false; console.log('   claim', i, revertMsg(r)); break; } }
+  for (let i = 1; i <= 50; i++) { r = await claim(addr(0x1000 + i), id1); if (!r.ok) { all50 = false; console.log('   claim', i, revertMsg(r)); break; } }
   ok(all50, '50 distinct wallets claimed');
-  r = await claim(addr(0x1000 + 51), 1n);
+  r = await claim(addr(0x1000 + 51), id1);
   ok(revertMsg(r) === 'All claims taken', '51st claim rejected: ' + revertMsg(r));
   ok((await bal(C)) === 0n, 'contract drained exactly to 0');
 
@@ -76,8 +78,26 @@ const ok = (c, m) => { if (c) { passed++; console.log('  PASS', m); } else { fai
   r = await claimRaw(addr(0x1052), idX, tkt); ok(revertMsg(r) === 'Invalid link', 'a ticket signature cannot be used as a link proof');
 
   console.log('Create validation');
-  r = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 1001, totalAmount: 1001n })]), 1001n); ok(revertMsg(r) === 'Invalid claim count', '>1000 claims rejected');
-  r = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 51, totalAmount: 51n })]), 51n); ok(r.ok, '51 claims allowed (cap is 1000, was 50)');
+  r = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 1_000_001, totalAmount: 1_000_001n })]), 1_000_001n); ok(revertMsg(r) === 'Invalid claim count', '>1,000,000 claims rejected');
+  r = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 1001, totalAmount: 1001n })]), 1001n); ok(r.ok, '1,001 claims allowed (v2 cap was 1,000)');
+  r = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 1_000_000, totalAmount: 1_000_000n * 10n ** 9n })]), 1_000_000n * 10n ** 9n); ok(r.ok, '1,000,000 claims allowed (v3 cap)');
+  {
+    // A million-slot campaign behaves exactly like a small one: same claim gas, exact accounting.
+    const idM = await lastId();
+    const small = await call(creator, C, enc('createEthCampaign', [P({ maxClaims: 10, totalAmount: 10n * 10n ** 9n })]), 10n * 10n ** 9n);
+    const idSmall = await lastId();
+    void small;
+    const gM = (await claim(addr(0x1000 + 1), idM)).gas;
+    const gS = (await claim(addr(0x1000 + 1), idSmall)).gas;
+    ok(gM !== undefined && gM === gS, 'claim gas identical for 1,000,000-slot and 10-slot campaigns (' + gM + ' vs ' + gS + ')');
+    await claim(addr(0x1000 + 2), idM); await claim(addr(0x1000 + 3), idM);
+    const left = BigInt((await call(creator, C, enc('claimsRemaining', [idM]))).ret);
+    ok(left === 999_997n, '999,997 claims remaining after 3 claims');
+    const before = await bal(creator);
+    const rc = await call(creator, C, enc('close', [idM]));
+    const after = await bal(creator);
+    ok(rc.ok && after - before === 999_997n * 10n ** 9n, 'close refunds exactly the 999,997 unclaimed shares');
+  }
   r = await call(creator, C, enc('createEthCampaign', [P({ totalAmount: 101n })]), 101n); ok(revertMsg(r) === 'Amount must split evenly', 'uneven split rejected');
   r = await call(creator, C, enc('createEthCampaign', [P()]), 1n); ok(revertMsg(r) === 'ETH amount mismatch', 'msg.value mismatch rejected');
   r = await call(creator, C, enc('createEthCampaign', [P({ committed: true })]), 50n * 10n ** 16n); ok(revertMsg(r) === 'Committed needs expiry', 'committed without expiry rejected');

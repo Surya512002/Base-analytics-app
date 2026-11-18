@@ -4,7 +4,7 @@ Contract: `contracts/BaseVoucherCampaign.sol` · UI: `components/voucher/Voucher
 Short link page: `app/claim/[id]` · API: `app/api/voucher/campaign/*`
 
 ## What it does
-A creator funds **one** campaign (ETH, USDC, or a tokenized stock) with 1–1000 slots and shares **one link**.
+A creator funds **one** campaign (ETH, USDC, or a tokenized stock) with up to 1,000,000 slots (v3; v2: 1,000) and shares **one link**.
 The first N distinct wallets to claim each receive `total / N`. Replaces generating and sharing N separate card links
 (the legacy `BaseVoucher` flow is untouched and still works).
 
@@ -43,6 +43,22 @@ The first N distinct wallets to claim each receive `total / N`. Replaces generat
 3. Set `NEXT_PUBLIC_CAMPAIGN_CONTRACT`, and `CAMPAIGN_CLAIM_SIGNER_KEY` (**dedicated zero-balance wallet**).
 4. Get an independent audit before enabling stock campaigns on mainnet.
 
+## Upgrading v2 → v3 (1,000,000 claims per link)
+v3 is the same contract with two changes: `MAX_CLAIMS = 1_000_000` and campaign ids starting at
+`FIRST_CAMPAIGN_ID = 1_000_000_001`. Claim and close are O(1), so gas per claim is identical at any size
+(45,120 gas in the EVM tests for a 10-slot and a 1,000,000-slot campaign). Because ids never overlap, the app
+routes every link to its contract by id (`lib/voucher/campaign-contracts.ts`): existing v2 links keep working
+unchanged, and the link format doesn't change.
+
+1. Deploy v3 with your deployer wallet:
+   `forge script script/DeployBaseVoucherCampaign.s.sol --rpc-url base --broadcast --verify` (try `base_sepolia` first).
+2. In Vercel → Production env, set **both**, then redeploy:
+   - `NEXT_PUBLIC_CAMPAIGN_CONTRACT` = the new v3 address (new gifts go here)
+   - `NEXT_PUBLIC_CAMPAIGN_CONTRACT_LEGACY` = the current v2 address (`0x477919fc62b28ae4947724f7b67219d4a533a449`)
+   Setting only the first would orphan existing v2 links: always set the legacy one too.
+3. Check: the one-link form shows "max 1,000,000", an old v2 link still opens and claims, and "My one-link gifts"
+   lists both old and new campaigns with working refunds.
+
 ## Tests
 - `npx vitest run lib/voucher/campaign.test.ts` — link/secret/ticket/validation/identity logic.
-- `test/campaign-evm/` — 44 checks against the compiled contract (incl. the replay attack) in an in-process EVM (see its README).
+- `test/campaign-evm/` — 49 checks against the compiled contract (incl. the 1,000,000-claim cap and id offset) (incl. the replay attack) in an in-process EVM (see its README).

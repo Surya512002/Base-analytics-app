@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { encodeEventTopics, isAddress, pad } from "viem";
+import { encodeEventTopics, isAddress, pad, parseAbi } from "viem";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
-import { CAMPAIGN_CONTRACT } from "@/lib/constants/env";
+import { campaignContracts } from "@/lib/voucher/campaign-contracts";
 import { CAMPAIGN_ABI } from "@/lib/voucher/campaign-abi";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 
@@ -25,13 +25,16 @@ async function campaignIdsByCreatorFromState(
 ): Promise<string[] | null> {
   try {
     const next = (await client.readContract({ address: contract, abi: CAMPAIGN_ABI, functionName: "nextCampaignId" })) as bigint;
-    const total = Number(next) - 1;
+    const first = (await client
+      .readContract({ address: contract, abi: parseAbi(["function FIRST_CAMPAIGN_ID() view returns (uint256)"]), functionName: "FIRST_CAMPAIGN_ID" })
+      .catch(() => BigInt(1))) as bigint;
+    const total = Number(next - first);
     if (total <= 0) return [];
     if (total > STATE_SCAN_MAX) return null;
     const want = creator.toLowerCase();
     const ids: string[] = [];
-    for (let start = 1; start <= total; start += 100) {
-      const chunk = Array.from({ length: Math.min(100, total - start + 1) }, (_, i) => BigInt(start + i));
+    for (let offset = 0; offset < total; offset += 100) {
+      const chunk = Array.from({ length: Math.min(100, total - offset) }, (_, i) => first + BigInt(offset + i));
       const results = await client.multicall({
         contracts: chunk.map((id) => ({ address: contract, abi: CAMPAIGN_ABI, functionName: "getCampaign" as const, args: [id] as const })),
         allowFailure: true,
@@ -59,21 +62,32 @@ const DEPLOY_BLOCK = BigInt(process.env.CAMPAIGN_DEPLOY_BLOCK || "56762521");
  * find and refund campaigns from any device (the claim secret is never involved).
  */
 export async function GET(req: Request) {
-  if (!CAMPAIGN_CONTRACT) return NextResponse.json({ ids: [] });
+  const contracts = campaignContracts();
+  if (contracts.length === 0) return NextResponse.json({ ids: [] });
   const address = new URL(req.url).searchParams.get("address")?.trim() || "";
   if (!isAddress(address)) return NextResponse.json({ error: "address must be a valid address" }, { status: 400 });
 
   const rl = await checkRateLimitAsync(`campaign-by-creator:${getClientIp(req)}`, 20, 60_000);
   if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
 
+  // Every configured contract (v2 and, once deployed, v3). Ids never collide across them.
+  const all = new Set<string>();
+  for (const { address: contract } of contracts) {
+    const ids = await idsForContract(contract, address);
+    if (ids === null) return NextResponse.json({ error: "Could not read campaigns" }, { status: 502 });
+    for (const id of ids) all.add(id);
+  }
+  return NextResponse.json(
+    { ids: [...all].sort((a, b) => Number(BigInt(b) - BigInt(a))) },
+    { headers: { "Cache-Control": "no-store" } }
+  );
+}
+
+/** Campaign ids created by `address` on one contract: state scan, then Basescan logs, then RPC logs. */
+async function idsForContract(CAMPAIGN_CONTRACT: `0x${string}`, address: string): Promise<string[] | null> {
   // 0) Contract state: complete and independent of log-range limits.
   const fromState = await campaignIdsByCreatorFromState(createBasePublicClient(), CAMPAIGN_CONTRACT, address);
-  if (fromState) {
-    return NextResponse.json(
-      { ids: fromState.sort((a, b) => Number(BigInt(b) - BigInt(a))) },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  }
+  if (fromState) return fromState;
 
   const [topic0] = encodeEventTopics({ abi: CAMPAIGN_ABI, eventName: "CampaignCreated" });
   const topic2 = pad(address.toLowerCase() as `0x${string}`, { size: 32 });
@@ -125,9 +139,6 @@ export async function GET(req: Request) {
     }
   }
 
-  if (!ok) return NextResponse.json({ error: "Could not read campaigns" }, { status: 502 });
-  return NextResponse.json(
-    { ids: [...ids].sort((a, b) => Number(BigInt(b) - BigInt(a))) },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  if (!ok) return null;
+  return [...ids];
 }

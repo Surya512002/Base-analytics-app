@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import ActivePill from "@/components/ui/motion/ActivePill";
+import { useCampaignConfig } from "@/hooks/useCampaignConfig";
 import ClickSpark from "@/components/ui/motion/ClickSpark";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -66,9 +67,15 @@ interface VoucherCreateWizardProps {
 }
 
 export type ShareMode = "personal" | "link";
-/** One-link gifts can be claimed by up to this many people. */
-const MAX_LINK_CLAIMS = 500;
-const LINK_COUNT_PRESETS = [10, 50, 100, 500] as const;
+/** One-link claim cap until the live contract value loads (v2's cap). */
+const DEFAULT_LINK_CLAIMS = 1000;
+/** From this many recipients, one link is the better way to gift. */
+const ONE_LINK_SUGGEST_FROM = 25;
+const fmtCount = (n: number) => n.toLocaleString("en-US");
+/** Quick picks for one-link gifts, scaled to the contract's cap. */
+function linkCountPresets(limit: number): number[] {
+  return limit > 1000 ? [100, 1_000, 10_000, 100_000].filter((n) => n <= limit) : [10, 50, 100, 500].filter((n) => n <= limit);
+}
 
 export default function VoucherCreateWizard({
   shared,
@@ -80,6 +87,13 @@ export default function VoucherCreateWizard({
   onShareModeChange,
   renderOneLinkCreate,
 }: VoucherCreateWizardProps) {
+  // The one-link claim cap is the contract's MAX_CLAIMS (1,000 on v2, 1,000,000 on v3).
+  const campaignCfg = useCampaignConfig();
+  const MAX_LINK_CLAIMS = campaignCfg?.maxClaims && campaignCfg.maxClaims > 0 ? campaignCfg.maxClaims : DEFAULT_LINK_CLAIMS;
+  const LINK_COUNT_PRESETS = linkCountPresets(MAX_LINK_CLAIMS);
+  // The number of recipients the person typed, before the 50-card clamp kicks in on blur, so
+  // "Use one link" can carry e.g. 80 people over instead of the clamped 50.
+  const [wantedRecipients, setWantedRecipients] = useState(0);
   const { contractReady, address } = shared;
   const {
     asset,
@@ -202,11 +216,13 @@ export default function VoucherCreateWizard({
   const incrementCardCount = () => {
     const next = Math.min(maxCount, Math.max(1, (parseInt(cardCountInput, 10) || 1) + 1));
     setCardCountInput(String(next));
+    setWantedRecipients(0);
   };
 
   const decrementCardCount = () => {
     const next = Math.max(1, (parseInt(cardCountInput, 10) || 1) - 1);
     setCardCountInput(String(next));
+    setWantedRecipients(0);
   };
 
   const handlePrepareCreate = async () => {
@@ -459,7 +475,7 @@ export default function VoucherCreateWizard({
                 title="How much, for how many?"
                 description={
                   isLink
-                    ? `One link; the first people to open it each claim an equal share (up to ${MAX_LINK_CLAIMS}).`
+                    ? `One link; the first people to open it each claim an equal share (up to ${fmtCount(MAX_LINK_CLAIMS)} people).`
                     : `Split the total into equal gift cards, each with its own link (1 to ${MAX_VOUCHER_CARDS}).`
                 }
               />
@@ -469,7 +485,7 @@ export default function VoucherCreateWizard({
                 {(
                   [
                     { id: "personal" as const, icon: Users, title: "A link each", note: "Every person gets their own claim link." },
-                    { id: "link" as const, icon: Link2, title: "One link for all", note: "Share once; first come, first served." },
+                    { id: "link" as const, icon: Link2, title: "One link for all", note: `Best for groups. Share once, up to ${fmtCount(MAX_LINK_CLAIMS)} people.` },
                   ]
                 ).map((o) => {
                   const selected = (o.id === "link") === isLink;
@@ -485,6 +501,7 @@ export default function VoucherCreateWizard({
                         onShareModeChange?.(o.id);
                         // keep the count inside the new mode's limit
                         if (o.id === "personal" && countNum > MAX_VOUCHER_CARDS) setCardCountInput(String(MAX_VOUCHER_CARDS));
+                        if (o.id === "link" && countNum > MAX_LINK_CLAIMS) setCardCountInput(String(MAX_LINK_CLAIMS));
                       }}
                       className={`relative isolate flex items-start gap-2.5 rounded-2xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         selected
@@ -544,7 +561,7 @@ export default function VoucherCreateWizard({
               {/* Number of Cards Stepper (1-50) */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)] mb-1.5 block">
-                  {isLink ? `People who can claim (max ${MAX_LINK_CLAIMS})` : `Number of cards (max ${MAX_VOUCHER_CARDS})`}
+                  {isLink ? `People who can claim (max ${fmtCount(MAX_LINK_CLAIMS)})` : `Number of cards (max ${MAX_VOUCHER_CARDS})`}
                 </label>
                 <div className="flex items-center gap-3">
                   <button
@@ -563,6 +580,7 @@ export default function VoucherCreateWizard({
                       const val = e.target.value;
                       if (val === "" || /^\d+$/.test(val)) {
                         setCardCountInput(val);
+                        setWantedRecipients(parseInt(val, 10) || 0);
                       }
                     }}
                     onBlur={() => {
@@ -590,7 +608,10 @@ export default function VoucherCreateWizard({
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setCardCountInput(String(p))}
+                      onClick={() => {
+                        setCardCountInput(String(p));
+                        setWantedRecipients(0);
+                      }}
                       className={`relative isolate flex-1 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                         cardCountInput === String(p)
                           ? "text-white border-[var(--brand)]"
@@ -598,11 +619,39 @@ export default function VoucherCreateWizard({
                       }`}
                     >
                       {cardCountInput === String(p) && <ActivePill layoutId="gift-count-pill" className="bg-[var(--brand)]" />}
-                      {p} {isLink ? "people" : p === 1 ? "card" : "cards"}
+                      {fmtCount(p)} {isLink ? "people" : p === 1 ? "card" : "cards"}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Gifting a big group? One link is the better tool: no 50-card cap, one link to share. */}
+              {!isLink && linkAvailable && Math.max(parseInt(cardCountInput, 10) || 0, wantedRecipients) >= ONE_LINK_SUGGEST_FROM && (
+                <div role="note" className="flex flex-col gap-3 rounded-2xl border border-[var(--pill-border)] bg-[var(--pill-bg)] p-3.5 sm:flex-row sm:items-center">
+                  <Link2 size={18} className="hidden shrink-0 text-[var(--brand-text)] sm:block" aria-hidden />
+                  <p className="min-w-0 flex-1 text-xs text-[var(--ink-muted)]">
+                    <span className="block font-black text-[var(--ink)]">
+                      {wantedRecipients > MAX_VOUCHER_CARDS
+                        ? `Gift cards stop at ${MAX_VOUCHER_CARDS}. Use one link for ${fmtCount(Math.min(wantedRecipients, MAX_LINK_CLAIMS))} people.`
+                        : "Gifting a big group? One link is easier."}
+                    </span>
+                    Share a single link with up to {fmtCount(MAX_LINK_CLAIMS)} people. Each wallet claims an equal share once,
+                    and anything unclaimed comes back to you.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onShareModeChange?.("link");
+                      const wanted = Math.max(parseInt(cardCountInput, 10) || 1, wantedRecipients);
+                      const n = Math.min(Math.max(1, wanted), MAX_LINK_CLAIMS);
+                      setCardCountInput(String(n));
+                    }}
+                    className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[var(--brand)] px-4 text-xs font-black text-white transition hover:opacity-90"
+                  >
+                    <Link2 size={13} aria-hidden /> Use one link
+                  </button>
+                </div>
+              )}
 
               {/* Compact Split Breakdown Line */}
               {isLink && linkAmountValid && (
