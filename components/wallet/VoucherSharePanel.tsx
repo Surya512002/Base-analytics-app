@@ -52,7 +52,7 @@ export default function VoucherSharePanel({ batch }: VoucherSharePanelProps) {
       </div>
 
       <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3">
-        <p className="text-[9px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-2">
+        <p className="text-[11px] font-black text-[var(--ink-muted)] uppercase tracking-widest mb-2">
           Suggested message
         </p>
         <p className="text-xs text-[var(--ink)] leading-relaxed whitespace-pre-line">

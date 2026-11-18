@@ -18,7 +18,7 @@ export default function CreatorProfileCard({ creator }: { creator: string }) {
     >
       <CreatorAvatar address={creator} profile={profile} size="lg" />
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--ink-dim)]">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--ink-dim)]">
           Creator
         </p>
         <p className="truncate text-base font-bold text-[var(--ink)]">

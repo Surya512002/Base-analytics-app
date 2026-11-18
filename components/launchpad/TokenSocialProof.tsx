@@ -73,7 +73,7 @@ export default function TokenSocialProof({
       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
         <div className="mb-1 flex items-center gap-2 text-[var(--ink-dim)]">
           <Users size={14} />
-          <span className="text-[10px] font-bold uppercase">Holders</span>
+          <span className="text-[11px] font-bold uppercase">Holders</span>
         </div>
         <p className="font-mono text-xl font-bold text-[var(--ink)]">
           {holderCount ?? holders.length}
@@ -83,7 +83,7 @@ export default function TokenSocialProof({
             {tagged.map((h) => (
               <span
                 key={h.address}
-                className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--ink-muted)]"
+                className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--ink-muted)]"
               >
                 {h.tag}
               </span>
@@ -95,16 +95,16 @@ export default function TokenSocialProof({
       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
         <div className="mb-1 flex items-center gap-2 text-[var(--ink-dim)]">
           <TrendingUp size={14} />
-          <span className="text-[10px] font-bold uppercase">Buys (1h)</span>
+          <span className="text-[11px] font-bold uppercase">Buys (1h)</span>
         </div>
         <p className="font-mono text-xl font-bold text-emerald-700">{recentBuys}</p>
-        <p className="mt-1 text-[10px] text-[var(--ink-dim)]">From indexed pool swaps</p>
+        <p className="mt-1 text-[11px] text-[var(--ink-dim)]">From indexed pool swaps</p>
       </div>
 
       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
         <div className="mb-2 flex items-center gap-2 text-[var(--ink-dim)]">
           <MessageCircle size={14} />
-          <span className="text-[10px] font-bold uppercase">Creator</span>
+          <span className="text-[11px] font-bold uppercase">Creator</span>
         </div>
         <Link
           href={`/creator/${creator}`}
@@ -113,14 +113,14 @@ export default function TokenSocialProof({
           <CreatorAvatar address={creator} profile={profile} size="md" />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-[var(--ink)]">{creatorLabel}</p>
-            <p className="font-mono text-[10px] text-[var(--ink-dim)]">{shortAddr(creator)}</p>
+            <p className="font-mono text-[11px] text-[var(--ink-dim)]">{shortAddr(creator)}</p>
             {fc?.username && (
-              <p className="text-[10px] text-[var(--ink-muted)]">@{fc.username}</p>
+              <p className="text-[11px] text-[var(--ink-muted)]">@{fc.username}</p>
             )}
           </div>
         </Link>
         {fc?.followerCount != null && (
-          <p className="mt-2 text-[10px] text-[var(--ink-dim)]">
+          <p className="mt-2 text-[11px] text-[var(--ink-dim)]">
             {fc.followerCount.toLocaleString()} Farcaster followers
           </p>
         )}

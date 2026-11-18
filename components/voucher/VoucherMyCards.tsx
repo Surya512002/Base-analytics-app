@@ -157,7 +157,7 @@ export default function VoucherMyCards({
           <Lock size={30} />
         </div>
         <div className="max-w-md mx-auto space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full inline-block">
+          <span className="text-[11px] font-black uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full inline-block">
             Creator Verification
           </span>
           <h3 className="text-xl font-black text-[var(--ink)]">
@@ -215,7 +215,7 @@ export default function VoucherMyCards({
             <h2 className="text-xl font-black text-[var(--ink)]">
               My Gift Batches
             </h2>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
               <ShieldCheck size={11} /> Verified Creator
             </span>
           </div>
@@ -287,7 +287,7 @@ export default function VoucherMyCards({
 
           {/* Recovery Accordion */}
           <div className="pt-6 border-t border-[var(--border-subtle)] max-w-md mx-auto text-left space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
               Deposited recently? Recover batch by transaction
             </span>
             <div className="flex gap-2">
@@ -344,29 +344,29 @@ export default function VoucherMyCards({
 
                     {/* Status Chip */}
                     {isFullyClaimed ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                      <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/20">
                         Fully Claimed
                       </span>
                     ) : isExpired ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
+                      <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
                         Expired
                       </span>
                     ) : isTimeLocked ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
+                      <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
                         Time-Locked
                       </span>
                     ) : isPartiallyClaimed ? (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                      <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                         Partially Claimed
                       </span>
                     ) : (
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                      <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                         Active
                       </span>
                     )}
 
                     {hasLocalSecrets && (
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                      <span className="text-[11px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                         Secrets saved
                       </span>
                     )}
@@ -525,11 +525,11 @@ export default function VoucherMyCards({
                       </div>
 
                       {isClaimed ? (
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500">
+                        <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500">
                           Redeemed
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                           Available
                         </span>
                       )}
@@ -541,7 +541,7 @@ export default function VoucherMyCards({
                         <div className="min-w-0 flex items-center gap-2">
                           <Key size={13} className="text-[var(--brand-text)] shrink-0" />
                           <div className="min-w-0">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
                               Secret Key
                             </span>
                             <span className="font-mono text-xs font-bold text-[var(--ink)] select-all truncate block">

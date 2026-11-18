@@ -81,7 +81,7 @@ export default function StockDetailDrawer({
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)]">
                     {stock.underlyingTicker}
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     1:1 Backed
                   </span>
                 </div>
@@ -141,7 +141,7 @@ export default function StockDetailDrawer({
             {/* 7-Day Sparkline */}
             {stock.priceWeek && stock.priceWeek.length > 1 && (
               <div className="pt-2">
-                <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)] mb-1">
+                <div className="flex items-center justify-between text-[11px] text-[var(--ink-muted)] mb-1">
                   <span>7-Day Price Trend</span>
                   <span className="tabular-nums font-semibold text-[var(--ink)]">
                     Low: ${Math.min(...stock.priceWeek.map((p) => p.value)).toFixed(2)} · High: ${Math.max(...stock.priceWeek.map((p) => p.value)).toFixed(2)}
@@ -178,7 +178,7 @@ export default function StockDetailDrawer({
               <div className="text-base font-bold text-[var(--ink)] tabular-nums">
                 {formatUsdLarge(stock.tradingLiquidity)}
               </div>
-              <span className="text-[10px] text-[var(--ink-muted)] block">Aerodrome USDC pool</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">Aerodrome USDC pool</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-1">
@@ -192,7 +192,7 @@ export default function StockDetailDrawer({
                   {safety.badgeLabel}
                 </span>
               </div>
-              <span className="text-[10px] text-[var(--ink-muted)] block">Real market order impact</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">Real market order impact</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-1 col-span-2">
@@ -204,7 +204,7 @@ export default function StockDetailDrawer({
                   {formatUsdLarge(stock.usedAsCollateral)}
                 </span>
               </div>
-              <div className="text-[10px] text-[var(--ink-muted)] flex items-center justify-between pt-1">
+              <div className="text-[11px] text-[var(--ink-muted)] flex items-center justify-between pt-1">
                 <span>Morpho Blue · Moonwell · Euler</span>
                 <Link
                   href={`/lend?stock=${stock.symbol}`}
@@ -227,7 +227,7 @@ export default function StockDetailDrawer({
                 <span className="text-[11px] font-mono text-[var(--ink)] truncate max-w-[280px]">
                   {stock.address}
                 </span>
-                <span className="text-[10px] text-[var(--ink-muted)]">
+                <span className="text-[11px] text-[var(--ink-muted)]">
                   Base B20 Native Precompile
                 </span>
               </div>
@@ -289,14 +289,14 @@ export default function StockDetailDrawer({
                   className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] border border-[var(--border-subtle)] transition group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-6 h-6 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center font-bold text-[10px] text-[var(--ink)] shrink-0">
+                    <div className="w-6 h-6 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center font-bold text-[11px] text-[var(--ink)] shrink-0">
                       {venue.name.slice(0, 2)}
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-[var(--ink)] block truncate">
                         {venue.name}
                       </span>
-                      <span className="text-[10px] text-[var(--ink-muted)] block truncate max-w-[280px]">
+                      <span className="text-[11px] text-[var(--ink-muted)] block truncate max-w-[280px]">
                         {venue.description}
                       </span>
                     </div>
@@ -322,7 +322,7 @@ export default function StockDetailDrawer({
             <ArrowRight size={16} />
           </Link>
 
-          <p className="text-[10px] text-[var(--ink-muted)] text-center leading-normal">
+          <p className="text-[11px] text-[var(--ink-muted)] text-center leading-normal">
             Information only, not investment advice. Reported liquidity does not guarantee completion at a specific price.
           </p>
         </div>

@@ -53,7 +53,7 @@ export default function LiveTradesList({
               className="flex items-center gap-2.5 py-2 text-xs"
             >
               <span
-                className={`w-11 shrink-0 rounded-full py-0.5 text-center text-[10px] font-black uppercase ${
+                className={`w-11 shrink-0 rounded-full py-0.5 text-center text-[11px] font-black uppercase ${
                   buy
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     : "bg-red-500/10 text-red-600 dark:text-red-400"
@@ -68,7 +68,7 @@ export default function LiveTradesList({
               <span className={`shrink-0 font-mono font-bold tabular-nums ${buy ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                 {formatCompactUsd(t.usd)}
               </span>
-              <span className="w-8 shrink-0 text-right font-mono text-[10px] text-[var(--ink-dim)]">{ago(t.timestamp, now)}</span>
+              <span className="w-8 shrink-0 text-right font-mono text-[11px] text-[var(--ink-dim)]">{ago(t.timestamp, now)}</span>
               <a
                 href={`https://basescan.org/tx/${t.txHash}`}
                 target="_blank"

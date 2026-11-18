@@ -48,7 +48,7 @@ export default function SwapTokenInsight({ token }: { token: SwapCounter | null 
 
   const stat = (label: string, value: React.ReactNode) => (
     <div className="rounded-xl bg-[var(--surface-2)] px-2.5 py-2">
-      <p className="text-[10px] font-semibold text-[var(--ink-muted)]">{label}</p>
+      <p className="text-[11px] font-semibold text-[var(--ink-muted)]">{label}</p>
       <p className="font-mono text-xs font-black tabular-nums text-[var(--ink)]">{value}</p>
     </div>
   );
@@ -85,7 +85,7 @@ export default function SwapTokenInsight({ token }: { token: SwapCounter | null 
 
       {(market?.buys24h || market?.sells24h) ? (
         <div>
-          <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-[var(--ink-muted)]">
+          <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-muted)]">
             <LineChart size={11} /> 24h buys vs sells
           </p>
           <BuySellBar buys={market?.buys24h ?? 0} sells={market?.sells24h ?? 0} showCounts />

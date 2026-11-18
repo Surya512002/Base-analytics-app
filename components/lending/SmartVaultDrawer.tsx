@@ -180,11 +180,11 @@ function Steps({ labels, phase }: { labels: string[]; phase: Phase }) {
   const active = phase === "signing" || phase === "confirming";
   return (
     <ol className="space-y-1.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-      <li className="mb-1 text-[10px] font-black uppercase tracking-wide text-[var(--ink-dim)]">What happens, in order</li>
+      <li className="mb-1 text-[11px] font-black uppercase tracking-wide text-[var(--ink-dim)]">What happens, in order</li>
       {labels.map((l, i) => (
         <li key={i} className="flex items-center gap-2 text-xs text-[var(--ink)]">
           <span
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black ${
               done ? "bg-emerald-500 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)]"
             }`}
           >
@@ -605,7 +605,7 @@ function LpPanel({
                         }`}
                       >
                         <span className="block text-xs font-black text-[var(--ink)]">{sym}</span>
-                        <span className="block truncate font-mono text-[10px] text-[var(--ink-dim)]">{b == null ? "—" : fmt(b)}</span>
+                        <span className="block truncate font-mono text-[11px] text-[var(--ink-dim)]">{b == null ? "—" : fmt(b)}</span>
                       </button>
                     ))}
                   </div>
@@ -774,7 +774,7 @@ function LpPanel({
             onClick={onSubmit}
           />
         )}
-        <p className="flex items-center justify-center gap-1 text-[10px] text-[var(--ink-dim)]">
+        <p className="flex items-center justify-center gap-1 text-[11px] text-[var(--ink-dim)]">
           <ShieldCheck size={11} /> Simulated before you sign · exact approvals · verified vault
         </p>
       </div>
@@ -911,7 +911,7 @@ function GetPanel({
               }`}
             >
               <span className="block text-xs font-black text-[var(--ink)]">Pay with {sym}</span>
-              <span className="block font-mono text-[10px] text-[var(--ink-dim)]">{b == null ? "—" : fmt(b)}</span>
+              <span className="block font-mono text-[11px] text-[var(--ink-dim)]">{b == null ? "—" : fmt(b)}</span>
             </button>
           ))}
         </div>
@@ -969,7 +969,7 @@ function GetPanel({
             Continue: {target.purpose}
           </button>
         )}
-        <p className="flex items-center justify-center gap-1 text-[10px] text-[var(--ink-dim)]">
+        <p className="flex items-center justify-center gap-1 text-[11px] text-[var(--ink-dim)]">
           <ShieldCheck size={11} /> Simulated before you sign · exact approvals · 1% max slippage
         </p>
       </div>

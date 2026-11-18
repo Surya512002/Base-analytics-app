@@ -206,7 +206,7 @@ export default function GiftClaimStage({
               />
             )}
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-white/80">
                 <Gift size={13} /> A gift for you
               </span>
               <Sparkles size={16} className="text-amber-300" />
@@ -223,7 +223,7 @@ export default function GiftClaimStage({
 
             <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">From</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">From</p>
                 <p className="flex items-center gap-1 font-black">
                   {senderName ?? (sender ? short(sender.address) : "A friend on Base")}
                   {verified && <BadgeCheck size={13} className="text-emerald-300" aria-label="Verified Basename" />}
@@ -232,7 +232,7 @@ export default function GiftClaimStage({
               </div>
               {claimer && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">To</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">To</p>
                   <p className="flex items-center gap-1 font-mono font-bold">
                     <Wallet size={12} /> {short(claimer)}
                   </p>

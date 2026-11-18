@@ -92,14 +92,14 @@ export default function CreatorStats({
                 >
                   <item.icon size={13} />
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
+                <span className="text-[11px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] truncate">
                   {item.label}
                 </span>
               </span>
               {item.isEst && (
                 <span
                   title="Estimated based on 24H volume fee share"
-                  className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-help shrink-0"
+                  className="text-[11px] sm:text-[11px] font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-help shrink-0"
                 >
                   est.
                 </span>
@@ -112,7 +112,7 @@ export default function CreatorStats({
               </span>
             </div>
 
-            <span className="text-[10px] sm:text-[11px] text-[var(--ink-dim)] truncate block">
+            <span className="text-[11px] sm:text-[11px] text-[var(--ink-dim)] truncate block">
               {item.subtext}
             </span>
           </div>

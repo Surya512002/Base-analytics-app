@@ -159,7 +159,7 @@ export default function TokenQuickView({
                     {token.name}
                   </h2>
                   {token.isVerified && <VerifiedBadge size={16} />}
-                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                  <span className="text-[11px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                     {token.type.toUpperCase()}
                   </span>
                 </div>
@@ -181,7 +181,7 @@ export default function TokenQuickView({
           {/* Price & 24h Change Row */}
           <div className="flex items-baseline justify-between pt-0.5">
             <div>
-              <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-bold block">
+              <span className="text-[11px] text-[var(--ink-muted)] uppercase tracking-wider font-bold block">
                 Live Price
               </span>
               <p className="text-2xl font-mono font-black text-[var(--ink)] tabular-nums mt-0.5">
@@ -260,7 +260,7 @@ export default function TokenQuickView({
               {/* 24h Trend Card with Sparkline */}
               <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider block">
+                  <span className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider block">
                     24H Price Trend
                   </span>
                   <span className="text-xs font-semibold text-[var(--ink)] mt-0.5 block">
@@ -315,35 +315,35 @@ export default function TokenQuickView({
                 </h3>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-muted)] block">Market Cap</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block">Market Cap</span>
                     <p className="font-mono font-bold text-sm text-[var(--ink)] mt-0.5">
                       {formatCompactUsd(token.marketCapUsd)}
                     </p>
-                    <span className="text-[9px] text-[var(--ink-dim)]">FDV on Base</span>
+                    <span className="text-[11px] text-[var(--ink-dim)]">FDV on Base</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-muted)] block">24h Volume</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block">24h Volume</span>
                     <p className="font-mono font-bold text-sm text-[var(--ink)] mt-0.5">
                       {formatCompactUsd(token.volume24h)}
                     </p>
-                    <span className="text-[9px] text-[var(--ink-dim)]">Uniswap &amp; Aerodrome</span>
+                    <span className="text-[11px] text-[var(--ink-dim)]">Uniswap &amp; Aerodrome</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-muted)] block">Total Liquidity</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block">Total Liquidity</span>
                     <p className="font-mono font-bold text-sm text-[var(--ink)] mt-0.5">
                       {formatCompactUsd(token.liquidityUsd)}
                     </p>
-                    <span className="text-[9px] text-[var(--ink-dim)]">Pool reserves</span>
+                    <span className="text-[11px] text-[var(--ink-dim)]">Pool reserves</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-muted)] block">Created</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block">Created</span>
                     <p className="font-mono font-bold text-sm text-[var(--ink)] mt-0.5">
                       {token.createdAt ? timeAgo(token.createdAt) : "Verified"}
                     </p>
-                    <span className="text-[9px] text-[var(--ink-dim)]">Base Mainnet</span>
+                    <span className="text-[11px] text-[var(--ink-dim)]">Base Mainnet</span>
                   </div>
                 </div>
               </div>
@@ -351,7 +351,7 @@ export default function TokenQuickView({
               {/* Description */}
               {token.description && (
                 <div className="p-3.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs space-y-1">
-                  <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+                  <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
                     About {token.name}
                   </span>
                   <p className="text-[var(--ink-muted)] leading-relaxed">
@@ -368,7 +368,7 @@ export default function TokenQuickView({
 
                 <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs">
                   <div>
-                    <span className="text-[10px] text-[var(--ink-muted)] block">Contract Address</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block">Contract Address</span>
                     <span className="font-mono font-bold text-[var(--ink)]">
                       {shortAddr(token.address)}
                     </span>

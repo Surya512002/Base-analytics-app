@@ -280,7 +280,7 @@ export default function StockMarketsTable({
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-[var(--ink)]">{stock.symbol}</span>
-                          <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+                          <span className="text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
                             {stock.underlyingTicker}
                           </span>
                         </div>
@@ -298,7 +298,7 @@ export default function StockMarketsTable({
                         ${stock.price.toFixed(2)}
                       </span>
                       <span
-                        className={`text-[10px] font-bold tabular-nums flex items-center gap-0.5 ${
+                        className={`text-[11px] font-bold tabular-nums flex items-center gap-0.5 ${
                           stock.change24h >= 0
                             ? "text-emerald-600 dark:text-emerald-400"
                             : "text-rose-600 dark:text-rose-400"
@@ -320,7 +320,7 @@ export default function StockMarketsTable({
                   {/* Price Impact on $10K */}
                   <td className="py-3.5 px-3 text-right">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-bold border tabular-nums ${safety.badgeColorClass}`}
+                      className={`inline-block px-2 py-0.5 rounded-lg text-[11px] font-bold border tabular-nums ${safety.badgeColorClass}`}
                     >
                       {safety.badgeLabel}
                     </span>
@@ -370,7 +370,7 @@ export default function StockMarketsTable({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-sm text-[var(--ink)]">{stock.symbol}</span>
-                      <span className="text-[10px] text-[var(--ink-muted)]">
+                      <span className="text-[11px] text-[var(--ink-muted)]">
                         · {stock.underlyingTicker}
                       </span>
                     </div>
@@ -415,21 +415,21 @@ export default function StockMarketsTable({
               {/* Mobile Stats Row */}
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[var(--border-subtle)] text-[11px]">
                 <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] block">Liquidity</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Liquidity</span>
                   <span className="font-semibold text-[var(--ink)] tabular-nums">
                     {formatUsdDisplay(stock.tradingLiquidity)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] block">Impact on $10K</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Impact on $10K</span>
                   <span
-                    className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold border tabular-nums ${safety.badgeColorClass}`}
+                    className={`inline-block px-1.5 py-0.2 rounded text-[11px] font-bold border tabular-nums ${safety.badgeColorClass}`}
                   >
                     {safety.badgeLabel}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] block">Collateral</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Collateral</span>
                   <span className="font-semibold text-[var(--ink)] tabular-nums">
                     {formatUsdDisplay(stock.usedAsCollateral)}
                   </span>

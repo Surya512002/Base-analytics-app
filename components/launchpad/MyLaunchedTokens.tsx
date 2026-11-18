@@ -26,7 +26,7 @@ export default function MyLaunchedTokens({
       <div className="flex items-center gap-2 mb-3">
         <Rocket size={16} className="text-[var(--ink-muted)]" />
         <p className="text-sm font-black text-[var(--ink)]">Your launched tokens</p>
-        <span className="text-[10px] text-[var(--ink-dim)] ml-auto">{mine.length} live</span>
+        <span className="text-[11px] text-[var(--ink-dim)] ml-auto">{mine.length} live</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {mine.map((t) => (
@@ -46,14 +46,14 @@ export default function MyLaunchedTokens({
               />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black text-[var(--ink)] truncate">{t.name}</p>
-                <p className="text-[10px] text-[var(--ink-muted)] font-bold">${t.symbol}</p>
+                <p className="text-[11px] text-[var(--ink-muted)] font-bold">${t.symbol}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between mt-2 text-[10px]">
+            <div className="flex items-center justify-between mt-2 text-[11px]">
               <span className="text-[var(--ink-dim)] font-mono">{shortAddr(t.address)}</span>
               <TokenMarketBadge address={t.address} />
             </div>
-            <p className="text-[9px] text-[var(--ink-dim)] mt-1">{createdAgo(t.createdAt)}</p>
+            <p className="text-[11px] text-[var(--ink-dim)] mt-1">{createdAgo(t.createdAt)}</p>
           </button>
         ))}
       </div>

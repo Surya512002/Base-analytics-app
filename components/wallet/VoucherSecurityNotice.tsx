@@ -48,7 +48,7 @@ export default function VoucherSecurityNotice({
               one transaction — no token approval required.
             </p>
           )}
-          <p className="text-[10px] text-[var(--ink-muted)]">
+          <p className="text-[11px] text-[var(--ink-muted)]">
             Only share Card ID + secret with intended recipients. Never share your wallet seed phrase.
           </p>
         </div>

@@ -106,7 +106,7 @@ export default function MarketsOverviewStrip({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black text-[var(--ink)] tracking-tight">Base Markets</h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20">
                 Live Overview
               </span>
             </div>
@@ -194,7 +194,7 @@ export default function MarketsOverviewStrip({
           <div className="text-2xl font-black text-[var(--ink)] tabular-nums">
             {overview ? <NumberTicker value={overview.volume24h} format={formatUsdLarge} /> : "—"}
           </div>
-          <div className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
+          <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1">
             <span>Base Liquid List (DEX)</span>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function MarketsOverviewStrip({
           <div className="text-2xl font-black text-[var(--ink)] tabular-nums text-emerald-600 dark:text-emerald-400">
             {overview ? <NumberTicker value={overview.totalSupplied} format={formatUsdLarge} /> : "—"}
           </div>
-          <div className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
+          <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1">
             <span>Morpho · Moonwell · Euler</span>
           </div>
         </div>
@@ -238,7 +238,7 @@ export default function MarketsOverviewStrip({
           <div className="text-2xl font-black text-[var(--ink)] tabular-nums text-indigo-600 dark:text-indigo-400">
             {overview ? <NumberTicker value={overview.totalBorrowed} format={formatUsdLarge} /> : "—"}
           </div>
-          <div className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
+          <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1">
             <span>Active DeFi loans on Base</span>
           </div>
         </div>
@@ -319,7 +319,7 @@ export default function MarketsOverviewStrip({
                 </svg>
 
                 {/* Range Labels */}
-                <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[10px] text-[var(--ink-muted)] tabular-nums pointer-events-none">
+                <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[11px] text-[var(--ink-muted)] tabular-nums pointer-events-none">
                   <span>{formatChartDate(chartPoints[0]?.date)}</span>
                   <span className="font-semibold text-[var(--brand-text)]">
                     {hoveredPoint

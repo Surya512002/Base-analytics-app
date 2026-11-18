@@ -24,14 +24,14 @@ export default function TokenChartPanel({
       <div className="space-y-3">
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--surface-2)]">
-            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
+            <p className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
               Live chart · DexScreener
             </p>
             <a
               href={page}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-1"
+              className="text-[11px] font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-1"
             >
               Open full <ExternalLink size={10} />
             </a>
@@ -44,7 +44,7 @@ export default function TokenChartPanel({
             loading="lazy"
           />
         </div>
-        <p className="text-[10px] text-[var(--ink-dim)] text-center">
+        <p className="text-[11px] text-[var(--ink-dim)] text-center">
           Chart data by DexScreener · 15m candles
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function TokenChartPanel({
   return (
     <div className="space-y-3">
       <TokenPriceChart swaps={swaps} loading={swapsLoading} />
-      <p className="text-[10px] text-[var(--ink-dim)] text-center">
+      <p className="text-[11px] text-[var(--ink-dim)] text-center">
         No pool indexed yet — showing swap-derived price when available
       </p>
     </div>

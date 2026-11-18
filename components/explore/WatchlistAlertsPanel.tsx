@@ -71,12 +71,12 @@ export default function WatchlistAlertsPanel({
               className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2"
             >
               <span className="text-sm font-bold text-[var(--ink)]">${t.symbol}</span>
-              <span className="text-[10px] text-[var(--ink-dim)] font-mono">
+              <span className="text-[11px] text-[var(--ink-dim)] font-mono">
                 now {price > 0 ? formatUsd(price) : "—"}
               </span>
               {existing ? (
                 <>
-                  <span className="text-[10px] text-[var(--ink-muted)]">
+                  <span className="text-[11px] text-[var(--ink-muted)]">
                     Alert {existing.direction} ${existing.priceUsd}
                   </span>
                   <button
@@ -121,7 +121,7 @@ export default function WatchlistAlertsPanel({
                     }
                     refresh();
                   }}
-                  className="ml-auto text-[10px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1 disabled:opacity-40"
+                  className="ml-auto text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1 disabled:opacity-40"
                 >
                   <BellOff size={12} /> +5% alert
                 </button>

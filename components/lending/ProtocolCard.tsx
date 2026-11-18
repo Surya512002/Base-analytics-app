@@ -53,14 +53,14 @@ export default function ProtocolCard({
           <div className="flex items-center gap-2">
             <h3 className="font-black text-sm text-[var(--ink)]">{option.protocolName}</h3>
             {isBest && (
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] text-[10px] font-bold">
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] text-[11px] font-bold">
                 <Check size={11} strokeWidth={3} /> Best Rate
               </span>
             )}
           </div>
 
           {/* Type Badge */}
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
             {option.typeLabel}
           </span>
         </div>
@@ -86,25 +86,25 @@ export default function ProtocolCard({
       {/* 2. Two Primary Metrics */}
       <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
         <div>
-          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
             Supply APY
           </span>
           <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
             {option.supplyApy > 0 ? `${option.supplyApy.toFixed(2)}%` : "—"}
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">
+          <span className="text-[11px] text-[var(--ink-dim)]">
             {option.supplyApy > 0 ? "Securities yield" : "Collateral only"}
           </span>
         </div>
 
         <div>
-          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
+          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">
             Borrow APR
           </span>
           <p className="text-lg font-black font-mono text-[var(--ink)] mt-0.5">
             {canBorrow ? `${option.borrowApr!.toFixed(2)}%` : "—"}
           </p>
-          <span className="text-[10px] text-[var(--ink-dim)]">
+          <span className="text-[11px] text-[var(--ink-dim)]">
             {canBorrow ? (isFixedTerm ? "Fixed 60-day rate" : "Variable cost") : "Collateral only"}
           </span>
         </div>
@@ -114,21 +114,21 @@ export default function ProtocolCard({
       <div className="space-y-2 text-xs">
         <div className="grid grid-cols-3 gap-2 text-center text-[var(--ink-muted)]">
           <div className="p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)]/60">
-            <span className="text-[9px] uppercase font-bold text-[var(--ink-dim)] block">Max LTV</span>
+            <span className="text-[11px] uppercase font-bold text-[var(--ink-dim)] block">Max LTV</span>
             <span className="font-mono font-bold text-[var(--ink)] text-xs">
               {option.maxLtv !== null ? `${option.maxLtv}%` : "—"}
             </span>
           </div>
 
           <div className="p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)]/60">
-            <span className="text-[9px] uppercase font-bold text-[var(--ink-dim)] block">Liquidity</span>
+            <span className="text-[11px] uppercase font-bold text-[var(--ink-dim)] block">Liquidity</span>
             <span className="font-mono font-bold text-[var(--ink)] text-xs">
               {option.availableLiquidityUsd > 0 ? formatCompactUsd(option.availableLiquidityUsd) : "—"}
             </span>
           </div>
 
           <div className="p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)]/60">
-            <span className="text-[9px] uppercase font-bold text-[var(--ink-dim)] block">Utilization</span>
+            <span className="text-[11px] uppercase font-bold text-[var(--ink-dim)] block">Utilization</span>
             <span className="font-mono font-bold text-[var(--ink)] text-xs">
               {option.utilization > 0 ? `${option.utilization.toFixed(1)}%` : "—"}
             </span>
@@ -142,7 +142,7 @@ export default function ProtocolCard({
             <button
               type="button"
               onClick={() => setShowRiskTooltip((p) => !p)}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[11px] cursor-pointer ${
                 option.riskLevel === "low"
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                   : option.riskLevel === "medium"
@@ -170,7 +170,7 @@ export default function ProtocolCard({
                 </button>
               </div>
               <p className="text-[var(--ink-muted)] leading-relaxed">{riskInfo.summary}</p>
-              <div className="pt-1 border-t border-[var(--border-subtle)] text-[10px] space-y-0.5 text-[var(--ink-dim)]">
+              <div className="pt-1 border-t border-[var(--border-subtle)] text-[11px] space-y-0.5 text-[var(--ink-dim)]">
                 <p>• {riskInfo.auditStatus}</p>
                 <p>• {riskInfo.oracleModel}</p>
               </div>
@@ -207,7 +207,7 @@ export default function ProtocolCard({
         </div>
 
         {/* Data Source & Timestamp */}
-        <div className="flex items-center justify-between text-[10px] text-[var(--ink-dim)] pt-0.5">
+        <div className="flex items-center justify-between text-[11px] text-[var(--ink-dim)] pt-0.5">
           <a
             href={`https://basescan.org/address/${option.contractAddress}`}
             target="_blank"

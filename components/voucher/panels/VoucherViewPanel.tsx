@@ -98,17 +98,17 @@ export default function VoucherViewPanel({
             />
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="glass-panel-accent rounded-xl p-3">
-                <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Batch</p>
+                <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Batch</p>
                 <p className="font-black text-[var(--ink)] mt-0.5">#{viewedCard.batchId}</p>
               </div>
               <div className="glass-panel-accent rounded-xl p-3">
-                <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Redeemed</p>
+                <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Redeemed</p>
                 <p className="font-black text-[var(--ink)] mt-0.5">
                   {viewedCard.redeemedCount}/{viewedCard.cardCount}
                 </p>
               </div>
               <div className="glass-panel-accent rounded-xl p-3 col-span-2">
-                <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Creator</p>
+                <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Creator</p>
                 <p className="font-mono text-[var(--ink)] mt-0.5 text-[11px] truncate">{viewedCard.creator}</p>
               </div>
             </div>

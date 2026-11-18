@@ -211,11 +211,11 @@ export default function AssetDetailView({
           <div className="pop p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex flex-col justify-between gap-2">
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
                   Top Supply Yield
                 </span>
                 {bestSupply?.kindChip && (
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                  <span className="px-1.5 py-0.2 rounded text-[11px] font-bold bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                     {bestSupply.kindChip}
                   </span>
                 )}
@@ -227,7 +227,7 @@ export default function AssetDetailView({
                 {bestSupply?.protocolName ?? "No pool available"}
               </p>
               {bestSupply?.role === "lp_vault" && (
-                <p className="text-[10px] text-[var(--ink-dim)] mt-1 italic">
+                <p className="text-[11px] text-[var(--ink-dim)] mt-1 italic">
                   LP / Vault yield (pair with USDC)
                 </p>
               )}
@@ -247,11 +247,11 @@ export default function AssetDetailView({
           <div className="pop p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex flex-col justify-between gap-2">
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
                   Lowest Borrow Rate
                 </span>
                 {bestBorrow?.kindChip && (
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                  <span className="px-1.5 py-0.2 rounded text-[11px] font-bold bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                     {bestBorrow.kindChip}
                   </span>
                 )}
@@ -277,7 +277,7 @@ export default function AssetDetailView({
           {/* 3. Deepest Liquidity Pool */}
           <div className="pop p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] flex flex-col justify-between gap-2">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
                 Deepest Pool
               </span>
               <p className="text-xl font-black font-mono text-[var(--ink)] mt-0.5">

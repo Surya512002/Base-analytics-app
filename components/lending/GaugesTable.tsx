@@ -149,7 +149,7 @@ export default function GaugesTable({
               }`}
             >
               <span>Beefy Vaults</span>
-              <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">Auto</span>
+              <span className="text-[11px] bg-white/20 px-1 py-0.2 rounded font-mono">Auto</span>
             </button>
             <button
               type="button"
@@ -161,7 +161,7 @@ export default function GaugesTable({
               }`}
             >
               <span>Aerodrome Gauges</span>
-              <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">AERO</span>
+              <span className="text-[11px] bg-white/20 px-1 py-0.2 rounded font-mono">AERO</span>
             </button>
           </div>
 
@@ -224,7 +224,7 @@ export default function GaugesTable({
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                            className={`text-[11px] font-bold px-1.5 py-0.2 rounded font-mono ${
                               isBeefy
                                 ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
                                 : isPendle
@@ -242,7 +242,7 @@ export default function GaugesTable({
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[10px] text-[var(--ink-dim)] hover:text-[var(--brand-text)] flex items-center gap-0.5"
+                            className="text-[11px] text-[var(--ink-dim)] hover:text-[var(--brand-text)] flex items-center gap-0.5"
                           >
                             <span>App</span>
                             <ExternalLink size={9} />

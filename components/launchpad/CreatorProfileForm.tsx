@@ -118,7 +118,7 @@ export default function CreatorProfileForm({
     >
       {isSetup && (
         <div className="mb-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--brand-dark)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--brand-dark)]">
             Create your creator profile
           </p>
           <h2 className="mt-1 text-lg font-bold text-[var(--ink)]">
@@ -158,9 +158,9 @@ export default function CreatorProfileForm({
               />
             </label>
           </div>
-          <p className="text-center text-[10px] text-[var(--ink-dim)]">PNG, JPG, WebP · max 2MB</p>
+          <p className="text-center text-[11px] text-[var(--ink-dim)]">PNG, JPG, WebP · max 2MB</p>
           {uploadError && (
-            <p className="max-w-[140px] text-center text-[10px] font-medium text-rose-600">
+            <p className="max-w-[140px] text-center text-[11px] font-medium text-rose-600">
               {uploadError}
             </p>
           )}

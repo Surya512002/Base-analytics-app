@@ -134,7 +134,7 @@ export default function LaunchBoard() {
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full min-w-[640px] text-left text-xs">
             <thead>
-              <tr className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
+              <tr className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
                 <th className="py-2 pr-2">#</th>
                 <th className="py-2 pr-2">Token</th>
                 <th className="py-2 pr-2 text-right">Market cap</th>
@@ -181,17 +181,17 @@ export default function LaunchBoard() {
                     <td className="py-2.5 pr-2">
                       <span className="flex flex-wrap gap-1">
                         {r.liquidityLocked && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" title="Liquidity locked">
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" title="Liquidity locked">
                             <Lock size={10} /> LP locked
                           </span>
                         )}
                         {r.antiSnipeBlocks ? (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--brand-text)]" title={`Buys blocked for the first ${r.antiSnipeBlocks} blocks`}>
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--brand-text)]" title={`Buys blocked for the first ${r.antiSnipeBlocks} blocks`}>
                             <ShieldCheck size={10} /> Anti-snipe
                           </span>
                         ) : null}
                         {r.quoteAsset && (
-                          <span className="rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--ink-muted)]">/{r.quoteAsset}</span>
+                          <span className="rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--ink-muted)]">/{r.quoteAsset}</span>
                         )}
                       </span>
                     </td>

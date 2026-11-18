@@ -89,7 +89,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
               <Gift size={22} className="text-emerald-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+              <p className="text-[11px] font-black text-emerald-400 uppercase tracking-widest">
                 Deposit confirmed
               </p>
               <h2 id="voucher-cards-ready-title" className="text-lg font-black text-[var(--ink)] truncate">
@@ -207,7 +207,7 @@ export default function VoucherCardsReadyGate({ batch, onDismiss }: VoucherCards
           </button>
 
           {hasSecrets && !copyAllDone && (
-            <p className="text-[10px] text-center text-[var(--ink-muted)] font-bold">
+            <p className="text-[11px] text-center text-[var(--ink-muted)] font-bold">
               Tap &quot;Copy all Card IDs + Secrets&quot; first, then check the box above.
             </p>
           )}

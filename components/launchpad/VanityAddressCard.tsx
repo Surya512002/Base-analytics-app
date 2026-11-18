@@ -32,11 +32,11 @@ export default function VanityAddressCard({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Vanity address</p>
+          <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Vanity address</p>
           <p className="font-mono text-xs sm:text-sm text-[var(--ink)] font-bold break-all select-all leading-relaxed">
             {address ?? shortVanityAddress(address)}
           </p>
-          <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">
+          <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
             {grinding
               ? "Searching for a clean 0xB200… address…"
               : attempts > 0

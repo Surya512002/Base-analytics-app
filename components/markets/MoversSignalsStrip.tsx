@@ -154,7 +154,7 @@ export default function MoversSignalsStrip({
           <span className="pulse-status-dot" aria-hidden />
           Market Signals & Key Movers
         </span>
-        <span className="pulse-chip min-h-0 py-0.5 font-mono text-[10px]">Live On-Chain</span>
+        <span className="pulse-chip min-h-0 py-0.5 font-mono text-[11px]">Live On-Chain</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -166,11 +166,11 @@ export default function MoversSignalsStrip({
             className="pop-pill text-left p-3 rounded-2xl border border-white/20 bg-white/12 hover:bg-white/20 backdrop-blur-sm transition-all group cursor-pointer flex flex-col justify-between"
           >
             <div className="flex items-center justify-between w-full mb-1.5">
-              <span className="text-[10px] font-bold text-[var(--ink-muted)] flex items-center gap-1 [&_svg]:text-white">
+              <span className="text-[11px] font-bold text-[var(--ink-muted)] flex items-center gap-1 [&_svg]:text-white">
                 {sig.icon}
                 <span>{sig.badge}</span>
               </span>
-              <span className="text-[10px] font-mono text-[var(--ink-muted)] group-hover:text-[var(--ink)] transition">
+              <span className="text-[11px] font-mono text-[var(--ink-muted)] group-hover:text-[var(--ink)] transition">
                 →
               </span>
             </div>
@@ -180,13 +180,13 @@ export default function MoversSignalsStrip({
                 <span className="font-black text-base text-[var(--ink)]">
                   {sig.stock.symbol}
                 </span>
-                <span className="text-[10px] text-[var(--ink-muted)] truncate max-w-[80px]">
+                <span className="text-[11px] text-[var(--ink-muted)] truncate max-w-[80px]">
                   {sig.stock.name}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between mt-1 text-[11px]">
-                <span className="text-[10px] text-[var(--ink-muted)]">
+                <span className="text-[11px] text-[var(--ink-muted)]">
                   {sig.metricLabel}
                 </span>
                 <span className="font-mono font-black text-white tabular-nums">

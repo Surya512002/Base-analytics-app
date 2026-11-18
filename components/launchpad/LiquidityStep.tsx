@@ -303,7 +303,7 @@ export default function LiquidityStep({
             <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
               LP tokens are transferred to the onchain contract and cannot be withdrawn before the lock expiration.
             </p>
-            <div className="flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between p-2 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-mono text-[10px] gap-2">
+            <div className="flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between p-2 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] font-mono text-[11px] gap-2">
               <span className="break-all">{OPENLAUNCH_LOCKER_BASE}</span>
               <button
                 type="button"

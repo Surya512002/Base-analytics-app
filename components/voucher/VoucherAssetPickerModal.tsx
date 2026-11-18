@@ -247,12 +247,12 @@ export default function VoucherAssetPickerModal({
                           {item.symbol}
                         </span>
                         {"category" in item && item.category && (
-                          <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)]">
+                          <span className="text-[11px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)]">
                             {item.category}
                           </span>
                         )}
                         {"apy" in item && typeof item.apy === "number" && (
-                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                          <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                             +{item.apy.toFixed(2)}% APY
                           </span>
                         )}
@@ -267,7 +267,7 @@ export default function VoucherAssetPickerModal({
                   {/* Right side: Balance & Selected check */}
                   <div className="flex items-center gap-3 shrink-0 pl-2">
                     <div className="text-right">
-                      <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">
+                      <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">
                         Balance
                       </p>
                       <p className="text-xs font-mono font-bold text-[var(--ink)]">

@@ -117,12 +117,12 @@ export default function TokenXRayBadge({
         }}
         title={`Token X-Ray Safety Score: ${report.score}/100 (${report.tierLabel}). Click for report.`}
         className={`pop-pill inline-flex items-center gap-1 font-mono font-bold rounded-lg border transition-all cursor-pointer ${colorClass} ${
-          compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"
+          compact ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-1 text-xs"
         } ${className}`}
       >
         <Icon size={compact ? 11 : 13} className="shrink-0" />
         <span>{report.score}/100</span>
-        {!compact && <span className="font-sans font-semibold text-[10px] opacity-80">{report.tierLabel}</span>}
+        {!compact && <span className="font-sans font-semibold text-[11px] opacity-80">{report.tierLabel}</span>}
       </button>
 
       {/* Safety X-Ray Detail Modal */}
@@ -170,27 +170,27 @@ export default function TokenXRayBadge({
 
             {/* Factor Breakdown */}
             <div className="space-y-2 text-xs">
-              <p className="font-bold text-[10px] uppercase tracking-wider text-[var(--ink-muted)]">Audit Factors</p>
+              <p className="font-bold text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">Audit Factors</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-                  <span className="text-[10px] text-[var(--ink-muted)] block">LP &amp; Reserves</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">LP &amp; Reserves</span>
                   <span className="font-bold text-xs text-[var(--ink)]">{report.factors.lpLockScore}/25 pts</span>
-                  <p className="text-[10px] text-[var(--ink-dim)] truncate mt-0.5">{report.factors.lpLockStatus}</p>
+                  <p className="text-[11px] text-[var(--ink-dim)] truncate mt-0.5">{report.factors.lpLockStatus}</p>
                 </div>
                 <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-                  <span className="text-[10px] text-[var(--ink-muted)] block">Concentration</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Concentration</span>
                   <span className="font-bold text-xs text-[var(--ink)]">{report.factors.concentrationScore}/25 pts</span>
-                  <p className="text-[10px] text-[var(--ink-dim)] truncate mt-0.5">Top 10: {report.factors.top10ConcentrationPct.toFixed(1)}%</p>
+                  <p className="text-[11px] text-[var(--ink-dim)] truncate mt-0.5">Top 10: {report.factors.top10ConcentrationPct.toFixed(1)}%</p>
                 </div>
                 <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-                  <span className="text-[10px] text-[var(--ink-muted)] block">Ownership Privileges</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Ownership Privileges</span>
                   <span className="font-bold text-xs text-[var(--ink)]">{report.factors.privilegeScore}/25 pts</span>
-                  <p className="text-[10px] text-[var(--ink-dim)] truncate mt-0.5">{report.factors.privilegeStatus}</p>
+                  <p className="text-[11px] text-[var(--ink-dim)] truncate mt-0.5">{report.factors.privilegeStatus}</p>
                 </div>
                 <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-                  <span className="text-[10px] text-[var(--ink-muted)] block">Sell Simulation</span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Sell Simulation</span>
                   <span className="font-bold text-xs text-[var(--ink)]">{report.factors.honeypotScore}/25 pts</span>
-                  <p className="text-[10px] text-[var(--ink-dim)] truncate mt-0.5">{report.factors.honeypotStatus}</p>
+                  <p className="text-[11px] text-[var(--ink-dim)] truncate mt-0.5">{report.factors.honeypotStatus}</p>
                 </div>
               </div>
             </div>
@@ -198,7 +198,7 @@ export default function TokenXRayBadge({
             {/* Reasons / Strengths */}
             {report.reasons.length > 0 && (
               <div className="space-y-1">
-                <p className="font-bold text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                <p className="font-bold text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                   Verified Protections
                 </p>
                 <ul className="text-xs space-y-1 text-[var(--ink-muted)]">
@@ -215,7 +215,7 @@ export default function TokenXRayBadge({
             {/* Warnings */}
             {report.warnings.length > 0 && (
               <div className="space-y-1 pt-2 border-t border-[var(--border-subtle)]">
-                <p className="font-bold text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                <p className="font-bold text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
                   Risk Factors
                 </p>
                 <ul className="text-xs space-y-1 text-amber-600 dark:text-amber-400">

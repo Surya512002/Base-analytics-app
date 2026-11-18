@@ -167,28 +167,28 @@ export default function StocksExploreSection({
     switch (tier) {
       case "deep":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Deep Liquidity
           </span>
         );
       case "moderate":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
             Good Depth
           </span>
         );
       case "paused":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             Oracle Pause
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
             Active
           </span>
@@ -227,17 +227,17 @@ export default function StocksExploreSection({
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto shrink-0">
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]/90 p-3.5 text-center">
-              <p className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Stocks Tracked</p>
+              <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Stocks Tracked</p>
               <p className="text-xl font-black text-[var(--ink)] mt-1 tabular-nums">{stats.count || 32}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]/90 p-3.5 text-center">
-              <p className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">24h Volume</p>
+              <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">24h Volume</p>
               <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1 tabular-nums">
                 ${(stats.totalVol / 1e6).toFixed(1)}M
               </p>
             </div>
             <div className="col-span-2 sm:col-span-1 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]/90 p-3.5 text-center">
-              <p className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Custody Standard</p>
+              <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Custody Standard</p>
               <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">Reg S 1:1</p>
             </div>
           </div>
@@ -325,14 +325,14 @@ export default function StocksExploreSection({
                           <h4 className="font-black text-base text-[var(--ink)] tracking-tight leading-tight">
                             {stock.symbol}
                           </h4>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase">
                             {stock.category}
                           </span>
                           {(() => {
                             const t = getStockTradability(stock.address);
                             if (t.status === "tradable") {
                               return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                   Tradable
                                 </span>
@@ -341,7 +341,7 @@ export default function StocksExploreSection({
                             if (t.status === "low_liquidity") {
                               return (
                                 <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"
                                   title="Low on-chain liquidity — higher slippage expected"
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -356,7 +356,7 @@ export default function StocksExploreSection({
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/25 hover:underline"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/25 hover:underline"
                                   title="No DEX pool deployed — View on BaseScan"
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
@@ -520,7 +520,7 @@ export default function StocksExploreSection({
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
                 Target Price (USD)
               </label>
               <input

@@ -198,7 +198,7 @@ export default function PayLinkPage() {
               Base Analytics
             </span>
           </Link>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
             Base Mainnet
           </span>
         </div>
@@ -234,11 +234,11 @@ export default function PayLinkPage() {
           <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3.5 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-[9px] font-black text-[var(--ink-dim)] uppercase tracking-wider">
+                <p className="text-[11px] font-black text-[var(--ink-dim)] uppercase tracking-wider">
                   Recipient
                 </p>
                 {isSelf && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                  <span className="text-[11px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     You (Connected)
                   </span>
@@ -399,7 +399,7 @@ export default function PayLinkPage() {
 
             {/* Amount Input */}
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block mb-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block mb-1">
                 Amount ({asset})
               </label>
               <div className="relative flex items-center">

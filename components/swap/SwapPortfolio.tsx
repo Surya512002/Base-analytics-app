@@ -128,7 +128,7 @@ export default function SwapPortfolio({
             ))}
             {otherUsd > 0 && <span style={{ width: `${(otherUsd / totalUsd) * 100}%`, background: "var(--ink-dim)" }} />}
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[var(--ink-muted)]">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[var(--ink-muted)]">
             {top.map((t, i) => (
               <span key={t.symbol + i} className="inline-flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full" style={{ background: BAR_COLORS[i] }} />
@@ -158,7 +158,7 @@ export default function SwapPortfolio({
                 <div className="text-right">
                   <p className="font-mono text-xs font-bold tabular-nums text-[var(--ink)]">{t.usdValue > 0 ? usd(t.usdValue) : "—"}</p>
                   {ch != null && (
-                    <p className={`font-mono text-[10px] font-bold ${ch >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                    <p className={`font-mono text-[11px] font-bold ${ch >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                       {ch >= 0 ? "+" : ""}
                       {ch.toFixed(1)}%
                     </p>
@@ -170,7 +170,7 @@ export default function SwapPortfolio({
                       type="button"
                       onClick={() => onSell(t.counter)}
                       title={`Sell ${t.symbol}`}
-                      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 py-1 text-[10px] font-bold text-[var(--ink-muted)] transition hover:border-red-500/40 hover:text-red-600"
+                      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-bold text-[var(--ink-muted)] transition hover:border-red-500/40 hover:text-red-600"
                     >
                       <ArrowUpRight size={11} /> Sell
                     </button>
@@ -178,7 +178,7 @@ export default function SwapPortfolio({
                       type="button"
                       onClick={() => onBuy(t.counter)}
                       title={`Buy more ${t.symbol}`}
-                      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 py-1 text-[10px] font-bold text-[var(--ink-muted)] transition hover:border-emerald-500/40 hover:text-emerald-600"
+                      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-bold text-[var(--ink-muted)] transition hover:border-emerald-500/40 hover:text-emerald-600"
                     >
                       <ArrowDownLeft size={11} /> Buy
                     </button>

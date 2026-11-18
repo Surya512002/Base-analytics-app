@@ -66,7 +66,7 @@ export default function ExploreOnboarding() {
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
               {current.icon}
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--ink-dim)]">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--ink-dim)]">
                 Explore · {step + 1}/{STEPS.length}
               </p>
             </div>

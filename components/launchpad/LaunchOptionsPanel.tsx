@@ -76,7 +76,7 @@ export default function LaunchOptionsPanel({
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 space-y-5">
       <div>
-        <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase mb-3">Quick presets</p>
+        <p className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mb-3">Quick presets</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {LAUNCH_PRESETS.map((preset) => (
             <button
@@ -90,14 +90,14 @@ export default function LaunchOptionsPanel({
               }`}
             >
               <p className="text-[11px] font-bold text-[var(--ink)]">{preset.label}</p>
-              <p className="text-[9px] text-[var(--ink-muted)] mt-0.5 leading-snug">{preset.tagline}</p>
+              <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 leading-snug">{preset.tagline}</p>
             </button>
           ))}
         </div>
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase mb-3">Launch options</p>
+        <p className="text-[11px] font-bold text-[var(--ink-dim)] uppercase mb-3">Launch options</p>
         <label className="flex items-center justify-between gap-3 cursor-pointer">
           <span className="text-sm font-semibold text-[var(--ink)]">Metadata editable after launch</span>
           <input
@@ -107,7 +107,7 @@ export default function LaunchOptionsPanel({
             className="accent-[var(--accent)] w-4 h-4"
           />
         </label>
-        <p className="text-[10px] text-[var(--ink-muted)] mt-1.5">
+        <p className="text-[11px] text-[var(--ink-muted)] mt-1.5">
           Grants METADATA role to you. Off by default — fully admin-less, renounced control.
         </p>
       </div>
@@ -118,7 +118,7 @@ export default function LaunchOptionsPanel({
             <p className="text-sm font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5">
               <Shield size={14} /> Anti-snipe window
             </p>
-            <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80">
+            <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80">
               Blocks buys via Base Analytics for N blocks after pool opens (~200ms/block on Base)
             </p>
           </div>
@@ -133,7 +133,7 @@ export default function LaunchOptionsPanel({
           onChange={(e) => onAntiSnipeBlocks(parseInt(e.target.value, 10))}
           className="w-full accent-amber-500"
         />
-        <p className="text-[10px] text-amber-700/70 dark:text-amber-300/70">
+        <p className="text-[11px] text-amber-700/70 dark:text-amber-300/70">
           Default {DEFAULT_ANTI_SNIPE_BLOCKS} blocks (~8s). Set 0 to disable. Direct DEX trades bypass
           this — disclosed on token page.
         </p>
@@ -143,7 +143,7 @@ export default function LaunchOptionsPanel({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-bold text-[var(--ink)]">Creator wallet</p>
-            <p className="text-[10px] text-[var(--ink-muted)]">Liquid at genesis via batch mint</p>
+            <p className="text-[11px] text-[var(--ink-muted)]">Liquid at genesis via batch mint</p>
           </div>
           <span className="text-sm font-black text-[var(--ink-muted)]">{creatorPct}%</span>
         </div>
@@ -162,9 +162,9 @@ export default function LaunchOptionsPanel({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-bold text-[var(--ink)]">Insider allocations</p>
-            <p className="text-[10px] text-[var(--ink-muted)]">Immediate, liquid at genesis</p>
+            <p className="text-[11px] text-[var(--ink-muted)]">Immediate, liquid at genesis</p>
           </div>
-          <span className="text-[10px] text-[var(--ink-dim)]">
+          <span className="text-[11px] text-[var(--ink-dim)]">
             {insiders.length}/{maxInsiders} slots
           </span>
         </div>
@@ -185,7 +185,7 @@ export default function LaunchOptionsPanel({
               onChange={(e) => updateInsider(a.id, { pct: parseFloat(e.target.value) || 0 })}
               className="w-16 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-lg px-2 py-2 text-xs text-[var(--ink)] text-center outline-none"
             />
-            <span className="text-[10px] text-[var(--ink-dim)]">%</span>
+            <span className="text-[11px] text-[var(--ink-dim)]">%</span>
             <button
               type="button"
               onClick={() => removeInsider(a.id)}
@@ -211,11 +211,11 @@ export default function LaunchOptionsPanel({
             <p className="text-sm font-bold text-[var(--ink)] flex items-center gap-1.5">
               <Lock size={14} /> Vested allocations
             </p>
-            <p className="text-[10px] text-[var(--ink-muted)]">
+            <p className="text-[11px] text-[var(--ink-muted)]">
               Stay unminted — true lock until on-chain vault (better than liquid &quot;vesting&quot;)
             </p>
           </div>
-          <span className="text-[10px] text-[var(--ink-muted)]">
+          <span className="text-[11px] text-[var(--ink-muted)]">
             {vested.length}/{maxVested}
           </span>
         </div>
@@ -237,8 +237,8 @@ export default function LaunchOptionsPanel({
                 onChange={(e) => updateVested(a.id, { pct: parseFloat(e.target.value) || 0 })}
                 className="w-16 bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-lg px-2 py-2 text-xs text-[var(--ink)] text-center outline-none"
               />
-              <span className="text-[10px] text-[var(--ink-dim)]">%</span>
-              <span className="text-[10px] text-[var(--ink-dim)]">cliff</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">%</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">cliff</span>
               <input
                 type="number"
                 min={0}
@@ -249,7 +249,7 @@ export default function LaunchOptionsPanel({
                 }
                 className="w-14 bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-lg px-2 py-2 text-xs text-[var(--ink)] text-center outline-none"
               />
-              <span className="text-[10px] text-[var(--ink-dim)]">mo · vest</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">mo · vest</span>
               <input
                 type="number"
                 min={1}
@@ -260,7 +260,7 @@ export default function LaunchOptionsPanel({
                 }
                 className="w-14 bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-lg px-2 py-2 text-xs text-[var(--ink)] text-center outline-none"
               />
-              <span className="text-[10px] text-[var(--ink-dim)]">mo</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">mo</span>
               <button
                 type="button"
                 onClick={() => removeVested(a.id)}

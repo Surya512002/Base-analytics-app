@@ -468,7 +468,7 @@ function CreateCampaign({
             <h3 className="text-xl font-black text-[var(--ink)]">Campaign #{result.id} is funded</h3>
           </div>
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Your one claim link</p>
+            <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Your one claim link</p>
             <p className="font-mono text-xs break-all text-[var(--ink)]">{result.link}</p>
             <div className="flex flex-wrap gap-2">
               <button
@@ -747,7 +747,7 @@ function CreateCampaign({
 
         {/* Terms the sender agrees to — the same terms claimers see before accepting */}
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-1.5 text-xs">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">What claimers will see</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]">What claimers will see</p>
           <p className="text-[var(--ink)]">
             <strong>Sender:</strong> {label.trim() || "(no name)"} and your wallet address{address ? ` ${address}` : ""} — recorded by the contract.
           </p>

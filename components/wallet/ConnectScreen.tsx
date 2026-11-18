@@ -48,7 +48,7 @@ function LaunchpadTeaser() {
         <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
           Just launched
         </p>
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-muted)]">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-muted)]">
           <span className="live-dot" />
           Live
         </span>
@@ -140,7 +140,7 @@ export default function ConnectScreen({
           <LaunchpadTeaser />
           <div className="card-quiet p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)]">
                 Onchain Actions
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">

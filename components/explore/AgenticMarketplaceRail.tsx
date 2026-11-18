@@ -23,7 +23,7 @@ function ServiceCard({
           {title}
         </p>
         {tag && (
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--ink-dim)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-dim)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded">
             {tag}
           </span>
         )}

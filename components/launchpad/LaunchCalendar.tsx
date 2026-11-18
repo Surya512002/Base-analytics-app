@@ -52,7 +52,7 @@ export default function LaunchCalendar({
         <Calendar size={16} className="text-[var(--warning)]" />
         <div>
           <h3 className="text-sm font-black text-[var(--ink)]">Launch calendar</h3>
-          <p className="text-[10px] text-[var(--ink-muted)]">Vesting, anti-snipe & announcements</p>
+          <p className="text-[11px] text-[var(--ink-muted)]">Vesting, anti-snipe & announcements</p>
         </div>
       </div>
       <div className="divide-y divide-[var(--border-subtle)]/60 max-h-64 overflow-y-auto">
@@ -73,10 +73,10 @@ export default function LaunchCalendar({
                   ${e.tokenSymbol} · {e.label}
                 </p>
                 {e.detail && (
-                  <p className="text-[10px] text-[var(--ink-muted)] truncate mt-0.5">{e.detail}</p>
+                  <p className="text-[11px] text-[var(--ink-muted)] truncate mt-0.5">{e.detail}</p>
                 )}
               </div>
-              <span className="text-[10px] text-[var(--ink-dim)] shrink-0">{timeAgo(e.at)}</span>
+              <span className="text-[11px] text-[var(--ink-dim)] shrink-0">{timeAgo(e.at)}</span>
             </button>
           );
         })}

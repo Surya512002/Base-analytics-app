@@ -80,18 +80,18 @@ export default function TokenCard({
                 {token.name}
               </h3>
               <span
-                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${tokenBadgeClass(token)}`}
+                className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase ${tokenBadgeClass(token)}`}
               >
                 {tokenBadgeLabel(token)}
               </span>
               {isMine && (
-                <span className="shrink-0 rounded-full border border-emerald-500/35 bg-emerald-500/12 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">
+                <span className="shrink-0 rounded-full border border-emerald-500/35 bg-emerald-500/12 px-2 py-0.5 text-[11px] font-bold uppercase text-emerald-700 dark:text-emerald-400">
                   Yours
                 </span>
               )}
               {hasPool && change != null && (
                 <span
-                  className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                  className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
                     change >= 0
                       ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
                       : "bg-rose-500/12 text-rose-700 dark:text-rose-400"
@@ -102,7 +102,7 @@ export default function TokenCard({
                 </span>
               )}
               <span
-                className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+                className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold ${
                   safety === "pooled"
                     ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                     : safety === "low"
@@ -135,7 +135,7 @@ export default function TokenCard({
           </p>
         )}
 
-        <div className="mt-3 grid grid-cols-3 gap-2 text-[10px]">
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
           {(
             [
               { label: "MCap", value: market?.marketCap ? formatUsd(market.marketCap) : "—" },
@@ -159,11 +159,11 @@ export default function TokenCard({
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium text-[var(--ink-muted)]">
+            <p className="text-[11px] font-medium text-[var(--ink-muted)]">
               {isAppLaunched(token) ? createdAgo(token.createdAt) : "External · DexScreener"}
             </p>
             {holdingBalance != null && holdingBalance > 0 && (
-              <p className="mt-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+              <p className="mt-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
                 You hold {holdingBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
                 {token.symbol}
               </p>

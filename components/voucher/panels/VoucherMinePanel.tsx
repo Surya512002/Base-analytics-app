@@ -111,11 +111,11 @@ export default function VoucherMinePanel({
           <div className="flex items-center justify-between">
             <div>
               <p className="section-eyebrow">Your voucher batches (Verified)</p>
-              <p className="readable-body text-[10px] mt-0.5">Tap a batch to view its cards</p>
+              <p className="readable-body text-[11px] mt-0.5">Tap a batch to view its cards</p>
             </div>
             <div className="flex items-center gap-2">
               {mineStatusesLoading && (
-                <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1">
+                <span className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1">
                   <RefreshCcw size={12} className="animate-spin" /> Syncing…
                 </span>
               )}
@@ -125,7 +125,7 @@ export default function VoucherMinePanel({
               <button
                 type="button"
                 onClick={handleCreatorSignOut}
-                className="text-[10px] text-[var(--ink-muted)] hover:text-red-500 px-2 py-1 rounded-lg border border-[var(--border-subtle)]"
+                className="text-[11px] text-[var(--ink-muted)] hover:text-red-500 px-2 py-1 rounded-lg border border-[var(--border-subtle)]"
               >
                 Sign Out
               </button>
@@ -168,17 +168,17 @@ export default function VoucherMinePanel({
           <div className="grid grid-cols-3 gap-2 mt-2">
             <div>
               <p className="text-lg font-black text-[var(--ink)] tabular-nums">{creatorSummary.batchCount}</p>
-              <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Batches</p>
+              <p className="text-[11px] uppercase text-[var(--ink-muted)] font-bold">Batches</p>
             </div>
             <div>
               <p className="text-lg font-black text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {creatorSummary.totalCards - creatorSummary.totalUnredeemed}
               </p>
-              <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Redeemed</p>
+              <p className="text-[11px] uppercase text-[var(--ink-muted)] font-bold">Redeemed</p>
             </div>
             <div>
               <p className="text-lg font-black text-amber-700 dark:text-amber-400 tabular-nums">{creatorSummary.totalUnredeemed}</p>
-              <p className="text-[9px] uppercase text-[var(--ink-muted)] font-bold">Unredeemed</p>
+              <p className="text-[11px] uppercase text-[var(--ink-muted)] font-bold">Unredeemed</p>
             </div>
           </div>
           <p className="readable-body text-xs mt-2">
@@ -215,7 +215,7 @@ export default function VoucherMinePanel({
               >
                 {recoverLoading ? "Recovering…" : "Recover my batch"}
               </button>
-              <p className="readable-body text-[10px]">
+              <p className="readable-body text-[11px]">
                 Paste the Base transaction hash from your wallet after depositing. Card
                 secrets only appear if this browser still has them saved.
               </p>
@@ -254,16 +254,16 @@ export default function VoucherMinePanel({
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-black text-[var(--ink)]">Batch #{b.batchId}</p>
                       {isVaultShareAsset(b.asset) ? (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
+                        <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
                           Vault · +{getVaultShareBySymbol(b.asset)?.apy ?? 0}% APY
                         </span>
                       ) : isStockAsset(b.asset) ? (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25">
+                        <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25">
                           B20 Stock
                         </span>
                       ) : null}
                       {hasLocalSecrets && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 uppercase">
+                        <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/25 uppercase">
                           Secrets saved
                         </span>
                       )}
@@ -280,11 +280,11 @@ export default function VoucherMinePanel({
                   </div>
                   <div className="flex items-start gap-2 shrink-0">
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                      <span className="text-[11px] font-black px-2 py-1 rounded-lg bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                         {redeemed}/{b.cardCount} redeemed
                       </span>
                       {unredeemed > 0 && (
-                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                        <span className="text-[11px] font-black px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
                           {unredeemed} available
                         </span>
                       )}
@@ -390,7 +390,7 @@ export default function VoucherMinePanel({
                           }`}
                         >
                           <span className="font-mono text-sm">{c.cardId}</span>
-                          <p className="mt-0.5 text-[10px] uppercase tracking-wide opacity-80">
+                          <p className="mt-0.5 text-[11px] uppercase tracking-wide opacity-80">
                             {c.redeemed ? "Redeemed" : "Available to redeem"}
                           </p>
                         </div>

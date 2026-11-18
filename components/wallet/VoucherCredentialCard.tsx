@@ -38,7 +38,7 @@ function CopyField({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-widest">{label}</p>
+        <p className="text-[11px] font-black text-[var(--ink-muted)] uppercase tracking-widest">{label}</p>
         <button
           type="button"
           onClick={() => onCopy(value, copyId)}
@@ -93,7 +93,7 @@ export default function VoucherCredentialCard({
         </p>
         <div className="flex items-center gap-2">
           {statusLoading ? (
-            <span className="text-[10px] font-black text-[var(--ink-muted)] uppercase tracking-wide">
+            <span className="text-[11px] font-black text-[var(--ink-muted)] uppercase tracking-wide">
               Checking…
             </span>
           ) : redeemed ? (
@@ -107,7 +107,7 @@ export default function VoucherCredentialCard({
                   {formatVoucherAmount(asset, amountPerCard)}
                 </span>
               )}
-              <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+              <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
                 Available
               </span>
 
@@ -140,7 +140,7 @@ export default function VoucherCredentialCard({
         />
       ) : (
         <div>
-          <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1.5">
+          <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest mb-1.5">
             Secret Key
           </p>
           <div className="rounded-xl px-4 py-3.5 bg-amber-500/10 border-2 border-amber-500/30">

@@ -12,7 +12,7 @@ export default function RevenueSharingLaunchBanner() {
           <TrendingUp size={20} className="text-emerald-700" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-800">
             Creator revenue · built in
           </p>
           <h3 className="mt-1 text-base font-bold text-[var(--ink)]">

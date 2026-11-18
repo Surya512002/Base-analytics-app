@@ -255,7 +255,7 @@ export default function HoldingsDrawer({
                       <h2 className="text-base font-bold text-[var(--ink)] leading-tight">
                         Balances on Base
                       </h2>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--brand-soft)] text-[var(--brand)]">
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-[var(--brand-soft)] text-[var(--brand)]">
                         8453
                       </span>
                     </div>
@@ -273,7 +273,7 @@ export default function HoldingsDrawer({
                           <Copy size={11} />
                         )}
                         {copied && (
-                          <span className="text-[10px] font-sans text-emerald-500 font-semibold">
+                          <span className="text-[11px] font-sans text-emerald-500 font-semibold">
                             Copied!
                           </span>
                         )}
@@ -341,7 +341,7 @@ export default function HoldingsDrawer({
                     <button
                       type="button"
                       onClick={() => setIncludeDefiInTotal(!includeDefiInTotal)}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--brand)] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--brand)] hover:underline cursor-pointer"
                       title="Toggle inclusion of DeFi deposits in the total"
                     >
                       <Layers size={11} />
@@ -353,7 +353,7 @@ export default function HoldingsDrawer({
                 {/* Asset Allocation Breakdown Bar */}
                 {allocation && (
                   <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle)]/60">
-                    <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)]">
+                    <div className="flex items-center justify-between text-[11px] text-[var(--ink-muted)]">
                       <span className="font-bold uppercase tracking-wider">Asset Distribution</span>
                       <span>{allTokens.filter((t) => (t.usdValue ?? 0) > 0).length} priced assets</span>
                     </div>
@@ -389,7 +389,7 @@ export default function HoldingsDrawer({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-[10px] text-[var(--ink-muted)] flex-wrap pt-0.5">
+                    <div className="flex items-center gap-3 text-[11px] text-[var(--ink-muted)] flex-wrap pt-0.5">
                       {allocation.ethPct > 0 && (
                         <span className="flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
@@ -423,7 +423,7 @@ export default function HoldingsDrawer({
               </div>
 
               {/* Note on other networks */}
-              <p className="text-[10px] text-[var(--ink-dim)] px-1">
+              <p className="text-[11px] text-[var(--ink-dim)] px-1">
                 Base mainnet tokens only. Holdings on Ethereum, Arbitrum, or Polygon are not included in this total.
               </p>
             </div>
@@ -600,17 +600,17 @@ export default function HoldingsDrawer({
                                 <>
                                   {isVerified && <VerifiedBadge size={13} />}
                                   {t.isStock && (
-                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                    <span className="px-1.5 py-0.2 rounded text-[11px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
                                       Stock
                                     </span>
                                   )}
                                   {t.isB20 && !t.isStock && (
-                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                                    <span className="px-1.5 py-0.2 rounded text-[11px] font-bold bg-purple-500/10 text-purple-500 border border-purple-500/20">
                                       B20
                                     </span>
                                   )}
                                   {!isVerified && !t.isStock && (
-                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    <span className="px-1.5 py-0.2 rounded text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
                                       Unverified
                                     </span>
                                   )}
@@ -618,7 +618,7 @@ export default function HoldingsDrawer({
                               );
                             })()}
                             {t.isSpam && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                              <span className="px-1.5 py-0.2 rounded text-[11px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
                                 Phishing Risk
                               </span>
                             )}
@@ -642,7 +642,7 @@ export default function HoldingsDrawer({
                             </span>
                           )}
 
-                          <div className="flex items-center justify-end gap-1.5 text-[10px]">
+                          <div className="flex items-center justify-end gap-1.5 text-[11px]">
                             {t.priceUsd != null && (
                               <span className="text-[var(--ink-dim)] font-mono">
                                 {formatUsd(t.priceUsd)}

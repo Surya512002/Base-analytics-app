@@ -196,7 +196,7 @@ export default function VoucherShareSuccessModal({
                 <GiftBox size={72} autoOpen cardValue="Ready" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                   Deposit Confirmed on Base
                 </span>
                 <h2 id="success-share-title" className="text-xl font-black text-[var(--ink)]">
@@ -306,7 +306,7 @@ export default function VoucherShareSuccessModal({
 
                 {/* Per-Card Action Buttons: QR, WhatsApp, Email, Native Share */}
                 <div className="flex items-center justify-between pt-1 text-xs">
-                  <span className="font-mono text-[10px] text-[var(--ink-dim)]">
+                  <span className="font-mono text-[11px] text-[var(--ink-dim)]">
                     Secret: {card.secret}
                   </span>
 

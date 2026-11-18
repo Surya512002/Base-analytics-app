@@ -338,7 +338,7 @@ function TokenRow({
           </span>
           {isVerifiedBaseToken(counter) && <VerifiedBadge size={13} />}
           {isStock && (
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
+            <span className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
               Stock RWA
             </span>
           )}

@@ -36,7 +36,7 @@ export default function CreatorChip({
         {label}
       </span>
       {showAddress && (
-        <span className="hidden font-mono text-[10px] text-[var(--ink-dim)] sm:inline">
+        <span className="hidden font-mono text-[11px] text-[var(--ink-dim)] sm:inline">
           {address.slice(0, 6)}…{address.slice(-4)}
         </span>
       )}

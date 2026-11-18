@@ -158,7 +158,7 @@ export default function CompareTable({
                         href={`https://basescan.org/address/${opt.contractAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-[var(--ink-muted)] hover:text-[var(--brand-text)] flex items-center gap-0.5"
+                        className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--brand-text)] flex items-center gap-0.5"
                       >
                         <span>Contract</span> <ExternalLink size={9} />
                       </a>
@@ -167,7 +167,7 @@ export default function CompareTable({
                           href={opt.sourceLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-[var(--brand-text)] hover:underline flex items-center gap-0.5 font-semibold"
+                          className="text-[11px] text-[var(--brand-text)] hover:underline flex items-center gap-0.5 font-semibold"
                         >
                           <span>Official App</span> <ExternalLink size={9} />
                         </a>
@@ -179,11 +179,11 @@ export default function CompareTable({
                 {/* Type Badge */}
                 <td className="py-3.5 px-3">
                   <div className="flex flex-col gap-1 items-start">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                       {opt.kindChip || opt.typeLabel}
                     </span>
                     {opt.isLowLiquidity && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <span className="text-[11px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                         Low liquidity
                       </span>
                     )}
@@ -207,10 +207,10 @@ export default function CompareTable({
                     )}
                   </div>
                   {opt.supplyApy === 0 && (opt.borrowApr !== null || (opt.maxLtv !== null && opt.maxLtv > 0)) && (
-                    <span className="text-[10px] text-[var(--ink-muted)] block font-medium">Collateral Only</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block font-medium">Collateral Only</span>
                   )}
                   {opt.role === "lp_vault" && (
-                    <span className="text-[9px] text-[var(--ink-muted)] block">Pair with USDC</span>
+                    <span className="text-[11px] text-[var(--ink-muted)] block">Pair with USDC</span>
                   )}
                 </td>
 
@@ -253,7 +253,7 @@ export default function CompareTable({
                 {/* Risk */}
                 <td className="py-3.5 px-3">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
                       opt.riskLevel === "low"
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                         : opt.riskLevel === "medium"

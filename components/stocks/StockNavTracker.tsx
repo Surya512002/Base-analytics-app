@@ -66,7 +66,7 @@ export default function StockNavTracker({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-[var(--ink)]">Stock NAV Tracker</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0052FF] text-white">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#0052FF] text-white">
                 24/5 vs 24/7
               </span>
             </div>
@@ -126,7 +126,7 @@ export default function StockNavTracker({
         <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-dim)]">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--ink-dim)]">
                 Asset Pair
               </span>
               <h4 className="text-base font-black text-[var(--ink)]">
@@ -150,23 +150,23 @@ export default function StockNavTracker({
           {/* Pricing Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-              <span className="text-[10px] text-[var(--ink-muted)] block">24/7 DEX AMM Pool Price</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">24/7 DEX AMM Pool Price</span>
               <span className="font-mono font-black text-sm text-[var(--ink)] mt-0.5 block">
                 {comparison.dexPriceUsd !== null ? `$${comparison.dexPriceUsd.toFixed(2)}` : "Unavailable"}
               </span>
-              <span className="text-[10px] text-[var(--ink-dim)]">Aerodrome / Uniswap</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">Aerodrome / Uniswap</span>
             </div>
 
             <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-              <span className="text-[10px] text-[var(--ink-muted)] block">24/5 Oracle / Custody NAV</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">24/5 Oracle / Custody NAV</span>
               <span className="font-mono font-black text-sm text-[var(--ink)] mt-0.5 block">
                 {comparison.oracleNavUsd !== null ? `$${comparison.oracleNavUsd.toFixed(2)}` : "Unavailable"}
               </span>
-              <span className="text-[10px] text-[var(--ink-dim)]">Backed Finance Custody</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">Backed Finance Custody</span>
             </div>
 
             <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-              <span className="text-[10px] text-[var(--ink-muted)] block">Price vs. NAV Spread</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">Price vs. NAV Spread</span>
               <div className="flex items-center gap-1 font-mono font-black text-sm mt-0.5">
                 {comparison.spreadPct !== null && comparison.spreadPct >= 0 ? (
                   <span className="text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
@@ -182,7 +182,7 @@ export default function StockNavTracker({
                   <span className="text-[var(--ink-dim)]">Unavailable</span>
                 )}
               </div>
-              <span className="text-[10px] text-[var(--ink-dim)]">Tracking Variance</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">Tracking Variance</span>
             </div>
           </div>
         </div>

@@ -57,7 +57,7 @@ export default function GlobalActivityTicker({
     >
       <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.08]">
         <span className="live-dot" />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)]">
           Live activity on Base
         </p>
       </div>

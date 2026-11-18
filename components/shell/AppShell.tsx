@@ -70,7 +70,7 @@ export default function AppShell({
           >
             <Command size={14} />
             <span className="text-[13px]">Search tokens &amp; pages</span>
-            <kbd className="ml-auto text-[9px] font-mono border border-[var(--border-subtle)] rounded px-1">
+            <kbd className="ml-auto text-[11px] font-mono border border-[var(--border-subtle)] rounded px-1">
               ⌘K
             </kbd>
           </button>

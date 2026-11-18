@@ -30,7 +30,7 @@ export default function SwapQuickPick({
           >
             Popular Crypto
           </button>
-          <span className="text-[var(--ink-dim)] text-[10px]">·</span>
+          <span className="text-[var(--ink-dim)] text-[11px]">·</span>
           <button
             type="button"
             onClick={() => setTab("stocks")}

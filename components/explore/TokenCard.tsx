@@ -193,7 +193,7 @@ export default function TokenCard({
         {/* Badges Row: type, safety X-Ray, status */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
-            className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border ${typeBadge.class}`}
+            className={`text-[11px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border ${typeBadge.class}`}
           >
             {typeBadge.label}
           </span>
@@ -209,7 +209,7 @@ export default function TokenCard({
           {statusBadge && (
             <span
               title={statusBadge.tooltip}
-              className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border flex items-center gap-1 ${statusBadge.class}`}
+              className={`text-[11px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border flex items-center gap-1 ${statusBadge.class}`}
             >
               {statusBadge.label !== "Pooled" && <ShieldAlert size={10} />}
               <span>{statusBadge.label}</span>
@@ -220,7 +220,7 @@ export default function TokenCard({
         {/* Price & Trend Sparkline */}
         <div className="pt-1 flex items-baseline justify-between gap-2">
           <div>
-            <span className="text-[10px] text-[var(--ink-muted)] block">Price</span>
+            <span className="text-[11px] text-[var(--ink-muted)] block">Price</span>
             <p className="text-base font-mono font-black text-[var(--ink)] tabular-nums">
               {formatExactUsd(token.priceUsd)}
             </p>
@@ -236,21 +236,21 @@ export default function TokenCard({
         {/* Metrics Row: Market Cap, 24h Volume, Liquidity with exact tooltips */}
         <div className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-xs">
           <div title={`Exact Market Cap: ${formatExactUsd(token.marketCapUsd)}`}>
-            <span className="text-[10px] text-[var(--ink-muted)] block truncate">Mkt Cap</span>
+            <span className="text-[11px] text-[var(--ink-muted)] block truncate">Mkt Cap</span>
             <span className="font-mono font-bold text-[var(--ink)] tabular-nums text-[11px] block truncate">
               {formatCompactUsd(token.marketCapUsd)}
             </span>
           </div>
 
           <div title={`Exact 24h Volume: ${formatExactUsd(token.volume24h)}`}>
-            <span className="text-[10px] text-[var(--ink-muted)] block truncate">24h Vol</span>
+            <span className="text-[11px] text-[var(--ink-muted)] block truncate">24h Vol</span>
             <span className="font-mono font-bold text-[var(--ink)] tabular-nums text-[11px] block truncate">
               {formatCompactUsd(token.volume24h)}
             </span>
           </div>
 
           <div title={`Exact Liquidity: ${formatExactUsd(token.liquidityUsd)}`}>
-            <span className="text-[10px] text-[var(--ink-muted)] block truncate">Liquidity</span>
+            <span className="text-[11px] text-[var(--ink-muted)] block truncate">Liquidity</span>
             <span className="font-mono font-bold text-[var(--ink)] tabular-nums text-[11px] block truncate">
               {formatCompactUsd(token.liquidityUsd)}
             </span>

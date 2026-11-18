@@ -262,7 +262,7 @@ export default function YieldFinder({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-[var(--ink)]">Yield Finder</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--brand)] text-white">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--brand)] text-white">
                 Multi-Protocol Scanner
               </span>
             </div>
@@ -312,47 +312,47 @@ export default function YieldFinder({
       {/* 2. Micro KPI Stats Strip: Instant At-a-Glance Intelligence */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div className="p-3 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between text-[10px] font-bold text-[var(--ink-muted)]">
+          <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-muted)]">
             <span>Top APY</span>
             <TrendingUp size={12} className="text-emerald-500" />
           </div>
           <div className="mt-1 text-sm sm:text-base font-mono font-black text-emerald-600 dark:text-emerald-400">
             {kpiStats.topApy !== null ? `${formatRate(kpiStats.topApy)} APY` : "Unavailable"}
           </div>
-          <span className="text-[10px] text-[var(--ink-dim)]">Max compounded</span>
+          <span className="text-[11px] text-[var(--ink-dim)]">Max compounded</span>
         </div>
 
         <div className="p-3 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between text-[10px] font-bold text-[var(--ink-muted)]">
+          <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-muted)]">
             <span>Top APR</span>
             <Sparkles size={12} className="text-blue-500" />
           </div>
           <div className="mt-1 text-sm sm:text-base font-mono font-black text-blue-600 dark:text-blue-400">
             {kpiStats.topApr !== null ? `${formatRate(kpiStats.topApr)} APR` : "Unavailable"}
           </div>
-          <span className="text-[10px] text-[var(--ink-dim)]">Gauge / Staking rewards</span>
+          <span className="text-[11px] text-[var(--ink-dim)]">Gauge / Staking rewards</span>
         </div>
 
         <div className="p-3 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between text-[10px] font-bold text-[var(--ink-muted)]">
+          <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-muted)]">
             <span>Avg Yield</span>
             <Percent size={12} className="text-[var(--ink-dim)]" />
           </div>
           <div className="mt-1 text-sm sm:text-base font-mono font-black text-[var(--ink)]">
             {kpiStats.avgApy !== null ? `${kpiStats.avgApy.toFixed(1)}%` : "Unavailable"}
           </div>
-          <span className="text-[10px] text-[var(--ink-dim)]">Across active pools</span>
+          <span className="text-[11px] text-[var(--ink-dim)]">Across active pools</span>
         </div>
 
         <div className="p-3 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between text-[10px] font-bold text-[var(--ink-muted)]">
+          <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-muted)]">
             <span>Tracked TVL</span>
             <Layers size={12} className="text-[var(--ink-dim)]" />
           </div>
           <div className="mt-1 text-sm sm:text-base font-mono font-black text-[var(--ink)]">
             {kpiStats.totalTvlUsd > 0 ? formatUsd(kpiStats.totalTvlUsd) : "Unindexed"}
           </div>
-          <span className="text-[10px] text-[var(--ink-dim)]">Total verified volume</span>
+          <span className="text-[11px] text-[var(--ink-dim)]">Total verified volume</span>
         </div>
       </div>
 
@@ -534,7 +534,7 @@ export default function YieldFinder({
                         <span className="font-bold text-[var(--ink)] text-xs group-hover:text-[var(--brand-text)] transition-colors">
                           {pool.name}
                         </span>
-                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--ink-muted)] mt-0.5">
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--ink-muted)] mt-0.5">
                           <span className="font-mono uppercase font-bold text-[var(--brand-text)]">
                             {pool.protocolLabel}
                           </span>
@@ -592,7 +592,7 @@ export default function YieldFinder({
                     {/* Risk Tier */}
                     <td className="py-3 px-3.5">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border shrink-0 ${
                           isLowRisk
                             ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                             : isModerate
@@ -646,14 +646,14 @@ export default function YieldFinder({
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--brand-text)] font-bold block">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--brand-text)] font-bold block">
                         {pool.protocolLabel}
                       </span>
                       <h4 className="text-sm font-bold text-[var(--ink)] leading-snug">{pool.name}</h4>
                     </div>
 
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shrink-0 ${
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-bold border flex items-center gap-1 shrink-0 ${
                         isLowRisk
                           ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                           : isModerate
@@ -678,7 +678,7 @@ export default function YieldFinder({
                 {/* 4-Box Metrics Grid */}
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border-subtle)] text-xs">
                   <div className="p-2 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-dim)] block">Net APY</span>
+                    <span className="text-[11px] text-[var(--ink-dim)] block">Net APY</span>
                     <span className="text-sm font-mono font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
                       <TrendingUp size={13} />
                       {pool.apy !== null ? `${formatRate(pool.apy)} APY` : "Unavailable"}
@@ -686,7 +686,7 @@ export default function YieldFinder({
                   </div>
 
                   <div className="p-2 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-dim)] block">
+                    <span className="text-[11px] text-[var(--ink-dim)] block">
                       {pool.apr !== null ? "Gauge / Staking APR" : pool.borrowApr !== null ? "Borrow APR" : "Reward APR"}
                     </span>
                     <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 block mt-0.5">
@@ -699,14 +699,14 @@ export default function YieldFinder({
                   </div>
 
                   <div className="p-2 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-dim)] block">Pool TVL</span>
+                    <span className="text-[11px] text-[var(--ink-dim)] block">Pool TVL</span>
                     <span className="text-xs font-mono font-bold text-[var(--ink)] block mt-0.5">
                       {pool.tvlUsd !== null ? formatUsd(pool.tvlUsd) : "Unindexed"}
                     </span>
                   </div>
 
                   <div className="p-2 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
-                    <span className="text-[10px] text-[var(--ink-dim)] block">LTV / Capital Rate</span>
+                    <span className="text-[11px] text-[var(--ink-dim)] block">LTV / Capital Rate</span>
                     <span className="text-xs font-mono font-bold text-[var(--ink)] block mt-0.5">
                       {pool.maxLtv !== null ? `${pool.maxLtv}% Max LTV` : "DEX Staking"}
                     </span>

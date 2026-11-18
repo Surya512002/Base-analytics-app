@@ -154,7 +154,7 @@ export default function TokenTable({
                           </span>
                           {token.isVerified && <VerifiedBadge size={13} />}
                           <span
-                            className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded ${typeBadge.class}`}
+                            className={`text-[11px] uppercase font-bold px-1.5 py-0.2 rounded ${typeBadge.class}`}
                           >
                             {typeBadge.label}
                           </span>
@@ -239,7 +239,7 @@ export default function TokenTable({
                   <td className="py-3 px-3.5 text-center">
                     <span
                       title={statusTooltip}
-                      className={`inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border ${statusClass}`}
+                      className={`inline-flex items-center gap-1 text-[11px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border ${statusClass}`}
                     >
                       {statusLabel !== "Pooled" && <ShieldAlert size={10} />}
                       <span>{statusLabel}</span>

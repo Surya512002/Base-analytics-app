@@ -165,7 +165,7 @@ export default function StockMarketsExplorer({
           { label: "Total depth", value: usd(stats.depth), note: `${stats.venues} protocols`, icon: Layers, color: "#F59E0B" },
         ].map((s) => (
           <div key={s.label} className="min-w-0 rounded-[1.1rem] p-3.5 sm:p-4">
-            <p className="pulse-eyebrow gap-1.5 text-[10px] tracking-[0.14em]">
+            <p className="pulse-eyebrow gap-1.5 text-[11px] tracking-[0.14em]">
               <s.icon size={12} aria-hidden /> <span className="truncate">{s.label}</span>
             </p>
             <p className="pulse-big mt-2 text-2xl sm:text-3xl">{loading && !stats.markets ? "…" : s.value}</p>
@@ -284,30 +284,30 @@ export default function StockMarketsExplorer({
                       <span className="block truncate text-[11px] text-[var(--ink-muted)]">{g.name}</span>
                       <span className="mt-1 flex flex-wrap gap-1">
                         {g.kinds.map((k) => (
-                          <span key={k} className={`rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase ${KIND_STYLE[k]}`}>{KIND_LABEL[k]}</span>
+                          <span key={k} className={`rounded-full px-1.5 py-0.5 text-[11px] font-black uppercase ${KIND_STYLE[k]}`}>{KIND_LABEL[k]}</span>
                         ))}
                       </span>
                     </span>
                     <span className="hidden min-w-[96px] text-right sm:block">
-                      <span className="block text-[10px] font-semibold text-[var(--ink-muted)]">Best yield</span>
+                      <span className="block text-[11px] font-semibold text-[var(--ink-muted)]">Best yield</span>
                       <span className="block font-mono text-base font-black text-emerald-600 dark:text-emerald-400">{pct(g.bestEarn?.supplyApy)}</span>
-                      <span className="block truncate text-[10px] text-[var(--ink-dim)]">{g.bestEarn?.venue ?? "—"}</span>
+                      <span className="block truncate text-[11px] text-[var(--ink-dim)]">{g.bestEarn?.venue ?? "—"}</span>
                     </span>
                     <span className="hidden min-w-[96px] text-right md:block">
-                      <span className="block text-[10px] font-semibold text-[var(--ink-muted)]">Borrow USDC</span>
+                      <span className="block text-[11px] font-semibold text-[var(--ink-muted)]">Borrow USDC</span>
                       <span className="block font-mono text-base font-black text-violet-600 dark:text-violet-400">{pct(g.bestBorrow?.borrowApr)}</span>
-                      <span className="block text-[10px] text-[var(--ink-dim)]">{g.maxLtv ? `up to ${g.maxLtv.toFixed(0)}% LTV` : "—"}</span>
+                      <span className="block text-[11px] text-[var(--ink-dim)]">{g.maxLtv ? `up to ${g.maxLtv.toFixed(0)}% LTV` : "—"}</span>
                     </span>
                     <span className="min-w-[72px] text-right">
-                      <span className="block text-[10px] font-semibold text-[var(--ink-muted)]">Depth</span>
+                      <span className="block text-[11px] font-semibold text-[var(--ink-muted)]">Depth</span>
                       <span className="block font-mono text-sm font-black text-[var(--ink)]">{usd(g.totalDepthUsd)}</span>
-                      <span className="block text-[10px] text-[var(--ink-dim)]">
+                      <span className="block text-[11px] text-[var(--ink-dim)]">
                         {g.markets.length} {g.markets.length === 1 ? "market" : "markets"}
                       </span>
                     </span>
                     <ChevronDown size={16} className={`shrink-0 text-[var(--ink-dim)] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                   </button>
-                  <label className="flex shrink-0 cursor-pointer flex-col items-center gap-0.5 text-[9px] font-bold uppercase text-[var(--ink-muted)]" title="Compare up to 3 stocks">
+                  <label className="flex shrink-0 cursor-pointer flex-col items-center gap-0.5 text-[11px] font-bold uppercase text-[var(--ink-muted)]" title="Compare up to 3 stocks">
                     <input
                       type="checkbox"
                       checked={inCompare}
@@ -323,11 +323,11 @@ export default function StockMarketsExplorer({
                 {/* phone metrics */}
                 <div className="grid grid-cols-2 gap-2 px-3 pb-3 sm:hidden">
                   <div className="rounded-xl bg-[var(--surface-2)] px-2.5 py-1.5">
-                    <p className="text-[10px] text-[var(--ink-muted)]">Best yield</p>
+                    <p className="text-[11px] text-[var(--ink-muted)]">Best yield</p>
                     <p className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">{pct(g.bestEarn?.supplyApy)}</p>
                   </div>
                   <div className="rounded-xl bg-[var(--surface-2)] px-2.5 py-1.5">
-                    <p className="text-[10px] text-[var(--ink-muted)]">Borrow · max LTV</p>
+                    <p className="text-[11px] text-[var(--ink-muted)]">Borrow · max LTV</p>
                     <p className="font-mono text-sm font-black text-violet-600 dark:text-violet-400">
                       {pct(g.bestBorrow?.borrowApr)} {g.maxLtv ? <span className="text-[var(--ink-muted)]">· {g.maxLtv.toFixed(0)}%</span> : null}
                     </p>
@@ -448,17 +448,17 @@ function StockDetail({
           <div className="rounded-xl bg-[var(--surface)] p-2.5 text-xs">
             <p className="text-[var(--ink-muted)]">Earn per year (best yield)</p>
             <p className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400">{usd(earn)}</p>
-            <p className="text-[10px] text-[var(--ink-dim)]">{group.bestEarn ? `${pct(group.bestEarn.supplyApy)} on ${group.bestEarn.venue}` : "No earning market"}</p>
+            <p className="text-[11px] text-[var(--ink-dim)]">{group.bestEarn ? `${pct(group.bestEarn.supplyApy)} on ${group.bestEarn.venue}` : "No earning market"}</p>
           </div>
           <div className="rounded-xl bg-[var(--surface)] p-2.5 text-xs">
             <p className="text-[var(--ink-muted)]">Borrow USDC, comfortably</p>
             <p className="font-mono text-lg font-black text-violet-600 dark:text-violet-400">{cap.max ? usd(cap.safe) : "—"}</p>
-            <p className="text-[10px] text-[var(--ink-dim)]">
+            <p className="text-[11px] text-[var(--ink-dim)]">
               {cap.max ? `max ${usd(cap.max)} · ~${usd(cap.yearlyInterestOnSafe)}/yr interest` : "No borrow market"}
             </p>
           </div>
         </div>
-        <p className="mt-2 text-[10px] text-[var(--ink-dim)]">Estimates from today&apos;s rates; rates change. Borrowing at half the max keeps a wide buffer before liquidation.</p>
+        <p className="mt-2 text-[11px] text-[var(--ink-dim)]">Estimates from today&apos;s rates; rates change. Borrowing at half the max keeps a wide buffer before liquidation.</p>
       </div>
     </div>
   );
@@ -506,12 +506,12 @@ function MarketRow({
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-[var(--border-subtle)] p-2.5 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase ${KIND_STYLE[m.kind]}`}>{KIND_LABEL[m.kind]}</span>
+        <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-black uppercase ${KIND_STYLE[m.kind]}`}>{KIND_LABEL[m.kind]}</span>
         <span className="min-w-0">
           <span className="block truncate text-xs font-bold text-[var(--ink)]">
             {m.venue} · {m.kind === "borrow" ? `${m.collateralAsset?.symbol} → USDC` : m.supplyAsset.symbol}
           </span>
-          <span className="flex flex-wrap items-center gap-x-2 text-[10px] text-[var(--ink-muted)]">
+          <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-[var(--ink-muted)]">
             <span>Depth {usd(marketDepthUsd(m))}</span>
             {m.kind === "borrow" && <span>Available {usd(m.liquidityUsd)}</span>}
             {small && (
@@ -532,12 +532,12 @@ function MarketRow({
           {m.kind === "borrow" ? (
             <>
               <p className="font-mono text-sm font-black text-violet-600 dark:text-violet-400">{pct(m.borrowApr)}</p>
-              <p className="text-[10px] text-[var(--ink-muted)]">borrow · {m.maxLtv}% LTV</p>
+              <p className="text-[11px] text-[var(--ink-muted)]">borrow · {m.maxLtv}% LTV</p>
             </>
           ) : (
             <>
               <p className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">{pct(m.supplyApy)}</p>
-              <p className="text-[10px] text-[var(--ink-muted)]">APY</p>
+              <p className="text-[11px] text-[var(--ink-muted)]">APY</p>
             </>
           )}
         </div>
@@ -584,7 +584,7 @@ function MarketRow({
         </a>
       </div>
       {lpViaVault && (
-        <p className="text-[10px] text-[var(--ink-dim)] sm:hidden">
+        <p className="text-[11px] text-[var(--ink-dim)] sm:hidden">
           Deposits through the managed {stock.symbol}-USDC vault, which keeps the position in range for you.
         </p>
       )}
@@ -627,7 +627,7 @@ function ComparePanel({ groups, onClose }: { groups: StockMarketGroup[]; onClose
           <table className="w-full min-w-[420px] text-sm">
             <thead>
               <tr>
-                <th className="py-2 text-left text-[10px] font-bold uppercase text-[var(--ink-muted)]" />
+                <th className="py-2 text-left text-[11px] font-bold uppercase text-[var(--ink-muted)]" />
                 {groups.map((g) => (
                   <th key={g.symbol} className="py-2 text-center">
                     <span className="flex flex-col items-center gap-1">

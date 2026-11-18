@@ -38,7 +38,7 @@ export default function TokenWatchlistRail({
         <h3 className="text-sm font-black text-[var(--ink)]">
           {pinned ? "Pinned watchlist" : "Your watchlist"}
         </h3>
-        <span className="text-[10px] text-[var(--ink-dim)] font-mono">({watched.length})</span>
+        <span className="text-[11px] text-[var(--ink-dim)] font-mono">({watched.length})</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {watched.map((t) => (

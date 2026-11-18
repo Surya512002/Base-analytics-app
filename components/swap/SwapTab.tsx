@@ -240,7 +240,7 @@ export default function SwapTab({
             <Layers size={14} />
             <span>Orders</span>
             {limitOrders.openOrders.length > 0 && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#0052FF] text-white">
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[#0052FF] text-white">
                 {limitOrders.openOrders.length}
               </span>
             )}
@@ -258,7 +258,7 @@ export default function SwapTab({
             <Repeat size={14} />
             <span>Recurring</span>
             {limitOrders.plans.length > 0 && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-600 text-white">
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-cyan-600 text-white">
                 {limitOrders.plans.length}
               </span>
             )}
@@ -280,7 +280,7 @@ export default function SwapTab({
                 <Wallet size={15} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)]">
+                <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)]">
                   Base Portfolio
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -297,7 +297,7 @@ export default function SwapTab({
                     · {allTokens.length} assets
                   </span>
                   {unpricedTokens.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] font-medium">
+                    <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] font-medium">
                       +{unpricedTokens.length} unpriced
                     </span>
                   )}
@@ -308,7 +308,7 @@ export default function SwapTab({
             <button
               type="button"
               onClick={() => setHoldingsDrawerOpen(true)}
-              className="p-1 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition"
+              className="tap-target p-1 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition"
               aria-label="Open portfolio drawer"
             >
               <ChevronRight size={18} />

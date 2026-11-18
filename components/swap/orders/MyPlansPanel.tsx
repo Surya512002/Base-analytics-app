@@ -154,7 +154,7 @@ export default function MyPlansPanel({
                 {/* Plan details */}
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="p-2 rounded-xl bg-[var(--surface-2)]">
-                    <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+                    <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
                       Per Buy
                     </span>
                     <span className="font-semibold text-[var(--ink)] tabular-nums">
@@ -163,7 +163,7 @@ export default function MyPlansPanel({
                   </div>
 
                   <div className="p-2 rounded-xl bg-[var(--surface-2)]">
-                    <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+                    <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
                       Frequency
                     </span>
                     <span className="font-semibold text-[var(--ink)] tabular-nums">
@@ -172,7 +172,7 @@ export default function MyPlansPanel({
                   </div>
 
                   <div className="p-2 rounded-xl bg-[var(--surface-2)]">
-                    <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+                    <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
                       Price Ceiling
                     </span>
                     <span className="font-semibold text-[var(--ink)] tabular-nums">

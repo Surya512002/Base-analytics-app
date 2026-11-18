@@ -208,7 +208,7 @@ export default function DiscoveryHub({
         <div aria-live={running ? "off" : "polite"}>
           <div className="flex items-center gap-2">
             <h2 className="text-lg sm:text-xl font-black text-[var(--ink)] tracking-tight">{current.title}</h2>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-mono font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
               {current.badge}
             </span>
           </div>

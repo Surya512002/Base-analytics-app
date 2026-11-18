@@ -809,21 +809,21 @@ export default function DexSwapCard({
                   <button
                     type="button"
                     onClick={() => handleSetPct(0.25)}
-                    className="pop-pill px-1.5 py-0.5 rounded text-[10px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
+                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
                   >
                     25%
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSetPct(0.5)}
-                    className="pop-pill px-1.5 py-0.5 rounded text-[10px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
+                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
                   >
                     50%
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSetPct(-1)}
-                    className="pop-pill px-1.5 py-0.5 rounded text-[10px] bg-[var(--brand-soft)] text-[var(--brand)] border border-[var(--brand)]/20 hover:bg-[var(--brand)] hover:text-white transition-colors cursor-pointer font-black"
+                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--brand-soft)] text-[var(--brand)] border border-[var(--brand)]/20 hover:bg-[var(--brand)] hover:text-white transition-colors cursor-pointer font-black"
                   >
                     MAX
                   </button>
@@ -865,7 +865,7 @@ export default function DexSwapCard({
                   type="button"
                   aria-pressed={amount === v}
                   onClick={() => setAmount(v)}
-                  className={`cursor-pointer rounded-full border px-2.5 py-1 font-mono text-[11px] font-bold transition ${
+                  className={`tap-target cursor-pointer rounded-full border px-2.5 py-1 font-mono text-[11px] font-bold transition ${
                     amount === v
                       ? "border-[var(--brand)] bg-[var(--brand)] text-white"
                       : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--brand)]/50 hover:text-[var(--ink)]"
@@ -880,7 +880,7 @@ export default function DexSwapCard({
           <div className="mt-1 flex items-center justify-between text-xs text-[var(--ink-dim)] font-mono">
             <span>{formatUsdSide(payUsd)}</span>
             {from.kind === "token" && from.symbol.endsWith("c") && (
-              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">
                 Coinbase B20 Equity
               </span>
             )}
@@ -976,7 +976,7 @@ export default function DexSwapCard({
                 />
               )}
               {to && to.kind === "token" && to.symbol.endsWith("c") && (
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">
                   Coinbase B20 Equity{stockTradability?.status === "tradable" ? " · Tradable" : ""}
                 </span>
               )}
@@ -995,7 +995,7 @@ export default function DexSwapCard({
                 title="Click to invert exchange rate"
               >
                 <span className="font-mono">{exchangeRateString}</span>
-                <span className="text-[10px] text-[var(--ink-dim)]">⇅</span>
+                <span className="text-[11px] text-[var(--ink-dim)]">⇅</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -1013,7 +1013,7 @@ export default function DexSwapCard({
                 >
                   <Settings2 size={12} />
                   <span>Advanced</span>
-                  <span className="text-[10px] text-[var(--brand)] font-mono ml-0.5">{slippage}%</span>
+                  <span className="text-[11px] text-[var(--brand)] font-mono ml-0.5">{slippage}%</span>
                   <ChevronDown
                     size={12}
                     className={`transition-transform duration-200 ml-0.5 ${showAdvanced ? "rotate-180" : ""}`}
@@ -1064,7 +1064,7 @@ export default function DexSwapCard({
                           }}
                           className="w-full py-1 px-2.5 text-center rounded-xl text-xs font-bold border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand)]"
                         />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--ink-dim)] pointer-events-none">
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-[var(--ink-dim)] pointer-events-none">
                           %
                         </span>
                       </div>
@@ -1135,14 +1135,14 @@ export default function DexSwapCard({
                         {isLaunchedToken ? (
                           <>
                             <span>0.50%</span>
-                            <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
+                            <span className="text-[11px] text-[var(--ink-muted)] ml-1 font-normal">
                               (0.25% Creator + 0.25% Platform)
                             </span>
                           </>
                         ) : (
                           <>
                             <span className="text-emerald-600 dark:text-emerald-400">0.25%</span>
-                            <span className="text-[10px] text-[var(--ink-muted)] ml-1 font-normal">
+                            <span className="text-[11px] text-[var(--ink-muted)] ml-1 font-normal">
                               (Lowest on Base)
                             </span>
                           </>
@@ -1304,7 +1304,7 @@ export default function DexSwapCard({
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs">{tradeSafety.title}</span>
                   <span
-                    className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded-full border ${tradeSafety.badgeColorClass}`}
+                    className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full border ${tradeSafety.badgeColorClass}`}
                   >
                     {tradeSafety.badgeLabel}
                   </span>

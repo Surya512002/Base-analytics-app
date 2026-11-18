@@ -572,7 +572,7 @@ export default function TokenLaunchForm({
                         >
                           {s.title}
                         </p>
-                        <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">{s.subtitle}</p>
+                        <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">{s.subtitle}</p>
                       </div>
                     </button>
 

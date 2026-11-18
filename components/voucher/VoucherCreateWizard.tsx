@@ -367,7 +367,7 @@ export default function VoucherCreateWizard({
                     <div className="flex items-center gap-2">
                       <span className="font-black text-sm text-[var(--ink)]">{asset}</span>
                       {vaultInfo && (
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                           +{vaultInfo.apy}% APY
                         </span>
                       )}
@@ -446,7 +446,7 @@ export default function VoucherCreateWizard({
                   <button
                     type="button"
                     onClick={() => setTotalAmount(String(currentAssetBalance))}
-                    className="pop-pill text-[10px] font-black uppercase text-[var(--brand-text)] bg-[var(--brand-soft)] px-2 py-0.5 rounded hover:bg-[var(--brand-soft)] transition cursor-pointer"
+                    className="pop-pill text-[11px] font-black uppercase text-[var(--brand-text)] bg-[var(--brand-soft)] px-2 py-0.5 rounded hover:bg-[var(--brand-soft)] transition cursor-pointer"
                   >
                     Use Max
                   </button>
@@ -532,7 +532,7 @@ export default function VoucherCreateWizard({
                     <button
                       type="button"
                       onClick={() => setTotalAmount(String(currentAssetBalance))}
-                      className="text-[10px] font-black uppercase text-[var(--brand-text)] hover:underline"
+                      className="text-[11px] font-black uppercase text-[var(--brand-text)] hover:underline"
                     >
                       Max: {currentAssetBalance.toFixed(4)}
                     </button>
@@ -689,7 +689,7 @@ export default function VoucherCreateWizard({
                   <button
                     type="button"
                     onClick={() => setTotalAmount(String(currentAssetBalance))}
-                    className="pop-pill text-[10px] font-black uppercase text-red-700 dark:text-red-300 bg-red-500/20 px-2 py-0.5 rounded hover:bg-red-500/30 transition shrink-0 cursor-pointer"
+                    className="pop-pill text-[11px] font-black uppercase text-red-700 dark:text-red-300 bg-red-500/20 px-2 py-0.5 rounded hover:bg-red-500/30 transition shrink-0 cursor-pointer"
                   >
                     Set Max
                   </button>
@@ -749,7 +749,7 @@ export default function VoucherCreateWizard({
                         <p className="text-xs font-black text-[var(--ink)] truncate">
                           {tmpl.label}
                         </p>
-                        <p className="text-[10px] text-[var(--ink-muted)] truncate">
+                        <p className="text-[11px] text-[var(--ink-muted)] truncate">
                           {tmpl.message}
                         </p>
                       </div>
@@ -794,7 +794,7 @@ export default function VoucherCreateWizard({
                   <label className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">
                     Gift Message (Optional)
                   </label>
-                  <span className="text-[10px] text-[var(--ink-muted)] font-mono">
+                  <span className="text-[11px] text-[var(--ink-muted)] font-mono">
                     {message.length} / 280
                   </span>
                 </div>
@@ -1000,7 +1000,7 @@ export default function VoucherCreateWizard({
                       <button
                         type="button"
                         onClick={cancelPendingCreate}
-                        className="text-[10px] font-bold uppercase text-[var(--ink-muted)] hover:text-red-500 shrink-0"
+                        className="text-[11px] font-bold uppercase text-[var(--ink-muted)] hover:text-red-500 shrink-0"
                       >
                         Cancel
                       </button>

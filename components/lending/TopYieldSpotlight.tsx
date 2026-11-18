@@ -180,7 +180,7 @@ export default function TopYieldSpotlight({
         <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--border-subtle)]">
           {/* Rate Metric */}
           <div className="px-3.5 py-2 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-left sm:text-right">
-            <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] sm:justify-end">
+            <div className="flex items-center gap-1 text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)] sm:justify-end">
               <Flame size={12} className="text-amber-500 shrink-0" />
               <span>{rateLabel}</span>
             </div>
@@ -192,7 +192,7 @@ export default function TopYieldSpotlight({
           {/* TVL Metric (Tablet/Desktop) */}
           {bestOption.tvlUsd && (
             <div className="hidden sm:block px-3.5 py-2 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-right">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] block">
+              <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)] block">
                 Pool TVL
               </span>
               <span className="text-sm font-bold font-mono text-[var(--ink)] tabular-nums">
