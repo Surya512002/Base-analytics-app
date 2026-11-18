@@ -19,6 +19,7 @@ async function deploy() {
   const book = await (await ethers.getContractFactory("LimitOrderBook")).deploy(usdc.target, owner.address, 10);
 
   await book.setMarket(stock.target, feed.target, 3600, adapter.target, STOCK(1000), USDC(100000), 500, true);
+  await book.setKeeper(keeper.address, true);
 
   // adapter inventory + user balances
   await stock.mint(adapter.target, STOCK(1_000_000));
@@ -260,7 +261,7 @@ describe("LimitOrderBook", () => {
     it("restricts admin functions and caps the keeper fee", async () => {
       const { book, alice, owner } = await loadFixture(deploy);
       await expect(book.connect(alice).setKeeperFeeBps(5)).to.be.revertedWithCustomError(book, "OwnableUnauthorizedAccount");
-      await expect(book.connect(alice).pause()).to.be.revertedWithCustomError(book, "OwnableUnauthorizedAccount");
+      await expect(book.connect(alice).pause()).to.be.revertedWithCustomError(book, "NotGuardian");
       await expect(book.connect(owner).setKeeperFeeBps(101)).to.be.revertedWithCustomError(book, "FeeTooHigh");
       await book.connect(owner).setKeeperFeeBps(0);
       expect(await book.keeperFeeBps()).to.equal(0);
@@ -279,11 +280,12 @@ describe("LimitOrderBook", () => {
   describe("UniswapV3Adapter integration (mock router)", () => {
     async function adapterFixture() {
       const base = await deploy();
-      const { owner, stock, usdc, feed } = base;
+      const { owner, keeper, stock, usdc, feed } = base;
       const router = await (await ethers.getContractFactory("MockRouter02")).deploy();
       const book2 = await (await ethers.getContractFactory("LimitOrderBook")).deploy(usdc.target, owner.address, 10);
       const adapter = await (await ethers.getContractFactory("UniswapV3Adapter")).deploy(book2.target, router.target, owner.address);
       await book2.setMarket(stock.target, feed.target, 3600, adapter.target, STOCK(1000), USDC(100000), 500, true);
+      await book2.setKeeper(keeper.address, true);
       await usdc.mint(router.target, USDC(1_000_000));
       await stock.mint(router.target, STOCK(1_000_000));
       for (const u of [base.alice]) {
@@ -655,7 +657,11 @@ describe("v2: recurring buys (DCA)", () => {
     const { book, owner, alice, keeper, stock, usdc, feed } = await loadFixture(deploy);
     const loose = await (await ethers.getContractFactory("MockLooseAdapter")).deploy();
     await stock.mint(loose.target, STOCK(1_000_000));
-    await book.connect(owner).setMarket(stock.target, feed.target, 3600, loose.target, STOCK(1000), USDC(100000), 500, true);
+    // Swapping the adapter on a live market is a risk change: it must go through the timelock.
+    await book.connect(owner).queueRiskChange(stock.target, feed.target, loose.target, 3600, 500);
+    await time.increase(2 * DAY + 1);
+    await feed.setAnswer(P(100));
+    await book.connect(owner).applyRiskChange(stock.target);
     await loose.setRate(10n ** 20n, P(130)); // pays ~23% too little stock
     await book.connect(alice).createDca(stock.target, USDC(100), 5, 3600, 0);
     await expect(book.connect(keeper).executeDca(1)).to.be.revertedWithCustomError(book, "FillBelowOracleBound");

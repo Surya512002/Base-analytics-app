@@ -79,7 +79,8 @@ export const CRYPTO_MAX_STALENESS_SECONDS = 3600;
  * Per-order caps, Stage 1 ("Beta"). These are deploy-time defaults: the contract enforces its own on-chain caps
  * (set by the owner via setMarket) and the UI reads the live on-chain values. Caps are sized from measured
  * Uniswap depth (limit-orders/scripts/recommend-caps.mjs), not guessed; stock pools are thin, so their caps
- * are liquidity-limited. See docs/ORDER-CAPS.md for the staged rollout (Stage 2 is gated on an external audit).
+ * are liquidity-limited. Total value at risk per market is bounded separately by the contract's escrow ceilings
+ * (setEscrowCaps). See docs/ORDER-CAPS.md for the staged rollout.
  */
 
 /** Verified markets on Base Mainnet (Chain ID 8453) with active single-hop Uniswap V3 USDC pools */
@@ -94,8 +95,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x60661b315553EB81872deEA9a66d567Cf0CCd33B
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 300_000_000n, // 3.0 NVDAc (~$486 cap, Stage 1)
-    maxQuoteIn: 500_000_000n, // $500 USDC
+    maxStockIn: 600_000_000n, // 6.0 NVDAc (~$973 cap, deepest stock pool)
+    maxQuoteIn: 1_000_000_000n, // $1,000 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/1fee9b7a44e800d438dd9d96c3283e05784c925c2c871a48ff735950740b551a.png",
   },
@@ -157,9 +158,9 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 WETH/USDC 0.3% pool 0x6c561B446416E1A00E8E93E221854d6eA4171372 (~$127M liquidity)
     poolFee: 3000,
     maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
-    maxDeviationBps: 200,
-    maxStockIn: 550_000_000_000_000_000n, // 0.55 WETH (~$1,000 cap, Stage 1)
-    maxQuoteIn: 1_000_000_000n, // $1,000 USDC
+    maxDeviationBps: 150,
+    maxStockIn: 13_500_000_000_000_000_000n, // 13.5 WETH (~$24.5k cap; pool cost is flat to $100k)
+    maxQuoteIn: 25_000_000_000n, // $25,000 USDC
     category: "Crypto",
     logo: "https://assets.coingecko.com/coins/images/2518/small/weth.png",
   },
@@ -174,9 +175,9 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 cbBTC/USDC 0.05% pool 0xfBB6Eed8e7aa03B138556eeDaF5D271A5E1e43ef (~$7.7M liquidity)
     poolFee: 500,
     maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
-    maxDeviationBps: 200,
-    maxStockIn: 1_500_000n, // 0.015 cbBTC (~$970 cap, Stage 1)
-    maxQuoteIn: 1_000_000_000n, // $1,000 USDC
+    maxDeviationBps: 100,
+    maxStockIn: 38_000_000n, // 0.38 cbBTC (~$24.6k cap; ~22 bp all-in at $25k)
+    maxQuoteIn: 25_000_000_000n, // $25,000 USDC
     category: "Crypto",
   },
 ];

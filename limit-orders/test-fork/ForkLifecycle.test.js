@@ -45,6 +45,8 @@ describe("Base Mainnet Fork, MOCKED stock tokens", function () {
     const BookFactory = await ethers.getContractFactory("LimitOrderBook");
     book = await BookFactory.deploy(deployConfig.quoteToken, deployer.address, deployConfig.keeperFeeBps);
     await book.waitForDeployment();
+    await (await book.setKeeper(keeper.address, true)).wait();
+    await (await book.setSequencerUptimeFeed(deployConfig.sequencerUptimeFeed)).wait();
 
     const AdapterFactory = await ethers.getContractFactory("UniswapV3Adapter");
     adapter = await AdapterFactory.deploy(book.target, ROUTER_ADDRESS, deployer.address);

@@ -73,3 +73,65 @@ export const GOAL_PRESETS: Record<SimpleGoal, number[]> = {
   "stop-loss": [-3, -5, -10, -15],
   protect: [5, 10, 20],
 };
+
+export type PlanSchedule = {
+  /** Unix seconds of each run. The first run is immediate (the keeper executes it as soon as it sees the plan). */
+  runs: number[];
+  lastRun: number;
+  durationSec: number;
+};
+
+/** Run times of a recurring plan, starting at `startSec`. */
+export function planSchedule(startSec: number, runs: number, intervalSec: number): PlanSchedule {
+  const n = Math.max(0, Math.floor(runs));
+  const list = Array.from({ length: n }, (_, i) => startSec + i * intervalSec);
+  return { runs: list, lastRun: list.length ? list[list.length - 1] : startSec, durationSec: Math.max(0, (n - 1) * intervalSec) };
+}
+
+export function formatDuration(sec: number): string {
+  if (sec <= 0) return "right away";
+  if (sec < 86_400) return `${Math.round(sec / 3600)} hour${Math.round(sec / 3600) === 1 ? "" : "s"}`;
+  const d = sec / 86_400;
+  if (d < 14) return `${Math.round(d)} day${Math.round(d) === 1 ? "" : "s"}`;
+  if (d < 90) return `${Math.round(d / 7)} weeks`;
+  return `${Math.round(d / 30)} months`;
+}
+
+export const FREQUENCIES = [
+  { label: "Hourly", seconds: 3_600 },
+  { label: "Daily", seconds: 86_400 },
+  { label: "Weekly", seconds: 604_800 },
+  { label: "Every 2 weeks", seconds: 1_209_600 },
+  { label: "Monthly", seconds: 2_592_000 },
+] as const;
+
+/** Percent offsets from the current price, evenly spaced from `startPct` to `endPct` inclusive. */
+export function ladderOffsets(startPct: number, endPct: number, n: number): number[] {
+  const count = Math.floor(n);
+  if (count < 1) return [];
+  if (count === 1) return [startPct];
+  return Array.from({ length: count }, (_, i) => Math.round((startPct + ((endPct - startPct) * i) / (count - 1)) * 100) / 100);
+}
+
+/** Split `total` into `n` parts; the remainder goes to the first part so the parts always sum to `total`. */
+export function splitEvenly(total: bigint, n: number): bigint[] {
+  const count = Math.floor(n);
+  if (count < 1 || total <= 0n) return [];
+  const base = total / BigInt(count);
+  const parts = Array.from({ length: count }, () => base);
+  parts[0] += total - base * BigInt(count);
+  return parts;
+}
+
+export const LADDER_RANGES = {
+  buy: [
+    { label: "Tight", start: -1, end: -5 },
+    { label: "Medium", start: -2, end: -10 },
+    { label: "Wide", start: -5, end: -20 },
+  ],
+  sell: [
+    { label: "Tight", start: 1, end: 5 },
+    { label: "Medium", start: 2, end: 10 },
+    { label: "Wide", start: 5, end: 20 },
+  ],
+} as const;

@@ -1,61 +1,66 @@
 # Order caps: why they exist and how they grow
 
-Every market in `LimitOrderBook` has a **per-order cap** (`maxStockIn`, `maxQuoteIn`) that the contract enforces on-chain. Caps are set by the owner (a multisig on mainnet) through `setMarket()`, and the app reads the live on-chain value, so raising a cap never needs an app release.
+Every market in `LimitOrderBook` has two kinds of limit, both enforced on-chain and both owner-settable through the multisig:
+
+| Limit | What it bounds | Set with |
+|---|---|---|
+| **Per-order cap** (`maxStockIn`, `maxQuoteIn`) | One order or one recurring plan | `setMarket()` |
+| **Escrow ceiling** (`maxStockEscrow`, `maxQuoteEscrow`) | Total value deposited in a market, across all users (v2.1) | `setEscrowCaps()` |
+
+The app reads the live on-chain values, so raising a limit never needs an app release.
 
 ## Why the first caps were ~$100
 
-1. **No external audit yet.** The contract has unit, parity and fork tests, but no third-party audit. Per-order caps bound the loss from an undiscovered bug.
-2. **No global escrow limit.** The contract caps each order, not total deposits, so a cap is the only lever on exposure per user action.
-3. **Thin stock liquidity.** Tokenized-stock pools on Base are small. A fill that is bigger than the pool can absorb is *refused* by the oracle fill-floor (`FillBelowOracleBound`), so the order sits unfilled instead of filling at a bad price. A bigger cap on a thin pool would only create orders that cannot execute.
+1. **No external audit yet.** Caps bound the loss from an undiscovered bug.
+2. **No total limit.** Until v2.1 only each order was capped, so total exposure was unbounded.
+3. **Thin stock liquidity.** A fill bigger than the pool can absorb is *refused* by the oracle fill-floor (`FillBelowOracleBound`); the order just waits. A bigger cap on a thin pool creates orders that cannot fill.
 
-## What the data says (live Base mainnet quotes)
+## What live Base mainnet quotes say
 
-`scripts/recommend-caps.mjs` quotes buy and sell ladders through Uniswap V3 QuoterV2 and compares every fill with the Chainlink price. Shortfall includes the pool fee. Run it any time: `node scripts/recommend-caps.mjs`.
+`limit-orders/scripts/recommend-caps.mjs` quotes buy and sell ladders through Uniswap V3 QuoterV2 and compares each fill with the Chainlink price (shortfall includes the pool fee).
 
-| Market | $100 | $500 | $1,000 | $5,000 | Binding limit |
-|---|---|---|---|---|---|
-| NVDAc | ~0.38% | ~0.54% | ~0.76% | 2.3% | pool depth |
-| AAPLc | ~0.52% | 3.1% (buy) | 19% (buy) | 83% (buy) | pool depth (buy side) |
-| MSFTc | ~1.4% | 2.7% | 4.3% | 43% | 1% fee tier + depth |
-| GOOGLc | ~0.64% | 2.2% (sell) | 4.9% (sell) | 70% (sell) | pool depth (sell side) |
-| WETH | ~0.5% flat | ~0.5% flat | ~0.5% flat | ~0.5% flat | none up to $100k |
-| cbBTC | ~0.14% | ~0.15% | ~0.15% | ~0.16% | none up to $25k |
+| Market | $100 | $500 | $1,000 | $5,000 | $25,000 | Binding limit |
+|---|---|---|---|---|---|---|
+| NVDAc | 0.38% | 0.54% | 0.76% | 2.3% | 30% | pool depth |
+| AAPLc | 0.52% | 3.1% (buy) | 19% (buy) | 83% | 97% | pool depth (buy side) |
+| MSFTc | 1.4% | 2.7% | 4.3% | 43% | 89% | 1% fee tier + depth |
+| GOOGLc | 0.64% | 2.2% (sell) | 4.9% (sell) | 70% | 94% | pool depth (sell side) |
+| WETH | ~0.5% flat | ~0.5% | ~0.5% | ~0.5% | ~0.53% | none up to $100k |
+| cbBTC | 0.14% | 0.15% | 0.15% | 0.16% | 0.22% | none up to $25k |
 
-Take-away: **crypto markets can support far larger orders; stock markets cannot**, no matter what the contract allows.
+**Crypto markets can take far larger orders; stock markets cannot**, whatever the contract allows. WETH's ~0.5% is the 0.3% pool fee plus a small oracle basis, and does not grow with size.
 
-## Stage 1 caps (this release, "Beta")
+## Current caps
 
-Rule: the largest ladder size whose extra shortfall (beyond the pool fee and oracle basis seen at $100) stays under 25 bp, with a $1,000 ceiling for crypto until the audit.
+| Market | Per-order cap | Escrow ceiling (stock / USDC) | Why |
+|---|---|---|---|
+| WETH | **$25,000** | ~$100k / $100k | cost flat to $100k |
+| cbBTC | **$25,000** | ~$97k / $100k | 0.22% all-in at $25k |
+| NVDAc | **$1,000** | ~$4.9k / $5k | deepest stock pool: 0.76% all-in at $1k, inside its 3% oracle bound |
+| AAPLc | $250 | ~$2.9k / $2.5k | buy side breaks at $500 (3.1% > 3% bound) |
+| MSFTc | $100 | ~$1k / $1k | 1% fee tier, already 1.4% at $100 |
+| GOOGLc | $100 | ~$1k / $1k | sell side shallow |
 
-| Market | Per-order cap | Change |
-|---|---|---|
-| NVDAc | $500 | raised from ~$188 |
-| AAPLc | $250 | raised from ~$171 |
-| MSFTc | $100 | lowered from ~$133 (pool cannot fill more safely) |
-| GOOGLc | $100 | lowered from ~$143 (sell side too shallow) |
-| WETH | $1,000 | new market |
-| cbBTC | $1,000 | new market |
+Per-order caps for AAPLc, MSFTc and GOOGLc are set by pool depth, not policy: raise them only when liquidity grows. Re-run `recommend-caps.mjs` first.
 
-Token-unit caps drift with price. Run `BOOK_ADDRESS=0x… node scripts/plan-cap-update.mjs --refresh-from-oracle` to print Safe-ready `setMarket` calldata that re-derives them.
+**Why the escrow ceiling is the real safety valve.** A $25,000 per-order cap alone would let many orders stack up. The ceiling caps the total at risk per market, so the worst case of a contract bug or a bad feed is bounded (about $100k per crypto market) no matter how many orders users place.
 
-## Stage 2 (gated)
+Token-unit caps drift with price. `BOOK_ADDRESS=0x… node scripts/plan-cap-update.mjs --refresh-from-oracle` prints Safe-ready `setMarket` and `setEscrowCaps` calldata. It refuses a quote cap above $25,000, and refuses to run for any market without escrow ceilings in `deployConfig.json`.
 
-Raise crypto to $5,000 (and later by liquidity) only after **all** of:
+## Honest risk statement
 
-- [ ] Mainnet canary runbook (`docs/MAINNET-CANARY.md`) passes on every market
-- [ ] 30 days of keeper uptime with no failed fills or stuck escrow
-- [ ] External smart-contract audit complete, findings fixed
-- [ ] Global per-market escrow ceiling added to the contract (see below)
+The order book is **not externally audited**. v2.1 adds: total escrow ceilings, a pause-only guardian key, and 94 passing tests including new accounting tests (escrow released exactly once for fills, cancels, expiry, brackets; saturating so accounting can never block a withdrawal). Before holding real value:
 
-`plan-cap-update.mjs` refuses any quote cap above `$5,000` without a code change, so a typo cannot skip the gate.
+- [ ] External audit of `LimitOrderBook.sol` and `UniswapV3Adapter.sol`
+- [ ] Run `docs/MAINNET-CANARY.md` on every market (including recurring sells and escrow ceilings)
+- [ ] Deploy with a multisig owner and set a **guardian** (`setGuardian`) on a separate hot key
+- [ ] Start with the ceilings at 10% of the table above and step up weekly
+- [ ] Keeper monitoring: failed fills, stale feeds, escrow vs token balances (`stockEscrowed` / `quoteEscrowed`)
 
-## Recommended contract hardening before large caps
+## Remaining hardening (not done)
 
-These need a Solidity change and redeploy (the book is not on mainnet yet, so now is the cheapest time):
-
-1. **`maxMarketEscrow`**: a cap on total deposited value per market, so total exposure is bounded, not only per order.
-2. **Per-user open-order limit**: stops one wallet from multiplying the per-order cap.
-3. **Oracle circuit breaker**: refuse execution if the Chainlink price moved more than X% since the previous round (guards against a bad feed update).
-4. **Guardian role**: allow a separate key to `pause()` only (never move funds), so an incident can be stopped faster than a multisig can sign.
+1. **Per-user open-order limit.** Needs careful open-count tracking across bracket siblings. The escrow ceiling already bounds the total, so this is lower priority.
+2. **Oracle circuit breaker.** Refuse execution if the Chainlink price jumped more than X% between rounds.
+3. **Timelock on limit increases** (`setMarket` caps / `setEscrowCaps`). Feed, adapter and oracle-bound changes are already timelocked (2 days); see docs/SECURITY-REVIEW-ORDERBOOK.md.
 
 Users can always cancel and withdraw, even while paused. That invariant must not change.

@@ -64,6 +64,7 @@ export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUs
     approveToken,
     placeOrder,
     placeBracket,
+    placeBuyWithExits,
   } = limitOrders;
 
   const [goal, setGoal] = useState<SimpleGoal>("buy-dip");
@@ -72,6 +73,10 @@ export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUs
   const [customPct, setCustomPct] = useState("");
   const [slPct, setSlPct] = useState<number>(-5); // protect goal: loss limit
   const [expiry, setExpiry] = useState(EXPIRIES[1].seconds);
+  // Buy the dip: optionally protect the tokens the moment the buy fills
+  const [protectAfterBuy, setProtectAfterBuy] = useState(false);
+  const [afterTpPct, setAfterTpPct] = useState(10);
+  const [afterSlPct, setAfterSlPct] = useState(-5);
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
@@ -167,9 +172,27 @@ export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUs
     setAmountInput(formatUnits(part > cap ? cap : part, inDec));
   };
 
+  const afterTp = goal === "buy-dip" && protectAfterBuy && trigger != null ? movePrice(trigger, afterTpPct) : null;
+  const afterSl = goal === "buy-dip" && protectAfterBuy && trigger != null ? movePrice(trigger, afterSlPct) : null;
+
   const submit = async () => {
     if (error || !amountIn || !market || trigger == null) return;
     const stockToken = market.stockToken as Address;
+    if (goal === "buy-dip" && protectAfterBuy && afterTp && afterSl) {
+      const hash = await placeBuyWithExits({
+        stockToken,
+        amountIn,
+        triggerPrice: trigger,
+        minAmountOut: minMain,
+        expiry: targetExpiry,
+        takeProfitPrice: afterTp,
+        stopLossPrice: afterSl,
+        exitSlippageBps: 200,
+        exitDurationSec: 30 * 86_400,
+      });
+      if (hash) setAmountInput("");
+      return;
+    }
     if (goal === "protect") {
       if (stopTrigger == null) return;
       const hash = await placeBracket({
@@ -317,6 +340,43 @@ export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUs
           </p>
         )}
       </div>
+
+      {goal === "buy-dip" && (
+        <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
+          <label className="flex cursor-pointer items-center justify-between gap-3">
+            <span>
+              <span className="block text-xs font-bold text-[var(--ink)]">Protect it after buying</span>
+              <span className="block text-[11px] text-[var(--ink-muted)]">When the buy fills, a take-profit and stop-loss are set on what you bought, automatically.</span>
+            </span>
+            <input type="checkbox" checked={protectAfterBuy} onChange={(e) => setProtectAfterBuy(e.target.checked)} className="h-5 w-5 shrink-0 accent-[var(--brand)]" />
+          </label>
+          {protectAfterBuy && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-muted)]">Take profit</span>
+                <div className="flex gap-1">
+                  {[5, 10, 20].map((p) => (
+                    <button key={p} type="button" aria-pressed={afterTpPct === p} onClick={() => setAfterTpPct(p)} className={`min-h-[32px] flex-1 rounded-lg text-[11px] font-bold ${afterTpPct === p ? "bg-green-600 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)]"}`}>+{p}%</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-muted)]">Stop loss</span>
+                <div className="flex gap-1">
+                  {[-3, -5, -10].map((p) => (
+                    <button key={p} type="button" aria-pressed={afterSlPct === p} onClick={() => setAfterSlPct(p)} className={`min-h-[32px] flex-1 rounded-lg text-[11px] font-bold ${afterSlPct === p ? "bg-red-600 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)]"}`}>{p}%</button>
+                  ))}
+                </div>
+              </div>
+              {afterTp && afterSl && (
+                <p className="col-span-2 text-[11px] text-[var(--ink-muted)]">
+                  From your buy price: sell at <b className="text-[var(--ink)]">${formatPrice(priceToNumber(afterTp) ?? 0)}</b> for profit, or at <b className="text-[var(--ink)]">${formatPrice(priceToNumber(afterSl) ?? 0)}</b> to limit loss. Open for 30 days after the buy.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {goal === "protect" && (
         <div className="space-y-1.5">

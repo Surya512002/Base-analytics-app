@@ -9,6 +9,8 @@ import {
   buildCancelOrderCall,
   buildRefundExpiredCall,
   buildCreateDcaCall,
+  buildCreateDcaSellCall,
+  buildCreateLimitBuyWithExitsCall,
   buildCancelDcaCall,
   assertAllowedLimitOrderTx,
   ALLOWED_ORDERBOOK_SELECTORS,
@@ -145,7 +147,7 @@ describe("K5: Hardened Allowlist Guard (assertAllowedLimitOrderTx)", () => {
     });
   });
 
-  describe("Enforce exact 8 OrderBook selectors", () => {
+  describe("Enforce exact 10 OrderBook selectors", () => {
     it("permits buildCreateOrderCall (0xcbc5d25b)", () => {
       const tx = buildCreateOrderCall({
         orderBook: dummyOrderBook,
@@ -222,6 +224,36 @@ describe("K5: Hardened Allowlist Guard (assertAllowedLimitOrderTx)", () => {
       });
       expect(() => assertAllowedLimitOrderTx(tx, mockConfig)).not.toThrow();
       expect(tx.data.slice(0, 10).toLowerCase()).toBe("0xb42f3f7d");
+    });
+
+    it("permits buildCreateDcaSellCall (0x3d8eb5a0)", () => {
+      const tx = buildCreateDcaSellCall({
+        orderBook: dummyOrderBook,
+        stockToken: dummyStock,
+        amountPerSell: 100000000n,
+        sells: 4,
+        interval: 86400,
+        minPrice: 15000000000n,
+      });
+      expect(() => assertAllowedLimitOrderTx(tx, mockConfig)).not.toThrow();
+      expect(tx.data.slice(0, 10).toLowerCase()).toBe("0x3d8eb5a0");
+    });
+
+    it("permits buildCreateLimitBuyWithExitsCall (0x065ce454)", () => {
+      const tx = buildCreateLimitBuyWithExitsCall({
+        orderBook: dummyOrderBook,
+        stockToken: dummyStock,
+        amountIn: 100000000n,
+        triggerPrice: 9000000000n,
+        minAmountOut: 1n,
+        expiry: 1800000000,
+        takeProfitPrice: 11000000000n,
+        stopLossPrice: 8000000000n,
+        exitSlippageBps: 200,
+        exitDurationSec: 604800,
+      });
+      expect(() => assertAllowedLimitOrderTx(tx, mockConfig)).not.toThrow();
+      expect(tx.data.slice(0, 10).toLowerCase()).toBe("0x065ce454");
     });
 
     it("permits buildCancelDcaCall (0x55938f6f)", () => {

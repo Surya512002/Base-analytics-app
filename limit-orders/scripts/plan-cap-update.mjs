@@ -32,14 +32,19 @@ const client = createPublicClient({ chain: base, transport: http(RPC_URL) });
 const bookAbi = parseAbi([
   "function owner() view returns (address)",
   "function markets(address) view returns (address feed,uint8 feedDecimals,uint8 stockDecimals,bool enabled,uint32 maxStaleness,uint16 maxDeviationBps,address adapter,uint128 maxStockIn,uint128 maxQuoteIn)",
+  "function maxStockEscrow(address) view returns (uint128)",
+  "function maxQuoteEscrow(address) view returns (uint128)",
+  "function setEscrowCaps(address stockToken,uint128 maxStock,uint128 maxQuote)",
   "function setMarket(address stockToken,address feed,uint32 maxStaleness,address adapter,uint128 maxStockIn,uint128 maxQuoteIn,uint16 maxDeviationBps,bool enabled)",
 ]);
 const feedAbi = parseAbi(["function latestRoundData() view returns (uint80,int256,uint256,uint256,uint80)"]);
 
 /** Hard ceiling per order until an external audit is complete (USD, 6-dec USDC units). Raise only with sign-off. */
-const PRE_AUDIT_CEILING_QUOTE = 5_000_000_000n; // $5,000
+const PRE_AUDIT_CEILING_QUOTE = 25_000_000_000n; // $25,000 per order, only with escrow ceilings in place
 
-const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, "../config/deployConfig.json"), "utf8"));
+const cfgPath = process.env.DEPLOY_CONFIG ? path.resolve(process.env.DEPLOY_CONFIG) : path.join(__dirname, "../config/deployConfig.json");
+console.log(`Comparing against ${cfgPath}`);
+const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
 const book = getAddress(BOOK);
 
 console.log(`LimitOrderBook ${book}\nowner ${await client.readContract({ address: book, abi: bookAbi, functionName: "owner" })}\n`);
@@ -57,6 +62,7 @@ for (const m of cfg.markets) {
   let wantQuote = BigInt(m.maxQuoteIn);
   let wantStock = BigInt(m.maxStockIn);
   if (wantQuote > PRE_AUDIT_CEILING_QUOTE) throw new Error(`${m.symbol}: maxQuoteIn exceeds the pre-audit ceiling`);
+  if (m.maxQuoteEscrow === undefined || m.maxStockEscrow === undefined) throw new Error(`${m.symbol}: set maxStockEscrow and maxQuoteEscrow (total value at risk) before raising caps`);
   if (refresh) {
     const round = await client.readContract({ address: feed, abi: feedAbi, functionName: "latestRoundData" });
     const price = Number(round[1]) / 10 ** feedDec;
@@ -69,6 +75,17 @@ for (const m of cfg.markets) {
   console.log(
     `${m.symbol}: stock cap ${fmt(liveStock, stockDec)} -> ${fmt(wantStock, stockDec)} | quote cap $${fmt(liveQuote, 6)} -> $${fmt(wantQuote, 6)} | deviation ${maxDev} -> ${m.maxDeviationBps}bp | staleness ${maxStaleness} -> ${m.maxStaleness}s ${same ? "(no change)" : ""}`
   );
+  const [liveEscStock, liveEscQuote] = await Promise.all([
+    client.readContract({ address: book, abi: bookAbi, functionName: "maxStockEscrow", args: [token] }),
+    client.readContract({ address: book, abi: bookAbi, functionName: "maxQuoteEscrow", args: [token] }),
+  ]);
+  const wantEscStock = BigInt(m.maxStockEscrow);
+  const wantEscQuote = BigInt(m.maxQuoteEscrow);
+  if (liveEscStock !== wantEscStock || liveEscQuote !== wantEscQuote) {
+    changes++;
+    console.log(`  escrow ceilings: stock ${fmt(liveEscStock, stockDec)} -> ${fmt(wantEscStock, stockDec)} | quote ${fmt(liveEscQuote, 6)} -> ${fmt(wantEscQuote, 6)}`);
+    console.log(`  Safe tx -> to: ${book}  value: 0\n  data: ${encodeFunctionData({ abi: bookAbi, functionName: "setEscrowCaps", args: [token, wantEscStock, wantEscQuote] })}\n`);
+  }
   if (same) continue;
   changes++;
   const data = encodeFunctionData({
@@ -78,4 +95,4 @@ for (const m of cfg.markets) {
   });
   console.log(`  Safe tx -> to: ${book}  value: 0\n  data: ${data}\n`);
 }
-console.log(changes ? `${changes} market(s) need a setMarket transaction from the owner.` : "On-chain caps already match config.");
+console.log(changes ? `${changes} transaction(s) needed from the owner.` : "On-chain caps already match config.");

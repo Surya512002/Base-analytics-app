@@ -26,8 +26,12 @@ export interface OnChainPlan {
   interval: number;
   nextTime: number;
   stockToken: Address;
+  /** Buy plans: price ceiling. Sell plans: price floor. 0 = none. */
   maxPrice: bigint;
+  /** Buy plans: quote per run. Sell plans: stock per run. */
   amountPerBuy: bigint;
+  /** True for recurring sells (older deployments without sell support always report false). */
+  isSell: boolean;
 }
 
 export interface SingleOrderDisplay {

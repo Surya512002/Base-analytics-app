@@ -34,6 +34,24 @@ export const orderBookAbi = parseAbi([
   "function createDca(address stockToken, uint128 amountPerBuy, uint16 buys, uint32 interval, uint96 maxPrice) returns (uint256 id)",
   "function executeDca(uint256 id) returns (uint256 stockToOwner)",
   "function cancelDca(uint256 id)",
+  // recurring sells + v2.1 safety views
+  "function createDcaSell(address stockToken, uint128 amountPerSell, uint16 sells, uint32 interval, uint96 minPrice) returns (uint256 id)",
+  "function isSellPlan(uint256 planId) view returns (bool)",
+  "function stockEscrowed(address stockToken) view returns (uint256)",
+  "function quoteEscrowed(address stockToken) view returns (uint256)",
+  "function maxStockEscrow(address stockToken) view returns (uint128)",
+  "function maxQuoteEscrow(address stockToken) view returns (uint128)",
+  "function guardian() view returns (address)",
+  "function pendingRisk(address stockToken) view returns (address feed, address adapter, uint32 maxStaleness, uint16 maxDeviationBps, uint40 eta)",
+  "function keeperOnly() view returns (bool)",
+  "function isKeeper(address keeper) view returns (bool)",
+  "function sequencerUptimeFeed() view returns (address)",
+  "event RiskChangeQueued(address indexed stockToken, address feed, address adapter, uint32 maxStaleness, uint16 maxDeviationBps, uint256 eta)",
+  // limit buy with attached take-profit / stop-loss
+  "function createLimitBuyWithExits(address stockToken, uint128 amountIn, uint96 triggerPrice, uint128 minAmountOut, uint40 expiry, (uint96 takeProfitPrice, uint96 stopLossPrice, uint16 slippageBps, uint32 duration) exits) returns (uint256 id)",
+  "function attachedExits(uint256 buyOrderId) view returns (uint96 takeProfitPrice, uint96 stopLossPrice, uint16 slippageBps, uint32 duration)",
+  "event ExitsPlaced(uint256 indexed buyId, uint256 indexed takeProfitId, uint256 indexed stopLossId, uint256 amount)",
+  "event ExitsSkipped(uint256 indexed buyId, uint8 reason)",
   // events
   "event OrderCreated(uint256 indexed id, address indexed owner, address indexed stockToken, uint8 orderType, uint256 amountIn, uint256 triggerPrice, uint256 minAmountOut, uint256 expiry)",
   "event BracketCreated(uint256 indexed takeProfitId, uint256 indexed stopLossId)",
@@ -45,6 +63,7 @@ export const orderBookAbi = parseAbi([
   "event DcaCreated(uint256 indexed id, address indexed owner, address indexed stockToken, uint256 amountPerBuy, uint256 buys, uint256 interval, uint256 maxPrice)",
   "event DcaExecuted(uint256 indexed id, address indexed owner, address indexed keeper, uint256 price, uint256 amountIn, uint256 stockToOwner, uint256 keeperFee, uint256 remaining)",
   "event DcaCancelled(uint256 indexed id, address indexed owner, uint256 refunded)",
+  "event DcaSellCreated(uint256 indexed id, address indexed owner, address indexed stockToken, uint256 amountPerSell, uint256 sells, uint256 interval, uint256 minPrice)",
   // custom errors
   "error AlreadyTriggered()",
   "error AmountTooLarge()",

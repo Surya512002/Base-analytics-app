@@ -194,3 +194,22 @@ export function validateDca(v: {
   if (v.maxPrice !== null && v.maxPrice > MAX_UINT96) return "Price ceiling is too large.";
   return null;
 }
+
+/** Recurring sells: 1..365 sales, at least 1 hour apart, total stock within balance and the market's per-order cap. */
+export function validateDcaSell(v: {
+  amountPerSell: bigint | null; // stock units
+  sells: number;
+  intervalSec: number;
+  minPrice: bigint | null; // null = no floor
+  balance: bigint; // stock balance
+  maxStockIn: bigint;
+}): string | null {
+  if (v.amountPerSell === null) return "Enter an amount per sale.";
+  if (!Number.isInteger(v.sells) || v.sells < 1 || v.sells > MAX_DCA_BUYS) return "Number of sales must be between 1 and 365.";
+  if (!Number.isInteger(v.intervalSec) || v.intervalSec < MIN_DCA_INTERVAL_SEC) return "Sales must be at least 1 hour apart.";
+  const total = v.amountPerSell * BigInt(v.sells);
+  if (total > v.balance) return "Total is more than your balance.";
+  if (total > v.maxStockIn) return "Total is above the per-plan limit for this market.";
+  if (v.minPrice !== null && v.minPrice > MAX_UINT96) return "Price floor is too large.";
+  return null;
+}

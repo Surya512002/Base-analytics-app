@@ -35,6 +35,7 @@ describe("Part 2: UI Calls Parity & Custom Errors Verification", () => {
       300,
       true
     );
+    await book.setKeeper(keeper.address, true);
 
     // Fund adapter for swaps
     await stock.mint(adapter.target, STOCK(1000));

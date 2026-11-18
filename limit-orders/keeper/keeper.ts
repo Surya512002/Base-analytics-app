@@ -209,7 +209,7 @@ async function handlePlan(id: bigint): Promise<void> {
   if (backedOff(key)) return;
   const due = await publicClient.readContract({ address: ORDER_BOOK, abi: orderBookAbi, functionName: "canExecuteDca", args: [id] });
   if (!due) return;
-  log(`plan ${id}: buy due, executing`);
+  log(`plan ${id}: run due, executing`);
   await run(`plan ${id}`, key, "executeDca", id);
   // the next refresh() picks up the new state (remaining / completed)
 }
@@ -230,6 +230,18 @@ async function tick(): Promise<void> {
 
 async function main(): Promise<void> {
   log(`keeper ${account.address} watching ${ORDER_BOOK} on ${CHAIN.name} (validity=${VALIDITY_TX})`);
+  try {
+    const [only, allowed] = await Promise.all([
+      publicClient.readContract({ address: ORDER_BOOK, abi: orderBookAbi, functionName: "keeperOnly" }),
+      publicClient.readContract({ address: ORDER_BOOK, abi: orderBookAbi, functionName: "isKeeper", args: [account.address] }),
+    ]);
+    if (only && !allowed && !DRY_RUN) {
+      throw new Error(`keeper ${account.address} is not allowlisted. From the owner Safe call setKeeper(${account.address}, true).`);
+    }
+  } catch (e) {
+    if (String(e).includes("not allowlisted")) throw e;
+    log("could not read keeper allowlist (older deployment?):", firstLine(e));
+  }
   process.on("SIGINT", () => { running = false; log("stopping..."); });
   process.on("SIGTERM", () => { running = false; log("stopping..."); });
   while (running) {

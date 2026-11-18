@@ -27,7 +27,7 @@ const PK = process.env.DEPLOYER_PK ? [process.env.DEPLOYER_PK] : [];
 module.exports = {
   solidity: {
     version: "0.8.24",
-    settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" },
+    settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true, evmVersion: "cancun" },
   },
   networks: {
     hardhat: {

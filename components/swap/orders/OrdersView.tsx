@@ -33,6 +33,7 @@ import type { useLimitOrders, MarketState } from "@/src/lib/limitOrders/useLimit
 import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyOrdersPanel from "./MyOrdersPanel";
 import SimpleOrderCard from "@/components/trade/SimpleOrderCard";
+import LadderCard from "@/components/trade/LadderCard";
 
 type OrderTypeTab = "LIMIT_BUY" | "LIMIT_SELL" | "STOP_LOSS" | "TRAILING_STOP" | "BRACKET";
 
@@ -78,6 +79,8 @@ interface OrdersViewProps {
   cexLayout?: boolean;
   /** Trade page "Simple" mode: goal-based card with plain-English summary instead of the full form. */
   simple?: boolean;
+  /** Trade page "Scale" mode: several limit orders across a price range in one confirmation. */
+  scale?: boolean;
   /** Pool liquidity (USD) of the selected market, used for order-size warnings. */
   liquidityUsd?: number | null;
 }
@@ -93,6 +96,7 @@ export default function OrdersView({
   hideOrdersPanel = false,
   cexLayout = false,
   simple = false,
+  scale = false,
   liquidityUsd = null,
 }: OrdersViewProps) {
   const {
@@ -563,7 +567,9 @@ export default function OrdersView({
             </div>
           )}
 
-      {simple ? (
+      {scale ? (
+        <LadderCard limitOrders={limitOrders} stockAddress={selectedStock} onConnectWallet={onConnectWallet} />
+      ) : simple ? (
         <SimpleOrderCard
           limitOrders={limitOrders}
           stockAddress={selectedStock}

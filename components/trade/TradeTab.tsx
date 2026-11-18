@@ -9,7 +9,7 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { TradeMarket } from "@/app/api/trade/markets/route";
 import DexSwapCard from "@/components/swap/DexSwapCard";
 import OrdersView from "@/components/swap/orders/OrdersView";
-import RecurringView from "@/components/swap/orders/RecurringView";
+import RecurringCard from "./RecurringCard";
 import MyOrdersPanel from "@/components/swap/orders/MyOrdersPanel";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
@@ -176,7 +176,7 @@ export default function TradeTab({
   const [chartLoading, setChartLoading] = useState(false);
   const [chartNote, setChartNote] = useState<string | null>(null);
   const [ticket, setTicket] = useState<Ticket>("market");
-  const [orderMode, setOrderMode] = useState<"simple" | "pro">("simple");
+  const [orderMode, setOrderMode] = useState<"simple" | "scale" | "pro">("simple");
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
     const t = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 10_000);
@@ -403,6 +403,14 @@ export default function TradeTab({
         </div>
       )}
 
+      {orderMarketState && orderMarketState.pendingRiskEta > 0 && (
+        <div role="alert" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-500">
+          <b>Heads up:</b> a change to how {orderMarketState.symbol} orders are priced or routed is queued and takes effect{" "}
+          {new Date(orderMarketState.pendingRiskEta * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}.
+          If you are unsure, cancel your open {orderMarketState.symbol} orders before then. Cancelling always returns your deposit.
+        </div>
+      )}
+
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* Chart + orders */}
         <div className="min-w-0 space-y-3">
@@ -466,6 +474,22 @@ export default function TradeTab({
             </div>
           )}
 
+          {ordersEnabled && limitOrders.openOrders.length > 1 && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={limitOrders.txSubmitting}
+                onClick={() => {
+                  if (window.confirm(`Cancel all ${limitOrders.openOrders.length} open orders? Your deposits come back to your wallet.`)) {
+                    void limitOrders.cancelOrdersBatch(limitOrders.openOrders.map((o) => o.id));
+                  }
+                }}
+                className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+              >
+                Cancel all ({limitOrders.openOrders.length})
+              </button>
+            </div>
+          )}
           {ordersEnabled && (
             <section aria-label="Open orders">
               <MyOrdersPanel
@@ -528,10 +552,10 @@ export default function TradeTab({
                 </div>
               )}
               {canPlaceOrders && (
-                <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Order mode">
-                  {(["simple", "pro"] as const).map((m) => (
+                <div className="grid grid-cols-3 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Order mode">
+                  {(["simple", "scale", "pro"] as const).map((m) => (
                     <button key={m} type="button" aria-pressed={orderMode === m} onClick={() => setOrderMode(m)} className={`min-h-[34px] rounded-lg text-xs font-bold capitalize ${orderMode === m ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs" : "text-[var(--ink-muted)]"}`}>
-                      {m === "simple" ? "Simple" : "Pro"}
+                      {m === "simple" ? "Simple" : m === "scale" ? "Scale" : "Pro"}
                     </button>
                   ))}
                 </div>
@@ -549,17 +573,26 @@ export default function TradeTab({
                 hideOrdersPanel
                 cexLayout
                 simple={orderMode === "simple" && canPlaceOrders}
+                scale={orderMode === "scale" && canPlaceOrders}
                 liquidityUsd={summary?.liquidityUsd ?? null}
               />
             </>
           )}
 
           {ticket === "recurring" && ordersEnabled && (
-            <RecurringView
-              limitOrders={limitOrders}
-              onConnectWallet={onRequestConnect}
-              onSwitchChain={handleSwitchBase}
-            />
+            limitOrders.chainId === 8453 && /^0x0{40}$/i.test(limitOrders.config.orderBook) ? (
+              <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-center shadow-card">
+                <h3 className="text-base font-bold text-[var(--ink)]">Recurring plans aren&apos;t live on Base mainnet yet</h3>
+                <p className="mx-auto max-w-sm text-xs text-[var(--ink-muted)]">You can try auto-buy and auto-sell with test tokens on Base Sepolia.</p>
+                <button type="button" onClick={() => switchChain?.({ chainId: 84532 })} className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-xs font-bold text-white hover:bg-[var(--brand-hover)]">Switch to Base Sepolia</button>
+              </div>
+            ) : canPlaceOrders ? (
+              <RecurringCard limitOrders={limitOrders} stockAddress={orderMarket?.stockToken} onConnectWallet={onRequestConnect} />
+            ) : (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-[var(--ink-muted)]">
+                Recurring plans run on the on-chain order book. Supported markets here: {limitOrders.config.markets.map((m) => m.symbol).join(", ") || "none"}. Pick one from the market list to continue.
+              </div>
+            )
           )}
         </aside>
       </div>
