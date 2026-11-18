@@ -333,25 +333,44 @@ export const VERIFIED_AERODROME_STOCK_POOLS: Record<string, VerifiedAerodromePoo
   RBLXc: { poolAddress: "0x975955A1813103C6db2CBc7aa4F3887a79FFBa65", supplyApy: 0, tvlUsd: 0 },
 };
 
-let liveRatesCache: {
+export interface LiveBeefyAndAeroRates {
   beefy: Record<string, { apy: number; tvl: number }>;
   aerodrome: Record<string, { apy: number; tvl: number }>;
-  timestamp: number;
-} | null = null;
+  /**
+   * USD price of one whole (1e18) LP token behind each stock's Beefy vault — the Beefy CLM
+   * token (`wantTokenAddress`) — from Beefy's `/lps` oracle, keyed by stock symbol.
+   * Missing when Beefy has no price for it.
+   */
+  lpPrices: Record<string, number>;
+}
 
-export async function getLiveBeefyAndAeroRates(): Promise<{
-  beefy: Record<string, { apy: number; tvl: number }>;
-  aerodrome: Record<string, { apy: number; tvl: number }>;
-}> {
+let liveRatesCache: (LiveBeefyAndAeroRates & { timestamp: number }) | null = null;
+
+/** Beefy oracle id of the LP token behind a vault: the vault id without its `-vault` suffix. */
+export function beefyLpOracleId(vaultId: string): string {
+  return vaultId.replace(/-vault$/, "");
+}
+
+export async function getLiveBeefyAndAeroRates(): Promise<LiveBeefyAndAeroRates> {
   const now = Date.now();
   if (liveRatesCache && now - liveRatesCache.timestamp < 60_000) {
     return liveRatesCache;
   }
   try {
-    const [beefyApyRes, beefyTvlRes] = await Promise.all([
+    const [beefyApyRes, beefyTvlRes, beefyLpsRes] = await Promise.all([
       fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 } }).catch(() => null),
       fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 } }).catch(() => null),
+      fetch("https://api.beefy.finance/lps", { next: { revalidate: 60 } }).catch(() => null),
     ]);
+
+    const lpPrices: Record<string, number> = {};
+    if (beefyLpsRes?.ok) {
+      const lpsMap = (await beefyLpsRes.json().catch(() => ({}))) as Record<string, unknown>;
+      for (const [sym, details] of Object.entries(VERIFIED_BEEFY_STOCK_DETAILS)) {
+        const p = Number(lpsMap[beefyLpOracleId(details.vaultId)]);
+        if (Number.isFinite(p) && p > 0) lpPrices[sym] = p;
+      }
+    }
 
     const beefyMap: Record<string, { apy: number; tvl: number }> = {};
     if (beefyApyRes?.ok) {
@@ -376,10 +395,10 @@ export async function getLiveBeefyAndAeroRates(): Promise<{
       }
     }
 
-    liveRatesCache = { beefy: beefyMap, aerodrome: aeroMap, timestamp: now };
+    liveRatesCache = { beefy: beefyMap, aerodrome: aeroMap, lpPrices, timestamp: now };
     return liveRatesCache;
   } catch {
-    return { beefy: {}, aerodrome: {} };
+    return { beefy: {}, aerodrome: {}, lpPrices: {} };
   }
 }
 
