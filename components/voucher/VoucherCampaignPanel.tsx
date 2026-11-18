@@ -18,6 +18,8 @@ import ActivePill from "@/components/ui/motion/ActivePill";
 import { BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
 import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import { APP_URL_WEB, CAMPAIGN_CONTRACT } from "@/lib/constants/env";
+import { contractForCampaignId } from "@/lib/voucher/campaign-contracts";
+import { useCampaignConfig } from "@/hooks/useCampaignConfig";
 import { ERC20_ABI, USDC_BASE } from "@/lib/constants/contracts";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import { encodeContractCall, type ContractCall } from "@/lib/utils/tx";
@@ -111,7 +113,8 @@ const EXPIRY_OPTIONS = [
   { id: "30d", label: "30 days", secs: 30 * 86_400 },
 ] as const;
 
-const SLOT_PRESETS = [1, 10, 50, 100, 500] as const;
+/** Quick picks; only those within the live contract cap are shown. */
+const SLOT_PRESETS = [1, 10, 50, 100, 500, 1_000, 10_000, 100_000] as const;
 
 function fmtDate(sec: number) {
   return sec ? new Date(sec * 1000).toLocaleString() : "";
@@ -171,18 +174,7 @@ export default function VoucherCampaignPanel({
   const connType = app.connType;
   const [modeState, setMode] = useState<Mode>("create");
   const mode: Mode = section ?? modeState;
-  const [cfg, setCfg] = useState<{
-    ready: boolean;
-    claimSigner: string | null;
-    verifiedClaimsAvailable: boolean;
-  } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/voucher/campaign/config", { cache: "no-store" })
-      .then((r) => r.json())
-      .then(setCfg)
-      .catch(() => setCfg({ ready: false, claimSigner: null, verifiedClaimsAvailable: false }));
-  }, []);
+  const cfg = useCampaignConfig();
 
   // Land on the claim view when the visitor arrived through a shared campaign link.
   const [claimId, setClaimId] = useState("");
@@ -289,7 +281,7 @@ function CreateCampaign({
 }: {
   address: `0x${string}` | undefined;
   connType: WalletAppState["connType"];
-  cfg: { claimSigner: string | null; verifiedClaimsAvailable: boolean } | null;
+  cfg: { claimSigner: string | null; verifiedClaimsAvailable: boolean; maxClaims?: number } | null;
   disabled: boolean;
   onCreated: () => void;
   preset?: CampaignPreset;
@@ -297,6 +289,7 @@ function CreateCampaign({
   const [assetState, setAsset] = useState("USDC");
   const [totalState, setTotal] = useState("50");
   const [slotsState, setSlots] = useState(50);
+  const slotLimit = cfg?.maxClaims && cfg.maxClaims > 0 ? cfg.maxClaims : CAMPAIGN_MAX_CLAIMS;
   const [messageState, setMessage] = useState("");
   // With a wizard preset, its values win (they're edited in the wizard, not here).
   const asset = preset?.asset ?? assetState;
@@ -356,7 +349,8 @@ function CreateCampaign({
       committed,
       gated,
     },
-    nowSec
+    nowSec,
+    slotLimit
   );
 
   const create = useCallback(async () => {
@@ -574,17 +568,17 @@ function CreateCampaign({
           </div>
           <div>
             <label className="section-eyebrow mb-2 block" htmlFor="camp-slots">
-              Claim slots (1–{CAMPAIGN_MAX_CLAIMS})
+              Claim slots (1–{slotLimit.toLocaleString("en-US")})
             </label>
             <input
               id="camp-slots"
               inputMode="numeric"
               value={slots || ""}
-              onChange={(e) => setSlots(Math.max(0, Math.min(CAMPAIGN_MAX_CLAIMS, parseInt(e.target.value || "0", 10) || 0)))}
+              onChange={(e) => setSlots(Math.max(0, Math.min(slotLimit, parseInt(e.target.value.replace(/[^0-9]/g, "") || "0", 10) || 0)))}
               className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--ink)] font-mono"
             />
             <div className="flex gap-1.5 mt-2 flex-wrap">
-              {SLOT_PRESETS.map((n) => (
+              {SLOT_PRESETS.filter((n) => n <= slotLimit).map((n) => (
                 <button
                   key={n}
                   type="button"
@@ -595,7 +589,7 @@ function CreateCampaign({
                       : "border-[var(--border-subtle)] text-[var(--ink-muted)]"
                   }`}
                 >
-                  {n === 1 ? "1 · single gift" : n}
+                  {n === 1 ? "1 · single gift" : n.toLocaleString("en-US")}
                 </button>
               ))}
             </div>
@@ -863,10 +857,11 @@ function ClaimCampaign({
   }, [refresh]);
 
   useEffect(() => {
-    if (!address || !view || !CAMPAIGN_CONTRACT) return;
+    const contract = view ? contractForCampaignId(view.campaignId) : null;
+    if (!address || !view || !contract) return;
     createPublicOnlyBaseClient()
       .readContract({
-        address: CAMPAIGN_CONTRACT,
+        address: contract,
         abi: CAMPAIGN_ABI,
         functionName: "hasClaimed",
         args: [BigInt(view.campaignId), address],
@@ -877,7 +872,8 @@ function ClaimCampaign({
 
   const claim = useCallback(async () => {
     setError("");
-    if (!address || !view || !CAMPAIGN_CONTRACT) return;
+    const contract = view ? contractForCampaignId(view.campaignId) : null;
+    if (!address || !view || !contract) return;
     const clean = normalizeCampaignSecret(secret);
     if (!isValidCampaignSecret(clean)) {
       return setError("This link is missing its key or is incomplete. Open the full link from the sender.");
@@ -888,7 +884,7 @@ function ClaimCampaign({
       // this browser, and this proof only works for the connected wallet.
       const linkSig = await signCampaignLink(clean, {
         chainId: 8453,
-        contract: CAMPAIGN_CONTRACT,
+        contract,
         campaignId: BigInt(view.campaignId),
         claimer: address,
       });
@@ -914,7 +910,7 @@ function ClaimCampaign({
       setBusy("Checking…");
       const pub = createPublicOnlyBaseClient();
       await pub.simulateContract({
-        address: CAMPAIGN_CONTRACT,
+        address: contract,
         abi: CAMPAIGN_ABI,
         functionName: "claim",
         args,
@@ -922,7 +918,7 @@ function ClaimCampaign({
       });
 
       setBusy("Confirm in your wallet…");
-      const call = encodeContractCall(CAMPAIGN_CONTRACT, CAMPAIGN_ABI, "claim", args);
+      const call = encodeContractCall(contract, CAMPAIGN_ABI, "claim", args);
       const hash = await sendAppTransactions(connType ?? "injected", address, [call]);
       setDone({ hash });
       refresh();
@@ -1138,13 +1134,14 @@ function MyCampaigns({
 
   const close = useCallback(
     async (id: string) => {
-      if (!address || !CAMPAIGN_CONTRACT) return;
+      const contract = contractForCampaignId(id);
+      if (!address || !contract) return;
       setMsg("");
       setBusyId(id);
       try {
-        const call = encodeContractCall(CAMPAIGN_CONTRACT, CAMPAIGN_ABI, "close", [BigInt(id)]);
+        const call = encodeContractCall(contract, CAMPAIGN_ABI, "close", [BigInt(id)]);
         await createPublicOnlyBaseClient().simulateContract({
-          address: CAMPAIGN_CONTRACT,
+          address: contract,
           abi: CAMPAIGN_ABI,
           functionName: "close",
           args: [BigInt(id)],

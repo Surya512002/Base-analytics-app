@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import { CAMPAIGN_TICKET_TTL_SEC, isCampaignGated, verifyCampaignLinkSig } from "@/lib/voucher/campaign";
-import { CAMPAIGN_CONTRACT } from "@/lib/constants/env";
+import { contractForCampaignId } from "@/lib/voucher/campaign-contracts";
 import {
   campaignContractReady,
   countryFromRequest,
@@ -65,7 +65,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     const linkOk = await verifyCampaignLinkSig({
       chainId: 8453,
-      contract: CAMPAIGN_CONTRACT as `0x${string}`,
+      // The link proof is bound to the campaign's own contract (v2 or v3, by id).
+      contract: contractForCampaignId(campaignId) as `0x${string}`,
       campaignId,
       claimer: claimer as `0x${string}`,
       linkSigner: campaign.linkSigner,

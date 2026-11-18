@@ -7,7 +7,7 @@ interface ICampaignERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-/// @title BaseVoucherCampaign v2 — ONE shared link, first N wallets claim.
+/// @title BaseVoucherCampaign v3 — ONE shared link, first N wallets claim.
 /// @notice A creator funds a campaign (ETH or any ERC20, incl. tokenized stocks) and shares a
 ///         single link. The first `maxClaims` distinct wallets to claim each receive an equal share.
 ///
@@ -22,12 +22,18 @@ interface ICampaignERC20 {
 ///    (used by the app for region / kill-switch / anti-bot checks, incl. tokenized stocks).
 ///    A ticket is bound to (chain, contract, campaign, claimer, deadline) so it cannot be replayed.
 ///  - Optional `committed` mode: the creator cannot cancel before expiry (trustless for claimers).
+///  - v3: up to 1,000,000 claims per campaign. Claim and close are O(1) (no loops over
+///    claimers), so gas per claim is the same at any size. Campaign ids start at
+///    FIRST_CAMPAIGN_ID so they never collide with v2 ids (the app routes a link to its
+///    contract by id alone; link format unchanged).
 ///  - Sender identity: the creator address is recorded by the contract (msg.sender) and can't be
 ///    spoofed; an optional short `senderLabel` is emitted for display only and must be verified
 ///    against the creator address by the UI.
 ///  - Checks-effects-interactions + reentrancy guard; fee-on-transfer tokens are rejected.
 contract BaseVoucherCampaign {
-    uint256 public constant MAX_CLAIMS = 1000;
+    uint256 public constant MAX_CLAIMS = 1_000_000;
+    /// v2 ids start at 1; v3 ids start here, so an id alone identifies its contract.
+    uint256 public constant FIRST_CAMPAIGN_ID = 1_000_000_001;
     uint256 public constant MAX_MESSAGE_BYTES = 280;
     uint256 public constant MAX_LABEL_BYTES = 40;
     uint256 public constant MAX_TICKET_TTL = 1 hours;
@@ -59,7 +65,7 @@ contract BaseVoucherCampaign {
         string senderLabel;
     }
 
-    uint256 public nextCampaignId = 1;
+    uint256 public nextCampaignId = FIRST_CAMPAIGN_ID;
     mapping(uint256 => Campaign) private _campaigns;
     mapping(uint256 => string) private _messages;
     mapping(uint256 => string) private _senderLabels;

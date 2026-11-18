@@ -136,6 +136,12 @@ describe("validateCampaignInput", () => {
     expect(validateCampaignInput({ ...input, maxClaims: 1001 }, now).ok).toBe(false);
     expect(validateCampaignInput({ ...input, maxClaims: 2.5 }, now).ok).toBe(false);
   });
+  it("uses the target contract's cap (1,000,000 on v3)", () => {
+    const v3 = 1_000_000;
+    expect(validateCampaignInput({ ...input, maxClaims: 1_000_000, total: "1000000" }, now, v3).ok).toBe(true);
+    expect(validateCampaignInput({ ...input, maxClaims: 1_000_001, total: "1000001" }, now, v3).ok).toBe(false);
+    expect(validateCampaignInput({ ...input, maxClaims: 5_000, total: "5000" }, now).ok).toBe(false); // v2 default cap
+  });
   it("rejects bad amounts, long text, and committed-without-expiry", () => {
     expect(validateCampaignInput({ ...input, total: "0" }, now).ok).toBe(false);
     expect(validateCampaignInput({ ...input, total: "abc" }, now).ok).toBe(false);
