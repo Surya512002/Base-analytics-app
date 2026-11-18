@@ -1,4 +1,5 @@
-export const OG_VERSION = "21";
+import { TOKENIZED_STOCKS_LABEL } from "@/lib/stocks/stock-count";
+export const OG_VERSION = "22";
 
 export const OG_COLORS = {
   bg: "#030712",
@@ -190,7 +191,7 @@ export function OgBackground() {
 
 export function OgHeader({
   label = "BASE MAINNET · 8453",
-  subtitle = "260+ Tokenized Equities · Multi-DEX Swaps · Beefy & Aero Yields",
+  subtitle = `${TOKENIZED_STOCKS_LABEL} Tokenized Stocks · Multi-DEX Swaps · Beefy & Aero Yields`,
 }: {
   label?: string;
   subtitle?: string;

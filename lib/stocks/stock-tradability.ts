@@ -236,7 +236,7 @@ export function getStockTradability(addressOrSymbol: string): StockTradabilityIn
 }
 
 /**
- * Returns a complete tradability summary table for all 32 tokenized stocks.
+ * Returns a complete tradability summary table for every active tokenized stock.
  */
 export function getAllStocksTradability(): StockTradabilityInfo[] {
   return TOKENIZED_STOCKS_REGISTRY.map((stock) => getStockTradability(stock.address));

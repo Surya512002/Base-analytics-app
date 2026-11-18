@@ -4,6 +4,7 @@ import {
   OgHeader,
   OG_COLORS,
 } from "@/lib/og/brand-kit";
+import { TOKENIZED_STOCKS_LABEL } from "@/lib/stocks/stock-count";
 
 export type OgTrendingToken = {
   sym: string;
@@ -222,7 +223,7 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
                 marginTop: 10,
               }}
             >
-              Instant 24/5 liquidity for 260+ tokenized US equities ($NVDA, $AAPL, $TSLA). Auto-compounding vaults on Beefy &amp; Aerodrome (up to 1,070% APY), 3-mode B20 launchpad with 50% creator fee share, and smart multi-DEX routing.
+              {`Instant 24/5 liquidity for ${TOKENIZED_STOCKS_LABEL} tokenized US stocks ($NVDA, $AAPL, $TSLA). Auto-compounding vaults on Beefy & Aerodrome (up to 1,070% APY), 3-mode B20 launchpad with 50% creator fee share, and smart multi-DEX routing.`}
             </span>
 
             {/* 2x2 High-Tech Feature Grid */}
@@ -250,7 +251,7 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
                   <span style={{ fontSize: 13 }}>📈</span>
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     <span style={{ color: OG_COLORS.text, fontSize: 11, fontWeight: 900 }}>
-                      260+ Tokenized Equities
+                      {`${TOKENIZED_STOCKS_LABEL} Tokenized Stocks`}
                     </span>
                     <span style={{ color: "#38BDF8", fontSize: 9.5, fontWeight: 700 }}>
                       1:1 Backed · 24/5 Liquidity

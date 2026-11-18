@@ -2,7 +2,7 @@
  * Verified Base Tokens Registry & Verification Engine
  *
  * Single source of truth for verified Base mainnet tokens matching Coinbase Wallet verification standards:
- * - Official Coinbase Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY (32 stocks)
+ * - Official Coinbase Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY
  * - Curated High-MarketCap Base Bluechips & Major Currencies (ETH, WETH, USDC, cbBTC, cbETH, AERO, DEGEN, BRETT, TOSHI, VIRTUAL, etc.)
  *
  * Newly launched coins, unverified tokens, and general B20 vanity launches DO NOT receive the verified blue tickmark.
@@ -77,7 +77,7 @@ export const VERIFIED_BASE_CRYPTO_TOKENS: VerifiedTokenDef[] = [
 /**
  * Pre-computed lookup set of official Blue-Check verified token addresses (lowercase)
  * Matching Coinbase Wallet standards:
- * 1. Official Coinbase Tokenized US Equities (32 stocks from TOKENIZED_STOCKS_REGISTRY)
+ * 1. Official Coinbase Tokenized US Equities (from TOKENIZED_STOCKS_REGISTRY)
  * 2. Curated High-MarketCap Base Bluechips and Major Currencies (VERIFIED_BASE_CRYPTO_TOKENS)
  * 3. Native ETH
  */
@@ -190,7 +190,7 @@ export function registerVerifiedLiquidityToken(address: string, liquidityUsd: nu
  * with the verified blue checkmark.
  *
  * Blue Checkmark criteria:
- * 1. Official Base Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY (265+ stocks)
+ * 1. Official Base Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY
  * 2. Curated High-MarketCap Base Bluechips and Currencies (VERIFIED_BASE_CRYPTO_TOKENS & ETH)
  * 3. Tokens with >= $100k locked DEX pool liquidity (verified via liquidityUsd or dynamic discovery)
  */

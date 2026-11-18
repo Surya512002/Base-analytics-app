@@ -82,7 +82,7 @@ export default function VoucherCreatePanel({
         <div className="page-hero">
           <p className="section-eyebrow">Create gift batch</p>
           <p className="readable-body mt-2">
-            Split tokenized stocks (<strong className="text-[var(--ink)]">NVDA, AAPL, TSLA</strong>), yield-bearing Morpho/SuperStocks vault shares, USDC, or ETH into shareable gift cards. Each recipient redeems with a unique Card ID and secret.
+            Split tokenized stocks (<strong className="text-[var(--ink)]">NVDA, AAPL, TSLA</strong>), Beefy auto-compounding vault shares, USDC, or ETH into shareable gift cards. Each recipient redeems with a unique Card ID and secret.
           </p>
         </div>
 
@@ -208,7 +208,7 @@ export default function VoucherCreatePanel({
               ))}
             </div>
             <p className="text-[10px] text-[var(--ink-muted)] leading-relaxed">
-              Recipient claims productive yield shares that compound continuously on Base mainnet. Backed by verified Morpho Blue and Superform strategies.
+              Recipient claims productive yield shares that compound continuously on Base mainnet. Backed by verified Beefy auto-compounding vaults on Aerodrome.
             </p>
           </div>
         )}

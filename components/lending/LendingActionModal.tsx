@@ -649,7 +649,7 @@ export default function LendingActionModal({
                 Direct Base Mainnet Execution
               </p>
               <p className="text-[var(--ink-muted)] text-[10px]">
-                Transactions route directly to verified Morpho, Aerodrome &amp; Superform contracts on Base.
+                Transactions go directly to verified Morpho, Aave, Moonwell, Beefy &amp; Aerodrome contracts on Base.
               </p>
             </div>
           </div>

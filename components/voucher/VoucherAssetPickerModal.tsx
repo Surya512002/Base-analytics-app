@@ -110,8 +110,8 @@ export default function VoucherAssetPickerModal({
               </h2>
               <p className="text-xs text-[var(--ink-muted)]">
                 {category === "stock"
-                  ? "32 Coinbase B20 tokenized equities on Base"
-                  : "Morpho Blue & SuperStocks yield positions"}
+                  ? `${BASE_VERIFIED_STOCKS.length} Coinbase tokenized stocks on Base`
+                  : "Beefy auto-compounding stock/USDC vault shares"}
               </p>
             </div>
           </div>
