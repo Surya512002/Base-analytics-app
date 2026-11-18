@@ -342,19 +342,19 @@ export default function ProtocolCompareHub({
           {/* Quick Stats Pill Grid */}
           <div className="grid grid-cols-3 gap-2 shrink-0">
             <div className="p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-center">
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 block">LIVE STOCKS</span>
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 block">LIVE STOCKS</span>
               <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">4 Protocols</span>
-              <span className="text-[9px] text-[var(--ink-dim)] block">Aave, IPOR, Beefy, Aero</span>
+              <span className="text-[11px] text-[var(--ink-dim)] block">Aave, IPOR, Beefy, Aero</span>
             </div>
             <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
-              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 block">PRIMITIVE</span>
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 block">PRIMITIVE</span>
               <span className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">Morpho</span>
-              <span className="text-[9px] text-[var(--ink-dim)] block">Factory Live</span>
+              <span className="text-[11px] text-[var(--ink-dim)] block">Factory Live</span>
             </div>
             <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-center">
-              <span className="text-[10px] font-bold text-[var(--ink-muted)] block">CRYPTO ONLY</span>
+              <span className="text-[11px] font-bold text-[var(--ink-muted)] block">CRYPTO ONLY</span>
               <span className="text-base font-black text-[var(--ink)] font-mono">3 Protocols</span>
-              <span className="text-[9px] text-[var(--ink-dim)] block">Euler, Pendle, Superform</span>
+              <span className="text-[11px] text-[var(--ink-dim)] block">Euler, Pendle, Superform</span>
             </div>
           </div>
         </div>
@@ -425,7 +425,7 @@ export default function ProtocolCompareHub({
                 <div className="flex items-center justify-between gap-2">
                   <h4 className="font-bold text-sm text-[var(--ink)]">{item.name}</h4>
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md font-mono ${
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-md font-mono ${
                       item.badgeColor === "emerald"
                         ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : item.badgeColor === "amber"
@@ -529,7 +529,7 @@ export default function ProtocolCompareHub({
         <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)]">
           <table className="w-full text-left text-xs border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b border-[var(--border-subtle)] bg-[var(--surface-2)] text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--surface-2)] text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
                 <th className="py-2.5 px-3">Protocol</th>
                 <th className="py-2.5 px-3">Type</th>
                 <th className="py-2.5 px-3">Base Mainnet Status</th>
@@ -544,17 +544,17 @@ export default function ProtocolCompareHub({
                   <td className="py-3 px-3">
                     <div>
                       <span className="font-bold text-sm text-[var(--ink)] block">{p.name}</span>
-                      <span className="text-[10px] text-[var(--ink-dim)]">{p.tagline}</span>
+                      <span className="text-[11px] text-[var(--ink-dim)]">{p.tagline}</span>
                     </div>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                       {p.category}
                     </span>
                   </td>
                   <td className="py-3 px-3">
                     <span
-                      className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-md ${
+                      className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-md ${
                         p.badgeColor === "emerald"
                           ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                           : p.badgeColor === "amber"

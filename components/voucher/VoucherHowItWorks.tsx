@@ -77,7 +77,7 @@ export default function VoucherHowItWorks() {
         <div className="px-5 pb-6 pt-2 border-t border-[var(--border-subtle)] space-y-6 animate-in fade-in duration-200">
           {/* 3 Short Steps */}
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--brand-text)] block mb-3">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--brand-text)] block mb-3">
               3 Simple Steps
             </span>
             <div className="grid sm:grid-cols-3 gap-3">
@@ -121,7 +121,7 @@ export default function VoucherHowItWorks() {
 
           {/* Small FAQ Accordion */}
           <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block mb-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)] block mb-2">
               Frequently Asked Questions
             </span>
 

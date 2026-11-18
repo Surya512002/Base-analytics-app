@@ -61,7 +61,7 @@ function RedeemLandingContent() {
               <Gift size={24} className="text-[var(--ink-muted)]" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-[var(--ink-dim)] uppercase tracking-widest">
+              <p className="text-[11px] font-black text-[var(--ink-dim)] uppercase tracking-widest">
                 Base Voucher
               </p>
               <h1 className="text-2xl font-black text-[var(--ink)]">Redeem your gift card</h1>
@@ -74,7 +74,7 @@ function RedeemLandingContent() {
           </p>
 
           <div>
-            <label className="text-[10px] font-bold text-[var(--ink-dim)] uppercase">Card ID</label>
+            <label className="text-[11px] font-bold text-[var(--ink-dim)] uppercase">Card ID</label>
             <input
               value={cardId}
               onChange={(e) => setCardId(e.target.value)}
@@ -88,7 +88,7 @@ function RedeemLandingContent() {
           )}
           {preview && !previewLoading && (
             <div className={`rounded-2xl border p-4 ${preview.redeemed ? "border-red-500/30 bg-red-500/10" : "border-emerald-500/30 bg-emerald-500/8"}`}>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Card preview</p>
+              <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Card preview</p>
               <p className="text-2xl font-black text-[var(--ink)] mt-1">
                 {preview.asset === "USDC"
                   ? `$${(Number(preview.amountPerCard) / 1e6).toFixed(2)}`
@@ -112,7 +112,7 @@ function RedeemLandingContent() {
             <ArrowRight size={16} />
           </Link>
 
-          <p className="text-center text-[10px] text-[var(--ink-dim)]">
+          <p className="text-center text-[11px] text-[var(--ink-dim)]">
             You&apos;ll need the secret key in the app after connecting.
           </p>
             </div>

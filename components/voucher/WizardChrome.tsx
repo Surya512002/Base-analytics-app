@@ -77,7 +77,7 @@ export function WizardStepper({
                 <span className={`text-[11px] font-bold sm:text-xs ${active ? "text-[var(--ink)]" : "text-[var(--ink-muted)]"}`}>
                   {s.title}
                 </span>
-                <span className="hidden max-w-[9rem] truncate text-[10px] text-[var(--ink-dim)] sm:block">{s.hint}</span>
+                <span className="hidden max-w-[9rem] truncate text-[11px] text-[var(--ink-dim)] sm:block">{s.hint}</span>
               </li>
             );
           })}
@@ -154,7 +154,7 @@ export function SplitVisual({ count, perCard }: { count: number; perCard: string
             transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 20 }}
           >
             <span className="absolute left-1.5 top-1.5 h-1.5 w-4 rounded-full bg-white/50" />
-            <span className="absolute bottom-1.5 left-1.5 text-[9px] font-black text-white">🎁</span>
+            <span className="absolute bottom-1.5 left-1.5 text-[11px] font-black text-white">🎁</span>
           </motion.div>
         ))}
       </div>
@@ -257,7 +257,7 @@ export function TimingCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-black text-[var(--ink)]">When can they open it?</h3>
-            <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] font-bold text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+            <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[11px] font-bold text-[var(--ink-muted)] border border-[var(--border-subtle)]">
               Optional
             </span>
           </div>
@@ -276,7 +276,7 @@ export function TimingCard({
         />
         <div className="absolute left-0 top-0 flex flex-col items-start">
           <span className="h-7 w-0.5 rounded bg-[var(--ink-dim)]" />
-          <span className="text-[10px] font-semibold text-[var(--ink-dim)]">Today</span>
+          <span className="text-[11px] font-semibold text-[var(--ink-dim)]">Today</span>
         </div>
         <motion.div
           className="absolute top-0 flex flex-col items-center -translate-x-1/2"
@@ -285,7 +285,7 @@ export function TimingCard({
           transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 160, damping: 22 }}
         >
           <span className="mt-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-          <span className="text-[10px] font-bold text-emerald-500 whitespace-nowrap">
+          <span className="text-[11px] font-bold text-emerald-500 whitespace-nowrap">
             {unlockHours > 0 ? "Opens" : "Open"}
           </span>
         </motion.div>
@@ -295,7 +295,7 @@ export function TimingCard({
               expirationDays > 0 ? "bg-amber-500 ring-4 ring-amber-500/20" : "bg-[var(--surface)] border border-[var(--border-subtle)]"
             }`}
           />
-          <span className={`text-[10px] font-bold ${expirationDays > 0 ? "text-amber-500" : "text-[var(--ink-dim)]"}`}>
+          <span className={`text-[11px] font-bold ${expirationDays > 0 ? "text-amber-500" : "text-[var(--ink-dim)]"}`}>
             {expirationDays > 0 ? "Expires" : "No expiry"}
           </span>
         </div>

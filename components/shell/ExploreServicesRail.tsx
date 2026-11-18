@@ -85,8 +85,8 @@ export default function ExploreServicesRail({
                 <p className="text-sm font-black text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors">
                   {s.label}
                 </p>
-                <p className="text-[10px] text-[var(--ink-muted)] mt-1 leading-snug">{s.desc}</p>
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--ink-muted)] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p className="text-[11px] text-[var(--ink-muted)] mt-1 leading-snug">{s.desc}</p>
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[var(--ink-muted)] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   Open <ArrowUpRight size={10} />
                 </span>
               </button>

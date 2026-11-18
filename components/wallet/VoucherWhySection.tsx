@@ -65,7 +65,7 @@ export default function VoucherWhySection() {
         ))}
       </div>
 
-      <p className="text-[10px] text-[var(--ink-muted)] text-center mt-6 font-medium leading-relaxed">
+      <p className="text-[11px] text-[var(--ink-muted)] text-center mt-6 font-medium leading-relaxed">
         No accounts. No intermediaries. Just decentralized stock & crypto gift cards — for anyone, anywhere on Base.
       </p>
     </SectionCard>

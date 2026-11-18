@@ -25,7 +25,7 @@ export default function TokenMarketBadge({ address }: { address: string }) {
 
   if (!mc) return null;
   return (
-    <span className="text-[10px] font-bold text-emerald-300/90">
+    <span className="text-[11px] font-bold text-emerald-300/90">
       MC {formatUsd(mc)}
     </span>
   );

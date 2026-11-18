@@ -235,7 +235,7 @@ export default function LiveMarketMap({
             <h3 className="flex items-center gap-1.5 text-sm font-black text-[var(--ink)]">
               <Activity size={15} className="text-[var(--brand-text)]" /> Latest trades
             </h3>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-[var(--ink-muted)]">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase text-[var(--ink-muted)]">
               <Radio size={11} className="text-emerald-500" /> live
             </span>
           </div>
@@ -262,7 +262,7 @@ export function BuySellBar({ buys, sells, showCounts = false }: { buys?: number;
   return (
     <span className="block" title={`${b.toLocaleString()} buys · ${s.toLocaleString()} sells (24h)`}>
       {showCounts && (
-        <span className="mb-0.5 flex justify-between font-mono text-[10px]">
+        <span className="mb-0.5 flex justify-between font-mono text-[11px]">
           <span className="text-emerald-600 dark:text-emerald-400">{b.toLocaleString()}</span>
           <span className="text-red-600 dark:text-red-400">{s.toLocaleString()}</span>
         </span>

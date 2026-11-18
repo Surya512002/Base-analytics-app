@@ -173,7 +173,7 @@ export default function MyOrdersPanel({
         {/* Amount & Trigger Grid */}
         <div className="grid grid-cols-2 gap-2 text-xs pt-1">
           <div className="p-2 rounded-xl bg-[var(--surface-2)]">
-            <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               {isBuy ? "Budget" : "Deposit"}
             </span>
             <span className="font-semibold text-[var(--ink)] tabular-nums">
@@ -182,7 +182,7 @@ export default function MyOrdersPanel({
           </div>
 
           <div className="p-2 rounded-xl bg-[var(--surface-2)]">
-            <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               {isTrailing ? "Current Stop" : "Trigger Price"}
             </span>
             <div className="flex items-center justify-between">
@@ -191,7 +191,7 @@ export default function MyOrdersPanel({
               </span>
               {distance && !isTrailing && (
                 <span
-                  className={`text-[10px] font-bold ${
+                  className={`text-[11px] font-bold ${
                     distance.startsWith("+") ? "text-emerald-500" : "text-rose-500"
                   }`}
                 >
@@ -324,7 +324,7 @@ export default function MyOrdersPanel({
         <div className="grid grid-cols-2 gap-2 text-xs">
           {/* Take-profit leg */}
           <div className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-1">
-            <div className="flex items-center justify-between text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">
+            <div className="flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">
               <span>Take-Profit Leg</span>
               <TrendingUp size={12} />
             </div>
@@ -333,17 +333,17 @@ export default function MyOrdersPanel({
                 ${tpPriceStr}
               </span>
               {tpDistance && (
-                <span className="text-[10px] font-bold text-emerald-500">{tpDistance}</span>
+                <span className="text-[11px] font-bold text-emerald-500">{tpDistance}</span>
               )}
             </div>
-            <div className="text-[10px] text-[var(--ink-muted)]">
+            <div className="text-[11px] text-[var(--ink-muted)]">
               Status: {ORDER_STATUS[takeProfitLeg.status]}
             </div>
           </div>
 
           {/* Stop-loss leg */}
           <div className="p-2.5 rounded-xl bg-rose-500/5 border border-rose-500/10 space-y-1">
-            <div className="flex items-center justify-between text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">
+            <div className="flex items-center justify-between text-[11px] text-rose-600 dark:text-rose-400 font-bold uppercase">
               <span>Stop-Loss Leg</span>
               <TrendingDown size={12} />
             </div>
@@ -352,10 +352,10 @@ export default function MyOrdersPanel({
                 ${slPriceStr}
               </span>
               {slDistance && (
-                <span className="text-[10px] font-bold text-rose-500">{slDistance}</span>
+                <span className="text-[11px] font-bold text-rose-500">{slDistance}</span>
               )}
             </div>
-            <div className="text-[10px] text-[var(--ink-muted)]">
+            <div className="text-[11px] text-[var(--ink-muted)]">
               Status: {ORDER_STATUS[stopLossLeg.status]}
             </div>
           </div>

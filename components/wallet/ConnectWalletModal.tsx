@@ -101,7 +101,7 @@ function WalletGridButton({
           <span className="block text-[11px] font-semibold text-[var(--ink)] truncate">
             {wallet.label}
           </span>
-          <span className="block text-[9px] text-[var(--brand-text)] font-medium truncate">
+          <span className="block text-[11px] text-[var(--brand-text)] font-medium truncate">
             {wallet.actionLabel || "Install extension"}
           </span>
         </span>
@@ -121,7 +121,7 @@ function WalletGridButton({
       </span>
       <span className="min-w-0">
         <span className="block text-[11px] font-semibold text-[var(--ink)] truncate">{wallet.label}</span>
-        <span className="block text-[9px] text-[var(--ink-dim)] truncate">{wallet.short}</span>
+        <span className="block text-[11px] text-[var(--ink-dim)] truncate">{wallet.short}</span>
       </span>
     </button>
   );
@@ -256,7 +256,7 @@ export default function ConnectWalletModal({
               </span>
               <span className="text-left min-w-0 flex-1">
                 <span className="block">{embeddedWallet.label}</span>
-                <span className="block text-[10px] font-medium text-white/70">
+                <span className="block text-[11px] font-medium text-white/70">
                   {embeddedWallet.short}
                 </span>
               </span>
@@ -274,14 +274,14 @@ export default function ConnectWalletModal({
                 </span>
                 <span className="text-left min-w-0 flex-1">
                   <span className="block">{BASE_WALLET.label}</span>
-                  <span className="block text-[10px] font-medium text-white/70">
+                  <span className="block text-[11px] font-medium text-white/70">
                     {BASE_WALLET.short}
                   </span>
                 </span>
               </button>
 
               <div className="mt-4 pt-3 border-t border-white/[0.08]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)] mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-dim)] mb-2">
                   {isMobile ? "Mobile wallets" : "Browser extensions"}
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -301,7 +301,7 @@ export default function ConnectWalletModal({
 
         <div className="px-4 py-2 border-t border-white/[0.08] flex items-center justify-center gap-1.5">
           <Droplets size={10} className="text-[var(--ink-dim)] shrink-0" />
-          <p className="text-[10px] text-[var(--ink-dim)] font-medium">
+          <p className="text-[11px] text-[var(--ink-dim)] font-medium">
             {inMiniApp ? "Gas sponsored in mini-app" : "Base Wallet supports sponsored gas on Base"}
           </p>
         </div>

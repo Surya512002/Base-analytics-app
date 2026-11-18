@@ -82,7 +82,7 @@ export default function LendingViewTabs({
             <span>{tab.label}</span>
             {tab.countBadge && (
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                className={`text-[11px] px-1.5 py-0.5 rounded-md font-mono ${
                   isSelected
                     ? "bg-white/20 text-white font-semibold"
                     : "bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]"

@@ -210,11 +210,11 @@ export default function PositionsPanel({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xs sm:text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   Safe · No Debt
                 </span>
                 {isMockData && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                  <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                     Demo
                   </span>
                 )}
@@ -280,7 +280,7 @@ export default function PositionsPanel({
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-black text-[var(--ink)]">Your Positions &amp; Health</h2>
               {isMockData && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                   Demo Data
                 </span>
               )}
@@ -427,9 +427,9 @@ export default function PositionsPanel({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-[var(--ink)] text-sm">{pos.assetSymbol}</span>
-                    <span className="text-[10px] text-[var(--ink-muted)]">· {pos.protocolName}</span>
+                    <span className="text-[11px] text-[var(--ink-muted)]">· {pos.protocolName}</span>
                     <span
-                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                      className={`text-[11px] font-bold px-1.5 py-0.5 rounded uppercase ${
                         pos.type === "supplied"
                           ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                           : pos.type === "borrowed"

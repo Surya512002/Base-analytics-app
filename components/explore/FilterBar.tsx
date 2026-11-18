@@ -78,7 +78,7 @@ export default function FilterBar({
             >
               <span>{tab.label}</span>
               <span
-                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                className={`text-[11px] font-mono px-1.5 py-0.2 rounded-md ${
                   isActive
                     ? "bg-white/20 text-white"
                     : "bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]"
@@ -228,7 +228,7 @@ export default function FilterBar({
 
       {/* 3. Smart Filter Preset Pills */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-        <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] shrink-0 mr-0.5">
+        <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)] shrink-0 mr-0.5">
           Quick Filters:
         </span>
 

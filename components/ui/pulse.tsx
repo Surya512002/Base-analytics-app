@@ -129,7 +129,7 @@ export function MiniBars({
         const h = Math.max(6, Math.round((d.value / max) * height));
         return (
           <div key={d.key} className="flex flex-1 flex-col items-center gap-1" title={d.title}>
-            <span className="font-mono text-[10px] font-bold text-[var(--ink-muted)]">{d.display ?? d.value}</span>
+            <span className="font-mono text-[11px] font-bold text-[var(--ink-muted)]">{d.display ?? d.value}</span>
             <motion.div
               className="w-full rounded-lg"
               style={{ background: d.current ? "#ffffff" : "var(--pulse-bar)" }}
@@ -137,7 +137,7 @@ export function MiniBars({
               animate={{ height: h }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
             />
-            <span className={`text-[10px] font-bold ${d.current ? "text-[var(--ink)]" : "text-[var(--ink-dim)]"}`}>{d.label}</span>
+            <span className={`text-[11px] font-bold ${d.current ? "text-[var(--ink)]" : "text-[var(--ink-dim)]"}`}>{d.label}</span>
           </div>
         );
       })}

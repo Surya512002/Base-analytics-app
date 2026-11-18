@@ -157,7 +157,7 @@ export default function StockPortfolioBreakdownCard({
               <h3 className="font-display font-bold text-base text-[var(--ink)]">
                 Base Stocks &amp; Multi-Protocol Lending Analytics
               </h3>
-              <span className="badge badge-brand text-[10px]">Terminal V2</span>
+              <span className="badge badge-brand text-[11px]">Terminal V2</span>
             </div>
             <p className="text-xs text-[var(--ink-muted)]">
               Tokenized equities exposure, Morpho / Aave / Euler collateral, and risk rating
@@ -184,7 +184,7 @@ export default function StockPortfolioBreakdownCard({
         <div className="pop-lg md:col-span-4 rounded-xl border border-[var(--brand)]/30 bg-gradient-to-br from-blue-600/10 via-[var(--surface-2)] to-teal-500/10 p-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-dark)]">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-dark)]">
                 Stock Terminal Score
               </span>
               <Award size={16} className="text-amber-500" />
@@ -220,36 +220,36 @@ export default function StockPortfolioBreakdownCard({
         <div className="md:col-span-8 flex flex-col justify-between gap-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-              <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Equity Holdings</p>
+              <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Equity Holdings</p>
               <p className="text-base font-black font-mono text-[var(--ink)] mt-0.5">
                 ${(summary?.totalStockHoldingsUsd ?? 4820).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </p>
-              <p className="text-[10px] text-[var(--teal)] font-medium mt-0.5">+4.2% NAV 24h</p>
+              <p className="text-[11px] text-[var(--teal)] font-medium mt-0.5">+4.2% NAV 24h</p>
             </div>
 
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-              <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Collateralized Debt</p>
+              <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Collateralized Debt</p>
               <p className="text-base font-black font-mono text-blue-600 dark:text-blue-400 mt-0.5">
                 ${(summary?.totalStockDebtUsd ?? 1650).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </p>
-              <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">USDC across Morpho/Aave</p>
+              <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">USDC across Morpho/Aave</p>
             </div>
 
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-              <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Health Factor</p>
+              <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Health Factor</p>
               <p className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
                 <ShieldCheck size={14} />
                 <span>{(summary?.healthFactor ?? 1.85).toFixed(2)}x</span>
               </p>
-              <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">Prime Safety Buffer</p>
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">Prime Safety Buffer</p>
             </div>
 
             <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-              <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Average LLTV</p>
+              <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Average LLTV</p>
               <p className="text-base font-black font-mono text-[var(--ink)] mt-0.5">
                 {(summary?.weightedLltvPct ?? 77.5).toFixed(1)}%
               </p>
-              <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">Liquidation Threshold</p>
+              <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">Liquidation Threshold</p>
             </div>
           </div>
 
@@ -274,15 +274,15 @@ export default function StockPortfolioBreakdownCard({
                     <TokenLogo symbol={pos.symbol} size={28} shape="rounded-lg" />
                     <div>
                       <p className="font-bold text-[var(--ink)] leading-none">{pos.symbol}</p>
-                      <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">
+                      <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
                         {pos.balanceFormatted} shares · ${pos.balanceUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <span className="badge badge-muted text-[10px] font-bold">{pos.protocol}</span>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                    <span className="badge badge-muted text-[11px] font-bold">{pos.protocol}</span>
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
                       {pos.status}
                     </p>
                   </div>
@@ -335,7 +335,7 @@ export default function StockPortfolioBreakdownCard({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-[var(--teal)] animate-pulse" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--teal)]">
+                  <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--teal)]">
                     Base Equities Terminal
                   </span>
                 </div>

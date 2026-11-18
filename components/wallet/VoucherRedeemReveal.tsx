@@ -158,7 +158,7 @@ export default function VoucherRedeemReveal({
                 <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-5">
                   <Gift size={32} className="text-rose-300" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 mb-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-300 mb-2">
                   Base Voucher
                 </p>
                 <p className="text-xl font-black text-white">A gift is waiting</p>
@@ -179,7 +179,7 @@ export default function VoucherRedeemReveal({
               <div className="relative h-full flex flex-col p-6 sm:p-8">
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div>
-                    <p className="text-[10px] font-bold text-slate-300">From the sender</p>
+                    <p className="text-[11px] font-bold text-slate-300">From the sender</p>
                     <p className="text-xs font-black text-white/90">base-analytics</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function VoucherRedeemReveal({
                 >
                   {hasMessage ? (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-400/90 mb-3 text-center">
+                      <p className="text-[11px] font-black uppercase tracking-[0.35em] text-emerald-400/90 mb-3 text-center">
                         Personal message
                       </p>
                       <blockquote className="text-center px-1">
@@ -220,11 +220,11 @@ export default function VoucherRedeemReveal({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[9px] font-bold text-slate-300 uppercase">You received</p>
+                      <p className="text-[11px] font-bold text-slate-300 uppercase">You received</p>
                       <p className="text-2xl font-black text-white mt-0.5">{amountLabel}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] font-bold text-slate-300 uppercase">Card</p>
+                      <p className="text-[11px] font-bold text-slate-300 uppercase">Card</p>
                       <p className="text-sm font-mono font-bold text-[var(--ink)] mt-0.5">{data.cardId}</p>
                     </div>
                   </div>

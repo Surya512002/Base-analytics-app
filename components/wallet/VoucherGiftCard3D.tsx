@@ -148,7 +148,7 @@ export default function VoucherGiftCard3D({
         <div className={`relative ${compact ? "p-4" : "p-5 sm:p-6"}`}>
           <div className="flex items-start justify-between gap-3 mb-5">
             <div>
-              <p className="text-[10px] font-bold text-slate-300 tracking-wide">{cardLabel}</p>
+              <p className="text-[11px] font-bold text-slate-300 tracking-wide">{cardLabel}</p>
               <p className="text-xs font-black text-white/90 mt-0.5">
                 {isVault
                   ? `${vaultInfo?.protocol ?? "DeFi"} Vault`
@@ -166,11 +166,11 @@ export default function VoucherGiftCard3D({
           </div>
 
           <div className="flex items-center justify-between mb-1">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em]">
               {isVault ? "Yield Vault Position" : isStock ? "RWA Equity Share" : "Gift Card"}
             </p>
             {vaultInfo && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                 <Sparkles size={10} /> +{vaultInfo.apy.toFixed(2)}% APY
               </span>
             )}
@@ -190,7 +190,7 @@ export default function VoucherGiftCard3D({
 
           {message?.trim() ? (
             <div className="mb-4 rounded-xl bg-black/25 border border-white/10 px-3 py-2.5">
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">
                 Message
               </p>
               <p className="text-xs sm:text-sm text-slate-100 italic leading-snug line-clamp-3">
@@ -201,14 +201,14 @@ export default function VoucherGiftCard3D({
 
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-[9px] font-bold text-slate-500 uppercase mb-1.5">Network</p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Network</p>
               <div className="flex items-center gap-2">
                 <BaseNetworkBadge />
                 <span className="text-sm font-black text-white">Base</span>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[9px] font-bold text-slate-500 uppercase mb-1.5">Status</p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Status</p>
               <div className="flex items-center justify-end gap-1.5">
                 <span
                   className={`w-2 h-2 rounded-full ${

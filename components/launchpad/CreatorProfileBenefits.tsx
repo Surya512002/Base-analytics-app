@@ -35,7 +35,7 @@ const perks = [
 export default function CreatorProfileBenefits() {
   return (
     <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 sm:p-5">
-      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink-dim)]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--ink-dim)]">
         Base Analytics creators
       </p>
       <h2 className="mt-1 text-base font-bold text-[var(--ink)]">

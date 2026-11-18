@@ -36,7 +36,7 @@ export default function VoucherHero() {
             {STATS.map((s) => (
               <span
                 key={s.label}
-                className="inline-flex items-center gap-1.5 editorial-badge text-[10px] font-bold"
+                className="inline-flex items-center gap-1.5 editorial-badge text-[11px] font-bold"
               >
                 <span className="text-[var(--brand)]">{s.icon}</span>
                 {s.label}
@@ -47,7 +47,7 @@ export default function VoucherHero() {
           <div className="mt-5 flex flex-wrap items-center gap-3 justify-center lg:justify-start">
             <div className="inline-flex items-center gap-2.5 editorial-badge px-4 py-2.5">
               <AppLogo size="sm" />
-              <span className="text-[10px] font-bold text-[var(--brand-dark)] uppercase tracking-widest">
+              <span className="text-[11px] font-bold text-[var(--brand-dark)] uppercase tracking-widest">
                 Built on Base
               </span>
             </div>

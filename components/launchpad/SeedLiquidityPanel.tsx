@@ -98,7 +98,7 @@ export default function SeedLiquidityPanel({
       </p>
       <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">{blurb}</p>
       <label className="block">
-        <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase">Pool venue</span>
+        <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Pool venue</span>
         <div className="flex flex-wrap gap-1.5 mt-2">
           {(
             [
@@ -111,7 +111,7 @@ export default function SeedLiquidityPanel({
               key={id}
               type="button"
               onClick={() => setSeedDex(id)}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
                 seedDex === id
                   ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                   : "border-[var(--border-subtle)] text-[var(--ink-muted)] hover:border-[var(--brand)]"
@@ -125,7 +125,7 @@ export default function SeedLiquidityPanel({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase">ETH to add</span>
+            <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">ETH to add</span>
             {seedUsd != null && (
               <span className="text-[11px] font-bold text-emerald-400 font-mono tabular-nums">
                 ≈ {formatUsd(seedUsd)}
@@ -146,7 +146,7 @@ export default function SeedLiquidityPanel({
                 key={preset}
                 type="button"
                 onClick={() => setSeedEth(preset)}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
                   seedEth === preset
                     ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                     : "border-[var(--border-subtle)] text-[var(--ink-muted)] hover:border-[var(--brand)]"
@@ -163,7 +163,7 @@ export default function SeedLiquidityPanel({
           </div>
         </label>
         <label className="block">
-          <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase">
+          <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">
             Your tokens ({formatCompact(tokenAmountHuman)} {token.symbol})
           </span>
           <div className="flex gap-1.5 mt-1">
@@ -172,7 +172,7 @@ export default function SeedLiquidityPanel({
                 key={p}
                 type="button"
                 onClick={() => setTokenPct(p)}
-                className={`flex-1 py-2 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
                   tokenPct === p
                     ? "border-[var(--border-focus)] bg-[var(--bg-hover)] text-[var(--ink)]"
                     : "border-[var(--border-subtle)] text-[var(--ink-muted)] hover:border-[var(--brand)]"

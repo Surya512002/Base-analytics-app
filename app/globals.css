@@ -591,6 +591,8 @@ body {
 .stagger-grid > *:nth-child(7) { animation: meridianRise 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.26s both; }
 .stagger-grid > *:nth-child(8) { animation: meridianRise 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both; }
 
+/* Reduced motion: stop animations and transitions, but keep transforms. They
+   also position and shape things (centring, rotated ribbons, 3D card tilt). */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -686,17 +688,6 @@ body {
   select,
   textarea {
     font-size: 16px !important;
-  }
-}
-
-/* Accessibility: prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-    transform: none !important;
   }
 }
 
@@ -835,20 +826,6 @@ html.is-scrolling .prism-scene {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   touch-action: pan-x;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }
 
 /* Quiet ink canvas */
@@ -1100,7 +1077,7 @@ html.is-scrolling .prism-scene {
 }
 
 .editorial-stat-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1120,7 +1097,7 @@ html.is-scrolling .prism-scene {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--brand-dark);
   background: var(--brand-soft);
@@ -1857,7 +1834,7 @@ html.is-scrolling .prism-scene {
 
 .b20-market-stat-label {
   display: block;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1974,7 +1951,7 @@ html.is-scrolling .prism-scene {
 }
 
 .spotlight-stat-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1994,7 +1971,7 @@ html.is-scrolling .prism-scene {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2320,7 +2297,7 @@ html.is-scrolling .prism-scene {
 }
 
 .swap-usd-label {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2664,7 +2641,7 @@ button.swap-token-pill:hover {
   flex-wrap: wrap;
   gap: 0.75rem 1rem;
   padding-top: 0.25rem;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   color: #475569;
 }
 
@@ -3215,7 +3192,7 @@ button.swap-token-pill:hover {
   color: var(--text-primary);
 }
 .wallet-holding-bal {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   color: var(--text-tertiary);
 }
 .wallet-holding-usd {
@@ -3940,5 +3917,23 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   .pulse-status-dot::after {
     animation: none;
     display: none;
+  }
+}
+
+/* Bigger touch area on phones without changing how the control looks: an
+   invisible box of at least 44x44px centred on the control. */
+@layer components {
+  @media (pointer: coarse) {
+    .tap-target {
+      position: relative;
+    }
+    .tap-target::after {
+      content: "";
+      position: absolute;
+      top: min(0px, calc(50% - 22px));
+      bottom: min(0px, calc(50% - 22px));
+      left: min(0px, calc(50% - 22px));
+      right: min(0px, calc(50% - 22px));
+    }
   }
 }

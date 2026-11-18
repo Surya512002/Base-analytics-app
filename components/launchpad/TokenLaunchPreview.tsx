@@ -37,7 +37,7 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
     <div className="sticky top-4 space-y-4">
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden">
         <div className="p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ink-dim)] mb-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--ink-dim)] mb-3">
             Live preview
           </p>
 
@@ -52,17 +52,17 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="font-black text-[var(--ink)] text-xl truncate">{displayName}</h3>
                 {data.tokenType === "memestock" && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
                     Memestock
                   </span>
                 )}
                 {data.tokenType === "standard" && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25">
                     ERC-20 Meme
                   </span>
                 )}
                 {(!data.tokenType || data.tokenType === "b20") && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
                     B20 Vanity
                   </span>
                 )}
@@ -95,7 +95,7 @@ export default function TokenLaunchPreview({ data }: { data: LaunchPreviewData }
       </div>
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2 text-[11px]">
-        <p className="text-[10px] font-bold text-[var(--ink-dim)] uppercase tracking-wider">Launch summary</p>
+        <p className="text-[11px] font-bold text-[var(--ink-dim)] uppercase tracking-wider">Launch summary</p>
         <div className="flex justify-between text-[var(--ink-muted)]">
           <span>Supply</span>
           <span className="text-[var(--ink)] font-mono font-bold">{data.supplyCap}</span>

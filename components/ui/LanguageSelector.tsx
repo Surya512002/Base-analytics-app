@@ -40,7 +40,7 @@ export default function LanguageSelector() {
 
       {open && (
         <div className="absolute right-0 mt-1.5 w-44 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-popover)] shadow-xl p-1.5 z-50 animate-meridian-fade">
-          <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] border-b border-[var(--border-subtle)] mb-1">
+          <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)] border-b border-[var(--border-subtle)] mb-1">
             Language
           </div>
           <div className="space-y-0.5">
@@ -62,7 +62,7 @@ export default function LanguageSelector() {
                 >
                   <div className="flex flex-col text-left">
                     <span>{loc.nativeName}</span>
-                    <span className="text-[10px] text-[var(--ink-muted)]">{loc.label}</span>
+                    <span className="text-[11px] text-[var(--ink-muted)]">{loc.label}</span>
                   </div>
                   {isSelected && <Check size={14} className="text-[var(--brand)] shrink-0" />}
                 </button>

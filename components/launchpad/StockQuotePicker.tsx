@@ -241,10 +241,10 @@ export default function StockQuotePicker({
                 <span className="font-mono font-bold text-xs text-[var(--ink)]">
                   {stock.symbol}
                 </span>
-                <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                   {stock.category}
                 </span>
-                <span className="text-[9px] font-semibold text-[var(--ink-dim)] hidden min-[360px]:inline">
+                <span className="text-[11px] font-semibold text-[var(--ink-dim)] hidden min-[360px]:inline">
                   {stock.issuer}
                 </span>
               </div>
@@ -261,12 +261,12 @@ export default function StockQuotePicker({
                 {livePrice ? `$${livePrice.toFixed(2)}` : "Live Feed"}
               </p>
               {eligible ? (
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block">
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold block">
                   Pair Ready
                 </span>
               ) : (
                 <span
-                  className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold block"
+                  className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold block"
                   title={reason}
                 >
                   {reason ?? "Ineligible"}
@@ -301,9 +301,9 @@ export default function StockQuotePicker({
           <div className="px-3.5 pb-3 pt-1 border-t border-[var(--border-subtle)]/50 bg-[var(--surface-3)]/40 text-xs space-y-2">
             <div className="flex items-center justify-between font-bold text-[var(--ink)]">
               <span>{stock.name} ({stock.underlyingTicker})</span>
-              <span className="text-[10px] text-[var(--ink-muted)] font-mono">Decimals: {stock.decimals}</span>
+              <span className="text-[11px] text-[var(--ink-muted)] font-mono">Decimals: {stock.decimals}</span>
             </div>
-            <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] font-mono text-[10px] gap-2">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] font-mono text-[11px] gap-2">
               <span className="truncate flex-1 min-w-0">{stock.address}</span>
               <button
                 type="button"
@@ -373,7 +373,7 @@ export default function StockQuotePicker({
                 <span className="font-mono font-black text-sm text-[var(--ink)]">
                   {selectedStock.symbol}
                 </span>
-                <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                   {selectedStock.category}
                 </span>
               </div>
@@ -544,7 +544,7 @@ export default function StockQuotePicker({
           <span className="font-mono text-[var(--brand-text)] font-black text-sm break-all">
             TOKEN / {selectedStock.symbol}
           </span>
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)] shrink-0">
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)] shrink-0">
             Issuer: {selectedStockEntry.issuer}
           </span>
         </div>
@@ -561,7 +561,7 @@ export default function StockQuotePicker({
             title="Copy address"
           >
             <Copy size={12} />
-            <span className="text-[10px]">{copiedAddr === selectedStock.address ? "Copied" : "Copy"}</span>
+            <span className="text-[11px]">{copiedAddr === selectedStock.address ? "Copied" : "Copy"}</span>
           </button>
         </div>
       </div>
@@ -577,7 +577,7 @@ export default function StockQuotePicker({
           Off-hours liquidity and price discovery may vary when US equity markets are closed.
         </p>
         {selectedStockEntry.restrictions?.legalNote && (
-          <p className="text-[10px] leading-normal border-t border-amber-500/25 pt-1.5 text-amber-900 dark:text-amber-200">
+          <p className="text-[11px] leading-normal border-t border-amber-500/25 pt-1.5 text-amber-900 dark:text-amber-200">
             <strong className="font-semibold text-amber-950 dark:text-amber-100">Issuer Note ({selectedStockEntry.issuer}):</strong>{" "}
             {selectedStockEntry.restrictions.legalNote}
           </p>

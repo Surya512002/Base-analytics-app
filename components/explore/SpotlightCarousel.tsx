@@ -130,7 +130,7 @@ export default function SpotlightCarousel({ tokens, onOpenToken }: SpotlightCaro
       }}
     >
       <div className="mb-2.5 flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
           <Sparkles size={11} />
           Spotlight · top volume
         </span>
@@ -189,7 +189,7 @@ export default function SpotlightCarousel({ tokens, onOpenToken }: SpotlightCaro
                   </div>
                   <span className="block truncate text-[11px] text-[var(--ink-muted)]">{token.name}</span>
                 </div>
-                <span className="text-[10px] font-bold text-[var(--ink-dim)]">#{i + 1}</span>
+                <span className="text-[11px] font-bold text-[var(--ink-dim)]">#{i + 1}</span>
               </div>
 
               <div className="flex items-end justify-between gap-2">

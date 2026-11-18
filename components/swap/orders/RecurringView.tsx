@@ -179,7 +179,7 @@ export default function RecurringView({
       {/* Alert banners */}
       <div className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-cyan-600 text-white uppercase tracking-wider">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-cyan-600 text-white uppercase tracking-wider">
             DCA Automation
           </span>
           <span className="text-[var(--ink-muted)]">
@@ -277,7 +277,7 @@ export default function RecurringView({
           <div className="flex-1 min-w-0">
             <label
               htmlFor="recurring-stock-select"
-              className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mb-0.5"
+              className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider mb-0.5"
             >
               Accumulate Stock
             </label>
@@ -307,7 +307,7 @@ export default function RecurringView({
           </div>
 
           <div className="text-right shrink-0">
-            <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               Market Price
             </span>
             <span className="text-sm font-mono font-bold text-[var(--ink)] tabular-nums">
@@ -350,7 +350,7 @@ export default function RecurringView({
           <div className="space-y-1">
             <label
               htmlFor="number-of-buys-input"
-              className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider"
+              className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider"
             >
               Number of Buys (1-365)
             </label>
@@ -370,7 +370,7 @@ export default function RecurringView({
 
           {/* Interval */}
           <div className="space-y-1">
-            <label className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <label className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               Repeat Frequency
             </label>
             <div className="flex items-center gap-1">
@@ -382,7 +382,7 @@ export default function RecurringView({
                     setIntervalSec(p.seconds);
                     setCustomIntervalHours("");
                   }}
-                  className={`flex-1 text-[10px] font-bold py-2 min-h-[44px] flex items-center justify-center rounded-md border ${
+                  className={`flex-1 text-[11px] font-bold py-2 min-h-[44px] flex items-center justify-center rounded-md border ${
                     intervalSec === p.seconds && customIntervalHours === ""
                       ? "bg-[#0052FF] text-white border-[#0052FF]"
                       : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -404,7 +404,7 @@ export default function RecurringView({
             >
               Optional Price Ceiling (USD)
             </label>
-            <span className="text-[10px] text-[var(--ink-muted)]">Optional</span>
+            <span className="text-[11px] text-[var(--ink-muted)]">Optional</span>
           </div>
           <input
             id="price-ceiling-input"
@@ -444,7 +444,7 @@ export default function RecurringView({
             </span>
           </div>
 
-          <div className="pt-1 border-t border-[var(--border-subtle)] text-[10px] text-[var(--ink-muted)] space-y-0.5">
+          <div className="pt-1 border-t border-[var(--border-subtle)] text-[11px] text-[var(--ink-muted)] space-y-0.5">
             <p>&bull; The first buy runs as soon as the keeper picks it up.</p>
             <p>&bull; Trailing stops and DCA depend on the keeper running.</p>
             <p>&bull; Plan beta cap: {formatUnits(maxQuoteCap, quoteDecimals)} {quoteSymbol}</p>
@@ -492,7 +492,7 @@ export default function RecurringView({
                 </span>
               </div>
             </div>
-            <p className="text-[10px] text-[var(--ink-muted)] pt-1 border-t border-cyan-500/10">
+            <p className="text-[11px] text-[var(--ink-muted)] pt-1 border-t border-cyan-500/10">
               Exact budget approval only &middot; Unspent funds refundable anytime on plan cancellation
             </p>
           </div>

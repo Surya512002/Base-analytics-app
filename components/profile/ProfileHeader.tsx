@@ -114,13 +114,13 @@ export default function ProfileHeader({
                   {displayName}
                 </h1>
                 {basename && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] flex items-center gap-1">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)] flex items-center gap-1">
                     <ShieldCheck size={11} /> {basename}
                   </span>
                 )}
                 <span
                   title="Total verified unique wallet addresses connected and tracked via Redis on Base"
-                  className="pulse-chip min-h-0 px-2.5 py-0.5 text-[10px] gap-1.5 cursor-default"
+                  className="pulse-chip min-h-0 px-2.5 py-0.5 text-[11px] gap-1.5 cursor-default"
                 >
                   <span className="pulse-status-dot h-1.5 w-1.5" aria-hidden />
                   <Users size={11} />

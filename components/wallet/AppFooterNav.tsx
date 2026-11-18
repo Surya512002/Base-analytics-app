@@ -13,7 +13,7 @@ export default function AppFooterNav() {
             <span className="font-display text-lg font-black tracking-tight text-[var(--ink)]">
               Base Analytics
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               Mainnet
             </span>
           </div>

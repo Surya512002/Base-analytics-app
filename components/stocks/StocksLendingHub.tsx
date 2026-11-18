@@ -384,7 +384,7 @@ export default function StocksLendingHub({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               <span>Live</span>
-              <span className="text-[var(--ink-dim)] font-mono text-[10px] font-normal">
+              <span className="text-[var(--ink-dim)] font-mono text-[11px] font-normal">
                 · {secondsAgo < 5 ? "just now" : `${secondsAgo}s ago`}
               </span>
             </div>
@@ -467,7 +467,7 @@ export default function StocksLendingHub({
                 >
                   <Search size={14} className="text-[var(--brand)] group-hover:scale-110 transition-transform" />
                   <span>Search</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]">
+                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-md bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]">
                     {BASE_STOCKS.length}
                   </span>
                 </button>
@@ -567,7 +567,7 @@ export default function StocksLendingHub({
                         }`}
                       >
                         <span className="font-mono font-bold">{stk.symbol}</span>
-                        <span className={`text-[10px] hidden sm:inline ${isSel ? "text-white/80" : "text-[var(--ink-dim)]"}`}>
+                        <span className={`text-[11px] hidden sm:inline ${isSel ? "text-white/80" : "text-[var(--ink-dim)]"}`}>
                           {stk.name}
                         </span>
                       </button>
@@ -702,7 +702,7 @@ export default function StocksLendingHub({
           {/* Best Supply APY */}
           <div className="pop rounded-2xl border border-emerald-500/25 bg-emerald-500/8 p-4 flex items-center justify-between gap-3 shadow-xs">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                 Top Supply Yield
               </p>
               <p className="font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
@@ -727,7 +727,7 @@ export default function StocksLendingHub({
           {/* Lowest Borrow APR */}
           <div className="pop rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-soft)] p-4 flex items-center justify-between gap-3 shadow-xs">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-dark)]">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-dark)]">
                 Lowest Borrow Rate
               </p>
               <p className="font-mono text-2xl font-black text-[var(--brand-dark)] mt-0.5 tabular-nums">
@@ -754,7 +754,7 @@ export default function StocksLendingHub({
           {/* Deepest Liquidity */}
           <div className="pop rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 flex items-center justify-between gap-3 shadow-xs">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
                 Deepest Available Pool
               </p>
               <p className="font-mono text-2xl font-black text-[var(--ink)] mt-0.5 tabular-nums">
@@ -839,7 +839,7 @@ export default function StocksLendingHub({
                         <h4 className="font-black text-base text-[var(--ink)] leading-snug truncate">
                           {opt.protocolName}
                         </h4>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase tracking-wide">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase tracking-wide">
                           {opt.type === "strategy" ? "Auto-Carry Vault" : opt.typeLabel}
                         </span>
                       </div>
@@ -847,7 +847,7 @@ export default function StocksLendingHub({
 
                     {/* Prominent Best Option Badge */}
                     {isRankOne && (
-                      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--brand)] text-white shadow-xs">
+                      <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--brand)] text-white shadow-xs">
                         ★ {rankOneBadgeLabel}
                       </span>
                     )}
@@ -856,25 +856,25 @@ export default function StocksLendingHub({
                   {/* Hero Metrics: Big, Clear Supply APY and Borrow APR */}
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="rounded-xl bg-[var(--surface-2)] p-3 border border-[var(--border-subtle)]">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--ink-dim)] font-bold">
+                      <p className="text-[11px] uppercase tracking-wider text-[var(--ink-dim)] font-bold">
                         Supply APY
                       </p>
                       <p className="font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
                         {opt.supplyApy.toFixed(2)}%
                       </p>
-                      <p className="text-[10px] text-[var(--ink-muted)] mt-0.5 font-medium truncate">
+                      <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 font-medium truncate">
                         {optIsStrategy ? "Auto-Compounding" : "Securities Yield"}
                       </p>
                     </div>
 
                     <div className="rounded-xl bg-[var(--surface-2)] p-3 border border-[var(--border-subtle)]">
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--ink-dim)] font-bold">
+                      <p className="text-[11px] uppercase tracking-wider text-[var(--ink-dim)] font-bold">
                         Borrow APR
                       </p>
                       <p className="font-mono text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5 tabular-nums">
                         {opt.borrowApr !== null ? `${opt.borrowApr.toFixed(2)}%` : "N/A"}
                       </p>
-                      <p className="text-[10px] text-[var(--ink-muted)] mt-0.5 font-medium truncate">
+                      <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 font-medium truncate">
                         {opt.borrowApr !== null ? "USDC Loan Rate" : "Collateral Only"}
                       </p>
                     </div>
@@ -883,19 +883,19 @@ export default function StocksLendingHub({
                   {/* Compact Parameters Row: Max LTV, Available Liquidity, Risk */}
                   <div className="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] text-[11px]">
                     <div>
-                      <p className="text-[9px] uppercase font-bold text-[var(--ink-dim)]">Max LTV</p>
+                      <p className="text-[11px] uppercase font-bold text-[var(--ink-dim)]">Max LTV</p>
                       <p className="font-mono font-bold text-[var(--ink)] mt-0.5">
                         {opt.maxLtv !== null ? `${opt.maxLtv}%` : "Vault"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] uppercase font-bold text-[var(--ink-dim)]">Available Liq</p>
+                      <p className="text-[11px] uppercase font-bold text-[var(--ink-dim)]">Available Liq</p>
                       <p className="font-mono font-bold text-[var(--ink)] mt-0.5">
                         ${(opt.availableLiquidityUsd / 1e6).toFixed(1)}M
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] uppercase font-bold text-[var(--ink-dim)]">Risk Rating</p>
+                      <p className="text-[11px] uppercase font-bold text-[var(--ink-dim)]">Risk Rating</p>
                       <p className="font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
                         {opt.riskLevel.toUpperCase()}
                       </p>

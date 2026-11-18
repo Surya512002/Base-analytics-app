@@ -5,8 +5,8 @@ import type { CreatorProfile } from "@/lib/launchpad/creator-profile-types";
 import { useCreatorProfile } from "@/hooks/useCreatorProfile";
 
 const SIZES = {
-  xs: "h-6 w-6 rounded-lg text-[9px]",
-  sm: "h-8 w-8 rounded-lg text-[10px]",
+  xs: "h-6 w-6 rounded-lg text-[11px]",
+  sm: "h-8 w-8 rounded-lg text-[11px]",
   md: "h-10 w-10 rounded-xl text-xs",
   lg: "h-16 w-16 rounded-2xl text-lg",
   xl: "h-20 w-20 rounded-2xl text-xl sm:h-24 sm:w-24 sm:text-2xl",

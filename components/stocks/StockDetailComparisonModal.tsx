@@ -572,22 +572,22 @@ export default function StockDetailComparisonModal({
                         </h4>
 
                         {/* Strategy type pill */}
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] uppercase">
                           {opt.type === "strategy" ? "Auto-Carry Vault" : opt.typeLabel}
                         </span>
 
                         {opt.isBestSupply && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                             Top Supply APY
                           </span>
                         )}
                         {opt.isBestBorrow && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/25">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/25">
                             Lowest Borrow Rate
                           </span>
                         )}
                         {opt.isHighestLiquidity && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25">
                             Deepest Liquidity
                           </span>
                         )}
@@ -604,52 +604,52 @@ export default function StockDetailComparisonModal({
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3 pt-3 border-t border-[var(--border-subtle)]">
                       {/* Supply APY */}
                       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5">
-                        <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
+                        <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
                           Supply APY
                         </p>
                         <p className="font-mono text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
                           {opt.supplyApy.toFixed(2)}%
                         </p>
-                        <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">
+                        <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">
                           {optIsStrategy ? "Auto-Compounding" : "Securities yield"}
                         </p>
                       </div>
 
                       {/* Borrow APR */}
                       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5">
-                        <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
+                        <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
                           Borrow APR
                         </p>
                         <p className="font-mono text-xl font-black text-[var(--brand-dark)] dark:text-blue-400 mt-0.5 tabular-nums">
                           {opt.borrowApr !== null ? `${opt.borrowApr.toFixed(2)}%` : "N/A"}
                         </p>
-                        <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">
+                        <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">
                           {opt.borrowApr !== null ? "USDC variable loan" : "Pure Yield Vault"}
                         </p>
                       </div>
 
                       {/* Max LTV */}
                       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5">
-                        <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
+                        <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
                           Max LTV
                         </p>
                         <p className="font-mono text-lg font-black text-[var(--ink)] mt-0.5 tabular-nums">
                           {opt.maxLtv !== null ? `${opt.maxLtv}%` : "Vault"}
                         </p>
-                        <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">
+                        <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">
                           {opt.liquidationThreshold ? `${opt.liquidationThreshold}% LLTV` : "Non-leveraged"}
                         </p>
                       </div>
 
                       {/* Available Liquidity */}
                       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5">
-                        <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
+                        <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
                           Available Liq
                         </p>
                         <p className="font-mono text-lg font-black text-[var(--ink)] mt-0.5 tabular-nums">
                           ${(opt.availableLiquidityUsd / 1e6).toFixed(1)}M
                         </p>
-                        <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">
+                        <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">
                           {opt.riskLevel.toUpperCase()} Risk ({opt.riskScore}/10)
                         </p>
                       </div>
@@ -1058,7 +1058,7 @@ export default function StockDetailComparisonModal({
           <p>
             Base Builder Attribution enabled. Tokenized US equities custody verified 1:1 on Base mainnet.
           </p>
-          <span className="font-mono text-[10px] text-[var(--ink-dim)]">Base Chain ID: 8453</span>
+          <span className="font-mono text-[11px] text-[var(--ink-dim)]">Base Chain ID: 8453</span>
         </div>
       </motion.div>
     </motion.div>,

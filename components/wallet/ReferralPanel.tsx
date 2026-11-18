@@ -58,14 +58,14 @@ export default function ReferralPanel({ address }: ReferralPanelProps) {
           <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center">
             <Users size={16} className="text-cyan-400 mx-auto mb-1" />
             <p className="text-xl font-black text-[var(--ink)]">{invites}</p>
-            <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Wallets Invited</p>
+            <p className="text-[11px] text-[var(--ink-muted)] uppercase font-bold">Wallets Invited</p>
           </div>
           <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] p-3 text-center">
             <Gift size={16} className="text-amber-400 mx-auto mb-1" />
             <p className="text-xl font-black text-amber-400">
               {invites > 0 ? "Active" : "Ready"}
             </p>
-            <p className="text-[9px] text-[var(--ink-muted)] uppercase font-bold">Referral Status</p>
+            <p className="text-[11px] text-[var(--ink-muted)] uppercase font-bold">Referral Status</p>
           </div>
         </div>
       </div>

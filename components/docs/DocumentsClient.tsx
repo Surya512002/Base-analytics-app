@@ -616,7 +616,7 @@ export default function DocumentsClient() {
             <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
               Base Analytics
             </span>
-            <span className="badge badge-brand text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5">
+            <span className="badge badge-brand text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5">
               Docs &amp; API
             </span>
           </Link>
@@ -662,7 +662,7 @@ export default function DocumentsClient() {
               <span className="badge badge-brand inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider">
                 <Sparkles size={12} /> Documentation &amp; Developer Portal
               </span>
-              <span className="rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+              <span className="rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider">
                 Base Mainnet 8453
               </span>
             </div>
@@ -917,7 +917,7 @@ export default function DocumentsClient() {
                   Model Context Protocol (MCP)
                 </h2>
               </div>
-              <span className="badge badge-brand text-[10px] font-bold">MCP v1.26</span>
+              <span className="badge badge-brand text-[11px] font-bold">MCP v1.26</span>
             </div>
 
             <div className="card p-6 space-y-5">
@@ -1108,7 +1108,7 @@ export default function DocumentsClient() {
                         }`}
                       >
                         <span
-                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold uppercase font-mono ${
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-extrabold uppercase font-mono ${
                             ep.method === "GET"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                               : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
@@ -1269,7 +1269,7 @@ export default function DocumentsClient() {
                   Compliance Guardrails &amp; Exit-Only Architecture
                 </h2>
               </div>
-              <span className="badge badge-brand text-[10px] font-bold">Product Safeguards</span>
+              <span className="badge badge-brand text-[11px] font-bold">Product Safeguards</span>
             </div>
 
             <div className="card p-6 space-y-5">
@@ -1364,7 +1364,7 @@ export default function DocumentsClient() {
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                <span className="badge badge-brand text-[10px] font-mono">
+                <span className="badge badge-brand text-[11px] font-mono">
                   Builder Code: {BUILDER_CODE}
                 </span>
               </div>
@@ -1377,7 +1377,7 @@ export default function DocumentsClient() {
                     <h3 className="font-display text-sm font-bold text-[var(--ink)]">
                       {c.name}
                     </h3>
-                    <span className="rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 text-[10px] font-mono font-bold">
+                    <span className="rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 text-[11px] font-mono font-bold">
                       {c.standard}
                     </span>
                   </div>
@@ -1414,7 +1414,7 @@ export default function DocumentsClient() {
                     {c.features.map((f) => (
                       <span
                         key={f}
-                        className="rounded-full bg-[var(--surface-2)] text-[var(--ink-dim)] text-[10px] font-medium px-2 py-0.5 border border-[var(--border-subtle)]"
+                        className="rounded-full bg-[var(--surface-2)] text-[var(--ink-dim)] text-[11px] font-medium px-2 py-0.5 border border-[var(--border-subtle)]"
                       >
                         {f}
                       </span>
@@ -1455,7 +1455,7 @@ export default function DocumentsClient() {
                       className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-[var(--surface-2)]/50 transition"
                     >
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand)] block mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)] block mb-1">
                           {item.category}
                         </span>
                         <p className="text-sm font-bold text-[var(--ink)]">

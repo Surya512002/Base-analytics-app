@@ -128,11 +128,11 @@ export default function B20MarketHero({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="b20-market-eyebrow inline-flex !text-[10px]">
+                          <span className="b20-market-eyebrow inline-flex !text-[11px]">
                             #1 B20 · Spotlight
                           </span>
                           {isAppLaunched(spotlight) && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
                               App launch
                             </span>
                           )}

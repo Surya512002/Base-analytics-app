@@ -158,14 +158,14 @@ export default function EditOrderModal({
                 <button
                   type="button"
                   onClick={() => handleApplySlippage(1)}
-                  className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                  className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
                 >
                   1% slip
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplySlippage(2)}
-                  className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
+                  className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
                 >
                   2% slip
                 </button>

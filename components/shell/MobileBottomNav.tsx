@@ -177,7 +177,7 @@ export default function MobileBottomNav({
                   }
                 />
               </div>
-              <span className="max-w-full truncate text-[10px] sm:text-[11px] tracking-tight leading-none">
+              <span className="max-w-full truncate text-[11px] sm:text-[11px] tracking-tight leading-none">
                 {item.label}
               </span>
             </Link>

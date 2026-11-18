@@ -770,7 +770,7 @@ function ActionDrawerContent({
 
             {/* Live Transaction Preview */}
             <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2.5 text-xs">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
                 Transaction Preview
               </span>
 
@@ -872,7 +872,7 @@ function ActionDrawerContent({
                       })}
                     </span>
                   </div>
-                  <p className="text-[10px] text-[var(--ink-dim)]">
+                  <p className="text-[11px] text-[var(--ink-dim)]">
                     Morpho Midnight guarantees this fixed rate until term maturity.
                   </p>
                 </div>
@@ -881,7 +881,7 @@ function ActionDrawerContent({
           </>
         ) : (
           <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] space-y-2.5 text-xs">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
               External Protocol Integration
             </span>
             <p className="text-[var(--ink-muted)] leading-relaxed">
@@ -930,7 +930,7 @@ function ActionDrawerContent({
             <p className="text-[11px] leading-relaxed opacity-95">
               {stockEntry.restrictions.legalNote ?? "This tokenized stock may enforce issuer allowlists, transfer restrictions, or geographic limits."}
             </p>
-            <p className="text-[10px] text-[var(--ink-muted)] italic">
+            <p className="text-[11px] text-[var(--ink-muted)] italic">
               Notice: Eligibility and disclosure terms are subject to compliance and legal review. No legal or tax advice provided.
             </p>
           </div>

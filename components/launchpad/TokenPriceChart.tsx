@@ -60,7 +60,7 @@ export default function TokenPriceChart({
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
+        <p className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
           Price from recent swaps
         </p>
         <span
@@ -90,7 +90,7 @@ export default function TokenPriceChart({
           points={coords.join(" ")}
         />
       </svg>
-      <div className="flex justify-between text-[10px] font-mono text-[var(--ink-dim)] mt-2">
+      <div className="flex justify-between text-[11px] font-mono text-[var(--ink-dim)] mt-2">
         <span>{formatUsd(minY)}</span>
         <span>{formatUsd(last)}</span>
       </div>

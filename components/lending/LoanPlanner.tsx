@@ -236,7 +236,7 @@ export default function LoanPlanner({
                 aria-hidden
               />
             </div>
-            <div className="flex justify-between text-[10px] text-[var(--ink-dim)] mt-1">
+            <div className="flex justify-between text-[11px] text-[var(--ink-dim)] mt-1">
               <span>$0</span>
               <span className="text-emerald-500 font-bold">Conservative limit {usd(model.safeLimit)}</span>
               <span>Protocol max {usd(model.ceiling)}</span>
@@ -315,7 +315,7 @@ export default function LoanPlanner({
                     ) : (
                       <>
                         <span className="font-bold text-[var(--ink)]">{s.label} −{s.dropPct}%</span>
-                        <span className="block text-[10px] text-[var(--ink-dim)]">{s.description}</span>
+                        <span className="block text-[11px] text-[var(--ink-dim)]">{s.description}</span>
                       </>
                     )}
                   </td>
@@ -323,9 +323,9 @@ export default function LoanPlanner({
                   <td className="p-2.5 text-right font-mono">{s.healthFactor === null ? "—" : s.healthFactor.toFixed(2)}</td>
                   <td className={`p-2.5 text-right font-black ${OUTCOME[s.outcome].cls}`}>
                     {model.inputs.debtUsd <= 0 ? "—" : OUTCOME[s.outcome].label}
-                    {s.shortfallUsd > 0 && <span className="block text-[10px] font-normal">{usd(s.shortfallUsd)} shortfall</span>}
+                    {s.shortfallUsd > 0 && <span className="block text-[11px] font-normal">{usd(s.shortfallUsd)} shortfall</span>}
                     {s.penaltyLossUsd > 0 && s.shortfallUsd === 0 && (
-                      <span className="block text-[10px] font-normal">≈{usd(s.penaltyLossUsd)} penalty</span>
+                      <span className="block text-[11px] font-normal">≈{usd(s.penaltyLossUsd)} penalty</span>
                     )}
                   </td>
                   <td className="p-2.5 text-right font-mono">{s.repayToRecoverUsd > 0 ? usd(s.repayToRecoverUsd) : "—"}</td>
@@ -346,7 +346,7 @@ export default function LoanPlanner({
           <div className="grid sm:grid-cols-3 gap-3">
             {model.repay.map((r) => (
               <div key={r.id} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">{r.label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">{r.label}</p>
                 <p className="font-mono font-black text-[var(--ink)] mt-0.5">{usd(r.repayUsd)}</p>
                 <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
                   {r.resultingHealthFactor !== null ? `HF → ${r.resultingHealthFactor.toFixed(2)}. ` : ""}
@@ -383,9 +383,9 @@ export default function LoanPlanner({
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "warn" }) {
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">{label}</p>
       <p className={`text-lg font-black font-mono mt-0.5 ${tone === "warn" ? "text-amber-500" : "text-[var(--ink)]"}`}>{value}</p>
-      {sub && <p className="text-[10px] text-[var(--ink-dim)] mt-0.5">{sub}</p>}
+      {sub && <p className="text-[11px] text-[var(--ink-dim)] mt-0.5">{sub}</p>}
     </div>
   );
 }

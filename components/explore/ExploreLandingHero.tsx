@@ -147,7 +147,7 @@ export default function ExploreLandingHero({
                 >
                   <Command size={15} />
                   Search
-                  <kbd className="hidden sm:inline text-[10px] font-mono text-[var(--ink-dim)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
+                  <kbd className="hidden sm:inline text-[11px] font-mono text-[var(--ink-dim)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
                     ⌘K
                   </kbd>
                 </button>
@@ -186,7 +186,7 @@ export default function ExploreLandingHero({
                       textClassName="text-base font-black"
                     />
                     <div className="min-w-0">
-                      <span className="spotlight-badge mb-1 text-[9px] px-2 py-0.5">
+                      <span className="spotlight-badge mb-1 text-[11px] px-2 py-0.5">
                         <span className="live-dot" style={{ width: 5, height: 5 }} />
                         B20 Spotlight
                       </span>
@@ -247,7 +247,7 @@ export default function ExploreLandingHero({
                       key={stat.label}
                       className="rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] p-2 text-center"
                     >
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
                         {stat.label}
                       </p>
                       <p className="text-xs font-bold font-mono text-[var(--ink)] truncate mt-0.5">
@@ -263,7 +263,7 @@ export default function ExploreLandingHero({
                     Trade in-app
                     <ArrowUpRight size={14} />
                   </span>
-                  <p className="text-[10px] text-[var(--ink-dim)] text-center">
+                  <p className="text-[11px] text-[var(--ink-dim)] text-center">
                     Aerodrome · Uniswap · Slipstream
                   </p>
                 </div>

@@ -354,7 +354,7 @@ export default function TokenSelectorModal({
             {/* Recent Tokens Row */}
             {recentTokens.length > 0 && !query && (
               <div className="px-5 pb-2.5 flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[var(--ink-dim)] mr-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)] mr-1">
                   <Clock size={11} /> Recent:
                 </span>
                 {recentTokens.map((t) => {
@@ -454,7 +454,7 @@ export default function TokenSelectorModal({
               {/* Resolved 0x contract token match */}
               {resolved && (
                 <div className="p-1">
-                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
+                  <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                     Resolved Onchain Contract
                   </div>
                   <TokenListItem
@@ -552,12 +552,12 @@ function TokenListItem({
             {isVerifiedBaseToken(counter) && <VerifiedBadge size={13} />}
             {counter.kind === "token" && counter.symbol.endsWith("c") && (
               <>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                   Stock
                 </span>
                 {tradability && (
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                    className={`px-1.5 py-0.5 rounded text-[11px] font-bold border ${
                       tradability.status === "tradable"
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                         : tradability.status === "low_liquidity"
@@ -591,7 +591,7 @@ function TokenListItem({
             {holding.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
           </p>
           {holding.usdValue > 0 && (
-            <p className="font-mono text-[10px] text-[var(--ink-muted)] tabular-nums">
+            <p className="font-mono text-[11px] text-[var(--ink-muted)] tabular-nums">
               {formatUsd(holding.usdValue)}
             </p>
           )}

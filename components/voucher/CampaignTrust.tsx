@@ -18,10 +18,10 @@ export function SenderIdentity({ sender }: { sender: CampaignPublicView["sender"
         verified ? "border-emerald-500/30 bg-emerald-500/8" : "border-amber-500/30 bg-amber-500/8"
       }`}
     >
-      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Sent by</p>
+      <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Sent by</p>
 
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">Name</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">Name</p>
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
           <span className="text-lg font-black text-[var(--ink)] break-all">{name ?? "No name set"}</span>
           {verified ? (
@@ -41,7 +41,7 @@ export function SenderIdentity({ sender }: { sender: CampaignPublicView["sender"
       </div>
 
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">Creator wallet address</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">Creator wallet address</p>
         <p className="font-mono text-sm text-[var(--ink)] break-all mt-0.5">{sender.address}</p>
         <div className="flex gap-3 mt-1.5 text-[11px] font-bold">
           <button
@@ -119,7 +119,7 @@ export function OwnershipTerms({ view }: { view: CampaignPublicView }) {
   }
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)] mb-2">
+      <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)] mb-2">
         Ownership, expiry &amp; refunds
       </p>
       <dl className="space-y-2">
@@ -179,7 +179,7 @@ export function EligibilityChecklist({
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">
+        <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]">
           Can {wallet ? "this wallet" : "you"} claim?
         </p>
         {result && (

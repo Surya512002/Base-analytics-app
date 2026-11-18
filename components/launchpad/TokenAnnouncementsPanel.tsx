@@ -75,7 +75,7 @@ export default function TokenAnnouncementsPanel({
             className="w-full bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none focus:border-[var(--brand)] resize-none"
           />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[var(--ink-dim)]">{body.length}/500</span>
+            <span className="text-[11px] text-[var(--ink-dim)]">{body.length}/500</span>
             <button
               type="button"
               onClick={() => void onPost()}
@@ -107,7 +107,7 @@ export default function TokenAnnouncementsPanel({
               <p className="text-[11px] text-[var(--ink-soft)] leading-relaxed whitespace-pre-wrap">
                 {a.body}
               </p>
-              <p className="text-[9px] text-[var(--ink-dim)] mt-2">{timeAgo(a.createdAt)}</p>
+              <p className="text-[11px] text-[var(--ink-dim)] mt-2">{timeAgo(a.createdAt)}</p>
             </li>
           ))}
         </ul>

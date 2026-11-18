@@ -26,7 +26,7 @@ export default function TokenTerminal({
 
   return (
     <div className="card rounded-2xl overflow-hidden max-h-[420px] overflow-y-auto">
-      <div className="px-3 py-2 border-b border-[var(--border-subtle)] text-[10px] font-bold text-[var(--ink-muted)] uppercase">
+      <div className="px-3 py-2 border-b border-[var(--border-subtle)] text-[11px] font-bold text-[var(--ink-muted)] uppercase">
         Recent launches
       </div>
       <ul className="divide-y divide-[var(--border-subtle)]/60">
@@ -54,7 +54,7 @@ export default function TokenTerminal({
                       {t.name}{" "}
                       <span className="text-[var(--ink-muted)]">${t.symbol}</span>
                     </p>
-                    <p className="text-[10px] text-[var(--ink-dim)] font-mono">{shortAddr(t.address)}</p>
+                    <p className="text-[11px] text-[var(--ink-dim)] font-mono">{shortAddr(t.address)}</p>
                   </div>
                 </div>
               </button>

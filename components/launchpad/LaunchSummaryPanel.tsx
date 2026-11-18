@@ -92,11 +92,11 @@ export default function LaunchSummaryPanel({
       {/* 1. Live Preview Card */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
+          <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
             Live Preview
           </span>
           <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
               launchType === "memestock"
                 ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                 : launchType === "standard"
@@ -156,20 +156,20 @@ export default function LaunchSummaryPanel({
 
       {/* 2. Pricing & Implied Market Cap Card */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-sm space-y-2.5">
-        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
+        <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
           Pricing &amp; Valuation
         </span>
 
         <div className="grid grid-cols-2 gap-2 pt-1">
           <div className="p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] min-w-0">
-            <span className="text-[10px] text-[var(--ink-muted)] block truncate">Starting Price</span>
+            <span className="text-[11px] text-[var(--ink-muted)] block truncate">Starting Price</span>
             <p className="text-xs font-mono font-bold text-[var(--ink)] truncate" title={`Exact: $${startPriceUsd}`}>
               {readablePrice}
             </p>
           </div>
 
           <div className="p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] min-w-0">
-            <span className="text-[10px] text-[var(--ink-muted)] block truncate">Implied Cap</span>
+            <span className="text-[11px] text-[var(--ink-muted)] block truncate">Implied Cap</span>
             <p className="text-xs font-mono font-bold text-[var(--ink)] truncate">
               ${impliedMcap.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </p>
@@ -194,7 +194,7 @@ export default function LaunchSummaryPanel({
 
       {/* 3. Launch Summary Card */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-sm space-y-2 text-xs">
-        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
+        <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)]">
           Configuration Summary
         </span>
 

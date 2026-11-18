@@ -123,7 +123,7 @@ export default function MorphoScorePositionCard({
               <h4 className="font-black text-sm text-[var(--ink)] tracking-tight">
                 Morpho Stock Credit &amp; Lending Position
               </h4>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                 {summary.creditTier}
               </span>
             </div>
@@ -133,7 +133,7 @@ export default function MorphoScorePositionCard({
           </div>
         </div>
 
-        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30">
+        <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-[var(--brand-soft)] text-[var(--brand-dark)] border border-[var(--brand)]/30">
           {summary.scoreBoost}
         </span>
       </div>
@@ -141,21 +141,21 @@ export default function MorphoScorePositionCard({
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-          <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Collateral Backing</p>
+          <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Collateral Backing</p>
           <p className="text-base font-black text-[var(--ink)] mt-0.5">
             ${summary.totalCollateralUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
         </div>
 
         <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-          <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Active Borrow Debt</p>
+          <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Active Borrow Debt</p>
           <p className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">
             ${summary.totalDebtUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC
           </p>
         </div>
 
         <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-          <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Health Factor</p>
+          <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Health Factor</p>
           <p className="text-base font-black text-emerald-700 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
             <ShieldCheck size={14} className="text-emerald-500" />
             <span>{summary.avgHf.toFixed(2)}x (Safe)</span>
@@ -163,7 +163,7 @@ export default function MorphoScorePositionCard({
         </div>
 
         <div className="pop rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3">
-          <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">Oracle Status</p>
+          <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)]">Oracle Status</p>
           <p className="text-base font-black text-[var(--ink)] mt-0.5 flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
             <span className="text-xs">Chainlink 24/5 Live</span>
@@ -182,7 +182,7 @@ export default function MorphoScorePositionCard({
             <span className="font-bold text-blue-600 dark:text-blue-400">
               ${positions[0]?.borrowedFormatted} USDC Drawn
             </span>
-            <span className="text-[10px] text-[var(--ink-dim)]">
+            <span className="text-[11px] text-[var(--ink-dim)]">
               (Current LTV: {positions[0]?.currentLtvPct.toFixed(1)}% / Max LLTV: {positions[0]?.lltvPct}%)
             </span>
           </div>

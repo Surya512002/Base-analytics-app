@@ -261,7 +261,7 @@ export default function AppHeader({
                 <button
                   type="button"
                   onClick={onConnect}
-                  className="btn-primary whitespace-nowrap px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  className="tap-target btn-primary whitespace-nowrap px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
                 >
                   <span className="hidden sm:inline">{t.actions.connectWallet}</span>
                   <span className="sm:hidden">Connect</span>
@@ -298,7 +298,7 @@ export default function AppHeader({
                     {/* Wallet Header & Copy */}
                     <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
                       <div className="min-w-0">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] block">
+                        <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)] block">
                           Connected Wallet
                         </span>
                         <p className="font-mono font-bold text-xs text-[var(--ink)] truncate">
@@ -326,7 +326,7 @@ export default function AppHeader({
                           <Globe size={13} className="text-[var(--brand-text)]" />
                           <span>Network</span>
                         </span>
-                        <span className="font-bold text-[var(--brand-text)] bg-[var(--brand-soft)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full text-[10px]">
+                        <span className="font-bold text-[var(--brand-text)] bg-[var(--brand-soft)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-full text-[11px]">
                           Base Mainnet
                         </span>
                       </div>

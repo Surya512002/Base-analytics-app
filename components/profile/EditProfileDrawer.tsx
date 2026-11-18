@@ -286,7 +286,7 @@ export default function EditProfileDrawer({
               <label className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">
                 Display Name
               </label>
-              <span className="text-[10px] text-[var(--ink-dim)] font-mono">
+              <span className="text-[11px] text-[var(--ink-dim)] font-mono">
                 {displayName.length} / 50
               </span>
             </div>
@@ -306,7 +306,7 @@ export default function EditProfileDrawer({
               <label className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">
                 Bio
               </label>
-              <span className="text-[10px] text-[var(--ink-dim)] font-mono">
+              <span className="text-[11px] text-[var(--ink-dim)] font-mono">
                 {bio.length} / 280
               </span>
             </div>

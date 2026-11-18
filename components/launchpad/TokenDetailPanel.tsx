@@ -297,29 +297,29 @@ export default function TokenDetailPanel({
                   <span className="truncate">{token.address}</span>
                 </button>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${tokenBadgeClass(token)}`}>
+                  <span className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-full border ${tokenBadgeClass(token)}`}>
                     {tokenBadgeLabel(token)}
                   </span>
                   {appLaunch && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                       Immutable
                     </span>
                   )}
-                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--border-subtle)] font-mono">
+                  <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--border-subtle)] font-mono">
                     Quote: {token.quoteAsset || token.quoteAssetSymbol || "ETH"}
                   </span>
                   {token.tokenType === "memestock" && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/15 to-purple-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35">
+                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/15 to-purple-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35">
                       Coinbase Stock RWA
                     </span>
                   )}
                   {token.launchPreset && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                       {token.launchPreset}
                     </span>
                   )}
                   {antiSnipeActive && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
                       Anti-snipe
                     </span>
                   )}
@@ -470,9 +470,9 @@ export default function TokenDetailPanel({
                   key={s.label}
                   className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2.5"
                 >
-                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">{s.label}</p>
+                  <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">{s.label}</p>
                   <p className="text-sm font-black text-[var(--ink)] mt-0.5">{s.value}</p>
-                  {s.sub && <p className="text-[9px] text-[var(--ink-muted)] mt-0.5 truncate">{s.sub}</p>}
+                  {s.sub && <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 truncate">{s.sub}</p>}
                 </div>
               ))}
             </div>
@@ -550,7 +550,7 @@ export default function TokenDetailPanel({
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden">
               <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
                 <p className="text-sm font-black text-[var(--ink)]">Transactions</p>
-                <span className="text-[10px] text-[var(--ink-muted)]">Recent pool swaps</span>
+                <span className="text-[11px] text-[var(--ink-muted)]">Recent pool swaps</span>
               </div>
               {swapsErr && (
                 <p className="text-[11px] text-rose-300 px-4 py-3">{swapsErr}</p>
@@ -598,7 +598,7 @@ export default function TokenDetailPanel({
                             </td>
                             <td className="py-2.5 px-2 text-right text-[var(--ink)]">
                               <div>{formatSubscriptPrice(price)}</div>
-                              <div className="text-[9px] text-[var(--ink-muted)]">
+                              <div className="text-[11px] text-[var(--ink-muted)]">
                                 {s.priceEth ? formatEth(s.priceEth) : "—"}
                               </div>
                             </td>
@@ -607,7 +607,7 @@ export default function TokenDetailPanel({
                             </td>
                             <td className="py-2.5 px-2 text-right">
                               <div className="text-[var(--ink)] font-mono">{formatEth(ethAmt)}</div>
-                              <div className="text-[9px] text-[var(--ink-muted)]">{formatUsd(value)}</div>
+                              <div className="text-[11px] text-[var(--ink-muted)]">{formatUsd(value)}</div>
                             </td>
                             <td className="py-2.5 px-2 text-[var(--ink-muted)] font-mono">
                               {isAddressLike(s.trader) ? shortAddr(s.trader) : "—"}
@@ -640,7 +640,7 @@ export default function TokenDetailPanel({
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] overflow-hidden">
               <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-black text-[var(--ink)]">Holders</p>
-                <div className="flex gap-3 text-[10px] text-[var(--ink-muted)]">
+                <div className="flex gap-3 text-[11px] text-[var(--ink-muted)]">
                   <span>
                     Top 10:{" "}
                     <span className="text-[var(--ink)] font-bold">
@@ -698,7 +698,7 @@ export default function TokenDetailPanel({
                           </td>
                           <td className="py-2.5 px-4">
                             <span
-                              className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                              className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded-full ${
                                 h.tag === "Pool liquidity"
                                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
                                   : h.tag === "Creator"

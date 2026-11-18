@@ -244,7 +244,7 @@ export default function MarketIntelligenceHub({
             <Clock size={13} />
             <span>Stock NAV Tracker</span>
             <span
-              className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
+              className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === "nav" ? "bg-white/20 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
               }`}
             >
@@ -264,7 +264,7 @@ export default function MarketIntelligenceHub({
             <Radar size={13} />
             <span>Smart Money Radar</span>
             <span
-              className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
+              className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono ${
                 activeTab === "smart_money" ? "bg-white/20 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
               }`}
             >
@@ -285,7 +285,7 @@ export default function MarketIntelligenceHub({
             <span>Smarter Alerts</span>
             {alerts.length > 0 && (
               <span
-                className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
                   activeTab === "alerts" ? "bg-white text-[#0052FF]" : "bg-[#0052FF] text-white"
                 }`}
               >
@@ -343,27 +343,27 @@ export default function MarketIntelligenceHub({
           {navComparison && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-0.5">
-                <span className="text-[10px] text-[var(--ink-muted)] block font-medium">
+                <span className="text-[11px] text-[var(--ink-muted)] block font-medium">
                   24/7 DEX AMM Pool Price
                 </span>
                 <span className="font-mono font-black text-base text-[var(--ink)] block tabular-nums">
                   ${navComparison.dexPriceUsd?.toFixed(2)}
                 </span>
-                <span className="text-[10px] text-[var(--ink-dim)]">Aerodrome / Uniswap on Base</span>
+                <span className="text-[11px] text-[var(--ink-dim)]">Aerodrome / Uniswap on Base</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-0.5">
-                <span className="text-[10px] text-[var(--ink-muted)] block font-medium">
+                <span className="text-[11px] text-[var(--ink-muted)] block font-medium">
                   24/5 Official Custodian NAV
                 </span>
                 <span className="font-mono font-black text-base text-[var(--ink)] block tabular-nums">
                   ${navComparison.oracleNavUsd?.toFixed(2)}
                 </span>
-                <span className="text-[10px] text-[var(--ink-dim)]">Coinbase / Backed Custody</span>
+                <span className="text-[11px] text-[var(--ink-dim)]">Coinbase / Backed Custody</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-0.5">
-                <span className="text-[10px] text-[var(--ink-muted)] block font-medium">
+                <span className="text-[11px] text-[var(--ink-muted)] block font-medium">
                   Arbitrage Spread Delta
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -378,7 +378,7 @@ export default function MarketIntelligenceHub({
                     {navComparison.spreadPct?.toFixed(2)}%
                   </span>
                   <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold font-mono border ${
+                    className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-mono border ${
                       navComparison.status === "par"
                         ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                         : navComparison.status === "premium"
@@ -389,7 +389,7 @@ export default function MarketIntelligenceHub({
                     {navComparison.statusLabel}
                   </span>
                 </div>
-                <span className="text-[10px] text-[var(--ink-dim)]">DEX spread vs Official NAV</span>
+                <span className="text-[11px] text-[var(--ink-dim)]">DEX spread vs Official NAV</span>
               </div>
             </div>
           )}
@@ -669,7 +669,7 @@ export default function MarketIntelligenceHub({
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-[var(--ink)]">{alt.targetSymbol}</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[#0052FF] border border-blue-500/20">
+                      <span className="text-[11px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[#0052FF] border border-blue-500/20">
                         {alt.type.replace("_", " ")}
                       </span>
                     </div>

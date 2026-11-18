@@ -25,7 +25,7 @@ export default function VoucherContractBanner({ contractReady }: { contractReady
         href={`https://basescan.org/address/${VOUCHER_CONTRACT}#code`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]"
+        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]"
       >
         <CheckCircle size={12} /> Verified contract on Basescan ↗
       </a>

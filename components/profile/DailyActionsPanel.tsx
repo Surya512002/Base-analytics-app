@@ -235,7 +235,7 @@ export default function DailyActionsPanel({
             <span>{streak}</span>
             <span className="text-amber-500 text-lg">🔥</span>
           </div>
-          <p className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
+          <p className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">
             {streak === 1 ? "Day streak" : "Days streak"}
           </p>
         </div>
@@ -263,7 +263,7 @@ export default function DailyActionsPanel({
               >
                 {isDone && <CheckCircle2 size={10} />}
               </span>
-              <span className="text-[9px] font-bold text-[var(--ink-dim)]">
+              <span className="text-[11px] font-bold text-[var(--ink-dim)]">
                 D{idx + 1}
               </span>
             </div>
@@ -324,7 +324,7 @@ export default function DailyActionsPanel({
                         {action.title}
                       </span>
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                        className={`text-[11px] font-bold px-1.5 py-0.2 rounded ${
                           isDone
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                             : "bg-[var(--brand-soft)] text-[var(--brand-text)]"

@@ -102,7 +102,7 @@ export default function SmarterAlertsPanel({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-[var(--ink)]">Smarter Alerts</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0052FF] text-white">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#0052FF] text-white">
                 Multi-Trigger
               </span>
             </div>
@@ -198,7 +198,7 @@ export default function SmarterAlertsPanel({
           {/* Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
-              <label className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
+              <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
                 Target Token Symbol
               </label>
               <input
@@ -212,7 +212,7 @@ export default function SmarterAlertsPanel({
             </div>
 
             <div>
-              <label className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
+              <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
                 Threshold {type === "price" || type === "whale_swap" ? "USD" : "%"}
               </label>
               <input
@@ -226,7 +226,7 @@ export default function SmarterAlertsPanel({
             </div>
 
             <div>
-              <label className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
+              <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
                 Notification Channel
               </label>
               <select
@@ -243,7 +243,7 @@ export default function SmarterAlertsPanel({
 
           {channel === "webhook" && (
             <div>
-              <label className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
+              <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-wider block mb-1">
                 Webhook URL (Discord / Slack / Telegram)
               </label>
               <input
@@ -306,7 +306,7 @@ export default function SmarterAlertsPanel({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-black text-sm text-[var(--ink)]">{a.targetSymbol}</span>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--ink-muted)]">
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--ink-muted)]">
                       {a.type === "whale_swap"
                         ? `Whale Swap >= $${a.thresholdValue.toLocaleString()}`
                         : a.type === "yield_spike"
@@ -316,7 +316,7 @@ export default function SmarterAlertsPanel({
                             : `Price ${a.direction} $${a.thresholdValue.toLocaleString()}`}
                     </span>
                   </div>
-                  <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                  <span className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
                     {a.channel === "browser" ? (
                       <BellRing size={11} className="text-emerald-500" />
                     ) : a.channel === "webhook" ? (

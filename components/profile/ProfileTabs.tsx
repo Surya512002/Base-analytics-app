@@ -197,29 +197,29 @@ export default function ProfileTabs({
             {/* Quick Metrics */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full min-w-0">
               <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 min-w-0 overflow-hidden">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400 truncate block">
+                <span className="text-[11px] sm:text-[11px] font-bold uppercase text-emerald-700 dark:text-emerald-400 truncate block">
                   Creator Share
                 </span>
                 <p className="font-mono font-black text-base sm:text-xl text-[var(--ink)] mt-0.5 truncate">0.25%</p>
-                <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Every in-app swap</p>
+                <p className="text-[11px] sm:text-[11px] text-[var(--ink-dim)] truncate">Every in-app swap</p>
               </div>
 
               <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] min-w-0 overflow-hidden">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-[var(--ink-muted)] truncate block">
+                <span className="text-[11px] sm:text-[11px] font-bold uppercase text-[var(--ink-muted)] truncate block">
                   Platform Fee
                 </span>
                 <p className="font-mono font-black text-base sm:text-xl text-[var(--ink)] mt-0.5 truncate">0.50%</p>
-                <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Split 50/50</p>
+                <p className="text-[11px] sm:text-[11px] text-[var(--ink-dim)] truncate">Split 50/50</p>
               </div>
 
               <div className="pop p-2.5 sm:p-3.5 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] min-w-0 overflow-hidden">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-[var(--brand-text)] truncate block">
+                <span className="text-[11px] sm:text-[11px] font-bold uppercase text-[var(--brand-text)] truncate block">
                   Payout Status
                 </span>
                 <p className="font-bold text-xs sm:text-sm text-[var(--ink)] mt-1 flex items-center gap-1 truncate">
                   <Check size={14} className="text-emerald-500 shrink-0" /> Instant
                 </p>
-                <p className="text-[9px] sm:text-[10px] text-[var(--ink-dim)] truncate">Zero lockup</p>
+                <p className="text-[11px] sm:text-[11px] text-[var(--ink-dim)] truncate">Zero lockup</p>
               </div>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function ProfileTabs({
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {(Number(BigInt(row.creatorShare.toString())) / 1e18).toFixed(4)} ETH
                       </span>
-                      <span className="text-[10px] text-[var(--ink-dim)] block">accrued &amp; sent</span>
+                      <span className="text-[11px] text-[var(--ink-dim)] block">accrued &amp; sent</span>
                     </div>
                   </div>
                 ))}
@@ -334,7 +334,7 @@ export default function ProfileTabs({
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                        className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded-full ${
                           schedule.isUnlocked
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                             : "bg-amber-500/15 text-amber-600 dark:text-amber-400"

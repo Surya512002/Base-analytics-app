@@ -17,7 +17,7 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
     <div className="mb-4 hidden md:flex flex-wrap gap-2 items-center">
       <div className="inline-flex items-center gap-2 badge-live rounded-full px-3 py-1.5">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow" />
-        <span className="text-[9px] font-black uppercase tracking-widest">B20 launchpad live</span>
+        <span className="text-[11px] font-black uppercase tracking-widest">B20 launchpad live</span>
       </div>
       {STRIP.map((s) => (
         <button
@@ -29,11 +29,11 @@ export default function AppFeatureStrip({ onNavigate }: AppFeatureStripProps) {
           }`}
         >
           {s.icon}
-          <span className="text-[9px] font-black text-[var(--ink-soft)] uppercase tracking-wide">
+          <span className="text-[11px] font-black text-[var(--ink-soft)] uppercase tracking-wide">
             {s.label}
           </span>
           {s.core && (
-            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">Core</span>
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Core</span>
           )}
         </button>
       ))}

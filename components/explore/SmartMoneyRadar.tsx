@@ -91,7 +91,7 @@ export default function SmartMoneyRadar({ userWallet, onTradeToken }: SmartMoney
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-[var(--ink)]">Smart Money Radar</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0052FF] text-white">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#0052FF] text-white">
                 Live On-Chain
               </span>
             </div>
@@ -177,7 +177,7 @@ export default function SmartMoneyRadar({ userWallet, onTradeToken }: SmartMoney
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <div className="flex flex-col">
                 <span className="font-bold text-[11px] leading-tight">{w.label}</span>
-                <span className="font-mono text-[9px] text-[var(--ink-muted)]">{w.tag || shortAddr(w.address)}</span>
+                <span className="font-mono text-[11px] text-[var(--ink-muted)]">{w.tag || shortAddr(w.address)}</span>
               </div>
               {!w.isPreset && (
                 <button
@@ -199,7 +199,7 @@ export default function SmartMoneyRadar({ userWallet, onTradeToken }: SmartMoney
 
       {/* Live Recent Buys Stream */}
       <div className="space-y-2">
-        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
+        <span className="text-[11px] font-black uppercase tracking-wider text-[var(--ink-muted)] block">
           Recent Smart Money Inflows
         </span>
 
@@ -253,12 +253,12 @@ export default function SmartMoneyRadar({ userWallet, onTradeToken }: SmartMoney
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-[var(--ink)]">{ev.walletLabel}</span>
-                      <span className="text-[10px] text-[var(--ink-dim)]">acquired</span>
+                      <span className="text-[11px] text-[var(--ink-dim)]">acquired</span>
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">
                         +{ev.amount} ${ev.tokenSymbol}
                       </span>
                     </div>
-                    <span className="font-mono text-[10px] text-[var(--ink-muted)]">
+                    <span className="font-mono text-[11px] text-[var(--ink-muted)]">
                       {ev.usdValue !== null
                         ? `Est. Value: $${ev.usdValue.toLocaleString()} USD`
                         : "Verified on-chain transfer"}

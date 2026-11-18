@@ -244,7 +244,7 @@ export default function MarketsTable({
                 <span>
                   Couldn&apos;t load <strong>{proto.toUpperCase()}</strong>: {err}
                 </span>
-                <span className="text-[10px] opacity-75">· Other protocols active</span>
+                <span className="text-[11px] opacity-75">· Other protocols active</span>
               </div>
               {onRetryProtocol && (
                 <button
@@ -598,11 +598,11 @@ export default function MarketsTable({
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
                             {row.isNew && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[11px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                                 <Sparkles size={9} /> NEW
                               </span>
                             )}
-                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                            <span className="text-[11px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                               {row.category}
                             </span>
                           </div>
@@ -631,12 +631,12 @@ export default function MarketsTable({
                               {supplyApyToDisplay > 0 ? `${supplyApyToDisplay.toFixed(2)}%` : "—"}
                             </p>
                             {row.supplyKindChip && supplyApyToDisplay > 0 && !isProtocolFilter && (
-                              <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                              <span className="px-1 py-0.2 rounded text-[11px] font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                                 {row.supplyKindChip}
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[var(--ink-muted)]">{supplyProtocolToDisplay}</p>
+                          <p className="text-[11px] text-[var(--ink-muted)]">{supplyProtocolToDisplay}</p>
                         </div>
                       ) : (
                         <span className="text-[11px] text-[var(--ink-muted)] italic">
@@ -656,7 +656,7 @@ export default function MarketsTable({
                                 : "—"}
                             </p>
                             {row.borrowKindChip && borrowAprToDisplay !== null && borrowAprToDisplay > 0 && !isProtocolFilter && (
-                              <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                              <span className="px-1 py-0.2 rounded text-[11px] font-bold bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                                 {row.borrowKindChip}
                               </span>
                             )}
@@ -666,7 +666,7 @@ export default function MarketsTable({
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[var(--ink-muted)]">
+                          <p className="text-[11px] text-[var(--ink-muted)]">
                             {borrowProtocolToDisplay}
                           </p>
                         </div>
@@ -689,7 +689,7 @@ export default function MarketsTable({
                             return (
                               <span
                                 key={p}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                className={`px-1.5 py-0.5 rounded text-[11px] font-semibold border ${
                                   isCurrent
                                     ? "bg-[var(--brand)] text-white border-[var(--brand)] font-bold shadow-xs"
                                     : "bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--border-subtle)]"
@@ -701,7 +701,7 @@ export default function MarketsTable({
                           })}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-[var(--ink-dim)]">Unlisted</span>
+                        <span className="text-[11px] text-[var(--ink-dim)]">Unlisted</span>
                       )}
                     </td>
 
@@ -724,7 +724,7 @@ export default function MarketsTable({
                             {row.walletBalance > 0 ? row.walletBalance.toFixed(3) : "0"}
                           </p>
                           {row.walletBalanceUsd !== undefined && row.walletBalanceUsd !== null && row.walletBalanceUsd > 0 && (
-                            <p className="text-[10px] text-[var(--ink-muted)] font-mono">
+                            <p className="text-[11px] text-[var(--ink-muted)] font-mono">
                               ${row.walletBalanceUsd.toFixed(2)}
                             </p>
                           )}
@@ -809,11 +809,11 @@ export default function MarketsTable({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono font-bold text-sm text-[var(--ink)]">{row.symbol}</span>
                           {row.isNew && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[11px] font-black bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
                               <Sparkles size={8} /> NEW
                             </span>
                           )}
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                          <span className="text-[11px] uppercase font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
                             {row.category}
                           </span>
                         </div>
@@ -823,7 +823,7 @@ export default function MarketsTable({
 
                     <div className="text-right">
                       <p className="font-mono font-bold text-sm text-[var(--ink)]">${row.priceUsd.toFixed(2)}</p>
-                      <span className="text-[10px] text-[var(--ink-muted)]">
+                      <span className="text-[11px] text-[var(--ink-muted)]">
                         {hasThisProtocolMarket && liquidityToDisplay > 0 ? `${formatCompactUsd(liquidityToDisplay)} liq` : "—"}
                       </span>
                     </div>
@@ -831,7 +831,7 @@ export default function MarketsTable({
 
                   {/* Protocol chips */}
                   {row.listedProtocols && row.listedProtocols.length > 0 && (
-                    <div className="flex items-center gap-1 flex-wrap text-[10px]">
+                    <div className="flex items-center gap-1 flex-wrap text-[11px]">
                       <span className="text-[var(--ink-muted)]">Listed:</span>
                       {row.listedProtocols.map((p) => {
                         const isCurrent = isProtocolFilter && p.toLowerCase().includes(selectedProtocol.toLowerCase());
@@ -854,19 +854,19 @@ export default function MarketsTable({
                   {/* APY / APR Row */}
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border-subtle)]/60 text-xs">
                     <div className="p-2 rounded-lg bg-[var(--surface)]">
-                      <span className="text-[10px] text-[var(--ink-muted)]">
+                      <span className="text-[11px] text-[var(--ink-muted)]">
                         {isProtocolFilter ? `${activeProtocolLabel} APY` : "Supply APY"}
                       </span>
                       <p className="font-mono font-black text-emerald-600 dark:text-emerald-400">
                         {hasThisProtocolMarket && supplyApyToDisplay > 0 ? `${supplyApyToDisplay.toFixed(2)}%` : "—"}
                       </p>
-                      <span className="text-[9px] text-[var(--ink-dim)]">
+                      <span className="text-[11px] text-[var(--ink-dim)]">
                         {hasThisProtocolMarket ? supplyProtocolToDisplay : `Not on ${activeProtocolLabel}`}
                       </span>
                     </div>
 
                     <div className="p-2 rounded-lg bg-[var(--surface)]">
-                      <span className="text-[10px] text-[var(--ink-muted)]">
+                      <span className="text-[11px] text-[var(--ink-muted)]">
                         {isProtocolFilter ? `${activeProtocolLabel} Borrow` : "Borrow APR"}
                       </span>
                       <p className="font-mono font-bold text-[var(--ink)]">
@@ -874,7 +874,7 @@ export default function MarketsTable({
                           ? `${borrowAprToDisplay.toFixed(2)}%`
                           : "—"}
                       </p>
-                      <span className="text-[9px] text-[var(--ink-dim)]">
+                      <span className="text-[11px] text-[var(--ink-dim)]">
                         {hasThisProtocolMarket ? borrowProtocolToDisplay : "—"}
                       </span>
                     </div>

@@ -65,7 +65,7 @@ export default function LaunchReadinessSimulator({
             <div className="flex items-center gap-2">
               <span className="font-black text-sm text-[var(--ink)]">Pre-Flight Launch Score</span>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
                   isOptimal
                     ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                     : isGood
@@ -114,11 +114,11 @@ export default function LaunchReadinessSimulator({
                   <span className="font-bold text-[11px] text-[var(--ink)] truncate">
                     {check.name}
                   </span>
-                  <span className="font-mono text-[10px] font-bold text-[var(--ink-muted)]">
+                  <span className="font-mono text-[11px] font-bold text-[var(--ink-muted)]">
                     {check.score}/{check.maxScore}
                   </span>
                 </div>
-                <p className="text-[10px] text-[var(--ink-muted)] mt-0.5 leading-tight">
+                <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 leading-tight">
                   {check.message}
                 </p>
               </div>

@@ -141,14 +141,9 @@ export default function TokenSparkline({
           strokeLinejoin="round"
         />
 
-        {/* Pulse indicator at latest price */}
-        <circle
-          cx={svgData.lastX}
-          cy={svgData.lastY}
-          r="2.5"
-          fill={strokeColor}
-          className={!isZero ? "animate-pulse" : ""}
-        />
+        {/* Latest-price marker. Static: lists render dozens of these, and an endless
+            pulse on each one costs battery on phones. */}
+        <circle cx={svgData.lastX} cy={svgData.lastY} r="2.5" fill={strokeColor} />
       </svg>
     </div>
   );

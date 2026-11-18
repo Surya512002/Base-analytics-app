@@ -567,7 +567,7 @@ export default function LendingActionModal({
                 })}
               </div>
               {userAddress && walletBalance === 0 && (
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
                   0 {activeAsset.symbol} in wallet
                 </span>
               )}
@@ -648,7 +648,7 @@ export default function LendingActionModal({
               <p className="font-semibold text-[var(--ink)]">
                 Direct Base Mainnet Execution
               </p>
-              <p className="text-[var(--ink-muted)] text-[10px]">
+              <p className="text-[var(--ink-muted)] text-[11px]">
                 Transactions go directly to verified Morpho, Aave, Moonwell, Beefy &amp; Aerodrome contracts on Base.
               </p>
             </div>

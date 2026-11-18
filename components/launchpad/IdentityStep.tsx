@@ -116,7 +116,7 @@ export default function IdentityStep({
                   aria-label="Upload token logo"
                 >
                   <ImagePlus size={20} />
-                  <span className="text-[10px] font-bold">Upload</span>
+                  <span className="text-[11px] font-bold">Upload</span>
                 </button>
               )}
             </div>
@@ -144,7 +144,7 @@ export default function IdentityStep({
               <label htmlFor="token-name" className="text-xs font-bold text-[var(--ink)]">
                 Token Name <span className="text-red-500">*</span>
               </label>
-              <span className="text-[10px] text-[var(--ink-dim)]">{name.length}/32</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">{name.length}/32</span>
             </div>
             <input
               id="token-name"
@@ -163,7 +163,7 @@ export default function IdentityStep({
               <label htmlFor="token-symbol" className="text-xs font-bold text-[var(--ink)]">
                 Symbol / Ticker <span className="text-red-500">*</span>
               </label>
-              <span className="text-[10px] text-[var(--ink-dim)]">{symbol.length}/10</span>
+              <span className="text-[11px] text-[var(--ink-dim)]">{symbol.length}/10</span>
             </div>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[var(--ink-muted)]">
@@ -200,7 +200,7 @@ export default function IdentityStep({
             <label htmlFor="token-desc" className="text-xs font-bold text-[var(--ink)]">
               Description
             </label>
-            <span className="text-[10px] text-[var(--ink-dim)]">{description.length}/280</span>
+            <span className="text-[11px] text-[var(--ink-dim)]">{description.length}/280</span>
           </div>
           <textarea
             id="token-desc"
@@ -241,7 +241,7 @@ export default function IdentityStep({
                 />
               </div>
               {websiteError && (
-                <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1 font-medium">
+                <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1 font-medium">
                   <AlertCircle size={10} /> Must start with https://
                 </p>
               )}

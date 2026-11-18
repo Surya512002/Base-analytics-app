@@ -170,11 +170,11 @@ export default function VoucherCreatePanel({
         {isVault && (
           <div className="rounded-2xl border border-purple-500/25 bg-purple-500/8 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1">
                 <Sparkles size={11} /> Select Yield-Bearing Stock Vault to Gift
               </span>
               {selectedVaultInfo && (
-                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
                   +{selectedVaultInfo.apy.toFixed(2)}% APY · {selectedVaultInfo.protocol}
                 </span>
               )}
@@ -196,7 +196,7 @@ export default function VoucherCreatePanel({
                     <span className="text-base">{v.icon}</span>
                     <div>
                       <p className="text-xs font-black leading-tight">{v.symbol}</p>
-                      <p className={`text-[10px] font-medium leading-tight ${asset === v.symbol ? "text-purple-100" : "text-[var(--ink-muted)]"}`}>
+                      <p className={`text-[11px] font-medium leading-tight ${asset === v.symbol ? "text-purple-100" : "text-[var(--ink-muted)]"}`}>
                         {v.name}
                       </p>
                     </div>
@@ -207,7 +207,7 @@ export default function VoucherCreatePanel({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[var(--ink-muted)] leading-relaxed">
+            <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
               Recipient claims productive yield shares that compound continuously on Base mainnet. Backed by verified Beefy auto-compounding vaults on Aerodrome.
             </p>
           </div>
@@ -217,11 +217,11 @@ export default function VoucherCreatePanel({
         {!isVault && isStock && (
           <div className="rounded-2xl border border-blue-500/25 bg-blue-500/8 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1">
                 <Sparkles size={11} /> Select Stock to Gift
               </span>
               {selectedStockInfo && (
-                <span className="text-[10px] font-bold text-[var(--ink-dim)]">
+                <span className="text-[11px] font-bold text-[var(--ink-dim)]">
                   {selectedStockInfo.name} · 8 decimals
                 </span>
               )}
@@ -244,7 +244,7 @@ export default function VoucherCreatePanel({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[var(--ink-muted)] leading-relaxed">
+            <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
               Backed 1:1 by real stock shares in custody · Coinbase B20 standard · Redeemable directly to recipient wallet
             </p>
           </div>
@@ -263,7 +263,7 @@ export default function VoucherCreatePanel({
                   setCardCountInput(t.cards);
                   setMessage(t.message);
                 }}
-                className="pop-pill preset-chip rounded-full px-3 py-2 text-[10px] font-bold cursor-pointer"
+                className="pop-pill preset-chip rounded-full px-3 py-2 text-[11px] font-bold cursor-pointer"
               >
                 {t.emoji} {t.label}
               </button>
@@ -289,7 +289,7 @@ export default function VoucherCreatePanel({
                   }`}
                 >
                   {p.label}
-                  <span className="text-[9px] font-bold opacity-70 ml-1">
+                  <span className="text-[11px] font-bold opacity-70 ml-1">
                     · {p.cards} card{p.cards !== "1" ? "s" : ""}
                   </span>
                 </button>
@@ -310,7 +310,7 @@ export default function VoucherCreatePanel({
             placeholder={isStock ? "1.0" : asset === "ETH" ? "0.01" : "10"}
             className="w-full mt-1 input-ink rounded-xl px-3 py-3 font-bold outline-none"
           />
-          <p className="readable-body text-[10px] mt-1">
+          <p className="readable-body text-[11px] mt-1">
             {isStock
               ? `e.g. ${totalAmount || "1"} ${asset} shares split into ${cardCountInput || "1"} cards`
               : `e.g. ${asset === "USDC" ? "$10 USDC" : "0.01 ETH"} split into ${cardCountInput || "…"} cards`}
@@ -364,17 +364,17 @@ export default function VoucherCreatePanel({
             {split.valid ? (
               <div className="grid grid-cols-3 gap-2 text-center mb-3">
                 <div>
-                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Total</p>
+                  <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Total</p>
                   <p className="text-sm font-black text-[var(--ink)] mt-0.5">
                     {formatVoucherAmount(asset, split.total)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Cards</p>
+                  <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Cards</p>
                   <p className="text-sm font-black text-[var(--ink)] mt-0.5">{split.cardCount}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-[var(--ink-muted)] uppercase">Per card</p>
+                  <p className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Per card</p>
                   <p className="text-sm font-black text-emerald-600 mt-0.5">
                     {formatVoucherAmount(asset, split.perCard)}
                   </p>
@@ -413,10 +413,10 @@ export default function VoucherCreatePanel({
             placeholder="Happy day! Enjoy your onchain gift."
             className="w-full mt-1 input-ink rounded-xl px-3 py-3 text-sm outline-none resize-none"
           />
-          <p className="text-[9px] text-[var(--ink-dim)] mt-1">{message.length}/280</p>
+          <p className="text-[11px] text-[var(--ink-dim)] mt-1">{message.length}/280</p>
         </div>
 
-        <p className="readable-body text-[10px]">
+        <p className="readable-body text-[11px]">
           Each wallet can redeem <span className="text-[var(--ink)] font-bold">one card per batch</span> — including the creator. Share unique Card ID + Secret per recipient.
         </p>
 
@@ -445,7 +445,7 @@ export default function VoucherCreatePanel({
                 <button
                   type="button"
                   onClick={cancelPendingCreate}
-                  className="text-[10px] font-black text-[var(--ink-muted)] hover:text-red-400 uppercase shrink-0"
+                  className="text-[11px] font-black text-[var(--ink-muted)] hover:text-red-400 uppercase shrink-0"
                 >
                   Cancel
                 </button>
@@ -513,7 +513,7 @@ export default function VoucherCreatePanel({
               </button>
             ) : needsUsdcApproval ? (
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest text-center">
+                <p className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest text-center">
                   Step 1 of 2 · Approve {exactDepositLabel}
                 </p>
                 <button
@@ -531,13 +531,13 @@ export default function VoucherCreatePanel({
                     <span>Approve {exactDepositLabel}</span>
                   )}
                 </button>
-                <p className="readable-body text-[10px] text-center">
+                <p className="readable-body text-[11px] text-center">
                   Approve {pendingAsset} spending in your wallet, then tap Deposit in step 2.
                 </p>
               </div>
             ) : usdcReadyToFund ? (
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-center">
+                <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-center">
                   Step 2 of 2 · Deposit {exactDepositLabel}
                 </p>
                 <button

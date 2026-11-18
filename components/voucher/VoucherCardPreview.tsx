@@ -142,7 +142,7 @@ export default function VoucherCardPreview({
           {/* Top Line: Brand & Network Badge */}
           <div className="relative flex items-start justify-between gap-3 mb-4">
             <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300/80">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300/80">
                 {isVault ? "Yield Vault Position" : isStock ? "RWA Equity Share" : "Onchain Gift Card"}
               </span>
               <p className="text-sm font-black text-white truncate mt-0.5">
@@ -154,7 +154,7 @@ export default function VoucherCardPreview({
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 border border-white/10 text-[10px] font-bold text-white">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 border border-white/10 text-[11px] font-bold text-white">
                 <span className="w-2 h-2 rounded-full bg-[var(--brand)]" />
                 Base
               </div>
@@ -191,7 +191,7 @@ export default function VoucherCardPreview({
           {/* Card Message */}
           {message?.trim() ? (
             <div className="relative my-3 rounded-xl bg-black/40 border border-white/15 p-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-0.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-0.5">
                 Message
               </p>
               <p className="text-xs text-white italic line-clamp-2 leading-relaxed">
@@ -219,7 +219,7 @@ export default function VoucherCardPreview({
               </span>
             </div>
 
-            <div className="font-mono text-[10px] text-slate-200">
+            <div className="font-mono text-[11px] text-slate-200">
               {cardId ? `ID: ${cardId}` : "Pre-deposit Preview"}
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function VoucherCardPreview({
       {/* Secret Card ID pill below preview if available */}
       {cardId && (
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-2.5 flex items-center justify-between text-xs font-mono">
-          <span className="text-[var(--ink-muted)] font-bold text-[10px] uppercase tracking-wider">
+          <span className="text-[var(--ink-muted)] font-bold text-[11px] uppercase tracking-wider">
             Card ID: {cardId}
           </span>
           {showSecret && secret ? (

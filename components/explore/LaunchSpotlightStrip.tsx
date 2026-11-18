@@ -110,7 +110,7 @@ export default function LaunchSpotlightStrip({
               <TokenLogo address={featured.launched.address} symbol={featured.launched.symbol} src={featured.launched.imageUrl} size={44} shape="rounded-xl" />
             </span>
             <span className="min-w-0">
-              <span className="pulse-eyebrow text-[10px]">Newest · {ago(featured.launched.createdAt, now)}</span>
+              <span className="pulse-eyebrow text-[11px]">Newest · {ago(featured.launched.createdAt, now)}</span>
               <span className="block truncate text-2xl font-black tracking-tight text-white">${featured.launched.symbol}</span>
               <span className="block truncate text-xs text-[var(--ink-muted)]">{featured.launched.name}</span>
             </span>
@@ -126,7 +126,7 @@ export default function LaunchSpotlightStrip({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {tokenBadgeLabel(featured.launched) && <span className="pulse-chip text-[10px]">{tokenBadgeLabel(featured.launched)}</span>}
+              {tokenBadgeLabel(featured.launched) && <span className="pulse-chip text-[11px]">{tokenBadgeLabel(featured.launched)}</span>}
               {featured.unified && (
                 <button
                   type="button"

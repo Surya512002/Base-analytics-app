@@ -40,7 +40,7 @@ export function SenderPreviewCard({ address }: { address: string | null | undefi
   const verified = sender.trust === "basename-verified";
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3.5 text-xs">
-      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Recipients will see</p>
+      <p className="text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]">Recipients will see</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         <span className="text-sm font-black text-[var(--ink)]">{sender.basename ?? "Your wallet address"}</span>
         {verified ? (

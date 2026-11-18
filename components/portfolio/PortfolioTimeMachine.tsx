@@ -144,14 +144,14 @@ export default function PortfolioTimeMachine({
           {/* Historical PnL Summary */}
           <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]">
             <div>
-              <span className="text-[10px] text-[var(--ink-muted)] block">Est. Value {daysAgo}d Ago</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">Est. Value {daysAgo}d Ago</span>
               <span className="font-mono font-bold text-sm text-[var(--ink)]">
                 {formatUsd(report.pastTotalUsd)}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] text-[var(--ink-muted)] block">Portfolio PnL</span>
+              <span className="text-[11px] text-[var(--ink-muted)] block">Portfolio PnL</span>
               <div className="flex items-center gap-1 font-mono font-bold text-sm">
                 {report.isPositive ? (
                   <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
@@ -176,7 +176,7 @@ export default function PortfolioTimeMachine({
                 What If You Held ETH Benchmark:
               </span>
               <span
-                className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded ${
                   report.ethBenchmark.beatsEth
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     : "bg-amber-500/10 text-amber-600 dark:text-amber-400"

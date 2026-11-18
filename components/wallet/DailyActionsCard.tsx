@@ -192,7 +192,7 @@ export default function DailyActionsCard({
               <Flame size={16} className="fill-amber-500/30" />
             </span>
             <h3 className="text-base font-bold text-[var(--ink)]">Daily Onchain Actions</h3>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+            <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               Base Mainnet
             </span>
           </div>
@@ -204,7 +204,7 @@ export default function DailyActionsCard({
         {/* Streak Indicator */}
         <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
           <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">Current Streak</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">Current Streak</p>
             <p className="text-sm font-black font-mono text-[var(--ink)]">
               {streak} {streak === 1 ? "Day" : "Days"}
             </p>
@@ -226,7 +226,7 @@ export default function DailyActionsCard({
                 <span className="text-xs font-bold text-[var(--ink)]">Daily Check-In</span>
               </div>
               {checkedToday && (
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 size={12} /> Today
                 </span>
               )}
@@ -234,7 +234,7 @@ export default function DailyActionsCard({
             <p className="text-[11px] text-[var(--ink-muted)] leading-snug">
               Record daily onchain presence and increment your verified active streak.
             </p>
-            <p className="text-[10px] text-[var(--ink-dim)] font-mono">
+            <p className="text-[11px] text-[var(--ink-dim)] font-mono">
               Last: {formatActionRelativeTime(lastCheckInTs)}
             </p>
           </div>
@@ -268,7 +268,7 @@ export default function DailyActionsCard({
               )}
             </button>
 
-            <div className="flex items-center justify-between text-[10px] text-[var(--ink-dim)]">
+            <div className="flex items-center justify-between text-[11px] text-[var(--ink-dim)]">
               <span>Contract</span>
               <a
                 href={`https://basescan.org/address/${CHECKIN_CONTRACT}`}
@@ -291,7 +291,7 @@ export default function DailyActionsCard({
                 <span className="text-xs font-bold text-[var(--ink)]">Daily Boost</span>
               </div>
               {boostedToday && (
-                <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
                   <CheckCircle2 size={12} /> Boosted
                 </span>
               )}
@@ -299,7 +299,7 @@ export default function DailyActionsCard({
             <p className="text-[11px] text-[var(--ink-muted)] leading-snug">
               Interact directly with the onchain booster protocol contract on Base.
             </p>
-            <p className="text-[10px] text-[var(--ink-dim)] font-mono">
+            <p className="text-[11px] text-[var(--ink-dim)] font-mono">
               Last: {formatActionRelativeTime(lastBoostTs)}
             </p>
           </div>
@@ -333,7 +333,7 @@ export default function DailyActionsCard({
               )}
             </button>
 
-            <div className="flex items-center justify-between text-[10px] text-[var(--ink-dim)]">
+            <div className="flex items-center justify-between text-[11px] text-[var(--ink-dim)]">
               <span>Contract</span>
               <a
                 href={`https://basescan.org/address/${BOOSTER_CONTRACT}`}
@@ -360,7 +360,7 @@ export default function DailyActionsCard({
                 <span className="text-xs font-bold text-[var(--ink)]">GM / GN on Base</span>
               </div>
               {gmToday && (
-                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <CheckCircle2 size={12} /> Broadcasted
                 </span>
               )}
@@ -368,7 +368,7 @@ export default function DailyActionsCard({
             <p className="text-[11px] text-[var(--ink-muted)] leading-snug">
               Broadcast a GM or GN message onchain via the verified GM/GN contract.
             </p>
-            <p className="text-[10px] text-[var(--ink-dim)] font-mono">
+            <p className="text-[11px] text-[var(--ink-dim)] font-mono">
               Last: {formatActionRelativeTime(lastGmTs)}
             </p>
           </div>
@@ -404,7 +404,7 @@ export default function DailyActionsCard({
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-[10px] text-[var(--ink-dim)]">
+            <div className="flex items-center justify-between text-[11px] text-[var(--ink-dim)]">
               <span>Contract</span>
               <a
                 href={`https://basescan.org/address/${GM_GN_CONTRACT}`}

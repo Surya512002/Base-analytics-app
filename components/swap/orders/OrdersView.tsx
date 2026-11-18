@@ -408,7 +408,7 @@ export default function OrdersView({
       {/* Beta badge & Paused / Region alert banners */}
       <div className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-500 text-white uppercase tracking-wider">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-500 text-white uppercase tracking-wider">
             Beta
           </span>
           <span className="text-[var(--ink-muted)]">
@@ -552,7 +552,7 @@ export default function OrdersView({
           <div className="flex-1 min-w-0">
             <label
               htmlFor="stock-select"
-              className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mb-0.5"
+              className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider mb-0.5"
             >
               Stock Asset
             </label>
@@ -582,7 +582,7 @@ export default function OrdersView({
           </div>
 
           <div className="text-right shrink-0">
-            <span className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               Market Price
             </span>
             <span className="text-sm font-mono font-bold text-[var(--ink)] tabular-nums">
@@ -607,7 +607,7 @@ export default function OrdersView({
               <button
                 type="button"
                 onClick={handleMaxAmount}
-                className="text-[10px] font-bold text-[var(--brand-text)] hover:underline px-1 py-0.5 rounded-sm bg-[var(--surface-2)]"
+                className="text-[11px] font-bold text-[var(--brand-text)] hover:underline px-1 py-0.5 rounded-sm bg-[var(--surface-2)]"
               >
                 MAX
               </button>
@@ -650,7 +650,7 @@ export default function OrdersView({
                       setTrailPercent(p);
                       setCustomTrail("");
                     }}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
                       trailPercent === p && customTrail === ""
                         ? "bg-purple-600 text-white border-purple-600"
                         : "border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -696,7 +696,7 @@ export default function OrdersView({
                   <TrendingUp size={12} /> Take-Profit Price (USD)
                 </label>
                 {tpDistance && (
-                  <span className="text-[10px] font-bold text-emerald-500">{tpDistance}</span>
+                  <span className="text-[11px] font-bold text-emerald-500">{tpDistance}</span>
                 )}
               </div>
               <input
@@ -718,7 +718,7 @@ export default function OrdersView({
                   <TrendingDown size={12} /> Stop-Loss Price (USD)
                 </label>
                 {slDistance && (
-                  <span className="text-[10px] font-bold text-rose-500">{slDistance}</span>
+                  <span className="text-[11px] font-bold text-rose-500">{slDistance}</span>
                 )}
               </div>
               <input
@@ -771,7 +771,7 @@ export default function OrdersView({
         <div className="grid grid-cols-2 gap-3 pt-1">
           {/* Slippage */}
           <div className="space-y-1">
-            <label className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <label className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               Max Slippage
             </label>
             <div className="flex items-center gap-1">
@@ -783,7 +783,7 @@ export default function OrdersView({
                     setSlippagePercent(p);
                     setCustomSlippage("");
                   }}
-                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-md border ${
+                  className={`flex-1 text-[11px] font-bold py-1.5 rounded-md border ${
                     slippagePercent === p && customSlippage === ""
                       ? "bg-[#0052FF] text-white border-[#0052FF]"
                       : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -797,7 +797,7 @@ export default function OrdersView({
 
           {/* Expiry */}
           <div className="space-y-1">
-            <label className="block text-[10px] text-[var(--ink-muted)] uppercase tracking-wider">
+            <label className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
               Expiry
             </label>
             <div className="flex items-center gap-1">
@@ -806,7 +806,7 @@ export default function OrdersView({
                   key={p.seconds}
                   type="button"
                   onClick={() => setExpirySec(p.seconds)}
-                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-md border ${
+                  className={`flex-1 text-[11px] font-bold py-1.5 rounded-md border ${
                     expirySec === p.seconds
                       ? "bg-[#0052FF] text-white border-[#0052FF]"
                       : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -843,7 +843,7 @@ export default function OrdersView({
               {floorProtection > 0n ? `${formatUnits(floorProtection, outDecimals)} ${outSymbol}` : "—"}
             </span>
           </div>
-          <p className="text-[10px] text-[var(--ink-muted)] leading-tight">
+          <p className="text-[11px] text-[var(--ink-muted)] leading-tight">
             Protected: a fill must be within {(activeMarket?.maxDeviationBps || 300) / 100}% of the Chainlink market price.
           </p>
         </div>
@@ -900,7 +900,7 @@ export default function OrdersView({
                 </span>
               </div>
             </div>
-            <p className="text-[10px] text-[var(--ink-muted)] pt-1 border-t border-blue-500/10">
+            <p className="text-[11px] text-[var(--ink-muted)] pt-1 border-t border-blue-500/10">
               Exact token approval only &middot; No unlimited allowance &middot; Funds remain yours until filled
             </p>
           </div>

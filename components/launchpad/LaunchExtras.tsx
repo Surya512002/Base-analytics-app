@@ -29,7 +29,7 @@ import { VENUE_OPTIONS, type LaunchVenueId } from "@/lib/launchpad/launch-config
 import type { LaunchTokenType } from "@/lib/launchpad/types";
 
 const card = "rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 space-y-3";
-const eyebrow = "text-[10px] font-black uppercase tracking-widest text-[var(--ink-muted)]";
+const eyebrow = "text-[11px] font-black uppercase tracking-widest text-[var(--ink-muted)]";
 
 // ─────────────────────────── Starting market cap ───────────────────────────
 
@@ -357,11 +357,11 @@ export function LaunchLivePreview({
           </div>
           <div className="hidden flex-col items-end gap-1 sm:flex">
             {liquidityLocked && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                 <Lock size={10} /> LP locked
               </span>
             )}
-            <span className="rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--brand-text)]">Just launched</span>
+            <span className="rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--brand-text)]">Just launched</span>
           </div>
         </div>
       ) : (

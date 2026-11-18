@@ -202,7 +202,7 @@ export default function CommandPalette({
           {/* Smart Natural-Language Intent Match */}
           {matchedIntent && (
             <div className="mb-4">
-              <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--brand)] flex items-center gap-1.5">
+              <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--brand)] flex items-center gap-1.5">
                 <Zap size={13} className="text-[var(--brand)] fill-current" />
                 <span>Smart Intent Detected</span>
               </p>
@@ -213,7 +213,7 @@ export default function CommandPalette({
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#0052FF] text-white">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-[#0052FF] text-white">
                       {matchedIntent.type}
                     </span>
                     <span className="text-[15px] font-black text-[var(--ink)] truncate">
@@ -234,7 +234,7 @@ export default function CommandPalette({
 
           {filteredNav.length > 0 && (
             <div className="mb-4">
-              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+              <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
                 Go to
               </p>
               <div className="grid sm:grid-cols-2 gap-1.5">
@@ -267,7 +267,7 @@ export default function CommandPalette({
 
           {filteredTokens.length > 0 && (
             <div>
-              <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+              <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
                 Tradeable tokens
               </p>
               <div className="space-y-1">

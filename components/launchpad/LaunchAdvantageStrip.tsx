@@ -12,7 +12,7 @@ export default function LaunchAdvantageStrip() {
           <Sparkles size={16} className="text-[var(--brand)]" />
           <p className="text-sm font-bold text-[var(--ink)]">Why launch on Base Analytics</p>
         </div>
-        <p className="font-mono text-[10px] text-[var(--ink-dim)]">
+        <p className="font-mono text-[11px] text-[var(--ink-dim)]">
           Builder <span className="text-[var(--ink-muted)]">{BUILDER_CODE}</span> on launches &amp; swaps
         </p>
       </div>
@@ -26,7 +26,7 @@ export default function LaunchAdvantageStrip() {
               <Zap size={11} className="shrink-0 text-emerald-600" />
               {item.title}
             </p>
-            <p className="mt-0.5 text-[10px] leading-snug text-[var(--ink-muted)]">{item.detail}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-[var(--ink-muted)]">{item.detail}</p>
           </div>
         ))}
       </div>

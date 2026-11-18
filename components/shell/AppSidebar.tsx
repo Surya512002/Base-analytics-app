@@ -114,13 +114,13 @@ export default function AppSidebar({
         >
           <Search size={14} />
           <span className="text-[13px] flex-1">Search…</span>
-          <kbd className="text-[9px] font-mono border border-[var(--border-subtle)] rounded px-1 py-0.5 flex items-center gap-0.5">
+          <kbd className="text-[11px] font-mono border border-[var(--border-subtle)] rounded px-1 py-0.5 flex items-center gap-0.5">
             <Command size={9} />K
           </kbd>
         </button>
 
         <nav className="space-y-0.5">
-          <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-dim)] mb-2">
+          <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-dim)] mb-2">
             Browse
           </p>
           {NAV.map((item) => {
@@ -145,7 +145,7 @@ export default function AppSidebar({
         </nav>
 
         <div className="pt-3 border-t border-[var(--border-subtle)] space-y-0.5">
-          <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-dim)] mb-1.5">
+          <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-dim)] mb-1.5">
             Documentation &amp; Policy
           </p>
           <Link
