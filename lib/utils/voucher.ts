@@ -35,6 +35,8 @@ export interface StoredVoucherBatch {
   unlockTimestamp?: number;
   expirationTimestamp?: number;
   requiredSigner?: string;
+  /** Contract the batch lives on (lower-case). Batch ids repeat across contracts. Missing on old records. */
+  contractAddress?: string;
 }
 
 function randomChar(): string {

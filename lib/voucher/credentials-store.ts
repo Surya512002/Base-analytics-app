@@ -55,6 +55,27 @@ export async function readCreatorCredentials(
   return getLocalCredentials(normalized);
 }
 
+/**
+ * Index of the stored record for `entry`. Batch ids repeat across contracts, so a record with a
+ * contract only matches the same contract. A legacy record saved without a contract matches by
+ * id and is upgraded in place (callers only upsert after onchain verification).
+ */
+export function findStoredBatchIndex(
+  existing: readonly StoredVoucherBatch[],
+  entry: Pick<StoredVoucherBatch, "batchId" | "contractAddress">
+): number {
+  const contract = entry.contractAddress?.toLowerCase();
+  const exact = existing.findIndex(
+    (b) => b.batchId === entry.batchId && (b.contractAddress?.toLowerCase() ?? null) === (contract ?? null)
+  );
+  if (exact >= 0 || !contract) return exact;
+  return existing.findIndex((b) => b.batchId === entry.batchId && !b.contractAddress);
+}
+
+/**
+ * Save card secrets for a creator. Callers MUST have checked the secrets against the onchain
+ * hashes first (`verifyBatchCredentials`) and authenticated the creator (SIWE).
+ */
 export async function upsertCreatorBatch(
   creator: string,
   batch: StoredVoucherBatch
@@ -66,12 +87,13 @@ export async function upsertCreatorBatch(
   const entry: StoredVoucherBatch = {
     ...batch,
     creator: normalized,
+    contractAddress: batch.contractAddress?.toLowerCase(),
   };
 
   const secretFrom = (cards: StoredVoucherBatch["cards"], cardIndex: number) =>
     cards.find((c) => c.cardIndex === cardIndex)?.secret?.trim() || "";
 
-  const idx = existing.findIndex((b) => b.batchId === entry.batchId);
+  const idx = findStoredBatchIndex(existing, entry);
   if (idx >= 0) {
     const prev = existing[idx];
     existing[idx] = {

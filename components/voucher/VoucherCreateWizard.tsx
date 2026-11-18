@@ -928,6 +928,15 @@ export default function VoucherCreateWizard({
                     </span>
                   </div>
                 )}
+                {expirationDays === 0 && (
+                  <p
+                    role="note"
+                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300"
+                  >
+                    No expiry: unclaimed cards can never come back to you. If the claim links are lost,
+                    those funds stay locked. Pick an expiry in step 3 to keep a way back.
+                  </p>
+                )}
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
                   <span className="text-[var(--ink-muted)] font-medium">Network & Gas</span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">

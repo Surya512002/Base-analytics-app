@@ -122,6 +122,11 @@ export function useVoucherTab(app: WalletAppState) {
   const [redeemSuccess, setRedeemSuccess] = useState<RedeemSuccess | null>(null);
 
   const [myBatches, setMyBatches] = useState<StoredVoucherBatch[]>([]);
+  // Latest batches for effects that only need to look up a batch's contract (no re-run on change).
+  const myBatchesRef = useRef<StoredVoucherBatch[]>([]);
+  useEffect(() => {
+    myBatchesRef.current = myBatches;
+  }, [myBatches]);
   const [chainStats, setChainStats] = useState<Record<number, number>>({});
   const [batchCardStatuses, setBatchCardStatuses] = useState<
     Record<number, Array<{ cardIndex: number; cardId: string; redeemed: boolean }>>
@@ -293,7 +298,12 @@ export function useVoucherTab(app: WalletAppState) {
         for (const b of onchainBatches) {
           stats[b.batchId] = b.redeemedCount;
           const localMatch = validLocal.find((l) => l.batchId === b.batchId);
-          const serverMatch = serverCredentials.find((s) => s.batchId === b.batchId);
+          // Batch ids repeat across contracts: match the contract too when both sides know it.
+          const serverMatch = serverCredentials.find(
+            (s) =>
+              s.batchId === b.batchId &&
+              (!s.contractAddress || !b.contractAddress || s.contractAddress.toLowerCase() === b.contractAddress.toLowerCase())
+          );
 
           const combinedCards = Array.from({ length: b.cardCount }, (_, i) => {
             const localCard = localMatch?.cards.find((c) => c.cardIndex === i);
@@ -318,6 +328,7 @@ export function useVoucherTab(app: WalletAppState) {
             createdAt: b.createdAt ?? localMatch?.createdAt ?? Date.now(),
             txHash: b.txHash ?? localMatch?.txHash,
             cards: combinedCards,
+            contractAddress: b.contractAddress?.toLowerCase(),
           };
           confirmedBatches.push(batchEntry);
 
@@ -396,10 +407,12 @@ export function useVoucherTab(app: WalletAppState) {
     setMyBatches(withSecrets.sort((a, b) => b.batchId - a.batchId));
   }, [address, publicClient]);
 
-  const loadBatchDetail = useCallback(async (batchId: number) => {
+  const loadBatchDetail = useCallback(async (batchId: number, contractAddress?: string) => {
     setLoadingBatchDetail(batchId);
     try {
-      const res = await fetch(`/api/vouchers?batchId=${batchId}&live=1`);
+      // Batch ids repeat across contracts; name the contract when we know it.
+      const contractParam = contractAddress ? `&contract=${encodeURIComponent(contractAddress)}` : "";
+      const res = await fetch(`/api/vouchers?batchId=${batchId}&live=1${contractParam}`);
       if (!res.ok) return;
       const data = (await res.json()) as {
         batch?: { redeemedCount: number; unredeemedCount: number };
@@ -517,7 +530,7 @@ export function useVoucherTab(app: WalletAppState) {
 
   useEffect(() => {
     if (!createdCards) return;
-    void loadBatchDetail(createdCards.batchId);
+    void loadBatchDetail(createdCards.batchId, createdCards.contractAddress);
   }, [createdCards, loadBatchDetail]);
 
   const displayCardsForBatch = useCallback((b: StoredVoucherBatch) => {
@@ -547,7 +560,8 @@ export function useVoucherTab(app: WalletAppState) {
   useEffect(() => {
     if (view !== "mine" || expandedBatchId === null) return;
     setMineStatusesLoading(true);
-    void loadBatchDetail(expandedBatchId).finally(() => setMineStatusesLoading(false));
+    const contract = myBatchesRef.current.find((b) => b.batchId === expandedBatchId)?.contractAddress;
+    void loadBatchDetail(expandedBatchId, contract).finally(() => setMineStatusesLoading(false));
   }, [view, expandedBatchId, loadBatchDetail]);
 
   const copyText = (text: string, id: string) => {
