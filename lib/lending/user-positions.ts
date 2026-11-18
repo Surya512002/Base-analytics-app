@@ -9,6 +9,7 @@ import {
   ERC4626_VAULT_ABI,
 } from "./constants";
 import {
+  VERIFIED_BEEFY_STOCK_DETAILS,
   VERIFIED_BEEFY_STOCK_VAULTS,
   getLiveBeefyAndAeroRates,
 } from "./unified-comparison";
@@ -35,7 +36,8 @@ export interface UserProtocolPosition {
   borrowedAmount: number;
   suppliedFormatted: string;
   borrowedFormatted: string;
-  suppliedUsd: number;
+  /** Null when the position's price can't be read — show "—", never a guess. */
+  suppliedUsd: number | null;
   borrowedUsd: number;
   apy: number;
   apr: number;
@@ -65,15 +67,9 @@ const AAVE_POOL_ACCOUNT_ABI = parseAbi([
   "function getUserAccountData(address user) external view returns (uint256 totalCollateralBase, uint256 totalDebtBase, uint256 availableBorrowsBase, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)",
 ]);
 
-// ABI for Aerodrome Gauges
-const AERODROME_GAUGE_VIEW_ABI = parseAbi([
-  "function balanceOf(address account) external view returns (uint256)",
-  "function earned(address account) external view returns (uint256)",
-]);
-
 // Live stock prices (USD) from each stock's Base DEX pool. A stock without a price counts as 0,
 // so its USD value reads as unknown rather than a made-up number.
-const PRICED_STOCKS = ["NVDAc", "AAPLc", "TSLAc", "GOOGLc", "MSFTc", "AMZNc", "METAc"] as const;
+const PRICED_STOCKS = ["GOOGLc", "NVDAc", "AAPLc", "METAc"] as const;
 async function liveStockPrices(): Promise<Record<string, number>> {
   const addrs = PRICED_STOCKS.map((sym) => getBaseStockBySymbol(sym)?.address).filter((a): a is `0x${string}` => Boolean(a));
   const px = await getStockPricesUsd(addrs).catch(() => new Map<string, number>());
@@ -85,83 +81,99 @@ async function liveStockPrices(): Promise<Record<string, number>> {
   return out;
 }
 
+/** Result of one multicall entry when `allowFailure: true`. */
+type MulticallEntry = { status: "success"; result: unknown } | { status: "failure"; error?: unknown };
+
+function bigintResult(entry: MulticallEntry | undefined): bigint | null {
+  return entry?.status === "success" && typeof entry.result === "bigint" ? entry.result : null;
+}
+
 /**
- * 1. Read real Beefy Finance auto-compounding stock vault positions on Base
+ * USD value of Beefy vault (mooToken) shares:
+ *   shares × pricePerFullShare (LP per share) × LP token price.
+ * All three are 18-decimal. Returns null when the share price or LP price is unknown.
+ */
+export function valueBeefyVaultShares(
+  sharesRaw: bigint,
+  pricePerFullShareRaw: bigint | null,
+  lpPriceUsd: number | null | undefined
+): number | null {
+  if (pricePerFullShareRaw === null || pricePerFullShareRaw <= ZERO_BI) return null;
+  const lpAmount = Number(formatUnits(sharesRaw, 18)) * Number(formatUnits(pricePerFullShareRaw, 18));
+  return valueLpTokens(lpAmount, lpPriceUsd);
+}
+
+/** USD value of a whole-unit LP token amount. Null when the LP price is unknown. */
+export function valueLpTokens(lpAmount: number, lpPriceUsd: number | null | undefined): number | null {
+  if (typeof lpPriceUsd !== "number" || !Number.isFinite(lpPriceUsd) || lpPriceUsd <= 0) return null;
+  if (!Number.isFinite(lpAmount)) return null;
+  return lpAmount * lpPriceUsd;
+}
+
+/**
+ * LP and vault-share balances are often tiny (Beefy CLM tokens are worth ~$1e12 each), so a
+ * fixed 4 decimals would read "0.0000". Keep 4 significant digits for small amounts.
+ */
+export function formatLpAmount(amount: number): string {
+  if (!Number.isFinite(amount) || amount === 0) return "0";
+  if (Math.abs(amount) >= 0.0001) return amount.toFixed(4);
+  return amount.toPrecision(4);
+}
+
+const BEEFY_VAULT_VIEW_ABI = parseAbi([
+  "function balanceOf(address) view returns (uint256)",
+  "function getPricePerFullShare() view returns (uint256)",
+]);
+
+const BEEFY_POSITION_STOCKS = ["NVDAc", "AAPLc", "MSFTc", "TSLAc", "AMZNc", "METAc"] as const;
+
+/**
+ * 1. Read real Beefy Finance auto-compounding stock vault positions on Base.
+ *
+ * Each vault holds a Beefy CLM token (an Aerodrome Slipstream stock/USDC LP). A user's mooToken
+ * balance is vault shares, not stock units: value = shares × getPricePerFullShare() × CLM price
+ * (Beefy `/lps`). Balance and share price are read in one multicall.
  */
 export async function readBeefyPositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
-  const STOCK_PRICES = await liveStockPrices();
   const client = createBasePublicClient();
   const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
-  const vaultEntries = [
-    {
-      symbol: "NVDAc",
-      name: "Moo Beefy Aerodrome NVDAc-USDC",
-      vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["NVDAc"] ?? "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025",
-      apy: liveRates?.beefy?.["NVDAc"]?.apy ?? 0,
-      priceUsd: STOCK_PRICES.NVDAc,
-    },
-    {
-      symbol: "AAPLc",
-      name: "Moo Beefy Aerodrome AAPLc-USDC",
-      vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["AAPLc"] ?? "0xD34249514227594BB3bcdDF24a74fe1901D5077e",
-      apy: liveRates?.beefy?.["AAPLc"]?.apy ?? 0,
-      priceUsd: STOCK_PRICES.AAPLc,
-    },
-    {
-      symbol: "MSFTc",
-      name: "Moo Beefy Aerodrome MSFTc-USDC",
-      vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["MSFTc"] ?? "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
-      apy: liveRates?.beefy?.["MSFTc"]?.apy ?? 0,
-      priceUsd: STOCK_PRICES.MSFTc,
-    },
-    {
-      symbol: "TSLAc",
-      name: "Moo Beefy Aerodrome TSLAc-USDC",
-      vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["TSLAc"] ?? "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
-      apy: liveRates?.beefy?.["TSLAc"]?.apy ?? 0,
-      priceUsd: STOCK_PRICES.TSLAc,
-    },
-    {
-      symbol: "AMZNc",
-      name: "Moo Beefy Aerodrome AMZNc-USDC",
-      vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["AMZNc"] ?? "0x1FF5C4d292F9eACAE1fa10c68f2c546ef8Fc7a8A",
-      apy: liveRates?.beefy?.["AMZNc"]?.apy ?? 0,
-      priceUsd: STOCK_PRICES.AMZNc,
-    },
-    {
-      symbol: "METAc",
-      name: "Moo Beefy Aerodrome METAc-USDC",
-      vaultAddress: VERIFIED_BEEFY_STOCK_VAULTS["METAc"] ?? "0x32dB27106d3eeA59A2586E81c4c02aC7a5Ddec49",
-      apy: liveRates?.beefy?.["METAc"]?.apy ?? 0,
-      priceUsd: STOCK_PRICES.METAc,
-    },
-  ];
+  const vaultEntries = BEEFY_POSITION_STOCKS.flatMap((symbol) => {
+    const vaultAddress = VERIFIED_BEEFY_STOCK_VAULTS[symbol];
+    if (!vaultAddress) return [];
+    return [
+      {
+        symbol,
+        name: `Moo Beefy Aerodrome ${symbol}-USDC`,
+        vaultAddress,
+        apy: liveRates?.beefy?.[symbol]?.apy ?? 0,
+        lpPriceUsd: liveRates?.lpPrices?.[symbol] ?? null,
+      },
+    ];
+  });
 
-  const calls = vaultEntries.map((v) => ({
-    address: v.vaultAddress as `0x${string}`,
-    abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
-    functionName: "balanceOf" as const,
-    args: [userAddress],
-  }));
+  const calls = vaultEntries.flatMap((v) => [
+    { address: v.vaultAddress, abi: BEEFY_VAULT_VIEW_ABI, functionName: "balanceOf" as const, args: [userAddress] as const },
+    { address: v.vaultAddress, abi: BEEFY_VAULT_VIEW_ABI, functionName: "getPricePerFullShare" as const },
+  ]);
 
   try {
-    const results = await client.multicall({
+    const results = (await client.multicall({
       contracts: calls,
       allowFailure: true,
-    });
+    })) as MulticallEntry[];
 
     const positions: UserProtocolPosition[] = [];
 
     for (let i = 0; i < vaultEntries.length; i++) {
       const v = vaultEntries[i]!;
-      const balRes = results[i] as any;
-      const sharesBal = (balRes?.status === "success" && balRes.result ? balRes.result : ZERO_BI) as bigint;
+      const sharesBal = bigintResult(results[i * 2]) ?? ZERO_BI;
       if (sharesBal === ZERO_BI) continue;
+      const ppfs = bigintResult(results[i * 2 + 1]);
 
-      const suppliedNum = parseFloat(formatUnits(sharesBal, 18)) || 0;
-      const suppliedUsd = suppliedNum * v.priceUsd;
+      const suppliedNum = Number(formatUnits(sharesBal, 18)) || 0;
+      const suppliedUsd = valueBeefyVaultShares(sharesBal, ppfs, v.lpPriceUsd);
 
       positions.push({
         id: `beefy-${v.symbol.toLowerCase()}`,
@@ -176,7 +188,7 @@ export async function readBeefyPositions(
         type: "supplied",
         suppliedAmount: suppliedNum,
         borrowedAmount: 0,
-        suppliedFormatted: `${suppliedNum.toFixed(4)} ${v.symbol}`,
+        suppliedFormatted: `${formatLpAmount(suppliedNum)} vault shares`,
         borrowedFormatted: "—",
         suppliedUsd,
         borrowedUsd: 0,
@@ -301,116 +313,92 @@ export async function readIporPositions(
   }
 }
 
+const LP_TOKEN_VIEW_ABI = parseAbi(["function balanceOf(address account) external view returns (uint256)"]);
+
+const CLM_POSITION_STOCKS = [
+  { id: "aero-nvda-usdc", symbol: "NVDAc" },
+  { id: "aero-msft-usdc", symbol: "MSFTc" },
+  { id: "aero-aapl-usdc", symbol: "AAPLc" },
+  { id: "aero-tsla-usdc", symbol: "TSLAc" },
+] as const;
+
 /**
- * 3. Read real Aerodrome stock pool staked positions on Base
+ * 3. Read Aerodrome Slipstream stock/USDC LP held directly on Base.
+ *
+ * These stock pools are concentrated-liquidity (Slipstream) pools, which have no fungible LP
+ * token of their own. The fungible LP is the Beefy CLM token that manages the range — the same
+ * token the Beefy vaults hold (`wantTokenAddress`). Value = LP balance × CLM price (Beefy `/lps`,
+ * which prices it from the CLM's pool balances and token prices). One balanceOf per pool,
+ * batched in a single multicall.
  */
 export async function readAerodromeGaugePositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
-  const STOCK_PRICES = await liveStockPrices();
   const client = createBasePublicClient();
   const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
-  const gaugeMarkets = [
-    {
-      id: "aero-nvda-usdc",
-      pairName: "NVDAc / USDC",
-      stockSymbol: "NVDAc",
-      gaugeAddress: "0x789a451928bcde91234a567812e94acb7123984e" as `0x${string}`,
-      apr: liveRates?.aerodrome?.["NVDAc"]?.apy ?? 0,
-      lpPriceUsd: STOCK_PRICES.NVDAc,
-    },
-    {
-      id: "aero-msft-usdc",
-      pairName: "MSFTc / USDC",
-      stockSymbol: "MSFTc",
-      gaugeAddress: "0xAA4743151ac49BF80D13C51e2B2836b143B64732" as `0x${string}`,
-      apr: liveRates?.aerodrome?.["MSFTc"]?.apy ?? 0,
-      lpPriceUsd: STOCK_PRICES.MSFTc,
-    },
-    {
-      id: "aero-aapl-usdc",
-      pairName: "AAPLc / USDC",
-      stockSymbol: "AAPLc",
-      gaugeAddress: "0x7E8C552289cAB5c83C488fd6127a9E5C1A4729f1" as `0x${string}`,
-      apr: liveRates?.aerodrome?.["AAPLc"]?.apy ?? 0,
-      lpPriceUsd: STOCK_PRICES.AAPLc,
-    },
-    {
-      id: "aero-tsla-usdc",
-      pairName: "TSLAc / USDC",
-      stockSymbol: "TSLAc",
-      gaugeAddress: "0x6f7149Ac939f178BDE4BD346B7c9234fa641B6A0" as `0x${string}`,
-      apr: liveRates?.aerodrome?.["TSLAc"]?.apy ?? 0,
-      lpPriceUsd: STOCK_PRICES.TSLAc,
-    },
-  ];
+  const lpMarkets = CLM_POSITION_STOCKS.flatMap(({ id, symbol }) => {
+    const lpAddress = VERIFIED_BEEFY_STOCK_DETAILS[symbol]?.wantTokenAddress;
+    if (!lpAddress) return [];
+    return [
+      {
+        id,
+        pairName: `${symbol} / USDC`,
+        lpAddress,
+        apr: liveRates?.aerodrome?.[symbol]?.apy ?? 0,
+        lpPriceUsd: liveRates?.lpPrices?.[symbol] ?? null,
+      },
+    ];
+  });
 
-  const calls = gaugeMarkets.flatMap((g) => [
-    {
-      address: g.gaugeAddress,
-      abi: AERODROME_GAUGE_VIEW_ABI,
-      functionName: "balanceOf" as const,
-      args: [userAddress],
-    },
-    {
-      address: g.gaugeAddress,
-      abi: AERODROME_GAUGE_VIEW_ABI,
-      functionName: "earned" as const,
-      args: [userAddress],
-    },
-  ]);
+  const calls = lpMarkets.map((g) => ({
+    address: g.lpAddress,
+    abi: LP_TOKEN_VIEW_ABI,
+    functionName: "balanceOf" as const,
+    args: [userAddress] as const,
+  }));
 
   try {
-    const results = await client.multicall({
+    const results = (await client.multicall({
       contracts: calls,
       allowFailure: true,
-    });
+    })) as MulticallEntry[];
 
     const positions: UserProtocolPosition[] = [];
 
-    for (let i = 0; i < gaugeMarkets.length; i++) {
-      const g = gaugeMarkets[i]!;
-      const balRes = results[i * 2] as any;
-      const earnRes = results[i * 2 + 1] as any;
+    for (let i = 0; i < lpMarkets.length; i++) {
+      const g = lpMarkets[i]!;
+      const lpRaw = bigintResult(results[i]) ?? ZERO_BI;
+      if (lpRaw === ZERO_BI) continue;
 
-      const stakedRaw = (balRes?.status === "success" && balRes.result ? balRes.result : ZERO_BI) as bigint;
-      const earnedRaw = (earnRes?.status === "success" && earnRes.result ? earnRes.result : ZERO_BI) as bigint;
-
-      if (stakedRaw === ZERO_BI && earnedRaw === ZERO_BI) continue;
-
-      const stakedNum = parseFloat(formatUnits(stakedRaw, 18)) || 0;
-      const earnedNum = parseFloat(formatUnits(earnedRaw, 18)) || 0;
-      const stakedUsd = stakedNum * g.lpPriceUsd;
+      const lpNum = Number(formatUnits(lpRaw, 18)) || 0;
+      const lpUsd = valueLpTokens(lpNum, g.lpPriceUsd);
 
       positions.push({
         id: g.id,
         protocol: "aerodrome",
         protocolName: "Aerodrome Slipstream",
-        protocolBadge: "Stock Gauge",
+        protocolBadge: "Beefy CLM LP",
         marketId: g.id,
-        marketName: `${g.pairName} Gauge`,
+        marketName: `${g.pairName} LP`,
         assetSymbol: g.pairName,
-        assetName: `${g.pairName} Slipstream LP`,
-        assetAddress: g.gaugeAddress,
-        type: "staked",
-        suppliedAmount: stakedNum,
+        assetName: `${g.pairName} Slipstream LP (Beefy CLM)`,
+        assetAddress: g.lpAddress,
+        type: "supplied",
+        suppliedAmount: lpNum,
         borrowedAmount: 0,
-        suppliedFormatted: `${stakedNum.toFixed(4)} LP`,
+        suppliedFormatted: `${formatLpAmount(lpNum)} LP`,
         borrowedFormatted: "—",
-        suppliedUsd: stakedUsd,
+        suppliedUsd: lpUsd,
         borrowedUsd: 0,
         apy: g.apr,
         apr: 0,
         healthFactor: null,
         ltv: null,
         liquidationPrice: null,
-        explorerUrl: `https://basescan.org/address/${g.gaugeAddress}`,
-        contractAddress: g.gaugeAddress,
-        pendingRewards: earnedNum,
-        pendingRewardsFormatted: `${earnedNum.toFixed(2)} AERO`,
-        rewardToken: "AERO",
+        explorerUrl: `https://basescan.org/address/${g.lpAddress}`,
+        contractAddress: g.lpAddress,
         canAdd: true,
-        canWithdraw: stakedNum > 0,
+        canWithdraw: true,
       });
     }
 
@@ -529,7 +517,7 @@ export async function fetchAllUserPositions(
           type: "supplied",
           suppliedAmount: 5.0,
           borrowedAmount: 200.0,
-          suppliedFormatted: "5.0000 NVDAc",
+          suppliedFormatted: "5.0000 vault shares",
           borrowedFormatted: "200.00 USDC",
           suppliedUsd: 691.25,
           borrowedUsd: 200.0,

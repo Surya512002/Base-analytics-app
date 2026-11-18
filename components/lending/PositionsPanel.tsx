@@ -49,13 +49,14 @@ export default function PositionsPanel({
   isMockData = false,
 }: PositionsPanelProps) {
   // Aggregate real totals
-  const totalSuppliedUsd = positions.reduce((acc, p) => acc + p.suppliedUsd, 0);
+  // Positions whose price can't be read (suppliedUsd null) are left out of USD totals.
+  const totalSuppliedUsd = positions.reduce((acc, p) => acc + (p.suppliedUsd ?? 0), 0);
   const totalBorrowedUsd = positions.reduce((acc, p) => acc + p.borrowedUsd, 0);
 
   // Net APY calculated from real positions
   const netUsd = totalSuppliedUsd - totalBorrowedUsd;
   const weightedSupplyApy = positions.reduce(
-    (acc, p) => acc + p.suppliedUsd * (p.apy || 0),
+    (acc, p) => acc + (p.suppliedUsd ?? 0) * (p.apy || 0),
     0
   );
   const weightedBorrowApr = positions.reduce(
@@ -454,7 +455,7 @@ export default function PositionsPanel({
                     <span>
                       Supplied:{" "}
                       <strong className="text-[var(--ink)]">
-                        {pos.suppliedFormatted} (${pos.suppliedUsd.toFixed(2)})
+                        {pos.suppliedFormatted} ({pos.suppliedUsd === null ? "—" : `$${pos.suppliedUsd.toFixed(2)}`})
                       </strong>
                     </span>
 

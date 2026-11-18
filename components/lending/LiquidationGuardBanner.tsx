@@ -53,7 +53,7 @@ export default function LiquidationGuardBanner({
     }
   }, []);
 
-  const totalCollateralUsd = positions.reduce((acc, p) => acc + p.suppliedUsd, 0);
+  const totalCollateralUsd = positions.reduce((acc, p) => acc + (p.suppliedUsd ?? 0), 0);
   const totalDebtUsd = positions.reduce((acc, p) => acc + p.borrowedUsd, 0);
 
   // Find lowest health factor among debt positions
