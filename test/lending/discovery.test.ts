@@ -109,7 +109,7 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
 
   it("verifies Matching Rule: unapproved stock token is excluded from user view", async () => {
     const unapprovedStockAddress = "0x9999999999999999999999999999999999999999";
-    const nvdaStock = TOKENIZED_STOCKS_REGISTRY[0]; // Active stock NVDAc
+    const nvdaStock = TOKENIZED_STOCKS_REGISTRY.find((s) => s.symbol === "NVDAc")!; // live stock
 
     // Spy on adapters so discovery runs entirely via fast fixtures
     const morphoSpy = vi.spyOn(morphoAdapter, "discoverMarkets").mockResolvedValue([
@@ -219,7 +219,7 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
   });
 
   it("verifies Safety Gates: unknown oracle disables borrow and adds amber warning", async () => {
-    const nvdaStock = TOKENIZED_STOCKS_REGISTRY[0]; // NVDAc
+    const nvdaStock = TOKENIZED_STOCKS_REGISTRY.find((s) => s.symbol === "NVDAc")!;
 
     const morphoSpy = vi.spyOn(morphoAdapter, "discoverMarkets").mockResolvedValue([
       {
@@ -287,7 +287,7 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
   });
 
   it("verifies protocol failure does not take down the whole page and records protocol error", async () => {
-    const nvdaStock = TOKENIZED_STOCKS_REGISTRY[0];
+    const nvdaStock = TOKENIZED_STOCKS_REGISTRY.find((s) => s.symbol === "NVDAc")!;
 
     const morphoSpy = vi.spyOn(morphoAdapter, "discoverMarkets").mockRejectedValue(
       new Error("Morpho API 503 Outage")
@@ -352,7 +352,7 @@ describe("Protocol Adapters & Discovery Engine Audit", () => {
   });
 
   it("verifies Beefy and Pendle adapters integrate into discovery result", async () => {
-    const nvdaStock = TOKENIZED_STOCKS_REGISTRY[0];
+    const nvdaStock = TOKENIZED_STOCKS_REGISTRY.find((s) => s.symbol === "NVDAc")!;
 
     const beefySpy = vi.spyOn(beefyAdapter, "discoverMarkets").mockResolvedValue([
       {

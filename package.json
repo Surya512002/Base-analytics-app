@@ -30,6 +30,7 @@
     "test:fork": "vitest run --config vitest.fork.config.ts",
     "verify": "npm run typecheck && npm run lint && npm run audit && npm run secrets:scan && npm test && npm run test:fork",
     "registry:sync": "node scripts/sync-stock-registry.mjs",
+    "stocks:sync": "node scripts/sync-live-stocks.mjs",
     "voucher:deploy": "bash scripts/deploy-and-verify-voucher.sh",
     "notify:list": "node scripts/send-base-notification.mjs list",
     "notify:b20": "node scripts/send-base-notification.mjs broadcast --preset b20_launch",

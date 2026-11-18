@@ -29,7 +29,8 @@ export interface AssetMarketRow {
   name: string;
   category: string;
   address: `0x${string}`;
-  priceUsd: number;
+  /** Real DEX price, or null when the stock has no pool / price hasn't loaded. */
+  priceUsd: number | null;
   priceChange24h?: number;
   bestSupplyApy: number;
   bestSupplyProtocol: string;
@@ -198,7 +199,7 @@ export default function MarketsTable({
           : b.totalLiquidityUsd;
         diff = bLiq - aLiq;
       } else if (sortBy === "price") {
-        diff = b.priceUsd - a.priceUsd;
+        diff = (b.priceUsd ?? -1) - (a.priceUsd ?? -1);
       } else if (sortBy === "name") {
         diff = a.symbol.localeCompare(b.symbol);
       }
@@ -618,7 +619,7 @@ export default function MarketsTable({
                           className={`w-1.5 h-1.5 rounded-full ${isMarketOpen ? "bg-emerald-500" : "bg-amber-500"}`}
                           title={isMarketOpen ? "Chainlink 24/5 Live Feed Active" : "US Market Closed"}
                         />
-                        <span>${row.priceUsd.toFixed(2)}</span>
+                        <span>{row.priceUsd != null ? `$${row.priceUsd.toFixed(2)}` : "—"}</span>
                       </div>
                     </td>
 
@@ -822,7 +823,7 @@ export default function MarketsTable({
                     </div>
 
                     <div className="text-right">
-                      <p className="font-mono font-bold text-sm text-[var(--ink)]">${row.priceUsd.toFixed(2)}</p>
+                      <p className="font-mono font-bold text-sm text-[var(--ink)]">{row.priceUsd != null ? `$${row.priceUsd.toFixed(2)}` : "—"}</p>
                       <span className="text-[11px] text-[var(--ink-muted)]">
                         {hasThisProtocolMarket && liquidityToDisplay > 0 ? `${formatCompactUsd(liquidityToDisplay)} liq` : "—"}
                       </span>

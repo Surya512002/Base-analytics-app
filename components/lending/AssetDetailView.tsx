@@ -89,7 +89,7 @@ export default function AssetDetailView({
                   {comparison.stockSymbol}
                 </span>
                 <span className="font-mono text-xs text-[var(--ink-muted)]">
-                  ${comparison.navUsd.toFixed(2)}
+                  {comparison.navUsd > 0 ? `$${comparison.navUsd.toFixed(2)}` : "—"}
                 </span>
               </div>
             </div>
@@ -143,10 +143,10 @@ export default function AssetDetailView({
               </div>
               <div className="flex items-center gap-2 text-xs text-[var(--ink-muted)] mt-0.5">
                 <span className="font-mono font-bold text-[var(--ink)]">
-                  ${comparison.navUsd.toFixed(2)}
+                  {comparison.navUsd > 0 ? `$${comparison.navUsd.toFixed(2)}` : "—"}
                 </span>
                 <span>·</span>
-                <span>Chainlink 24/5 Base Mainnet Equity Feed</span>
+                <span>Base DEX price</span>
               </div>
             </div>
           </div>

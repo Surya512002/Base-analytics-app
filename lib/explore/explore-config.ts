@@ -106,37 +106,26 @@ export function normalizeLaunchedToken(
 }
 
 /**
- * Normalizes a Coinbase BaseStock into UnifiedToken
+ * Normalizes a Coinbase BaseStock into UnifiedToken, with real market data from the stock's
+ * Base pools (DexScreener). Without market data the numbers are 0 and `hasPool` is false, so
+ * the stock is listed but not ranked in volume/mover rows; nothing is estimated.
  */
 export function normalizeBaseStock(
   stock: BaseStock,
   userAddress?: string | null,
   isWatched?: boolean,
-  holdingBalance?: number
+  holdingBalance?: number,
+  market?: TokenMarketSummary | null
 ): UnifiedToken {
-  // Baseline equity reference estimates
-  const isHighBeta = stock.symbol === "TSLAc" || stock.symbol === "NVDAc" || stock.symbol === "MSTRc";
-  const isBlueChip = stock.symbol === "AAPLc" || stock.symbol === "MSFTc" || stock.symbol === "GOOGLc";
-
-  const priceUsd = isHighBeta
-    ? stock.symbol === "NVDAc"
-      ? 138.25
-      : stock.symbol === "TSLAc"
-        ? 221.8
-        : 184.5
-    : isBlueChip
-      ? stock.symbol === "AAPLc"
-        ? 232.5
-        : 428.1
-      : 125.0;
-
-  const priceChange24h = isHighBeta ? 2.84 : isBlueChip ? 0.65 : -0.42;
-  const volume24h = isHighBeta ? 4_850_000 : isBlueChip ? 6_200_000 : 1_850_000;
-  const liquidityUsd = isHighBeta ? 18_400_000 : isBlueChip ? 24_500_000 : 8_200_000;
-  const marketCapUsd = liquidityUsd * 4;
+  const priceUsd = market?.priceUsd ?? 0;
+  const priceChange24h = market?.priceChange24h ?? 0;
+  const volume24h = market?.volume24h ?? 0;
+  const liquidityUsd = market?.liquidityUsd ?? 0;
+  const marketCapUsd = market?.marketCap ?? market?.fdv ?? 0;
+  const hasPool = Boolean(market?.hasPool && liquidityUsd > 0);
 
   const balance = holdingBalance ?? 0;
-  const holdingUsd = balance > 0 ? balance * priceUsd : undefined;
+  const holdingUsd = balance > 0 && priceUsd > 0 ? balance * priceUsd : undefined;
 
   return {
     id: stock.address.toLowerCase(),
@@ -147,7 +136,7 @@ export function normalizeBaseStock(
     type: "stock",
     imageUrl: stock.logo || `/tokens/${stock.address.toLowerCase()}.png`,
     description: `Tokenized ${stock.name} US equity on Base backed 1:1 by custody shares.`,
-    createdAt: Date.now() - 30 * 86400000,
+    createdAt: (stock.addedAt && Date.parse(stock.addedAt)) || 0,
     creator: "0xb200000000000000000000000000000000000000",
     isVerified: true,
 
@@ -156,9 +145,10 @@ export function normalizeBaseStock(
     volume24h,
     liquidityUsd,
     marketCapUsd,
-    hasPool: true,
-    dexId: "aerodrome",
-    dexUrl: `https://aerodrome.finance`,
+    hasPool,
+    pairAddress: market?.pairAddress ?? undefined,
+    dexId: market?.dexId ?? undefined,
+    dexUrl: market?.pairAddress ? `https://dexscreener.com/base/${market.pairAddress}` : undefined,
 
     isMine: false,
     isWatched: Boolean(isWatched),

@@ -146,11 +146,11 @@ describe("Markets Data Normalization & Schema Validation", () => {
     }
   }, 45000);
 
-  it("fetches markets overview payload safely with series", async () => {
+  it("fetches the markets overview without invented history", async () => {
     const overview = await fetchMarketsOverview();
     expect(overview.volume24h).toBeGreaterThanOrEqual(0);
     expect(overview.totalSupplied).toBeGreaterThanOrEqual(0);
-    expect(overview.series.length).toBeGreaterThan(0);
-    expect(overview.series[0].points.length).toBeGreaterThan(0);
+    // We don't store history, so no synthetic chart series are generated.
+    expect(overview.series).toEqual([]);
   }, 45000);
 });

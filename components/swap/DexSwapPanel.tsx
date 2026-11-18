@@ -21,7 +21,6 @@ import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
 import { computeSwapUsd } from "@/lib/launchpad/swap-display";
-import { getStockBaselineNav } from "@/lib/stocks/coinbase-api";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
 import TokenPickerDialog, {
   CounterAvatar,
@@ -257,8 +256,6 @@ export default function DexSwapPanel({
     const sym = from.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(sym)) return 1;
     if (sym === "WETH") return ethUsd;
-    const stockNav = getStockBaselineNav(from.address) ?? getStockBaselineNav(from.symbol);
-    if (stockNav && stockNav > 0) return stockNav;
     return fromTokenUsd;
   }, [from, ethUsd, fromTokenUsd]);
 
@@ -268,8 +265,6 @@ export default function DexSwapPanel({
     const sym = to.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(sym)) return 1;
     if (sym === "WETH") return ethUsd;
-    const stockNav = getStockBaselineNav(to.address) ?? getStockBaselineNav(to.symbol);
-    if (stockNav && stockNav > 0) return stockNav;
     return pageTokenUsd;
   }, [to, ethUsd, pageTokenUsd]);
 

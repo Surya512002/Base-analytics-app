@@ -101,7 +101,7 @@ describe("Base Builder Code Attribution on Lending, Borrowing & Staking", () => 
 });
 
 describe("Tokenized Stocks Registry & Base Markets", () => {
-  it("NVDAc, AAPLc, TSLAc, COINc are registered B20 tokenized stocks", () => {
+  it("NVDAc, AAPLc, TSLAc are live B20 tokenized stocks; COINc (never minted) is not offered", () => {
     const nvda = getBaseStockBySymbol("NVDAc");
     expect(nvda).toBeDefined();
     expect(nvda?.name).toContain("NVIDIA");
@@ -116,9 +116,10 @@ describe("Tokenized Stocks Registry & Base Markets", () => {
     expect(aapl).toBeDefined();
     expect(aapl?.name).toContain("Apple");
 
+    // COINc's contract exists but has zero supply and isn't on Coinbase's or base.org's list.
     const coin = getBaseStockBySymbol("COINc");
     expect(coin).toBeDefined();
-    expect(coin?.name).toContain("Coinbase");
+    expect(isBaseStockAddress(coin!.address)).toBe(false);
   });
 
   it("Lending markets include tokenized stock auto-compounding and DEX liquidity pools", () => {
@@ -258,9 +259,9 @@ describe("Coinbase Tokenized Stocks Discovery & Pagination", () => {
 
     const sample = page1.stocks[0];
     expect(sample.symbol).toBeDefined();
-    expect(sample.nav).toBeGreaterThan(0);
-    expect(sample.multiplier).toBe(1);
-    expect(["deep", "moderate", "low", "paused"]).toContain(sample.liquidityHealth);
+    // Real DEX data or nothing: a price is either positive or null, never a placeholder.
+    expect(sample.nav === null || sample.nav > 0).toBe(true);
+    expect(["deep", "moderate", "low", "none", "unknown"]).toContain(sample.liquidityHealth);
 
     // Fetch page 2 using page_token
     const page2 = await fetchCoinbaseTokenizedStocks({ page_token: page1.next_page_token });

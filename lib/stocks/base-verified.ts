@@ -5,13 +5,15 @@
  * Base states: "The full list of Coinbase Tokenized Stocks on Base. Match the contract address
  * before you buy. If a token is not on this list, Coinbase did not issue it."
  *
- * Gifting (Vouchers) and meme-pair launches (Launch) only offer these stocks. Other entries in
- * tokenized-stocks-registry.ts are NOT on Base's official list and must not be offered there.
- * When Base adds a stock, add its address here after checking it on base.org and Basescan.
+ * Gifting (Vouchers) and meme-pair launches (Launch) only offer stocks that are on this list AND
+ * live (tokens in circulation, see live-stocks.generated.ts). base.org also lists stocks Coinbase
+ * has deployed but not launched: they have zero supply, so they are hidden until they launch.
+ * Other entries in tokenized-stocks-registry.ts are NOT on Base's official list and are never offered.
  */
 import type { Address } from "viem";
 import {
   getTokenizedStockByAddress,
+  isLiveStockAddress,
   type TokenizedStockEntry,
 } from "./tokenized-stocks-registry";
 import { mapEntryToBaseStock, type BaseStock } from "./base-stocks";
@@ -22,9 +24,13 @@ import {
 
 export const BASE_VERIFIED_SOURCE_URL = BASE_OFFICIAL_REGISTRY_URL;
 
-/** All stocks on Base's official registry (358, read 2026-11-14). */
+/** Stocks on Base's official registry that are live (tokens in circulation), in Base's listing order. */
 export const BASE_OFFICIAL_STOCKS: ReadonlyArray<{ symbol: string; name: string; address: Address }> =
-  BASE_OFFICIAL_REGISTRY.map(([symbol, name, address]) => ({ symbol, name, address }));
+  BASE_OFFICIAL_REGISTRY.filter(([, , address]) => isLiveStockAddress(address)).map(([symbol, name, address]) => ({
+    symbol,
+    name,
+    address,
+  }));
 
 const OFFICIAL_ADDRS = new Set(BASE_OFFICIAL_STOCKS.map((s) => s.address.toLowerCase()));
 

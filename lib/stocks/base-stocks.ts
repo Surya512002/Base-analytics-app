@@ -107,8 +107,10 @@ export function mapEntryToBaseStock(entry: TokenizedStockEntry): BaseStock {
  */
 export const BASE_STOCKS: readonly BaseStock[] = getActiveTokenizedStocks().map(mapEntryToBaseStock);
 
-/** Full catalog of every tokenized stock in the registry (curated + official-only). */
-export const ALL_BASE_STOCKS: readonly BaseStock[] = TOKENIZED_STOCKS_REGISTRY.map(mapEntryToBaseStock);
+/** Every live stock in the registry (curated + official-only); stocks not launched yet are left out. */
+export const ALL_BASE_STOCKS: readonly BaseStock[] = TOKENIZED_STOCKS_REGISTRY.filter((e) => e.status === "active").map(
+  mapEntryToBaseStock
+);
 
 export function getBaseStockByAddress(address: string): BaseStock | null {
   const found = getTokenizedStockByAddress(address);

@@ -12,18 +12,12 @@ interface TokenSparklineProps {
 }
 
 /**
- * Generates deterministic 24h price curve coordinates based on token address seed and 24h change.
+ * 24h trend line from the net 24h change: a straight line from start to end.
  */
-function generateDeterministicPoints(change24h: number, seed: string = "base"): number[] {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash << 5) - hash + seed.charCodeAt(i);
-    hash |= 0;
-  }
-  const rng = (offset: number) => {
-    const x = Math.sin(hash + offset) * 10000;
-    return x - Math.floor(x);
-  };
+function generateDeterministicPoints(change24h: number, _seed: string = "base"): number[] {
+  // Only the net 24h change is known, not the intraday path, so the line is straight:
+  // no made-up wiggles. (`seed` is kept so callers don't change.)
+  void _seed;
 
   const pointCount = 10;
   const points: number[] = [];
@@ -36,12 +30,7 @@ function generateDeterministicPoints(change24h: number, seed: string = "base"): 
     const progress = i / (pointCount - 1);
     // Base trend from startVal to endVal
     const baseline = startVal + (endVal - startVal) * progress;
-    // Add deterministic organic fluctuation in the middle points
-    const noise = i === 0 || i === pointCount - 1 
-      ? 0 
-      : (rng(i * 17) - 0.5) * Math.min(20, 8 + Math.abs(change24h) * 0.4);
-    
-    const val = Math.max(8, Math.min(92, baseline + noise));
+    const val = Math.max(8, Math.min(92, baseline));
     points.push(val);
   }
 

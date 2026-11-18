@@ -16,6 +16,7 @@ import Link from "next/link";
 import type { WalletData } from "@/lib/types/wallet";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { fetchUserMorphoPosition } from "@/lib/lending/morpho-blue";
+import { getStockPricesUsd } from "@/lib/stocks/stock-prices";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 import type { UserMorphoPosition } from "@/lib/lending/types";
 
@@ -42,13 +43,17 @@ export default function MorphoScorePositionCard({
         );
 
         const results: UserMorphoPosition[] = [];
-        // Check top markets (NVDA, AAPL, TSLA, COIN)
-        for (const m of stockBorrowMarkets.slice(0, 4)) {
+        const checked = stockBorrowMarkets.slice(0, 4);
+        // Real collateral prices from each stock's Base pool (0 if unknown: USD reads as $0, never a guess).
+        const prices = await getStockPricesUsd(
+          checked.map((m) => m.collateralAsset?.address).filter((a): a is `0x${string}` => Boolean(a))
+        ).catch(() => new Map<string, number>());
+        for (const m of checked) {
           const pos = await fetchUserMorphoPosition(
             m,
             wallet.address as `0x${string}`,
             undefined,
-            m.collateralAsset?.symbol === "NVDAc" ? 138.25 : 232.5
+            prices.get((m.collateralAsset?.address ?? "").toLowerCase()) ?? 0
           );
           if (pos && (pos.collateralAmount > BigInt(0) || pos.borrowedAmount > BigInt(0))) {
             results.push(pos);
@@ -56,27 +61,7 @@ export default function MorphoScorePositionCard({
         }
 
         if (alive) {
-          // If no active loans on-chain yet, provide representative prime preview
-          if (results.length === 0) {
-            results.push({
-              marketId: "0x0000000000000000000000000000000000000000000000000000000000000000",
-              marketName: "Borrow USDC against NVDAc",
-              collateralSymbol: "NVDAc",
-              loanSymbol: "USDC",
-              collateralAmount: BigInt(1500000000), // 15 NVDAc
-              collateralFormatted: "15.0",
-              collateralUsd: 2073.75,
-              borrowedAmount: BigInt(850000000), // 850 USDC
-              borrowedFormatted: "850.00",
-              borrowedUsd: 850.0,
-              healthFactor: 1.87,
-              lltvPct: 77,
-              currentLtvPct: 40.9,
-              availableBorrowUsd: 746.78,
-              oracleStatus: "active",
-              isHealthy: true,
-            });
-          }
+          // Only real positions: a wallet without a Morpho loan sees no card at all.
           setPositions(results);
         }
       } catch {
@@ -109,6 +94,9 @@ export default function MorphoScorePositionCard({
       scoreBoost: "+8 pts to DeFi Analytics Score",
     };
   }, [positions]);
+
+  // Nothing to show until the wallet has a real Morpho stock position.
+  if (loading || positions.length === 0) return null;
 
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-gradient-to-br from-blue-950/20 via-[var(--surface)] to-indigo-950/20 p-5 shadow-[var(--shadow-card)] space-y-4">

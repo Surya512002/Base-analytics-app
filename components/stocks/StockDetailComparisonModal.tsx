@@ -440,8 +440,8 @@ export default function StockDetailComparisonModal({
                 </span>
               </div>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5 truncate">
-                {stock.name} · Underlying NAV:{" "}
-                <strong className="text-[var(--ink)] font-bold">${stock.nav.toFixed(2)}</strong> ·
+                {stock.name} · DEX price:{" "}
+                <strong className="text-[var(--ink)] font-bold">{stock.nav != null ? `$${stock.nav.toFixed(2)}` : "—"}</strong> ·
                 Contract:{" "}
                 <span className="font-mono text-[var(--ink-dim)]">
                   {stock.address.slice(0, 8)}...{stock.address.slice(-6)}
