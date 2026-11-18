@@ -372,3 +372,31 @@ sorted pairs). The app can build them with `@openzeppelin/merkle-tree` or an equ
 4. Try every failure: second claim, claim during the cooldown, copied link/code from another wallet, expired ticket.
 5. Rotate the link, transfer the creator to a new wallet, then close and check the refund.
 6. External review of `BaseDrops.sol` (≈550 lines) before mainnet. Mainnet deploy needs `ALLOW_MAINNET=true`.
+
+## 10. Task engine (Phase 4, built)
+
+Code: `lib/drops/` (types, rules engine, task plugins, ticket signer, service), APIs under `app/api/drops/`.
+
+| Endpoint | Who | What |
+|---|---|---|
+| `GET /api/drops/catalog` | anyone | task types + the app's ticket signer address (put it in a drop's `ticketSigner`) |
+| `GET /api/drops/:id` | anyone | the drop's tasks, without answers |
+| `PUT /api/drops/:id` | SIWE as the onchain creator | save tasks (locked once saved on a committed drop) |
+| `GET /api/drops/:id/progress?wallet=` | SIWE as that wallet | results, eligibility, the wallet's X post code |
+| `POST /api/drops/:id/tasks` | SIWE as that wallet | check one task (`{ wallet, taskId, submission }`) |
+| `POST /api/drops/:id/ticket` | SIWE as that wallet | re-check changeable tasks, then sign a ticket for the wallet's next claim (10 min) |
+
+Task types shipped: `token_balance`, `contract_read`, `token_bought`, `held_since`, `farcaster_account`,
+`farcaster_follow`, `farcaster_reaction`, `farcaster_channel`, `x_post`, `quiz`, `secret_word`.
+
+Rules: required tasks must pass; required tasks sharing a `group` pass when any one does; optional tasks
+add `points`; `minPoints` and reward `tiers` (highest reached wins, capped by the drop's onchain max);
+`repeat` tasks must be redone before every claim (daily tasks); a pass expires after 7 days unless re-checked.
+Balances, holdings and follows are re-checked when the ticket is signed. An outage never counts as a pass.
+
+Env: `NEXT_PUBLIC_DROPS_CONTRACT`, `DROPS_TICKET_SIGNER_KEY`, plus the existing `NEYNAR_API_KEY` (Farcaster)
+and `BASESCAN_API_KEY` (trade history, Etherscan v2 API).
+
+Still to confirm against live APIs before launch (unit tests use recorded response shapes):
+Neynar `user/bulk` `viewer_context.following`, `cast` `viewer_context.liked/recasted`, `channel` `viewer_context.following`;
+X oEmbed returning post text for public posts.
