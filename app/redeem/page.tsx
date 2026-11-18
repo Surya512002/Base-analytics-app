@@ -4,12 +4,14 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Gift, Wallet, ArrowRight } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
-import VoucherGiftCard3D from "@/components/wallet/VoucherGiftCard3D";
+import { useRouter } from "next/navigation";
+import GiftClaimStage from "@/components/voucher/GiftClaimStage";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import { buildRedeemFarcasterUrl } from "@/lib/utils/voucher-share";
 import { parseCurrentUrlClaim, formatClaimLink } from "@/lib/voucher/claim-link-parser";
 
 function RedeemLandingContent() {
+  const router = useRouter();
   const [cardId, setCardId] = useState("");
   const [secret, setSecret] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
@@ -45,12 +47,37 @@ function RedeemLandingContent() {
     ? formatClaimLink(cardId.trim(), secret || undefined, { baseUrl: APP_URL_WEB })
     : `${APP_URL_WEB}/?tab=basehub&view=redeem`;
 
+  const previewAmount = preview
+    ? preview.asset === "USDC"
+      ? `${(Number(preview.amountPerCard) / 1e6).toFixed(2)}`
+      : `${(Number(preview.amountPerCard) / 1e18).toFixed(4)} ETH`
+    : null;
+  const stageBlocked = !cardId.trim()
+    ? "Enter your Card ID below"
+    : previewLoading
+      ? "Looking up your card on Base…"
+      : preview?.redeemed
+        ? "This card was already redeemed"
+        : null;
+
   return (
     <div className="min-h-screen bg-[var(--bg-deep)] text-[var(--ink)] relative overflow-hidden">
       <div className="relative z-10 max-w-lg mx-auto px-4 py-12 sm:py-16">
-        <div className="flex items-center gap-3 mb-10">
+        <Link href="/" className="flex items-center gap-3 mb-6">
           <AppLogo size="md" />
           <span className="font-black text-lg tracking-[0.15em] uppercase">Base Analytics</span>
+        </Link>
+
+        <div className="mb-5">
+          <GiftClaimStage
+            status={stageBlocked ? "unavailable" : "ready"}
+            statusText={stageBlocked ?? undefined}
+            kindLabel="Gift card"
+            amountLabel={previewAmount ?? "your gift"}
+            claimLabel={previewAmount ? `Redeem ${previewAmount}` : "Connect & Redeem"}
+            message={preview?.message}
+            onTap={() => router.push(appRedeemUrl)}
+          />
         </div>
 
         <div className="hero-card rounded-3xl p-6 sm:p-8 space-y-6 card-shimmer tab-content-enter">
@@ -115,9 +142,6 @@ function RedeemLandingContent() {
           <p className="text-center text-[11px] text-[var(--ink-dim)]">
             You&apos;ll need the secret key in the app after connecting.
           </p>
-            </div>
-            <div className="shrink-0 card-tilt-3d animate-float hidden sm:block">
-              <VoucherGiftCard3D asset="USDC" compact showStack animated />
             </div>
           </div>
         </div>

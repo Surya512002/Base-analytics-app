@@ -998,6 +998,7 @@ function ClaimCampaign({
                             ? "Not eligible: nothing will be sent"
                             : undefined)
               }
+              kindLabel="One-link gift"
               amountLabel={view.perClaimFormatted}
               message={view.message}
               sender={view.sender}

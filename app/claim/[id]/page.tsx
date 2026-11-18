@@ -2,8 +2,9 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import GiftBox from "@/components/ui/motion/GiftBox";
+import GiftClaimStage from "@/components/voucher/GiftClaimStage";
 import { EligibilityChecklist, OwnershipTerms, SenderIdentity } from "@/components/voucher/CampaignTrust";
 import AppLogo from "@/components/ui/AppLogo";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
@@ -11,10 +12,12 @@ import type { CampaignPublicView } from "@/lib/voucher/campaign-server";
 
 /**
  * Short claim link: /claim/:id#k=SECRET
- * Shows who sent the gift (before any wallet is connected) and how many slots are left, then
- * hands off to the in-app claim flow. The secret stays in the fragment — it is never sent to our server.
+ * Shows the gift box, who sent it (before any wallet is connected) and how many gifts are left,
+ * then hands off to the in-app claim, where the same box opens once the claim is confirmed.
+ * The secret stays in the fragment, so it is never sent to our server.
  */
 function ClaimLanding({ id }: { id: string }) {
+  const router = useRouter();
   const [secret, setSecret] = useState<string | null>(null);
   const [view, setView] = useState<CampaignPublicView | null>(null);
   const [error, setError] = useState("");
@@ -28,73 +31,68 @@ function ClaimLanding({ id }: { id: string }) {
     fetch(`/api/voucher/campaign/${id}`, { cache: "no-store" })
       .then(async (r) => {
         const d = await r.json();
-        if (!r.ok) throw new Error(d?.error || "Campaign not found");
+        if (!r.ok) throw new Error(d?.error || "Gift not found");
         setView(d);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Campaign not found"));
+      .catch((e) => setError(e instanceof Error ? e.message : "Gift not found"));
   }, [id]);
 
   const href = `/?tab=basehub&view=campaign#camp=${encodeURIComponent(id)}${secret ? `&k=${encodeURIComponent(secret)}` : ""}`;
+  const unavailable =
+    !view || view.status === "full" || view.status === "expired" || view.status === "closed"
+      ? !view
+        ? error || null
+        : view.status === "full"
+          ? "Every gift in this link has been claimed"
+          : view.status === "expired"
+            ? "This gift has expired"
+            : "This gift was returned to the sender"
+      : !secret
+        ? "This link is missing its key: ask the sender for the full link"
+        : null;
 
   return (
     <div className="min-h-screen bg-[var(--bg-deep)] text-[var(--ink)]">
-      <div className="max-w-lg mx-auto px-4 py-12 space-y-6">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto max-w-lg space-y-5 px-4 py-8 sm:py-12">
+        <Link href="/" className="flex items-center gap-3">
           <AppLogo size="md" />
-          <span className="font-black text-lg tracking-[0.15em] uppercase">Base Analytics</span>
-        </div>
+          <span className="text-lg font-black uppercase tracking-[0.15em]">Base Analytics</span>
+        </Link>
 
-        <div className="hero-card rounded-3xl p-6 space-y-4">
-          <div className="flex flex-col items-center gap-1 pt-2 text-center">
-            {/* Opens once the gift has loaded, revealing the real amount */}
-            <GiftBox
-              key={view ? "loaded" : "loading"}
-              size={200}
-              autoOpen={Boolean(view)}
-              cardLabel="GIFT"
-              cardValue={view ? view.perClaimFormatted : "On Base"}
-            />
-            <h1 className="text-2xl font-black">
-              You&apos;ve been sent <span className="shiny-text">a gift</span>
-            </h1>
+        <h1 className="text-center text-2xl font-black sm:text-3xl">
+          You&apos;ve been sent <span className="shiny-text">a gift</span>
+        </h1>
+
+        <GiftClaimStage
+          status={!view && !error ? "loading" : unavailable ? "unavailable" : "ready"}
+          statusText={unavailable ?? undefined}
+          kindLabel="One-link gift"
+          amountLabel={view?.perClaimFormatted ?? "a gift"}
+          claimLabel={view ? `Claim ${view.perClaimFormatted}` : undefined}
+          message={view?.message}
+          sender={view?.sender}
+          left={view?.claimsRemaining}
+          total={view?.maxClaims}
+          unlockAt={view?.status === "locked" ? view.unlockAt : undefined}
+          expiresAt={view?.expiresAt || undefined}
+          onTap={() => router.push(href)}
+        />
+
+        {view && (
+          <div className="hero-card space-y-4 rounded-3xl p-5">
+            <SenderIdentity sender={view.sender} />
+            <OwnershipTerms view={view} />
+            <EligibilityChecklist campaignId={view.campaignId} wallet={undefined} />
           </div>
+        )}
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {!view && !error && <p className="text-sm text-[var(--ink-dim)] animate-pulse">Reading campaign from Base…</p>}
-
-          {view && (
-            <>
-              <SenderIdentity sender={view.sender} />
-              <p className="text-3xl font-black">{view.perClaimFormatted}</p>
-              {view.message && <p className="italic text-sm text-[var(--ink-muted)]">&ldquo;{view.message}&rdquo;</p>}
-              <p className="text-sm text-[var(--ink-muted)]">
-                {view.claimsRemaining} of {view.maxClaims} claims left · {view.status}
-              </p>
-              <OwnershipTerms view={view} />
-              <EligibilityChecklist campaignId={view.campaignId} wallet={undefined} />
-              {view.status === "open" ? (
-                <Link
-                  href={href}
-                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black btn-primary text-white"
-                >
-                  Connect wallet &amp; claim <ArrowRight size={16} />
-                </Link>
-              ) : (
-                <p className="w-full py-4 rounded-2xl text-center font-black border border-[var(--border-subtle)] text-[var(--ink-muted)]">
-                  {view.status === "full"
-                    ? "All claims have been taken"
-                    : view.status === "locked"
-                      ? `Opens ${new Date(view.unlockAt * 1000).toLocaleString()} — check back then`
-                      : `This campaign is ${view.status}`}
-                </p>
-              )}
-              {!secret && view.status === "open" && (
-                <p className="text-xs text-amber-500">
-                  This link has no secret key — you&apos;ll need the full link from the sender to claim.
-                </p>
-              )}
-            </>
-          )}
+        <div className="space-y-2 text-center">
+          <p className="text-[11px] text-[var(--ink-dim)]">
+            You&apos;ll connect your wallet next. The claim is one transaction on Base.
+          </p>
+          <Link href="/?tab=basehub" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]">
+            Send your own gift <ArrowRight size={12} />
+          </Link>
         </div>
       </div>
     </div>

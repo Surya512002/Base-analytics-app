@@ -261,6 +261,7 @@ function PersonalClaim({
       <GiftClaimStage
         status={success ? "opened" : claiming ? "claiming" : canClaim ? "ready" : "unavailable"}
         statusText={claiming ? "Confirm in your wallet…" : reason}
+        kindLabel="Gift card"
         amountLabel={amountLabel}
         message={preview.message}
         sender={sender}
