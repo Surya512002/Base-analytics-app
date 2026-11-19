@@ -22,7 +22,7 @@ export interface TaskDraft {
   fields: Record<string, string>;
 }
 
-const TYPE_HELP: Record<string, string> = {
+export const TYPE_HELP: Record<string, string> = {
   token_balance: "Wallet holds at least an amount of a token, NFT or stock.",
   token_bought: "Wallet bought a token on a DEX (net of sells) since the drop started.",
   held_since: "Wallet held a token for some days without selling or sending it.",
@@ -64,7 +64,7 @@ function F({ d, k, label, hint, placeholder, onChange }: { d: TaskDraft; k: stri
   );
 }
 
-function TypeFields({ d, onChange, bots }: { d: TaskDraft; onChange: (d: TaskDraft) => void; bots?: AccountsInfo["bots"] | null }) {
+export function TypeFields({ d, onChange, bots }: { d: TaskDraft; onChange: (d: TaskDraft) => void; bots?: AccountsInfo["bots"] | null }) {
   const p = { d, onChange };
   switch (d.type) {
     case "token_balance":
