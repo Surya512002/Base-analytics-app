@@ -6,6 +6,7 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import { parseDropLink, type ParsedDropLink } from "@/lib/drops/client";
 import { IS_DROPS_TESTNET } from "@/lib/drops/network";
 import DropCreate from "./DropCreate";
+import LinkedAccounts, { restoreAfterLinking } from "./LinkedAccounts";
 import DropClaim from "./DropClaim";
 import MyDrops from "./MyDrops";
 import { Card, Notice, btnPrimary, btnSecondary } from "./ui";
@@ -32,6 +33,8 @@ export default function DropsTab({
 
   useEffect(() => {
     const read = () => {
+      // Back from X / Discord / Telegram: restore the drop link fragment kept in this tab.
+      restoreAfterLinking();
       const parsed = parseDropLink(window.location.pathname, window.location.hash);
       setLink(parsed.id ? { ...parsed, id: parsed.id } : null);
     };
@@ -93,6 +96,7 @@ export default function DropsTab({
       ) : (
         <MyDrops address={address} connType={connType} />
       )}
+      {!guestMode && address && <LinkedAccounts address={address} connType={connType} />}
     </div>
   );
 }

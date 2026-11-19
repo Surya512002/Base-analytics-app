@@ -10,6 +10,7 @@
 import { keccak256, encodePacked } from "viem";
 import { z } from "zod";
 import type { TaskContext, TaskType } from "../types";
+import { getLinked } from "@/lib/accounts/store";
 
 const handle = z.string().regex(/^@?[A-Za-z0-9_]{1,15}$/).transform((h) => h.replace(/^@/, "").toLowerCase());
 
@@ -79,6 +80,12 @@ export const xPostTask: TaskType<z.infer<typeof xPostConfig>> = {
     }
     if (config.mustInclude && !lower.includes(config.mustInclude.toLowerCase())) {
       return { status: "failed", message: `Your post must include "${config.mustInclude}".` };
+    }
+
+    // If this wallet linked X (OAuth), the post must come from that exact account.
+    const linked = await getLinked(ctx.kv, "x", ctx.claimer);
+    if (linked && linked.username.toLowerCase() !== author) {
+      return { status: "failed", message: `Post from your linked X account @${linked.username}.` };
     }
 
     // One X account ↔ one wallet per drop.

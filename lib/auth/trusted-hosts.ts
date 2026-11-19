@@ -12,10 +12,9 @@
  */
 import { getAppUrl } from "@/lib/constants/app-url";
 
-export const PRODUCTION_HOSTS = ["baseanalytics.app", "www.baseanalytics.app", "base-analytics-app.vercel.app"] as const;
+import { PREVIEW_HOST, PRODUCTION_HOSTS } from "@/lib/auth/host-list";
 
-/** This project's Vercel preview URLs: base-analytics-app-<hash|git-branch>-surya512002s-projects.vercel.app */
-const PREVIEW_HOST = /^base-analytics-app-[a-z0-9-]+-surya512002s-projects\.vercel\.app$/;
+export { PRODUCTION_HOSTS };
 
 export function normalizeHost(host: string | null | undefined): string | null {
   if (!host) return null;

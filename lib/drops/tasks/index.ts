@@ -10,6 +10,7 @@ import { xPostTask } from "./social-proof";
 import { quizTask, secretWordTask } from "./answers";
 import { basenameTask, walletAgeTask } from "./identity";
 import { liveCodeTask, referralsTask, reviewTask, webhookTask } from "./community";
+import { discordMemberTask, telegramMemberTask, xAccountTask } from "./accounts";
 
 const ALL = [
   tokenBalanceTask,
@@ -29,6 +30,9 @@ const ALL = [
   liveCodeTask,
   webhookTask,
   reviewTask,
+  xAccountTask,
+  discordMemberTask,
+  telegramMemberTask,
 ] as TaskType<unknown>[];
 
 export const TASK_TYPES: ReadonlyMap<string, TaskType<unknown>> = new Map(ALL.map((t) => [t.type, t]));
