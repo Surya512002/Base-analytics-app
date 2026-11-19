@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Circle, ExternalLink, Gift, Loader2, RefreshCcw, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Copy, ExternalLink, Gift, Hourglass, ListChecks, Loader2, RefreshCcw, Trophy, XCircle } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import ClickSpark from "@/components/ui/motion/ClickSpark";
+import ClaimHero, { ClaimedBurst } from "./ClaimHero";
+import { TaskIcon } from "./task-meta";
 import { encodeContractCall } from "@/lib/utils/tx";
 import { DROPS_EXPLORER } from "@/lib/drops/network";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
@@ -51,6 +55,8 @@ export default function DropClaim({
   const [raffle, setRaffle] = useState<RaffleView | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const now = useNow();
+  const reduce = useReducedMotion();
+  const [claimTx, setClaimTx] = useState("");
   // Invite links carry ?ref=<wallet>; it is only emitted onchain (for referral counts).
   const [referrer] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -205,6 +211,7 @@ export default function DropClaim({
       const call = encodeContractCall(DROPS_CONTRACT, BASE_DROPS_ABI, "claim", [id, args]);
       const hash = await sendAppTransactions(connType ?? "injected", address, [call], { targetChainId: DROPS_CHAIN_ID });
       setBusy("Waiting for confirmation…");
+      if (/^0x[0-9a-fA-F]{64}$/.test(String(hash))) setClaimTx(`${DROPS_EXPLORER}/tx/${hash}`);
       try {
         const { dropsClient } = await import("./drops-api");
         await dropsClient().waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120_000 });
@@ -229,6 +236,8 @@ export default function DropClaim({
       p === "x" ? t.type === "x_account" || t.type === "x_post" : p === "discord" ? t.type === "discord_member" : t.type === "telegram_member"
     )
   );
+  const taskTotal = def?.tasks.length ?? 0;
+  const taskDone = def ? def.tasks.filter((t) => progress?.results[t.id]?.status === "passed").length : 0;
   const raffleBlocks = Boolean(def?.raffle) && !raffle?.result?.won;
   const canClaim = dropState === "live" && Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible) && !raffleBlocks;
   const inviteLink =
@@ -253,41 +262,39 @@ export default function DropClaim({
 
   return (
     <div className="space-y-4">
-      <Card>
-        <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-text)]">
-            <Gift size={22} />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="text-xs font-bold text-[var(--ink-muted)]">
-              Drop #{link.id} from {drop.senderLabel ? `${drop.senderLabel} · ` : ""}
-              <a className="underline" href={`${DROPS_EXPLORER}/address/${drop.creator}`} target="_blank" rel="noopener noreferrer">
-                {drop.creator.slice(0, 6)}…{drop.creator.slice(-4)}
-              </a>
-            </p>
-            <h2 className="text-xl font-black text-[var(--ink)]">{fmt(drop.amountPerClaim)} per claim</h2>
-            {drop.message && <p className="text-sm text-[var(--ink-soft)]">“{drop.message}”</p>}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {dropState === "closed" ? (
-            <Pill tone="bad">Closed</Pill>
-          ) : dropState === "paused" ? (
-            <Pill tone="warn">Paused</Pill>
-          ) : (
-            left !== null && <Pill tone={left > 0 ? "ok" : "bad"}>{left} left</Pill>
-          )}
-          <Pill>{fmt(drop.budget)} in escrow</Pill>
-          {drop.maxClaimsPerWallet > 0 && <Pill>{drop.maxClaimsPerWallet} per wallet</Pill>}
-          {drop.cooldown > 0 && <Pill>every {Math.round(drop.cooldown / 3600)}h</Pill>}
-          {drop.maxClaimsPerPeriod > 0 && <Pill>{drop.maxClaimsPerPeriod}/day</Pill>}
-          {drop.committed && <Pill tone="brand">Locked until it ends</Pill>}
-          <Pill>{drop.expiresAt > now ? `ends in ${untilText(drop.expiresAt, now)}` : "ended"}</Pill>
-          {needsCode && <Pill tone="brand">Gift card</Pill>}
-          {isSet(drop.gate) && <Pill tone="brand">Holders only</Pill>}
-          {isSet(drop.allowlistRoot) && <Pill tone="brand">List only</Pill>}
-        </div>
-      </Card>
+      <ClaimHero
+        id={link.id}
+        amount={def?.rewards?.mode === "random" ? `Up to ${fmt(drop.maxAmountPerClaim > BigInt(0) ? drop.maxAmountPerClaim : drop.amountPerClaim)}` : fmt(drop.amountPerClaim)}
+        message={drop.message}
+        senderLabel={drop.senderLabel}
+        creator={drop.creator}
+        state={dropState}
+        claimed={drop.claimedCount}
+        total={drop.maxClaimsTotal || null}
+        escrow={fmt(drop.budget)}
+        expiresAt={drop.expiresAt}
+        unlockAt={drop.unlockAt}
+        now={now}
+        rules={{
+          perWallet: drop.maxClaimsPerWallet,
+          cooldownH: Math.round(drop.cooldown / 3600),
+          perDay: drop.maxClaimsPerPeriod,
+          locked: drop.committed,
+          codes: needsCode,
+          holders: isSet(drop.gate),
+          list: isSet(drop.allowlistRoot),
+        }}
+      />
+
+      {usesTasks && def && dropState === "live" && (
+        <ClaimSteps
+          steps={[
+            { label: `Finish tasks${taskTotal ? ` (${taskDone}/${taskTotal})` : ""}`, done: Boolean(ev?.eligible) },
+            ...(def.raffle ? [{ label: "Win the raffle", done: Boolean(raffle?.result?.won) }] : []),
+            { label: "Claim", done: Boolean(claimed) },
+          ]}
+        />
+      )}
 
       {usesTasks && def && accountProviders.length > 0 && (
         <LinkedAccounts address={address} connType={connType} providers={accountProviders} title="Link your accounts for these tasks" />
@@ -296,13 +303,23 @@ export default function DropClaim({
       {usesTasks && def && (
         <Card>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-black text-[var(--ink)]">Tasks</h3>
+            <h3 className="flex items-center gap-2 text-base font-black text-[var(--ink)]">
+              <ListChecks size={18} className="text-[var(--brand-text)]" /> Tasks
+            </h3>
             {ev && (
               <Pill tone={ev.eligible ? "ok" : "warn"}>
-                {ev.eligible ? "All done" : "Not done yet"}
+                {ev.eligible ? "All done" : `${taskDone}/${taskTotal} done`}
                 {ev.points ? ` · ${ev.points} pts` : ""}
               </Pill>
             )}
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]" aria-hidden>
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-[var(--brand)] to-emerald-400"
+              initial={false}
+              animate={{ width: `${taskTotal ? Math.round((taskDone / taskTotal) * 100) : 0}%` }}
+              transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 20 }}
+            />
           </div>
           {needsSignIn && (
             <div className="space-y-2">
@@ -320,7 +337,7 @@ export default function DropClaim({
                 r?.status === "passed" ? (
                   <CheckCircle2 size={18} className="text-emerald-500" />
                 ) : r?.status === "pending" ? (
-                  <Loader2 size={18} className="text-amber-500" />
+                  <Hourglass size={18} className="text-amber-500" />
                 ) : r?.status === "failed" ? (
                   <XCircle size={18} className="text-red-500" />
                 ) : (
@@ -328,9 +345,14 @@ export default function DropClaim({
                 );
               const code = progress?.extras[t.id]?.code;
               return (
-                <li key={t.id} className="rounded-2xl border border-[var(--border-subtle)] p-3 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5">{icon}</span>
+                <li
+                  key={t.id}
+                  className={`space-y-2.5 rounded-2xl border p-3.5 transition-colors ${
+                    r?.status === "passed" ? "border-emerald-500/30 bg-emerald-500/5" : "border-[var(--border-subtle)] bg-[var(--surface)]"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <TaskIcon type={t.type} size={16} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-[var(--ink)]">{t.title}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -341,6 +363,7 @@ export default function DropClaim({
                       </div>
                       {r?.message && <p className="text-xs text-[var(--ink-muted)] mt-1">{r.message}</p>}
                     </div>
+                    <span className="mt-0.5 shrink-0">{icon}</span>
                   </div>
 
                   {t.type === "x_post" && code && (
@@ -421,13 +444,13 @@ export default function DropClaim({
                           })
                         }
                       >
-                        {copiedInvite ? "Copied" : "Copy invite"}
+                        <Copy size={14} /> {copiedInvite ? "Copied" : "Copy invite"}
                       </button>
                     </div>
                   )}
 
                   {r?.status !== "passed" && (
-                    <button type="button" className={btnSecondary} disabled={checking === t.id || !address} onClick={() => void check(t)}>
+                    <button type="button" className={`${r?.status === "failed" ? btnSecondary : btnPrimary} w-full sm:w-auto`} disabled={checking === t.id || !address} onClick={() => void check(t)}>
                       {checking === t.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
                       {t.needsSubmission ? "Submit" : "Check"}
                     </button>
@@ -442,7 +465,9 @@ export default function DropClaim({
       {def?.raffle && (
         <Card>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-black text-[var(--ink)]">Raffle</h3>
+            <h3 className="flex items-center gap-2 text-base font-black text-[var(--ink)]">
+              <Trophy size={18} className="text-amber-500" /> Raffle
+            </h3>
             <Pill tone="brand">
               {def.raffle.winners} winner{def.raffle.winners === 1 ? "" : "s"}
             </Pill>
@@ -489,7 +514,7 @@ export default function DropClaim({
           </Notice>
         )}
         {claimed ? (
-          <Notice tone="ok">You claimed {claimed}. It&apos;s in your wallet.</Notice>
+          <ClaimedBurst amount={claimed} explorerTx={claimTx || undefined} />
         ) : (
           <>
             {dropState !== "live" && <Notice tone={dropState === "paused" || dropState === "soon" ? "warn" : "info"}>{stateNotice[dropState]}</Notice>}
@@ -504,11 +529,24 @@ export default function DropClaim({
             {address && status && status.claims > 0 && !blocker && <Notice>You&apos;ve claimed {status.claims} time{status.claims === 1 ? "" : "s"}.</Notice>}
             {error && <Notice tone="error">{error}</Notice>}
             {dropState !== "live" && dropState !== "paused" && dropState !== "soon" ? null : address ? (
-              <button type="button" className={`${btnPrimary} w-full`} disabled={!canClaim || Boolean(busy)} onClick={() => void claim()}>
-                {busy || (def?.rewards?.mode === "random" ? "Claim your lucky amount" : `Claim ${fmt(ev && ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim)}`)}
-              </button>
+              <>
+                <ClickSpark>
+                  <button type="button" className={`${btnPrimary} min-h-[56px] w-full text-base shadow-lg shadow-[var(--brand)]/25`} disabled={!canClaim || Boolean(busy)} onClick={() => void claim()}>
+                    {busy ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> {busy}
+                      </>
+                    ) : (
+                      <>
+                        <Gift size={18} /> {def?.rewards?.mode === "random" ? "Claim your lucky amount" : `Claim ${fmt(ev && ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim)}`}
+                      </>
+                    )}
+                  </button>
+                </ClickSpark>
+                {!busy && usesTasks && !ev?.eligible && <p className="text-center text-xs text-[var(--ink-muted)]">Finish the tasks above to unlock the claim.</p>}
+              </>
             ) : (
-              <button type="button" className={`${btnPrimary} w-full`} onClick={onRequestConnect}>
+              <button type="button" className={`${btnPrimary} min-h-[56px] w-full text-base`} onClick={onRequestConnect}>
                 Connect wallet to claim
               </button>
             )}
@@ -519,5 +557,37 @@ export default function DropClaim({
         )}
       </Card>
     </div>
+  );
+}
+
+/** "Finish tasks → Win the raffle → Claim" so claimers see the path. */
+function ClaimSteps({ steps }: { steps: Array<{ label: string; done: boolean }> }) {
+  const current = steps.findIndex((st) => !st.done);
+  return (
+    <ol className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2 no-scrollbar" aria-label="How to claim">
+      {steps.map((st, i) => {
+        const active = i === current;
+        return (
+          <li key={st.label} className="flex min-w-0 shrink-0 items-center gap-1 sm:flex-1">
+            <span
+              className={`flex min-h-[36px] w-full items-center gap-2 rounded-xl px-2.5 text-xs font-bold ${
+                st.done ? "text-emerald-600 dark:text-emerald-400" : active ? "bg-[var(--brand-soft)] text-[var(--ink)]" : "text-[var(--ink-muted)]"
+              }`}
+              aria-current={active ? "step" : undefined}
+            >
+              <span
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
+                  st.done ? "bg-emerald-500 text-white" : active ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)]"
+                }`}
+              >
+                {st.done ? "✓" : i + 1}
+              </span>
+              <span className="whitespace-nowrap">{st.label}</span>
+            </span>
+            {i < steps.length - 1 && <span aria-hidden className="h-px w-3 shrink-0 bg-[var(--border-subtle)]" />}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

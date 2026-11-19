@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { Check, Minus, Plus } from "lucide-react";
+import ActivePill from "@/components/ui/motion/ActivePill";
 
 /** Small shared building blocks for the Drops screens (same tokens as the rest of the app). */
 
@@ -99,4 +101,171 @@ export function useNow(everyMs = 30_000): number {
     return () => clearInterval(t);
   }, [everyMs]);
   return now;
+}
+
+/** Segmented single choice with a sliding pill (same feel as the voucher timing picker). */
+export function Segmented<T extends string | number>({
+  id,
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  options: ReadonlyArray<{ value: T; label: string }>;
+  value: T | null;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="grid gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((o) => {
+        const selected = value === o.value;
+        return (
+          <button
+            key={String(o.value)}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(o.value)}
+            className={`relative isolate min-h-[40px] rounded-lg px-1 text-xs font-bold transition-colors ${
+              selected ? "text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            {selected && <ActivePill layoutId={`drops-seg-${id}`} className="bg-[var(--brand)] shadow-sm" />}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * A selectable card with an icon. When `selected`, its `children` (the settings that belong to
+ * this choice) open right underneath, so picking something always shows what to fill in next.
+ */
+export function OptionCard({
+  icon,
+  title,
+  note,
+  selected,
+  onSelect,
+  badge,
+  children,
+  multi,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  note?: string;
+  selected: boolean;
+  onSelect: () => void;
+  badge?: React.ReactNode;
+  children?: React.ReactNode;
+  /** Shows a checkbox instead of a radio dot. */
+  multi?: boolean;
+}) {
+  return (
+    <div
+      className={`overflow-hidden rounded-2xl border transition-colors ${
+        selected ? "border-[var(--brand)] bg-[var(--brand-soft)]/40 shadow-sm" : "border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:border-[var(--brand)]/40"
+      }`}
+    >
+      <button
+        type="button"
+        role={multi ? "checkbox" : "radio"}
+        aria-checked={selected}
+        onClick={onSelect}
+        className="flex w-full min-h-[56px] cursor-pointer items-center gap-3 p-3.5 text-left"
+      >
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+            selected ? "bg-[var(--brand)] text-white" : "bg-[var(--surface)] text-[var(--brand-text)] shadow-sm"
+          }`}
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-1.5 text-sm font-black text-[var(--ink)]">
+            {title} {badge}
+          </span>
+          {note && <span className="mt-0.5 block text-xs text-[var(--ink-muted)]">{note}</span>}
+        </span>
+        <span
+          aria-hidden
+          className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${multi ? "rounded-md" : "rounded-full"} ${
+            selected ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-[var(--border-strong,var(--border-subtle))]"
+          }`}
+        >
+          {selected && <Check size={12} strokeWidth={3.5} />}
+        </span>
+      </button>
+      {selected && children && <div className="space-y-3 border-t border-[var(--border-subtle)] p-3.5">{children}</div>}
+    </div>
+  );
+}
+
+/** A small titled block inside a step. */
+export function Section({ title, hint, children, aside }: { title: string; hint?: string; children: React.ReactNode; aside?: React.ReactNode }) {
+  return (
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-black text-[var(--ink)]">{title}</p>
+          {hint && <p className="text-xs text-[var(--ink-muted)]">{hint}</p>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** −/+ number stepper with a typed value. */
+export function Stepper({ value, onChange, min = 0, max = 100_000, label }: { value: number; onChange: (v: number) => void; min?: number; max?: number; label: string }) {
+  const clamp = (v: number) => Math.max(min, Math.min(max, v));
+  return (
+    <div className="flex items-center gap-1.5">
+      <button type="button" aria-label={`Fewer ${label}`} className={`${btnSecondary} w-11 px-0`} onClick={() => onChange(clamp(value - 1))} disabled={value <= min}>
+        <Minus size={16} />
+      </button>
+      <input
+        aria-label={label}
+        className="min-h-[44px] w-24 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 text-center text-base font-black text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
+        inputMode="numeric"
+        value={String(value)}
+        onChange={(e) => onChange(clamp(Number(e.target.value.replace(/\D/g, "")) || 0))}
+      />
+      <button type="button" aria-label={`More ${label}`} className={`${btnSecondary} w-11 px-0`} onClick={() => onChange(clamp(value + 1))} disabled={value >= max}>
+        <Plus size={16} />
+      </button>
+    </div>
+  );
+}
+
+/** Quick-pick chips ("0.001", "10", "Once a day"…). */
+export function Chips<T extends string | number>({ options, value, onPick }: { options: ReadonlyArray<{ value: T; label: string }>; value: T | null; onPick: (v: T) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={String(o.value)}
+          type="button"
+          onClick={() => onPick(o.value)}
+          className={`min-h-[34px] rounded-full border px-3 text-xs font-bold transition ${
+            value === o.value
+              ? "border-[var(--brand)] bg-[var(--brand)] text-white"
+              : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:border-[var(--brand)]/40 hover:text-[var(--ink)]"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
 }
