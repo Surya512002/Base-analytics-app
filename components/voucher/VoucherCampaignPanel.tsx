@@ -48,10 +48,12 @@ import {
 import type { CampaignPublicView, EligibilityResult } from "@/lib/voucher/campaign-server";
 import { EligibilityChecklist, OwnershipTerms, SenderIdentity } from "@/components/voucher/CampaignTrust";
 import type { WalletAppState } from "@/hooks/useWalletApp";
+import { syncVaultInBackground } from "@/lib/voucher/vault-client";
 
 // ───────────────────────────── local link vault ─────────────────────────────
-// The secret is NOT stored on any server. The creator's browser keeps a copy so they can
-// re-copy the link; losing it (and the link) means unclaimed funds can only be refunded via Cancel.
+// The secret is NOT stored on any server in readable form. The creator's browser keeps a copy so
+// they can re-copy the link, and the private vault (end-to-end encrypted, recovery phrase) backs it
+// up when the creator turns it on. Losing every copy means unclaimed funds can only be refunded via Cancel.
 
 interface SavedCampaign {
   id: string;
@@ -77,6 +79,8 @@ function saveCampaign(addr: string, entry: SavedCampaign) {
   try {
     const next = [entry, ...loadSaved(addr).filter((e) => e.id !== entry.id)].slice(0, 50);
     localStorage.setItem(vaultKey(addr), JSON.stringify(next));
+    // Back the link up to the private vault when it is unlocked on this device.
+    syncVaultInBackground(addr);
   } catch {
     /* private mode — link is still shown on screen */
   }

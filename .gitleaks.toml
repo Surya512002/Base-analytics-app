@@ -17,6 +17,8 @@ commits = [
   "ce2563a58f5b0e3da502db974c95172d1661b9fd",
   "21577cb6d5e96fdd7e49cc84afd20739e90fbea0",
   "f634f1216eb474eb069ebcd522d7efb4842c0cb8",
+  # .env.example: empty VOUCHER_SECRETS_KEY= matched the next line's variable name (no secret)
+  "7bfa53b60a768edfb9f5f2c93a9c2feee5364c23",
 ]
 regexes = [
   '''0x[0-9a-fA-F]{64}''',

@@ -8,6 +8,7 @@ import { readOnchainBatches } from "@/lib/voucher/batch-read";
 import { verifyBatchCredentials } from "@/lib/voucher/verify-credentials";
 import { requireSiweSession } from "@/lib/auth/siwe-session";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
+import { readVault } from "@/lib/voucher/vault-store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,6 +38,11 @@ export async function GET(req: Request) {
         },
         { status: 401 }
       );
+    }
+
+    // A creator with a private vault keeps secrets only there (end-to-end encrypted).
+    if (await readVault(creator)) {
+      return NextResponse.json({ creator, batches: [], authenticated: true, privateVault: true });
     }
 
     const stored = await readCreatorCredentials(creator);
@@ -96,6 +102,13 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { success: false, error: session.error, requiresAuth: true },
         { status: session.status }
+      );
+    }
+
+    if (await readVault(creator)) {
+      return NextResponse.json(
+        { success: false, privateVault: true, error: "Private vault is on: unlock it on this device to back up these links." },
+        { status: 409 }
       );
     }
 
