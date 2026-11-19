@@ -400,3 +400,25 @@ and `BASESCAN_API_KEY` (trade history, Etherscan v2 API).
 Still to confirm against live APIs before launch (unit tests use recorded response shapes):
 Neynar `user/bulk` `viewer_context.following`, `cast` `viewer_context.liked/recasted`, `channel` `viewer_context.following`;
 X oEmbed returning post text for public posts.
+
+## 11. Drops section (Phase 5, built)
+
+Route `/drops` (tab `drops` in the app shell, in the header and the phone menu) and `/drops/:id#…` for claims.
+Code: `components/drops/` (DropsTab, DropCreate, TaskBuilder, DropClaim, MyDrops), browser helpers in `lib/drops/client.ts`
+and `lib/drops/merkle.ts`, allowlist proofs at `/api/drops/:id/allowlist`.
+
+- **Create:** pick a preset (gift a friend, group gift, gift cards, daily faucet, community quest, daily quest,
+  holder airdrop), then reward → rules (who / how often / when / safety) → tasks → review. One wallet batch
+  approves exactly the budget and creates the drop. Links, codes and task rules are saved afterwards. Rules that fail
+  to save are kept and retried from My drops ("Save rules").
+- **Links:** `/drops/:id#k=<link key>` and gift cards `/drops/:id#c=<code key>&p=<proof>`. Keys stay in the URL
+  fragment, which browsers never send to a server. Link and code keys are kept in this browser and backed up to the
+  private vault when it's on.
+- **Claim:** sender + amount + rules, a task checklist (check / submit X post / quiz / secret word), wallet sign-in only
+  when tasks need it, then one claim tx. Cooldowns and caps are explained before the wallet opens.
+- **My drops:** status, copy links, pause/resume, +7 days, top up, new link (rotate key), backup wallet, move to another
+  wallet, close & refund; plus "Receive a drop" (accept a transfer / take over as backup wallet).
+- **Cross-language check:** `test/BaseDropsAppFixture.t.sol` replays a link signature, a code proof + signature and an
+  allowlist proof produced by the TypeScript against the real contract, and `lib/drops/client.test.ts` pins the same values.
+
+Env: `NEXT_PUBLIC_DROPS_TOKEN_GATE`, `NEXT_PUBLIC_DROPS_DEPLOY_BLOCK` (optional; without it My drops lists drops made in this browser).

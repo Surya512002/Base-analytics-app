@@ -6,10 +6,12 @@ export type AppTab =
   | "swap"
   | "lend"
   | "basehub"
+  | "drops"
   | "profile";
 
 export function resolveInitialTab(): AppTab {
   if (typeof window !== "undefined") {
+    if (window.location.pathname.startsWith("/drops")) return "drops";
     if (window.location.pathname.startsWith("/swap")) return "swap";
     if (window.location.pathname.startsWith("/lend") || window.location.pathname.startsWith("/earn")) return "lend";
     if (window.location.pathname.startsWith("/explore")) return "launchpad";

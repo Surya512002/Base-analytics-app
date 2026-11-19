@@ -3,6 +3,7 @@ import {
   Coins,
   Gift,
   Rocket,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -41,5 +42,11 @@ export const APP_NAV: AppNavItem[] = [
     label: "Vouchers",
     icon: Gift,
     hint: "Crypto gift cards",
+  },
+  {
+    id: "drops",
+    label: "Drops",
+    icon: Sparkles,
+    hint: "Gifts with rules and tasks",
   },
 ];

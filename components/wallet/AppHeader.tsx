@@ -44,6 +44,7 @@ const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
   { tab: "swap", label: "Swap", guestOk: true },
   { tab: "lend", label: "Lend & Stake", guestOk: true },
   { tab: "basehub", label: "Vouchers", guestOk: true },
+  { tab: "drops", label: "Drops", guestOk: true },
 ];
 
 function navActive(itemTab: AppTab, active: AppTab): boolean {

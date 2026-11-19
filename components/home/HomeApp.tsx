@@ -32,6 +32,10 @@ const BaseVoucherTab = dynamic(
   () => import("@/components/wallet/tabs/BaseVoucherTab"),
   { loading: () => <TabSkeleton /> }
 );
+const DropsTab = dynamic(
+  () => import("@/components/drops/DropsTab"),
+  { loading: () => <TabSkeleton /> }
+);
 const LendingHub = dynamic(
   () => import("@/components/lending/LendingHub"),
   { loading: () => <TabSkeleton /> }
@@ -113,7 +117,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
       next: AppTab,
       opts?: { token?: string | null; buy?: string | null; sell?: string | null; amount?: string | number | null }
     ) => {
-      if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
+      if (guest && next !== "launchpad" && next !== "swap" && next !== "lend" && next !== "drops") {
         openConnect();
         return;
       }
@@ -229,6 +233,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
             />
           )}
           {!guest && activeTab === "basehub" && <BaseVoucherTab app={app} />}
+          {activeTab === "drops" && <DropsTab app={app} guestMode={guest} onRequestConnect={openConnect} />}
         </div>
 
         <AppFooterNav />
