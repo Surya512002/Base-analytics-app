@@ -4,11 +4,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { CheckCircle2, ChevronLeft, ChevronRight, Copy, Download } from "lucide-react";
-import { ERC20_ABI, USDC_BASE } from "@/lib/constants/contracts";
+import { ERC20_ABI } from "@/lib/constants/contracts";
+import { DROPS_USDC } from "@/lib/drops/network";
 import { encodeContractCall, type ContractCall } from "@/lib/utils/tx";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { BASE_DROPS_ABI } from "@/lib/drops/abi";
 import {
+  DROPS_CHAIN_ID,
   DROPS_CONTRACT,
   PRESETS,
   ZERO_ADDRESS,
@@ -88,7 +90,7 @@ export default function DropCreate({
   useEffect(() => {
     let alive = true;
     if (asset === "ETH") set({ token: ZERO_ADDRESS, symbol: "ETH", decimals: 18 });
-    else if (asset === "USDC") set({ token: USDC_BASE as `0x${string}`, symbol: "USDC", decimals: 6 });
+    else if (asset === "USDC") set({ token: DROPS_USDC, symbol: "USDC", decimals: 6 });
     else if (/^0x[0-9a-fA-F]{40}$/.test(customToken.trim())) {
       void tokenMeta(customToken.trim()).then((m) => alive && set({ token: customToken.trim() as `0x${string}`, ...m }));
     }
@@ -159,7 +161,7 @@ export default function DropCreate({
       const fromBlock = await pub.getBlockNumber();
 
       setBusy("Confirm in your wallet…");
-      const hash = await sendAppTransactions(connType ?? "injected", address, calls);
+      const hash = await sendAppTransactions(connType ?? "injected", address, calls, { targetChainId: DROPS_CHAIN_ID });
 
       setBusy("Waiting for confirmation…");
       let id: bigint | null = null;

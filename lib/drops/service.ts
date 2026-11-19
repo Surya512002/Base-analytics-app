@@ -3,6 +3,7 @@
  * API routes are thin wrappers around these functions.
  */
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { IS_DROPS_TESTNET, createDropsPublicClient } from "./network";
 import { dropsKv } from "./kv";
 import { currentResults, evaluate, type Evaluation } from "./engine";
 import { getTaskType } from "./tasks";
@@ -52,7 +53,7 @@ export function defaultDeps(): DropDeps {
   if (!contract) throw new DropError("Drops aren't live on this deployment yet.", 503);
   return {
     contract,
-    client: createBasePublicClient() as unknown as DropDeps["client"],
+    client: (IS_DROPS_TESTNET ? createDropsPublicClient() : createBasePublicClient()) as unknown as DropDeps["client"],
     kv: dropsKv,
     fetch: (...args) => fetch(...args),
     env: {

@@ -3,9 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Circle, ExternalLink, Gift, Loader2, RefreshCcw, XCircle } from "lucide-react";
 import { encodeContractCall } from "@/lib/utils/tx";
+import { DROPS_EXPLORER } from "@/lib/drops/network";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { BASE_DROPS_ABI } from "@/lib/drops/abi";
-import { DROPS_CONTRACT, emptyClaimArgs, explainDropError, fromUnits, signCode, signLink, type ParsedDropLink } from "@/lib/drops/client";
+import { DROPS_CHAIN_ID, DROPS_CONTRACT, emptyClaimArgs, explainDropError, fromUnits, signCode, signLink, type ParsedDropLink } from "@/lib/drops/client";
 import {
   dropsApi,
   ensureSignedIn,
@@ -161,7 +162,7 @@ export default function DropClaim({
       }
       setBusy("Confirm in your wallet…");
       const call = encodeContractCall(DROPS_CONTRACT, BASE_DROPS_ABI, "claim", [id, args]);
-      const hash = await sendAppTransactions(connType ?? "injected", address, [call]);
+      const hash = await sendAppTransactions(connType ?? "injected", address, [call], { targetChainId: DROPS_CHAIN_ID });
       setBusy("Waiting for confirmation…");
       try {
         const { dropsClient } = await import("./drops-api");
@@ -194,7 +195,7 @@ export default function DropClaim({
           <div className="min-w-0 space-y-1">
             <p className="text-xs font-bold text-[var(--ink-muted)]">
               Drop #{link.id} from {drop.senderLabel ? `${drop.senderLabel} · ` : ""}
-              <a className="underline" href={`https://basescan.org/address/${drop.creator}`} target="_blank" rel="noopener noreferrer">
+              <a className="underline" href={`${DROPS_EXPLORER}/address/${drop.creator}`} target="_blank" rel="noopener noreferrer">
                 {drop.creator.slice(0, 6)}…{drop.creator.slice(-4)}
               </a>
             </p>

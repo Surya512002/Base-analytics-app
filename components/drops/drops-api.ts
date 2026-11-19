@@ -3,7 +3,7 @@
  * onchain reads of a drop. Kept out of components so the UI stays readable.
  */
 import { parseAbi, type Hex } from "viem";
-import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
+import { createDropsPublicClient } from "@/lib/drops/network";
 import { fetchSiweSession, signInWithSiwe } from "@/lib/auth/siwe-client";
 import type { ConnectionType } from "@/lib/types/wallet";
 import { BASE_DROPS_ABI } from "@/lib/drops/abi";
@@ -129,7 +129,7 @@ const ZERO = /^0x0+$/;
 export const isSet = (v: string) => !ZERO.test(v);
 
 export function dropsClient() {
-  return createPublicOnlyBaseClient();
+  return createDropsPublicClient();
 }
 
 export async function readDropView(id: bigint): Promise<DropView | null> {

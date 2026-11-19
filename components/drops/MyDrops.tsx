@@ -7,7 +7,7 @@ import { ERC20_ABI } from "@/lib/constants/contracts";
 import { encodeContractCall, type ContractCall } from "@/lib/utils/tx";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { BASE_DROPS_ABI } from "@/lib/drops/abi";
-import { DROPS_CONTRACT, codeLink, dropLink, explainDropError, fromUnits, toUnits } from "@/lib/drops/client";
+import { DROPS_CHAIN_ID, DROPS_CONTRACT, codeLink, dropLink, explainDropError, fromUnits, toUnits } from "@/lib/drops/client";
 import { syncVaultInBackground } from "@/lib/voucher/vault-client";
 import {
   dropsApi,
@@ -81,7 +81,7 @@ export default function MyDrops({ address, connType }: { address: string; connTy
     setNote("");
     try {
       setBusy(label);
-      const hash = await sendAppTransactions(connType ?? "injected", address, calls);
+      const hash = await sendAppTransactions(connType ?? "injected", address, calls, { targetChainId: DROPS_CHAIN_ID });
       try {
         await dropsClient().waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120_000 });
       } catch {
@@ -340,7 +340,7 @@ function AcceptTransfer({ address, connType, onDone }: { address: string; connTy
     try {
       await sendAppTransactions(connType ?? "injected", address, [
         encodeContractCall(DROPS_CONTRACT as `0x${string}`, BASE_DROPS_ABI, fn, [BigInt(id.trim())]),
-      ]);
+      ], { targetChainId: DROPS_CHAIN_ID });
       setMsg("Done. The drop is now yours.");
       onDone();
     } catch (e) {
