@@ -1,7 +1,8 @@
 /**
  * Which chain Drops runs on. Base mainnet by default; set NEXT_PUBLIC_DROPS_CHAIN_ID=84532 on a
  * preview/staging deployment to run the whole Drops flow (contract, reads, tickets, wallet txs)
- * on Base Sepolia. The rest of the app stays on mainnet.
+ * on Base Sepolia. The rest of the app stays on mainnet. The `drops-sepolia` preview branch runs this
+ * way against the verified Sepolia deployment (docs/DROPS_SEPOLIA_RESULTS.md).
  */
 import { createPublicClient, http } from "viem";
 import { base, baseSepolia } from "viem/chains";
