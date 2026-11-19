@@ -10,10 +10,11 @@ import {
   Coins,
   Copy,
   Crown,
-  Dices,
   Download,
   Droplets,
   Flame,
+  Globe,
+  Shuffle,
   Gift,
   Heart,
   KeyRound,
@@ -63,10 +64,11 @@ import TokenLogo from "@/components/ui/TokenLogo";
 import VoucherAssetPickerModal from "@/components/voucher/VoucherAssetPickerModal";
 import { StepHeader, StepSlide, WizardStepper, type WizardStepDef } from "@/components/voucher/WizardChrome";
 import AirdropScene from "./AirdropScene";
+import { checkSplit, generateSplit } from "@/lib/drops/split";
 import TaskLibrary from "./TaskLibrary";
 import { draftsToDefinition, type TaskDraft } from "./TaskBuilder";
 import { missingFields } from "./task-meta";
-import { dropsApi, dropsClient, ensureSignedIn, saveDrop, tokenMeta, updateSavedDrop, type CatalogEntry, type ConnType } from "./drops-api";
+import { dropsApi, dropsClient, ensureSignedIn, saveDrop, tokenMeta, updateSavedDrop, type CatalogEntry, type ConnType, type ListingCategory } from "./drops-api";
 import { Chips, Field, Notice, OptionCard, Pill, Section, Segmented, Stepper, Toggle, btnPrimary, btnSecondary, inputCls, useNow } from "./ui";
 
 type StepId = "type" | "asset" | "who" | "tasks" | "timing" | "review";
@@ -111,8 +113,42 @@ const parseList = (raw: string) => {
   return { valid: ok.size, invalid: parts.filter((x) => !isAddr(x)).length };
 };
 
+const LISTING_CATS: Array<{ id: ListingCategory; label: string }> = [
+  { id: "quest", label: "Quest" },
+  { id: "daily", label: "Daily" },
+  { id: "holders", label: "Holders" },
+  { id: "airdrop", label: "Airdrop" },
+  { id: "gift", label: "Gift" },
+];
+
+/** Days (1..totalDays) that no required task covers, when tasks are planned by day. */
+function uncoveredDays(drafts: TaskDraft[], totalDays: number): number[] {
+  if (!drafts.some((d) => d.days)) return [];
+  if (drafts.some((d) => !d.days && d.required)) return [];
+  const covered = new Set<number>();
+  for (const d of drafts) {
+    if (!d.days || !d.required) continue;
+    for (let x = d.days.from; x <= Math.min(d.days.to, totalDays); x++) covered.add(x);
+  }
+  const missing: number[] = [];
+  for (let i = 1; i <= Math.min(totalDays, 365); i++) if (!covered.has(i)) missing.push(i);
+  return missing;
+}
+
+function rangesText(nums: number[]): string {
+  const out: string[] = [];
+  for (let i = 0; i < nums.length; ) {
+    let j = i;
+    while (j + 1 < nums.length && nums[j + 1] === nums[j]! + 1) j++;
+    out.push(i === j ? `${nums[i]}` : `${nums[i]}–${nums[j]}`);
+    i = j + 1;
+  }
+  return out.length ? `day${nums.length > 1 ? "s" : ""} ${out.join(", ")}` : "";
+}
+
 interface Done {
   id: string;
+  listed?: boolean;
   link: string | null;
   codeLinks: string[];
   publicLink: string;
@@ -147,6 +183,7 @@ export default function DropCreate({
   const [copied, setCopied] = useState("");
   const topRef = useRef<HTMLDivElement>(null);
   const now = useNow();
+  const [listing, setListing] = useState<{ on: boolean; title: string; blurb: string; category: ListingCategory }>({ on: false, title: "", blurb: "", category: "quest" });
 
   useEffect(() => {
     dropsApi
@@ -163,6 +200,9 @@ export default function DropCreate({
   const set = (patch: Partial<DropForm>) => setForm((f) => ({ ...f, ...patch }));
   const usesTasks = form.access.includes("tasks");
   const usesCodes = form.access.includes("codes");
+  const split = form.rewardMode === "split";
+  // Only drops anyone can reach on their own (tasks, holders) can be listed; link / code drops keep a secret.
+  const canList = !form.access.includes("link") && !form.access.includes("codes") && (usesTasks || form.access.includes("holders"));
   const daily = form.cooldownHours > 0;
 
   // Asset → token address + metadata.
@@ -191,6 +231,10 @@ export default function DropCreate({
     };
   }, [assetKind, assetSymbol, customToken]);
 
+  useEffect(() => {
+    if (!usesTasks && form.rewardMode === "random") setForm((f) => ({ ...f, rewardMode: "fixed" }));
+  }, [usesTasks, form.rewardMode]);
+
   const preview = useMemo(() => prepareDrop(form, { now, appTicketSigner: appSigner, creator: address }), [form, appSigner, address, now]);
 
   const steps: StepId[] = usesTasks ? ["type", "asset", "who", "tasks", "timing", "review"] : ["type", "asset", "who", "timing", "review"];
@@ -212,8 +256,19 @@ export default function DropCreate({
       if (assetKind === "TOKEN" && !isAddr(customToken)) return "Paste the token's contract address.";
       if ((assetKind === "stock" || assetKind === "vault") && form.token === ZERO_ADDRESS) return "Pick a stock or vault.";
       if (tokenNote && tokenNote !== "Reading token…") return tokenNote;
-      if (form.rewardMode !== "random" && !toUnits(form.amountPerClaim, form.decimals)) return "Enter how much each claim gets.";
-      if (!usesCodes && form.totalClaims === 0 && !toUnits(form.budget, form.decimals)) return "Enter the total budget, or set a number of claims.";
+      if (split) {
+        const total = toUnits(form.budget, form.decimals);
+        const lo = toUnits(form.randomMin, form.decimals);
+        const hi = toUnits(form.randomMax, form.decimals);
+        if (!total) return "Enter the total to share.";
+        if (!lo) return "Enter the smallest amount a claim can get.";
+        if (!hi) return "Enter the largest amount a claim can get.";
+        const c = checkSplit(total, usesCodes ? form.codeCount : form.totalClaims, lo, hi);
+        if (!c.ok) return c.error;
+      } else {
+        if (form.rewardMode !== "random" && !toUnits(form.amountPerClaim, form.decimals)) return "Enter how much each claim gets.";
+        if (!usesCodes && form.totalClaims === 0 && !toUnits(form.budget, form.decimals)) return "Enter the total budget, or set a number of claims.";
+      }
     }
     if (s === "who") {
       if (form.access.length === 0) return "Choose who can claim.";
@@ -222,6 +277,9 @@ export default function DropCreate({
         if (!toUnits(form.holderMin || "", form.holderDecimals)) return "Enter how much they must hold.";
       }
       if (form.access.includes("allowlist") && parseList(form.allowlist).valid === 0) return "Add at least one wallet address to your list.";
+    }
+    if (s === "review" && listing.on && canList) {
+      if (listing.title.trim().length < 3) return "Give your public listing a title (3+ characters).";
     }
     if (s === "tasks") {
       if (drafts.length === 0) return "Add at least one task.";
@@ -242,6 +300,7 @@ export default function DropCreate({
     const nextForm = defaultForm(id);
     setForm((f) => ({ ...nextForm, token: f.token, symbol: f.symbol, decimals: f.decimals, amountPerClaim: f.amountPerClaim, message: f.message, senderLabel: f.senderLabel }));
     // The steps that follow depend on the type (tasks or not), so restart progress from here.
+    setListing((l) => ({ ...l, category: id === "daily-quest" || id === "faucet" ? "daily" : id === "holders" ? "holders" : id === "quest" ? "quest" : id === "cards" || id === "friend" ? "gift" : "airdrop" }));
     setFurthest(1);
     setDirection(1);
     setError("");
@@ -279,6 +338,8 @@ export default function DropCreate({
       if (usesTasks) {
         const base = (await draftsToDefinition(drafts)) as Record<string, unknown>;
         definition = { ...base, rewards: preview.prepared.rewards, raffle: preview.prepared.raffle };
+      } else if (split) {
+        definition = { version: 1, tasks: [], rewards: preview.prepared.rewards };
       }
     } catch (e) {
       return setError(e instanceof Error ? e.message : "Check your tasks.");
@@ -360,9 +421,22 @@ export default function DropCreate({
         }
       }
 
+      let listed = false;
+      if (listing.on && canList) {
+        setBusy("Listing in Explore…");
+        try {
+          await ensureSignedIn(address, connType);
+          await dropsApi.saveListing(idStr, address, { title: listing.title.trim(), blurb: listing.blurb.trim(), category: listing.category });
+          listed = true;
+        } catch (e) {
+          warnings.push(`Your drop is live, but it couldn't be listed in Explore (${e instanceof Error ? e.message : "error"}). Open My drops to list it.`);
+        }
+      }
+
       const origin = window.location.origin;
       setDone({
         id: idStr,
+        listed,
         link: linkKey ? dropLink(origin, id, linkKey) : null,
         codeLinks: codeKeys.map((k) => codeLink(origin, id!, k, codeKeys)),
         publicLink: dropLink(origin, id),
@@ -392,6 +466,7 @@ export default function DropCreate({
     setFurthest(0);
     setForm(defaultForm("group"));
     setDrafts([]);
+    setListing({ on: false, title: "", blurb: "", category: "quest" });
   };
 
   // ───────────────────────────── derived numbers ─────────────────────────────
@@ -400,12 +475,16 @@ export default function DropCreate({
   const perUnits = toUnits(form.rewardMode === "random" ? form.randomMax || "" : form.amountPerClaim, form.decimals);
   const totalText = preview.ok
     ? `${fromUnits(preview.prepared.params.budget, form.decimals)} ${form.symbol}`
-    : perUnits && count
+    : split
+      ? form.budget
+        ? `${form.budget} ${form.symbol}`
+        : "—"
+      : perUnits && count
       ? `${fromUnits(perUnits * BigInt(count), form.decimals)} ${form.symbol}`
       : form.budget
         ? `${form.budget} ${form.symbol}`
         : "—";
-  const amountLabel = form.rewardMode === "random" && form.randomMin && form.randomMax ? `${form.randomMin}–${form.randomMax} ${form.symbol}` : `${form.amountPerClaim || "0"} ${form.symbol}`;
+  const amountLabel = (form.rewardMode === "random" || split) && form.randomMin && form.randomMax ? `${form.randomMin}–${form.randomMax} ${form.symbol}` : `${form.amountPerClaim || "0"} ${form.symbol}`;
 
   // ───────────────────────────── done ─────────────────────────────
 
@@ -463,6 +542,7 @@ export default function DropCreate({
               Create another
             </button>
           </div>
+          {done.listed && <Notice tone="ok">Listed in Explore — people can find it there.</Notice>}
           <Notice>Links are saved in this browser and in your private backup if it&apos;s on (My Cards → Recovery &amp; backup). Lost one? Make a new link from My drops.</Notice>
         </div>
       </section>
@@ -600,20 +680,33 @@ export default function DropCreate({
                   )}
                 </div>
 
-                {usesTasks && (
-                  <Segmented
-                    id="reward-mode"
-                    label="Reward amount"
-                    value={form.rewardMode}
-                    onChange={(v) => set({ rewardMode: v })}
-                    options={[
-                      { value: "fixed", label: "Same for everyone" },
-                      { value: "random", label: "Lucky (random)" },
-                    ]}
-                  />
-                )}
+                <Segmented
+                  id="reward-mode"
+                  label="Reward amount"
+                  value={form.rewardMode}
+                  onChange={(v) => set(v === "split" ? { rewardMode: v, totalClaims: form.totalClaims || 100 } : { rewardMode: v })}
+                  options={[
+                    { value: "fixed" as const, label: "Same for everyone" },
+                    { value: "split" as const, label: "Random split" },
+                    ...(usesTasks ? [{ value: "random" as const, label: "Lucky each" }] : []),
+                  ]}
+                />
 
-                {form.rewardMode === "random" && usesTasks ? (
+                {split ? (
+                  <Section title="Total to share" hint="All of it goes into escrow now. It's shared randomly across the claims, so every claim is different and it adds up exactly.">
+                    <div className="relative">
+                      <input
+                        aria-label={`Total to share in ${form.symbol}`}
+                        className={`${inputCls} min-h-[56px] pr-20 text-2xl font-black`}
+                        inputMode="decimal"
+                        value={form.budget}
+                        onChange={(e) => set({ budget: e.target.value.replace(",", ".") })}
+                        placeholder="1"
+                      />
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-black text-[var(--ink-muted)]">{form.symbol}</span>
+                    </div>
+                  </Section>
+                ) : form.rewardMode === "random" && usesTasks ? (
                   <Section title="Lucky amount" hint="Each claim gets a random amount in this range. The escrow covers the max for every claim; what's unused comes back.">
                     <div className="grid grid-cols-2 gap-2">
                       <Field label={`From (${form.symbol})`}>
@@ -644,30 +737,31 @@ export default function DropCreate({
                 )}
 
                 <Section
-                  title={usesCodes ? "How many gift codes" : "How many claims in total"}
-                  hint={usesCodes ? "Each code works once." : form.totalClaims === 0 ? "No fixed number: claims continue until the budget runs out." : undefined}
+                  title={usesCodes ? "How many gift codes" : split ? "How many cards (claims)" : "How many claims in total"}
+                  hint={usesCodes ? "Each code works once." : !split && form.totalClaims === 0 ? "No fixed number: claims continue until the budget runs out." : undefined}
                   aside={
-                    !usesCodes && (
-                      <Toggle checked={form.totalClaims === 0} onChange={(v) => set({ totalClaims: v ? 0 : 10 })} label="Until budget runs out" />
-                    )
+                    !usesCodes &&
+                    !split && <Toggle checked={form.totalClaims === 0} onChange={(v) => set({ totalClaims: v ? 0 : 10 })} label="Until budget runs out" />
                   }
                 >
                   {usesCodes ? (
                     <div className="flex flex-wrap items-center gap-3">
-                      <Stepper label="codes" min={1} max={500} value={form.codeCount} onChange={(v) => set({ codeCount: v, totalClaims: v })} />
+                      <Stepper label="codes" min={1} max={split ? 1000 : 500} value={form.codeCount} onChange={(v) => set({ codeCount: v, totalClaims: v })} />
                       <Chips value={form.codeCount} onPick={(v) => set({ codeCount: v, totalClaims: v })} options={[5, 10, 25, 50, 100].map((v) => ({ value: v, label: String(v) }))} />
                     </div>
-                  ) : form.totalClaims === 0 ? (
+                  ) : !split && form.totalClaims === 0 ? (
                     <Field label={`Total budget (${form.symbol})`}>
                       <input className={inputCls} inputMode="decimal" value={form.budget} onChange={(e) => set({ budget: e.target.value })} placeholder="e.g. 1" />
                     </Field>
                   ) : (
                     <div className="flex flex-wrap items-center gap-3">
-                      <Stepper label="claims" min={1} max={100_000} value={form.totalClaims} onChange={(v) => set({ totalClaims: v })} />
+                      <Stepper label="claims" min={1} max={split ? 1000 : 100_000} value={form.totalClaims} onChange={(v) => set({ totalClaims: v })} />
                       <Chips value={form.totalClaims} onPick={(v) => set({ totalClaims: v })} options={[1, 10, 50, 100, 500].map((v) => ({ value: v, label: String(v) }))} />
                     </div>
                   )}
                 </Section>
+
+                {split && <SplitSection form={form} set={set} count={usesCodes ? form.codeCount : form.totalClaims} />}
 
                 <CrateSplit count={form.totalClaims === 0 && !usesCodes ? 0 : count} each={amountLabel} total={totalText} />
               </>
@@ -731,36 +825,26 @@ export default function DropCreate({
               <>
                 <StepHeader icon={ListChecks} step={idx + 1} total={steps.length} title="What do they do first?" description="Add tasks from the library or start from a template. Each one is checked by the app before it signs a claim." />
                 {!appSigner && <Notice tone="warn">Task checks aren&apos;t set up on this deployment yet.</Notice>}
-                <TaskLibrary catalog={catalog} drafts={drafts} onChange={setDrafts} daily={daily} />
+                <TaskLibrary catalog={catalog} drafts={drafts} onChange={setDrafts} daily={daily} maxDays={Math.min(form.expiresInDays, 30)} />
+                {uncoveredDays(drafts, form.expiresInDays).length > 0 && (
+                  <Notice tone="warn">
+                    No task is scheduled for {rangesText(uncoveredDays(drafts, form.expiresInDays).slice(0, 60))}
+                    {uncoveredDays(drafts, form.expiresInDays).length > 60 ? "…" : ""}, so nobody can claim then. Add an &ldquo;Every day&rdquo; task or plan those days — you can also add tomorrow&apos;s task later from My drops (unless you lock the drop).
+                  </Notice>
+                )}
 
                 <Section title="Bonus rewards" hint="Optional extras that make it fun to come back.">
                   <div className="space-y-2.5">
                     <OptionCard
                       multi
-                      icon={<Dices size={18} />}
-                      title="Lucky amounts"
-                      note="Each claim gets a random amount in a range."
-                      selected={form.rewardMode === "random"}
-                      onSelect={() => set(form.rewardMode === "random" ? { rewardMode: "fixed" } : { rewardMode: "random", randomMin: form.randomMin || form.amountPerClaim })}
-                    >
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label={`From (${form.symbol})`}>
-                          <input className={inputCls} inputMode="decimal" value={form.randomMin} onChange={(e) => set({ randomMin: e.target.value, amountPerClaim: e.target.value })} />
-                        </Field>
-                        <Field label={`Up to (${form.symbol})`}>
-                          <input className={inputCls} inputMode="decimal" value={form.randomMax} onChange={(e) => set({ randomMax: e.target.value })} />
-                        </Field>
-                      </div>
-                    </OptionCard>
-                    <OptionCard
-                      multi
                       icon={<Flame size={18} />}
                       title="Streak bonus"
                       note="Claim on consecutive days, get a bit more each day."
-                      selected={form.streakBonusPct > 0}
-                      onSelect={() => set({ streakBonusPct: form.streakBonusPct > 0 ? 0 : 10 })}
+                      selected={form.streakBonusPct > 0 && !split}
+                      onSelect={() => !split && set({ streakBonusPct: form.streakBonusPct > 0 ? 0 : 10 })}
                     >
-                      {!daily && <Notice tone="warn">Streaks need repeat claims — set “Daily” in the next step.</Notice>}
+                      {!daily && <Notice tone="warn">Streaks need repeat claims — set “Every day” in the next step.</Notice>}
+                      {split && <Notice tone="warn">A random split can&apos;t also have a streak bonus.</Notice>}
                       <div className="grid grid-cols-2 gap-2">
                         <Field label="Bonus per day (%)">
                           <input className={inputCls} inputMode="numeric" value={String(form.streakBonusPct)} onChange={(e) => set({ streakBonusPct: Math.min(100, Number(e.target.value.replace(/\D/g, "")) || 0) })} />
@@ -819,6 +903,22 @@ export default function DropCreate({
                     <Field label="From (optional)" hint="Shown next to your wallet or Basename.">
                       <input className={inputCls} maxLength={40} value={form.senderLabel} onChange={(e) => set({ senderLabel: e.target.value })} placeholder="Your name or project" />
                     </Field>
+                    <OptionCard
+                      multi
+                      icon={<Globe size={18} />}
+                      title="List it in Explore"
+                      note={canList ? "Show this drop in the public feed so people can find it." : "Only drops with tasks or token holders can be public. Link and gift-card drops keep a secret, so they stay private."}
+                      selected={listing.on && canList}
+                      onSelect={() => canList && setListing((l) => ({ ...l, on: !l.on, title: l.title || form.senderLabel.trim() || (usesTasks ? "New quest" : "New drop") }))}
+                    >
+                      <Field label="Title">
+                        <input className={inputCls} maxLength={60} value={listing.title} onChange={(e) => setListing((l) => ({ ...l, title: e.target.value }))} />
+                      </Field>
+                      <Field label="One line about it (optional)">
+                        <input className={inputCls} maxLength={160} value={listing.blurb} onChange={(e) => setListing((l) => ({ ...l, blurb: e.target.value }))} placeholder="Follow us and claim a random share" />
+                      </Field>
+                      <Chips value={listing.category} onPick={(v) => setListing((l) => ({ ...l, category: v }))} options={LISTING_CATS.map((c) => ({ value: c.id, label: c.label }))} />
+                    </OptionCard>
                   </div>
                   <div className="space-y-2">
                     <ReviewRow icon={Gift} label="Reward" value={`${amountLabel} per claim`} sub={`${totalText} into escrow`} onEdit={() => goTo(steps.indexOf("asset"))} />
@@ -850,7 +950,15 @@ export default function DropCreate({
                       sub={`${form.unlockInHours ? `opens in ${form.unlockInHours}h` : "opens now"} · ends in ${form.expiresInDays} days${form.committed ? " · locked" : ""}`}
                       onEdit={() => goTo(steps.indexOf("timing"))}
                     />
-                    {preview.ok && preview.prepared.params.maxAmountPerClaim > BigInt(0) && (
+                    {split && (
+                      <Notice>
+                        Random split: {totalText} is shared across {count} claims, each between {form.randomMin} and {form.randomMax} {form.symbol}. The exact shares are drawn privately by the app and add up to the total, with nothing left over.
+                      </Notice>
+                    )}
+                    {usesTasks && uncoveredDays(drafts, form.expiresInDays).length > 0 && (
+                      <Notice tone="warn">No task for {rangesText(uncoveredDays(drafts, form.expiresInDays).slice(0, 60))} — nobody can claim on those days.</Notice>
+                    )}
+                    {!split && preview.ok && preview.prepared.params.maxAmountPerClaim > BigInt(0) && (
                       <Notice>
                         A claim can be up to {fromUnits(preview.prepared.params.maxAmountPerClaim, form.decimals)} {form.symbol}, so the escrow covers that for every claim. Anything unused comes back to you.
                       </Notice>
@@ -1125,6 +1233,71 @@ function DropPreviewCard({ amount, message, sender, tasks }: { amount: string; m
           {tasks ? ` · ${tasks} task${tasks === 1 ? "" : "s"}` : ""}
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Random split settings: smallest / largest share, a live check, and a sample of how it could look. */
+function SplitSection({ form, set, count }: { form: DropForm; set: (p: Partial<DropForm>) => void; count: number }) {
+  const [seed, setSeed] = useState(0);
+  const total = toUnits(form.budget, form.decimals);
+  const lo = toUnits(form.randomMin, form.decimals);
+  const hi = toUnits(form.randomMax, form.decimals);
+  const check = total && lo && hi && count ? checkSplit(total, count, lo, hi) : null;
+  const avgUnits = total && count ? total / BigInt(count) : null;
+  const avg = avgUnits ? fromUnits(avgUnits, form.decimals, 6) : "";
+  const times = (num: number, den: number) => (avgUnits ? fromUnits((avgUnits * BigInt(num)) / BigInt(den), form.decimals, 8) : "");
+
+  const sample = useMemo(() => {
+    void seed;
+    if (!check?.ok || !total || !lo || !hi) return null;
+    return generateSplit(total, count, lo, hi).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  }, [check?.ok, total, lo, hi, count, seed]);
+
+  const bars = useMemo(() => {
+    if (!sample) return [];
+    const n = Math.min(sample.length, 60);
+    return Array.from({ length: n }, (_, i) => sample[Math.min(sample.length - 1, Math.floor(((i + 0.5) * sample.length) / n))]!);
+  }, [sample]);
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/50 p-4">
+      <p className="flex items-center gap-2 text-sm font-black text-[var(--ink)]">
+        <Shuffle size={16} className="text-[var(--brand-text)]" /> Random split
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label={`Smallest share (${form.symbol})`} hint={avg ? `Average is ${avg}` : undefined}>
+          <input className={inputCls} inputMode="decimal" value={form.randomMin} onChange={(e) => set({ randomMin: e.target.value.replace(",", ".") })} placeholder="0.001" />
+        </Field>
+        <Field label={`Largest share (${form.symbol})`}>
+          <input className={inputCls} inputMode="decimal" value={form.randomMax} onChange={(e) => set({ randomMax: e.target.value.replace(",", ".") })} placeholder="0.02" />
+        </Field>
+      </div>
+      {avgUnits !== null && avgUnits > BigInt(0) && (
+        <div className="flex flex-wrap gap-1.5">
+          <Chips value={null as string | null} onPick={(v) => set({ randomMin: v })} options={[{ value: times(1, 4), label: "Min ¼ avg" }, { value: times(1, 2), label: "Min ½ avg" }]} />
+          <Chips value={null as string | null} onPick={(v) => set({ randomMax: v })} options={[{ value: times(2, 1), label: "Max 2× avg" }, { value: times(3, 1), label: "Max 3× avg" }, { value: times(5, 1), label: "Max 5× avg" }]} />
+        </div>
+      )}
+      {check && !check.ok && <Notice tone="error">{check.error}</Notice>}
+      {sample && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-bold text-[var(--ink-muted)]">Example of {count} shares (sorted)</p>
+            <button type="button" onClick={() => setSeed((n) => n + 1)} className="inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2 text-xs font-bold text-[var(--brand-text)] hover:bg-[var(--brand-soft)]">
+              <Shuffle size={12} /> Shuffle example
+            </button>
+          </div>
+          <div className="flex h-16 items-end gap-[2px]" aria-hidden>
+            {bars.map((b, i) => (
+              <span key={i} className="flex-1 rounded-t bg-gradient-to-t from-[var(--brand)] to-indigo-400" style={{ height: `${Math.max(6, Number((b * BigInt(100)) / (hi ?? BigInt(1))))}%` }} />
+            ))}
+          </div>
+          <p className="text-[11px] text-[var(--ink-muted)]">
+            In this example the smallest is {fromUnits(sample[0]!, form.decimals, 6)}, the largest {fromUnits(sample[sample.length - 1]!, form.decimals, 6)}, and they add up to exactly {form.budget} {form.symbol}. The real shares are drawn privately when you launch — nobody, including you, can see or pick who gets what.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

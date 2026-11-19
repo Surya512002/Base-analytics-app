@@ -55,8 +55,17 @@ export const dropsApi = {
   progress: (id: string, wallet: string) => call<Progress>(`/api/drops/${id}/progress?wallet=${wallet}`),
   checkTask: (id: string, wallet: string, taskId: string, submission?: unknown) =>
     call<{ result: TaskResultView }>(`/api/drops/${id}/tasks`, json({ wallet, taskId, submission })),
-  ticket: (id: string, wallet: string) =>
-    call<{ ticket: { amount: string; deadline: number; ticket: Hex; claimIndex: number } }>(`/api/drops/${id}/ticket`, json({ wallet })),
+  ticket: (id: string, wallet: string, proof?: { linkSig?: Hex; code?: string; codeProof?: Hex[]; codeSig?: Hex }) =>
+    call<{ ticket: { amount: string; deadline: number; ticket: Hex; claimIndex: number } }>(`/api/drops/${id}/ticket`, json({ wallet, proof })),
+  /** After a claim confirms: makes the wallet's random-split share permanent. */
+  claimed: (id: string, wallet: string) => call<{ settled: boolean }>(`/api/drops/${id}/claimed`, json({ wallet })),
+  /** Plan or change tasks day by day (unlocked drops). */
+  updateTasks: (id: string, creator: string, change: { add?: unknown[]; remove?: string[] }) =>
+    call<{ definition: PublicDefinition }>(`/api/drops/${id}`, { ...json({ creator, ...change }), method: "PATCH" }),
+  listing: (id: string) => call<{ listing: ListingView | null }>(`/api/drops/${id}/listing`),
+  saveListing: (id: string, creator: string, listing: { title: string; blurb: string; category: ListingCategory } | null) =>
+    call<{ listing: ListingView | null }>(`/api/drops/${id}/listing`, { ...json({ creator, listing }), method: "PUT" }),
+  feed: (before?: string) => call<{ items: FeedItemView[]; next: string | null }>(`/api/drops/feed${before ? `?before=${before}` : ""}`),
   raffle: (id: string, wallet?: string | null) => call<RaffleView>(`/api/drops/${id}/raffle${wallet ? `?wallet=${wallet}` : ""}`),
   enterRaffle: (id: string, wallet: string) => call<{ entrants: number }>(`/api/drops/${id}/raffle`, json({ action: "enter", wallet })),
   drawRaffle: (id: string) => call<{ result: RaffleView["result"] }>(`/api/drops/${id}/raffle`, json({ action: "draw" })),
@@ -109,6 +118,33 @@ export interface ReviewItemView {
   decided: boolean;
 }
 
+export type ListingCategory = "quest" | "daily" | "holders" | "gift" | "airdrop";
+export interface ListingView {
+  title: string;
+  blurb: string;
+  category: ListingCategory;
+  listedAt: number;
+}
+export interface FeedItemView {
+  id: string;
+  listing: ListingView;
+  creator: string;
+  token: string;
+  amountPerClaim: string;
+  maxAmountPerClaim: string;
+  budget: string;
+  maxClaimsTotal: number;
+  claimedCount: number;
+  unlockAt: number;
+  expiresAt: number;
+  daily: boolean;
+  split: boolean;
+  gated: "tasks" | "holders" | "list";
+  taskCount: number;
+  taskTypes: string[];
+  state: "live" | "soon" | "ended" | "closed" | "paused" | "empty";
+}
+
 export interface PublicTask {
   id: string;
   type: string;
@@ -117,6 +153,10 @@ export interface PublicTask {
   points: number;
   group?: string;
   repeat: boolean;
+  /** Day window (1 = first 24h after the drop opens); absent = every day. */
+  days?: { from: number; to: number };
+  /** Whether the task counts today. */
+  activeNow?: boolean;
   trust?: string;
   needsSubmission: boolean;
   config: Record<string, unknown>;
@@ -124,9 +164,12 @@ export interface PublicTask {
 
 export interface PublicDefinition {
   version: 1;
+  /** 1-based day of the drop right now. */
+  day?: number;
+  start?: number;
   minPoints?: number;
   tiers?: Array<{ minPoints: number; amount: string }>;
-  rewards?: { mode: "fixed" | "random"; min?: string; max?: string; streak?: { bonusBps: number; maxDays: number; windowHours: number } };
+  rewards?: { mode: "fixed" | "random" | "split"; min?: string; max?: string; streak?: { bonusBps: number; maxDays: number; windowHours: number } };
   raffle?: { winners: number; drawAt: number; commit?: string };
   tasks: PublicTask[];
 }
@@ -144,6 +187,8 @@ export interface Progress {
   results: Record<string, TaskResultView>;
   extras: Record<string, Record<string, string>>;
   streak?: { next: number; multiplierBps: number };
+  day?: number;
+  noTaskToday?: boolean;
 }
 
 // ───────────────────────────── onchain ─────────────────────────────

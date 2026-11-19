@@ -352,7 +352,14 @@ export default function MyDrops({ address, connType }: { address: string; connTy
                   {drop.committed && !ended && <p className="text-xs text-[var(--ink-muted)]">Locked drops can be closed after they end.</p>}
                 </div>
                 {busy && <Notice>{busy}</Notice>}
-                {isSet(drop.ticketSigner) && <CreatorTools dropId={id} address={address} connType={connType} />}
+                {isSet(drop.ticketSigner) && (
+                  <CreatorTools
+                    dropId={id}
+                    address={address}
+                    connType={connType}
+                    drop={{ committed: drop.committed, expiresAt: drop.expiresAt, daily: drop.cooldown > 0, closed: drop.closed, listable: !isSet(drop.linkSigner) && !isSet(drop.codesRoot) }}
+                  />
+                )}
               </div>
             )}
           </Card>

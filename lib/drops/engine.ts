@@ -35,9 +35,10 @@ export interface Evaluation {
   amount: string;
 }
 
-export function evaluate(def: DropDefinition, results: Record<string, { status: string }>): Evaluation {
+export function evaluate(def: DropDefinition & { noTaskToday?: boolean }, results: Record<string, { status: string }>): Evaluation {
   const passed = (t: TaskSpec) => results[t.id]?.status === "passed";
   const missing: string[] = [];
+  if (def.noTaskToday) missing.push("schedule:no-task-today");
 
   const groups = new Map<string, TaskSpec[]>();
   for (const t of def.tasks) {
@@ -63,4 +64,33 @@ export function evaluate(def: DropDefinition, results: Record<string, { status: 
   }
 
   return { eligible: missing.length === 0, points, missing, amount };
+}
+
+// ───────────────────────────── daily schedule ─────────────────────────────
+
+export const DAY_SEC = 86_400;
+
+/** Unix second the drop's clock starts: when it opens (or was created, if it opens right away). */
+export function dropStart(drop: { createdAt: number; unlockAt: number }): number {
+  return Math.max(drop.createdAt, drop.unlockAt || 0);
+}
+
+/** 1-based day of the drop (day 1 = the first 24h after it opens). 0 before it opens. */
+export function dropDay(start: number, now: number): number {
+  return now < start ? 0 : Math.floor((now - start) / DAY_SEC) + 1;
+}
+
+/** Whether a task counts on this day ("every day" when it has no day window). */
+export function taskActiveOnDay(t: TaskSpec, day: number): boolean {
+  return !t.days || (day >= t.days.from && day <= t.days.to);
+}
+
+/**
+ * The definition as it applies right now: only the tasks active today. When a definition has
+ * tasks but none are active today, nothing can be claimed ("No task for today").
+ */
+export function activeDefinition(def: DropDefinition, start: number, now: number): DropDefinition & { noTaskToday: boolean } {
+  const day = dropDay(start, now);
+  const tasks = def.tasks.filter((t) => taskActiveOnDay(t, Math.max(1, day)));
+  return { ...def, tasks, noTaskToday: def.tasks.length > 0 && tasks.length === 0 };
 }

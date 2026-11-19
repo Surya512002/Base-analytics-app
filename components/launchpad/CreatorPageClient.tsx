@@ -29,6 +29,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
     siweAuthenticated,
     siweSigningIn,
     siweSignIn,
+    connType,
   } = useWalletApp();
   // Count the visitor's own connected wallet as active today (never the profile being viewed).
   useUniqueUsers(wallet?.address);
@@ -89,6 +90,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
               siweAuthenticated={siweAuthenticated}
               siweSigningIn={siweSigningIn}
               onSiweSignIn={() => void handleSiweSignIn()}
+              connType={connType}
             />
           )}
         </div>

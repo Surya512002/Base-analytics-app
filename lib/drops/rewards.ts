@@ -6,7 +6,7 @@
 import { concat, keccak256, toHex, type Hex } from "viem";
 
 export interface RewardRules {
-  mode: "fixed" | "random";
+  mode: "fixed" | "random" | "split";
   /** Random mode: inclusive range in base units. */
   min?: string;
   max?: string;

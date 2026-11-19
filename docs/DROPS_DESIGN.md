@@ -495,3 +495,39 @@ World ID / Human Passport (provider accounts).
    `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`. Creators invite the bot from the task form.
 3. Telegram: create a bot with @BotFather, run `/setdomain` with the app domain, set `TELEGRAM_BOT_TOKEN` and
    `TELEGRAM_BOT_USERNAME`. Creators add the bot to their group (admin for channels).
+
+## 14. Random split, day-by-day tasks, Explore feed
+
+**Random split ("split" reward mode).** A creator puts in a total (say 1 ETH), a number of claims (100) and a smallest and
+largest share (0.001 / 0.02). The app shares the total across the claims so every share is within the limits, the order is
+random, and the shares add up to the total **exactly** (bigint math, no dust). No contract change: the drop is created with
+`budget = total`, `amountPerClaim = min`, `maxAmountPerClaim = max`, `maxClaimsTotal = N` and the app as `ticketSigner`; each
+claim is paid with an app-signed ticket carrying that claim's share.
+- The shuffled list of shares is made on the server when the rules are saved, stored sealed (never sent to clients), and kept if
+  the creator re-saves the same numbers. After the first claim it can't change.
+- A wallet asking for a ticket **reserves one share** (set-if-absent per share, so two wallets never hold the same one). Asking
+  again returns the same share (no re-rolling). An unclaimed reservation expires after 30 minutes and the share goes back; shares
+  of confirmed claims become permanent (the claim page confirms after the receipt, and reading progress also settles them).
+- The ticket amount is also capped at the escrow still held, so a lapsed reservation can never overdraw the drop.
+- Link / gift-card split drops check the claimer's link or code signature server-side before reserving a share, so someone
+  without the link can't lock the pool.
+- Works with any access type (link, gift codes, tasks, holders). No streak bonus with a split.
+
+**Day-by-day tasks.** A task can have a day window (`days: {from, to}`, day 1 = the first 24 hours after the drop opens).
+Only the tasks active today count, and a day with tasks defined but none active can't be claimed ("no task today"). Creators
+plan days in the wizard (the "Plan by day" strip) and can add or remove tasks later from My drops (`PATCH /api/drops/:id`
+with `add` / `remove`; new ids are assigned server-side, answers are hashed as usual). A locked (committed) drop can't change.
+The claim page shows today's tasks and a "Coming up" list.
+
+**Explore feed.** Creators can list a drop publicly (`PUT /api/drops/:id/listing`); only drops anyone can reach on their own
+(tasks, token holders) can be listed, since a link or gift-card secret would otherwise have to be published. Drop ids are
+sequential, so the feed (`GET /api/drops/feed`) walks the newest ids and keeps the listed ones: no index to keep in sync.
+
+**Linked accounts** moved to the profile page (`/creator/<address>`); the claim page still prompts for the accounts a drop's
+tasks need.
+
+**Scenarios covered by tests** (`lib/drops/split.test.ts`, `split-flow.test.ts`, `client.test.ts`): 1 ETH / 100 cards sums
+exactly and respects the limits; impossible totals are refused with the reason; a wallet can't re-roll; two wallets never share
+a share and the 101st asker waits; abandoned reservations return, claimed ones don't; link-protected splits need the link;
+today's tasks only, tomorrow's refused today, a day with no task, add tomorrow's task later, locked drops can't change;
+the feed lists only listed, public drops, newest first.

@@ -201,7 +201,16 @@ export default function DropClaim({
       if (usesTasks) {
         setBusy("Checking your tasks…");
         await ensureSignedIn(address, connType);
-        const { ticket } = await dropsApi.ticket(link.id, address);
+        const proof =
+          def?.rewards?.mode === "split"
+            ? {
+                linkSig: needsLink ? args.linkSig : undefined,
+                code: needsCode ? args.code : undefined,
+                codeProof: needsCode ? args.codeProof : undefined,
+                codeSig: needsCode ? args.codeSig : undefined,
+              }
+            : undefined;
+        const { ticket } = await dropsApi.ticket(link.id, address, proof);
         args.amount = BigInt(ticket.amount);
         args.deadline = BigInt(ticket.deadline);
         args.ticket = ticket.ticket;
@@ -219,6 +228,7 @@ export default function DropClaim({
         /* bundle id: the balance updates shortly */
       }
       setClaimed(fmt(args.amount > BigInt(0) ? args.amount : drop.amountPerClaim));
+      if (def?.rewards?.mode === "split") void dropsApi.claimed(link.id, address).catch(() => undefined);
       await loadDrop();
       await loadWallet();
     } catch (e) {
@@ -232,14 +242,18 @@ export default function DropClaim({
   const ev = progress?.evaluation;
   const blocker = status?.blocker ?? "";
   const accountProviders = (["x", "discord", "telegram"] as const).filter((p) =>
-    def?.tasks.some((t) =>
+    activeTasks.some((t) =>
       p === "x" ? t.type === "x_account" || t.type === "x_post" : p === "discord" ? t.type === "discord_member" : t.type === "telegram_member"
     )
   );
-  const taskTotal = def?.tasks.length ?? 0;
-  const taskDone = def ? def.tasks.filter((t) => progress?.results[t.id]?.status === "passed").length : 0;
+  const activeTasks = def ? def.tasks.filter((t) => t.activeNow !== false) : [];
+  const upcomingTasks = def ? def.tasks.filter((t) => t.activeNow === false && t.days && t.days.from > (def.day ?? 1)) : [];
+  const noTasksAtAll = Boolean(def) && def!.tasks.length === 0;
+  const taskTotal = activeTasks.length;
+  const taskDone = activeTasks.filter((t) => progress?.results[t.id]?.status === "passed").length;
+  const isSplit = def?.rewards?.mode === "split";
   const raffleBlocks = Boolean(def?.raffle) && !raffle?.result?.won;
-  const canClaim = dropState === "live" && Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible) && !raffleBlocks;
+  const canClaim = dropState === "live" && Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible || noTasksAtAll) && !raffleBlocks;
   const inviteLink =
     address && typeof window !== "undefined"
       ? `${window.location.origin}${window.location.pathname}?ref=${address.toLowerCase()}${window.location.hash}`
@@ -264,7 +278,9 @@ export default function DropClaim({
     <div className="space-y-4">
       <ClaimHero
         id={link.id}
-        amount={def?.rewards?.mode === "random" ? `Up to ${fmt(drop.maxAmountPerClaim > BigInt(0) ? drop.maxAmountPerClaim : drop.amountPerClaim)}` : fmt(drop.amountPerClaim)}
+        amount={isSplit ? "A random share" : def?.rewards?.mode === "random" ? `Up to ${fmt(drop.maxAmountPerClaim > BigInt(0) ? drop.maxAmountPerClaim : drop.amountPerClaim)}` : fmt(drop.amountPerClaim)}
+        liveNote={isSplit ? `between ${fmt(drop.amountPerClaim)} and ${fmt(drop.maxAmountPerClaim > BigInt(0) ? drop.maxAmountPerClaim : drop.amountPerClaim)}` : undefined}
+        day={def?.day}
         message={drop.message}
         senderLabel={drop.senderLabel}
         creator={drop.creator}
@@ -286,7 +302,7 @@ export default function DropClaim({
         }}
       />
 
-      {usesTasks && def && dropState === "live" && (
+      {usesTasks && def && dropState === "live" && !noTasksAtAll && taskTotal > 0 && (
         <ClaimSteps
           steps={[
             { label: `Finish tasks${taskTotal ? ` (${taskDone}/${taskTotal})` : ""}`, done: Boolean(ev?.eligible) },
@@ -300,11 +316,11 @@ export default function DropClaim({
         <LinkedAccounts address={address} connType={connType} providers={accountProviders} title="Link your accounts for these tasks" />
       )}
 
-      {usesTasks && def && (
+      {usesTasks && def && !noTasksAtAll && (
         <Card>
           <div className="flex items-center justify-between gap-2">
             <h3 className="flex items-center gap-2 text-base font-black text-[var(--ink)]">
-              <ListChecks size={18} className="text-[var(--brand-text)]" /> Tasks
+              <ListChecks size={18} className="text-[var(--brand-text)]" /> {def.day && (upcomingTasks.length > 0 || def.tasks.some((t) => t.days)) ? `Today's tasks · Day ${def.day}` : "Tasks"}
             </h3>
             {ev && (
               <Pill tone={ev.eligible ? "ok" : "warn"}>
@@ -330,8 +346,11 @@ export default function DropClaim({
             </div>
           )}
           {!address && <Notice>Connect your wallet to start the tasks.</Notice>}
+          {taskTotal === 0 && (
+            <Notice tone="warn">There&apos;s no task scheduled for today, so nothing can be claimed right now. Check back tomorrow.</Notice>
+          )}
           <ul className="space-y-3">
-            {def.tasks.map((t) => {
+            {activeTasks.map((t) => {
               const r = progress?.results[t.id];
               const icon =
                 r?.status === "passed" ? (
@@ -459,6 +478,19 @@ export default function DropClaim({
               );
             })}
           </ul>
+          {upcomingTasks.length > 0 && (
+            <div className="space-y-1.5 rounded-2xl border border-dashed border-[var(--border-subtle)] p-3">
+              <p className="text-xs font-black text-[var(--ink)]">Coming up</p>
+              <ul className="space-y-1">
+                {upcomingTasks.slice(0, 6).map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 text-xs text-[var(--ink-muted)]">
+                    <span className="truncate">{t.title}</span>
+                    <Pill>{t.days ? (t.days.from === t.days.to ? `Day ${t.days.from}` : `Days ${t.days.from}–${t.days.to}`) : ""}</Pill>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
       )}
 
@@ -543,7 +575,8 @@ export default function DropClaim({
                     )}
                   </button>
                 </ClickSpark>
-                {!busy && usesTasks && !ev?.eligible && <p className="text-center text-xs text-[var(--ink-muted)]">Finish the tasks above to unlock the claim.</p>}
+                {!busy && usesTasks && !noTasksAtAll && !ev?.eligible && <p className="text-center text-xs text-[var(--ink-muted)]">{progress?.noTaskToday ? "No task today — check back tomorrow." : "Finish the tasks above to unlock the claim."}</p>}
+                {isSplit && !busy && <p className="text-center text-xs text-[var(--ink-muted)]">Your share is picked when you tap Claim and is yours for 30 minutes.</p>}
               </>
             ) : (
               <button type="button" className={`${btnPrimary} min-h-[56px] w-full text-base`} onClick={onRequestConnect}>

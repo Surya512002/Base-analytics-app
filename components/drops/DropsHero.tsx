@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { ExternalLink, Gift, Link2, PackageOpen, ShieldCheck } from "lucide-react";
+import { Compass, ExternalLink, Gift, Link2, PackageOpen, ShieldCheck } from "lucide-react";
 import ClickSpark from "@/components/ui/motion/ClickSpark";
 import RotatingWords from "@/components/ui/motion/RotatingWords";
 import { GlassChip, PulseEyebrow } from "@/components/ui/pulse";
@@ -17,11 +17,13 @@ export default function DropsHero({
   view,
   onCreate,
   onMine,
+  onExplore,
   signedIn,
 }: {
-  view: "create" | "mine";
+  view: "explore" | "create" | "mine";
   onCreate: () => void;
   onMine: () => void;
+  onExplore: () => void;
   signedIn: boolean;
 }) {
   const reduce = useReducedMotion();
@@ -64,8 +66,19 @@ export default function DropsHero({
             onchain escrow until claimed, and anything left comes back to you.
           </motion.p>
 
-          {signedIn && (
-            <motion.div {...enter(0.18)} className="flex flex-wrap gap-2.5">
+          <motion.div {...enter(0.18)} className="flex flex-wrap gap-2.5">
+            <ClickSpark color="#93C5FD">
+              <button
+                type="button"
+                onClick={onExplore}
+                aria-pressed={view === "explore"}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/25 bg-white/15 px-5 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/25 active:scale-[0.97]"
+              >
+                <Compass size={16} /> Explore drops
+              </button>
+            </ClickSpark>
+            {signedIn && (
+              <>
               <ClickSpark>
                 <button
                   type="button"
@@ -86,8 +99,9 @@ export default function DropsHero({
                   <PackageOpen size={16} /> My drops
                 </button>
               </ClickSpark>
-            </motion.div>
-          )}
+              </>
+            )}
+          </motion.div>
 
           <motion.form
             {...enter(0.22)}

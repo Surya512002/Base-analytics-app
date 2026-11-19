@@ -19,6 +19,8 @@ export interface TaskDraft {
   points: number;
   repeat: boolean;
   group: string;
+  /** Day window (1 = first 24h after the drop opens); undefined = every day. */
+  days?: { from: number; to: number };
   fields: Record<string, string>;
 }
 
@@ -341,8 +343,8 @@ const addr = (v: string | undefined, what: string) => {
 };
 
 /** Drafts → the definition the server validates. Reads token decimals for amount fields. */
-export async function draftsToDefinition(drafts: TaskDraft[]): Promise<unknown> {
-  if (drafts.length === 0) throw new Error("Add at least one task.");
+export async function draftsToDefinition(drafts: TaskDraft[], opts: { allowEmpty?: boolean } = {}): Promise<unknown> {
+  if (drafts.length === 0 && !opts.allowEmpty) throw new Error("Add at least one task.");
   const tasks = [];
   for (const [i, d] of drafts.entries()) {
     const f = d.fields;
@@ -449,6 +451,7 @@ export async function draftsToDefinition(drafts: TaskDraft[]): Promise<unknown> 
       points: d.points,
       repeat: d.repeat,
       group: d.group.trim() || undefined,
+      days: d.days,
       config,
     });
   }

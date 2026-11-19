@@ -2,24 +2,25 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Gift, PackageOpen, UserCheck, type LucideIcon } from "lucide-react";
+import { Compass, Gift, PackageOpen, type LucideIcon } from "lucide-react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { parseDropLink, type ParsedDropLink } from "@/lib/drops/client";
 import { IS_DROPS_TESTNET } from "@/lib/drops/network";
 import DropCreate from "./DropCreate";
 import DropsHero from "./DropsHero";
-import LinkedAccounts, { restoreAfterLinking } from "./LinkedAccounts";
+import DropsFeed from "./DropsFeed";
+import { restoreAfterLinking } from "./LinkedAccounts";
 import DropClaim from "./DropClaim";
 import MyDrops from "./MyDrops";
 import { Card, Notice, btnPrimary } from "./ui";
 
-type View = "create" | "mine" | "accounts";
+type View = "explore" | "create" | "mine";
 
 const TABS: Array<[View, string, LucideIcon]> = [
+  ["explore", "Explore", Compass],
   ["create", "Create", Gift],
   ["mine", "My drops", PackageOpen],
-  ["accounts", "Accounts", UserCheck],
 ];
 
 /**
@@ -38,7 +39,7 @@ export default function DropsTab({
   const address = app.wallet?.address ?? null;
   const connType = app.connType ?? null;
   const [link, setLink] = useState<(ParsedDropLink & { id: string }) | null>(null);
-  const [view, setView] = useState<View>("create");
+  const [view, setView] = useState<View>("explore");
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,15 +76,18 @@ export default function DropsTab({
   return (
     <div className="mx-auto max-w-5xl space-y-5 pb-12">
       {testnet}
-      <DropsHero view={view === "mine" ? "mine" : "create"} signedIn={signedIn} onCreate={() => goView("create")} onMine={() => goView("mine")} />
+      <DropsHero view={view} signedIn={signedIn} onCreate={() => goView("create")} onMine={() => goView("mine")} onExplore={() => goView("explore")} />
 
       {!signedIn || !address ? (
-        <Card className="text-center">
-          <p className="text-sm text-[var(--ink-muted)]">Connect a wallet to create drops and see yours. Got a drop link? Paste it above.</p>
-          <button type="button" className={`${btnPrimary} mx-auto`} onClick={onRequestConnect}>
-            Connect wallet
-          </button>
-        </Card>
+        <>
+          <DropsFeed canCreate={false} onCreate={onRequestConnect} />
+          <Card className="text-center">
+            <p className="text-sm text-[var(--ink-muted)]">Connect a wallet to claim, create drops and see yours. Got a drop link? Paste it above.</p>
+            <button type="button" className={`${btnPrimary} mx-auto`} onClick={onRequestConnect}>
+              Connect wallet
+            </button>
+          </Card>
+        </>
       ) : (
         <>
           <div ref={tabsRef} className="scroll-mt-20">
@@ -110,6 +114,14 @@ export default function DropsTab({
             </div>
           </div>
 
+          <p className="text-center text-xs text-[var(--ink-muted)]">
+            X, Discord and Telegram accounts for tasks are linked from your{" "}
+            <a className="font-bold text-[var(--brand-text)] underline" href={`/creator/${address.toLowerCase()}`}>
+              profile
+            </a>
+            .
+          </p>
+
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={view}
@@ -118,9 +130,9 @@ export default function DropsTab({
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
+              {view === "explore" && <DropsFeed canCreate onCreate={() => goView("create")} />}
               {view === "create" && <DropCreate address={address} connType={connType} onCreated={() => undefined} />}
               {view === "mine" && <MyDrops address={address} connType={connType} />}
-              {view === "accounts" && <LinkedAccounts address={address} connType={connType} />}
             </motion.div>
           </AnimatePresence>
         </>
