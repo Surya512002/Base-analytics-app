@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { Copy, RefreshCcw } from "lucide-react";
+import { Copy, ExternalLink, PackageOpen, RefreshCcw, Settings2 } from "lucide-react";
+import TokenLogo from "@/components/ui/TokenLogo";
 import { ERC20_ABI } from "@/lib/constants/contracts";
 import { encodeContractCall, type ContractCall } from "@/lib/utils/tx";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
@@ -114,7 +115,26 @@ export default function MyDrops({ address, connType }: { address: string; connTy
       {!DEPLOY_BLOCK && <Notice>Showing drops created in this browser.</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
       {note && <Notice tone="ok">{note}</Notice>}
-      {rows.length === 0 && <Card><p className="text-sm text-[var(--ink-muted)]">No drops yet.</p></Card>}
+      {rows.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            ["Drops", rows.length],
+            ["Live", rows.filter(({ drop }) => !drop.closed && !drop.paused && now < drop.expiresAt).length],
+            ["Claims", rows.reduce((n, { drop }) => n + drop.claimedCount, 0)],
+          ].map(([label, n]) => (
+            <div key={label} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 text-center">
+              <p className="text-2xl font-black text-[var(--ink)]">{n}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--ink-muted)]">{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {rows.length === 0 && (
+        <Card className="text-center">
+          <PackageOpen size={28} className="mx-auto text-[var(--ink-muted)]" />
+          <p className="text-sm text-[var(--ink-muted)]">No drops yet. Create one and it shows up here with its links, codes and tools.</p>
+        </Card>
+      )}
 
       {rows.map(({ drop, meta, saved }) => {
         const id = drop.id.toString();
@@ -129,10 +149,13 @@ export default function MyDrops({ address, connType }: { address: string; connTy
         return (
           <Card key={id}>
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="space-y-1">
-                <p className="text-sm font-black text-[var(--ink)]">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <TokenLogo address={drop.token} symbol={meta.symbol} size={40} shape="rounded-xl" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="truncate text-sm font-black text-[var(--ink)]">
                   Drop #{id} {saved?.title ? `· ${saved.title}` : ""}
                 </p>
+                <p className="text-xs font-semibold text-[var(--ink-muted)]">{fmt(drop.amountPerClaim)} per claim</p>
                 <div className="flex flex-wrap gap-1">
                   <Pill tone={state === "Live" ? "ok" : state === "Closed" ? "muted" : "warn"}>{state}</Pill>
                   <Pill>{drop.claimedCount} claimed</Pill>
@@ -141,10 +164,21 @@ export default function MyDrops({ address, connType }: { address: string; connTy
                   {drop.committed && <Pill tone="brand">Locked</Pill>}
                   {isSet(drop.recovery) && <Pill tone="brand">Backup wallet set</Pill>}
                 </div>
+                {drop.maxClaimsTotal > 0 && (
+                  <div className="h-1.5 max-w-xs overflow-hidden rounded-full bg-[var(--surface-2)]" aria-label={`${drop.claimedCount} of ${drop.maxClaimsTotal} claimed`}>
+                    <div className="h-full rounded-full bg-gradient-to-r from-[var(--brand)] to-emerald-400" style={{ width: `${Math.min(100, (drop.claimedCount / drop.maxClaimsTotal) * 100)}%` }} />
+                  </div>
+                )}
               </div>
-              <button type="button" className={btnSecondary} onClick={() => setOpen(isOpen ? null : id)}>
-                {isOpen ? "Done" : "Manage"}
-              </button>
+              </div>
+              <div className="flex gap-2">
+                <a className={btnSecondary} href={`/drops/${id}`} aria-label={`Open drop ${id} page`}>
+                  <ExternalLink size={14} />
+                </a>
+                <button type="button" className={isOpen ? btnPrimary : btnSecondary} onClick={() => setOpen(isOpen ? null : id)}>
+                  <Settings2 size={14} /> {isOpen ? "Done" : "Manage"}
+                </button>
+              </div>
             </div>
 
             {(saved?.pendingDefinition || saved?.pendingAllowlist) && (
