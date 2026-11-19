@@ -8,6 +8,8 @@ import { heldSinceTask, tokenBoughtTask } from "./trading";
 import { farcasterAccountTask, farcasterChannelTask, farcasterFollowTask, farcasterReactionTask } from "./farcaster";
 import { xPostTask } from "./social-proof";
 import { quizTask, secretWordTask } from "./answers";
+import { basenameTask, walletAgeTask } from "./identity";
+import { liveCodeTask, referralsTask, reviewTask, webhookTask } from "./community";
 
 const ALL = [
   tokenBalanceTask,
@@ -21,6 +23,12 @@ const ALL = [
   xPostTask,
   quizTask,
   secretWordTask,
+  basenameTask,
+  walletAgeTask,
+  referralsTask,
+  liveCodeTask,
+  webhookTask,
+  reviewTask,
 ] as TaskType<unknown>[];
 
 export const TASK_TYPES: ReadonlyMap<string, TaskType<unknown>> = new Map(ALL.map((t) => [t.type, t]));

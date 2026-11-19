@@ -34,6 +34,12 @@ const TYPE_HELP: Record<string, string> = {
   x_post: "Posts on X with a code unique to their wallet (free, no X login).",
   quiz: "Answers your questions (answers are stored hashed).",
   secret_word: "Enters a secret word, e.g. said at an event.",
+  basename: "Owns a Basename (name.base.eth).",
+  wallet_age: "Wallet is at least N days old (and optionally has N transactions).",
+  referrals: "Invites N friends who also claim this drop (counted onchain).",
+  live_code: "Enters the 6-digit code you show at your event; it changes every 30 seconds.",
+  webhook: "Your own server says yes or no (signed request to your URL).",
+  review: "Submits a link or text; you approve or reject it in My drops.",
 };
 
 let seq = 0;
@@ -151,6 +157,39 @@ function TypeFields({ d, onChange }: { d: TaskDraft; onChange: (d: TaskDraft) =>
         <>
           <F {...p} k="answers" label="Accepted answers (comma-separated)" placeholder="onchain summer" />
           <F {...p} k="hint" label="Hint (optional)" />
+        </>
+      );
+    case "basename":
+      return null;
+    case "wallet_age":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <F {...p} k="days" label="Minimum age (days)" placeholder="30" />
+          <F {...p} k="txs" label="Minimum transactions (optional)" placeholder="10" />
+        </div>
+      );
+    case "referrals":
+      return <F {...p} k="friends" label="Friends who must claim" placeholder="3" hint="Each claimer gets an invite link on the claim page." />;
+    case "live_code":
+      return <F {...p} k="place" label="Where (shown to claimers, optional)" placeholder="Base meetup, Lisbon" hint="After creating, open My drops to show the live code on screen." />;
+    case "webhook":
+      return (
+        <>
+          <F {...p} k="url" label="Your https URL" placeholder="https://api.example.com/drops/check" />
+          <F {...p} k="secret" label="Shared secret (16+ characters)" hint="We send X-Drops-Signature = HMAC-SHA256(secret, body). Reply JSON {ok: true}." />
+          <F {...p} k="description" label="What it checks (shown to claimers)" placeholder="Finished level 3 in our game" />
+        </>
+      );
+    case "review":
+      return (
+        <>
+          <F {...p} k="instructions" label="What to submit" placeholder="Post a meme about Base and paste the link" />
+          <Field label="Answer type">
+            <select className={inputCls} value={d.fields.kind ?? "url"} onChange={(e) => onChange({ ...d, fields: { ...d.fields, kind: e.target.value } })}>
+              <option value="url">Link</option>
+              <option value="text">Text</option>
+            </select>
+          </Field>
         </>
       );
     default:
@@ -307,6 +346,24 @@ export async function draftsToDefinition(drafts: TaskDraft[]): Promise<unknown> 
       }
       case "secret_word":
         config = { answers: (f.answers ?? "").split(",").map((x) => x.trim()).filter(Boolean), hint: f.hint?.trim() || undefined };
+        break;
+      case "basename":
+        config = {};
+        break;
+      case "wallet_age":
+        config = { minDays: Number(f.days || 30), minTxs: f.txs ? Number(f.txs) : undefined };
+        break;
+      case "referrals":
+        config = { minFriends: Number(f.friends || 1) };
+        break;
+      case "live_code":
+        config = { place: f.place?.trim() || undefined };
+        break;
+      case "webhook":
+        config = { url: (f.url ?? "").trim(), secret: (f.secret ?? "").trim(), description: f.description?.trim() || undefined };
+        break;
+      case "review":
+        config = { instructions: (f.instructions ?? "").trim(), kind: f.kind ?? "url" };
         break;
       default:
         throw new Error(`Unknown task type ${d.type}`);

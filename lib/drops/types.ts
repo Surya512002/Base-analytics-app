@@ -14,7 +14,8 @@ export type TrustLevel =
   | "proof" // claimer posted public proof containing their wallet's code
   | "answer"; // claimer answered a question / entered a secret
 
-export type TaskStatus = "passed" | "failed" | "unavailable";
+/** "pending" = waiting for the creator to review a submission (never counts as passed). */
+export type TaskStatus = "passed" | "failed" | "unavailable" | "pending";
 
 export interface TaskResult {
   status: TaskStatus;
@@ -104,8 +105,37 @@ export const dropDefinitionSchema = z
     minPoints: z.number().int().min(0).max(20_000).optional(),
     /** Reward tiers by points; the highest reached wins. "0" = the drop's default amount. */
     tiers: z.array(z.object({ minPoints: z.number().int().min(0), amount: weiString })).max(10).optional(),
+    /** Fixed (default) or a random amount per claim, plus an optional streak bonus for consecutive claims. */
+    rewards: z
+      .object({
+        mode: z.enum(["fixed", "random"]).default("fixed"),
+        min: weiString.optional(),
+        max: weiString.optional(),
+        streak: z
+          .object({
+            bonusBps: z.number().int().min(1).max(10_000),
+            maxDays: z.number().int().min(2).max(365),
+            windowHours: z.number().int().min(24).max(96).default(48),
+          })
+          .optional(),
+      })
+      .optional(),
+    /** Raffle: wallets that finish the tasks enter; after drawAt, N winners are drawn and only they can claim. */
+    raffle: z
+      .object({
+        winners: z.number().int().min(1).max(10_000),
+        drawAt: z.number().int().positive(),
+        /** keccak256(seed), set by the server when the raffle is saved. */
+        commit: z.string().regex(/^0x[0-9a-f]{64}$/).optional(),
+      })
+      .optional(),
   })
   .superRefine((def, ctx) => {
+    if (def.rewards?.mode === "random") {
+      if (def.rewards.min === undefined || def.rewards.max === undefined) ctx.addIssue({ code: "custom", message: "Random rewards need a min and a max" });
+      else if (BigInt(def.rewards.min) > BigInt(def.rewards.max)) ctx.addIssue({ code: "custom", message: "Random min is above max" });
+      else if (BigInt(def.rewards.max) === BigInt(0)) ctx.addIssue({ code: "custom", message: "Random max must be above 0" });
+    }
     const ids = new Set<string>();
     for (const t of def.tasks) {
       if (ids.has(t.id)) ctx.addIssue({ code: "custom", message: `Duplicate task id "${t.id}"` });

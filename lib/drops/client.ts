@@ -5,6 +5,7 @@
 import { encodeAbiParameters, keccak256, stringToBytes, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { buildAddressTree } from "./merkle";
+import { maxPossibleReward, type RewardRules } from "./rewards";
 
 export { DROPS_CHAIN_ID } from "./network";
 import { DROPS_CHAIN_ID } from "./network";
@@ -52,6 +53,16 @@ export interface DropForm {
   recovery: string;
   message: string;
   senderLabel: string;
+  /** Task drops only: fixed amount, or a random amount between randomMin and randomMax. */
+  rewardMode: "fixed" | "random";
+  randomMin: string;
+  randomMax: string;
+  /** Task drops only: % bonus per consecutive claim (0 = off), up to streakMaxDays. */
+  streakBonusPct: number;
+  streakMaxDays: number;
+  /** Task drops only: number of raffle winners (0 = no raffle) and when to draw. */
+  raffleWinners: number;
+  raffleInHours: number;
 }
 
 export type PresetId = "friend" | "group" | "cards" | "faucet" | "quest" | "daily-quest" | "holders";
@@ -100,6 +111,13 @@ export function defaultForm(preset: PresetId = "group"): DropForm {
     recovery: "",
     message: "",
     senderLabel: "",
+    rewardMode: "fixed",
+    randomMin: "",
+    randomMax: "",
+    streakBonusPct: 0,
+    streakMaxDays: 7,
+    raffleWinners: 0,
+    raffleInHours: 72,
   };
   return { ...base, ...(PRESETS.find((p) => p.id === preset)?.patch ?? {}) };
 }
@@ -158,6 +176,9 @@ export interface Prepared {
   linkKey: Hex | null;
   codeKeys: Hex[];
   allowlist: `0x${string}`[];
+  /** Saved with the tasks (task drops). */
+  rewards?: RewardRules;
+  raffle?: { winners: number; drawAt: number };
 }
 
 export type PrepareResult = { ok: true; prepared: Prepared } | { ok: false; error: string };
@@ -170,11 +191,38 @@ export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner
   const per = toUnits(form.amountPerClaim, form.decimals);
   if (!per || per <= BigInt(0)) return { ok: false, error: "Enter how much each claim gets." };
 
+  // Variable rewards (random / streak) only exist for task drops, where the app signs the amount.
+  const tasks = form.access.includes("tasks");
+  let rewards: RewardRules | undefined;
+  if (tasks && (form.rewardMode === "random" || form.streakBonusPct > 0)) {
+    rewards = { mode: form.rewardMode };
+    if (form.rewardMode === "random") {
+      const lo = toUnits(form.randomMin, form.decimals);
+      const hi = toUnits(form.randomMax, form.decimals);
+      if (lo === null || hi === null || hi <= BigInt(0) || lo > hi) return { ok: false, error: "Set a random range: min up to max." };
+      rewards.min = lo.toString();
+      rewards.max = hi.toString();
+    }
+    if (form.streakBonusPct > 0) {
+      if (form.streakBonusPct > 100 || form.streakMaxDays < 2 || form.streakMaxDays > 365) return { ok: false, error: "Streak bonus: 1–100% per day, 2–365 days." };
+      rewards.streak = { bonusBps: Math.round(form.streakBonusPct * 100), maxDays: form.streakMaxDays, windowHours: 48 };
+    }
+  }
+  const maxPer = maxPossibleReward(per, rewards);
+
+  let raffle: { winners: number; drawAt: number } | undefined;
+  if (tasks && form.raffleWinners > 0) {
+    if (form.raffleInHours < 1) return { ok: false, error: "Draw the raffle at least 1 hour from now." };
+    raffle = { winners: form.raffleWinners, drawAt: opts.now + Math.round(form.raffleInHours * 3600) };
+  }
+
   let total = form.totalClaims;
   if (form.access.includes("codes")) total = form.codeCount;
+  if (raffle && total > 0 && raffle.winners > total) return { ok: false, error: "More raffle winners than claims." };
   let budget: bigint;
   if (total > 0) {
-    budget = per * BigInt(total);
+    // Every claim could be the largest possible reward; whatever is left comes back to you.
+    budget = maxPer * BigInt(total);
   } else {
     const b = toUnits(form.budget, form.decimals);
     if (!b || b < per) return { ok: false, error: "Set a total budget of at least one claim." };
@@ -246,7 +294,7 @@ export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner
         token: form.token,
         budget,
         amountPerClaim: per,
-        maxAmountPerClaim: BigInt(0),
+        maxAmountPerClaim: maxPer > per ? maxPer : BigInt(0),
         maxClaimsTotal: total,
         maxClaimsPerWallet: form.maxClaimsPerWallet,
         cooldown: Math.round(form.cooldownHours * 3600),
@@ -268,6 +316,8 @@ export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner
       linkKey,
       codeKeys,
       allowlist,
+      rewards,
+      raffle,
     },
   };
 }

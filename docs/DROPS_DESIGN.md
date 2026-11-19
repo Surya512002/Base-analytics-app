@@ -422,3 +422,40 @@ and `lib/drops/merkle.ts`, allowlist proofs at `/api/drops/:id/allowlist`.
   allowlist proof produced by the TypeScript against the real contract, and `lib/drops/client.test.ts` pins the same values.
 
 Env: `NEXT_PUBLIC_DROPS_TOKEN_GATE`, `NEXT_PUBLIC_DROPS_DEPLOY_BLOCK` (optional; without it My drops lists drops made in this browser).
+
+## 12. Phase 6 extras (built)
+
+No contract changes: everything rides on app-signed tickets (amount + wallet + claim number).
+
+**New task types** (`lib/drops/tasks/identity.ts`, `community.ts`)
+| Type | Check |
+|---|---|
+| `basename` | holds a Basenames NFT (registrar `0x03c4…DD9a`, checked onchain: name "Basenames"); mainnet only |
+| `wallet_age` | first transaction ≥ N days ago, optional ≥ N transactions (Etherscan v2). Smart wallets whose activity is all via user operations may show little history |
+| `referrals` | ≥ N distinct wallets claimed this drop with you as `referrer` (from `DropClaimed` events). Claim pages give each wallet an invite link (`?ref=`) |
+| `live_code` | 6-digit code that changes every 30 s (HMAC-SHA256 TOTP, previous window accepted, 5 tries / 10 min). The creator shows it on a screen from My drops |
+| `webhook` | the creator's HTTPS endpoint answers `{ ok: true }`. Requests are signed (`X-Drops-Signature` = HMAC-SHA256(secret, body)); only public hosts (no IP literals, localhost or private ranges; redirects not followed; 5 s timeout) |
+| `review` | claimer submits a link/text → "pending" → creator approves/rejects in My drops; the claimer's task updates immediately |
+
+**Rewards** (`lib/drops/rewards.ts`)
+- *Lucky amount:* random in [min, max] per claim.
+- *Streak bonus:* +X% per consecutive claim (claims within 48 h continue the streak), up to N days. The streak is tied to the
+  claim number the previous ticket was issued for and the onchain `lastClaimAt`, so it can't be faked by asking twice.
+- The create wizard sets the drop's onchain `maxAmountPerClaim` to the largest possible reward and funds escrow for that;
+  saving rewards that could exceed the onchain cap is refused.
+
+**Raffles**
+- Wallets that finish the tasks enter before the draw time; afterwards anyone can trigger the draw, and the first draw is final.
+- Fairness: a secret seed is committed (hash published with the tasks) before anyone enters; winners =
+  deterministic shuffle of the sorted entrants using keccak(seed ‖ latest block hash). The seed and block are published
+  with the result so anyone can re-run it (`drawWinners`). Only winners get tickets.
+- Trust note: the draw runs on the app's server (not onchain VRF). The commitment stops the server choosing a seed after
+  seeing entrants; it doesn't stop an operator from re-timing the draw call. For high-value raffles, an onchain VRF gate module is the upgrade path.
+
+**APIs:** `/api/drops/:id/raffle` (status, enter, draw), `/api/drops/:id/reviews` (creator queue + decisions),
+`/api/drops/:id/live-code` (creator only).
+
+**Still not built (need your accounts or paid APIs):** Coinbase Verified Account/Country (the attestation indexer returned no
+record for a wallet with an onchain attestation, so the trusted attester couldn't be confirmed — shipping it unconfirmed would let
+anyone self-attest), Telegram / Discord / GitHub (need a bot token or OAuth app you create), X follow/like/repost (paid X API),
+World ID / Human Passport (provider accounts).
