@@ -136,7 +136,10 @@ export default function DropCreate({
 
     let definition: unknown = null;
     try {
-      if (usesTasks) definition = await draftsToDefinition(drafts);
+      if (usesTasks) {
+        const base = (await draftsToDefinition(drafts)) as Record<string, unknown>;
+        definition = { ...base, rewards: preview.prepared.rewards, raffle: preview.prepared.raffle };
+      }
     } catch (e) {
       return setError(e instanceof Error ? e.message : "Check your tasks.");
     }
@@ -452,6 +455,44 @@ export default function DropCreate({
         <div className="space-y-3">
           {!appSigner && <Notice tone="warn">Task checks aren&apos;t set up on this deployment yet.</Notice>}
           <TaskBuilder catalog={catalog} drafts={drafts} onChange={setDrafts} daily={daily} />
+          <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] p-4">
+            <p className="text-sm font-black text-[var(--ink)]">Rewards</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={form.rewardMode === "fixed" ? btnPrimary : btnSecondary} onClick={() => set({ rewardMode: "fixed" })}>
+                Same amount
+              </button>
+              <button type="button" className={form.rewardMode === "random" ? btnPrimary : btnSecondary} onClick={() => set({ rewardMode: "random" })}>
+                Lucky (random) amount
+              </button>
+            </div>
+            {form.rewardMode === "random" && (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Field label={`Min (${form.symbol})`}>
+                  <input className={inputCls} inputMode="decimal" value={form.randomMin} onChange={(e) => set({ randomMin: e.target.value })} />
+                </Field>
+                <Field label={`Max (${form.symbol})`}>
+                  <input className={inputCls} inputMode="decimal" value={form.randomMax} onChange={(e) => set({ randomMax: e.target.value })} />
+                </Field>
+              </div>
+            )}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Field label="Streak bonus (% per day in a row)" hint="0 = off. Claims within 48h of the last one continue the streak.">
+                <input className={inputCls} inputMode="numeric" value={String(form.streakBonusPct)} onChange={(e) => set({ streakBonusPct: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
+              </Field>
+              <Field label="Streak counts up to (days)">
+                <input className={inputCls} inputMode="numeric" value={String(form.streakMaxDays)} onChange={(e) => set({ streakMaxDays: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
+              </Field>
+            </div>
+            <p className="text-sm font-black text-[var(--ink)] pt-1">Raffle (optional)</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Field label="Winners" hint="0 = no raffle. Wallets that finish the tasks enter; only winners can claim.">
+                <input className={inputCls} inputMode="numeric" value={String(form.raffleWinners)} onChange={(e) => set({ raffleWinners: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
+              </Field>
+              <Field label="Draw in (hours)">
+                <input className={inputCls} inputMode="numeric" value={String(form.raffleInHours)} onChange={(e) => set({ raffleInHours: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
+              </Field>
+            </div>
+          </div>
         </div>
       )}
 
@@ -473,7 +514,17 @@ export default function DropCreate({
                 {form.perDayCap ? ` · ${form.perDayCap}/day max` : ""} · ends in {form.expiresInDays} days
                 {form.committed ? " · locked" : ""}
               </p>
-              {usesTasks && <p className="text-[var(--ink-muted)]">{drafts.length} task{drafts.length === 1 ? "" : "s"}</p>}
+              {usesTasks && (
+                <p className="text-[var(--ink-muted)]">
+                  {drafts.length} task{drafts.length === 1 ? "" : "s"}
+                  {form.rewardMode === "random" ? ` · lucky amount ${form.randomMin}–${form.randomMax} ${form.symbol}` : ""}
+                  {form.streakBonusPct ? ` · +${form.streakBonusPct}%/day streak (up to ${form.streakMaxDays} days)` : ""}
+                  {form.raffleWinners ? ` · raffle: ${form.raffleWinners} winners in ${form.raffleInHours}h` : ""}
+                </p>
+              )}
+              {preview.prepared.params.maxAmountPerClaim > BigInt(0) && (
+                <Notice>A claim can be up to {fromUnits(preview.prepared.params.maxAmountPerClaim, form.decimals)} {form.symbol}, so the escrow covers that for every claim. Anything unused comes back to you.</Notice>
+              )}
               {preview.prepared.codeKeys.length > 0 && (
                 <p className="text-[var(--ink-muted)]">
                   {preview.prepared.codeKeys.length} codes (first: {privateKeyToAccount(preview.prepared.codeKeys[0]!).address.slice(0, 8)}…)

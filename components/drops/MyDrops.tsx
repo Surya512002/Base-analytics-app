@@ -22,6 +22,7 @@ import {
   type DropView,
   type SavedDrop,
 } from "./drops-api";
+import CreatorTools from "./CreatorTools";
 import { Card, Field, Notice, Pill, btnDanger, btnPrimary, btnSecondary, inputCls, untilText, useNow } from "./ui";
 
 /** First block to scan for DropCreated events (set at deploy). Without it only this browser's drops show. */
@@ -317,6 +318,7 @@ export default function MyDrops({ address, connType }: { address: string; connTy
                   {drop.committed && !ended && <p className="text-xs text-[var(--ink-muted)]">Locked drops can be closed after they end.</p>}
                 </div>
                 {busy && <Notice>{busy}</Notice>}
+                {isSet(drop.ticketSigner) && <CreatorTools dropId={id} address={address} connType={connType} />}
               </div>
             )}
           </Card>

@@ -57,7 +57,32 @@ export const dropsApi = {
     call<{ result: TaskResultView }>(`/api/drops/${id}/tasks`, json({ wallet, taskId, submission })),
   ticket: (id: string, wallet: string) =>
     call<{ ticket: { amount: string; deadline: number; ticket: Hex; claimIndex: number } }>(`/api/drops/${id}/ticket`, json({ wallet })),
+  raffle: (id: string, wallet?: string | null) => call<RaffleView>(`/api/drops/${id}/raffle${wallet ? `?wallet=${wallet}` : ""}`),
+  enterRaffle: (id: string, wallet: string) => call<{ entrants: number }>(`/api/drops/${id}/raffle`, json({ action: "enter", wallet })),
+  drawRaffle: (id: string) => call<{ result: RaffleView["result"] }>(`/api/drops/${id}/raffle`, json({ action: "draw" })),
+  reviews: (id: string, creator: string) => call<{ items: ReviewItemView[] }>(`/api/drops/${id}/reviews?creator=${creator}`),
+  decideReview: (id: string, creator: string, wallet: string, taskId: string, approve: boolean, note?: string) =>
+    call<{ ok: true }>(`/api/drops/${id}/reviews`, json({ creator, wallet, taskId, approve, note })),
+  liveCode: (id: string, creator: string, taskId: string) =>
+    call<{ code: string; expiresIn: number }>(`/api/drops/${id}/live-code?creator=${creator}&taskId=${taskId}`),
 };
+
+export interface RaffleView {
+  winners: number;
+  drawAt: number;
+  commit?: string;
+  entrants: number;
+  entered: boolean;
+  result: null | { winners: string[]; entrants: number; seed: string; blockNumber: string; blockHash: string; drawnAt: number; won: boolean };
+}
+
+export interface ReviewItemView {
+  wallet: string;
+  taskId: string;
+  content: string;
+  at: number;
+  decided: boolean;
+}
 
 export interface PublicTask {
   id: string;
@@ -76,11 +101,13 @@ export interface PublicDefinition {
   version: 1;
   minPoints?: number;
   tiers?: Array<{ minPoints: number; amount: string }>;
+  rewards?: { mode: "fixed" | "random"; min?: string; max?: string; streak?: { bonusBps: number; maxDays: number; windowHours: number } };
+  raffle?: { winners: number; drawAt: number; commit?: string };
   tasks: PublicTask[];
 }
 
 export interface TaskResultView {
-  status: "passed" | "failed" | "unavailable";
+  status: "passed" | "failed" | "unavailable" | "pending";
   message: string;
   at: number;
 }
@@ -91,6 +118,7 @@ export interface Progress {
   evaluation: { eligible: boolean; points: number; missing: string[]; amount: string };
   results: Record<string, TaskResultView>;
   extras: Record<string, Record<string, string>>;
+  streak?: { next: number; multiplierBps: number };
 }
 
 // ───────────────────────────── onchain ─────────────────────────────

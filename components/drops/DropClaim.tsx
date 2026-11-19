@@ -8,6 +8,7 @@ import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { BASE_DROPS_ABI } from "@/lib/drops/abi";
 import { DROPS_CHAIN_ID, DROPS_CONTRACT, emptyClaimArgs, explainDropError, fromUnits, signCode, signLink, type ParsedDropLink } from "@/lib/drops/client";
 import {
+  type RaffleView,
   dropsApi,
   ensureSignedIn,
   isSet,
@@ -46,7 +47,15 @@ export default function DropClaim({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [claimed, setClaimed] = useState<string | null>(null);
+  const [raffle, setRaffle] = useState<RaffleView | null>(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const now = useNow();
+  // Invite links carry ?ref=<wallet>; it is only emitted onchain (for referral counts).
+  const [referrer] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const r = new URLSearchParams(window.location.search).get("ref");
+    return r && /^0x[0-9a-fA-F]{40}$/.test(r) ? r.toLowerCase() : null;
+  });
 
   const loadDrop = useCallback(async () => {
     try {
@@ -62,6 +71,7 @@ export default function DropClaim({
   const loadWallet = useCallback(async () => {
     if (!address || !drop) return;
     setStatus(await readWalletStatus(id, address as `0x${string}`).catch(() => null));
+    if (def?.raffle) setRaffle(await dropsApi.raffle(link.id, address).catch(() => null));
     if (isSet(drop.ticketSigner) && def) {
       try {
         setProgress(await dropsApi.progress(link.id, address));
@@ -119,7 +129,17 @@ export default function DropClaim({
     try {
       const v = inputs[task.id];
       const submission =
-        task.type === "x_post" ? { url: v } : task.type === "quiz" ? { answers: v } : task.type === "secret_word" ? { answer: v } : undefined;
+        task.type === "x_post"
+          ? { url: v }
+          : task.type === "quiz"
+            ? { answers: v }
+            : task.type === "secret_word"
+              ? { answer: v }
+              : task.type === "live_code"
+                ? { code: v }
+                : task.type === "review"
+                  ? { content: v }
+                  : undefined;
       await dropsApi.checkTask(link.id, address, task.id, submission);
       setProgress(await dropsApi.progress(link.id, address));
     } catch (e) {
@@ -160,6 +180,7 @@ export default function DropClaim({
         args.deadline = BigInt(ticket.deadline);
         args.ticket = ticket.ticket;
       }
+      if (referrer && referrer !== address.toLowerCase()) args.referrer = referrer as `0x${string}`;
       setBusy("Confirm in your wallet…");
       const call = encodeContractCall(DROPS_CONTRACT, BASE_DROPS_ABI, "claim", [id, args]);
       const hash = await sendAppTransactions(connType ?? "injected", address, [call], { targetChainId: DROPS_CHAIN_ID });
@@ -183,7 +204,27 @@ export default function DropClaim({
 
   const ev = progress?.evaluation;
   const blocker = status?.blocker ?? "";
-  const canClaim = Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible);
+  const raffleBlocks = Boolean(def?.raffle) && !raffle?.result?.won;
+  const canClaim = Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible) && !raffleBlocks;
+  const inviteLink =
+    address && typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}?ref=${address.toLowerCase()}${window.location.hash}`
+      : "";
+
+  const enterRaffle = async () => {
+    if (!address) return onRequestConnect();
+    setError("");
+    try {
+      setBusy("Entering…");
+      await ensureSignedIn(address, connType);
+      await dropsApi.enterRaffle(link.id, address);
+      setRaffle(await dropsApi.raffle(link.id, address));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't enter");
+    } finally {
+      setBusy("");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -243,6 +284,8 @@ export default function DropClaim({
               const icon =
                 r?.status === "passed" ? (
                   <CheckCircle2 size={18} className="text-emerald-500" />
+                ) : r?.status === "pending" ? (
+                  <Loader2 size={18} className="text-amber-500" />
                 ) : r?.status === "failed" ? (
                   <XCircle size={18} className="text-red-500" />
                 ) : (
@@ -309,6 +352,44 @@ export default function DropClaim({
                       <input className={inputCls} value={String(inputs[t.id] ?? "")} onChange={(e) => setInputs((s) => ({ ...s, [t.id]: e.target.value }))} />
                     </Field>
                   )}
+                  {t.type === "live_code" && (
+                    <Field label={t.config.place ? `Code shown at ${String(t.config.place)}` : "6-digit event code"}>
+                      <input
+                        className={inputCls}
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={String(inputs[t.id] ?? "")}
+                        onChange={(e) => setInputs((s) => ({ ...s, [t.id]: e.target.value.replace(/\D/g, "") }))}
+                      />
+                    </Field>
+                  )}
+                  {t.type === "review" && r?.status !== "pending" && (
+                    <Field label={String(t.config.instructions ?? "Your submission")}>
+                      <input
+                        className={inputCls}
+                        value={String(inputs[t.id] ?? "")}
+                        placeholder={t.config.kind === "text" ? "" : "https://…"}
+                        onChange={(e) => setInputs((s) => ({ ...s, [t.id]: e.target.value }))}
+                      />
+                    </Field>
+                  )}
+                  {t.type === "referrals" && inviteLink && (
+                    <div className="flex gap-2">
+                      <input readOnly className={inputCls} value={inviteLink} onFocus={(e) => e.currentTarget.select()} />
+                      <button
+                        type="button"
+                        className={btnSecondary}
+                        onClick={() =>
+                          void navigator.clipboard.writeText(inviteLink).then(() => {
+                            setCopiedInvite(true);
+                            setTimeout(() => setCopiedInvite(false), 1500);
+                          })
+                        }
+                      >
+                        {copiedInvite ? "Copied" : "Copy invite"}
+                      </button>
+                    </div>
+                  )}
 
                   {r?.status !== "passed" && (
                     <button type="button" className={btnSecondary} disabled={checking === t.id || !address} onClick={() => void check(t)}>
@@ -323,7 +404,55 @@ export default function DropClaim({
         </Card>
       )}
 
+      {def?.raffle && (
+        <Card>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base font-black text-[var(--ink)]">Raffle</h3>
+            <Pill tone="brand">
+              {def.raffle.winners} winner{def.raffle.winners === 1 ? "" : "s"}
+            </Pill>
+          </div>
+          {!raffle?.result ? (
+            <>
+              <p className="text-sm text-[var(--ink-soft)]">
+                Finish the tasks, then enter. {raffle ? `${raffle.entrants} entered so far. ` : ""}
+                {now < def.raffle.drawAt ? `Draw in ${untilText(def.raffle.drawAt, now)}.` : "Drawing soon."}
+              </p>
+              {raffle?.entered ? (
+                <Notice tone="ok">You&apos;re in. Come back after the draw.</Notice>
+              ) : (
+                <button
+                  type="button"
+                  className={btnPrimary}
+                  disabled={!address || !ev?.eligible || now >= def.raffle.drawAt || Boolean(busy)}
+                  onClick={() => void enterRaffle()}
+                >
+                  Enter raffle
+                </button>
+              )}
+            </>
+          ) : raffle.result.won ? (
+            <Notice tone="ok">You won! Claim below.</Notice>
+          ) : (
+            <Notice>
+              Drawn: {raffle.result.winners.length} winners from {raffle.result.entrants} entries. This wallet wasn&apos;t picked this time.
+            </Notice>
+          )}
+          {def.raffle.commit && (
+            <p className="text-[11px] text-[var(--ink-muted)] break-all">
+              Fairness: the draw uses a secret committed before entries opened ({def.raffle.commit.slice(0, 14)}…)
+              {raffle?.result ? ` plus block #${raffle.result.blockNumber}. Seed: ${raffle.result.seed}` : " plus a future block hash."}
+            </p>
+          )}
+        </Card>
+      )}
+
       <Card>
+        {progress?.streak && progress.streak.next > 1 && (
+          <Notice tone="ok">
+            Day {progress.streak.next} streak: +{((progress.streak.multiplierBps - 10_000) / 100).toFixed(0)}% on this claim.
+          </Notice>
+        )}
         {claimed ? (
           <Notice tone="ok">You claimed {claimed}. It&apos;s in your wallet.</Notice>
         ) : (
@@ -340,7 +469,7 @@ export default function DropClaim({
             {error && <Notice tone="error">{error}</Notice>}
             {address ? (
               <button type="button" className={`${btnPrimary} w-full`} disabled={!canClaim || Boolean(busy)} onClick={() => void claim()}>
-                {busy || `Claim ${fmt(ev && ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim)}`}
+                {busy || (def?.rewards?.mode === "random" ? "Claim your lucky amount" : `Claim ${fmt(ev && ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim)}`)}
               </button>
             ) : (
               <button type="button" className={`${btnPrimary} w-full`} onClick={onRequestConnect}>

@@ -113,11 +113,12 @@ export async function readWallet(
   contract: `0x${string}`,
   id: bigint,
   wallet: `0x${string}`
-): Promise<{ claimIndex: number; blocker: string }> {
+): Promise<{ claimIndex: number; lastClaimAt: number; blocker: string }> {
   const [state, blocker] = await Promise.all([
     client.readContract({ address: contract, abi: BASE_DROPS_ABI, functionName: "walletState", args: [id, wallet] }),
     client.readContract({ address: contract, abi: BASE_DROPS_ABI, functionName: "claimBlocker", args: [id, wallet] }),
   ]);
   const claims = Array.isArray(state) ? Number(state[0]) : Number((state as { claims: number }).claims);
-  return { claimIndex: claims, blocker: String(blocker) };
+  const lastClaimAt = Array.isArray(state) ? Number(state[1] ?? 0) : Number((state as { lastClaimAt?: bigint }).lastClaimAt ?? 0);
+  return { claimIndex: claims, lastClaimAt, blocker: String(blocker) };
 }
