@@ -503,7 +503,7 @@ export default function DropClaim({
             )}
             {address && status && status.claims > 0 && !blocker && <Notice>You&apos;ve claimed {status.claims} time{status.claims === 1 ? "" : "s"}.</Notice>}
             {error && <Notice tone="error">{error}</Notice>}
-            {address ? (
+            {dropState !== "live" && dropState !== "paused" && dropState !== "soon" ? null : address ? (
               <button type="button" className={`${btnPrimary} w-full`} disabled={!canClaim || Boolean(busy)} onClick={() => void claim()}>
                 {busy || (def?.rewards?.mode === "random" ? "Claim your lucky amount" : `Claim ${fmt(ev && ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim)}`)}
               </button>
