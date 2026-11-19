@@ -110,7 +110,26 @@ export default function DropClaim({
   const needsCode = isSet(drop.codesRoot);
   const fmt = (v: bigint) => `${fromUnits(v, meta.decimals)} ${meta.symbol}`;
   const left = drop.maxClaimsTotal ? Math.max(0, drop.maxClaimsTotal - drop.claimedCount) : null;
-  const missingSecret = (needsLink && !link.linkKey) || (needsCode && !link.codeKey);
+  // The drop's own state comes first: a closed / ended / empty drop can't be claimed whatever the link holds.
+  const dropState: "closed" | "ended" | "empty" | "paused" | "soon" | "live" = drop.closed
+    ? "closed"
+    : now >= drop.expiresAt
+      ? "ended"
+      : left === 0 || drop.budget < drop.amountPerClaim
+        ? "empty"
+        : drop.paused
+          ? "paused"
+          : drop.unlockAt > now
+            ? "soon"
+            : "live";
+  const stateNotice: Record<Exclude<typeof dropState, "live">, string> = {
+    closed: "This drop was closed by its creator. What was left went back to them.",
+    ended: "This drop has ended.",
+    empty: "Everything in this drop has been claimed.",
+    paused: "The creator paused this drop for now. Check back later.",
+    soon: `This drop opens in ${untilText(drop.unlockAt, now)}.`,
+  };
+  const missingSecret = dropState === "live" && ((needsLink && !link.linkKey) || (needsCode && !link.codeKey));
 
   const signIn = async () => {
     if (!address) return onRequestConnect();
@@ -211,7 +230,7 @@ export default function DropClaim({
     )
   );
   const raffleBlocks = Boolean(def?.raffle) && !raffle?.result?.won;
-  const canClaim = Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible) && !raffleBlocks;
+  const canClaim = dropState === "live" && Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible) && !raffleBlocks;
   const inviteLink =
     address && typeof window !== "undefined"
       ? `${window.location.origin}${window.location.pathname}?ref=${address.toLowerCase()}${window.location.hash}`
@@ -251,7 +270,13 @@ export default function DropClaim({
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {left !== null && <Pill tone={left > 0 ? "ok" : "bad"}>{left} left</Pill>}
+          {dropState === "closed" ? (
+            <Pill tone="bad">Closed</Pill>
+          ) : dropState === "paused" ? (
+            <Pill tone="warn">Paused</Pill>
+          ) : (
+            left !== null && <Pill tone={left > 0 ? "ok" : "bad"}>{left} left</Pill>
+          )}
           <Pill>{fmt(drop.budget)} in escrow</Pill>
           {drop.maxClaimsPerWallet > 0 && <Pill>{drop.maxClaimsPerWallet} per wallet</Pill>}
           {drop.cooldown > 0 && <Pill>every {Math.round(drop.cooldown / 3600)}h</Pill>}
@@ -467,6 +492,7 @@ export default function DropClaim({
           <Notice tone="ok">You claimed {claimed}. It&apos;s in your wallet.</Notice>
         ) : (
           <>
+            {dropState !== "live" && <Notice tone={dropState === "paused" || dropState === "soon" ? "warn" : "info"}>{stateNotice[dropState]}</Notice>}
             {missingSecret && <Notice tone="error">This link is missing its key. Ask the sender for the full link.</Notice>}
             {address && blocker && (
               <Notice tone="warn">
@@ -477,7 +503,7 @@ export default function DropClaim({
             )}
             {address && status && status.claims > 0 && !blocker && <Notice>You&apos;ve claimed {status.claims} time{status.claims === 1 ? "" : "s"}.</Notice>}
             {error && <Notice tone="error">{error}</Notice>}
-            {address ? (
+            {dropState !== "live" && dropState !== "paused" && dropState !== "soon" ? null : address ? (
               <button type="button" className={`${btnPrimary} w-full`} disabled={!canClaim || Boolean(busy)} onClick={() => void claim()}>
                 {busy || (def?.rewards?.mode === "random" ? "Claim your lucky amount" : `Claim ${fmt(ev && ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim)}`)}
               </button>
