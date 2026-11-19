@@ -15,6 +15,7 @@ import {
   LogOut,
   Moon,
   Rocket,
+  Sparkles,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const ITEMS: Item[] = [
   { id: "swap", icon: ArrowLeftRight, title: "Swap", note: "Best route across Base DEXs", tab: "swap", guestOk: true },
   { id: "lend", icon: Landmark, title: "Lend & Stake", note: "Borrow against stocks, earn yield", tab: "lend", guestOk: true },
   { id: "vouchers", icon: Gift, title: "Vouchers", note: "Send gifts with one link", tab: "basehub", guestOk: true },
+  { id: "drops", icon: Sparkles, title: "Drops", note: "Gifts with rules, daily claims and tasks", tab: "drops", guestOk: true },
   { id: "launch", icon: Rocket, title: "Launch", note: "Launch a token, earn on every trade", href: "/launch" },
   { id: "profile", icon: User, title: "Profile", note: "Your launches and revenue" },
 ];

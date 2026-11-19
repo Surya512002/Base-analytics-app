@@ -51,6 +51,8 @@ export function hrefForAppTab(
       return "/lend";
     case "basehub":
       return "/?tab=basehub";
+    case "drops":
+      return "/drops";
     case "profile":
       return "/profile";
     default:

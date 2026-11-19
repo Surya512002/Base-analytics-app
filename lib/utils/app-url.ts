@@ -24,6 +24,7 @@ const TAB_ALIASES: Record<string, AppTab> = {
   voucher: "basehub",
   vouchers: "basehub",
   basehub: "basehub",
+  drops: "drops",
   badges: "launchpad",
   achievements: "launchpad",
   rewards: "lend",

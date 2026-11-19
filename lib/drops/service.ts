@@ -305,3 +305,35 @@ export async function issueTicket(d: DropDeps, id: bigint, wallet: `0x${string}`
     ticket: sig,
   };
 }
+
+// ───────────────────────────── allowlists ─────────────────────────────
+
+const allowlistKey = (d: DropDeps, id: bigint) => `drops:allow:${BASE_CHAIN_ID}:${d.contract.toLowerCase()}:${id}`;
+
+/**
+ * Store a drop's allowlist so claimers can fetch their proof. The list must hash to the
+ * allowlistRoot the drop committed to onchain, so nobody can publish a different list.
+ */
+export async function saveAllowlist(d: DropDeps, id: bigint, sessionAddress: string, addresses: unknown): Promise<number> {
+  const drop = await loadDrop(d, id);
+  if (drop.creator.toLowerCase() !== sessionAddress.toLowerCase()) throw new DropError("Only the drop's creator can upload its list", 403);
+  if (!Array.isArray(addresses) || addresses.length === 0 || addresses.length > 10_000) {
+    throw new DropError("Upload 1 to 10,000 addresses", 400);
+  }
+  const list = [...new Set(addresses.map((a) => String(a).toLowerCase()))];
+  if (list.some((a) => !/^0x[0-9a-f]{40}$/.test(a))) throw new DropError("Every entry must be a 0x address", 400);
+  const { buildAddressTree } = await import("./merkle");
+  if (buildAddressTree(list).root.toLowerCase() !== drop.allowlistRoot.toLowerCase()) {
+    throw new DropError("This list doesn't match the drop's onchain allowlist.", 400);
+  }
+  await d.kv.set(allowlistKey(d, id), JSON.stringify(list));
+  return list.length;
+}
+
+/** Merkle proof for `wallet`, or null when it isn't on the list (or no list was uploaded). */
+export async function allowlistProof(d: DropDeps, id: bigint, wallet: string): Promise<`0x${string}`[] | null> {
+  const raw = await d.kv.get(allowlistKey(d, id));
+  if (!raw) return null;
+  const { buildAddressTree } = await import("./merkle");
+  return buildAddressTree(JSON.parse(raw) as string[]).proof(wallet);
+}

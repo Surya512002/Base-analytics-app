@@ -69,6 +69,7 @@ export interface OnchainDrop {
   unlockAt: number;
   expiresAt: number;
   ticketSigner: `0x${string}`;
+  allowlistRoot: `0x${string}`;
   committed: boolean;
   paused: boolean;
   closed: boolean;
@@ -97,6 +98,7 @@ export async function readDrop(client: Reader, contract: `0x${string}`, id: bigi
     unlockAt: Number(d.unlockAt),
     expiresAt: Number(d.expiresAt),
     ticketSigner: d.ticketSigner as `0x${string}`,
+    allowlistRoot: String(d.allowlistRoot) as `0x${string}`,
     committed: Boolean(d.committed),
     paused: Boolean(d.paused),
     closed: Boolean(d.closed),

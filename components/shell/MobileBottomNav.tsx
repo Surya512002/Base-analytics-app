@@ -50,6 +50,7 @@ export default function MobileBottomNav({
     !isProfile &&
     (pathname === "/redeem" ||
       pathname.startsWith("/redeem") ||
+      pathname.startsWith("/drops") ||
       (pathname === "/" && tab === "basehub"));
 
   const isExplore =
