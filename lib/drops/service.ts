@@ -5,11 +5,14 @@
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { IS_DROPS_TESTNET, createDropsPublicClient } from "./network";
 import { dropsKv } from "./kv";
-import { currentResults, evaluate, type Evaluation } from "./engine";
+import { activeDefinition, currentResults, dropDay, dropStart, evaluate, taskActiveOnDay, type Evaluation } from "./engine";
+import { PoolError, allocateShare, buildPool, settleShares, type PoolKeys, type SplitPool } from "./split-pool";
+import { addressLeaf, verifyProof } from "./merkle";
+import { CODE_TAG, LINK_TAG, ethSignedInner } from "./client";
 import { getTaskType } from "./tasks";
 import { walletPostCode } from "./tasks/social-proof";
 import { decisionKey, liveCode, liveCodeExpiresIn, reviewKey, type ReviewItem } from "./tasks/community";
-import { toHex, type Hex } from "viem";
+import { recoverMessageAddress, toHex, type Hex } from "viem";
 import { isSealed, openJson, sealJson } from "@/lib/voucher/secret-box";
 import { computeReward, drawWinners, maxPossibleReward, nextStreak, raffleCommit, streakMultiplierBps } from "./rewards";
 import {
@@ -18,6 +21,7 @@ import {
   TICKET_TTL_SEC,
   dropsContract,
   readDrop,
+  readNextDropId,
   readWallet,
   signTicket,
   ticketSigner,
@@ -121,6 +125,77 @@ export async function loadDefinition(d: DropDeps, id: bigint): Promise<DropDefin
   return raw ? openValue<DropDefinition>(raw, defScope(d, id)) : null;
 }
 
+const isZeroAddr = (a: string) => /^0x0{40}$/i.test(a);
+const isZeroBytes32 = (a: string) => /^0x0{64}$/i.test(a);
+
+// ───────────────────────────── random split pool ─────────────────────────────
+
+const poolKeys = (d: DropDeps, id: bigint): PoolKeys => {
+  const base = `${BASE_CHAIN_ID}:${d.contract.toLowerCase()}:${id}`;
+  return {
+    pool: `drops:pool:${base}`,
+    slot: (k) => `drops:pool-slot:${base}:${k}`,
+    ptr: (wallet, claimIndex) => `drops:pool-ptr:${base}:${wallet.toLowerCase()}:${claimIndex}`,
+  };
+};
+
+async function readPool(d: DropDeps, id: bigint): Promise<SplitPool | null> {
+  const raw = await d.kv.get(poolKeys(d, id).pool);
+  return raw ? openValue<SplitPool>(raw, defScope(d, id)) : null;
+}
+
+/** Create the private list of shares when a split drop's rules are saved (kept if nothing changed). */
+async function ensurePool(d: DropDeps, id: bigint, drop: OnchainDrop, rewards: { min?: string; max?: string }) {
+  const min = BigInt(rewards.min ?? "0");
+  const max = BigInt(rewards.max ?? "0");
+  const existing = await readPool(d, id);
+  if (existing) {
+    const same = existing.min === min.toString() && existing.max === max.toString() && existing.count === drop.maxClaimsTotal;
+    if (same || drop.claimedCount > 0) return;
+    // Nobody has claimed yet: the creator may change the split; old reservations just expire.
+  } else if (drop.claimedCount > 0) {
+    throw new DropError("This drop already has claims, so a random split can't be set up now.", 409);
+  }
+  try {
+    const pool = buildPool({ budget: drop.budget, count: drop.maxClaimsTotal, min, max, cap: drop.maxAmountPerClaim });
+    await d.kv.set(poolKeys(d, id).pool, sealValue(pool, defScope(d, id)));
+  } catch (e) {
+    if (e instanceof PoolError) throw new DropError(e.message, e.status);
+    throw e;
+  }
+}
+
+/** Called after a claim confirms: makes the wallet's share permanent right away. */
+export async function confirmClaim(d: DropDeps, id: bigint, wallet: `0x${string}`): Promise<{ settled: boolean }> {
+  const def = await loadDefinition(d, id);
+  if (def?.rewards?.mode !== "split") return { settled: false };
+  const w = await readWallet(d.client, d.contract, id, wallet);
+  await settleShares(d.kv, poolKeys(d, id), wallet, w.claimIndex);
+  return { settled: true };
+}
+
+/** The link / gift-card proofs a split drop needs before it reserves a share for a wallet. */
+export interface AccessProof {
+  linkSig?: Hex;
+  code?: `0x${string}`;
+  codeProof?: Hex[];
+  codeSig?: Hex;
+}
+
+async function checkAccessProof(d: DropDeps, id: bigint, drop: OnchainDrop, wallet: `0x${string}`, proof?: AccessProof) {
+  if (!isZeroAddr(drop.linkSigner)) {
+    if (!proof?.linkSig) throw new DropError("Open the full link from the sender to get your share.", 403);
+    const who = await recoverMessageAddress({ message: { raw: ethSignedInner(LINK_TAG, d.contract, id, wallet) }, signature: proof.linkSig }).catch(() => null);
+    if (!who || who.toLowerCase() !== drop.linkSigner.toLowerCase()) throw new DropError("This link isn't valid for this drop.", 403);
+  }
+  if (!isZeroBytes32(drop.codesRoot)) {
+    if (!proof?.code || !proof.codeSig || !Array.isArray(proof.codeProof)) throw new DropError("Open the full gift-card link to get your share.", 403);
+    const who = await recoverMessageAddress({ message: { raw: ethSignedInner(CODE_TAG, d.contract, id, wallet) }, signature: proof.codeSig }).catch(() => null);
+    if (!who || who.toLowerCase() !== proof.code.toLowerCase()) throw new DropError("This code isn't valid for this drop.", 403);
+    if (!verifyProof(proof.codeProof, drop.codesRoot, addressLeaf(proof.code))) throw new DropError("This code isn't valid for this drop.", 403);
+  }
+}
+
 // ───────────────────────────── creator: save tasks ─────────────────────────────
 
 /**
@@ -166,6 +241,7 @@ export async function saveDefinition(d: DropDeps, id: bigint, sessionAddress: st
     throw new DropError("With these rewards a claim could exceed the drop's max per claim. Lower them or create the drop with a higher max.", 400);
   }
 
+  if (def.rewards?.mode === "split") await ensurePool(d, id, drop, def.rewards);
   let raffle = def.raffle;
   if (raffle) {
     if (raffle.drawAt <= d.now()) throw new DropError("The raffle draw time must be in the future.", 400);
@@ -189,9 +265,65 @@ export async function saveDefinition(d: DropDeps, id: bigint, sessionAddress: st
   return stored;
 }
 
+/** Validate + prepare one task spec (hash answers, schema-check config). */
+function prepareTask(d: DropDeps, id: bigint, t: DropDefinition["tasks"][number]): DropDefinition["tasks"][number] {
+  const type = getTaskType(t.type);
+  if (!type) throw new DropError(`Unknown task type "${t.type}"`, 400);
+  let config: unknown;
+  try {
+    config = type.prepare ? type.prepare(t.config, { dropKey: defKey(d, id), taskId: t.id }) : t.config;
+  } catch {
+    throw new DropError(`Task "${t.id}": invalid settings`, 400);
+  }
+  const ok = type.configSchema.safeParse(config);
+  if (!ok.success) throw new DropError(`Task "${t.id}": ${ok.error.issues[0]?.message ?? "invalid settings"}`, 400);
+  return { ...t, config: ok.data };
+}
+
+/**
+ * Change tasks day by day without redoing the drop: add new tasks (e.g. tomorrow's post task)
+ * and/or remove old ones. Creator only, never on a locked (committed) drop. Rewards, raffle and
+ * everything else stay as they are. New task ids are assigned here.
+ */
+export async function updateTasks(
+  d: DropDeps,
+  id: bigint,
+  sessionAddress: string,
+  input: { add?: unknown; remove?: unknown }
+): Promise<DropDefinition> {
+  const drop = await loadDrop(d, id);
+  if (drop.creator.toLowerCase() !== sessionAddress.toLowerCase()) throw new DropError("Only the drop's creator can change its tasks", 403);
+  if (drop.closed) throw new DropError("Drop closed", 400);
+  if (drop.committed) throw new DropError("This drop is locked until it ends, so its tasks can't change.", 409);
+  const def = await loadDefinition(d, id);
+  if (!def) throw new DropError("Save this drop's tasks first.", 404);
+
+  const remove = new Set(Array.isArray(input.remove) ? input.remove.map(String) : []);
+  const kept = def.tasks.filter((t) => !remove.has(t.id));
+  const adds = Array.isArray(input.add) ? input.add : [];
+  if (adds.length > 40) throw new DropError("Too many tasks at once.", 400);
+
+  let n = def.tasks.reduce((m, t) => Math.max(m, Number(/^t(\d+)$/.exec(t.id)?.[1] ?? 0)), 0);
+  const added = adds.map((raw) => {
+    n += 1;
+    const parsed = dropDefinitionSchema.safeParse({ version: 1, tasks: [{ ...(raw as object), id: `t${n}` }] });
+    if (!parsed.success) throw new DropError(parsed.error.issues[0]?.message ?? "Invalid task", 400);
+    return prepareTask(d, id, parsed.data.tasks[0]!);
+  });
+
+  const next: DropDefinition = { ...def, tasks: [...kept, ...added] };
+  const check = dropDefinitionSchema.safeParse(next);
+  if (!check.success) throw new DropError(check.error.issues[0]?.message ?? "Invalid tasks", 400);
+  await d.kv.set(defKey(d, id), sealValue(next, defScope(d, id)));
+  return next;
+}
+
 /** Tasks as claimers see them: no answers or salts. */
-export function publicDefinition(def: DropDefinition) {
+export function publicDefinition(def: DropDefinition, sched?: { start: number; now: number }) {
+  const day = sched ? dropDay(sched.start, sched.now) : undefined;
   return {
+    day,
+    start: sched?.start,
     version: def.version,
     minPoints: def.minPoints,
     tiers: def.tiers,
@@ -207,6 +339,8 @@ export function publicDefinition(def: DropDefinition) {
         points: t.points,
         group: t.group,
         repeat: t.repeat,
+        days: t.days,
+        activeNow: day === undefined ? true : taskActiveOnDay(t, Math.max(1, day)),
         trust: type?.trust,
         needsSubmission: type?.needsSubmission ?? false,
         config: type?.publicConfig ? type.publicConfig(t.config) : t.config,
@@ -252,12 +386,18 @@ export interface ProgressView {
   extras: Record<string, Record<string, string>>;
   /** Streak the next claim would count as, and its bonus (10000 = ×1). */
   streak?: { next: number; multiplierBps: number };
+  /** 1-based day of the drop, and whether tasks exist but none are active today. */
+  day?: number;
+  noTaskToday?: boolean;
 }
 
 export async function getProgress(d: DropDeps, id: bigint, wallet: `0x${string}`): Promise<ProgressView> {
-  const def = await loadDefinition(d, id);
-  if (!def) throw new DropError("This drop has no tasks", 404);
+  const full = await loadDefinition(d, id);
+  if (!full) throw new DropError("This drop has no tasks", 404);
+  const drop = await loadDrop(d, id);
+  const def = activeDefinition(full, dropStart(drop), d.now());
   const [w, progress] = await Promise.all([readWallet(d.client, d.contract, id, wallet), readProgress(d, id, wallet)]);
+  if (full.rewards?.mode === "split" && w.claimIndex > 0) await settleShares(d.kv, poolKeys(d, id), wallet, w.claimIndex);
   const results = currentResults(def, progress, w.claimIndex, d.now());
   const extras: ProgressView["extras"] = {};
   for (const t of def.tasks) {
@@ -281,6 +421,8 @@ export async function getProgress(d: DropDeps, id: bigint, wallet: `0x${string}`
     results: Object.fromEntries(Object.entries(results).map(([k, r]) => [k, { status: r.status, message: r.message, at: r.at }])),
     extras,
     streak,
+    day: dropDay(dropStart(drop), d.now()),
+    noTaskToday: def.noTaskToday,
   };
 }
 
@@ -293,7 +435,14 @@ async function readStreak(d: DropDeps, id: bigint, wallet: string): Promise<{ fo
 }
 
 /** Re-run tasks whose result can change, then evaluate. Shared by tickets and raffle entry. */
-async function recheckAndEvaluate(d: DropDeps, id: bigint, drop: OnchainDrop, def: DropDefinition, wallet: `0x${string}`, claimIndex: number) {
+async function recheckAndEvaluate(
+  d: DropDeps,
+  id: bigint,
+  drop: OnchainDrop,
+  def: DropDefinition & { noTaskToday?: boolean },
+  wallet: `0x${string}`,
+  claimIndex: number
+) {
   const progress = await readProgress(d, id, wallet);
   const results = currentResults(def, progress, claimIndex, d.now());
   for (const t of def.tasks) {
@@ -323,6 +472,9 @@ export async function checkTask(
   if (!type) throw new DropError("This task type is no longer supported", 400);
 
   const drop = await loadDrop(d, id);
+  if (!taskActiveOnDay(spec, Math.max(1, dropDay(dropStart(drop), d.now())))) {
+    throw new DropError("This task isn't active today. Come back on its day.", 409);
+  }
   const { claimIndex } = await readWallet(d.client, d.contract, id, wallet);
   const r = await type.verify(spec.config, contextFor(d, id, drop, wallet, taskId, submission));
   const stored: StoredTaskResult = { ...r, at: d.now(), claimIndex };
@@ -350,10 +502,11 @@ export interface Ticket {
  * Re-check the tasks that can change (balances, follows…), then sign a ticket for exactly this
  * wallet's next claim. Nothing ever auto-passes: an outage means no ticket.
  */
-export async function issueTicket(d: DropDeps, id: bigint, wallet: `0x${string}`): Promise<Ticket> {
-  const def = await loadDefinition(d, id);
-  if (!def) throw new DropError("This drop has no tasks", 404);
+export async function issueTicket(d: DropDeps, id: bigint, wallet: `0x${string}`, proof?: AccessProof): Promise<Ticket> {
+  const full = await loadDefinition(d, id);
+  if (!full) throw new DropError("This drop has no tasks", 404);
   const drop = await loadDrop(d, id);
+  const def = { ...full, ...activeDefinition(full, dropStart(drop), d.now()) };
   const signer = ticketSigner();
   if (!signer || drop.ticketSigner.toLowerCase() !== signer.address.toLowerCase()) {
     throw new DropError("This drop doesn't use app-verified tasks.", 400);
@@ -368,7 +521,15 @@ export async function issueTicket(d: DropDeps, id: bigint, wallet: `0x${string}`
   }
 
   const ev = await recheckAndEvaluate(d, id, drop, def, wallet, w.claimIndex);
-  if (!ev.eligible) throw new DropError("Finish the remaining tasks first.", 403);
+  if (!ev.eligible) {
+    throw new DropError(ev.missing.includes("schedule:no-task-today") ? "There's no task scheduled for today. Check back tomorrow." : "Finish the remaining tasks first.", 403);
+  }
+
+  const split = full.rewards?.mode === "split";
+  if (split) {
+    await checkAccessProof(d, id, drop, wallet, proof);
+    await settleShares(d.kv, poolKeys(d, id), wallet, w.claimIndex);
+  }
 
   let streak = 1;
   if (def.rewards?.streak) {
@@ -383,7 +544,22 @@ export async function issueTicket(d: DropDeps, id: bigint, wallet: `0x${string}`
     await d.kv.set(streakKey(d, id, wallet), JSON.stringify({ forClaimIndex: w.claimIndex, streak }), Math.max(3600, drop.expiresAt - d.now()));
   }
   const base = ev.amount !== "0" ? BigInt(ev.amount) : drop.amountPerClaim;
-  const amount = computeReward({ base, rules: def.rewards, streak, cap: drop.maxAmountPerClaim });
+  let amount: bigint;
+  if (split) {
+    const pool = await readPool(d, id);
+    if (!pool) throw new DropError("This drop's random split isn't set up yet.", 503);
+    try {
+      amount = await allocateShare(d.kv, poolKeys(d, id), pool, wallet, w.claimIndex);
+    } catch (e) {
+      if (e instanceof PoolError) throw new DropError(e.message, e.status);
+      throw e;
+    }
+  } else {
+    amount = computeReward({ base, rules: def.rewards, streak, cap: drop.maxAmountPerClaim });
+  }
+  // Never sign more than the escrow still holds (a lapsed reservation can't overdraw it).
+  if (amount > drop.budget) amount = drop.budget;
+  if (amount <= BigInt(0)) throw new DropError("This drop has nothing left to claim.", 409);
 
   const deadline = BigInt(d.now() + TICKET_TTL_SEC);
   const sig = await signTicket({
@@ -470,7 +646,7 @@ export async function enterRaffle(d: DropDeps, id: bigint, wallet: `0x${string}`
   if (d.now() >= def.raffle.drawAt) throw new DropError("Entries are closed: the raffle is being drawn.", 409);
   const drop = await loadDrop(d, id);
   const w = await readWallet(d.client, d.contract, id, wallet);
-  const ev = await recheckAndEvaluate(d, id, drop, def, wallet, w.claimIndex);
+  const ev = await recheckAndEvaluate(d, id, drop, activeDefinition(def, dropStart(drop), d.now()), wallet, w.claimIndex);
   if (!ev.eligible) throw new DropError("Finish the tasks to enter.", 403);
   const list = await readEntrants(d, id);
   if (!list.includes(wallet.toLowerCase())) {
@@ -584,4 +760,146 @@ export async function currentLiveCode(d: DropDeps, id: bigint, sessionAddress: s
   const secret = (spec.config as { secret: string }).secret;
   const now = d.now();
   return { code: liveCode(secret, now), expiresIn: liveCodeExpiresIn(now) };
+}
+
+/** The drop's tasks as claimers see them today (with each task's day window and whether it is active now). */
+export async function getPublicDefinition(d: DropDeps, id: bigint) {
+  const def = await loadDefinition(d, id);
+  if (!def) return null;
+  let drop: OnchainDrop | null = null;
+  try {
+    drop = await readDrop(d.client, d.contract, id);
+  } catch {
+    drop = null;
+  }
+  return publicDefinition(def, drop ? { start: dropStart(drop), now: d.now() } : undefined);
+}
+
+// ───────────────────────────── public listing + feed ─────────────────────────────
+
+export const LISTING_CATEGORIES = ["quest", "daily", "holders", "gift", "airdrop"] as const;
+export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
+
+export interface Listing {
+  title: string;
+  blurb: string;
+  category: ListingCategory;
+  listedAt: number;
+}
+
+const listingKey = (d: DropDeps, id: bigint) => `drops:listing:${BASE_CHAIN_ID}:${d.contract.toLowerCase()}:${id}`;
+
+/**
+ * List a drop in the public feed (or remove it with null). Creator only. Only drops anyone can
+ * reach on their own (tasks, token holders) can be listed: a link or gift-card drop's secret
+ * would otherwise have to be published.
+ */
+export async function saveListing(d: DropDeps, id: bigint, sessionAddress: string, input: unknown): Promise<Listing | null> {
+  const drop = await loadDrop(d, id);
+  if (drop.creator.toLowerCase() !== sessionAddress.toLowerCase()) throw new DropError("Only the drop's creator can list it", 403);
+  if (input === null) {
+    await d.kv.set(listingKey(d, id), "null");
+    return null;
+  }
+  if (!isZeroAddr(drop.linkSigner) || !isZeroBytes32(drop.codesRoot)) {
+    throw new DropError("Link and gift-card drops are private by design, so they can't be listed publicly.", 400);
+  }
+  if (drop.closed) throw new DropError("Drop closed", 400);
+  const o = (input ?? {}) as Record<string, unknown>;
+  const title = typeof o.title === "string" ? o.title.trim().slice(0, 60) : "";
+  const blurb = typeof o.blurb === "string" ? o.blurb.trim().slice(0, 160) : "";
+  const category = LISTING_CATEGORIES.find((c) => c === o.category);
+  if (title.length < 3) throw new DropError("Give your drop a title (3+ characters).", 400);
+  if (!category) throw new DropError("Pick a category.", 400);
+  const listing: Listing = { title, blurb, category, listedAt: d.now() };
+  await d.kv.set(listingKey(d, id), JSON.stringify(listing));
+  return listing;
+}
+
+export async function readListing(d: DropDeps, id: bigint): Promise<Listing | null> {
+  const raw = await d.kv.get(listingKey(d, id));
+  if (!raw || raw === "null") return null;
+  try {
+    return JSON.parse(raw) as Listing;
+  } catch {
+    return null;
+  }
+}
+
+export interface FeedItem {
+  id: string;
+  listing: Listing;
+  creator: string;
+  token: string;
+  amountPerClaim: string;
+  maxAmountPerClaim: string;
+  budget: string;
+  maxClaimsTotal: number;
+  claimedCount: number;
+  unlockAt: number;
+  expiresAt: number;
+  daily: boolean;
+  split: boolean;
+  gated: "tasks" | "holders" | "list";
+  taskCount: number;
+  taskTypes: string[];
+  state: "live" | "soon" | "ended" | "closed" | "paused" | "empty";
+}
+
+const FEED_SCAN = 400;
+
+function stateOf(drop: OnchainDrop, now: number): FeedItem["state"] {
+  if (drop.closed) return "closed";
+  if (now >= drop.expiresAt) return "ended";
+  if ((drop.maxClaimsTotal > 0 && drop.claimedCount >= drop.maxClaimsTotal) || drop.budget < drop.amountPerClaim) return "empty";
+  if (drop.paused) return "paused";
+  if (drop.unlockAt > now) return "soon";
+  return "live";
+}
+
+/**
+ * Public drops, newest first. Drop ids are sequential, so we walk the latest ids and keep the
+ * ones their creator listed: no index to keep in sync. Cached briefly because it reads the chain.
+ */
+export async function feed(d: DropDeps, opts: { before?: bigint; limit?: number } = {}): Promise<{ items: FeedItem[]; next: string | null }> {
+  const limit = Math.max(1, Math.min(opts.limit ?? 24, 50));
+  const cacheKey = `drops:feed-cache:${BASE_CHAIN_ID}:${d.contract.toLowerCase()}:${opts.before ?? "top"}:${limit}`;
+  const cached = await d.kv.get(cacheKey);
+  if (cached) return JSON.parse(cached) as { items: FeedItem[]; next: string | null };
+
+  const top = await readNextDropId(d.client, d.contract);
+  let cursor = opts.before !== undefined && opts.before < top ? opts.before : top;
+  const items: FeedItem[] = [];
+  let scanned = 0;
+  while (cursor > FIRST_DROP_ID && items.length < limit && scanned < FEED_SCAN) {
+    cursor -= BigInt(1);
+    scanned += 1;
+    const listing = await readListing(d, cursor);
+    if (!listing) continue;
+    const drop = await readDrop(d.client, d.contract, cursor).catch(() => null);
+    if (!drop || drop.closed) continue;
+    const def = await loadDefinition(d, cursor);
+    items.push({
+      id: cursor.toString(),
+      listing,
+      creator: drop.creator,
+      token: drop.token,
+      amountPerClaim: drop.amountPerClaim.toString(),
+      maxAmountPerClaim: drop.maxAmountPerClaim.toString(),
+      budget: drop.budget.toString(),
+      maxClaimsTotal: drop.maxClaimsTotal,
+      claimedCount: drop.claimedCount,
+      unlockAt: drop.unlockAt,
+      expiresAt: drop.expiresAt,
+      daily: drop.cooldown > 0,
+      split: def?.rewards?.mode === "split",
+      gated: def ? "tasks" : !isZeroBytes32(drop.allowlistRoot) ? "list" : "holders",
+      taskCount: def?.tasks.length ?? 0,
+      taskTypes: [...new Set(def?.tasks.map((t) => t.type) ?? [])],
+      state: stateOf(drop, d.now()),
+    });
+  }
+  const out = { items, next: cursor > FIRST_DROP_ID && (scanned >= FEED_SCAN || items.length >= limit) ? cursor.toString() : null };
+  await d.kv.set(cacheKey, JSON.stringify(out), 20);
+  return out;
 }

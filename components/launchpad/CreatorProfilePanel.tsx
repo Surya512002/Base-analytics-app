@@ -18,6 +18,7 @@ import {
   LAUNCHPAD_PLATFORM_FEE_BPS,
 } from "@/lib/constants/launchpad";
 import { FEE_SHARE_CREATOR_BPS } from "@/lib/launchpad/fee-split";
+import LinkedAccounts from "@/components/drops/LinkedAccounts";
 
 function estimateCreatorEthFromVolume(volumeUsd: number): number {
   const feePct = LAUNCHPAD_PLATFORM_FEE_BPS / 10000;
@@ -33,7 +34,10 @@ export default function CreatorProfilePanel({
   siweAuthenticated = false,
   siweSigningIn = false,
   onSiweSignIn,
+  connType = null,
 }: {
+  /** How the wallet is connected (used to sign in before linking accounts). */
+  connType?: import("@/hooks/useWalletApp").WalletAppState["connType"];
   address: string;
   onOpenToken?: (token: LaunchedToken) => void;
   connectedAddress?: string | null;
@@ -162,6 +166,7 @@ export default function CreatorProfilePanel({
           {isOwner && (
             <div className="block lg:hidden w-full min-w-0 space-y-6">
               <DailyActionsPanel onRequestConnect={onConnect} />
+              <LinkedAccounts address={connectedAddress ?? null} connType={connType} title="Linked accounts" />
             </div>
           )}
         </div>
@@ -170,6 +175,7 @@ export default function CreatorProfilePanel({
         {isOwner && (
           <div className="hidden lg:block lg:col-span-4 sticky top-24 w-full min-w-0 space-y-6">
             <DailyActionsPanel onRequestConnect={onConnect} />
+            <LinkedAccounts address={connectedAddress ?? null} connType={connType} title="Linked accounts" />
           </div>
         )}
       </div>

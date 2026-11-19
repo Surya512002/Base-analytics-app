@@ -150,3 +150,43 @@ describe("share links", () => {
     expect(explainDropError("weird")).toContain("didn't go through");
   });
 });
+
+describe("prepareDrop: random split", () => {
+  const E = (s: string) => BigInt(Math.round(Number(s) * 1e6)) * BigInt(10) ** BigInt(12);
+  const base = () => ({
+    ...defaultForm("group"),
+    rewardMode: "split" as const,
+    budget: "1",
+    totalClaims: 100,
+    randomMin: "0.001",
+    randomMax: "0.02",
+  });
+  const opts = { now: 1_700_000_000, appTicketSigner: "0x00000000000000000000000000000000000a11ce", creator: "0x00000000000000000000000000000000c0ffee00" };
+
+  it("1 ETH over 100 cards between 0.001 and 0.02 escrows exactly 1 ETH and asks the app to sign each share", () => {
+    const r = prepareDrop(base(), opts);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.prepared.params.budget).toBe(E("1"));
+    expect(r.prepared.params.amountPerClaim).toBe(E("0.001"));
+    expect(r.prepared.params.maxAmountPerClaim).toBe(E("0.02"));
+    expect(r.prepared.params.maxClaimsTotal).toBe(100);
+    expect(r.prepared.params.ticketSigner).toBe(opts.appTicketSigner);
+    expect(r.prepared.rewards).toMatchObject({ mode: "split", min: E("0.001").toString(), max: E("0.02").toString() });
+  });
+
+  it("works with gift-card codes (one share per code) and needs the app's signer", () => {
+    const cards = prepareDrop({ ...base(), access: ["codes"], codeCount: 50, totalClaims: 50, budget: "0.5" }, opts);
+    expect(cards.ok && cards.prepared.params.maxClaimsTotal).toBe(50);
+    expect(cards.ok && cards.prepared.codeKeys.length).toBe(50);
+    expect(prepareDrop(base(), { ...opts, appTicketSigner: null })).toMatchObject({ ok: false });
+  });
+
+  it("refuses totals the limits can't produce, with the reason", () => {
+    expect(prepareDrop({ ...base(), budget: "0.05" }, opts)).toMatchObject({ ok: false, error: expect.stringMatching(/too small/) });
+    expect(prepareDrop({ ...base(), budget: "5" }, opts)).toMatchObject({ ok: false, error: expect.stringMatching(/too big/) });
+    expect(prepareDrop({ ...base(), randomMax: "0.0005" }, opts)).toMatchObject({ ok: false });
+    expect(prepareDrop({ ...base(), randomMin: "" }, opts)).toMatchObject({ ok: false });
+    expect(prepareDrop({ ...base(), totalClaims: 0 }, opts)).toMatchObject({ ok: false });
+  });
+});

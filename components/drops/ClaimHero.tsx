@@ -38,7 +38,13 @@ export default function ClaimHero({
   unlockAt,
   now,
   rules,
+  liveNote,
+  day,
 }: {
+  /** Replaces "for you to claim" while live (e.g. "between 0.001 and 0.02 ETH"). */
+  liveNote?: string;
+  /** 1-based day of the drop, shown for multi-day drops. */
+  day?: number;
   id: string;
   amount: string;
   message: string;
@@ -89,7 +95,7 @@ export default function ClaimHero({
           >
             {amount}
             <span className="block text-base font-bold text-white/75 sm:text-lg">
-              {state === "live" ? "for you to claim" : state === "soon" ? "opens soon" : state === "paused" ? "paused for now" : "per claim"}
+              {state === "live" ? (liveNote ?? "for you to claim") : state === "soon" ? "opens soon" : state === "paused" ? "paused for now" : "per claim"}
             </span>
           </motion.h1>
 
@@ -130,6 +136,7 @@ export default function ClaimHero({
 
           <div className="flex flex-wrap gap-1.5">
             {state === "soon" && <GlassChip icon={<Clock size={12} aria-hidden />}>Opens in {untilText(unlockAt, now)}</GlassChip>}
+            {day && day > 0 && state === "live" && rules.cooldownH > 0 && <GlassChip icon={<CalendarClock size={12} aria-hidden />}>Day {day}</GlassChip>}
             {expiresAt > now && <GlassChip icon={<CalendarClock size={12} aria-hidden />}>Ends in {untilText(expiresAt, now)}</GlassChip>}
             {rules.perWallet > 0 && <GlassChip icon={<Users size={12} aria-hidden />}>{rules.perWallet === 1 ? "Once per wallet" : `${rules.perWallet} per wallet`}</GlassChip>}
             {rules.cooldownH > 0 && <GlassChip icon={<Repeat size={12} aria-hidden />}>{rules.cooldownH === 24 ? "Daily" : `Every ${rules.cooldownH}h`}</GlassChip>}

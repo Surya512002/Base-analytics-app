@@ -6,13 +6,14 @@ import { encodeAbiParameters, keccak256, stringToBytes, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { buildAddressTree } from "./merkle";
 import { maxPossibleReward, type RewardRules } from "./rewards";
+import { checkSplit } from "./split";
 
 export { DROPS_CHAIN_ID } from "./network";
 import { DROPS_CHAIN_ID } from "./network";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 export const ZERO_BYTES32 = `0x${"0".repeat(64)}` as Hex;
-const LINK_TAG = keccak256(stringToBytes("BaseDrops.v1.link"));
-const CODE_TAG = keccak256(stringToBytes("BaseDrops.v1.code"));
+export const LINK_TAG = keccak256(stringToBytes("BaseDrops.v1.link"));
+export const CODE_TAG = keccak256(stringToBytes("BaseDrops.v1.code"));
 
 /** BaseDrops address, or "" until it's deployed and configured. */
 export const DROPS_CONTRACT = (() => {
@@ -53,8 +54,12 @@ export interface DropForm {
   recovery: string;
   message: string;
   senderLabel: string;
-  /** Task drops only: fixed amount, or a random amount between randomMin and randomMax. */
-  rewardMode: "fixed" | "random";
+  /**
+   * Fixed amount; random per claim between randomMin and randomMax (task drops); or "split":
+   * the whole budget shared randomly across the claims, each between randomMin and randomMax,
+   * adding up exactly (needs the app's ticket signer, works with any access type).
+   */
+  rewardMode: "fixed" | "random" | "split";
   randomMin: string;
   randomMax: string;
   /** Task drops only: % bonus per consecutive claim (0 = off), up to streakMaxDays. */
@@ -188,13 +193,19 @@ export type PrepareResult = { ok: true; prepared: Prepared } | { ok: false; erro
  * `appTicketSigner` is the app's signer (from /api/drops/catalog), needed for task drops.
  */
 export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner: string | null; creator: string }): PrepareResult {
-  const per = toUnits(form.amountPerClaim, form.decimals);
-  if (!per || per <= BigInt(0)) return { ok: false, error: "Enter how much each claim gets." };
+  const split = form.rewardMode === "split";
+  const splitLo = split ? toUnits(form.randomMin, form.decimals) : null;
+  const splitHi = split ? toUnits(form.randomMax, form.decimals) : null;
+  const per = split ? splitLo : toUnits(form.amountPerClaim, form.decimals);
+  if (!per || per <= BigInt(0)) return { ok: false, error: split ? "Enter the smallest amount a claim can get." : "Enter how much each claim gets." };
 
   // Variable rewards (random / streak) only exist for task drops, where the app signs the amount.
   const tasks = form.access.includes("tasks");
   let rewards: RewardRules | undefined;
-  if (tasks && (form.rewardMode === "random" || form.streakBonusPct > 0)) {
+  if (split) {
+    if (!splitHi || splitHi < per) return { ok: false, error: "The largest amount must be at least the smallest." };
+    rewards = { mode: "split", min: per.toString(), max: splitHi.toString() };
+  } else if (tasks && (form.rewardMode === "random" || form.streakBonusPct > 0)) {
     rewards = { mode: form.rewardMode };
     if (form.rewardMode === "random") {
       const lo = toUnits(form.randomMin, form.decimals);
@@ -208,7 +219,7 @@ export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner
       rewards.streak = { bonusBps: Math.round(form.streakBonusPct * 100), maxDays: form.streakMaxDays, windowHours: 48 };
     }
   }
-  const maxPer = maxPossibleReward(per, rewards);
+  const maxPer = split ? splitHi! : maxPossibleReward(per, rewards);
 
   let raffle: { winners: number; drawAt: number } | undefined;
   if (tasks && form.raffleWinners > 0) {
@@ -220,7 +231,13 @@ export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner
   if (form.access.includes("codes")) total = form.codeCount;
   if (raffle && total > 0 && raffle.winners > total) return { ok: false, error: "More raffle winners than claims." };
   let budget: bigint;
-  if (total > 0) {
+  if (split) {
+    const b = toUnits(form.budget, form.decimals);
+    if (!b) return { ok: false, error: "Enter the total to share." };
+    const chk = checkSplit(b, total, per, splitHi!);
+    if (!chk.ok) return { ok: false, error: chk.error };
+    budget = b;
+  } else if (total > 0) {
     // Every claim could be the largest possible reward; whatever is left comes back to you.
     budget = maxPer * BigInt(total);
   } else {
@@ -278,7 +295,7 @@ export function prepareDrop(form: DropForm, opts: { now: number; appTicketSigner
   }
 
   let ticketSigner: `0x${string}` = ZERO_ADDRESS;
-  if (form.access.includes("tasks")) {
+  if (form.access.includes("tasks") || split) {
     if (!opts.appTicketSigner) return { ok: false, error: "Task checks aren't available on this deployment yet." };
     ticketSigner = opts.appTicketSigner as `0x${string}`;
   }
@@ -360,7 +377,7 @@ export function parseDropLink(pathname: string, hash: string): ParsedDropLink {
 
 // ───────────────────────────── claim ─────────────────────────────
 
-function ethSignedInner(tag: Hex, contract: string, id: bigint, claimer: string): Hex {
+export function ethSignedInner(tag: Hex, contract: string, id: bigint, claimer: string): Hex {
   return keccak256(
     encodeAbiParameters(
       [{ type: "bytes32" }, { type: "uint256" }, { type: "address" }, { type: "uint256" }, { type: "address" }],

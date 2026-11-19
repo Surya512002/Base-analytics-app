@@ -71,7 +71,13 @@ export interface OnchainDrop {
   unlockAt: number;
   expiresAt: number;
   ticketSigner: `0x${string}`;
+  linkSigner: `0x${string}`;
   allowlistRoot: `0x${string}`;
+  codesRoot: `0x${string}`;
+  maxClaimsTotal: number;
+  claimedCount: number;
+  maxClaimsPerWallet: number;
+  cooldown: number;
   committed: boolean;
   paused: boolean;
   closed: boolean;
@@ -100,7 +106,13 @@ export async function readDrop(client: Reader, contract: `0x${string}`, id: bigi
     unlockAt: Number(d.unlockAt),
     expiresAt: Number(d.expiresAt),
     ticketSigner: d.ticketSigner as `0x${string}`,
+    linkSigner: d.linkSigner as `0x${string}`,
     allowlistRoot: String(d.allowlistRoot) as `0x${string}`,
+    codesRoot: String(d.codesRoot) as `0x${string}`,
+    maxClaimsTotal: Number(d.maxClaimsTotal),
+    claimedCount: Number(d.claimedCount),
+    maxClaimsPerWallet: Number(d.maxClaimsPerWallet),
+    cooldown: Number(d.cooldown),
     committed: Boolean(d.committed),
     paused: Boolean(d.paused),
     closed: Boolean(d.closed),
@@ -121,4 +133,9 @@ export async function readWallet(
   const claims = Array.isArray(state) ? Number(state[0]) : Number((state as { claims: number }).claims);
   const lastClaimAt = Array.isArray(state) ? Number(state[1] ?? 0) : Number((state as { lastClaimAt?: bigint }).lastClaimAt ?? 0);
   return { claimIndex: claims, lastClaimAt, blocker: String(blocker) };
+}
+
+/** The id the next drop will get (ids run FIRST_DROP_ID … nextDropId - 1). */
+export async function readNextDropId(client: Reader, contract: `0x${string}`): Promise<bigint> {
+  return BigInt((await client.readContract({ address: contract, abi: BASE_DROPS_ABI, functionName: "nextDropId", args: [] })) as bigint);
 }

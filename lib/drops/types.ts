@@ -93,6 +93,11 @@ export const taskSpecSchema = z.object({
   group: z.string().max(32).optional(),
   /** Must be done again before every claim (daily tasks). */
   repeat: z.boolean().default(false),
+  /**
+   * Only active on these days of the drop (1 = the first 24h after it opens). Leave out for
+   * "every day". Lets a creator plan a different task for each day, or add tomorrow's later.
+   */
+  days: z.object({ from: z.number().int().min(1).max(3650), to: z.number().int().min(1).max(3650) }).refine((d) => d.to >= d.from, "Task days end before they start").optional(),
   config: z.unknown(),
 });
 export type TaskSpec = z.infer<typeof taskSpecSchema>;
@@ -100,15 +105,19 @@ export type TaskSpec = z.infer<typeof taskSpecSchema>;
 export const dropDefinitionSchema = z
   .object({
     version: z.literal(1),
-    tasks: z.array(taskSpecSchema).min(1).max(20),
+    tasks: z.array(taskSpecSchema).max(40),
     /** Points needed (on top of required tasks). */
     minPoints: z.number().int().min(0).max(20_000).optional(),
     /** Reward tiers by points; the highest reached wins. "0" = the drop's default amount. */
     tiers: z.array(z.object({ minPoints: z.number().int().min(0), amount: weiString })).max(10).optional(),
-    /** Fixed (default) or a random amount per claim, plus an optional streak bonus for consecutive claims. */
+    /**
+     * Fixed (default), a random amount per claim ("random"), or an exact random split of the
+     * drop's whole budget across its claims ("split": amounts are kept private by the server).
+     * Plus an optional streak bonus for consecutive claims.
+     */
     rewards: z
       .object({
-        mode: z.enum(["fixed", "random"]).default("fixed"),
+        mode: z.enum(["fixed", "random", "split"]).default("fixed"),
         min: weiString.optional(),
         max: weiString.optional(),
         streak: z
@@ -131,11 +140,12 @@ export const dropDefinitionSchema = z
       .optional(),
   })
   .superRefine((def, ctx) => {
-    if (def.rewards?.mode === "random") {
+    if (def.rewards?.mode === "random" || def.rewards?.mode === "split") {
       if (def.rewards.min === undefined || def.rewards.max === undefined) ctx.addIssue({ code: "custom", message: "Random rewards need a min and a max" });
       else if (BigInt(def.rewards.min) > BigInt(def.rewards.max)) ctx.addIssue({ code: "custom", message: "Random min is above max" });
       else if (BigInt(def.rewards.max) === BigInt(0)) ctx.addIssue({ code: "custom", message: "Random max must be above 0" });
     }
+    if (def.rewards?.mode === "split" && def.rewards.streak) ctx.addIssue({ code: "custom", message: "A random split can't also have a streak bonus" });
     const ids = new Set<string>();
     for (const t of def.tasks) {
       if (ids.has(t.id)) ctx.addIssue({ code: "custom", message: `Duplicate task id "${t.id}"` });

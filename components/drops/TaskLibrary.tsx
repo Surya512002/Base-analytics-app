@@ -2,12 +2,12 @@
 
 import React from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, ArrowUp, Check, ChevronDown, Plus, Sparkles, Trash2, TriangleAlert } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, Plus, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { TYPE_HELP, TypeFields, newDraft, type TaskDraft } from "./TaskBuilder";
 import { TASK_CATEGORIES, TASK_META, TASK_TEMPLATES, TaskIcon, missingFields, type TaskCategory } from "./task-meta";
 import { accountsApi, type AccountsInfo, type CatalogEntry } from "./drops-api";
-import { Field, Pill, Toggle, TRUST_LABEL, inputCls } from "./ui";
+import { Field, Pill, Segmented, Toggle, TRUST_LABEL, inputCls } from "./ui";
 
 const MAX_TASKS = 20;
 
@@ -16,17 +16,34 @@ const MAX_TASKS = 20;
  * add it, and its settings open right away. Added tasks are numbered, reorderable and show
  * whether they still need something filled in.
  */
+export function dayLabel(d?: { from: number; to: number }): string {
+  if (!d) return "Every day";
+  return d.from === d.to ? `Day ${d.from}` : `Days ${d.from}–${d.to}`;
+}
+
 export default function TaskLibrary({
   catalog,
   drafts,
   onChange,
   daily,
+  maxDays = 1,
+  startDay = 0,
+  existingDays = [],
+  maxTasks = MAX_TASKS,
 }: {
   catalog: CatalogEntry[];
   drafts: TaskDraft[];
   onChange: (d: TaskDraft[]) => void;
   daily: boolean;
+  /** How many days the drop lasts: enables the per-day planner when above 1. */
+  maxDays?: number;
+  /** First day that can still be planned (e.g. tomorrow when editing a live drop). */
+  startDay?: number;
+  /** Days that already have tasks (when adding to an existing drop). */
+  existingDays?: number[];
+  maxTasks?: number;
 }) {
+  const [target, setTarget] = React.useState<number>(0); // 0 = every day
   const reduce = useReducedMotion();
   const [cat, setCat] = React.useState<TaskCategory | "templates">("social");
   const [open, setOpen] = React.useState<string | null>(drafts[0]?.key ?? null);
@@ -43,12 +60,21 @@ export default function TaskLibrary({
   const available = new Map(catalog.map((c) => [c.type, c]));
   const countOf = (type: string) => drafts.filter((d) => d.type === type).length;
 
+  const planner = maxDays > 1;
+  const dayChips = React.useMemo(() => {
+    const used = new Set<number>([...existingDays, ...drafts.flatMap((d) => (d.days ? [d.days.from] : []))]);
+    const top = Math.min(maxDays, Math.max(3, ...used, target) + (used.size ? 1 : 0));
+    const first = Math.max(1, startDay);
+    return Array.from({ length: Math.max(0, top - first + 1) }, (_, i) => first + i).slice(0, 30);
+  }, [existingDays, drafts, maxDays, target, startDay]);
+  const countOnDay = (n: number) => drafts.filter((d) => d.days && d.days.from <= n && d.days.to >= n).length + existingDays.filter((x) => x === n).length;
+
   const add = (items: Array<[string, string]>) => {
-    const room = MAX_TASKS - drafts.length;
+    const room = maxTasks - drafts.length;
     const fresh = items
       .filter(([t]) => available.has(t))
       .slice(0, room)
-      .map(([t, title]) => ({ ...newDraft(t, title), repeat: daily }));
+      .map(([t, title]) => ({ ...newDraft(t, title), repeat: daily, days: planner && target > 0 ? { from: target, to: target } : undefined }));
     if (!fresh.length) return;
     onChange([...drafts, ...fresh]);
     setOpen(fresh[0]!.key);
@@ -69,6 +95,50 @@ export default function TaskLibrary({
 
   return (
     <div className="space-y-5">
+      {planner && (
+        <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/50 p-3.5">
+          <p className="flex items-center gap-1.5 text-sm font-black text-[var(--ink)]">
+            <CalendarDays size={15} className="text-[var(--brand-text)]" /> Plan by day
+          </p>
+          <p className="text-xs text-[var(--ink-muted)]">
+            Pick when the tasks you add next should count. A task for one day only counts that day, so tomorrow can ask for something new. Day 1 is the first 24 hours after the drop opens.
+          </p>
+          <div role="radiogroup" aria-label="Add tasks for" className="flex flex-wrap gap-1.5">
+            {[0, ...dayChips].map((n) => {
+              const selected = target === n;
+              const c = n === 0 ? drafts.filter((d) => !d.days).length : countOnDay(n);
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setTarget(n)}
+                  className={`min-h-[36px] rounded-full border px-3 text-xs font-bold transition ${
+                    selected ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:border-[var(--brand)]/40 hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {n === 0 ? "Every day" : `Day ${n}`}
+                  {c > 0 && <span className={selected ? "ml-1 opacity-80" : "ml-1 text-[var(--brand-text)]"}>· {c}</span>}
+                </button>
+              );
+            })}
+            {dayChips.length > 0 && dayChips[dayChips.length - 1]! < maxDays && (
+              <button
+                type="button"
+                onClick={() => setTarget(dayChips[dayChips.length - 1]! + 1)}
+                className="min-h-[36px] rounded-full border border-dashed border-[var(--border-subtle)] px-3 text-xs font-bold text-[var(--brand-text)] hover:bg-[var(--brand-soft)]"
+              >
+                + Day {dayChips[dayChips.length - 1]! + 1}
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-[var(--ink-muted)]">
+            Adding for: <strong className="text-[var(--ink)]">{target === 0 ? "every day" : `day ${target}`}</strong>. A day with no task can&apos;t be claimed, so cover every day the drop runs (or add an &ldquo;Every day&rdquo; task).
+          </p>
+        </div>
+      )}
+
       {/* library */}
       <div className="space-y-3">
         <div role="tablist" aria-label="Task categories" className="flex gap-1 overflow-x-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 no-scrollbar">
@@ -101,7 +171,7 @@ export default function TaskLibrary({
                 <button
                   key={t.id}
                   type="button"
-                  disabled={!usable.length || drafts.length >= MAX_TASKS}
+                  disabled={!usable.length || drafts.length >= maxTasks}
                   onClick={() => add(usable)}
                   className="group flex min-h-[64px] items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/60 p-3 text-left transition hover:border-[var(--brand)]/50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -129,7 +199,7 @@ export default function TaskLibrary({
                 <button
                   key={c.type}
                   type="button"
-                  disabled={drafts.length >= MAX_TASKS}
+                  disabled={drafts.length >= maxTasks}
                   onClick={() => add([[c.type, c.label]])}
                   className={`group flex min-h-[64px] items-center gap-3 rounded-2xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     n ? "border-[var(--brand)]/50 bg-[var(--brand-soft)]/40" : "border-[var(--border-subtle)] bg-[var(--surface-2)]/60 hover:border-[var(--brand)]/50"
@@ -159,7 +229,7 @@ export default function TaskLibrary({
       <div ref={listRef} className="scroll-mt-24 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-black text-[var(--ink)]">
-            Your tasks <span className="text-[var(--ink-muted)]">({drafts.length}/{MAX_TASKS})</span>
+            Your tasks <span className="text-[var(--ink-muted)]">({drafts.length}/{maxTasks})</span>
           </p>
           {drafts.length > 0 && (
             <Pill tone={ready === drafts.length ? "ok" : "warn"}>
@@ -211,6 +281,7 @@ export default function TaskLibrary({
                         )}
                         {!d.required && <Pill>Optional{d.points ? ` · ${d.points} pts` : ""}</Pill>}
                         {d.repeat && <Pill>Every claim</Pill>}
+                        {planner && <Pill tone={d.days ? "brand" : "muted"}>{dayLabel(d.days)}</Pill>}
                         {d.group && <Pill>Either: {d.group}</Pill>}
                       </span>
                     </span>
@@ -238,6 +309,7 @@ export default function TaskLibrary({
                       <input className={inputCls} value={d.title} maxLength={80} onChange={(e) => update(d.key, { ...d, title: e.target.value })} />
                     </Field>
                     <TypeFields d={d} onChange={(nd) => update(d.key, nd)} bots={bots} />
+                    {planner && <WhenEditor d={d} maxDays={maxDays} startDay={startDay} onChange={(nd) => update(d.key, nd)} />}
                     <details className="group rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1">
                       <summary className="flex min-h-[40px] cursor-pointer list-none items-center justify-between text-xs font-bold text-[var(--ink-muted)]">
                         More options (optional, points, either/or)
@@ -286,5 +358,57 @@ function IconBtn({ label, onClick, disabled, danger, children }: { label: string
     >
       {children}
     </button>
+  );
+}
+
+/** "When does this task count?" — every day, one day, or a range of days. */
+function WhenEditor({ d, maxDays, startDay, onChange }: { d: TaskDraft; maxDays: number; startDay: number; onChange: (d: TaskDraft) => void }) {
+  const first = Math.max(1, startDay);
+  const clampDay = (v: number) => Math.max(first, Math.min(maxDays, v));
+  const mode = !d.days ? "all" : d.days.from === d.days.to ? "one" : "range";
+  return (
+    <Field label="When does this task count?">
+      <div className="space-y-2">
+        <Segmented
+          id={`when-${d.key}`}
+          label="When"
+          value={mode}
+          onChange={(v) => {
+            const from = d.days?.from ?? first;
+            onChange({ ...d, days: v === "all" ? undefined : v === "one" ? { from, to: from } : { from, to: Math.min(maxDays, from + 1) } });
+          }}
+          options={[
+            { value: "all", label: "Every day" },
+            { value: "one", label: "One day" },
+            { value: "range", label: "Several days" },
+          ]}
+        />
+        {d.days && (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label={mode === "one" ? "Day" : "From day"}>
+              <input
+                className={inputCls}
+                inputMode="numeric"
+                value={String(d.days.from)}
+                onChange={(e) => {
+                  const v = clampDay(Number(e.target.value.replace(/\D/g, "")) || first);
+                  onChange({ ...d, days: { from: v, to: mode === "one" ? v : Math.max(v, d.days!.to) } });
+                }}
+              />
+            </Field>
+            {mode === "range" && (
+              <Field label="To day">
+                <input
+                  className={inputCls}
+                  inputMode="numeric"
+                  value={String(d.days.to)}
+                  onChange={(e) => onChange({ ...d, days: { from: d.days!.from, to: Math.max(d.days!.from, clampDay(Number(e.target.value.replace(/\D/g, "")) || d.days!.from)) } })}
+                />
+              </Field>
+            )}
+          </div>
+        )}
+      </div>
+    </Field>
   );
 }
