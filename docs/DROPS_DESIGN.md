@@ -341,3 +341,34 @@ section. Each phase is its own PR with CI green.
   reading logs over our own RPC.
 - Telegram bot `getChatMember` needs the bot to be an admin in the group; Discord
   `guilds.members.read` scope approval.
+
+## 9. BaseDrops contract (Phase 3, built)
+
+`contracts/drops/BaseDrops.sol`, `contracts/drops/IClaimGate.sol`, `contracts/drops/TokenBalanceGate.sol`,
+tests in `test/BaseDrops.t.sol`, deploy script `script/DeployBaseDrops.s.sol`.
+
+What changed from the §5.1 sketch, and why:
+- **Ticket replay protection without nonce storage.** A ticket signs the wallet's claim number
+  (`claimIndex` = claims so far). After a claim the number moves on, so the same ticket can't be used twice.
+- **One-time codes replace BaseVoucher secrets.** Each code is its own key. The drop stores only a
+  Merkle root of the code addresses. Redeeming signs `(drop, claimer)` with the code key, so a code copied
+  from a pending tx is useless to anyone else. Plaintext secrets in calldata (the v1 gift-card risk) are gone.
+- **Lost-wallet recovery.** Besides rotate-link, two-step transfer and managers, a drop can name
+  a `recovery` address. It can take over only `RECOVERY_DELAY` (30 days) after the drop expires, so it
+  can never hijack a live drop. Expiry is therefore required on every drop.
+- **Committed drops.** No close, pause or new ticket signer before expiry. Link-key rotation and replacing
+  an existing ticket signer stay allowed: they move no funds, and they're the fix for a leaked or lost key.
+- **Every drop needs at least one access rule** (link, codes, allowlist, ticket or gate), so a
+  misconfigured drop can't be drained by bots.
+- Ids start at `2_000_000_001`, so `/claim/{id}` can route to this contract by id alone (campaign v3 uses 1e9+1…).
+
+Merkle trees use OpenZeppelin's StandardMerkleTree format (leaf = `keccak256(bytes.concat(keccak256(abi.encode(address))))`,
+sorted pairs). The app can build them with `@openzeppelin/merkle-tree` or an equivalent.
+
+### Sepolia checklist (before any mainnet deploy)
+1. `forge script script/DeployBaseDrops.s.sol --rpc-url https://sepolia.base.org --account <keystore> --broadcast --verify`
+2. Create one drop of each preset (link, codes, allowlist, ticket, token gate) with test USDC and ETH.
+3. Claim from 3 different wallets, including a smart wallet (Coinbase Smart Wallet).
+4. Try every failure: second claim, claim during the cooldown, copied link/code from another wallet, expired ticket.
+5. Rotate the link, transfer the creator to a new wallet, then close and check the refund.
+6. External review of `BaseDrops.sol` (≈550 lines) before mainnet. Mainnet deploy needs `ALLOW_MAINNET=true`.
