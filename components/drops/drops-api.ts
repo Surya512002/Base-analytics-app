@@ -67,6 +67,31 @@ export const dropsApi = {
     call<{ code: string; expiresIn: number }>(`/api/drops/${id}/live-code?creator=${creator}&taskId=${taskId}`),
 };
 
+export type AccountProvider = "x" | "discord" | "telegram";
+
+export interface LinkedAccountView {
+  provider: AccountProvider;
+  username: string;
+  verifiedType?: string;
+  followers?: number;
+  linkedAt: number;
+  snapshotAt: number;
+}
+
+export interface AccountsInfo {
+  available: Record<AccountProvider, boolean>;
+  bots: { discordInviteUrl: string | null; telegramBotUsername: string | null; telegramReady: boolean };
+  accounts: LinkedAccountView[];
+}
+
+export const accountsApi = {
+  info: (wallet?: string | null) => call<AccountsInfo>(`/api/accounts${wallet ? `?wallet=${wallet}` : ""}`),
+  start: (provider: AccountProvider, wallet: string, returnTo: string) =>
+    call<{ url: string }>(`/api/accounts/${provider}/start`, json({ wallet, returnTo })),
+  linkTelegram: (wallet: string, auth: Record<string, unknown>) => call<{ username: string }>(`/api/accounts/telegram`, json({ wallet, auth })),
+  unlink: (provider: AccountProvider, wallet: string) => call<{ ok: true }>(`/api/accounts/${provider}?wallet=${wallet}`, { method: "DELETE" }),
+};
+
 export interface RaffleView {
   winners: number;
   drawAt: number;

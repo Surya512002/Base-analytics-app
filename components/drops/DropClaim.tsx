@@ -21,6 +21,7 @@ import {
   type PublicDefinition,
   type PublicTask,
 } from "./drops-api";
+import LinkedAccounts from "./LinkedAccounts";
 import { Card, Field, Notice, Pill, btnPrimary, btnSecondary, inputCls, untilText, useNow, TRUST_LABEL } from "./ui";
 
 /** A drop's claim page: who sent it, what it pays, the rules, the task checklist and the claim button. */
@@ -204,6 +205,11 @@ export default function DropClaim({
 
   const ev = progress?.evaluation;
   const blocker = status?.blocker ?? "";
+  const accountProviders = (["x", "discord", "telegram"] as const).filter((p) =>
+    def?.tasks.some((t) =>
+      p === "x" ? t.type === "x_account" || t.type === "x_post" : p === "discord" ? t.type === "discord_member" : t.type === "telegram_member"
+    )
+  );
   const raffleBlocks = Boolean(def?.raffle) && !raffle?.result?.won;
   const canClaim = Boolean(address) && !blocker && !missingSecret && (!usesTasks || ev?.eligible) && !raffleBlocks;
   const inviteLink =
@@ -257,6 +263,10 @@ export default function DropClaim({
           {isSet(drop.allowlistRoot) && <Pill tone="brand">List only</Pill>}
         </div>
       </Card>
+
+      {usesTasks && def && accountProviders.length > 0 && (
+        <LinkedAccounts address={address} connType={connType} providers={accountProviders} title="Link your accounts for these tasks" />
+      )}
 
       {usesTasks && def && (
         <Card>

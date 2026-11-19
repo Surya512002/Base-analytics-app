@@ -3,7 +3,7 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { btnSecondary, inputCls, Field, Toggle, Pill, TRUST_LABEL } from "./ui";
-import { tokenMeta, type CatalogEntry } from "./drops-api";
+import { accountsApi, tokenMeta, type AccountsInfo, type CatalogEntry } from "./drops-api";
 import { toUnits } from "@/lib/drops/client";
 
 /**
@@ -40,6 +40,9 @@ const TYPE_HELP: Record<string, string> = {
   live_code: "Enters the 6-digit code you show at your event; it changes every 30 seconds.",
   webhook: "Your own server says yes or no (signed request to your URL).",
   review: "Submits a link or text; you approve or reject it in My drops.",
+  x_account: "Linked X account with a blue / business check, enough followers or account age.",
+  discord_member: "Linked Discord account is in your server (optionally with a role). Add the app's bot to your server first.",
+  telegram_member: "Linked Telegram account is in your group or channel. Add the app's bot (as admin for channels) first.",
 };
 
 let seq = 0;
@@ -61,7 +64,7 @@ function F({ d, k, label, hint, placeholder, onChange }: { d: TaskDraft; k: stri
   );
 }
 
-function TypeFields({ d, onChange }: { d: TaskDraft; onChange: (d: TaskDraft) => void }) {
+function TypeFields({ d, onChange, bots }: { d: TaskDraft; onChange: (d: TaskDraft) => void; bots?: AccountsInfo["bots"] | null }) {
   const p = { d, onChange };
   switch (d.type) {
     case "token_balance":
@@ -161,6 +164,51 @@ function TypeFields({ d, onChange }: { d: TaskDraft; onChange: (d: TaskDraft) =>
       );
     case "basename":
       return null;
+    case "x_account":
+      return (
+        <>
+          <Field label="Verification needed">
+            <select className={inputCls} value={d.fields.verified ?? "any"} onChange={(e) => onChange({ ...d, fields: { ...d.fields, verified: e.target.value } })}>
+              <option value="any">Any check (blue, business or government)</option>
+              <option value="blue">Blue check</option>
+              <option value="business">Business (gold) check</option>
+              <option value="none">No check needed</option>
+            </select>
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <F {...p} k="followers" label="Min followers (optional)" placeholder="100" />
+            <F {...p} k="age" label="Min account age, days (optional)" placeholder="90" />
+          </div>
+        </>
+      );
+    case "discord_member":
+      return (
+        <>
+          <F {...p} k="guild" label="Server id" placeholder="123456789012345678" hint="Discord: Settings → Advanced → Developer Mode, then right-click your server → Copy Server ID." />
+          <F {...p} k="name" label="Server name (shown to claimers)" />
+          <F {...p} k="roles" label="Required role ids (optional, comma-separated)" />
+          <F {...p} k="days" label="Member for at least N days (optional)" />
+          {bots?.discordInviteUrl ? (
+            <a className="text-xs underline text-[var(--brand-text)]" href={bots.discordInviteUrl} target="_blank" rel="noopener noreferrer">
+              Add the app&apos;s bot to your server
+            </a>
+          ) : (
+            <p className="text-xs text-[var(--ink-muted)]">The Discord bot isn&apos;t set up on this deployment yet.</p>
+          )}
+        </>
+      );
+    case "telegram_member":
+      return (
+        <>
+          <F {...p} k="chat" label="Group or channel" placeholder="@yourchannel or -1001234567890" />
+          <F {...p} k="title" label="Name (shown to claimers)" />
+          <p className="text-xs text-[var(--ink-muted)]">
+            {bots?.telegramBotUsername
+              ? `Add @${bots.telegramBotUsername} to your group (make it an admin in channels) so membership can be checked.`
+              : "Add the app's Telegram bot to your group (admin for channels) so membership can be checked."}
+          </p>
+        </>
+      );
     case "wallet_age":
       return (
         <div className="grid grid-cols-2 gap-2">
@@ -210,6 +258,13 @@ export default function TaskBuilder({
   daily: boolean;
 }) {
   const [adding, setAdding] = React.useState(catalog[0]?.type ?? "");
+  const [bots, setBots] = React.useState<AccountsInfo["bots"] | null>(null);
+  React.useEffect(() => {
+    accountsApi
+      .info(null)
+      .then((r) => setBots(r.bots))
+      .catch(() => setBots(null));
+  }, []);
   const update = (i: number, d: TaskDraft) => onChange(drafts.map((x, j) => (j === i ? d : x)));
 
   return (
@@ -231,7 +286,7 @@ export default function TaskBuilder({
             <Field label="Title shown to claimers">
               <input className={inputCls} value={d.title} maxLength={80} onChange={(e) => update(i, { ...d, title: e.target.value })} />
             </Field>
-            <TypeFields d={d} onChange={(nd) => update(i, nd)} />
+            <TypeFields d={d} onChange={(nd) => update(i, nd)} bots={bots} />
             <div className="grid gap-2 sm:grid-cols-3">
               <Toggle checked={d.required} onChange={(v) => update(i, { ...d, required: v })} label="Required" />
               <Toggle checked={d.repeat} onChange={(v) => update(i, { ...d, repeat: v })} label="Redo before every claim" />
@@ -349,6 +404,24 @@ export async function draftsToDefinition(drafts: TaskDraft[]): Promise<unknown> 
         break;
       case "basename":
         config = {};
+        break;
+      case "x_account":
+        config = {
+          verified: f.verified ?? "any",
+          minFollowers: f.followers ? Number(f.followers) : undefined,
+          minAccountAgeDays: f.age ? Number(f.age) : undefined,
+        };
+        break;
+      case "discord_member":
+        config = {
+          guildId: (f.guild ?? "").trim(),
+          serverName: f.name?.trim() || undefined,
+          roleIds: f.roles ? f.roles.split(",").map((x) => x.trim()).filter(Boolean) : undefined,
+          minDaysInServer: f.days ? Number(f.days) : undefined,
+        };
+        break;
+      case "telegram_member":
+        config = { chatId: (f.chat ?? "").trim(), title: f.title?.trim() || undefined };
         break;
       case "wallet_age":
         config = { minDays: Number(f.days || 30), minTxs: f.txs ? Number(f.txs) : undefined };

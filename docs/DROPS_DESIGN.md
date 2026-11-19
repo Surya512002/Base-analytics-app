@@ -459,3 +459,39 @@ No contract changes: everything rides on app-signed tickets (amount + wallet + c
 record for a wallet with an onchain attestation, so the trusted attester couldn't be confirmed — shipping it unconfirmed would let
 anyone self-attest), Telegram / Discord / GitHub (need a bot token or OAuth app you create), X follow/like/repost (paid X API),
 World ID / Human Passport (provider accounts).
+
+## 13. Linked accounts and account security
+
+**How each verification works**
+| Need | How it's verified | What we keep |
+|---|---|---|
+| X blue / business check, followers, account age (`x_account`) | "Link X" = OAuth 2.0 + PKCE, read-only scopes `users.read tweet.read`. We call `/2/users/me` once (id, username, `verified_type`, followers, created_at), then revoke the token. Snapshot older than 30 days → asked to re-link | public facts + time read. No token |
+| X post (`x_post`) | public post with the wallet's code (oEmbed). If the wallet linked X, the post must come from that exact account | post id/author |
+| Discord server / role / tenure (`discord_member`) | "Link Discord" = OAuth scope `identify` only (user id). Membership, roles and join date are read with the app's bot, which the creator adds to their server | user id + username. No token |
+| Telegram group/channel (`telegram_member`) | Telegram Login (oauth.telegram.org); the payload is signed by Telegram with our bot token and checked with HMAC-SHA256, max 1 hour old. Membership via the bot's `getChatMember` (bot must be in the group; admin in channels) | user id + username |
+
+**Account safety rules**
+- **One account ↔ one wallet, app-wide.** An X/Discord/Telegram account can back one wallet. Unlinking keeps it reserved for that
+  wallet for 7 days, so accounts can't be passed around wallets to farm drops.
+- **Linking needs the wallet's sign-in (SIWE).** The OAuth `state` is random, single-use, expires in 10 minutes and carries the
+  wallet, so a callback can't be replayed or attached to someone else's wallet. PKCE (S256) on X.
+- **No tokens kept, no write access.** Only read scopes are requested; access tokens are revoked right after reading the profile.
+- **Callbacks return to a same-site path only** (no open redirects), and only fixed error codes go in the URL.
+- **The drop link key never leaves the browser while linking:** the `#fragment` is kept in this tab (sessionStorage) and restored
+  on return.
+
+**Hardening shipped with this**
+- **CSRF guard** (`lib/security/csrf.ts`, in middleware): the sign-in cookie is `SameSite=None` in production (needed for the Base
+  App / Farcaster frames), so cookie-authenticated `POST/PUT/PATCH/DELETE` to `/api/*` must come from our own origins
+  (`Origin` / `Sec-Fetch-Site` / `Referer`). Before this, another site could make a signed-in creator approve submissions
+  or enter raffles with a plain HTML form.
+- **Drop settings encrypted at rest:** webhook secrets, event-code secrets, quiz answer hashes and raffle seeds are sealed with
+  `VOUCHER_SECRETS_KEY` (AES-256-GCM, scoped per drop), like saved claim links.
+
+**Setup (one-time, by you)**
+1. X: create an app at developer.x.com → OAuth 2.0, type "Web app / confidential", callback `<APP_URL>/api/accounts/x/callback`,
+   then set `X_CLIENT_ID` / `X_CLIENT_SECRET`. Reading your own profile works on the free tier.
+2. Discord: create an application → OAuth2 redirect `<APP_URL>/api/accounts/discord/callback`, add a Bot, then set
+   `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`. Creators invite the bot from the task form.
+3. Telegram: create a bot with @BotFather, run `/setdomain` with the app domain, set `TELEGRAM_BOT_TOKEN` and
+   `TELEGRAM_BOT_USERNAME`. Creators add the bot to their group (admin for channels).

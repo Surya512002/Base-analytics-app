@@ -10,6 +10,7 @@ import { getTaskType } from "./tasks";
 import { walletPostCode } from "./tasks/social-proof";
 import { decisionKey, liveCode, liveCodeExpiresIn, reviewKey, type ReviewItem } from "./tasks/community";
 import { toHex, type Hex } from "viem";
+import { isSealed, openJson, sealJson } from "@/lib/voucher/secret-box";
 import { computeReward, drawWinners, maxPossibleReward, nextStreak, raffleCommit, streakMultiplierBps } from "./rewards";
 import {
   BASE_CHAIN_ID,
@@ -95,9 +96,29 @@ async function loadDrop(d: DropDeps, id: bigint): Promise<OnchainDrop> {
   return drop;
 }
 
+/**
+ * Private settings (webhook secrets, event-code secrets, quiz answer hashes, raffle seeds) are
+ * sealed at rest with VOUCHER_SECRETS_KEY when it is set (see lib/voucher/secret-box.ts).
+ * Records written before the key existed still read as plain JSON.
+ */
+function sealValue(value: unknown, scope: string): string {
+  return sealJson(value, scope) ?? JSON.stringify(value);
+}
+
+function openValue<T>(raw: string, scope: string): T {
+  if (isSealed(raw)) return openJson<T>(raw, scope);
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return raw as T; // pre-encryption raffle seeds were stored as bare hex
+  }
+}
+
+const defScope = (d: DropDeps, id: bigint) => `drops-def:${BASE_CHAIN_ID}:${d.contract.toLowerCase()}:${id}`;
+
 export async function loadDefinition(d: DropDeps, id: bigint): Promise<DropDefinition | null> {
   const raw = await d.kv.get(defKey(d, id));
-  return raw ? (JSON.parse(raw) as DropDefinition) : null;
+  return raw ? openValue<DropDefinition>(raw, defScope(d, id)) : null;
 }
 
 // ───────────────────────────── creator: save tasks ─────────────────────────────
@@ -152,18 +173,19 @@ export async function saveDefinition(d: DropDeps, id: bigint, sessionAddress: st
     // Keep the existing seed if the raffle is re-saved unchanged; otherwise commit to a new one.
     const prev = (await loadDefinition(d, id))?.raffle;
     const seedKey = raffleSeedKey(d, id);
-    let seed = await d.kv.get(seedKey);
+    const sealedSeed = await d.kv.get(seedKey);
+    let seed = sealedSeed ? openValue<string>(sealedSeed, defScope(d, id)) : null;
     if (!seed || !prev || prev.drawAt !== raffle.drawAt || prev.winners !== raffle.winners) {
       if (await d.kv.get(raffleResultKey(d, id))) throw new DropError("This raffle was already drawn.", 409);
       seed = toHex(globalThis.crypto.getRandomValues(new Uint8Array(32)));
-      await d.kv.set(seedKey, seed);
+      await d.kv.set(seedKey, sealValue(seed, defScope(d, id)));
       await d.kv.set(raffleEntrantsKey(d, id), "[]");
     }
     raffle = { ...raffle, commit: raffleCommit(seed as Hex) };
   }
 
   const stored: DropDefinition = { ...def, tasks, raffle };
-  await d.kv.set(dropKey, JSON.stringify(stored));
+  await d.kv.set(dropKey, sealValue(stored, defScope(d, id)));
   return stored;
 }
 
@@ -469,7 +491,8 @@ export async function drawRaffle(d: DropDeps, id: bigint): Promise<RaffleResult>
   const existing = await readRaffleResult(d, id);
   if (existing) return existing;
   if (d.now() < def.raffle.drawAt) throw new DropError("It is not time to draw yet.", 409);
-  const seed = (await d.kv.get(raffleSeedKey(d, id))) as Hex | null;
+  const sealedSeed = await d.kv.get(raffleSeedKey(d, id));
+  const seed = sealedSeed ? (openValue<string>(sealedSeed, defScope(d, id)) as Hex) : null;
   if (!seed) throw new DropError("Raffle seed missing.", 500);
   if (!d.client.getBlock) throw new DropError("Cannot read the chain right now.", 503);
   const block = await d.client.getBlock({ blockTag: "latest" });

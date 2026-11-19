@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getComplianceConfig, evaluateRegionCompliance } from "@/src/config/compliance";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
+import { csrfViolation, SESSION_COOKIE_NAME } from "@/lib/security/csrf";
 
 /**
  * Next.js Edge Middleware for Server-Side Compliance & Geolocation Header Injection
@@ -11,6 +12,21 @@ import { trustedCountryFromHeaders } from "@/lib/compliance/request-country";
  * Server Components and API Routes.
  */
 export function middleware(request: NextRequest) {
+  // 0. Refuse cross-site writes that ride on our sign-in cookie (see lib/security/csrf.ts).
+  const csrf = csrfViolation({
+    method: request.method,
+    pathname: request.nextUrl.pathname,
+    hasSessionCookie: request.cookies.has(SESSION_COOKIE_NAME),
+    origin: request.headers.get("origin"),
+    referer: request.headers.get("referer"),
+    secFetchSite: request.headers.get("sec-fetch-site"),
+    requestHost: request.headers.get("host"),
+    appUrl: process.env.NEXT_PUBLIC_APP_URL,
+  });
+  if (csrf) {
+    return NextResponse.json({ error: "Request blocked: it didn't come from this app." }, { status: 403 });
+  }
+
   // 1. Detect country from official Vercel header, Cloudflare header, or test header
   // Only the platform's header counts in production (lib/compliance/request-country.ts).
   const country = trustedCountryFromHeaders(request.headers);
