@@ -10,13 +10,17 @@ import {
   type VoucherAsset,
 } from "@/lib/utils/voucher";
 import { readStoredBatches } from "@/lib/voucher/batch-store";
-
-export const VOUCHER_V2_CONTRACT = "0xc118afff969db6cd6d2de639e2c8ba1223768fce" as const;
-export const VOUCHER_V1_CONTRACT = "0xE425b060d888DD54C57160f4c3B0d3Fb76EcCf25" as const;
-export const ALL_VOUCHER_CONTRACTS: readonly Address[] = [
-  (VOUCHER_CONTRACT as Address) || VOUCHER_V2_CONTRACT,
+import {
   VOUCHER_V1_CONTRACT,
-];
+  VOUCHER_V2_CONTRACT,
+  batchRefKey,
+  candidateContracts,
+  voucherContracts,
+} from "@/lib/voucher/voucher-contracts";
+
+export { VOUCHER_V1_CONTRACT, VOUCHER_V2_CONTRACT };
+/** Every known gift-card contract, current first. Batch ids repeat across these. */
+export const ALL_VOUCHER_CONTRACTS: readonly Address[] = voucherContracts().map((c) => c.address);
 
 export interface BatchLiveStatus {
   batchId: number;
@@ -56,89 +60,131 @@ export interface CreatorBatchSummary {
   batches: BatchLiveStatus[];
 }
 
+/** A batch on a specific contract, or on any known contract when `contract` is omitted. */
+export interface BatchRef {
+  batchId: number;
+  contract?: string | null;
+}
+
 function getClient() {
   if (!VOUCHER_CONTRACT) return null;
   return createBasePublicClient();
 }
 
-export async function readOnchainBatch(
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+type MulticallEntry = { status: "success"; result: unknown } | { status: "failure"; error?: unknown };
+
+/** Build a live status from raw `getBatch` / `getBatchConfig` results (config may be missing). */
+export function toBatchLiveStatus(
   batchId: number,
-  targetContract?: Address
-): Promise<BatchLiveStatus | null> {
+  contractAddr: string,
+  batch: readonly unknown[],
+  config: readonly unknown[] | null,
+  nowSec = Math.floor(Date.now() / 1000)
+): BatchLiveStatus | null {
+  const [creator, token, amountPerCard, cardCount, redeemedCount, message] = batch as [
+    string,
+    string,
+    bigint,
+    bigint,
+    bigint,
+    string,
+  ];
+  const count = Number(cardCount);
+  if (!count) return null;
+
+  const asset = tokenToAsset(token);
+  const total = amountPerCard * BigInt(count);
+  const redeemed = Number(redeemedCount);
+
+  const unlockTimestamp = config ? Number(config[0]) : 0;
+  const expirationTimestamp = config ? Number(config[1]) : 0;
+  const signer = config ? String(config[2] ?? "") : "";
+  const requiredSigner = signer && signer.toLowerCase() !== ZERO_ADDRESS ? signer.toLowerCase() : undefined;
+
+  return {
+    batchId,
+    creator: creator.toLowerCase(),
+    asset,
+    totalAmount: total.toString(),
+    amountPerCard: amountPerCard.toString(),
+    cardCount: count,
+    redeemedCount: redeemed,
+    unredeemedCount: Math.max(0, count - redeemed),
+    message,
+    amountPerCardFormatted: formatVoucherAmount(asset, amountPerCard),
+    totalAmountFormatted: formatVoucherAmount(asset, total),
+    onchain: true,
+    contractAddress: contractAddr.toLowerCase(),
+    unlockTimestamp: unlockTimestamp || undefined,
+    expirationTimestamp: expirationTimestamp || undefined,
+    requiredSigner,
+    isUnlocked: unlockTimestamp === 0 || nowSec >= unlockTimestamp,
+    isExpired: expirationTimestamp > 0 && nowSec >= expirationTimestamp,
+  };
+}
+
+/**
+ * Read many batches in ONE multicall (getBatch + getBatchConfig each). A ref without a contract
+ * is looked up on every known contract, so it can return several batches with the same id —
+ * callers filter by creator. Batches that don't exist are left out.
+ */
+export async function readOnchainBatches(refs: readonly BatchRef[]): Promise<BatchLiveStatus[]> {
   const client = getClient();
-  if (!client) return null;
+  if (!client || refs.length === 0) return [];
 
-  const candidates: Address[] = targetContract
-    ? [targetContract]
-    : Array.from(new Set(ALL_VOUCHER_CONTRACTS));
-
-  for (const contractAddr of candidates) {
-    try {
-      const [creator, token, amountPerCard, cardCount, redeemedCount, message] =
-        await client.readContract({
-          address: contractAddr,
-          abi: VOUCHER_ABI,
-          functionName: "getBatch",
-          args: [BigInt(batchId)],
-        });
-
-      const count = Number(cardCount);
-      if (count === 0) continue;
-
-      const asset = tokenToAsset(token as string);
-      const perCard = amountPerCard as bigint;
-      const total = perCard * BigInt(count);
-      const redeemed = Number(redeemedCount);
-
-      let unlockTimestamp = 0;
-      let expirationTimestamp = 0;
-      let requiredSigner: string | undefined = undefined;
-      try {
-        const config = await client.readContract({
-          address: contractAddr,
-          abi: VOUCHER_ABI,
-          functionName: "getBatchConfig",
-          args: [BigInt(batchId)],
-        });
-        unlockTimestamp = Number(config[0]);
-        expirationTimestamp = Number(config[1]);
-        if (config[2] && config[2] !== "0x0000000000000000000000000000000000000000") {
-          requiredSigner = (config[2] as string).toLowerCase();
-        }
-      } catch {
-        // Legacy deployment graceful fallback
-      }
-
-      const nowSec = Math.floor(Date.now() / 1000);
-      const isUnlocked = unlockTimestamp === 0 || nowSec >= unlockTimestamp;
-      const isExpired = expirationTimestamp > 0 && nowSec >= expirationTimestamp;
-
-      return {
-        batchId,
-        creator: (creator as string).toLowerCase(),
-        asset,
-        totalAmount: total.toString(),
-        amountPerCard: perCard.toString(),
-        cardCount: count,
-        redeemedCount: redeemed,
-        unredeemedCount: Math.max(0, count - redeemed),
-        message: message as string,
-        amountPerCardFormatted: formatVoucherAmount(asset, perCard),
-        totalAmountFormatted: formatVoucherAmount(asset, total),
-        onchain: true,
-        contractAddress: contractAddr.toLowerCase(),
-        unlockTimestamp: unlockTimestamp || undefined,
-        expirationTimestamp: expirationTimestamp || undefined,
-        requiredSigner,
-        isUnlocked,
-        isExpired,
-      };
-    } catch {
-      // try next candidate contract
+  const pairs: Array<{ batchId: number; contract: Address }> = [];
+  const seen = new Set<string>();
+  for (const ref of refs) {
+    if (!Number.isInteger(ref.batchId) || ref.batchId < 1) continue;
+    for (const contract of candidateContracts(ref.contract)) {
+      const k = batchRefKey(contract, ref.batchId);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      pairs.push({ batchId: ref.batchId, contract });
     }
   }
+  if (pairs.length === 0) return [];
 
-  return null;
+  const contracts = pairs.flatMap(({ batchId, contract }) => [
+    { address: contract, abi: VOUCHER_ABI, functionName: "getBatch" as const, args: [BigInt(batchId)] as const },
+    { address: contract, abi: VOUCHER_ABI, functionName: "getBatchConfig" as const, args: [BigInt(batchId)] as const },
+  ]);
+
+  let results: MulticallEntry[];
+  try {
+    results = (await client.multicall({ contracts, allowFailure: true })) as MulticallEntry[];
+  } catch {
+    return [];
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const out: BatchLiveStatus[] = [];
+  pairs.forEach(({ batchId, contract }, i) => {
+    const b = results[i * 2];
+    const cfg = results[i * 2 + 1];
+    if (b?.status !== "success" || !Array.isArray(b.result)) return;
+    // v1 has no getBatchConfig; treat a failed config read as "no unlock / expiry / signer".
+    const config = cfg?.status === "success" && Array.isArray(cfg.result) ? cfg.result : null;
+    const live = toBatchLiveStatus(batchId, contract, b.result, config, nowSec);
+    if (live) out.push(live);
+  });
+  return out;
+}
+
+/**
+ * One batch. Pass `targetContract` when known. Pass `expectedCreator` to skip same-id batches
+ * on other contracts that belong to someone else (ids repeat across v1 / v2).
+ */
+export async function readOnchainBatch(
+  batchId: number,
+  targetContract?: Address,
+  expectedCreator?: string
+): Promise<BatchLiveStatus | null> {
+  const found = await readOnchainBatches([{ batchId, contract: targetContract }]);
+  const want = expectedCreator?.toLowerCase();
+  return found.find((b) => !want || b.creator === want) ?? null;
 }
 
 export async function readBatchCardStatuses(
@@ -169,15 +215,15 @@ export async function readBatchCardStatuses(
   }
 }
 
-async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
+/** Every (contract, batchId) whose onchain creator is `creator`, across all known contracts. */
+async function discoverCreatorBatchRefs(creator: string): Promise<Array<{ batchId: number; contract: Address }>> {
   const client = getClient();
   if (!client) return [];
 
   const normalized = creator.toLowerCase();
-  const ids = new Set<number>();
-  const contractsToScan = Array.from(new Set(ALL_VOUCHER_CONTRACTS));
+  const refs: Array<{ batchId: number; contract: Address }> = [];
 
-  for (const contractAddr of contractsToScan) {
+  for (const contractAddr of ALL_VOUCHER_CONTRACTS) {
     try {
       const nextId = await client.readContract({
         address: contractAddr,
@@ -187,15 +233,10 @@ async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
       const max = Number(nextId);
       if (max <= 1) continue;
 
-      const batchIdsToQuery: number[] = [];
-      for (let batchId = 1; batchId < max; batchId++) {
-        batchIdsToQuery.push(batchId);
-      }
-
       // Query in multicall chunks of 50
       const chunkSize = 50;
-      for (let i = 0; i < batchIdsToQuery.length; i += chunkSize) {
-        const chunk = batchIdsToQuery.slice(i, i + chunkSize);
+      for (let start = 1; start < max; start += chunkSize) {
+        const chunk = Array.from({ length: Math.min(chunkSize, max - start) }, (_, i) => start + i);
         const calls = chunk.map((bId) => ({
           address: contractAddr,
           abi: VOUCHER_ABI,
@@ -212,16 +253,12 @@ async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
                 typeof bCreator === "string" &&
                 bCreator.toLowerCase() === normalized
               ) {
-                ids.add(chunk[idx]);
+                refs.push({ batchId: chunk[idx]!, contract: contractAddr });
               }
             }
           });
         } catch {
-          // Fallback to sequential if multicall chunk fails
-          for (const bId of chunk) {
-            const live = await readOnchainBatch(bId, contractAddr);
-            if (live?.creator === normalized) ids.add(bId);
-          }
+          /* skip this chunk; the next refresh retries it */
         }
       }
     } catch {
@@ -229,15 +266,16 @@ async function discoverCreatorBatchIds(creator: string): Promise<number[]> {
     }
   }
 
-  return [...ids].sort((a, b) => b - a);
+  return refs;
 }
 
-async function discoverBatchIdsFromStoredTxs(creator: string): Promise<number[]> {
+/** Batches found from deposit txs saved in the meta store (tx recovery reads the current contract). */
+async function discoverBatchRefsFromStoredTxs(creator: string): Promise<Array<{ batchId: number; contract: Address }>> {
   const client = getClient();
   if (!client) return [];
 
   const normalized = creator.toLowerCase();
-  const ids = new Set<number>();
+  const refs: Array<{ batchId: number; contract: Address }> = [];
 
   try {
     const stored = await readStoredBatches();
@@ -250,13 +288,13 @@ async function discoverBatchIdsFromStoredTxs(creator: string): Promise<number[]>
         meta.txHash as `0x${string}`,
         normalized
       );
-      if (recovered) ids.add(recovered.batchId);
+      if (recovered) refs.push({ batchId: recovered.batchId, contract: VOUCHER_CONTRACT as Address });
     }
   } catch {
     /* ignore */
   }
 
-  return [...ids];
+  return refs;
 }
 
 function mergeMeta(
@@ -272,6 +310,15 @@ function mergeMeta(
   };
 }
 
+/** Meta for a live batch: an exact (contract, id) match, else a legacy entry saved without a contract. */
+function findMeta(metas: readonly VoucherBatchMeta[], live: BatchLiveStatus): VoucherBatchMeta | undefined {
+  const contract = live.contractAddress?.toLowerCase();
+  return (
+    metas.find((m) => m.batchId === live.batchId && m.contractAddress?.toLowerCase() === contract) ??
+    metas.find((m) => m.batchId === live.batchId && !m.contractAddress && m.creator.toLowerCase() === live.creator)
+  );
+}
+
 export async function listCreatorBatches(
   creator: string,
   options?: { includeStored?: boolean; scanChain?: boolean }
@@ -280,8 +327,8 @@ export async function listCreatorBatches(
   const includeStored = options?.includeStored !== false;
   const scanChain = options?.scanChain !== false;
 
-  const batchIds = new Set<number>();
-  const metaById = new Map<number, VoucherBatchMeta>();
+  const refs: BatchRef[] = [];
+  const metas: VoucherBatchMeta[] = [];
 
   if (includeStored) {
     try {
@@ -289,8 +336,8 @@ export async function listCreatorBatches(
       const client = getClient();
       for (const b of stored) {
         if (b.creator.toLowerCase() === normalized) {
-          batchIds.add(b.batchId);
-          metaById.set(b.batchId, b);
+          refs.push({ batchId: b.batchId, contract: b.contractAddress });
+          metas.push(b);
         } else if (b.txHash && client) {
           const { recoverBatchFromTx } = await import("@/lib/voucher/tx-recovery");
           const recovered = await recoverBatchFromTx(
@@ -299,11 +346,12 @@ export async function listCreatorBatches(
             normalized
           );
           if (recovered) {
-            batchIds.add(recovered.batchId);
-            metaById.set(recovered.batchId, {
+            refs.push({ batchId: recovered.batchId, contract: VOUCHER_CONTRACT });
+            metas.push({
               ...b,
               batchId: recovered.batchId,
               creator: normalized,
+              contractAddress: VOUCHER_CONTRACT.toLowerCase(),
             });
           }
         }
@@ -314,21 +362,21 @@ export async function listCreatorBatches(
   }
 
   if (scanChain) {
-    const chainIds = await discoverCreatorBatchIds(normalized);
-    for (const id of chainIds) batchIds.add(id);
-    const txIds = await discoverBatchIdsFromStoredTxs(normalized);
-    for (const id of txIds) batchIds.add(id);
+    refs.push(...(await discoverCreatorBatchRefs(normalized)));
+    refs.push(...(await discoverBatchRefsFromStoredTxs(normalized)));
   }
 
+  // One multicall for every batch. Ids repeat across contracts, so keep only this creator's batches.
+  const seen = new Set<string>();
   const batches: BatchLiveStatus[] = [];
-  for (const batchId of [...batchIds].sort((a, b) => b - a)) {
-    const live = await readOnchainBatch(batchId);
-    const meta = metaById.get(batchId);
-    // Strict isolation: only return verified onchain batches where creator matches normalized
-    if (live && live.creator.toLowerCase() === normalized) {
-      batches.push(mergeMeta(live, meta));
-    }
+  for (const live of await readOnchainBatches(refs)) {
+    if (live.creator !== normalized || !live.contractAddress) continue;
+    const key = batchRefKey(live.contractAddress, live.batchId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    batches.push(mergeMeta(live, findMeta(metas, live)));
   }
+  batches.sort((a, b) => b.batchId - a.batchId);
 
   const totalCards = batches.reduce((s, b) => s + b.cardCount, 0);
   const totalRedeemed = batches.reduce((s, b) => s + b.redeemedCount, 0);
@@ -343,17 +391,23 @@ export async function listCreatorBatches(
   };
 }
 
-export async function readBatchDetail(batchId: number): Promise<{
+/**
+ * Live batch + per-card status. Pass `contract` to pick the batch on that contract; without it
+ * the first known contract (current first) holding this id is used.
+ */
+export async function readBatchDetail(
+  batchId: number,
+  contract?: Address
+): Promise<{
   batch: BatchLiveStatus | null;
   cards: BatchCardLiveStatus[];
 }> {
-  const batch = await readOnchainBatch(batchId);
+  const batch = await readOnchainBatch(batchId, contract);
   if (!batch) return { batch: null, cards: [] };
 
   let meta: VoucherBatchMeta | undefined;
   try {
-    const stored = await readStoredBatches();
-    meta = stored.find((b) => b.batchId === batchId);
+    meta = findMeta(await readStoredBatches(), batch);
   } catch {
     /* ignore */
   }
@@ -382,7 +436,8 @@ export async function recoverBatchForWallet(
   );
   if (!recovered) return null;
 
-  const live = await readOnchainBatch(recovered.batchId);
+  // Tx recovery only reads deposits on the current contract, so read the batch there.
+  const live = await readOnchainBatch(recovered.batchId, VOUCHER_CONTRACT as Address);
   if (!live) return null;
 
   return {

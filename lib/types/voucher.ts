@@ -11,4 +11,6 @@ export interface VoucherBatchMeta {
   redeemedCount: number;
   createdAt: number;
   txHash?: string;
+  /** Contract the batch lives on (lower-case). Batch ids repeat across contracts. Missing on old records. */
+  contractAddress?: string;
 }

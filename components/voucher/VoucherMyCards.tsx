@@ -117,7 +117,7 @@ export default function VoucherMyCards({
   const openBatchDrawer = (b: StoredVoucherBatch) => {
     setSelectedBatchForDrawer(b);
     setExpandedBatchId(b.batchId);
-    void loadBatchDetail(b.batchId);
+    void loadBatchDetail(b.batchId, b.contractAddress);
   };
 
   // 1. If not connected, prompt to connect
@@ -396,6 +396,17 @@ export default function VoucherMyCards({
                     />
                   </div>
                 </div>
+
+                {!b.expirationTimestamp && !isFullyClaimed && (
+                  <p
+                    role="note"
+                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300"
+                  >
+                    {hasLocalSecrets
+                      ? "No expiry: unclaimed cards can't be reclaimed. Keep a copy of these claim links somewhere safe."
+                      : "No expiry and no claim links saved here: sign in with your wallet to load them. If the links are lost, unclaimed funds stay locked."}
+                  </p>
+                )}
 
                 {/* Bottom Row: Message, Asset details & Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-xs flex-wrap gap-2">

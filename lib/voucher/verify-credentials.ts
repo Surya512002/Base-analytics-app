@@ -1,58 +1,86 @@
+import type { Address } from "viem";
 import { VOUCHER_ABI } from "@/lib/constants/contracts";
-import { VOUCHER_CONTRACT } from "@/lib/constants/env";
 import {
+  MAX_VOUCHER_CARDS,
   hashVoucherSecret,
   type StoredVoucherBatch,
 } from "@/lib/utils/voucher";
-import { readOnchainBatch } from "@/lib/voucher/batch-read";
-import { readNextBatchId } from "@/lib/voucher/agent-api";
+import { readOnchainBatches, type BatchLiveStatus } from "@/lib/voucher/batch-read";
+import { isKnownVoucherContract } from "@/lib/voucher/voucher-contracts";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import type { Address } from "viem";
 
-function getClient() {
-  if (!VOUCHER_CONTRACT) return null;
-  return createBasePublicClient();
-}
+/** Longest secret we accept (card secrets are ~20 chars; this only stops junk payloads). */
+const MAX_SECRET_LENGTH = 128;
 
-/** True when submitted secrets match on-chain hashes (or batch not created yet). */
+export type CredentialCheck =
+  | { ok: true; contract: Address; live: BatchLiveStatus }
+  | { ok: false; reason: string };
+
+type MulticallEntry = { status: "success"; result: unknown } | { status: "failure"; error?: unknown };
+
+/**
+ * Accept card secrets only when every submitted secret hashes to the hash stored onchain for
+ * that card, on a batch created by `creator`. That way nobody — not even a signed-in creator
+ * with a buggy client — can overwrite saved secrets with wrong ones.
+ *
+ * Batch ids repeat across contracts (v1 and v2 both start at 1). When the batch doesn't say
+ * which contract it's on, every known contract is tried, and the one whose hashes match wins.
+ */
 export async function verifyBatchCredentials(
   batch: StoredVoucherBatch,
   creator: string
-): Promise<boolean> {
-  if (batch.creator?.toLowerCase() !== creator.toLowerCase()) return false;
+): Promise<CredentialCheck> {
+  const owner = creator.toLowerCase();
+  if (batch.creator?.toLowerCase() !== owner) return { ok: false, reason: "Batch creator mismatch" };
+  if (!Number.isInteger(batch.batchId) || batch.batchId < 1) return { ok: false, reason: "Invalid batch" };
+  if (!Array.isArray(batch.cards) || batch.cards.length === 0 || batch.cards.length > MAX_VOUCHER_CARDS) {
+    return { ok: false, reason: "Invalid cards" };
+  }
+  if (batch.contractAddress && !isKnownVoucherContract(batch.contractAddress)) {
+    return { ok: false, reason: "Unknown voucher contract" };
+  }
 
-  const cardsWithSecrets = batch.cards.filter((c) => c.secret?.trim());
-  if (cardsWithSecrets.length === 0) return true;
+  const withSecrets: Array<{ cardIndex: number; secret: string }> = [];
+  for (const card of batch.cards) {
+    if (!Number.isInteger(card?.cardIndex) || card.cardIndex < 0) return { ok: false, reason: "Invalid card index" };
+    const secret = typeof card.secret === "string" ? card.secret.trim() : "";
+    if (secret.length > MAX_SECRET_LENGTH) return { ok: false, reason: "Invalid secret" };
+    if (secret) withSecrets.push({ cardIndex: card.cardIndex, secret });
+  }
+  if (withSecrets.length === 0) return { ok: false, reason: "No card secrets" };
 
-  const live = await readOnchainBatch(batch.batchId);
-  if (!live) {
+  const candidates = (
+    await readOnchainBatches([{ batchId: batch.batchId, contract: batch.contractAddress }])
+  ).filter((live) => live.creator === owner && live.contractAddress);
+  if (candidates.length === 0) return { ok: false, reason: "Batch not confirmed onchain for this creator" };
+
+  const client = createBasePublicClient();
+  for (const live of candidates) {
+    if (withSecrets.some((c) => c.cardIndex >= live.cardCount)) continue;
+    const contract = live.contractAddress as Address;
     try {
-      const nextId = await readNextBatchId();
-      return batch.batchId === nextId;
+      const results = (await client.multicall({
+        contracts: withSecrets.map((c) => ({
+          address: contract,
+          abi: VOUCHER_ABI,
+          functionName: "cardSecretHashes" as const,
+          args: [BigInt(batch.batchId), BigInt(c.cardIndex)] as const,
+        })),
+        allowFailure: true,
+      })) as MulticallEntry[];
+      const allMatch = withSecrets.every((c, i) => {
+        const r = results[i];
+        return (
+          r?.status === "success" &&
+          typeof r.result === "string" &&
+          r.result.toLowerCase() === hashVoucherSecret(c.secret).toLowerCase()
+        );
+      });
+      if (allMatch) return { ok: true, contract, live };
     } catch {
-      return false;
+      /* RPC failure on this contract: try the next one, else fail closed below */
     }
   }
 
-  const client = getClient();
-  if (!client || !VOUCHER_CONTRACT) return false;
-
-  if (live.creator !== creator.toLowerCase()) return false;
-
-  try {
-    const checks = await Promise.all(
-      cardsWithSecrets.map(async (card) => {
-        const onChainHash = await client.readContract({
-          address: VOUCHER_CONTRACT as Address,
-          abi: VOUCHER_ABI,
-          functionName: "cardSecretHashes",
-          args: [BigInt(batch.batchId), BigInt(card.cardIndex)],
-        });
-        return hashVoucherSecret(card.secret) === onChainHash;
-      })
-    );
-    return checks.every(Boolean);
-  } catch {
-    return false;
-  }
+  return { ok: false, reason: "Card secrets don't match this batch onchain" };
 }

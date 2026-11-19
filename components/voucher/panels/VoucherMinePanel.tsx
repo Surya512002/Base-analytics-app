@@ -238,7 +238,7 @@ export default function VoucherMinePanel({
               return;
             }
             setExpandedBatchId(b.batchId);
-            void loadBatchDetail(b.batchId);
+            void loadBatchDetail(b.batchId, b.contractAddress);
           };
 
           return (
