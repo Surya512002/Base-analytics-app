@@ -9,8 +9,10 @@
 import { encodeAbiParameters, keccak256, stringToBytes, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { BASE_DROPS_ABI } from "./abi";
+import { DROPS_CHAIN_ID } from "./network";
 
-export const BASE_CHAIN_ID = 8453;
+/** Chain Drops runs on (8453, or 84532 when NEXT_PUBLIC_DROPS_CHAIN_ID=84532). */
+export const BASE_CHAIN_ID: number = DROPS_CHAIN_ID;
 export const FIRST_DROP_ID = BigInt(2_000_000_001);
 export const TICKET_TTL_SEC = 10 * 60;
 export const TICKET_TAG = keccak256(stringToBytes("BaseDrops.v1.ticket"));

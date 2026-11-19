@@ -14,3 +14,4 @@ remappings = [
 
 [rpc_endpoints]
 base = "${BASE_RPC_URL:-https://mainnet.base.org}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}"

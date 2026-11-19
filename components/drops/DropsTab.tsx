@@ -4,10 +4,11 @@ import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { parseDropLink, type ParsedDropLink } from "@/lib/drops/client";
+import { IS_DROPS_TESTNET } from "@/lib/drops/network";
 import DropCreate from "./DropCreate";
 import DropClaim from "./DropClaim";
 import MyDrops from "./MyDrops";
-import { Card, btnPrimary, btnSecondary } from "./ui";
+import { Card, Notice, btnPrimary, btnSecondary } from "./ui";
 
 type View = "create" | "mine";
 
@@ -39,9 +40,14 @@ export default function DropsTab({
     return () => window.removeEventListener("hashchange", read);
   }, []);
 
+  const testnet = IS_DROPS_TESTNET ? (
+    <Notice tone="warn">Test network: Drops here run on Base Sepolia with test funds. Switch your wallet to Base Sepolia.</Notice>
+  ) : null;
+
   if (link) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 pb-12">
+        {testnet}
         <DropClaim link={link} address={address} connType={connType} onRequestConnect={onRequestConnect} />
       </div>
     );
@@ -49,6 +55,7 @@ export default function DropsTab({
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-12">
+      {testnet}
       <Card>
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand-text)]">

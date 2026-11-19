@@ -6,7 +6,8 @@ import { encodeAbiParameters, keccak256, stringToBytes, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { buildAddressTree } from "./merkle";
 
-export const DROPS_CHAIN_ID = 8453;
+export { DROPS_CHAIN_ID } from "./network";
+import { DROPS_CHAIN_ID } from "./network";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 export const ZERO_BYTES32 = `0x${"0".repeat(64)}` as Hex;
 const LINK_TAG = keccak256(stringToBytes("BaseDrops.v1.link"));

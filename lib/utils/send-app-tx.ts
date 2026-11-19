@@ -22,8 +22,21 @@ import {
 } from "@/lib/utils/wallet-connection";
 import { gasLimitForB20Target } from "@/lib/b20/preflight";
 import { createPublicOnlyBaseClient, withRpcRetry } from "@/lib/utils/base-rpc";
+import { createPublicClient, http } from "viem";
+import { baseSepolia } from "viem/chains";
 
 const BASE_CHAIN_HEX = "0x2105" as const;
+
+/** Network a send runs on. Mainnet unless a caller passes targetChainId 84532 (Drops on a test deployment). */
+type Net = { chainId: 8453 | 84532; hex: string; client: () => ReturnType<typeof createPublicOnlyBaseClient> };
+const MAINNET: Net = { chainId: 8453, hex: BASE_CHAIN_HEX, client: createPublicOnlyBaseClient };
+const SEPOLIA: Net = {
+  chainId: 84532,
+  hex: "0x14a34",
+  client: () =>
+    createPublicClient({ chain: baseSepolia, transport: http("https://sepolia.base.org") }) as unknown as ReturnType<typeof createPublicOnlyBaseClient>,
+};
+const netFor = (chainId?: 8453 | 84532): Net => (chainId === 84532 ? SEPOLIA : MAINNET);
 const WALLET_PROMPT_MS = 120_000;
 const CALLS_POLL_MS = 120_000;
 const BROADCAST_DETECT_MS = 30_000;
@@ -189,11 +202,11 @@ async function assertTxVisibleOnBase(hash: string): Promise<void> {
 }
 
 /** Wait until the tx is mined — more reliable than getTransaction alone for smart wallets. */
-async function waitForOnchainHash(hash: string): Promise<string> {
+async function waitForOnchainHash(hash: string, net: Net = MAINNET): Promise<string> {
   if (!isTxHash(hash)) {
     throw new Error("Wallet returned an invalid transaction hash");
   }
-  const pub = createPublicOnlyBaseClient();
+  const pub = net.client();
   try {
     const receipt = await withRpcRetry(() =>
       pub.waitForTransactionReceipt({
@@ -241,7 +254,8 @@ async function sendViaWalletSendCalls(
   provider: Eip1193,
   from: string,
   calls: ContractCall[],
-  capabilities: Record<string, unknown>
+  capabilities: Record<string, unknown>,
+  net: Net = MAINNET
 ): Promise<string> {
   const callPayload = prepareCallsForWalletSendCalls(calls).map((call) => {
     const valueHex =
@@ -269,7 +283,7 @@ async function sendViaWalletSendCalls(
           params: [
             {
               version,
-              chainId: BASE_CHAIN_HEX,
+              chainId: net.hex,
               from,
               calls: callPayload,
               capabilities,
@@ -321,8 +335,8 @@ async function sendViaEthSendTransaction(
   return hash;
 }
 
-async function waitForTxMined(hash: string): Promise<void> {
-  await waitForOnchainHash(hash);
+async function waitForTxMined(hash: string, net: Net = MAINNET): Promise<void> {
+  await waitForOnchainHash(hash, net);
 }
 
 function isErc20ApproveCall(call: ContractCall): boolean {
@@ -404,15 +418,18 @@ async function sendWalletCallsWithPaymasterFallback(
   from: string,
   calls: ContractCall[],
   tryPaymaster: boolean,
-  stripSuffixForPreserved = false
+  stripSuffixForPreserved = false,
+  net: Net = MAINNET
 ): Promise<string> {
-  if (tryPaymaster) {
+  // The sponsor (paymaster) service is configured for Base mainnet only.
+  if (tryPaymaster && net.chainId === 8453) {
     try {
       return await sendViaWalletSendCalls(
         provider,
         from,
         calls,
-        getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: false })
+        getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: false }),
+        net
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
@@ -424,7 +441,8 @@ async function sendWalletCallsWithPaymasterFallback(
     provider,
     from,
     calls,
-    getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: true })
+    getSendCallsCapabilities(stripSuffixForPreserved, { skipPaymaster: true }),
+    net
   );
 }
 
@@ -432,7 +450,7 @@ async function sendSingleCall(
   provider: Eip1193,
   from: string,
   call: ContractCall,
-  opts: { preferSendCalls: boolean }
+  opts: { preferSendCalls: boolean; net?: Net }
 ): Promise<string> {
   const stripSuffix = isPreservedCalldataCall(call);
   const tryPaymaster = !isB20FactoryAddress(call.to);
@@ -444,7 +462,8 @@ async function sendSingleCall(
         from,
         [call],
         tryPaymaster,
-        stripSuffix
+        stripSuffix,
+        opts.net
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
@@ -458,7 +477,7 @@ async function sendCallGroup(
   provider: Eip1193,
   from: string,
   group: ContractCall[],
-  opts: { preferSendCalls: boolean; atomicBatch: boolean }
+  opts: { preferSendCalls: boolean; atomicBatch: boolean; net?: Net }
 ): Promise<string> {
   if (group.length === 0) {
     throw new Error("No calls in group");
@@ -475,7 +494,9 @@ async function sendCallGroup(
         provider,
         from,
         group,
-        tryPaymaster
+        tryPaymaster,
+        false,
+        opts.net
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
@@ -486,7 +507,7 @@ async function sendCallGroup(
     try {
       const bundled = bundleCallsViaMulticall3(group);
       const hash = await sendViaEthSendTransaction(provider, from, bundled);
-      return waitForOnchainHash(hash);
+      return waitForOnchainHash(hash, opts.net);
     } catch (e) {
       if (isUserRejection(e)) throw e;
     }
@@ -497,9 +518,9 @@ async function sendCallGroup(
   // Note: Set preferSendCalls to false since wallet_sendCalls already failed or is unsupported.
   let lastHash = "";
   for (let i = 0; i < group.length; i++) {
-    lastHash = await sendSingleCall(provider, from, group[i]!, { preferSendCalls: false });
+    lastHash = await sendSingleCall(provider, from, group[i]!, { preferSendCalls: false, net: opts.net });
     if (i < group.length - 1) {
-      await waitForTxMined(lastHash);
+      await waitForTxMined(lastHash, opts.net);
     }
   }
   return lastHash;
@@ -509,7 +530,7 @@ async function sendGroupedAppCalls(
   provider: Eip1193,
   from: string,
   calls: ContractCall[],
-  opts: { preferSendCalls: boolean; atomicBatch: boolean }
+  opts: { preferSendCalls: boolean; atomicBatch: boolean; net?: Net }
 ): Promise<string> {
   const useAtomic = opts.atomicBatch && (opts.preferSendCalls || canBundleViaMulticall3(calls));
   const groups = groupCallsForExecution(calls, useAtomic);
@@ -517,7 +538,7 @@ async function sendGroupedAppCalls(
   for (let g = 0; g < groups.length; g++) {
     lastHash = await sendCallGroup(provider, from, groups[g]!, opts);
     if (!useAtomic && g < groups.length - 1) {
-      await waitForTxMined(lastHash);
+      await waitForTxMined(lastHash, opts.net);
     }
   }
   return lastHash;
@@ -634,12 +655,13 @@ export async function sendAppTransactions(
     options?.provider ??
     ((await getEip1193Provider(connType)) as unknown as Eip1193);
 
-  await ensureBaseNetwork(provider, options?.targetChainId ?? 8453);
+  const net = netFor(options?.targetChainId);
+  await ensureBaseNetwork(provider, net.chainId);
   await ensureActiveAccount(provider, from);
 
   const inMiniApp = Boolean(await detectMiniAppConnType());
   const preferSendCalls = prefersWalletSendCalls(connType, inMiniApp);
-  const trySponsored = preferSendCalls && supportsPaymaster(connType, inMiniApp);
+  const trySponsored = preferSendCalls && net.chainId === 8453 && supportsPaymaster(connType, inMiniApp);
   const atomicBatch = options?.atomicBatch !== false;
 
   const { preflight, main } = partitionB20PreflightCalls(batch);
@@ -689,6 +711,7 @@ export async function sendAppTransactions(
     return sendGroupedAppCalls(provider, from, workBatch, {
       preferSendCalls,
       atomicBatch,
+      net,
     });
   }
 
@@ -701,7 +724,8 @@ export async function sendAppTransactions(
         from,
         workBatch,
         batchCanTryPaymaster(workBatch),
-        stripSuffix
+        stripSuffix,
+        net
       );
     } catch (e) {
       if (isUserRejection(e)) throw e;
