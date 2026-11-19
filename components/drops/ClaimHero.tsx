@@ -88,7 +88,9 @@ export default function ClaimHero({
             className="text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl"
           >
             {amount}
-            <span className="block text-base font-bold text-white/75 sm:text-lg">for you to claim</span>
+            <span className="block text-base font-bold text-white/75 sm:text-lg">
+              {state === "live" ? "for you to claim" : state === "soon" ? "opens soon" : state === "paused" ? "paused for now" : "per claim"}
+            </span>
           </motion.h1>
 
           {message && <p className="max-w-md rounded-2xl bg-white/10 px-4 py-3 text-sm italic text-white/90">“{message}”</p>}
