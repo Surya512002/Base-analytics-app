@@ -48,6 +48,8 @@ export function buildApproveCall(token: Address, spender: Address, amount: bigin
  * 6. refundExpired(uint256) -> 0x1402b17a
  * 7. createDca(address,uint128,uint16,uint32,uint96) -> 0xb42f3f7d
  * 8. cancelDca(uint256) -> 0x55938f6f
+ * 9. createDcaSell(address,uint128,uint16,uint32,uint96) -> 0x3d8eb5a0
+ * 10. createLimitBuyWithExits(address,uint128,uint96,uint128,uint40,(uint96,uint96,uint16,uint32)) -> 0x065ce454
  */
 export const ALLOWED_ORDERBOOK_SELECTORS = new Set([
   "0xcbc5d25b",
@@ -58,6 +60,8 @@ export const ALLOWED_ORDERBOOK_SELECTORS = new Set([
   "0x1402b17a",
   "0xb42f3f7d",
   "0x55938f6f",
+  "0x3d8eb5a0",
+  "0x065ce454",
 ]);
 
 export const ERC20_APPROVE_SELECTOR = "0x095ea7b3";
@@ -70,7 +74,7 @@ const MAX_UINT256 = (1n << 256n) - 1n;
  * 1. tx.value === 0n (or undefined). Native ETH transfers are strictly forbidden.
  * 2. tx.data is present and has at least a 4-byte selector (>= 10 chars).
  * 3. Target contract `to` must strictly equal either the configured order book or an allowlisted token (quote token or stock tokens).
- * 4. For OrderBook targets: function selector must match one of the exact 8 allowed write methods.
+ * 4. For OrderBook targets: function selector must match one of the exact 10 allowed write methods.
  * 5. For Token targets: function selector must be ERC20 approve(orderBook, amount) where:
  *    - `spender` equals the configured order book
  *    - `amount` > 0
@@ -303,6 +307,60 @@ export function buildCreateDcaCall(params: {
         params.interval,
         params.maxPrice,
       ],
+    }),
+  };
+}
+
+/** Limit buy whose filled tokens go straight into a take-profit + stop-loss bracket (one-triggers-OCO). */
+export function buildCreateLimitBuyWithExitsCall(params: {
+  orderBook: Address;
+  stockToken: Address;
+  amountIn: bigint;
+  triggerPrice: bigint;
+  minAmountOut: bigint;
+  expiry: number;
+  takeProfitPrice: bigint;
+  stopLossPrice: bigint;
+  exitSlippageBps: number;
+  exitDurationSec: number;
+}): PreparedTx {
+  return {
+    to: params.orderBook,
+    data: encodeFunctionData({
+      abi: orderBookAbi,
+      functionName: "createLimitBuyWithExits",
+      args: [
+        params.stockToken,
+        params.amountIn,
+        params.triggerPrice,
+        params.minAmountOut,
+        params.expiry,
+        {
+          takeProfitPrice: params.takeProfitPrice,
+          stopLossPrice: params.stopLossPrice,
+          slippageBps: params.exitSlippageBps,
+          duration: params.exitDurationSec,
+        },
+      ],
+    }),
+  };
+}
+
+/** Recurring SELL: escrows amountPerSell * sells of the stock token; sells are skipped while price < minPrice (0 = no floor). */
+export function buildCreateDcaSellCall(params: {
+  orderBook: Address;
+  stockToken: Address;
+  amountPerSell: bigint;
+  sells: number;
+  interval: number;
+  minPrice: bigint;
+}): PreparedTx {
+  return {
+    to: params.orderBook,
+    data: encodeFunctionData({
+      abi: orderBookAbi,
+      functionName: "createDcaSell",
+      args: [params.stockToken, params.amountPerSell, params.sells, params.interval, params.minPrice],
     }),
   };
 }

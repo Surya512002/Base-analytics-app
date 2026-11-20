@@ -2,14 +2,21 @@ const { ethers } = require("hardhat");
 
 /**
  * Deploys LimitOrderBook + UniswapV3Adapter and wires one or all configured markets.
- * Returns { book, adapter }.
+ *
+ * Ownership: both contracts are deployed with the DEPLOYER as the temporary owner so it can wire markets,
+ * pool fees, escrow ceilings and the guardian. If `cfg.owner` is a different address (a Safe on mainnet),
+ * ownership is then offered to it with Ownable2Step: the Safe must call `acceptOwnership()` on BOTH contracts.
+ * Until it does, the deployer is still the owner, so the deployer key must be kept safe until acceptance.
+ *
+ * Returns { book, adapter, pendingOwner }.
  */
 async function deployAll(cfg) {
   const [deployer] = await ethers.getSigners();
-  const owner = cfg.owner || deployer.address;
+  const finalOwner = cfg.owner ? ethers.getAddress(cfg.owner) : deployer.address;
+
   const book = await (await ethers.getContractFactory("LimitOrderBook")).deploy(
     cfg.quoteToken,
-    owner,
+    deployer.address,
     cfg.keeperFeeBps ?? 10
   );
   await book.waitForDeployment();
@@ -17,11 +24,10 @@ async function deployAll(cfg) {
   const adapter = await (await ethers.getContractFactory("UniswapV3Adapter")).deploy(
     book.target,
     cfg.router,
-    owner
+    deployer.address
   );
   await adapter.waitForDeployment();
 
-  // If cfg.markets array is provided, wire all configured markets
   if (Array.isArray(cfg.markets) && cfg.markets.length > 0) {
     for (const m of cfg.markets) {
       const stockAddr = ethers.getAddress(m.stockToken);
@@ -44,6 +50,9 @@ async function deployAll(cfg) {
         maxDeviationBps,
         true
       )).wait();
+      if (m.maxStockEscrow !== undefined || m.maxQuoteEscrow !== undefined) {
+        await (await book.setEscrowCaps(stockAddr, BigInt(m.maxStockEscrow ?? 0), BigInt(m.maxQuoteEscrow ?? 0))).wait();
+      }
     }
   } else if (cfg.stockToken) {
     // Backwards-compatible single market flow
@@ -60,7 +69,25 @@ async function deployAll(cfg) {
     )).wait();
   }
 
-  return { book, adapter };
+  if (cfg.sequencerUptimeFeed) {
+    await (await book.setSequencerUptimeFeed(ethers.getAddress(cfg.sequencerUptimeFeed))).wait();
+  }
+  for (const k of cfg.keepers ?? []) {
+    await (await book.setKeeper(ethers.getAddress(k), true)).wait();
+  }
+
+  if (cfg.guardian) {
+    await (await book.setGuardian(ethers.getAddress(cfg.guardian))).wait();
+  }
+
+  let pendingOwner = null;
+  if (finalOwner.toLowerCase() !== deployer.address.toLowerCase()) {
+    await (await book.transferOwnership(finalOwner)).wait();
+    await (await adapter.transferOwnership(finalOwner)).wait();
+    pendingOwner = finalOwner;
+  }
+
+  return { book, adapter, pendingOwner };
 }
 
 module.exports = { deployAll };

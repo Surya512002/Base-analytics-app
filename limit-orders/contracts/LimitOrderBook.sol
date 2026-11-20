@@ -36,13 +36,22 @@ interface ISwapAdapter {
 ///   - TRAILING_STOP  stop-loss whose trigger ratchets up with the highest price seen (never down)
 ///   - BRACKET        take-profit + stop-loss sharing ONE deposit; when one fills the other is cancelled (OCO)
 ///   - DCA plan       recurring buys on a schedule, optionally only below a price ceiling
+///   - DCA sell plan  recurring sells (scale out) on a schedule, optionally only above a price floor
+///   - BUY + EXITS    limit buy with an attached take-profit + stop-loss: when the buy fills, the bought tokens go
+///                    straight into a bracket (OCO) for the owner, in the same transaction
 ///
 ///  Safety features:
 ///   - Oracle-bounded fills: every execution must receive at least (1 - maxDeviationBps) of what the Chainlink
 ///     price implies, even if the user's own minimum is looser. Bad pool prices revert and the order stays open.
 ///   - Stale-price protection (market closed / feed down): nothing executes on a stale feed.
-///   - Owners can ALWAYS cancel and withdraw (even when paused). The owner of this contract can never move user funds.
-///   - Per-order caps per market (beta limits), pause switch, 2-step ownership.
+///   - Owners can ALWAYS cancel and withdraw (even when paused).
+///   - Risk changes to a live market (new feed, new adapter, looser deviation or staleness) are TIMELOCKED for
+///     RISK_DELAY, so users can see them coming and cancel before they apply. Tightening applies immediately.
+///   - Only allowlisted keepers can execute while `keeperOnly` is on. This stops anyone from wrapping an execution
+///     in an atomic sandwich (flash-swap the pool, execute at the oracle floor, swap back).
+///   - L2 sequencer uptime check: nothing executes while Base's sequencer is down or within the grace period after.
+///   - Per-order caps per market (beta limits), per-market ESCROW ceilings (total value at risk), pause switch,
+///     a pause-only guardian key, 2-step ownership.
 ///
 /// @dev Prices are normalized to 8 decimals (USD per 1 whole stock token). The quote token is assumed to be worth $1.
 ///      `minAmountOut` is what the order owner receives AFTER the keeper fee.
@@ -90,6 +99,14 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         uint64 linkedId; // bracket sibling order id, 0 if none
     }
 
+    /// @notice Take-profit / stop-loss attached to a LIMIT_BUY, placed as a bracket when the buy fills.
+    struct Exits {
+        uint96 takeProfitPrice; // 8 decimals; must be above the buy trigger
+        uint96 stopLossPrice; // 8 decimals; must be below the buy trigger
+        uint16 slippageBps; // min-out tolerance for both exit legs (must exceed the keeper fee)
+        uint32 duration; // seconds the exit legs stay open after the buy fills
+    }
+
     struct Plan {
         address owner;
         Status status; // OPEN, EXECUTED (completed), CANCELLED
@@ -119,6 +136,37 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
     mapping(uint256 id => Order) private _orders;
     mapping(address user => uint256[]) private _userOrderIds;
     mapping(uint256 id => Plan) private _plans;
+
+    // ---- v2.1: total-escrow ceilings, recurring sells, guardian ----
+    /// @notice Ceiling on the total stock token held in escrow for a market (orders + sell plans). 0 = no ceiling.
+    mapping(address stockToken => uint128) public maxStockEscrow;
+    /// @notice Ceiling on the total quote token held in escrow for a market (buy orders + buy plans). 0 = no ceiling.
+    mapping(address stockToken => uint128) public maxQuoteEscrow;
+    mapping(address stockToken => uint256) public stockEscrowed;
+    mapping(address stockToken => uint256) public quoteEscrowed;
+    /// @notice True for recurring SELL plans. For these, Plan.amountPerBuy is stock per run and Plan.maxPrice is a price FLOOR.
+    mapping(uint256 planId => bool) public isSellPlan;
+    /// @notice Exits attached to an open LIMIT_BUY (cleared once it fills, is cancelled or expires).
+    mapping(uint256 buyOrderId => Exits) public attachedExits;
+    /// @notice Pending risk-increasing market change (applies after RISK_DELAY).
+    struct PendingRisk {
+        address feed;
+        address adapter;
+        uint32 maxStaleness;
+        uint16 maxDeviationBps;
+        uint40 eta;
+    }
+
+    uint256 public constant RISK_DELAY = 2 days;
+    uint256 public constant SEQUENCER_GRACE = 1 hours;
+    mapping(address stockToken => PendingRisk) public pendingRisk;
+    /// @notice When true (default) only allowlisted keepers may execute orders and plans.
+    bool public keeperOnly = true;
+    mapping(address keeper => bool) public isKeeper;
+    /// @notice Chainlink L2 sequencer uptime feed (Base: 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433). 0 = no check.
+    IAggregatorV3 public sequencerUptimeFeed;
+    /// @notice Optional emergency key that can ONLY pause. It can never move funds, unpause or change markets.
+    address public guardian;
     mapping(address user => uint256[]) private _userPlanIds;
 
     event MarketSet(address indexed stockToken, address feed, address adapter, uint16 maxDeviationBps, bool enabled);
@@ -167,6 +215,26 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 remaining
     );
     event DcaCancelled(uint256 indexed id, address indexed owner, uint256 refunded);
+    event DcaSellCreated(
+        uint256 indexed id,
+        address indexed owner,
+        address indexed stockToken,
+        uint256 amountPerSell,
+        uint256 sells,
+        uint256 interval,
+        uint256 minPrice
+    );
+    event ExitsAttached(uint256 indexed buyId, uint256 takeProfitPrice, uint256 stopLossPrice, uint256 slippageBps, uint256 duration);
+    event ExitsPlaced(uint256 indexed buyId, uint256 indexed takeProfitId, uint256 indexed stopLossId, uint256 amount);
+    /// @dev reason: 1 = price already outside the exits, 2 = above per-order cap, 3 = escrow ceiling reached, 4 = dust
+    event ExitsSkipped(uint256 indexed buyId, uint8 reason);
+    event EscrowCapsSet(address indexed stockToken, uint256 maxStock, uint256 maxQuote);
+    event GuardianSet(address indexed guardian);
+    event RiskChangeQueued(address indexed stockToken, address feed, address adapter, uint32 maxStaleness, uint16 maxDeviationBps, uint256 eta);
+    event RiskChangeCancelled(address indexed stockToken);
+    event KeeperSet(address indexed keeper, bool allowed);
+    event KeeperOnlySet(bool keeperOnly);
+    event SequencerFeedSet(address feed);
 
     error MarketDisabled();
     error InvalidParams();
@@ -189,6 +257,13 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
     error NoTrailUpdate();
     error TooEarly();
     error PriceAboveCeiling();
+    error PriceBelowFloor();
+    error EscrowCapReached();
+    error NotGuardian();
+    error NeedsTimelock();
+    error TimelockNotReady();
+    error NotKeeper();
+    error SequencerDown();
 
     constructor(address quoteToken_, address owner_, uint16 keeperFeeBps_) Ownable(owner_) {
         if (quoteToken_ == address(0)) revert InvalidParams();
@@ -214,6 +289,39 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         uint128 minAmountOut,
         uint40 expiry
     ) external whenNotPaused nonReentrant returns (uint256 id) {
+        id = _createOrder(stockToken, orderType, amountIn, triggerPrice, minAmountOut, expiry);
+    }
+
+    /// @notice LIMIT_BUY with an attached take-profit and stop-loss (one-triggers-OCO). When the buy fills, the
+    ///         bought tokens (after the keeper fee) are escrowed straight into a bracket for the owner. If the exits
+    ///         cannot be placed at fill time (price already beyond them, cap or ceiling), the tokens are sent to the
+    ///         owner instead and `ExitsSkipped` explains why. The buy itself never fails because of its exits.
+    function createLimitBuyWithExits(
+        address stockToken,
+        uint128 amountIn,
+        uint96 triggerPrice,
+        uint128 minAmountOut,
+        uint40 expiry,
+        Exits calldata exits
+    ) external whenNotPaused nonReentrant returns (uint256 id) {
+        if (exits.takeProfitPrice <= triggerPrice || exits.stopLossPrice == 0 || exits.stopLossPrice >= triggerPrice) {
+            revert InvalidBracket();
+        }
+        if (exits.slippageBps <= keeperFeeBps || exits.slippageBps > 5000) revert InvalidParams();
+        if (exits.duration < 1 hours || exits.duration > MAX_DURATION) revert InvalidExpiry();
+        id = _createOrder(stockToken, OrderType.LIMIT_BUY, amountIn, triggerPrice, minAmountOut, expiry);
+        attachedExits[id] = exits;
+        emit ExitsAttached(id, exits.takeProfitPrice, exits.stopLossPrice, exits.slippageBps, exits.duration);
+    }
+
+    function _createOrder(
+        address stockToken,
+        OrderType orderType,
+        uint128 amountIn,
+        uint96 triggerPrice,
+        uint128 minAmountOut,
+        uint40 expiry
+    ) internal returns (uint256 id) {
         if (orderType == OrderType.TRAILING_STOP) revert InvalidParams(); // use createTrailingStop
         Market memory m = _market(stockToken);
         bool isBuy = orderType == OrderType.LIMIT_BUY;
@@ -225,6 +333,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (_isTriggered(orderType, price, triggerPrice)) revert AlreadyTriggered();
 
         _pullIn(isBuy ? quoteToken : IERC20(stockToken), amountIn);
+        _escrowIn(stockToken, isBuy, amountIn);
         id = _store(
             Order({
                 owner: msg.sender,
@@ -256,6 +365,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
 
         (uint256 price,) = _lastPrice(m);
         _pullIn(IERC20(stockToken), amountIn);
+        _escrowIn(stockToken, false, amountIn);
         id = _store(
             Order({
                 owner: msg.sender,
@@ -295,6 +405,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (price >= takeProfitPrice || price <= stopLossPrice) revert AlreadyTriggered();
 
         _pullIn(IERC20(stockToken), amountIn);
+        _escrowIn(stockToken, false, amountIn);
         takeProfitId = nextOrderId;
         stopLossId = takeProfitId + 1;
         _store(
@@ -371,6 +482,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
             _orders[o.linkedId].status = Status.CANCELLED;
             emit OrderCancelled(o.linkedId, msg.sender);
         }
+        delete attachedExits[id];
         _refund(o);
         emit OrderCancelled(id, msg.sender);
     }
@@ -385,6 +497,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
             _orders[o.linkedId].status = Status.EXPIRED;
             emit OrderExpired(o.linkedId, o.owner);
         }
+        delete attachedExits[id];
         _refund(o);
         emit OrderExpired(id, o.owner);
     }
@@ -395,6 +508,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
 
     /// @notice Execute an order whose trigger has been hit. The caller earns `keeperFeeBps` of the output.
     function executeOrder(uint256 id) external whenNotPaused nonReentrant returns (uint256 amountOutToOwner) {
+        _onlyKeeper();
         Order storage o = _orders[id];
         if (o.status != Status.OPEN) revert NotOpen();
         if (block.timestamp > o.expiry) revert OrderHasExpired();
@@ -409,6 +523,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         }
 
         bool isBuy = o.orderType == OrderType.LIMIT_BUY;
+        _escrowOut(o.stockToken, isBuy, o.amountIn);
         uint256 amountOut = _swapRaw(
             isBuy ? address(quoteToken) : o.stockToken,
             isBuy ? o.stockToken : address(quoteToken),
@@ -419,7 +534,11 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (amountOut < _guardFloor(isBuy, o.amountIn, price, m)) revert FillBelowOracleBound();
 
         uint256 fee;
-        (amountOutToOwner, fee) = _payout(o, amountOut);
+        if (isBuy && attachedExits[id].takeProfitPrice != 0) {
+            (amountOutToOwner, fee) = _fillIntoExits(id, o, m, price, amountOut);
+        } else {
+            (amountOutToOwner, fee) = _payout(o, amountOut);
+        }
         emit OrderExecuted(id, o.owner, msg.sender, price, o.amountIn, amountOutToOwner, fee);
     }
 
@@ -434,6 +553,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (!m.enabled) revert MarketDisabled();
         (uint256 price, uint256 updatedAt) = _lastPrice(m);
         if (updatedAt > block.timestamp || block.timestamp - updatedAt > m.maxStaleness) revert StalePrice();
+        if (!_sequencerUp()) revert SequencerDown();
         if (price <= o.peakPrice) revert NoTrailUpdate();
 
         o.peakPrice = _toUint96(price);
@@ -460,6 +580,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (total > m.maxQuoteIn) revert AmountTooLarge();
 
         _pullIn(quoteToken, total);
+        _escrowIn(stockToken, true, total);
         id = nextPlanId++;
         _plans[id] = Plan({
             owner: msg.sender,
@@ -477,21 +598,28 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
 
     /// @notice Execute the next scheduled buy of a plan. The caller earns `keeperFeeBps` of the stock bought.
     function executeDca(uint256 id) external whenNotPaused nonReentrant returns (uint256 stockToOwner) {
+        _onlyKeeper();
         Plan storage p = _plans[id];
         if (p.status != Status.OPEN) revert NotOpen();
         if (block.timestamp < p.nextTime) revert TooEarly();
 
         (Market memory m, uint256 price) = _requireFreshMarket(p.stockToken);
-        if (p.maxPrice != 0 && price > p.maxPrice) revert PriceAboveCeiling();
+        bool sell = isSellPlan[id];
+        if (sell) {
+            if (p.maxPrice != 0 && price < p.maxPrice) revert PriceBelowFloor();
+        } else if (p.maxPrice != 0 && price > p.maxPrice) {
+            revert PriceAboveCeiling();
+        }
 
         // Effects first.
         uint128 amountIn = p.amountPerBuy;
+        _escrowOut(p.stockToken, !sell, amountIn);
         p.remaining -= 1;
         p.nextTime = uint40(block.timestamp) + p.interval;
         if (p.remaining == 0) p.status = Status.EXECUTED;
 
         uint256 fee;
-        (stockToOwner, fee) = _dcaFill(p, m, price, amountIn);
+        (stockToOwner, fee) = sell ? _dcaSellFill(p, m, price, amountIn) : _dcaFill(p, m, price, amountIn);
         emit DcaExecuted(id, p.owner, msg.sender, price, amountIn, stockToOwner, fee, p.remaining);
     }
 
@@ -502,8 +630,43 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (p.owner != msg.sender) revert NotOwner();
         p.status = Status.CANCELLED;
         uint256 refund = uint256(p.amountPerBuy) * p.remaining;
-        quoteToken.safeTransfer(p.owner, refund);
+        bool sell = isSellPlan[id];
+        _escrowOut(p.stockToken, !sell, refund);
+        (sell ? IERC20(p.stockToken) : quoteToken).safeTransfer(p.owner, refund);
         emit DcaCancelled(id, p.owner, refund);
+    }
+
+    /// @notice Recurring SELL (scale out / DCA-out): deposit `amountPerSell * sells` of the stock token. One sale of
+    ///         `amountPerSell` runs every `interval` seconds. If `minPrice` is non-zero, sales are skipped while the
+    ///         price is below it. `executeDca` / `cancelDca` / `canExecuteDca` are shared with buy plans.
+    ///         Each `DcaExecuted` reports `amountIn` = stock sold and `stockToOwner` = quote paid to the owner.
+    function createDcaSell(address stockToken, uint128 amountPerSell, uint16 sells, uint32 interval, uint96 minPrice)
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 id)
+    {
+        Market memory m = _market(stockToken);
+        if (amountPerSell == 0 || sells == 0 || sells > MAX_DCA_BUYS || interval < MIN_DCA_INTERVAL) revert InvalidParams();
+        uint256 total = uint256(amountPerSell) * sells;
+        if (total > m.maxStockIn) revert AmountTooLarge();
+
+        _pullIn(IERC20(stockToken), total);
+        _escrowIn(stockToken, false, total);
+        id = nextPlanId++;
+        _plans[id] = Plan({
+            owner: msg.sender,
+            status: Status.OPEN,
+            remaining: sells,
+            interval: interval,
+            nextTime: uint40(block.timestamp),
+            stockToken: stockToken,
+            maxPrice: minPrice,
+            amountPerBuy: amountPerSell
+        });
+        isSellPlan[id] = true;
+        _userPlanIds[msg.sender].push(id);
+        emit DcaSellCreated(id, msg.sender, stockToken, amountPerSell, sells, interval, minPrice);
     }
 
     // =====================================================================
@@ -593,7 +756,8 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (paused() || p.status != Status.OPEN || block.timestamp < p.nextTime) return false;
         (bool ok, uint256 price,) = _freshPrice(p.stockToken);
         if (!ok) return false;
-        return p.maxPrice == 0 || price <= p.maxPrice;
+        if (p.maxPrice == 0) return true;
+        return isSellPlan[id] ? price >= p.maxPrice : price <= p.maxPrice;
     }
 
     // =====================================================================
@@ -613,6 +777,13 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         if (stockToken == address(0) || feed == address(0) || adapter == address(0)) revert InvalidParams();
         if (maxDeviationBps == 0 || maxDeviationBps > MAX_DEVIATION_BPS) revert InvalidParams();
         Market storage m = markets[stockToken];
+        if (address(m.feed) != address(0)) {
+            // Live market: anything that could make fills worse for users must go through queueRiskChange.
+            if (
+                feed != address(m.feed) || adapter != address(m.adapter) || maxStaleness > m.maxStaleness
+                    || maxDeviationBps > m.maxDeviationBps
+            ) revert NeedsTimelock();
+        }
         m.feed = IAggregatorV3(feed);
         m.feedDecimals = IAggregatorV3(feed).decimals();
         m.stockDecimals = IERC20Metadata(stockToken).decimals();
@@ -631,7 +802,70 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         emit KeeperFeeSet(bps);
     }
 
-    function pause() external onlyOwner {
+    /// @notice Total-value ceilings for a market (0 = no ceiling). Bounds what a bug or a bad feed can put at risk.
+    function setEscrowCaps(address stockToken, uint128 maxStock, uint128 maxQuote) external onlyOwner {
+        if (stockToken == address(0)) revert InvalidParams();
+        maxStockEscrow[stockToken] = maxStock;
+        maxQuoteEscrow[stockToken] = maxQuote;
+        emit EscrowCapsSet(stockToken, maxStock, maxQuote);
+    }
+
+    /// @notice Queue a risk-increasing change for a live market. It can be applied after RISK_DELAY.
+    function queueRiskChange(address stockToken, address feed, address adapter, uint32 maxStaleness, uint16 maxDeviationBps)
+        external
+        onlyOwner
+    {
+        if (address(markets[stockToken].feed) == address(0)) revert MarketDisabled();
+        if (feed == address(0) || adapter == address(0)) revert InvalidParams();
+        if (maxDeviationBps == 0 || maxDeviationBps > MAX_DEVIATION_BPS) revert InvalidParams();
+        uint40 eta = uint40(block.timestamp + RISK_DELAY);
+        pendingRisk[stockToken] = PendingRisk(feed, adapter, maxStaleness, maxDeviationBps, eta);
+        emit RiskChangeQueued(stockToken, feed, adapter, maxStaleness, maxDeviationBps, eta);
+    }
+
+    function cancelRiskChange(address stockToken) external onlyOwner {
+        delete pendingRisk[stockToken];
+        emit RiskChangeCancelled(stockToken);
+    }
+
+    function applyRiskChange(address stockToken) external onlyOwner {
+        PendingRisk memory r = pendingRisk[stockToken];
+        if (r.eta == 0 || block.timestamp < r.eta) revert TimelockNotReady();
+        delete pendingRisk[stockToken];
+        Market storage m = markets[stockToken];
+        m.feed = IAggregatorV3(r.feed);
+        m.feedDecimals = IAggregatorV3(r.feed).decimals();
+        m.adapter = ISwapAdapter(r.adapter);
+        m.maxStaleness = r.maxStaleness;
+        m.maxDeviationBps = r.maxDeviationBps;
+        emit MarketSet(stockToken, r.feed, r.adapter, r.maxDeviationBps, m.enabled);
+    }
+
+    function setKeeper(address keeper, bool allowed) external onlyOwner {
+        isKeeper[keeper] = allowed;
+        emit KeeperSet(keeper, allowed);
+    }
+
+    /// @notice Turn the keeper allowlist off only if your keepers are down and users need fills (liveness fallback).
+    function setKeeperOnly(bool on) external onlyOwner {
+        keeperOnly = on;
+        emit KeeperOnlySet(on);
+    }
+
+    function setSequencerUptimeFeed(address feed) external onlyOwner {
+        sequencerUptimeFeed = IAggregatorV3(feed);
+        emit SequencerFeedSet(feed);
+    }
+
+    /// @notice Set (or clear with address(0)) the pause-only guardian.
+    function setGuardian(address guardian_) external onlyOwner {
+        guardian = guardian_;
+        emit GuardianSet(guardian_);
+    }
+
+    /// @notice Owner or guardian can pause. Only the owner can unpause. Exits (cancel / refund) always work.
+    function pause() external {
+        if (msg.sender != owner() && msg.sender != guardian) revert NotGuardian();
         _pause();
     }
 
@@ -642,6 +876,22 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
     // =====================================================================
     // Internals
     // =====================================================================
+
+    function _onlyKeeper() internal view {
+        if (keeperOnly && !isKeeper[msg.sender]) revert NotKeeper();
+    }
+
+    /// @dev Chainlink L2 sequencer uptime: answer 0 = up. Wait SEQUENCER_GRACE after it comes back.
+    function _sequencerUp() internal view returns (bool) {
+        IAggregatorV3 f = sequencerUptimeFeed;
+        if (address(f) == address(0)) return true;
+        try f.latestRoundData() returns (uint80, int256 answer, uint256 startedAt, uint256, uint80) {
+            if (answer != 0 || startedAt == 0) return false;
+            return block.timestamp - startedAt > SEQUENCER_GRACE;
+        } catch {
+            return false;
+        }
+    }
 
     function _market(address stockToken) internal view returns (Market memory m) {
         m = markets[stockToken];
@@ -676,6 +926,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 updatedAt;
         (price, updatedAt) = _lastPrice(m);
         if (updatedAt > block.timestamp || block.timestamp - updatedAt > m.maxStaleness) revert StalePrice();
+        if (!_sequencerUp()) revert SequencerDown();
         if (!_isTriggered(o.orderType, price, o.triggerPrice)) revert NotTriggered();
     }
 
@@ -707,6 +958,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 updatedAt;
         (price, updatedAt) = _lastPrice(m);
         if (updatedAt > block.timestamp || block.timestamp - updatedAt > m.maxStaleness) revert StalePrice();
+        if (!_sequencerUp()) revert SequencerDown();
     }
 
     function _dcaFill(Plan storage p, Market memory m, uint256 price, uint128 amountIn)
@@ -724,7 +976,128 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
         stock.safeTransfer(p.owner, stockToOwner);
     }
 
+    function _escrowIn(address stockToken, bool isQuote, uint256 amount) internal {
+        if (isQuote) {
+            uint256 total = quoteEscrowed[stockToken] + amount;
+            uint128 cap = maxQuoteEscrow[stockToken];
+            if (cap != 0 && total > cap) revert EscrowCapReached();
+            quoteEscrowed[stockToken] = total;
+        } else {
+            uint256 total = stockEscrowed[stockToken] + amount;
+            uint128 cap = maxStockEscrow[stockToken];
+            if (cap != 0 && total > cap) revert EscrowCapReached();
+            stockEscrowed[stockToken] = total;
+        }
+    }
+
+    /// @dev Saturating on purpose: accounting must never be able to block a user's exit.
+    function _escrowOut(address stockToken, bool isQuote, uint256 amount) internal {
+        if (isQuote) {
+            uint256 cur = quoteEscrowed[stockToken];
+            quoteEscrowed[stockToken] = cur > amount ? cur - amount : 0;
+        } else {
+            uint256 cur = stockEscrowed[stockToken];
+            stockEscrowed[stockToken] = cur > amount ? cur - amount : 0;
+        }
+    }
+
+    function _dcaSellFill(Plan storage p, Market memory m, uint256 price, uint128 amountIn)
+        internal
+        returns (uint256 quoteToOwner, uint256 fee)
+    {
+        uint256 floorOut = _guardFloor(false, amountIn, price, m);
+        uint256 out = _swapRaw(p.stockToken, address(quoteToken), amountIn, floorOut, m.adapter);
+        if (out < floorOut) revert FillBelowOracleBound();
+
+        fee = (out * keeperFeeBps) / 10_000;
+        quoteToOwner = out - fee;
+        if (fee > 0) quoteToken.safeTransfer(msg.sender, fee);
+        quoteToken.safeTransfer(p.owner, quoteToOwner);
+    }
+
+    /// @dev Pays the keeper, then escrows the bought tokens into a TP/SL bracket for the owner, or delivers them.
+    function _fillIntoExits(uint256 buyId, Order storage o, Market memory m, uint256 price, uint256 amountOut)
+        internal
+        returns (uint256 toOwner, uint256 fee)
+    {
+        fee = (amountOut * keeperFeeBps) / 10_000;
+        toOwner = amountOut - fee;
+        if (toOwner < o.minAmountOut) revert Slippage();
+        IERC20 stock = IERC20(o.stockToken);
+        if (fee > 0) stock.safeTransfer(msg.sender, fee);
+
+        Exits memory ex = attachedExits[buyId];
+        delete attachedExits[buyId];
+
+        uint8 reason;
+        if (price >= ex.takeProfitPrice || price <= ex.stopLossPrice) reason = 1;
+        else if (toOwner > m.maxStockIn) reason = 2;
+        else {
+            uint128 ceiling = maxStockEscrow[o.stockToken];
+            if (ceiling != 0 && stockEscrowed[o.stockToken] + toOwner > ceiling) reason = 3;
+        }
+        uint256 minTp = (_sellValue(toOwner, ex.takeProfitPrice, m) * (10_000 - ex.slippageBps)) / 10_000;
+        uint256 minSl = (_sellValue(toOwner, ex.stopLossPrice, m) * (10_000 - ex.slippageBps)) / 10_000;
+        if (reason == 0 && (minTp == 0 || minSl == 0 || minTp > type(uint128).max)) reason = 4;
+
+        if (reason != 0) {
+            stock.safeTransfer(o.owner, toOwner);
+            emit ExitsSkipped(buyId, reason);
+            return (toOwner, fee);
+        }
+
+        stockEscrowed[o.stockToken] += toOwner;
+        (uint256 tpId, uint256 slId) = _placeExitLegs(o, ex, toOwner, minTp, minSl);
+        emit ExitsPlaced(buyId, tpId, slId, toOwner);
+    }
+
+    function _placeExitLegs(Order storage o, Exits memory ex, uint256 amount, uint256 minTp, uint256 minSl)
+        internal
+        returns (uint256 tpId, uint256 slId)
+    {
+        uint40 exitExpiry = uint40(block.timestamp) + ex.duration;
+        tpId = nextOrderId;
+        slId = tpId + 1;
+        _store(
+            Order({
+                owner: o.owner,
+                expiry: exitExpiry,
+                orderType: OrderType.LIMIT_SELL,
+                status: Status.OPEN,
+                trailBps: 0,
+                stockToken: o.stockToken,
+                triggerPrice: ex.takeProfitPrice,
+                amountIn: uint128(amount),
+                minAmountOut: uint128(minTp),
+                peakPrice: 0,
+                linkedId: uint64(slId)
+            })
+        );
+        _store(
+            Order({
+                owner: o.owner,
+                expiry: exitExpiry,
+                orderType: OrderType.STOP_LOSS,
+                status: Status.OPEN,
+                trailBps: 0,
+                stockToken: o.stockToken,
+                triggerPrice: ex.stopLossPrice,
+                amountIn: uint128(amount),
+                minAmountOut: uint128(minSl),
+                peakPrice: 0,
+                linkedId: uint64(tpId)
+            })
+        );
+        emit BracketCreated(tpId, slId);
+    }
+
+    /// @dev Quote value of `amount` stock at `price` (8 decimals).
+    function _sellValue(uint256 amount, uint256 price, Market memory m) internal view returns (uint256) {
+        return (amount * price * (10 ** quoteDecimals)) / ((10 ** m.stockDecimals) * (10 ** 8));
+    }
+
     function _refund(Order storage o) internal {
+        _escrowOut(o.stockToken, o.orderType == OrderType.LIMIT_BUY, o.amountIn);
         IERC20 tokenIn = o.orderType == OrderType.LIMIT_BUY ? quoteToken : IERC20(o.stockToken);
         tokenIn.safeTransfer(o.owner, o.amountIn);
     }
@@ -742,7 +1115,7 @@ contract LimitOrderBook is Ownable2Step, Pausable, ReentrancyGuard {
 
     function _freshPrice(address stockToken) internal view returns (bool ok, uint256 price, Market memory m) {
         m = markets[stockToken];
-        if (!m.enabled) return (false, 0, m);
+        if (!m.enabled || !_sequencerUp()) return (false, 0, m);
         try m.feed.latestRoundData() returns (uint80, int256 answer, uint256, uint256 updatedAt, uint80) {
             if (answer <= 0) return (false, 0, m);
             if (updatedAt > block.timestamp || block.timestamp - updatedAt > m.maxStaleness) return (false, 0, m);

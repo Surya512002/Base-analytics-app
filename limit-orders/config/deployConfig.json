@@ -11,10 +11,13 @@
       "poolFee": 3000,
       "maxStaleness": 90000,
       "maxStalenessReason": "25h heartbeat covers the 24h Chainlink OCR schedule while halting orders during weekend market close",
-      "maxStockIn": "100000000",
-      "maxQuoteIn": "100000000",
+      "maxStockIn": "600000000",
+      "maxQuoteIn": "1000000000",
       "maxDeviationBps": 300,
-      "maxDeviationReason": "0.3% pool with tight measured spreads of ~34-54 bps provides a 240 bps safety cushion against MEV"
+      "maxDeviationReason": "0.3% pool with tight measured spreads of ~34-54 bps provides a 240 bps safety cushion against MEV",
+      "kind": "stock",
+      "maxStockEscrow": "3000000000",
+      "maxQuoteEscrow": "5000000000"
     },
     {
       "symbol": "AAPLc",
@@ -23,10 +26,13 @@
       "poolFee": 3000,
       "maxStaleness": 90000,
       "maxStalenessReason": "25h heartbeat provides a 1h grace over daily OCR heartbeat while preventing execution over weekend market close",
-      "maxStockIn": "50000000",
-      "maxQuoteIn": "100000000",
+      "maxStockIn": "70000000",
+      "maxQuoteIn": "250000000",
       "maxDeviationBps": 300,
-      "maxDeviationReason": "Highest liquidity 0.3% pool with minimal ~28-35 bps slippage allows strict 300 bps oracle protection"
+      "maxDeviationReason": "Highest liquidity 0.3% pool with minimal ~28-35 bps slippage allows strict 300 bps oracle protection",
+      "kind": "stock",
+      "maxStockEscrow": "800000000",
+      "maxQuoteEscrow": "2500000000"
     },
     {
       "symbol": "MSFTc",
@@ -35,10 +41,13 @@
       "poolFee": 10000,
       "maxStaleness": 90000,
       "maxStalenessReason": "25h heartbeat aligns with 86400s feed schedule and safely guards against weekend price jumps",
-      "maxStockIn": "25000000",
+      "maxStockIn": "20000000",
       "maxQuoteIn": "100000000",
       "maxDeviationBps": 350,
-      "maxDeviationReason": "1.0% pool base fee plus spread causes ~170 bps deviation on $100; 350 bps prevents false reverts during volatile hours"
+      "maxDeviationReason": "1.0% pool base fee plus spread causes ~170 bps deviation on $100; 350 bps prevents false reverts during volatile hours",
+      "kind": "stock",
+      "maxStockEscrow": "200000000",
+      "maxQuoteEscrow": "1000000000"
     },
     {
       "symbol": "GOOGLc",
@@ -47,10 +56,47 @@
       "poolFee": 3000,
       "maxStaleness": 90000,
       "maxStalenessReason": "25h heartbeat matches Chainlink 24/5 equity schedule while halting executions when markets are closed",
-      "maxStockIn": "50000000",
+      "maxStockIn": "34000000",
       "maxQuoteIn": "100000000",
       "maxDeviationBps": 300,
-      "maxDeviationReason": "0.3% pool with measured deviation of ~93 bps comfortably executes under a 300 bps oracle bound"
+      "maxDeviationReason": "0.3% pool with measured deviation of ~93 bps comfortably executes under a 300 bps oracle bound",
+      "kind": "stock",
+      "maxStockEscrow": "340000000",
+      "maxQuoteEscrow": "1000000000"
+    },
+    {
+      "symbol": "WETH",
+      "kind": "coin",
+      "stockToken": "0x4200000000000000000000000000000000000006",
+      "feed": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
+      "poolFee": 3000,
+      "maxStaleness": 3600,
+      "maxStalenessReason": "Chainlink ETH/USD updates at least every 20 min; 1h tolerates a missed round and blocks fills if the feed halts",
+      "maxStockIn": "13500000000000000000",
+      "maxQuoteIn": "25000000000",
+      "maxDeviationBps": 150,
+      "maxDeviationReason": "0.3% pool fills ~53 bp under the oracle at every size up to $100k; 150 bp leaves ~1% margin and caps what a compromised keeper could extract",
+      "maxStockEscrow": "55000000000000000000",
+      "maxQuoteEscrow": "100000000000"
+    },
+    {
+      "symbol": "cbBTC",
+      "kind": "coin",
+      "stockToken": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "feed": "0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D",
+      "poolFee": 500,
+      "maxStaleness": 3600,
+      "maxStalenessReason": "Chainlink cbBTC/USD feed observed 17 min old in normal operation; 1h tolerates a missed round and blocks fills if the feed halts",
+      "maxStockIn": "38000000",
+      "maxQuoteIn": "25000000000",
+      "maxDeviationBps": 100,
+      "maxDeviationReason": "0.05% pool fills within ~22 bp up to $25k; 100 bp leaves margin and caps extraction",
+      "maxStockEscrow": "150000000",
+      "maxQuoteEscrow": "100000000000"
     }
+  ],
+  "sequencerUptimeFeed": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
+  "keepers": [
+    "0x8EB3a657B75087D1D289eCfE47e85854cdF9A628"
   ]
 }
