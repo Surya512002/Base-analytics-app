@@ -93,7 +93,7 @@ CHAIN=base
 RPC_URL=<private Base RPC>
 ORDER_BOOK=<ORDER_BOOK>
 KEEPER_PK=0x<keeper key>
-POLL_MS=5000
+POLL_MS=10000
 MIN_GAS_BALANCE_ETH=0.002
 ```
 
@@ -150,3 +150,34 @@ After a clean week, raise limits from the Safe. `plan-cap-update.mjs` prints the
 - Failed executions in keeper logs (FillBelowOracleBound means the pool drifted from the oracle; StalePrice means a feed paused)
 - `stockEscrowed` / `quoteEscrowed` per market vs. the token balances of the book
 - Chainlink feed age per market
+
+## Fees and running costs
+
+**What users pay.** An order fills at its price minus the pool fee (0.3% on most stock pools, 1% on MSFTc) and a
+**keeper fee of 0.10%** of the amount received. The keeper fee goes to whichever allowlisted wallet executes the order. That
+wallet is ours, so the keeper fee is the app's revenue from orders. The Trade page already shows it ("Fee: 0.10%").
+The contract caps it at 1%, and the Safe can change it any time with `setKeeperFeeBps(bps)` (no redeploy, no new review),
+so start low and adjust after you see real volume.
+
+**How 0.10% compares** (figures from public write-ups on 2026-11-20; check each protocol's own docs before quoting them):
+
+| Product | What it charges |
+|---|---|
+| Mean Finance (recurring buys) | about 0.6% of each swap |
+| CoW Swap (limit orders) | one comparison says 2 bps of volume plus half of any price improvement; an older write-up says no fee, so the sources disagree |
+| 1inch limit orders | no on-top fee (a vendor post, dated) |
+| This app's market swaps | 0.25% |
+| **This app's orders (keeper fee)** | **0.10%**, below Mean Finance and below our own swap fee |
+
+**What it costs us.**
+- **Gas:** Base gas is about 0.006 gwei right now, so one execution costs roughly a cent or less. At 0.10%, an order of about
+  $10 or more already covers its own gas; at the $50 canary cap each fill earns about $0.05.
+- **The keeper:** one small process. A free or small plan on Railway or Fly.io is enough (about $0 to $5 a month).
+- **RPC calls:** the keeper polls the chain. Set `POLL_MS=10000` (10 s) instead of 5 s to halve the calls; a stop-loss
+  firing 10 seconds later is fine here. A free-tier Base RPC key is enough at canary volume.
+- **Gas balance:** the keeper only warns when its ETH is below `MIN_GAS_BALANCE_ETH` (default 0.002, about $3.50, which
+  covers hundreds of executions at today's gas). Top up when you see the warning.
+- **No other running costs:** no database, no extra servers. Orders live on chain and the app reads them directly.
+
+**Expect small revenue at first.** With $50 caps, real volume decides it: 1,000 fills a month at $50 each is about $50 of
+fees. It grows only when the caps are raised in steps (section 7) after the canary is clean.
