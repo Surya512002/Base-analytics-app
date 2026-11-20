@@ -1,6 +1,7 @@
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 import type { V2StreamState } from "@/lib/api/blockscout-v2";
-import { cacheGet, cacheSet } from "@/lib/redis-cache";
+import { ensureRedisReady, getRedisClient } from "@/lib/redis-cache";
+import { decodeHistory, encodeHistory } from "./history-codec";
 import {
   countsTowardActivity,
   rollupWalletActivity,
@@ -10,7 +11,14 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 
 const TTL_SECONDS = 86_400;
-const TTL_COMPLETE_SECONDS = 604_800;
+const TTL_COMPLETE_SECONDS = 259_200; // 3 days (was 7): it is a cache, and a full history is rebuilt on demand
+
+/**
+ * Largest compressed entry kept in the shared Redis. A few very active wallets used to take
+ * 2 to 3.5 MB each of a 30 MB plan. Above this the history still lives in memory / on disk for
+ * this server and is simply rebuilt elsewhere.
+ */
+const MAX_REDIS_BYTES = 1_500_000;
 const KEY_PREFIX = "wallet-hist:v9";
 const FILE_CACHE_DIR = path.join(process.cwd(), ".cache", "wallet-history");
 
@@ -109,7 +117,15 @@ export function emptyHistoryState(): StoredWalletHistory {
 export async function loadWalletHistory(
   address: string
 ): Promise<StoredWalletHistory | null> {
-  return cacheGet<StoredWalletHistory>(keyFor(address));
+  const redis = getRedisClient();
+  if (!redis) return null;
+  try {
+    await ensureRedisReady(redis);
+    const buf = await redis.getBuffer(keyFor(address));
+    return buf ? decodeHistory<StoredWalletHistory>(buf) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadOrEmptyHistory(
@@ -168,7 +184,16 @@ export async function saveWalletHistory(
   memHistory.set(k, next);
   void saveFileHistory(address, next);
   const ttl = state.historyComplete ? TTL_COMPLETE_SECONDS : TTL_SECONDS;
-  await cacheSet(keyFor(address), next, ttl).catch(() => {});
+  const redis = getRedisClient();
+  if (!redis) return;
+  const packed = encodeHistory(next);
+  if (packed.length > MAX_REDIS_BYTES) return;
+  try {
+    await ensureRedisReady(redis);
+    await redis.set(keyFor(address), packed, "EX", ttl);
+  } catch {
+    /* cache only: the in-memory and disk copies still work */
+  }
 }
 
 function dayTxKey(hash: string, day: string): string {
