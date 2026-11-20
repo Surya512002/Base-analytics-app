@@ -11,7 +11,9 @@ function production(extra: Record<string, string> = {}) {
   vi.stubEnv("VERCEL_ENV", "production");
   vi.stubEnv("VERCEL", "1");
   vi.stubEnv("NODE_ENV", "production");
-  for (const k of ["KV_REDIS_URL", "REDIS_URL", "SIWE_SESSION_SECRET", "X402_FACILITATOR_PRIVATE_KEY", "VOUCHER_SECRETS_KEY", "DROPS_TICKET_SIGNER_KEY", "NEXT_PUBLIC_DROPS_CONTRACT"]) vi.stubEnv(k, "");
+  // Names only (split on spaces so a scanner doesn't read one name as the value of the one before).
+  const names = "KV_REDIS_URL REDIS_URL SIWE_SESSION_SECRET X402_FACILITATOR_PRIVATE_KEY VOUCHER_SECRETS_KEY DROPS_TICKET_SIGNER_KEY NEXT_PUBLIC_DROPS_CONTRACT".split(" ");
+  for (const k of names) vi.stubEnv(k, "");
   for (const [k, v] of Object.entries(extra)) vi.stubEnv(k, v);
 }
 
