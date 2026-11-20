@@ -21,6 +21,8 @@ commits = [
   "7bfa53b60a768edfb9f5f2c93a9c2feee5364c23",
   # lib/drops/production-guards.test.ts: a list of env var NAMES matched generic-api-key (no secret; fixed in the next commit)
   "ada0594dd2ae58b87e11b5aabc91c379f07749ad",
+  # .env.example: empty SIWE_SESSION_SECRET= matched the next line's variable name (no secret)
+  "c29da1258f25b25c4bd48fc303078c518a873e40",
 ]
 regexes = [
   '''0x[0-9a-fA-F]{64}''',
