@@ -22,6 +22,11 @@ function memSet(key: string, value: string, ttlSec?: number) {
   memory.set(key, { value, expiresAt: ttlSec ? Date.now() + ttlSec * 1000 : null });
 }
 
+/** In production every instance must share one store; a per-process map would silently lose drop data. */
+function memoryNotAllowed(): void {
+  if (process.env.VERCEL_ENV === "production") throw new Error("Drops storage (Redis) isn't configured");
+}
+
 async function redis() {
   const r = getRedisClient();
   if (!r) return null;
@@ -32,17 +37,22 @@ async function redis() {
 export const dropsKv: TaskKv & { del(key: string): Promise<void> } = {
   async get(key) {
     const r = await redis();
+    if (!r) memoryNotAllowed();
     return r ? r.get(key) : memGet(key);
   },
   async set(key, value, ttlSec) {
     const r = await redis();
-    if (!r) return memSet(key, value, ttlSec);
+    if (!r) {
+      memoryNotAllowed();
+      return memSet(key, value, ttlSec);
+    }
     if (ttlSec) await r.set(key, value, "EX", ttlSec);
     else await r.set(key, value);
   },
   async setIfAbsent(key, value, ttlSec) {
     const r = await redis();
     if (!r) {
+      memoryNotAllowed();
       if (memGet(key) !== null) return false;
       memSet(key, value, ttlSec);
       return true;
@@ -53,6 +63,7 @@ export const dropsKv: TaskKv & { del(key: string): Promise<void> } = {
   async incr(key, ttlSec) {
     const r = await redis();
     if (!r) {
+      memoryNotAllowed();
       const n = Number(memGet(key) ?? "0") + 1;
       memSet(key, String(n), ttlSec);
       return n;
