@@ -47,9 +47,11 @@ type Props = {
   stockAddress: string | undefined;
   liquidityUsd?: number | null;
   onConnectWallet?: () => void;
+  /** Open on this goal (e.g. from a "Stop-loss" link on a stock card). */
+  initialGoal?: SimpleGoal;
 };
 
-export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUsd, onConnectWallet }: Props) {
+export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUsd, onConnectWallet, initialGoal }: Props) {
   const {
     config,
     walletAddress,
@@ -67,9 +69,9 @@ export default function SimpleOrderCard({ limitOrders, stockAddress, liquidityUs
     placeBuyWithExits,
   } = limitOrders;
 
-  const [goal, setGoal] = useState<SimpleGoal>("buy-dip");
+  const [goal, setGoal] = useState<SimpleGoal>(initialGoal ?? "buy-dip");
   const [amountInput, setAmountInput] = useState("");
-  const [pct, setPct] = useState<number>(GOAL_PRESETS["buy-dip"][1]);
+  const [pct, setPct] = useState<number>(GOAL_PRESETS[initialGoal ?? "buy-dip"][1]);
   const [customPct, setCustomPct] = useState("");
   const [slPct, setSlPct] = useState<number>(-5); // protect goal: loss limit
   const [expiry, setExpiry] = useState(EXPIRIES[1].seconds);

@@ -79,6 +79,8 @@ interface OrdersViewProps {
   cexLayout?: boolean;
   /** Trade page "Simple" mode: goal-based card with plain-English summary instead of the full form. */
   simple?: boolean;
+  /** Goal the Simple card opens on (from a stock card's "Stop-loss" link). */
+  initialGoal?: "buy-dip" | "take-profit" | "stop-loss" | "protect";
   /** Trade page "Scale" mode: several limit orders across a price range in one confirmation. */
   scale?: boolean;
   /** Pool liquidity (USD) of the selected market, used for order-size warnings. */
@@ -96,6 +98,7 @@ export default function OrdersView({
   hideOrdersPanel = false,
   cexLayout = false,
   simple = false,
+  initialGoal,
   scale = false,
   liquidityUsd = null,
 }: OrdersViewProps) {
@@ -575,6 +578,7 @@ export default function OrdersView({
           stockAddress={selectedStock}
           liquidityUsd={liquidityUsd}
           onConnectWallet={onConnectWallet}
+          initialGoal={initialGoal}
         />
       ) : (
         <>
