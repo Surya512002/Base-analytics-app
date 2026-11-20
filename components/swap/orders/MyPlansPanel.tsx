@@ -87,7 +87,7 @@ export default function MyPlansPanel({
         {plans.length === 0 ? (
           <div className="p-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] text-center space-y-1">
             <p className="text-xs text-[var(--ink-muted)] font-medium">
-              No active recurring buy plans. Set up a DCA schedule above to start accumulating automatically.
+              No recurring plans yet. Set up a schedule above to buy or sell automatically.
             </p>
           </div>
         ) : (
@@ -96,9 +96,12 @@ export default function MyPlansPanel({
             const symbol = market?.symbol || "Stock";
             const currentPrice = market?.currentPrice || null;
 
-            const amountPerBuyStr = formatUnits(p.amountPerBuy, quoteDecimals);
+            // Buy plans escrow quote token; sell plans escrow the stock token.
+            const unitDecimals = p.isSell ? (market?.decimals ?? 8) : quoteDecimals;
+            const unitSymbol = p.isSell ? symbol : quoteSymbol;
+            const amountPerBuyStr = formatUnits(p.amountPerBuy, unitDecimals);
             const remainingRefund = p.amountPerBuy * BigInt(p.remaining);
-            const refundStr = formatUnits(remainingRefund, quoteDecimals);
+            const refundStr = formatUnits(remainingRefund, unitDecimals);
             const hasCeiling = p.maxPrice > 0n;
             const ceilingStr = hasCeiling ? formatUnits(p.maxPrice, PRICE_DECIMALS) : "None";
 
@@ -107,7 +110,10 @@ export default function MyPlansPanel({
             const isCancelled = p.status === 3;
 
             const isPausedByCeiling =
-              isOpen && hasCeiling && currentPrice !== null && currentPrice > p.maxPrice;
+              isOpen &&
+              hasCeiling &&
+              currentPrice !== null &&
+              (p.isSell ? currentPrice < p.maxPrice : currentPrice > p.maxPrice);
 
             const isBusy = cancellingId === p.id.toString() || isSubmitting;
 
@@ -119,7 +125,7 @@ export default function MyPlansPanel({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-                      <Calendar size={12} /> Recurring DCA
+                      <Calendar size={12} /> {p.isSell ? "Recurring sell" : "Recurring buy"}
                     </span>
                     <span className="text-xs font-semibold text-[var(--ink)]">{symbol}</span>
                     <span className="text-[11px] text-[var(--ink-muted)] font-mono">
@@ -140,7 +146,7 @@ export default function MyPlansPanel({
                     )}
                     {isOpen && isPausedByCeiling && (
                       <span className="flex items-center gap-1 text-[11px] text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full">
-                        <PauseCircle size={12} /> Paused by price ceiling
+                        <PauseCircle size={12} /> {p.isSell ? "Waiting for price floor" : "Paused by price ceiling"}
                       </span>
                     )}
                     {isOpen && !isPausedByCeiling && (
@@ -155,10 +161,10 @@ export default function MyPlansPanel({
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="p-2 rounded-xl bg-[var(--surface-2)]">
                     <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
-                      Per Buy
+                      {p.isSell ? "Per sale" : "Per buy"}
                     </span>
                     <span className="font-semibold text-[var(--ink)] tabular-nums">
-                      {amountPerBuyStr} {quoteSymbol}
+                      {amountPerBuyStr} {unitSymbol}
                     </span>
                   </div>
 
@@ -173,7 +179,7 @@ export default function MyPlansPanel({
 
                   <div className="p-2 rounded-xl bg-[var(--surface-2)]">
                     <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
-                      Price Ceiling
+                      {p.isSell ? "Price floor" : "Price ceiling"}
                     </span>
                     <span className="font-semibold text-[var(--ink)] tabular-nums">
                       {hasCeiling ? `$${ceilingStr}` : "None"}
@@ -185,9 +191,9 @@ export default function MyPlansPanel({
                 {isOpen && (
                   <div className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-xl bg-[var(--surface-2)] text-[var(--ink-muted)]">
                     <span className="flex items-center gap-1">
-                      <Clock size={12} /> Next Buy: {formatNextTime(p.nextTime)}
+                      <Clock size={12} /> Next {p.isSell ? "sale" : "buy"}: {formatNextTime(p.nextTime)}
                     </span>
-                    <span>Remaining Buys: {p.remaining}</span>
+                    <span>Runs left: {p.remaining}</span>
                   </div>
                 )}
 
@@ -197,7 +203,7 @@ export default function MyPlansPanel({
                     <span className="text-[11px] text-[var(--ink-muted)]">
                       Refund if cancelled:{" "}
                       <span className="font-semibold text-[var(--ink)]">
-                        {refundStr} {quoteSymbol}
+                        {refundStr} {unitSymbol}
                       </span>
                     </span>
 

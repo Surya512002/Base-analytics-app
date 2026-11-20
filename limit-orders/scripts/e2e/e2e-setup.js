@@ -10,6 +10,7 @@ async function main() {
   const adapter = await (await ethers.getContractFactory("MockAdapter")).deploy();
   const book = await (await ethers.getContractFactory("LimitOrderBook")).deploy(usdc.target, owner.address, 10);
   await book.setMarket(stock.target, feed.target, 3600, adapter.target, ethers.parseUnits("1000", 18), ethers.parseUnits("100000", 6), 500, true);
+  await book.setKeeperOnly(false); // local e2e: any signer may act as the keeper
   await stock.mint(adapter.target, ethers.parseUnits("1000000", 18));
   await usdc.mint(adapter.target, ethers.parseUnits("1000000", 6));
   await adapter.setRate(usdc.target, stock.target, 10n ** 20n, P(100));

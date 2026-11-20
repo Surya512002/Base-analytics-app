@@ -35,6 +35,7 @@ describe("S3: 8-Decimal Stock Tokens Math & Calls Parity (Hardhat Node)", () => 
       500,
       true
     );
+    await book.setKeeper(keeper.address, true);
 
     // Set adapter rates with general formula
     const setRateAndPrice = async (usd) => {

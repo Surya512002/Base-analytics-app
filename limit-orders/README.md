@@ -12,6 +12,10 @@ Escrow order book, Uniswap V3 adapter, keeper bot, and shared TypeScript math/AB
 | Bracket (OCO) | Take-profit + stop-loss from ONE deposit; when one fills the other is cancelled |
 | Edit in place | Change an order's trigger / minimum without cancelling and re-creating it |
 | Recurring buys (DCA) | Buy a fixed amount on a schedule, optionally only below a price ceiling |
+| Buy + take-profit/stop-loss | A limit buy whose filled tokens go straight into a TP/SL bracket (one-triggers-OCO); never blocks the buy |
+| Recurring sells | Sell a fixed amount on a schedule (scale out), optionally only above a price floor |
+| Escrow ceilings | Owner-set cap on the TOTAL value held per market, so exposure is bounded however many orders exist |
+| Guardian | Optional pause-only emergency key; it can never move funds or unpause |
 | Oracle-bounded fills | Every fill must be within a set % of the Chainlink price, even if the user's own minimum is looser |
 | Always-exit | Owners can cancel and withdraw at any time, even when paused; the contract owner can never move user funds |
 | Stale-price protection | Nothing executes while the feed is stale (for example, market closed) |

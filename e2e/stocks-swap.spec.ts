@@ -63,7 +63,8 @@ test.describe("Tokenized Stocks Swap & Status E2E Suite", () => {
     await expect(page.locator("body")).toContainText(/Tokenized Stocks|COINBASE/i, { timeout: 15_000 });
 
     // Find Trade button for NVDAc or MSFTc
-    const tradeBtn = page.locator('button:has-text("Trade")').first();
+    // Not the header / bottom-nav "Trade" tab (the Trade page), only the buy button on a stock card.
+    const tradeBtn = page.locator('button:has-text("Trade"):not(header button):not(nav button)').first();
     if (await tradeBtn.isVisible()) {
       await tradeBtn.click();
       // Should navigate to /swap?buy=...

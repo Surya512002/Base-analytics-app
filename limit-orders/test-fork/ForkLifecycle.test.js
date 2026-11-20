@@ -45,6 +45,8 @@ describe("Base Mainnet Fork, MOCKED stock tokens", function () {
     const BookFactory = await ethers.getContractFactory("LimitOrderBook");
     book = await BookFactory.deploy(deployConfig.quoteToken, deployer.address, deployConfig.keeperFeeBps);
     await book.waitForDeployment();
+    await (await book.setKeeper(keeper.address, true)).wait();
+    await (await book.setSequencerUptimeFeed(deployConfig.sequencerUptimeFeed)).wait();
 
     const AdapterFactory = await ethers.getContractFactory("UniswapV3Adapter");
     adapter = await AdapterFactory.deploy(book.target, ROUTER_ADDRESS, deployer.address);
@@ -64,6 +66,8 @@ describe("Base Mainnet Fork, MOCKED stock tokens", function () {
     );
 
     for (const m of deployConfig.markets) {
+      // Coin markets (WETH, cbBTC) are real tokens; only the B20 stocks need the mock-bytecode swap.
+      if (m.kind === "coin") continue;
       const stockAddr = ethers.getAddress(m.stockToken);
       await network.provider.send("hardhat_setCode", [stockAddr, mockBytecode]);
 

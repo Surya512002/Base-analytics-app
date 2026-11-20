@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { Compass, ArrowLeftRight, Coins, Gift, Rocket, User } from "lucide-react";
+import { CandlestickChart, Compass, ArrowLeftRight, Coins, Gift, Rocket, User } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface MobileBottomNavProps {
@@ -32,6 +32,12 @@ export default function MobileBottomNav({
   const isLaunch =
     !isProfile &&
     (pathname === "/launch" || pathname.startsWith("/launch"));
+
+  const isTrade =
+    !isProfile &&
+    (pathname === "/trade" ||
+      pathname.startsWith("/trade") ||
+      (pathname === "/" && tab === "trade"));
 
   const isSwap =
     !isProfile &&
@@ -65,6 +71,15 @@ export default function MobileBottomNav({
     : "/profile";
 
   const tabs = [
+    {
+      id: "trade",
+      label: "Trade",
+      href: "/trade",
+      icon: CandlestickChart,
+      active: isTrade,
+      tabId: "trade" as AppTab,
+      guestOk: true,
+    },
     {
       id: "explore",
       label: "Explore",

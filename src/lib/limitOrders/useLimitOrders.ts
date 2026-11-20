@@ -17,6 +17,8 @@ import {
   buildCancelOrderCall,
   buildRefundExpiredCall,
   buildCreateDcaCall,
+  buildCreateDcaSellCall,
+  buildCreateLimitBuyWithExitsCall,
   buildCancelDcaCall,
   assertAllowedLimitOrderTx,
 } from "./calls";
@@ -51,6 +53,8 @@ export interface MarketState extends StockMarketConfig {
   maxDeviationBps: number;
   userBalance: bigint;
   userAllowance: bigint;
+  /** Unix time a queued risk change (new feed/adapter, looser bounds) takes effect; 0 = none. */
+  pendingRiskEta: number;
 }
 
 export function useLimitOrders(app: WalletAppState) {
@@ -213,6 +217,19 @@ export function useLimitOrders(app: WalletAppState) {
           let maxDeviationBps = config.defaultMaxDeviationBps || DEFAULT_MAX_DEVIATION_BPS;
           let userBalance = 0n;
           let userAllowance = 0n;
+          let pendingRiskEta = 0;
+
+          try {
+            const pr = (await publicClient.readContract({
+              address: config.orderBook,
+              abi: orderBookAbi,
+              functionName: "pendingRisk",
+              args: [m.stockToken],
+            })) as unknown as readonly [Address, Address, number, number, number];
+            pendingRiskEta = Number(pr[4] ?? 0);
+          } catch {
+            // older deployment without the timelock
+          }
 
           try {
             // Read market on-chain config
@@ -304,6 +321,7 @@ export function useLimitOrders(app: WalletAppState) {
             maxDeviationBps,
             userBalance,
             userAllowance,
+            pendingRiskEta,
           };
         })
       );
@@ -382,6 +400,19 @@ export function useLimitOrders(app: WalletAppState) {
                     args: [id],
                   });
                   if (p) {
+                    let isSell = false;
+                    try {
+                      isSell = Boolean(
+                        await publicClient.readContract({
+                          address: config.orderBook,
+                          abi: orderBookAbi,
+                          functionName: "isSellPlan",
+                          args: [id],
+                        })
+                      );
+                    } catch {
+                      // older deployment without recurring sells
+                    }
                     rawPlans.push({
                       id,
                       owner: p.owner,
@@ -392,6 +423,7 @@ export function useLimitOrders(app: WalletAppState) {
                       stockToken: p.stockToken,
                       maxPrice: p.maxPrice,
                       amountPerBuy: p.amountPerBuy,
+                      isSell,
                     });
                   }
                 } catch {
@@ -726,6 +758,168 @@ export function useLimitOrders(app: WalletAppState) {
     [app, config, chainId, loadData, walletAddress]
   );
 
+  /**
+   * Scale / ladder orders: several limit orders placed in ONE wallet confirmation. Every leg is an ordinary
+   * createOrder call (same allowlist, same on-chain checks), so a failed leg reverts the whole batch.
+   */
+  const placeOrderBatch = useCallback(
+    async (args: {
+      stockToken: Address;
+      legs: { orderType: number; amountIn: bigint; triggerPrice: bigint; minAmountOut: bigint }[];
+      expiry: number;
+      label: string;
+    }) => {
+      if (!walletAddress || !config.orderBook || !app.connType || args.legs.length === 0) return null;
+      if (args.legs.length > 12) return null;
+      try {
+        setTxSubmitting(true);
+        const calls = args.legs.map((leg) => {
+          const req = buildCreateOrderCall({
+            orderBook: config.orderBook,
+            stockToken: args.stockToken,
+            orderType: leg.orderType,
+            amountIn: leg.amountIn,
+            triggerPrice: leg.triggerPrice,
+            minAmountOut: leg.minAmountOut,
+            expiry: args.expiry,
+          });
+          assertAllowedLimitOrderTx(req, config);
+          return buildContractCall(req.to, req.data, req.value ?? 0n);
+        });
+        const hash = await sendAppTransactions(app.connType, walletAddress, calls, {
+          targetChainId: chainId === 84532 ? 84532 : 8453,
+        });
+        if (hash) {
+          setTxSuccessHash(hash);
+          app.showToast(`${args.label}: ${args.legs.length} orders placed!`, hash);
+          await loadData();
+          return hash;
+        }
+        return null;
+      } catch (err) {
+        app.showToast(mapOrderError(err), "");
+        return null;
+      } finally {
+        setTxSubmitting(false);
+      }
+    },
+    [app, config, chainId, loadData, walletAddress]
+  );
+
+  /** Limit buy + automatic take-profit / stop-loss on the tokens it buys. */
+  const placeBuyWithExits = useCallback(
+    async (args: {
+      stockToken: Address;
+      amountIn: bigint;
+      triggerPrice: bigint;
+      minAmountOut: bigint;
+      expiry: number;
+      takeProfitPrice: bigint;
+      stopLossPrice: bigint;
+      exitSlippageBps: number;
+      exitDurationSec: number;
+    }) => {
+      if (!walletAddress || !config.orderBook || !app.connType) return null;
+      try {
+        setTxSubmitting(true);
+        const req = buildCreateLimitBuyWithExitsCall({ orderBook: config.orderBook, ...args });
+        assertAllowedLimitOrderTx(req, config);
+        const hash = await sendAppTransactions(
+          app.connType,
+          walletAddress,
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
+        );
+        if (hash) {
+          setTxSuccessHash(hash);
+          app.showToast("Buy order with take-profit and stop-loss placed!", hash);
+          await loadData();
+          return hash;
+        }
+        return null;
+      } catch (err) {
+        app.showToast(mapOrderError(err), "");
+        return null;
+      } finally {
+        setTxSubmitting(false);
+      }
+    },
+    [app, config, chainId, loadData, walletAddress]
+  );
+
+  /** Cancel several open orders in ONE wallet confirmation (each leg of a bracket only once). */
+  const cancelOrdersBatch = useCallback(
+    async (ids: bigint[]) => {
+      if (!walletAddress || !config.orderBook || !app.connType || ids.length === 0) return false;
+      try {
+        setTxSubmitting(true);
+        const calls = ids.slice(0, 20).map((id) => {
+          const req = buildCancelOrderCall(config.orderBook, id);
+          assertAllowedLimitOrderTx(req, config);
+          return buildContractCall(req.to, req.data, req.value ?? 0n);
+        });
+        const hash = await sendAppTransactions(app.connType, walletAddress, calls, {
+          targetChainId: chainId === 84532 ? 84532 : 8453,
+        });
+        if (hash) {
+          app.showToast(`Cancelled ${calls.length} order${calls.length === 1 ? "" : "s"}. Deposits refunded.`, hash);
+          await loadData();
+          return true;
+        }
+        return false;
+      } catch (err) {
+        app.showToast(mapOrderError(err), "");
+        return false;
+      } finally {
+        setTxSubmitting(false);
+      }
+    },
+    [app, config, chainId, loadData, walletAddress]
+  );
+
+  const createDcaSell = useCallback(
+    async (args: {
+      stockToken: Address;
+      amountPerSell: bigint;
+      sells: number;
+      interval: number;
+      minPrice: bigint;
+    }) => {
+      if (!walletAddress || !config.orderBook || !app.connType) return null;
+      try {
+        setTxSubmitting(true);
+        const req = buildCreateDcaSellCall({
+          orderBook: config.orderBook,
+          stockToken: args.stockToken,
+          amountPerSell: args.amountPerSell,
+          sells: args.sells,
+          interval: args.interval,
+          minPrice: args.minPrice,
+        });
+        assertAllowedLimitOrderTx(req, config);
+        const hash = await sendAppTransactions(
+          app.connType,
+          walletAddress,
+          [buildContractCall(req.to, req.data, req.value ?? 0n)],
+          { targetChainId: chainId === 84532 ? 84532 : 8453 }
+        );
+        if (hash) {
+          setTxSuccessHash(hash);
+          app.showToast("Recurring sell plan started successfully!", hash);
+          await loadData();
+          return hash;
+        }
+        return null;
+      } catch (err) {
+        app.showToast(mapOrderError(err), "");
+        return null;
+      } finally {
+        setTxSubmitting(false);
+      }
+    },
+    [app, config, chainId, loadData, walletAddress]
+  );
+
   const cancelDca = useCallback(
     async (id: bigint) => {
       if (!walletAddress || !config.orderBook || !app.connType) return false;
@@ -782,6 +976,10 @@ export function useLimitOrders(app: WalletAppState) {
     cancelOrder,
     refundExpired,
     createDca,
+    createDcaSell,
+    placeOrderBatch,
+    placeBuyWithExits,
+    cancelOrdersBatch,
     cancelDca,
   };
 }

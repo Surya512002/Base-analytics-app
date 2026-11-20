@@ -19,6 +19,9 @@ async function main() {
 
   await (await book.setMarket(stock.target, feed.target, 86400 * 7, adapter.target,
     ethers.parseUnits("1000", 18), ethers.parseUnits("100000", 6), 500, true)).wait();
+  // Testnet: allow the configured keeper (or anyone, if none is set) to execute.
+  if (process.env.KEEPER_ADDRESS) await (await book.setKeeper(process.env.KEEPER_ADDRESS, true)).wait();
+  else await (await book.setKeeperOnly(false)).wait();
   await (await stock.mint(adapter.target, ethers.parseUnits("1000000", 18))).wait();
   await (await usdc.mint(adapter.target, ethers.parseUnits("1000000", 6))).wait();
   await (await stock.mint(deployer.address, ethers.parseUnits("1000", 18))).wait();

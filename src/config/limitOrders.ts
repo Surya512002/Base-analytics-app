@@ -24,6 +24,8 @@ export interface StockMarketConfig {
   maxDeviationBps?: number;
   logo?: string;
   category?: string;
+  /** "stock" = Coinbase tokenized equity, "coin" = crypto asset (WETH, cbBTC). Defaults to stock. */
+  kind?: "stock" | "coin";
 }
 
 export interface QuoteTokenConfig {
@@ -67,6 +69,20 @@ export const DEFAULT_KEEPER_FEE_BPS = 10; // 0.10%
  */
 export const EQUITY_MAX_STALENESS_SECONDS = 90000;
 
+/**
+ * 3,600s (1 hour) maxStaleness for crypto feeds: Chainlink ETH/USD and cbBTC/USD update at least every ~20 minutes
+ * (observed 10-17 min old on mainnet). One hour tolerates a missed round and still halts fills if the feed stops.
+ */
+export const CRYPTO_MAX_STALENESS_SECONDS = 3600;
+
+/**
+ * Per-order caps, Stage 1 ("Beta"). These are deploy-time defaults: the contract enforces its own on-chain caps
+ * (set by the owner via setMarket) and the UI reads the live on-chain values. Caps are sized from measured
+ * Uniswap depth (limit-orders/scripts/recommend-caps.mjs), not guessed; stock pools are thin, so their caps
+ * are liquidity-limited. Total value at risk per market is bounded separately by the contract's escrow ceilings
+ * (setEscrowCaps). See docs/ORDER-CAPS.md for the staged rollout.
+ */
+
 /** Verified markets on Base Mainnet (Chain ID 8453) with active single-hop Uniswap V3 USDC pools */
 export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
   {
@@ -79,8 +95,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x60661b315553EB81872deEA9a66d567Cf0CCd33B
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 100_000_000n, // 1.0 whole stock (~$188 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 600_000_000n, // 6.0 NVDAc (~$973 cap, deepest stock pool)
+    maxQuoteIn: 1_000_000_000n, // $1,000 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/1fee9b7a44e800d438dd9d96c3283e05784c925c2c871a48ff735950740b551a.png",
   },
@@ -94,8 +110,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x97F35d1E92795327614BE000cd18cba1Be2c1931
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 50_000_000n, // 0.5 whole stock (~$171 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 70_000_000n, // 0.70 AAPLc (~$250 cap, liquidity-limited)
+    maxQuoteIn: 250_000_000n, // $250 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/873819f4b14efe44b94abecbc8e8864d2998163abd0ca55b449ee6eb07d0d94c.png",
   },
@@ -110,8 +126,8 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     poolFee: 10000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
     maxDeviationBps: 350,
-    maxStockIn: 25_000_000n, // 0.25 whole stock (~$133 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 20_000_000n, // 0.20 MSFTc (~$104 cap, thin 1% pool)
+    maxQuoteIn: 100_000_000n, // $100 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/e90930ade985016f48816c6bd9fd1e8274b28507f4833881b3a16c77c2a3e2e7.png",
   },
@@ -125,10 +141,44 @@ export const BASE_MAINNET_MARKETS: StockMarketConfig[] = [
     // Uniswap V3 USDC pool 0x8634EE4145A63E40E44e12A6Bb1B905Fcb8856a6
     poolFee: 3000,
     maxStalenessSeconds: EQUITY_MAX_STALENESS_SECONDS,
-    maxStockIn: 50_000_000n, // 0.5 whole stock (~$143 cap)
-    maxQuoteIn: 100_000_000n, // 100 USDC ($100 cap)
+    maxStockIn: 34_000_000n, // 0.34 GOOGLc (~$100 cap, liquidity-limited)
+    maxQuoteIn: 100_000_000n, // $100 USDC
     category: "Tech",
     logo: "https://metadata.coinbase.com/equity_icons/0e80e31df40f7c42b49a3c7f6d23c6351625d73f235aeb69006ddee9221702b0.png",
+  },
+  // ---- Crypto coins (same contract, Chainlink 24/7 feeds). Verified on-chain against Base mainnet. ----
+  {
+    symbol: "WETH",
+    name: "Wrapped Ether",
+    kind: "coin",
+    stockToken: getAddress("0x4200000000000000000000000000000000000006"),
+    decimals: 18,
+    // Chainlink ETH / USD (8 decimals)
+    feed: getAddress("0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"),
+    // Uniswap V3 WETH/USDC 0.3% pool 0x6c561B446416E1A00E8E93E221854d6eA4171372 (~$127M liquidity)
+    poolFee: 3000,
+    maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
+    maxDeviationBps: 150,
+    maxStockIn: 13_500_000_000_000_000_000n, // 13.5 WETH (~$24.5k cap; pool cost is flat to $100k)
+    maxQuoteIn: 25_000_000_000n, // $25,000 USDC
+    category: "Crypto",
+    logo: "https://assets.coingecko.com/coins/images/2518/small/weth.png",
+  },
+  {
+    symbol: "cbBTC",
+    name: "Coinbase Wrapped BTC",
+    kind: "coin",
+    stockToken: getAddress("0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf"),
+    decimals: 8,
+    // Chainlink cbBTC / USD (8 decimals)
+    feed: getAddress("0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D"),
+    // Uniswap V3 cbBTC/USDC 0.05% pool 0xfBB6Eed8e7aa03B138556eeDaF5D271A5E1e43ef (~$7.7M liquidity)
+    poolFee: 500,
+    maxStalenessSeconds: CRYPTO_MAX_STALENESS_SECONDS,
+    maxDeviationBps: 100,
+    maxStockIn: 38_000_000n, // 0.38 cbBTC (~$24.6k cap; ~22 bp all-in at $25k)
+    maxQuoteIn: 25_000_000_000n, // $25,000 USDC
+    category: "Crypto",
   },
 ];
 

@@ -2,6 +2,10 @@
 //   npx hardhat run scripts/deploy.js --network baseSepolia
 //   npx hardhat run scripts/deploy.js --network base
 //   DRY_RUN=1 npx hardhat run scripts/deploy.js
+//   Mainnet canary (tiny limits first):
+//   DEPLOY_CONFIG=config/mainnet-canary.json OWNER_ADDRESS=<Safe> GUARDIAN_ADDRESS=<hot key> CONFIRM_MAINNET=yes \
+//     npx hardhat run scripts/deploy.js --network base
+//   See docs/MAINNET-DEPLOY.md before running.
 require("../shared/loadEnv");
 const { ethers, network } = require("hardhat");
 const path = require("path");
@@ -82,12 +86,36 @@ async function main() {
   const currentNetwork = await ethers.provider.getNetwork();
   if (currentNetwork.chainId === 8453n || currentNetwork.chainId === 8453) {
     const [deployer] = await ethers.getSigners();
+    const expected = process.env.EXPECTED_DEPLOYER;
+    if (expected && expected.toLowerCase() !== deployer.address.toLowerCase()) {
+      throw new Error(`DEPLOYER_PK belongs to ${deployer.address}, not EXPECTED_DEPLOYER ${expected}. Refusing to deploy.`);
+    }
+    console.log(`Deployer: ${deployer.address}  balance: ${ethers.formatEther(await ethers.provider.getBalance(deployer.address))} ETH`);
     const owner = process.env.OWNER_ADDRESS;
     if (!owner) {
       throw new Error("Refusing to deploy to Base mainnet (chainId 8453) without OWNER_ADDRESS set in env.");
     }
     if (owner.toLowerCase() === deployer.address.toLowerCase()) {
       throw new Error("Refusing to deploy to Base mainnet (chainId 8453) with OWNER_ADDRESS equal to deployer address.");
+    }
+    // The owner must be a real multisig: a Safe with at least 2 required signatures.
+    const safe = new ethers.Contract(owner, ["function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)"], ethers.provider);
+    let owners, threshold;
+    try {
+      [owners, threshold] = await Promise.all([safe.getOwners(), safe.getThreshold()]);
+    } catch {
+      throw new Error(`OWNER_ADDRESS ${owner} is not a Safe on Base. Create one at app.safe.global first.`);
+    }
+    console.log(`Owner Safe: ${owner}  threshold ${threshold} of ${owners.length}`);
+    if (threshold < 2n && process.env.ALLOW_SINGLE_SIG !== "yes") {
+      throw new Error("Owner Safe needs at least 2 required signatures (it has 1). Raise the threshold in Safe settings, or set ALLOW_SINGLE_SIG=yes to accept the risk.");
+    }
+    if (owners.map((a) => a.toLowerCase()).includes(deployer.address.toLowerCase())) {
+      console.warn("WARNING: the deployer wallet is also a Safe signer. Prefer replacing it with a separate key after deployment.");
+    }
+    const guardian = process.env.GUARDIAN_ADDRESS;
+    if (guardian && [owner.toLowerCase(), deployer.address.toLowerCase()].includes(guardian.toLowerCase())) {
+      throw new Error("GUARDIAN_ADDRESS must be a separate key from both the owner Safe and the deployer.");
     }
     if (process.env.CONFIRM_MAINNET !== "yes") {
       throw new Error('Refusing to deploy to Base mainnet (chainId 8453) without CONFIRM_MAINNET="yes".');
@@ -121,19 +149,48 @@ async function main() {
   }
 
   console.log(`Deploying with ${markets.length} configured markets...`);
-  const { book, adapter } = await deployAll({
+  const { book, adapter, pendingOwner } = await deployAll({
     quoteToken: ethers.getAddress(quoteToken),
     router: ethers.getAddress(router),
     keeperFeeBps: Number(process.env.KEEPER_FEE_BPS || fileConfig?.keeperFeeBps || 10),
     maxDeviationBps: Number(process.env.MAX_DEVIATION_BPS || fileConfig?.maxDeviationBps || 300),
     owner: process.env.OWNER_ADDRESS || fileConfig?.owner,
+    guardian: process.env.GUARDIAN_ADDRESS || fileConfig?.guardian,
+    keepers: process.env.KEEPER_ADDRESS ? [process.env.KEEPER_ADDRESS] : fileConfig?.keepers ?? [],
+    sequencerUptimeFeed: fileConfig?.sequencerUptimeFeed,
     markets,
   });
 
   console.log("LimitOrderBook:", book.target);
   console.log("UniswapV3Adapter:", adapter.target);
   console.log("Configured markets:", markets.map((m) => m.symbol).join(", "));
-  return { book, adapter };
+  if (pendingOwner) {
+    console.log(`\nACTION REQUIRED: from the owner Safe ${pendingOwner}, call acceptOwnership() on BOTH contracts:`);
+    console.log(`  LimitOrderBook   ${book.target}`);
+    console.log(`  UniswapV3Adapter ${adapter.target}`);
+    console.log("Until then the deployer key is still the owner. Keep it offline-safe until both are accepted.");
+  }
+
+  const chainId = Number((await ethers.provider.getNetwork()).chainId);
+  if (chainId === 8453 || chainId === 84532) {
+    const dir = path.join(__dirname, "../deployments");
+    fs.mkdirSync(dir, { recursive: true });
+    const record = {
+      chainId,
+      network: network.name,
+      deployedAt: new Date().toISOString(),
+      orderBook: book.target,
+      swapAdapter: adapter.target,
+      pendingOwner,
+      guardian: process.env.GUARDIAN_ADDRESS || fileConfig?.guardian || null,
+      config: process.env.DEPLOY_CONFIG || "config/deployConfig.json",
+      markets: markets.map((m) => m.symbol),
+    };
+    const out = path.join(dir, `${chainId === 8453 ? "base-mainnet" : "base-sepolia"}.json`);
+    fs.writeFileSync(out, JSON.stringify(record, null, 2) + "\n");
+    console.log(`Deployment record written to ${out}`);
+  }
+  return { book, adapter, pendingOwner };
 }
 
 if (require.main === module) {
