@@ -4,6 +4,7 @@ import {
   storeLaunchpadMedia,
 } from "@/lib/launchpad/media-store";
 import { sniffImageMime } from "@/lib/launchpad/image-sniff";
+import { shrinkImage } from "@/lib/launchpad/image-shrink";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Use a PNG, JPEG, WebP or GIF image" }, { status: 400 });
     }
 
-    const id = await storeLaunchpadMedia(mime, buf.toString("base64"));
+    // Stored in Redis, so keep it small: a logo is about 20-60 KB as WebP instead of up to 800 KB.
+    const small = await shrinkImage(buf, mime);
+    const id = await storeLaunchpadMedia(small.mime, small.buf.toString("base64"));
     const origin = new URL(req.url).origin;
 
     return NextResponse.json({

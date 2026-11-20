@@ -37,7 +37,9 @@
     "logos:seed": "node scripts/seed-token-logos.mjs",
     "logos:audit": "node scripts/audit-token-logos.mjs",
     "portfolio:compare": "node scripts/portfolio-compare.mjs",
-    "drops:preflight": "node scripts/drops-preflight.mjs"
+    "drops:preflight": "node scripts/drops-preflight.mjs",
+    "redis:usage": "node scripts/redis-usage.mjs",
+    "redis:shrink-media": "node scripts/redis-shrink-media.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
