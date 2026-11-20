@@ -106,7 +106,12 @@ async function loadDrop(d: DropDeps, id: bigint): Promise<OnchainDrop> {
  * Records written before the key existed still read as plain JSON.
  */
 function sealValue(value: unknown, scope: string): string {
-  return sealJson(value, scope) ?? JSON.stringify(value);
+  const sealed = sealJson(value, scope);
+  if (sealed) return sealed;
+  if (process.env.VERCEL_ENV === "production") {
+    throw new DropError("Drop secrets can't be stored safely yet: VOUCHER_SECRETS_KEY isn't set on this deployment.", 503);
+  }
+  return JSON.stringify(value);
 }
 
 function openValue<T>(raw: string, scope: string): T {

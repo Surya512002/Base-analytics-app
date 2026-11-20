@@ -21,14 +21,15 @@ let devSecret: string | null = null;
  * repo would let anyone forge a login. In production with nothing set, sign-in fails closed.
  */
 function sessionSecret(): string {
-  const secret =
-    process.env.SIWE_SESSION_SECRET?.trim() ||
-    process.env.X402_FACILITATOR_PRIVATE_KEY?.trim() ||
-    process.env.KV_REDIS_URL?.trim();
+  const secret = process.env.SIWE_SESSION_SECRET?.trim();
   if (secret) return secret;
-  if (process.env.NODE_ENV === "production" && process.env.VERCEL) {
+  // Never sign logins with a wallet key or the Redis password: production needs its own secret.
+  if (process.env.VERCEL_ENV === "production" || (process.env.NODE_ENV === "production" && process.env.VERCEL && !process.env.VERCEL_ENV)) {
     throw new Error("SIWE_SESSION_SECRET is not configured");
   }
+  // Previews and local dev keep working without one; the Redis URL is stable across instances.
+  const shared = process.env.KV_REDIS_URL?.trim();
+  if (shared) return shared;
   // Local dev / tests: a per-process random secret (sessions reset on restart).
   devSecret ??= randomBytes(32).toString("hex");
   return devSecret;

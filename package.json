@@ -36,7 +36,8 @@
     "notify:b20": "node scripts/send-base-notification.mjs broadcast --preset b20_launch",
     "logos:seed": "node scripts/seed-token-logos.mjs",
     "logos:audit": "node scripts/audit-token-logos.mjs",
-    "portfolio:compare": "node scripts/portfolio-compare.mjs"
+    "portfolio:compare": "node scripts/portfolio-compare.mjs",
+    "drops:preflight": "node scripts/drops-preflight.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

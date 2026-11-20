@@ -965,6 +965,9 @@ export default function DropCreate({
                     )}
                     {preview.ok && form.token !== ZERO_ADDRESS && <Notice>Your wallet approves exactly {totalText} (never unlimited), then funds the drop.</Notice>}
                     {!preview.ok && <Notice tone="error">{preview.error}</Notice>}
+                    {!IS_DROPS_TESTNET && (
+                      <Notice tone="warn">This uses real funds on Base. Check the amount and who can claim before you launch. A drop can be closed any time (unless you locked it) and what is left comes back to you.</Notice>
+                    )}
                     <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                       <ShieldCheck size={14} className="shrink-0" /> Funds sit in the drop contract. Whatever isn&apos;t claimed comes back to you after it ends.
                     </div>
