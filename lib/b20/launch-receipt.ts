@@ -51,3 +51,13 @@ export function extractB20TokenFromReceipt(
   }
   return null;
 }
+
+/** Registering a token needs proof: a successful launch tx whose factory event names this token and involves the creator. */
+export function launchReceiptError(receipt: TransactionReceipt, token: string, creator: string): string | null {
+  if (receipt.status !== "success") return "Launch transaction failed";
+  if (extractB20TokenFromReceipt(receipt)?.toLowerCase() !== token.toLowerCase()) return "Transaction did not launch this token";
+  const topic = `0x${creator.toLowerCase().replace(/^0x/, "").padStart(64, "0")}`;
+  const involved =
+    receipt.from.toLowerCase() === creator.toLowerCase() || receipt.logs.some((l) => l.topics.some((t) => t.toLowerCase() === topic));
+  return involved ? null : "Transaction was not sent by this creator";
+}

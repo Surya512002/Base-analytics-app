@@ -5,7 +5,9 @@ import {
   registerLaunchedToken,
 } from "@/lib/launchpad/token-store";
 import { isB20AssetActivated } from "@/lib/b20/activation";
-import { isInvalidLaunchTokenAddress } from "@/lib/b20/launch-receipt";
+import { isInvalidLaunchTokenAddress, launchReceiptError } from "@/lib/b20/launch-receipt";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { limitByIp } from "@/lib/api/rate-limit";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { scheduleLaunchNotification } from "@/lib/launchpad/launch-notify";
 import { requireSiweSession } from "@/lib/auth/siwe-session";
@@ -28,6 +30,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const limited = await limitByIp(req, "launchpad-tokens-post", 20);
+  if (limited) return limited;
   try {
     const body = (await req.json()) as Partial<LaunchedToken>;
     const address = body.address?.trim();
@@ -55,6 +59,16 @@ export async function POST(req: Request) {
     if (!session.ok) {
       return NextResponse.json({ error: session.error }, { status: session.status });
     }
+
+    // The tx must really be this creator's launch of this token, or anyone signed in could claim any token's fees.
+    if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+      return NextResponse.json({ error: "Invalid launch transaction" }, { status: 400 });
+    }
+    const receipt = await createBasePublicClient()
+      .getTransactionReceipt({ hash: txHash as `0x${string}` })
+      .catch(() => null);
+    const bad = receipt ? launchReceiptError(receipt, address, creator) : "Launch transaction not found yet";
+    if (bad) return NextResponse.json({ error: bad }, { status: 400 });
 
     // Prevent fee hijack: existing registry creator cannot be overwritten by another wallet.
     const existing = await getLaunchedToken(address);
