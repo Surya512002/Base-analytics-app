@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { getAddress } from "viem";
 import {
   verifyFarcasterQuickAuthToken,
@@ -14,6 +15,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const limited = await limitByIp(req, "auth-verify", 30);
+  if (limited) return limited;
   try {
     const body = (await req.json()) as {
       message?: string;

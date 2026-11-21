@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import {
   getUserActivityStats,
   verifyAndRecordUserTransaction,
@@ -14,23 +15,6 @@ const NO_CACHE_HEADERS = {
   Pragma: "no-cache",
   Expires: "0",
 };
-
-// Simple rate limiter: max 15 POST requests per IP per minute
-const ipRateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipRateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ipRateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
-    return false;
-  }
-  if (entry.count >= 15) {
-    return true;
-  }
-  entry.count++;
-  return false;
-}
 
 export async function GET() {
   const stats = await getUserActivityStats();
@@ -49,10 +33,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const forwarded = req.headers.get("x-forwarded-for");
-  const ip = forwarded ? forwarded.split(",")[0]?.trim() || "unknown" : "127.0.0.1";
-
-  if (isRateLimited(ip)) {
+  if (await limitByIp(req, "unique-users", 15)) {
     return NextResponse.json(
       { ok: false, error: "Rate limit exceeded. Please wait a moment." },
       { status: 429, headers: NO_CACHE_HEADERS }
