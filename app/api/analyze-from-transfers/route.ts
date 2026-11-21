@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { analyzeWalletAddress } from "@/lib/analyze-wallet";
 import type { AlchemyTransfer } from "@/lib/types/wallet";
 
@@ -7,6 +8,8 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
+  const limited = await limitByIp(req, "analyze-from-transfers", 10);
+  if (limited) return limited;
   let body: {
     address?: string;
     transfers?: AlchemyTransfer[];

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { decodeEventLog, type Address, type Hex } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { WETH_BASE } from "@/lib/launchpad/uniswap";
@@ -110,6 +111,8 @@ async function fetchEthUsd(): Promise<number> {
 }
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "launchpad-swaps", 60);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const token = (searchParams.get("token") || "").trim();
   const limit = Math.max(

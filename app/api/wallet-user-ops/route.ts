@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { fetchUserOperationActivity } from "@/lib/api/user-operations";
 
 export const dynamic = "force-dynamic";
@@ -6,6 +7,8 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "wallet-user-ops", 30);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const full = searchParams.get("full") === "1";

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { fetchWalletTransfersMerged } from "@/lib/api/fetch-wallet-transfers";
 import { cacheGet, cacheSet } from "@/lib/redis-cache";
 
@@ -9,6 +10,8 @@ export const maxDuration = 120;
 const CACHE_TTL = 600;
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "wallet-txs", 20);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const refresh = searchParams.get("refresh") === "1";

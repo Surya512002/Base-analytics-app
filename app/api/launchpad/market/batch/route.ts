@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { fetchMarketSummaries } from "@/lib/launchpad/dexscreener";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const limited = await limitByIp(req, "launchpad-market-batch", 60);
+  if (limited) return limited;
   try {
     const body = (await req.json().catch(() => ({}))) as { addresses?: string[] };
     const addresses = Array.isArray(body.addresses)

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import {
   decodeV2Cursor,
   fetchBlockscoutV2Chunk,
@@ -11,6 +12,8 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "wallet-v2-chunk", 240);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
   const stream = searchParams.get("stream") as V2Stream | null;

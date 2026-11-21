@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { getAddress } from "viem";
 import { getWalletPortfolio } from "@/lib/portfolio/portfolio-service";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "wallet-holdings", 30);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const raw = searchParams.get("address")?.trim();
   if (!raw?.startsWith("0x") || raw.length !== 42) {

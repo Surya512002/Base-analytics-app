@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { parseUnits, type Address } from "viem";
 import {
   WETH_BASE,
@@ -111,6 +112,8 @@ async function tryAggregatorQuote(opts: {
 }
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "launchpad-quote", 120);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token")?.trim().toLowerCase();
   const direction = searchParams.get("direction") === "sell" ? "sell" : "buy";
