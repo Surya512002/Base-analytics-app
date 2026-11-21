@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import type { VoucherBatchMeta } from "@/lib/types/voucher";
 import {
   listCreatorBatches,
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "vouchers-get", 120);
+  if (limited) return limited;
   try {
     const { searchParams } = new URL(req.url);
     const creator = searchParams.get("creator")?.toLowerCase();
@@ -74,6 +77,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const limited = await limitByIp(req, "vouchers-post", 20);
+  if (limited) return limited;
   try {
     const body = (await req.json()) as VoucherBatchMeta;
     if (!body.creator?.startsWith("0x") || !body.batchId) {
@@ -123,6 +128,8 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const limited = await limitByIp(req, "vouchers-patch", 30);
+  if (limited) return limited;
   try {
     const { batchId, contractAddress } = (await req.json()) as { batchId: number; contractAddress?: string };
     if (!Number.isInteger(batchId) || batchId <= 0) {

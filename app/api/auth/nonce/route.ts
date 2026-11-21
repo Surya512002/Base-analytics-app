@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { buildSiweMessage, issueSiweNonce, resolveSiweDomain } from "@/lib/auth/siwe-server";
 import { getAddress } from "viem";
 
@@ -20,6 +21,8 @@ function requestOrigin(req: Request, host: string): string {
 }
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "auth-nonce", 60);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const raw = searchParams.get("address")?.trim();
   let address: string | null = null;
