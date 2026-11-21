@@ -27,6 +27,7 @@ import {
 import { shortAddr, timeAgo } from "@/lib/launchpad/format";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import { buildSwapLink } from "@/lib/swap/swap-link";
+import { automateLink, canAutomateStock } from "@/src/lib/limitOrders/automate";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import TokenSparkline from "@/components/ui/TokenSparkline";
 
@@ -357,6 +358,27 @@ export default function TokenQuickView({
                   <p className="text-[var(--ink-muted)] leading-relaxed">
                     {token.description}
                   </p>
+                </div>
+              )}
+
+              {canAutomateStock(token.address) && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">Automate</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <a
+                      href={automateLink(token.address, "auto-invest")}
+                      className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]/50 text-[var(--ink)] font-bold text-center"
+                    >
+                      Auto-invest
+                    </a>
+                    <a
+                      href={automateLink(token.address, "stop-loss")}
+                      className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]/50 text-[var(--ink)] font-bold text-center"
+                    >
+                      Stop-loss
+                    </a>
+                  </div>
+                  <p className="text-[11px] text-[var(--ink-muted)]">Buy on a schedule, or sell automatically if the price falls. Runs on the onchain order book, and you can cancel any time.</p>
                 </div>
               )}
 

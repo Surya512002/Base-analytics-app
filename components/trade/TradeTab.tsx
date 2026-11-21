@@ -175,7 +175,11 @@ export default function TradeTab({
   const [summary, setSummary] = useState<MarketSummary | null>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartNote, setChartNote] = useState<string | null>(null);
-  const [ticket, setTicket] = useState<Ticket>("market");
+  // Deep links from stock cards: /trade?token=0x…&ticket=recurring (auto-invest) or &ticket=orders&goal=stop-loss
+  const goalParam = searchParams?.get("goal");
+  const initialGoal = (["buy-dip", "take-profit", "stop-loss", "protect"] as const).find((g) => g === goalParam);
+  const ticketParam = searchParams?.get("ticket");
+  const [ticket, setTicket] = useState<Ticket>(ticketParam === "recurring" || ticketParam === "orders" ? ticketParam : "market");
   const [orderMode, setOrderMode] = useState<"simple" | "scale" | "pro">("simple");
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
@@ -573,6 +577,7 @@ export default function TradeTab({
                 hideOrdersPanel
                 cexLayout
                 simple={orderMode === "simple" && canPlaceOrders}
+                initialGoal={initialGoal}
                 scale={orderMode === "scale" && canPlaceOrders}
                 liquidityUsd={summary?.liquidityUsd ?? null}
               />

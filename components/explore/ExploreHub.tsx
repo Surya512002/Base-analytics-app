@@ -11,6 +11,7 @@ import {
   normalizeBaseStock,
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
+import StockBaskets from "@/components/stocks/StockBaskets";
 import ExploreHero from "./ExploreHero";
 import LiveMarketMap from "./LiveMarketMap";
 import LatestTradeTicker from "./LatestTradeTicker";
@@ -466,13 +467,16 @@ export default function ExploreHub({
             )}
           </div>
         ) : filters.catalogTab === "stocks" ? (
-          <StockMarketsTable
-            stocks={stockMarketsList}
-            loading={stockMarketsLoading}
-            watchlist={watchlist}
-            onToggleWatchlist={handleToggleWatchByAddress}
-            onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
-          />
+          <div className="space-y-4">
+            <StockBaskets />
+            <StockMarketsTable
+              stocks={stockMarketsList}
+              loading={stockMarketsLoading}
+              watchlist={watchlist}
+              onToggleWatchlist={handleToggleWatchByAddress}
+              onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
+            />
+          </div>
         ) : (
           <TokenTable
             tokens={filteredTokens}
