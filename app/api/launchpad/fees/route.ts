@@ -15,6 +15,9 @@ import {
 } from "@/lib/launchpad/fee-split";
 import { listLaunchedTokens } from "@/lib/launchpad/token-store";
 import { requireSiweSession } from "@/lib/auth/siwe-session";
+import { checkRateLimitAsync, rateLimitResponse } from "@/lib/api/rate-limit";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { feeAmountError, receiptError, tokenCreatorError } from "@/lib/launchpad/fee-verify";
 
 export const dynamic = "force-dynamic";
 
@@ -83,11 +86,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: session.error }, { status: session.status });
     }
 
+    // The browser reports this event, so check it before it can credit anyone's revenue.
+    const perWallet = await checkRateLimitAsync(`fees-post:${trader}`, 30, 60_000);
+    if (!perWallet.ok) return rateLimitResponse(perWallet.retryAfterSec);
+    const registryError = tokenCreatorError(await listLaunchedTokens(), tokenAddress, creator);
+    if (registryError) return NextResponse.json({ error: registryError }, { status: 400 });
+    // A real transaction hash must be a successful transaction involving this trader. (Smart wallets
+    // may report a bundle id that isn't a transaction hash; those pass the checks above and below only.)
+    if (/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+      const receipt = await createBasePublicClient().getTransactionReceipt({ hash: txHash as `0x${string}` }).catch(() => null);
+      const bad = receipt ? receiptError(receipt, trader, tokenAddress) : null;
+      if (bad) return NextResponse.json({ error: bad }, { status: 400 });
+    }
+
     const referrerRaw = body.referrer ? String(body.referrer).trim().toLowerCase() : null;
     const referrer =
       referrerRaw?.startsWith("0x") && referrerRaw.length === 42 ? referrerRaw : null;
 
-    const feeAmount = BigInt(String(body.feeAmount ?? "0"));
+    let feeAmount: bigint;
+    try {
+      feeAmount = BigInt(String(body.feeAmount ?? "0"));
+    } catch {
+      return NextResponse.json({ error: "Invalid fee amount" }, { status: 400 });
+    }
+    const amountError = feeAmountError(feeAsset, feeAmount);
+    if (amountError) return NextResponse.json({ error: amountError }, { status: 400 });
     const split = splitPlatformFee(feeAmount, {
       creator: creator as `0x${string}`,
       referrer: referrer as `0x${string}` | null,

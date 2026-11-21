@@ -160,7 +160,7 @@ export function AlertButton({ wallet, address, symbol, price, onToast }: { walle
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ wallet, address, symbol, direction: price != null && px < price ? "below" : "above", priceUsd: px }),
       });
-      onToast(r.ok ? `Alert set: ${symbol} at $${formatPrice(px)}` : "Could not set alert");
+      onToast(r.ok ? `Alert set: ${symbol} at ${formatPrice(px)}` : r.status === 401 ? "Sign in with your wallet first, then set the alert again" : "Could not set alert");
       if (r.ok) setOpen(false);
     } catch {
       onToast("Could not set alert");
