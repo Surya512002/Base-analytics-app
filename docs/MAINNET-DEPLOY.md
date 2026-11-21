@@ -11,7 +11,7 @@ This deploys the order book with **canary limits ($50 per order, $500 total per 
 | **Owner** | A Safe multisig (2-of-3 or better) | set markets, limits, fees, unpause | an EOA, or the same as any key below |
 | **Deployer** | A fresh hot wallet with ~0.01 ETH | deploys, wires markets, then hands ownership to the Safe | reused for anything else |
 | **Guardian** | A separate hot key (e.g. on your phone) | **pause only** | the owner or deployer |
-| **Keeper** | A server wallet with ~0.01 ETH for gas | execute orders, earns 0.10% fee | holding user funds (it never does) |
+| **Keeper** | A server wallet with ~0.001 ETH for gas | execute orders, earns 0.10% fee | holding user funds (it never does) |
 
 The deploy script refuses mainnet if `OWNER_ADDRESS` is missing or equals the deployer, if the guardian equals either, or without `CONFIRM_MAINNET=yes`.
 
@@ -43,7 +43,7 @@ Put the deployer key in `limit-orders/.env` (git-ignored) as `DEPLOYER_PK=0x…`
 DEPLOY_CONFIG=config/mainnet-canary.json EXPECTED_DEPLOYER=0xbCDDd1bc8F3c0c24BEDEE41720287ff50a7B7148 OWNER_ADDRESS=0x5b2247D29b44510E3E857879470925ccFFE696C3 CONFIRM_MAINNET=yes npx hardhat run scripts/deploy.js --network base
 ```
 
-The keeper `0x8EB3…A628` is allowlisted automatically (it is in `keepers` in the config and `KEEPER_ADDRESS` in `limit-orders/.env`). Fund it with ~0.005 ETH on Base before starting it.
+The keeper `0x8EB3…A628` is allowlisted automatically (it is in `keepers` in the config and `KEEPER_ADDRESS` in `limit-orders/.env`). Fund it with ~0.0005 ETH on Base before starting it (Base gas is tiny; one order costs well under a cent).
 
 Owner Safe `0x5b22…96C3` was checked on 2026-11-16: 2 of 3 signatures on Base. Add `GUARDIAN_ADDRESS=0x…` to the command if you have a guardian ready; otherwise set it later from the Safe with `setGuardian(address)` on the order book.
 
@@ -96,7 +96,7 @@ RPC_URL=<private Base RPC>
 ORDER_BOOK=<ORDER_BOOK>
 KEEPER_PK=0x<keeper key>
 POLL_MS=10000
-MIN_GAS_BALANCE_ETH=0.002
+MIN_GAS_BALANCE_ETH=0.00005
 ```
 
 The keeper wallet must be allowlisted (`KEEPER_ADDRESS` at deploy, or `setKeeper(addr, true)` from the Safe); it refuses to start otherwise. Try it with `DRY_RUN=1` first, then:

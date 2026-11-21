@@ -38,7 +38,7 @@ const START_ORDER_ID = BigInt(env("START_ORDER_ID", "1"));
 const START_PLAN_ID = BigInt(env("START_PLAN_ID", "1"));
 const VALIDITY_TX = env("VALIDITY_TX", "0") === "1";
 const AUTO_REFUND_EXPIRED = env("AUTO_REFUND_EXPIRED", "1") === "1";
-const MIN_GAS_BALANCE_ETH = Number(env("MIN_GAS_BALANCE_ETH", "0.002"));
+const MIN_GAS_BALANCE_ETH = Number(env("MIN_GAS_BALANCE_ETH", "0.00005"));
 const DRY_RUN = env("DRY_RUN", "0") === "1";
 const RETRY_BACKOFF_MS = 60_000;
 
