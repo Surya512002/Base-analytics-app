@@ -15,6 +15,8 @@ This deploys the order book with **canary limits ($50 per order, $500 total per 
 
 The deploy script refuses mainnet if `OWNER_ADDRESS` is missing or equals the deployer, if the guardian equals either, or without `CONFIRM_MAINNET=yes`.
 
+> **Deployed 2026-11-21 (Base mainnet, canary limits).** Deployer `0x8F94…3Fd1` (not the `0xbCDD…7148` wallet used in the commands below; that is what the key in `.env` belongs to). LimitOrderBook `0x080D52b060A467aE63d7d2cC7178dc6B1A3DB29D`, UniswapV3Adapter `0xfBa0eA0387F4d04aBA22e9e89876Ec2782e685f4`, guardian `0xB4BD…d42F`, keeper fee 0.10%. Record: `limit-orders/deployments/base-mainnet.json`. **Still to do:** the Safe must call `acceptOwnership()` on both contracts (step 3), then start the keeper (step 4) and set the Vercel variables (step 5). Until step 3 the deployer key still owns the contracts.
+
 ## 1. Rehearse on a mainnet fork (no keys, no cost)
 
 ```bash

@@ -1,0 +1,18 @@
+{
+  "chainId": 8453,
+  "network": "base",
+  "deployedAt": "2026-11-21T16:15:22.193Z",
+  "orderBook": "0x080D52b060A467aE63d7d2cC7178dc6B1A3DB29D",
+  "swapAdapter": "0xfBa0eA0387F4d04aBA22e9e89876Ec2782e685f4",
+  "pendingOwner": "0x5b2247D29b44510E3E857879470925ccFFE696C3",
+  "guardian": "0xB4BD7D410543cB27f42c562ab3fF5DC12fBDd42F",
+  "config": "config/mainnet-canary.json",
+  "markets": [
+    "NVDAc",
+    "AAPLc",
+    "MSFTc",
+    "GOOGLc",
+    "WETH",
+    "cbBTC"
+  ]
+}
