@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { limitByIp } from "@/lib/api/rate-limit";
+import { requireSiweSession } from "@/lib/auth/siwe-session";
 import {
   getUserActivityStats,
   verifyAndRecordUserTransaction,
@@ -54,6 +55,14 @@ export async function POST(req: Request) {
 
     const action = typeof body?.action === "string" ? body.action.trim() : "";
     if (action === "connect") {
+      // Counts toward the public user number only for a wallet that proved it owns the address.
+      const session = await requireSiweSession(address.toLowerCase());
+      if (!session.ok) {
+        return NextResponse.json(
+          { ok: false, error: session.error },
+          { status: session.status, headers: NO_CACHE_HEADERS }
+        );
+      }
       const { recordUniqueUser } = await import("@/lib/redis-unique-users");
       const count = await recordUniqueUser(address);
       const formatted = count.toLocaleString();
