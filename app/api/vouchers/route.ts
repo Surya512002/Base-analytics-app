@@ -6,7 +6,7 @@ import {
   readOnchainBatch,
   recoverBatchForWallet,
 } from "@/lib/voucher/batch-read";
-import { readStoredBatches, writeStoredBatches } from "@/lib/voucher/batch-store";
+import { readStoredBatches, upsertStoredBatch } from "@/lib/voucher/batch-store";
 import { VOUCHER_CONTRACT, BASE_RPC } from "@/lib/constants/env";
 import { isKnownVoucherContract } from "@/lib/voucher/voucher-contracts";
 
@@ -114,10 +114,7 @@ export async function POST(req: Request) {
       txHash: txHash ?? (idx >= 0 ? all[idx].txHash : undefined),
       contractAddress: liveContract,
     };
-    if (idx >= 0) all[idx] = { ...all[idx], ...entry };
-    else all.unshift(entry);
-
-    await writeStoredBatches(all);
+    await upsertStoredBatch(idx >= 0 ? { ...all[idx], ...entry } : entry, idx >= 0 ? all[idx] : undefined);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[Voucher POST]", err);
@@ -148,9 +145,7 @@ export async function PATCH(req: Request) {
       entry.creator
     );
     if (!live) return NextResponse.json({ success: false, error: "Not found onchain" }, { status: 404 });
-    all[idx].contractAddress = live.contractAddress;
-    all[idx].redeemedCount = live.redeemedCount;
-    await writeStoredBatches(all);
+    await upsertStoredBatch({ ...entry, contractAddress: live.contractAddress, redeemedCount: live.redeemedCount }, entry);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[Voucher PATCH]", err);
