@@ -5,6 +5,7 @@ import {
   upsertPriceAlert,
 } from "@/lib/price-alerts/store";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
+import { requireSiweSession } from "@/lib/auth/siwe-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,6 +24,8 @@ export async function GET(req: Request) {
   if (!wallet || !isAddress(wallet)) {
     return NextResponse.json({ error: "wallet required" }, { status: 400 });
   }
+  const session = await requireSiweSession(wallet);
+  if (!session.ok) return NextResponse.json({ error: session.error, requiresAuth: true }, { status: session.status });
 
   const alerts = await listPriceAlerts(wallet);
   return NextResponse.json({ alerts });
@@ -59,6 +62,8 @@ export async function POST(req: Request) {
   if (!Number.isFinite(priceUsd) || priceUsd <= 0) {
     return NextResponse.json({ error: "Invalid priceUsd" }, { status: 400 });
   }
+  const session = await requireSiweSession(wallet);
+  if (!session.ok) return NextResponse.json({ error: session.error, requiresAuth: true }, { status: session.status });
 
   const alert = await upsertPriceAlert({
     wallet,
@@ -83,6 +88,8 @@ export async function DELETE(req: Request) {
   if (!wallet || !isAddress(wallet) || !address || !isAddress(address)) {
     return NextResponse.json({ error: "wallet and address required" }, { status: 400 });
   }
+  const session = await requireSiweSession(wallet);
+  if (!session.ok) return NextResponse.json({ error: session.error, requiresAuth: true }, { status: session.status });
 
   await removePriceAlert(wallet, address);
   return NextResponse.json({ ok: true });
