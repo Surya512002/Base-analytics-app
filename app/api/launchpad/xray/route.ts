@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { computeTokenXRayScore } from "@/lib/launchpad/token-xray";
 import { getLaunchedToken } from "@/lib/launchpad/token-store";
 import { fetchTokenHolders, mapHolderRows } from "@/lib/launchpad/holders-fetch";
@@ -13,6 +14,8 @@ function isAddressLike(a: string): boolean {
 }
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "launchpad-xray", 30);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const token = (searchParams.get("token") || "").trim();
 

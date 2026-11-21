@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { listLaunchedTokens } from "@/lib/launchpad/token-store";
 import {
   fetchMarketSummaries,
@@ -9,7 +10,9 @@ import { readMarketCache, writeMarketCache } from "@/lib/launchpad/market-cache"
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const limited = await limitByIp(req, "launchpad-market", 60);
+  if (limited) return limited;
   try {
     const cached = await readMarketCache();
     if (cached) {

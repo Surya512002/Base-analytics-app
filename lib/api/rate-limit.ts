@@ -100,3 +100,9 @@ export function rateLimitResponse(retryAfterSec: number): Response {
     },
   });
 }
+
+/** Per-IP limit for one route; returns the 429 response to send, or null when allowed. */
+export async function limitByIp(req: Request, bucket: string, max: number, windowMs = 60_000) {
+  const r = await checkRateLimitAsync(`${bucket}:${getClientIp(req)}`, max, windowMs);
+  return r.ok ? null : rateLimitResponse(r.retryAfterSec);
+}

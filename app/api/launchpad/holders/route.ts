@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { getBasescanApiKeys } from "@/lib/api/basescan";
 import { parseSupplyCap } from "@/lib/launchpad/format";
 import { fetchTokenHolders, mapHolderRows } from "@/lib/launchpad/holders-fetch";
@@ -11,6 +12,8 @@ function isAddressLike(a: string): boolean {
 }
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "launchpad-holders", 60);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const token = (searchParams.get("token") || "").trim();
   const offset = Math.max(

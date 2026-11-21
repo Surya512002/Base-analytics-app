@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { discoverTrendingBaseTokens } from "@/lib/launchpad/external-discovery";
 import { discoverB20Tokens } from "@/lib/launchpad/b20-discovery";
 import { readDiscoverCache, writeDiscoverCache } from "@/lib/launchpad/market-cache";
@@ -11,7 +12,9 @@ export const runtime = "nodejs";
  * 1. B20 factory + Gecko + DexScreener (B20 vanity addresses)
  * 2. Gecko + DexScreener trending Base tokens (non-B20)
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const limited = await limitByIp(req, "launchpad-discover", 30);
+  if (limited) return limited;
   try {
     const cached = await readDiscoverCache();
     if (cached) {

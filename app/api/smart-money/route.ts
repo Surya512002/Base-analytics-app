@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limitByIp } from "@/lib/api/rate-limit";
 import { PRESET_SMART_MONEY, type SmartMoneyBuyEvent } from "@/lib/smart-money/smart-money-store";
 import { formatUnits } from "viem";
 
@@ -18,6 +19,8 @@ interface BlockscoutTokenTxItem {
 }
 
 export async function GET(req: Request) {
+  const limited = await limitByIp(req, "smart-money", 30);
+  if (limited) return limited;
   const { searchParams } = new URL(req.url);
   const targetWallet =
     searchParams.get("wallet")?.trim().toLowerCase() ||
