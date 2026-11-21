@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { GET, POST } from "@/app/api/app/unique-users/route";
 import * as redisModule from "@/lib/redis-unique-users";
 
+vi.mock("@/lib/auth/siwe-session", () => ({
+  requireSiweSession: async () => ({ ok: false, status: 401, error: "Sign in with your wallet first" }),
+}));
+
 describe("API: /api/app/unique-users Route Security & Verification", () => {
   it("GET returns 200 with ok: true and verified count", async () => {
     const res = await GET();
@@ -64,5 +68,20 @@ describe("API: /api/app/unique-users Route Security & Verification", () => {
     expect(data.count).toBe(5);
 
     spy.mockRestore();
+  });
+});
+
+describe("API: /api/app/unique-users connect needs a sign-in", () => {
+  it("refuses to count a wallet that has not signed in", async () => {
+    const record = vi.spyOn(redisModule, "recordUniqueUser");
+    const res = await POST(
+      new Request("http://localhost:3000/api/app/unique-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: "0x2222222222222222222222222222222222222222", action: "connect" }),
+      })
+    );
+    expect(res.status).toBe(401);
+    expect(record).not.toHaveBeenCalled();
   });
 });
