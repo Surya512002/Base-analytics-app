@@ -17,6 +17,7 @@ import type { StockMarketItem } from "@/lib/markets/types";
 import { OFFICIAL_TRADE_VENUES } from "@/lib/markets/types";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
 import BodyPortal from "@/components/ui/BodyPortal";
+import { automateLink, canAutomateStock } from "@/src/lib/limitOrders/automate";
 
 interface StockDetailDrawerProps {
   stock: StockMarketItem | null;
@@ -321,6 +322,25 @@ export default function StockDetailDrawer({
             <span>Trade {stock.symbol} on Base</span>
             <ArrowRight size={16} />
           </Link>
+
+          {canAutomateStock(stock.address) && (
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href={automateLink(stock.address, "auto-invest")}
+                onClick={onClose}
+                className="py-3 px-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]/50 text-[var(--ink)] font-bold text-xs text-center"
+              >
+                Auto-invest
+              </Link>
+              <Link
+                href={automateLink(stock.address, "stop-loss")}
+                onClick={onClose}
+                className="py-3 px-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]/50 text-[var(--ink)] font-bold text-xs text-center"
+              >
+                Stop-loss
+              </Link>
+            </div>
+          )}
 
           <p className="text-[11px] text-[var(--ink-muted)] text-center leading-normal">
             Information only, not investment advice. Reported liquidity does not guarantee completion at a specific price.

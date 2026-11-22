@@ -11,9 +11,11 @@ This deploys the order book with **canary limits ($50 per order, $500 total per 
 | **Owner** | A Safe multisig (2-of-3 or better) | set markets, limits, fees, unpause | an EOA, or the same as any key below |
 | **Deployer** | A fresh hot wallet with ~0.01 ETH | deploys, wires markets, then hands ownership to the Safe | reused for anything else |
 | **Guardian** | A separate hot key (e.g. on your phone) | **pause only** | the owner or deployer |
-| **Keeper** | A server wallet with ~0.01 ETH for gas | execute orders, earns 0.10% fee | holding user funds (it never does) |
+| **Keeper** | A server wallet with ~0.001 ETH for gas | execute orders, earns 0.10% fee | holding user funds (it never does) |
 
 The deploy script refuses mainnet if `OWNER_ADDRESS` is missing or equals the deployer, if the guardian equals either, or without `CONFIRM_MAINNET=yes`.
+
+> **Deployed 2026-11-21 (Base mainnet, canary limits).** Deployer `0x8F94…3Fd1` (not the `0xbCDD…7148` wallet used in the commands below; that is what the key in `.env` belongs to). LimitOrderBook `0x080D52b060A467aE63d7d2cC7178dc6B1A3DB29D`, UniswapV3Adapter `0xfBa0eA0387F4d04aBA22e9e89876Ec2782e685f4`, guardian `0xB4BD…d42F`, keeper fee 0.10%. Record: `limit-orders/deployments/base-mainnet.json`. **Still to do:** the Safe must call `acceptOwnership()` on both contracts (step 3), then start the keeper (step 4) and set the Vercel variables (step 5). Until step 3 the deployer key still owns the contracts.
 
 ## 1. Rehearse on a mainnet fork (no keys, no cost)
 
@@ -41,7 +43,7 @@ Put the deployer key in `limit-orders/.env` (git-ignored) as `DEPLOYER_PK=0x…`
 DEPLOY_CONFIG=config/mainnet-canary.json EXPECTED_DEPLOYER=0xbCDDd1bc8F3c0c24BEDEE41720287ff50a7B7148 OWNER_ADDRESS=0x5b2247D29b44510E3E857879470925ccFFE696C3 CONFIRM_MAINNET=yes npx hardhat run scripts/deploy.js --network base
 ```
 
-The keeper `0x8EB3…A628` is allowlisted automatically (it is in `keepers` in the config and `KEEPER_ADDRESS` in `limit-orders/.env`). Fund it with ~0.005 ETH on Base before starting it.
+The keeper `0x8EB3…A628` is allowlisted automatically (it is in `keepers` in the config and `KEEPER_ADDRESS` in `limit-orders/.env`). Fund it with ~0.0005 ETH on Base before starting it (Base gas is tiny; one order costs well under a cent).
 
 Owner Safe `0x5b22…96C3` was checked on 2026-11-16: 2 of 3 signatures on Base. Add `GUARDIAN_ADDRESS=0x…` to the command if you have a guardian ready; otherwise set it later from the Safe with `setGuardian(address)` on the order book.
 
@@ -93,8 +95,8 @@ CHAIN=base
 RPC_URL=<private Base RPC>
 ORDER_BOOK=<ORDER_BOOK>
 KEEPER_PK=0x<keeper key>
-POLL_MS=5000
-MIN_GAS_BALANCE_ETH=0.002
+POLL_MS=10000
+MIN_GAS_BALANCE_ETH=0.00005
 ```
 
 The keeper wallet must be allowlisted (`KEEPER_ADDRESS` at deploy, or `setKeeper(addr, true)` from the Safe); it refuses to start otherwise. Try it with `DRY_RUN=1` first, then:
@@ -150,3 +152,34 @@ After a clean week, raise limits from the Safe. `plan-cap-update.mjs` prints the
 - Failed executions in keeper logs (FillBelowOracleBound means the pool drifted from the oracle; StalePrice means a feed paused)
 - `stockEscrowed` / `quoteEscrowed` per market vs. the token balances of the book
 - Chainlink feed age per market
+
+## Fees and running costs
+
+**What users pay.** An order fills at its price minus the pool fee (0.3% on most stock pools, 1% on MSFTc) and a
+**keeper fee of 0.10%** of the amount received. The keeper fee goes to whichever allowlisted wallet executes the order. That
+wallet is ours, so the keeper fee is the app's revenue from orders. The Trade page already shows it ("Fee: 0.10%").
+The contract caps it at 1%, and the Safe can change it any time with `setKeeperFeeBps(bps)` (no redeploy, no new review),
+so start low and adjust after you see real volume.
+
+**How 0.10% compares** (figures from public write-ups on 2026-11-20; check each protocol's own docs before quoting them):
+
+| Product | What it charges |
+|---|---|
+| Mean Finance (recurring buys) | about 0.6% of each swap |
+| CoW Swap (limit orders) | one comparison says 2 bps of volume plus half of any price improvement; an older write-up says no fee, so the sources disagree |
+| 1inch limit orders | no on-top fee (a vendor post, dated) |
+| This app's market swaps | 0.25% |
+| **This app's orders (keeper fee)** | **0.10%**, below Mean Finance and below our own swap fee |
+
+**What it costs us.**
+- **Gas:** Base gas is about 0.006 gwei right now, so one execution costs roughly a cent or less. At 0.10%, an order of about
+  $10 or more already covers its own gas; at the $50 canary cap each fill earns about $0.05.
+- **The keeper:** one small process. A free or small plan on Railway or Fly.io is enough (about $0 to $5 a month).
+- **RPC calls:** the keeper polls the chain. Set `POLL_MS=10000` (10 s) instead of 5 s to halve the calls; a stop-loss
+  firing 10 seconds later is fine here. A free-tier Base RPC key is enough at canary volume.
+- **Gas balance:** the keeper only warns when its ETH is below `MIN_GAS_BALANCE_ETH` (default 0.002, about $3.50, which
+  covers hundreds of executions at today's gas). Top up when you see the warning.
+- **No other running costs:** no database, no extra servers. Orders live on chain and the app reads them directly.
+
+**Expect small revenue at first.** With $50 caps, real volume decides it: 1,000 fills a month at $50 each is about $50 of
+fees. It grows only when the caps are raised in steps (section 7) after the canary is clean.

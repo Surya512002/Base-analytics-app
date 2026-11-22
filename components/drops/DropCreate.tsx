@@ -59,6 +59,8 @@ import {
 } from "@/lib/drops/client";
 import { assetToToken, getVaultShareBySymbol } from "@/lib/utils/voucher";
 import { syncVaultInBackground } from "@/lib/voucher/vault-client";
+import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
+import { BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
 import ClickSpark from "@/components/ui/motion/ClickSpark";
 import TokenLogo from "@/components/ui/TokenLogo";
 import VoucherAssetPickerModal from "@/components/voucher/VoucherAssetPickerModal";
@@ -804,6 +806,17 @@ export default function DropCreate({
                               <Field label="At least">
                                 <input className={inputCls} inputMode="decimal" value={form.holderMin} onChange={(e) => set({ holderMin: e.target.value })} placeholder="1" />
                               </Field>
+                            </div>
+                            <div className="space-y-1.5">
+                              <p className="text-xs font-bold text-[var(--ink-soft)]">Reward stock holders: pick a stock</p>
+                              <Chips
+                                value={form.holderToken}
+                                onPick={(v) => set({ holderToken: v, holderDecimals: BASE_STOCK_DECIMALS })}
+                                options={["NVDAc", "AAPLc", "MSFTc", "GOOGLc", "AMZNc", "TSLAc", "METAc"].flatMap((sym) => {
+                                  const st = BASE_OFFICIAL_STOCKS.find((x) => x.symbol === sym);
+                                  return st ? [{ value: st.address as string, label: sym }] : [];
+                                })}
+                              />
                             </div>
                             <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-1">
                               <summary className="min-h-[40px] cursor-pointer py-2.5 text-xs font-bold text-[var(--ink-muted)]">Also let a list of wallets in (optional)</summary>
