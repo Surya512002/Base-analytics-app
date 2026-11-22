@@ -286,11 +286,15 @@ export default function TradeTab({
     if (ticket === "orders" && !ordersEnabled) setTicket("market");
   }, [ticket, ordersEnabled]);
 
+  const oraclePx = orderMarketState?.currentPrice != null ? Number(orderMarketState.currentPrice) / 10 ** PRICE_DECIMALS : null;
+
   const orderLines = useMemo<PriceLine[]>(() => {
     if (!orderMarket) return [];
     const lines: PriceLine[] = [];
     const px = (v: bigint) => Number(v) / 10 ** PRICE_DECIMALS;
     const forMarket = (a: string) => a.toLowerCase() === orderMarket.stockToken.toLowerCase();
+    // Orders fill against the Chainlink price, which can sit away from the DEX pool price the candles show.
+    if (oraclePx != null) lines.push({ price: oraclePx, label: `Chainlink $${formatPrice(oraclePx)}`, tone: "info" });
     for (const item of limitOrders.openOrders) {
       if (item.kind === "bracket") {
         if (!forMarket(item.takeProfitLeg.stockToken)) continue;
@@ -304,7 +308,7 @@ export default function TradeTab({
       }
     }
     return lines;
-  }, [limitOrders.openOrders, orderMarket]);
+  }, [limitOrders.openOrders, orderMarket, oraclePx]);
 
   const handleSwitchBase = useCallback(() => {
     try {
@@ -358,6 +362,17 @@ export default function TradeTab({
         <div>
           <div className="text-xl font-extrabold tabular-nums text-[var(--ink)]">{price != null ? `$${formatPrice(price)}` : "—"}</div>
           <div className="text-xs"><ChangePill pct={change} /> <span className="text-[var(--ink-muted)]">24h</span></div>
+          <div className="mt-0.5 text-[11px] text-[var(--ink-muted)]">
+            DEX pool price
+            {oraclePx != null && price != null && price > 0 && (
+              <>
+                {" · "}Chainlink ${formatPrice(oraclePx)}{" "}
+                <span className={Math.abs(oraclePx / price - 1) > 0.01 ? "font-semibold text-amber-500" : ""}>
+                  ({oraclePx >= price ? "+" : ""}{((oraclePx / price - 1) * 100).toFixed(2)}%)
+                </span>
+              </>
+            )}
+          </div>
         </div>
         {orderMarketState && (
           <span

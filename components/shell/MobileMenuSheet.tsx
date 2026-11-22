@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeftRight,
+  CandlestickChart,
   ChevronRight,
   Compass,
   Gift,
@@ -27,6 +28,7 @@ import type { AppTab } from "@/hooks/useWalletApp";
 type Item = { id: string; icon: LucideIcon; title: string; note: string; tab?: AppTab; href?: string; guestOk?: boolean };
 
 const ITEMS: Item[] = [
+  { id: "trade", icon: CandlestickChart, title: "Trade", note: "Charts, limit and stop-loss orders", tab: "trade", guestOk: true },
   { id: "explore", icon: Compass, title: "Explore", note: "Live tokens, trades and stocks", tab: "launchpad", guestOk: true },
   { id: "swap", icon: ArrowLeftRight, title: "Swap", note: "Best route across Base DEXs", tab: "swap", guestOk: true },
   { id: "lend", icon: Landmark, title: "Lend & Stake", note: "Borrow against stocks, earn yield", tab: "lend", guestOk: true },

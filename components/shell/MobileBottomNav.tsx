@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Compass, ArrowLeftRight, Coins, Gift, Rocket, User } from "lucide-react";
+import { CandlestickChart, Compass, ArrowLeftRight, Sparkles, User, Menu } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface MobileBottomNavProps {
@@ -29,10 +29,6 @@ export default function MobileBottomNav({
     pathname.startsWith("/profile") ||
     pathname.startsWith("/creator");
 
-  const isLaunch =
-    !isProfile &&
-    (pathname === "/launch" || pathname.startsWith("/launch"));
-
   const isTrade =
     !isProfile &&
     (pathname === "/trade" ||
@@ -45,23 +41,12 @@ export default function MobileBottomNav({
       pathname.startsWith("/swap") ||
       (pathname === "/" && tab === "swap"));
 
-  const isLend =
+  const isDrops =
     !isProfile &&
-    (pathname === "/lend" ||
-      pathname.startsWith("/lend") ||
-      pathname.startsWith("/earn") ||
-      (pathname === "/" && tab === "lend"));
-
-  const isVouchers =
-    !isProfile &&
-    (pathname === "/redeem" ||
-      pathname.startsWith("/redeem") ||
-      pathname.startsWith("/drops") ||
-      (pathname === "/" && tab === "basehub"));
+    (pathname.startsWith("/drops") || (pathname === "/" && tab === "drops"));
 
   const isExplore =
     !isProfile &&
-    !isLaunch &&
     (pathname === "/explore" ||
       pathname.startsWith("/explore") ||
       ((pathname === "/" || !pathname) && (tab === "launchpad" || !tab)));
@@ -99,31 +84,13 @@ export default function MobileBottomNav({
       guestOk: true,
     },
     {
-      id: "lend",
-      label: "Lend",
-      href: "/lend",
-      icon: Coins,
-      active: isLend,
-      tabId: "lend" as AppTab,
+      id: "drops",
+      label: "Drops",
+      href: "/drops",
+      icon: Sparkles,
+      active: isDrops,
+      tabId: "drops" as AppTab,
       guestOk: true,
-    },
-    {
-      id: "launch",
-      label: "Launch",
-      href: "/launch",
-      icon: Rocket,
-      active: isLaunch,
-      tabId: "launchpad" as AppTab,
-      guestOk: false,
-    },
-    {
-      id: "vouchers",
-      label: "Vouchers",
-      href: "/?tab=basehub",
-      icon: Gift,
-      active: isVouchers,
-      tabId: "basehub" as AppTab,
-      guestOk: false,
     },
     {
       id: "profile",
@@ -199,6 +166,16 @@ export default function MobileBottomNav({
             </Link>
           );
         })}
+        {/* Lend, Launch and Vouchers live in the menu; this opens it */}
+        <button
+          type="button"
+          aria-label="More"
+          onClick={() => window.dispatchEvent(new Event("open-mobile-menu"))}
+          className="relative isolate flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[50px] py-1 px-0.5 rounded-2xl text-[var(--ink-muted)] hover:text-[var(--ink)] font-semibold touch-manipulation select-none"
+        >
+          <Menu size={19} strokeWidth={1.8} />
+          <span className="max-w-full truncate text-[11px] tracking-tight leading-none">More</span>
+        </button>
       </div>
     </nav>
   );
