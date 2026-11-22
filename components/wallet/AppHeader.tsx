@@ -98,6 +98,12 @@ export default function AppHeader({
   // Phone menu sheet + "floating pill" header once the page is scrolled (openlaunch-style)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // The bottom dock's "More" button opens this menu.
+  useEffect(() => {
+    const open = () => setMobileMenuOpen(true);
+    window.addEventListener("open-mobile-menu", open);
+    return () => window.removeEventListener("open-mobile-menu", open);
+  }, []);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
