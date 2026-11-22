@@ -42,7 +42,7 @@ import {
   SWAP_ROUTER_02,
   WETH_BASE,
 } from "@/lib/launchpad/uniswap";
-import { routerHasCode } from "@/lib/launchpad/router-guard";
+import { isTrustedSwapTarget, routerHasCode } from "@/lib/launchpad/router-guard";
 import {
   encodeAerodromeBuy,
   encodeAerodromeSell,
@@ -570,6 +570,15 @@ export function useAppTransactions({
 
         if (isAggregator && (!quote.tx?.to || !quote.tx.data)) {
           showToast("Aggregator route unavailable — try again", "");
+          return false;
+        }
+
+        // Every address the wallet will approve or call must be a known router.
+        const swapTargets = isAggregator
+          ? [quote.tx?.to, quote.allowanceSpender ?? quote.tx?.to]
+          : [router];
+        if (!swapTargets.every(isTrustedSwapTarget)) {
+          showToast("❌ Unrecognised swap contract — swap blocked for your safety", "");
           return false;
         }
 

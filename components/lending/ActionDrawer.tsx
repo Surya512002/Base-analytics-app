@@ -9,6 +9,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { isUnlimitedApprovalAllowed } from "@/lib/security/trusted-spenders";
 import {
   X,
   AlertTriangle,
@@ -462,7 +463,7 @@ function ActionDrawerContent({
         }
       }
 
-      const approveAmount = approveUnlimited ? maxUint256 : amountRaw;
+      const approveAmount = approveUnlimited && isUnlimitedApprovalAllowed(option.contractAddress) ? maxUint256 : amountRaw;
 
       const calls = buildUnifiedProtocolCalls({
         option,
@@ -755,7 +756,7 @@ function ActionDrawerContent({
               </div>
 
               {/* Unlimited Approval Toggle (for Supply & Repay actions) */}
-              {(activeTab === "supply" || activeTab === "repay") && (
+              {(activeTab === "supply" || activeTab === "repay") && isUnlimitedApprovalAllowed(option.contractAddress) && (
                 <label className="flex items-center gap-2 pt-1 text-xs text-[var(--ink-muted)] cursor-pointer">
                   <input
                     type="checkbox"

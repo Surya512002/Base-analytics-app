@@ -5,6 +5,8 @@
  * multi-hop paths, and every DEX 0x indexes on Base.
  */
 
+import { ZEROX_ALLOWANCE_HOLDER } from "@/lib/utils/tx";
+
 const ZEROX_API = "https://api.0x.org/swap/allowance-holder";
 const BASE_CHAIN_ID = 8453;
 
@@ -109,10 +111,13 @@ export async function fetchZeroXQuote(params: {
   const to = data?.transaction?.to;
   const txData = data?.transaction?.data;
   const spender = data?.issues?.allowance?.spender;
+  // AllowanceHolder flow: both the call target and any spender must be the AllowanceHolder itself.
+  const isHolder = (a: string | undefined) => a?.toLowerCase() === ZEROX_ALLOWANCE_HOLDER.toLowerCase();
+  const trusted = isHolder(to) && (!spender || isHolder(spender));
 
   return {
     liquidityAvailable:
-      data?.liquidityAvailable === true && buyAmount > BigInt(0) && Boolean(to && txData),
+      data?.liquidityAvailable === true && buyAmount > BigInt(0) && Boolean(to && txData) && trusted,
     buyAmount,
     minBuyAmount: toBigInt(data?.minBuyAmount),
     to: (to as `0x${string}`) ?? null,

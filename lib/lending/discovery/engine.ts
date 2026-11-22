@@ -5,6 +5,7 @@ import type {
   ProtocolHealthStatus,
 } from "./types";
 import { DISCOVERY_SAFETY_CONFIG } from "./types";
+import { isTrustedSpender } from "@/lib/security/trusted-spenders";
 import { morphoAdapter } from "./adapters/morpho";
 import { beefyAdapter } from "./adapters/beefy";
 import { pendleAdapter } from "./adapters/pendle";
@@ -63,6 +64,16 @@ function recordPendingCandidate(token: {
   } catch (err) {
     console.warn("[Discovery Engine] Could not process candidate:", err);
   }
+}
+
+/**
+ * A market found through a third-party API can be shown, but deposits and borrows only work if
+ * its contract is on the reviewed list. Otherwise a compromised API could make users approve an
+ * attacker's contract.
+ */
+function viewOnlyUnlessReviewed(m: NormalizedMarket): NormalizedMarket {
+  if (isTrustedSpender(m.contractAddress)) return m;
+  return { ...m, canSupply: false, canBorrow: false, riskFlags: [...m.riskFlags, "UNREVIEWED_CONTRACT"] };
 }
 
 /**
@@ -131,7 +142,7 @@ export async function runMarketDiscovery(
         marketCount: markets.length,
       };
       GLOBAL_DISCOVERY_CACHE.perProtocolLastGood[proto] = markets;
-      discoveredRawMarkets.push(...markets);
+      discoveredRawMarkets.push(...markets.map(viewOnlyUnlessReviewed));
     } else {
       console.warn(`[Discovery Engine] Protocol ${proto} discovery failed:`, res.reason);
       const cachedLastGood = GLOBAL_DISCOVERY_CACHE.perProtocolLastGood[proto] ?? [];
