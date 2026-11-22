@@ -1,5 +1,6 @@
 import { getEip1193Provider } from "@/app/connection";
 import type { ConnectionType } from "@/lib/types/wallet";
+import { assertTrustedApprovals } from "@/lib/security/trusted-spenders";
 import {
   getSendCallsCapabilities,
   supportsPaymaster,
@@ -646,6 +647,7 @@ export async function sendAppTransactions(
   if (calls.length === 0) {
     throw new Error("No transactions to send");
   }
+  assertTrustedApprovals(calls);
 
   const batch = finalizeAppTransactionBatch(calls, {
     skipCompanion: options?.skipBuilderCompanion,

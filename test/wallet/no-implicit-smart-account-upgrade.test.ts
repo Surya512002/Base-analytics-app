@@ -18,13 +18,14 @@ vi.mock("@/lib/utils/base-rpc", () => ({
 describe("No Implicit Smart Account Upgrade (EIP-7702 Guard) Suite", () => {
   const userAddress = "0x1111111111111111111111111111111111111111";
   const tokenAddress = "0x2222222222222222222222222222222222222222";
-  const routerAddress = "0x3333333333333333333333333333333333333333";
+  // A real router: the send path now refuses approvals to unknown contracts.
+  const routerAddress = "0x2626664c2603336E57B271c5C0b26F421741e481";
 
   // Calls: ERC20 approve + swap action
   const sampleCalls: ContractCall[] = [
     {
       to: tokenAddress,
-      data: "0x095ea7b30000000000000000000000003333333333333333333333333333333333333333ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      data: "0x095ea7b30000000000000000000000002626664c2603336e57b271c5c0b26f421741e48100000000000000000000000000000000000000000000000000000000000f4240",
       value: BigInt(0),
     },
     {
