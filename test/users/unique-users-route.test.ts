@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { GET, POST } from "@/app/api/app/unique-users/route";
 import * as redisModule from "@/lib/redis-unique-users";
 
+const activity = { nonce: 0, code: "0x" };
+vi.mock("@/lib/utils/base-rpc", () => ({
+  createBasePublicClient: () => ({ getTransactionCount: async () => activity.nonce, getCode: async () => activity.code }),
+}));
 vi.mock("@/lib/auth/siwe-session", () => ({
   requireSiweSession: async () => ({ ok: false, status: 401, error: "Sign in with your wallet first" }),
 }));
@@ -71,17 +75,39 @@ describe("API: /api/app/unique-users Route Security & Verification", () => {
   });
 });
 
-describe("API: /api/app/unique-users connect needs a sign-in", () => {
-  it("refuses to count a wallet that has not signed in", async () => {
-    const record = vi.spyOn(redisModule, "recordUniqueUser");
-    const res = await POST(
+describe("API: /api/app/unique-users connect without a sign-in", () => {
+  const connect = (address: string) =>
+    POST(
       new Request("http://localhost:3000/api/app/unique-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: "0x2222222222222222222222222222222222222222", action: "connect" }),
+        body: JSON.stringify({ address, action: "connect" }),
       })
     );
-    expect(res.status).toBe(401);
+
+  it("refuses an address with no activity on Base", async () => {
+    activity.nonce = 0;
+    activity.code = "0x";
+    const record = vi.spyOn(redisModule, "recordUniqueUser");
+    const res = await connect("0x2222222222222222222222222222222222222222");
+    expect(res.status).toBe(403);
     expect(record).not.toHaveBeenCalled();
+  });
+
+  it("counts an address that has sent transactions on Base", async () => {
+    activity.nonce = 3;
+    const record = vi.spyOn(redisModule, "recordUniqueUser").mockResolvedValueOnce(7);
+    const res = await connect("0x3333333333333333333333333333333333333333");
+    expect(res.status).toBe(200);
+    expect(record).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts a deployed contract wallet that has never sent a transaction itself", async () => {
+    activity.nonce = 0;
+    activity.code = "0x6080";
+    const record = vi.spyOn(redisModule, "recordUniqueUser").mockResolvedValueOnce(8);
+    const res = await connect("0x4444444444444444444444444444444444444444");
+    expect(res.status).toBe(200);
+    expect(record).toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { limitByIp } from "@/lib/api/rate-limit";
 import { requireSiweSession } from "@/lib/auth/siwe-session";
+import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import {
   getUserActivityStats,
   verifyAndRecordUserTransaction,
@@ -16,6 +17,19 @@ const NO_CACHE_HEADERS = {
   Pragma: "no-cache",
   Expires: "0",
 };
+
+/** True when the address has sent a transaction or is a deployed contract wallet on Base. */
+async function hasBaseActivity(address: string): Promise<boolean> {
+  try {
+    const client = createBasePublicClient();
+    const a = address as `0x${string}`;
+    if ((await client.getTransactionCount({ address: a })) > 0) return true;
+    const code = await client.getCode({ address: a });
+    return Boolean(code && code !== "0x");
+  } catch {
+    return false;
+  }
+}
 
 export async function GET() {
   const stats = await getUserActivityStats();
@@ -55,12 +69,14 @@ export async function POST(req: Request) {
 
     const action = typeof body?.action === "string" ? body.action.trim() : "";
     if (action === "connect") {
-      // Counts toward the public user number only for a wallet that proved it owns the address.
+      // A signed-in wallet always counts. Most visitors connect without signing, so an unsigned
+      // address counts too, but only if it has real activity on Base: made-up addresses don't.
+      // shortcut: an attacker with real chain addresses can still add them; a signature is the only full proof.
       const session = await requireSiweSession(address.toLowerCase());
-      if (!session.ok) {
+      if (!session.ok && !(await hasBaseActivity(address))) {
         return NextResponse.json(
-          { ok: false, error: session.error },
-          { status: session.status, headers: NO_CACHE_HEADERS }
+          { ok: false, error: "Wallet has no activity on Base yet" },
+          { status: 403, headers: NO_CACHE_HEADERS }
         );
       }
       const { recordUniqueUser } = await import("@/lib/redis-unique-users");
