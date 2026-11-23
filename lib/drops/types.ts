@@ -69,7 +69,7 @@ export interface TaskType<Config = unknown> {
   /** Re-checked right before a ticket is signed (balances, memberships). */
   recheckAtClaim: boolean;
   /** Validates the stored config (input may differ from output, e.g. defaults). */
-  configSchema: z.ZodType<Config, z.ZodTypeDef, unknown>;
+  configSchema: z.ZodType<Config, unknown>;
   /** Turns what the creator typed into what's stored (e.g. hashes quiz answers). */
   prepare?: (input: unknown, ctx: { dropKey: string; taskId: string }) => Config;
   /** Config safe to show claimers (no answers). */
