@@ -130,6 +130,16 @@ export function finalizeAppTransactionBatch(
   return normalized;
 }
 
+/**
+ * The builder code is mandatory on every transaction the app sends. finalizeAppTransactionBatch adds it;
+ * this is the last check before a wallet is asked, so a future change cannot silently drop it.
+ */
+export function assertBuilderAttribution(calls: readonly Pick<ContractCall, "data">[]): void {
+  if (calls.length > 0 && !calls.some((c) => hasBuilderSuffix(c.data))) {
+    throw new Error("Blocked: this transaction is missing the app's builder code");
+  }
+}
+
 export type ContractCall = {
   to: `0x${string}`;
   data: Hex;

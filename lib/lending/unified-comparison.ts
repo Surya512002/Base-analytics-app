@@ -44,7 +44,7 @@ export type ProtocolType = "variable" | "fixed" | "vault" | "strategy";
 
 export interface StockLendingOption {
   id: string;
-  protocol: "morpho_blue" | "beefy" | "aerodrome" | "pendle" | "ipor" | "aave";
+  protocol: "morpho_blue" | "beefy" | "aerodrome" | "pendle" | "ipor" | "aave" | "aave_v4";
   protocolName: string;
   protocolBadge: string;
   type: ProtocolType;
@@ -65,7 +65,7 @@ export interface StockLendingOption {
   riskLevel: "low" | "medium" | "high";
   riskNotes: string[];
   contractAddress: `0x${string}`;
-  executionType: "morpho_blue" | "beefy" | "aerodrome" | "pendle" | "ipor" | "aave";
+  executionType: "morpho_blue" | "beefy" | "aerodrome" | "pendle" | "ipor" | "aave" | "aave_v4";
   morphoParams?: MorphoMarketParams;
   sourceLink?: string;
   isBestSupply?: boolean;
@@ -524,7 +524,7 @@ export async function getUnifiedStockLendingComparison(
   // Map ClassifiedMarketOption into StockLendingOption
   const options: StockLendingOption[] = summary.options.map((opt) => ({
     id: opt.id,
-    protocol: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : "aave") as any,
+    protocol: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : opt.protocol === "aave_v4" ? "aave_v4" : "aave") as any,
     protocolName: opt.protocolLabel,
     protocolBadge: opt.protocolBadge,
     type: opt.role === "lp_vault" ? (opt.protocol === "beefy" ? "vault" : "strategy") : opt.role === "borrow" ? "variable" : "vault",
@@ -545,7 +545,7 @@ export async function getUnifiedStockLendingComparison(
     riskLevel: opt.riskLevel,
     riskNotes: opt.riskNotes,
     contractAddress: opt.contractAddress,
-    executionType: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : "aave") as any,
+    executionType: (opt.protocol === "beefy" ? "beefy" : opt.protocol === "aerodrome" ? "aerodrome" : opt.protocol === "pendle" ? "pendle" : opt.protocol === "ipor" ? "ipor" : opt.protocol === "morpho" ? "morpho_blue" : opt.protocol === "aave_v4" ? "aave_v4" : "aave") as any,
     sourceLink: opt.sourceLink,
     morphoParams: (() => {
       const src = discoveredMarkets.find((m) => `${m.protocol}-${m.marketId}` === opt.id)?.morphoParams;
