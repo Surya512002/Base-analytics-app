@@ -9,6 +9,7 @@ import { ZEROX_ALLOWANCE_HOLDER, type ContractCall } from "@/lib/utils/tx";
 import { MORPHO_BLUE_BASE, AAVE_V3_POOL_BASE } from "@/lib/lending/constants";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 import { BEEFY_TOKEN_MANAGER, BEEFY_ZAP_ROUTER } from "@/lib/lending/zap/zap-router";
+import { AAVE_V4_SPOKE } from "@/lib/lending/aave-v4/constants";
 import REVIEWED_LENDING from "@/lib/security/reviewed-lending-contracts.json";
 
 /**
@@ -41,6 +42,7 @@ const FIXED: string[] = [
   // lending
   MORPHO_BLUE_BASE,
   AAVE_V3_POOL_BASE,
+  AAVE_V4_SPOKE,
   BEEFY_ZAP_ROUTER,
   BEEFY_TOKEN_MANAGER,
   ...BASE_LENDING_MARKETS.map((m) => m.contractAddress),

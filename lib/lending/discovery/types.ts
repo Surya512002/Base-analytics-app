@@ -6,6 +6,7 @@ export type DiscoveryProtocol =
   | "pendle"
   | "zkfi"
   | "aave"
+  | "aave_v4"
   | "euler"
   | "moonwell"
   | "superform"

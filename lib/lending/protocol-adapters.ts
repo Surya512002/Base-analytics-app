@@ -17,6 +17,8 @@ import {
   buildAttributedAaveWithdrawCall,
 } from "./builder-attribution";
 import type { StockLendingOption } from "./unified-comparison";
+import { AAVE_V4_RESERVES } from "./aave-v4/constants";
+import { buildAaveV4BorrowUsdc, buildAaveV4RepayUsdc, buildAaveV4SupplyCollateral, buildAaveV4Withdraw } from "./aave-v4/calls";
 
 /**
  * Build 1-click execution calls for any protocol in the Unified Stock Lending Comparison.
@@ -29,8 +31,10 @@ export function buildUnifiedProtocolCalls(params: {
   userAddress: `0x${string}`;
   requiresApproval?: boolean;
   approveAmount?: bigint;
+  /** Aave V4 only: collateral is already switched on for this stock, so the extra call is skipped. */
+  collateralAlreadyOn?: boolean;
 }): ContractCall[] {
-  const { option, action, amountRaw, userAddress, requiresApproval = true, approveAmount } = params;
+  const { option, action, amountRaw, userAddress, requiresApproval = true, approveAmount, collateralAlreadyOn = false } = params;
   const calls: ContractCall[] = [];
 
   // Determine active token for approval & action
@@ -139,6 +143,24 @@ export function buildUnifiedProtocolCalls(params: {
         calls.push(
           buildAttributedGaugeWithdrawCall(option.contractAddress, amountRaw)
         );
+      }
+      break;
+    }
+
+    case "aave_v4": {
+      // Aave V4 Equities Hub: stocks are collateral, USDC is the loan. The approval (if any) was added above.
+      const reserve = Object.values(AAVE_V4_RESERVES).find((r) => r.address.toLowerCase() === option.stockAddress.toLowerCase());
+      if (!reserve) throw new Error(`${option.stockSymbol} is not an Aave V4 collateral asset`);
+      if (action === "supply") {
+        calls.push(
+          ...buildAaveV4SupplyCollateral({ token: option.stockAddress, reserveId: reserve.id, amount: amountRaw, user: userAddress, needsApproval: false, collateralAlreadyOn })
+        );
+      } else if (action === "borrow") {
+        calls.push(...buildAaveV4BorrowUsdc({ amount: amountRaw, user: userAddress }));
+      } else if (action === "repay") {
+        calls.push(...buildAaveV4RepayUsdc({ usdc: option.loanAddress, amount: amountRaw, user: userAddress, needsApproval: false }));
+      } else if (action === "withdraw") {
+        calls.push(...buildAaveV4Withdraw({ reserveId: reserve.id, amount: amountRaw, user: userAddress }));
       }
       break;
     }

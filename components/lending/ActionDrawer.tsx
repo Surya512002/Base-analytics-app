@@ -10,6 +10,9 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { isUnlimitedApprovalAllowed } from "@/lib/security/trusted-spenders";
+import { useAaveV4 } from "./useAaveV4";
+import { AAVE_V4_RESERVES, AAVE_V4_SPOKE, AAVE_V4_SPOKE_ABI } from "@/lib/lending/aave-v4/constants";
+import { borrowPower, healthFactor, healthLevel, liquidationPrice, maxBorrowUsd, maxWithdrawPowerUsd, MIN_HEALTH_FACTOR, SAFE_HEALTH_FACTOR } from "@/lib/lending/aave-v4/math";
 import {
   X,
   AlertTriangle,
@@ -149,6 +152,8 @@ function ActionDrawerContent({
   const [acknowledgedRisk, setAcknowledgedRisk] = useState(false);
   const [approveUnlimited, setApproveUnlimited] = useState(false);
   const compliance = useCompliance();
+  const isV4 = option?.executionType === "aave_v4";
+  const v4 = useAaveV4(isV4, userAddress);
 
   // Balances: floats for display and BigInts for exact on-chain calculations
   const [stockBalance, setStockBalance] = useState<number>(0);
@@ -239,6 +244,16 @@ function ActionDrawerContent({
             });
             const [, , collateral] = pos as [bigint, bigint, bigint];
             suppliedBal = collateral;
+          } else if (option!.executionType === "aave_v4") {
+            const reserve = Object.values(AAVE_V4_RESERVES).find((r) => r.address.toLowerCase() === option!.stockAddress.toLowerCase());
+            if (reserve) {
+              suppliedBal = (await pub.readContract({
+                address: AAVE_V4_SPOKE,
+                abi: AAVE_V4_SPOKE_ABI,
+                functionName: "getUserSuppliedAssets",
+                args: [reserve.id, user],
+              })) as bigint;
+            }
           } else if (option!.executionType === "aave") {
             const data = await pub.readContract({
               address: AAVE_V3_DATA_PROVIDER_BASE,
@@ -338,7 +353,7 @@ function ActionDrawerContent({
   // - Withdraw: user's supplied position in this market
   // - Borrow: market liquidity available in USDC
   // - Repay: user's USDC wallet balance
-  const currentAvailableBalance =
+  const baseAvailableBalance =
     activeTab === "borrow"
       ? (option.availableLiquidityUsd ?? 0)
       : activeTab === "repay"
@@ -347,7 +362,7 @@ function ActionDrawerContent({
       ? suppliedBalance
       : stockBalance;
 
-  const currentAvailableRaw =
+  const baseAvailableRaw =
     activeTab === "borrow"
       ? parseUnits(Math.floor(option.availableLiquidityUsd ?? 0).toString(), loanDecimals)
       : activeTab === "repay"
@@ -356,23 +371,65 @@ function ActionDrawerContent({
       ? rawSuppliedBalance
       : rawStockBalance;
 
+  // Aave V4: what you can borrow or withdraw is limited by your own collateral, and the MAX button stops at a
+  // safe health factor, not at the liquidation line.
+  const v4Stock = isV4 ? v4.overview?.stocks.find((x) => x.address.toLowerCase() === option.stockAddress.toLowerCase()) : undefined;
+  const v4Lines = (v4.position?.collateral ?? []).map((c) => ({ usd: c.usd, collateralFactor: c.collateralFactor, on: c.collateralOn }));
+  const v4Power = borrowPower(v4Lines);
+  const v4Debt = v4.position?.debtUsdc ?? 0;
+  const v4PerToken = v4Stock ? (v4Stock.priceUsd * v4Stock.collateralFactor) / 100 : 0; // borrow power per stock token
+  const v4Avail: number | null = !isV4
+    ? null
+    : activeTab === "borrow"
+      ? Math.min(option.availableLiquidityUsd ?? 0, maxBorrowUsd(v4Power, v4Debt))
+      : activeTab === "repay"
+        ? Math.min(usdcBalance, v4Debt)
+        : activeTab === "withdraw"
+          ? v4PerToken > 0
+            ? Math.min(suppliedBalance, maxWithdrawPowerUsd(v4Power, v4Debt) / v4PerToken)
+            : 0
+          : null;
+  const trimNum = (n: number, d: number) => {
+    const f = Math.floor(Math.max(0, n) * 10 ** d) / 10 ** d;
+    return f.toFixed(d);
+  };
+  const currentAvailableBalance = v4Avail ?? baseAvailableBalance;
+  const currentAvailableRaw =
+    v4Avail != null ? parseUnits(trimNum(v4Avail, activeDecimals), activeDecimals) : baseAvailableRaw;
+
   const parsedAmount = parseFloat(amount) || 0;
+
+  // Aave V4: the health factor after this action (an estimate; the contract has the final say)
+  const v4Collateral = v4.position?.collateral.find((c) => c.symbol === option.stockSymbol);
+  const v4AfterPower =
+    activeTab === "supply"
+      ? v4Power + (v4Collateral?.collateralOn === false ? (v4Collateral.usd * v4Collateral.collateralFactor) / 100 : 0) + parsedAmount * v4PerToken
+      : activeTab === "withdraw"
+        ? Math.max(0, v4Power - parsedAmount * v4PerToken)
+        : v4Power;
+  const v4AfterDebt = activeTab === "borrow" ? v4Debt + parsedAmount : activeTab === "repay" ? Math.max(0, v4Debt - parsedAmount) : v4Debt;
+  const v4HfAfter = healthFactor(v4AfterPower, v4AfterDebt);
+  const v4Level = healthLevel(v4HfAfter);
+  const v4Blocks = isV4 && parsedAmount > 0 && (activeTab === "borrow" || activeTab === "withdraw") && v4Level === "blocked";
 
   // Validation checks
   const isInsufficientBalance =
     activeTab === "supply"
       ? parsedAmount > stockBalance
       : activeTab === "repay"
-      ? parsedAmount > usdcBalance
+      ? parsedAmount > usdcBalance || (isV4 && parsedAmount > v4Debt + 0.01)
       : activeTab === "withdraw"
       ? (suppliedBalance <= 0 || parsedAmount > suppliedBalance)
       : false;
 
   const isExceedsLiquidity =
-    activeTab === "borrow" &&
-    option.availableLiquidityUsd != null &&
-    option.availableLiquidityUsd > 0 &&
-    parsedAmount > option.availableLiquidityUsd;
+    (activeTab === "borrow" &&
+      option.availableLiquidityUsd != null &&
+      option.availableLiquidityUsd > 0 &&
+      parsedAmount > option.availableLiquidityUsd) ||
+    // Aave V4: more than your collateral allows
+    (isV4 && activeTab === "borrow" && parsedAmount > maxBorrowUsd(v4Power, v4Debt, 1.0001)) ||
+    v4Blocks;
 
   // Live financial calculations for preview
   const isFixedTerm = option.type === "fixed" && option.fixedTermDays;
@@ -483,6 +540,7 @@ function ActionDrawerContent({
         userAddress: user,
         requiresApproval,
         approveAmount,
+        collateralAlreadyOn: v4Collateral?.collateralOn ?? false,
       });
 
       if (calls.length === 0) {
@@ -697,6 +755,28 @@ function ActionDrawerContent({
         {/* Direct Protocol Action Inputs vs. External Protocol Gateway */}
         {!isExternalProtocol ? (
           <>
+            {isV4 && (
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3 text-xs space-y-1.5" aria-label="Your Aave V4 position">
+                <div className="flex justify-between"><span className="text-[var(--ink-muted)]">Collateral value</span><b className="font-mono text-[var(--ink)]">${v4.position ? v4.position.collateral.reduce((a, c) => a + c.usd, 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</b></div>
+                <div className="flex justify-between"><span className="text-[var(--ink-muted)]">USDC borrowed</span><b className="font-mono text-[var(--ink)]">${v4.position ? v4Debt.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</b></div>
+                <div className="flex justify-between"><span className="text-[var(--ink-muted)]">Health factor now</span><b className="font-mono text-[var(--ink)]">{v4.position?.healthFactor != null ? v4.position.healthFactor.toFixed(2) : v4.position ? "no debt" : "—"}</b></div>
+                {parsedAmount > 0 && (
+                  <div className="flex justify-between"><span className="text-[var(--ink-muted)]">Health factor after (estimate)</span>
+                    <b className={`font-mono ${v4Level === "blocked" || v4Level === "danger" ? "text-red-500" : v4Level === "watch" ? "text-amber-500" : "text-emerald-500"}`}>{v4HfAfter != null ? v4HfAfter.toFixed(2) : "no debt"}</b>
+                  </div>
+                )}
+                {v4Stock && v4Debt > 0 && (() => {
+                  const lp = liquidationPrice(v4Stock.priceUsd, v4Power, v4Debt, (v4Collateral?.usd ?? 0) * v4Stock.collateralFactor / 100);
+                  return lp != null ? <div className="flex justify-between"><span className="text-[var(--ink-muted)]">{option.stockSymbol} liquidation price</span><b className="font-mono text-[var(--ink)]">${lp.toFixed(2)}</b></div> : null;
+                })()}
+                <p className="pt-1 text-[11px] leading-snug text-[var(--ink-muted)]">
+                  {v4Level === "blocked" && (activeTab === "borrow" || activeTab === "withdraw")
+                    ? `This would leave your health factor under ${MIN_HEALTH_FACTOR}, too close to liquidation. Try a smaller amount.`
+                    : `MAX stops at a health factor of ${SAFE_HEALTH_FACTOR}. Below 1.0 your stock collateral can be sold to repay the loan. Stocks here can only be used as collateral: they earn no yield and can't be borrowed. Not available to people in the US.`}
+                </p>
+              </div>
+            )}
+
             {/* Amount Input */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">

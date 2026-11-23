@@ -11,6 +11,7 @@ import {
   withBuilderSuffix,
   isB20FactoryAddress,
   isPreservedCalldataCall,
+  assertBuilderAttribution,
   finalizeAppTransactionBatch,
   canBundleViaMulticall3,
   bundleCallsViaMulticall3,
@@ -652,6 +653,7 @@ export async function sendAppTransactions(
   const batch = finalizeAppTransactionBatch(calls, {
     skipCompanion: options?.skipBuilderCompanion,
   });
+  assertBuilderAttribution(batch);
 
   const provider =
     options?.provider ??

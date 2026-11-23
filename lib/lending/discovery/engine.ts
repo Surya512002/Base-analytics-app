@@ -11,6 +11,7 @@ import { beefyAdapter } from "./adapters/beefy";
 import { pendleAdapter } from "./adapters/pendle";
 import { zkfiAdapter } from "./adapters/zkfi";
 import { aaveAdapter } from "./adapters/aave";
+import { aaveV4Adapter } from "./adapters/aave-v4";
 import { moonwellAdapter } from "./adapters/moonwell";
 import { iporAdapter } from "./adapters/ipor";
 import { aerodromeAdapter } from "./adapters/aerodrome";
@@ -104,6 +105,7 @@ export async function runMarketDiscovery(
     pendleAdapter,
     zkfiAdapter,
     aaveAdapter,
+    aaveV4Adapter,
     moonwellAdapter,
     iporAdapter,
     aerodromeAdapter,
@@ -122,6 +124,7 @@ export async function runMarketDiscovery(
     pendle: { protocol: "pendle", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     zkfi: { protocol: "zkfi", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     aave: { protocol: "aave", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
+    aave_v4: { protocol: "aave_v4", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     moonwell: { protocol: "moonwell", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     ipor: { protocol: "ipor", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
     aerodrome: { protocol: "aerodrome", status: "ok", lastSuccessfulUpdate: new Date().toISOString(), marketCount: 0 },
