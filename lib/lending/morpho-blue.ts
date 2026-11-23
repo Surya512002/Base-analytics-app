@@ -203,6 +203,18 @@ export async function fetchLiveMorphoMarket(
   }
 }
 
+const MORPHO_VIRTUAL_SHARES = BigInt(1_000_000); // Morpho adds virtual shares and one virtual asset to every market
+
+/**
+ * Debt in loan-token units for a borrower's shares, rounded up like Morpho does. Borrow shares are NOT
+ * loan-token units: a market carries a 1,000,000x virtual offset, so reading shares as USDC is off by a million.
+ */
+export function morphoDebtAssets(borrowShares: bigint, totalBorrowAssets: bigint, totalBorrowShares: bigint): bigint {
+  const num = borrowShares * (totalBorrowAssets + BigInt(1));
+  const den = totalBorrowShares + MORPHO_VIRTUAL_SHARES;
+  return (num + den - BigInt(1)) / den;
+}
+
 /** Read user position in a Morpho Blue market */
 export async function fetchUserMorphoPosition(
   market: LendingMarket,
@@ -231,12 +243,23 @@ export async function fetchUserMorphoPosition(
       bigint,
     ];
 
+    // Turn the borrower's shares into what they owe, using the market's own totals
+    let borrowedAssets = BigInt(0);
+    if (borrowShares > BigInt(0)) {
+      const mkt = (await pc.readContract({
+        address: MORPHO_BLUE_BASE,
+        abi: MORPHO_BLUE_ABI,
+        functionName: "market",
+        args: [marketId],
+      })) as [bigint, bigint, bigint, bigint, bigint, bigint];
+      borrowedAssets = morphoDebtAssets(borrowShares, mkt[2], mkt[3]);
+    }
+
     const collateralFormatted = formatUnits(collateral, collateralDecimals);
     const collateralNum = parseFloat(collateralFormatted) || 0;
     const collateralUsd = collateralNum * estimatedStockPriceUsd;
 
-    // Convert borrowShares to borrowed debt (approximation 1 share ~= 1 asset at genesis)
-    const borrowedFormatted = formatUnits(borrowShares, loanDecimals);
+    const borrowedFormatted = formatUnits(borrowedAssets, loanDecimals);
     const borrowedNum = parseFloat(borrowedFormatted) || 0;
     const borrowedUsd = borrowedNum; // USDC is pegged to $1
 
@@ -259,7 +282,7 @@ export async function fetchUserMorphoPosition(
       collateralAmount: collateral,
       collateralFormatted,
       collateralUsd,
-      borrowedAmount: borrowShares,
+      borrowedAmount: borrowedAssets,
       borrowedFormatted,
       borrowedUsd,
       healthFactor,
