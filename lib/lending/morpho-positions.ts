@@ -2,19 +2,13 @@ import { parseAbi, type PublicClient } from "viem";
 import type { UserProtocolPosition } from "@/lib/lending/user-positions";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
 import { MORPHO_BLUE_ABI, MORPHO_BLUE_BASE } from "@/lib/lending/constants";
-import { getMorphoMarketId } from "@/lib/lending/morpho-blue";
+import { getMorphoMarketId, morphoDebtAssets } from "@/lib/lending/morpho-blue";
+
+export { morphoDebtAssets };
 
 const ORACLE_ABI = parseAbi(["function price() view returns (uint256)"]);
-const VIRTUAL_SHARES = BigInt(1_000_000); // Morpho adds virtual shares and one virtual asset to every market
 const ORACLE_SCALE = BigInt(10) ** BigInt(36);
 const WAD = BigInt(10) ** BigInt(18);
-
-/** Debt in loan-token units for a borrower's shares, rounded up like Morpho does. */
-export function morphoDebtAssets(borrowShares: bigint, totalBorrowAssets: bigint, totalBorrowShares: bigint): bigint {
-  const num = borrowShares * (totalBorrowAssets + BigInt(1));
-  const den = totalBorrowShares + VIRTUAL_SHARES;
-  return (num + den - BigInt(1)) / den;
-}
 
 export type MorphoHealth = {
   /** Collateral value in loan-token units (what the oracle says it is worth). */

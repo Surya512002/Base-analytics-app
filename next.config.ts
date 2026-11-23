@@ -161,7 +161,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              // eval is only for Next's hot reload in development; production code does not need it, and
+              // leaving it out stops any injected script from running eval'd code.
+              `script-src 'self' ${process.env.NODE_ENV === "production" ? "" : "'unsafe-eval' "}'unsafe-inline'`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com https://raw.githubusercontent.com https://*.githubusercontent.com https://basescan.org https://assets.coingecko.com https://coin-images.coingecko.com https://*.coingecko.com https://dd.dexscreener.com https://*.dexscreener.com https://cdn.dexscreener.com https://metadata.coinbase.com https://assets.parqet.com https://assets.geckoterminal.com https://www.google.com https://*.google.com https://tokens.1inch.io https://ipfs.io https://*.ipfs.dweb.link https://arweave.net https://assets.smold.app https://ethereum-optimism.github.io",
               "font-src 'self' data:",
