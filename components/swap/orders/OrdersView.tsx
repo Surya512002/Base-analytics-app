@@ -81,6 +81,10 @@ interface OrdersViewProps {
   simple?: boolean;
   /** Goal the Simple card opens on (from a stock card's "Stop-loss" link). */
   initialGoal?: "buy-dip" | "take-profit" | "stop-loss" | "protect";
+  /** Trade page: the form opens on this order type (the shared Buy/Sell and type tabs choose it). */
+  initialOrderType?: "LIMIT_BUY" | "LIMIT_SELL" | "STOP_LOSS" | "TRAILING_STOP" | "BRACKET";
+  /** Trade page: the ticket above already has the Buy/Sell switch. */
+  hideSideSwitch?: boolean;
   /** Trade page "Scale" mode: several limit orders across a price range in one confirmation. */
   scale?: boolean;
   /** Pool liquidity (USD) of the selected market, used for order-size warnings. */
@@ -99,6 +103,8 @@ export default function OrdersView({
   cexLayout = false,
   simple = false,
   initialGoal,
+  initialOrderType,
+  hideSideSwitch = false,
   scale = false,
   liquidityUsd = null,
 }: OrdersViewProps) {
@@ -125,7 +131,7 @@ export default function OrdersView({
     refundExpired,
   } = limitOrders;
 
-  const [orderType, setOrderType] = useState<OrderTypeTab>("LIMIT_BUY");
+  const [orderType, setOrderType] = useState<OrderTypeTab>(initialOrderType ?? "LIMIT_BUY");
   const [selectedStock, setSelectedStock] = useState<string>(
     config.markets[0]?.stockToken.toLowerCase() || ""
   );
@@ -587,6 +593,7 @@ export default function OrdersView({
         {/* Type selector */}
         {cexLayout ? (
           <div className="space-y-2">
+            {!hideSideSwitch && (
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Order side">
               <button
                 type="button"
@@ -605,6 +612,7 @@ export default function OrdersView({
                 Sell
               </button>
             </div>
+            )}
             <div className="flex flex-wrap gap-1" role="group" aria-label="Order type">
               {(
                 orderType === "LIMIT_BUY"

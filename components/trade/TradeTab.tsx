@@ -12,6 +12,7 @@ import OrdersView from "@/components/swap/orders/OrdersView";
 import RecurringCard from "./RecurringCard";
 import MyOrdersPanel from "@/components/swap/orders/MyOrdersPanel";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
+import { USDC_BASE } from "@/lib/launchpad/tokens-base";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
@@ -24,12 +25,13 @@ import { oracleHealth } from "@/lib/trade/safety";
 import CandleChart, { formatPrice, type Candle, type ChartType, type Indicators, type PriceLine } from "./CandleChart";
 import { AlertButton, MarketInfo, Position, RecentTrades, type MarketStats } from "./TradePanels";
 import MarketRail from "./MarketRail";
+import OrderBookPanel from "./OrderBookPanel";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 type Timeframe = (typeof TIMEFRAMES)[number];
 type Kind = "all" | "stocks" | "coins";
 type Ticket = "market" | "limit" | "stop" | "recurring";
-type BottomTab = "orders" | "trades" | "info" | "balance";
+type BottomTab = "orders" | "book" | "trades" | "info" | "balance";
 
 type MarketSummary = {
   priceUsd: number | null;
@@ -38,6 +40,9 @@ type MarketSummary = {
   liquidityUsd: number | null;
   marketCap: number | null;
 };
+
+// Selling defaults to USDC, like the quote currency on an exchange.
+const USDC_COUNTER: SwapCounter = { kind: "token", address: USDC_BASE, symbol: "USDC", name: "USD Coin", decimals: 6, isVerified: true, isUnverified: false };
 
 function compactUsd(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -191,6 +196,9 @@ export default function TradeTab({
           : "limit"
         : "market"
   );
+  const [side, setSide] = useState<"buy" | "sell">(
+    ticket === "stop" || initialGoal === "take-profit" || initialGoal === "protect" ? "sell" : "buy"
+  );
   const [bottomTab, setBottomTab] = useState<BottomTab>("orders");
   const [fullscreen, setFullscreen] = useState(false);
   const ticketRef = useRef<HTMLElement | null>(null);
@@ -318,7 +326,19 @@ export default function TradeTab({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  // The swap card only applies a "pay with" token that arrives after it mounted, so hand it over one render later.
+  const [sellPrefill, setSellPrefill] = useState<SwapCounter | null>(null);
+  useEffect(() => {
+    setSellPrefill(side === "sell" && ticket === "market" ? swapPick : null);
+  }, [side, ticket, swapPick, market?.address]);
+
   const onOrderTab = ticket === "limit" || ticket === "stop";
+  const pickSide = (next: "buy" | "sell") => {
+    setSide(next);
+    if (next === "buy" && ticket === "stop") setTicket("limit"); // a stop-loss only sells
+  };
+  const orderType = ticket === "stop" ? "STOP_LOSS" : side === "buy" ? "LIMIT_BUY" : "LIMIT_SELL";
+  const simpleGoal = ticket === "stop" ? "stop-loss" : side === "buy" ? "buy-dip" : "take-profit";
   const quoteDecimals = limitOrders.config.quoteToken.decimals;
   const maxOrderUsd = orderMarketState ? Number(formatUnits(orderMarketState.maxQuoteIn, quoteDecimals)) : null;
 
@@ -545,7 +565,17 @@ export default function TradeTab({
           aria-label="Order ticket"
           className="min-w-0 space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 2xl:col-start-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-1.5rem)] lg:self-start lg:overflow-y-auto"
         >
-          <div className={`grid gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 ${ordersEnabled ? "grid-cols-4" : "grid-cols-1"}`} role="tablist">
+          {ticket !== "recurring" && (
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Buy or sell">
+              <button type="button" aria-pressed={side === "buy"} onClick={() => pickSide("buy")} className={`min-h-[42px] rounded-lg text-sm font-extrabold transition ${side === "buy" ? "bg-green-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
+                Buy
+              </button>
+              <button type="button" aria-pressed={side === "sell"} onClick={() => pickSide("sell")} className={`min-h-[42px] rounded-lg text-sm font-extrabold transition ${side === "sell" ? "bg-red-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
+                Sell
+              </button>
+            </div>
+          )}
+          <div className={`grid gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 ${!ordersEnabled ? "grid-cols-1" : side === "sell" || ticket === "recurring" ? "grid-cols-4" : "grid-cols-3"}`} role="tablist">
             {(
               [
                 ["market", "Market"],
@@ -554,7 +584,7 @@ export default function TradeTab({
                 ["recurring", "Recurring"],
               ] as const
             )
-              .filter(([id]) => id === "market" || ordersEnabled)
+              .filter(([id]) => id === "market" || (ordersEnabled && (id !== "stop" || side === "sell" || ticket === "stop")))
               .map(([id, label]) => (
                 <button
                   key={id}
@@ -574,8 +604,10 @@ export default function TradeTab({
               app={app}
               guestMode={guestMode}
               onRequestConnect={onRequestConnect}
-              prefillReceiveCounter={swapPick}
-              onPrefillReceiveApplied={() => setSwapPick(null)}
+              key={`market-${side}-${market?.address ?? ""}`}
+              prefillReceiveCounter={side === "buy" ? swapPick : null}
+              prefillFromCounter={sellPrefill}
+              currentBuyToken={side === "sell" ? USDC_COUNTER : undefined}
             />
           )}
 
@@ -604,7 +636,9 @@ export default function TradeTab({
                 </>
               )}
               <OrdersView
-                key={`${ticket}-${market?.address ?? ""}`}
+                key={`${ticket}-${side}-${market?.address ?? ""}`}
+                hideSideSwitch
+                initialOrderType={orderType}
                 limitOrders={limitOrders}
                 onConnectWallet={onRequestConnect}
                 onSwitchChain={handleSwitchBase}
@@ -617,7 +651,7 @@ export default function TradeTab({
                 hideOrdersPanel
                 cexLayout
                 simple={orderMode === "simple" && canPlaceOrders}
-                initialGoal={ticket === "stop" ? "stop-loss" : initialGoal && initialGoal !== "stop-loss" && initialGoal !== "protect" ? initialGoal : "buy-dip"}
+                initialGoal={initialGoal && ticket !== "stop" && side === "buy" && initialGoal !== "stop-loss" && initialGoal !== "protect" ? initialGoal : simpleGoal}
                 scale={orderMode === "scale" && canPlaceOrders}
                 liquidityUsd={summary?.liquidityUsd ?? null}
               />
@@ -649,12 +683,13 @@ export default function TradeTab({
                 {(
                   [
                     ["orders", ordersEnabled ? `Open orders${openCount ? ` (${openCount})` : ""}` : "Orders"],
+                    ["book", "Order book"],
                     ["trades", "Recent trades"],
                     ["info", "Market info"],
                     ["balance", "Balance"],
                   ] as const
                 )
-                  .filter(([id]) => id !== "orders" || ordersEnabled)
+                  .filter(([id]) => (id !== "orders" || ordersEnabled) && (id !== "book" || canPlaceOrders))
                   .map(([id, label]) => (
                     <button
                       key={id}
@@ -695,6 +730,26 @@ export default function TradeTab({
                   onRefundExpired={limitOrders.refundExpired}
                   onUpdateOrder={limitOrders.updateOrder}
                   isSubmitting={limitOrders.txSubmitting}
+                />
+              )}
+              {bottomTab === "book" && canPlaceOrders && orderMarket && (
+                <OrderBookPanel
+                  orderBook={limitOrders.config.orderBook as `0x${string}`}
+                  chainId={limitOrders.chainId}
+                  stockToken={orderMarket.stockToken}
+                  stockDecimals={orderMarket.decimals}
+                  quoteDecimals={quoteDecimals}
+                  symbol={market.symbol}
+                  wallet={app.wallet?.address}
+                  poolPrice={price}
+                  oraclePrice={oraclePx}
+                  onPickPrice={(p) => {
+                    // A click on a level fills the Pro limit form with that price
+                    nonce.current += 1;
+                    setPickedPrice({ price: p.toFixed(p >= 1 ? 2 : 6), nonce: nonce.current });
+                    setOrderMode("pro");
+                    setTicket((t) => (t === "stop" ? "stop" : "limit"));
+                  }}
                 />
               )}
               {bottomTab === "trades" && <RecentTrades pool={pool} token={market.address} symbol={market.symbol} />}

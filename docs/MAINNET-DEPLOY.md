@@ -117,6 +117,22 @@ NEXT_PUBLIC_LIMIT_ORDERS_ENABLED=true
 
 The app reads limits from the chain, so the Trade page will show the $50 canary limit automatically.
 
+## 5b. Raise the limits (step 2: $250 per order, $2,500 per market)
+
+Only after the canary test passed and the owner has decided. This is a proposal, not a recommendation to skip the external audit: the contract is still unaudited, and the new numbers are still small.
+
+1. `limit-orders/config/mainnet-step2.json` is the canary profile with every cap multiplied by 5 ($50 to $250 per order, $500 to $2,500 escrow per market).
+2. Regenerate the Safe file right before signing, because token-unit caps follow the price (redo it if a price moved more than about 25% since):
+
+```bash
+cd limit-orders
+DEPLOY_CONFIG=config/mainnet-step2.json BOOK_ADDRESS=0x080D52b060A467aE63d7d2cC7178dc6B1A3DB29D node scripts/plan-cap-update.mjs --refresh-from-oracle --safe-json proposals/step2-caps.json
+```
+
+3. In the Safe app: **New transaction > Transaction builder > upload `proposals/step2-caps.json`**. It holds 12 calls (`setMarket` and `setEscrowCaps` for each of the 6 markets). Check the numbers in the Safe, get 2 of 3 signatures, execute.
+4. The Trade page reads the new limit from the chain by itself. The keeper needs no change.
+5. A ready file from 2026-11-23 is in `limit-orders/proposals/step2-caps-2026-11-23.json`. Its stock amounts use prices from that day (stock markets were closed).
+
 ## 6. Canary test with your own wallet
 
 Follow `docs/MAINNET-CANARY.md` with **$2–$10 per step** on every market, including:
