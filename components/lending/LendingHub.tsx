@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { BASE_STOCKS, ALL_BASE_STOCKS } from "@/lib/stocks/base-stocks";
 import { isNewStock } from "@/lib/stocks/tokenized-stocks-registry";
@@ -470,13 +470,19 @@ export default function LendingHub({
     }
   };
 
+  // The positions reader needs the discovered Morpho markets, but must not be re-created whenever they refresh
+  const discoveredRef = useRef(discoveredMarkets);
+  useEffect(() => {
+    discoveredRef.current = discoveredMarkets;
+  }, [discoveredMarkets]);
+
   // Master positions reader
   const loadUserPositions = useCallback(async (addr: string, isManual = false) => {
     if (isManual) setIsRefreshingPositions(true);
     else setIsLoadingPositions(true);
 
     try {
-      const res = await fetchAllUserPositions(addr as `0x${string}`);
+      const res = await fetchAllUserPositions(addr as `0x${string}`, discoveredRef.current);
       setUserPositions(res.positions);
       setPositionsErrors(res.errors);
       setIsMockPositionsData(res.isMockData);
@@ -520,6 +526,12 @@ export default function LendingHub({
     }
     void loadUserPositions(userAddress);
   }, [userAddress, loadUserPositions]);
+
+  // Morpho loans can only be read once discovery has found the Morpho markets; read again then
+  const morphoMarketCount = discoveredMarkets.filter((m) => m.protocol === "morpho" && m.morphoParams).length;
+  useEffect(() => {
+    if (userAddress && morphoMarketCount > 0) void loadUserPositions(userAddress);
+  }, [userAddress, morphoMarketCount, loadUserPositions]);
 
   // Polling every 30s while document is visible
   useEffect(() => {
@@ -898,9 +910,10 @@ export default function LendingHub({
 
           if (comparison && comparison.stockSymbol === sym && comparison.bestSupplyOption) {
             const opt =
-              (action === "borrow" || action === "repay") && comparison.bestBorrowOption
+              comparison.options.find((o) => o.id === marketId) ??
+              ((action === "borrow" || action === "repay") && comparison.bestBorrowOption
                 ? comparison.bestBorrowOption
-                : comparison.bestSupplyOption;
+                : comparison.bestSupplyOption);
             handleOpenStockDrawer(
               opt,
               action === "stake" || action === "unstake" ? "supply" : action
@@ -910,9 +923,10 @@ export default function LendingHub({
               .then((res) => {
                 setComparison(res);
                 const opt =
-                  (action === "borrow" || action === "repay") && res.bestBorrowOption
+                  res.options.find((o) => o.id === marketId) ??
+                  ((action === "borrow" || action === "repay") && res.bestBorrowOption
                     ? res.bestBorrowOption
-                    : (res.bestSupplyOption ?? res.options[0]);
+                    : (res.bestSupplyOption ?? res.options[0]));
                 if (opt) {
                   handleOpenStockDrawer(
                     opt,

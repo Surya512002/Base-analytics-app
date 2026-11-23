@@ -1,7 +1,10 @@
-import { formatUnits, parseAbi } from "viem";
+import { formatUnits, parseAbi, type PublicClient } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { getStockPricesUsd } from "@/lib/stocks/stock-prices";
 import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
+import { readAaveV4PositionRows } from "./aave-v4/positions";
+import { readMorphoPositionRows } from "./morpho-positions";
+import type { NormalizedMarket } from "./discovery/types";
 import {
   AAVE_V3_POOL_BASE,
   USDC_BASE_ADDRESS,
@@ -23,7 +26,7 @@ export const HEALTH_THRESHOLDS = {
 
 export interface UserProtocolPosition {
   id: string;
-  protocol: "beefy" | "aerodrome" | "aave" | "ipor";
+  protocol: "beefy" | "aerodrome" | "aave" | "aave_v4" | "morpho" | "ipor";
   protocolName: string;
   protocolBadge: string;
   marketId: string;
@@ -409,93 +412,21 @@ export async function readAerodromeGaugePositions(
 }
 
 /**
- * 4. Read real Aave Pro Equities user position on Base (pro.aave.com/explore/borrow)
- * Strictly for users borrowing against tokenized equity collateral
+ * 4. Aave V4 Equities Hub position (stocks as collateral, USDC borrowed).
+ * Replaces the old Aave V3 read, which never held stocks and so always came back empty.
  */
-export async function readAavePositions(
-  userAddress: `0x${string}`
-): Promise<UserProtocolPosition[]> {
-  const client = createBasePublicClient();
-  try {
-    const data = await client.readContract({
-      address: AAVE_V3_POOL_BASE,
-      abi: AAVE_POOL_ACCOUNT_ABI,
-      functionName: "getUserAccountData",
-      args: [userAddress],
-    });
-
-    const [
-      totalCollateralBase,
-      totalDebtBase,
-      _availableBorrowsBase,
-      _currentLiquidationThreshold,
-      ltv,
-      healthFactorRaw,
-    ] = data as [bigint, bigint, bigint, bigint, bigint, bigint];
-
-    // Only include if user has substantial on-chain position (> $1 USD)
-    if (totalCollateralBase === ZERO_BI && totalDebtBase === ZERO_BI) {
-      return [];
-    }
-
-    const suppliedUsd = Number(totalCollateralBase) / 1e8;
-    const borrowedUsd = Number(totalDebtBase) / 1e8;
-
-    // Filter out negligible dust (< $0.50) to keep user display pristine
-    if (suppliedUsd < 0.5 && borrowedUsd < 0.5) {
-      return [];
-    }
-
-    let healthFactor: number | null = null;
-    if (totalDebtBase > ZERO_BI) {
-      healthFactor = Number(healthFactorRaw) / 1e18;
-    }
-
-    const ltvPct = Number(ltv) / 100;
-
-    return [
-      {
-        id: `aave-pro-${userAddress.slice(0, 8)}`,
-        protocol: "aave",
-        protocolName: "Aave Pro",
-        protocolBadge: "Equities Collateral",
-        marketId: "aave-equities-hub",
-        marketName: "Aave Pro Stock Borrow & Collateral Hub",
-        assetSymbol: "USDC / Equities",
-        assetName: "Aave Equities Cross-Collateral",
-        assetAddress: USDC_BASE_ADDRESS,
-        type: borrowedUsd > 0 ? "borrowed" : "supplied",
-        suppliedAmount: suppliedUsd,
-        borrowedAmount: borrowedUsd,
-        suppliedFormatted: `$${suppliedUsd.toFixed(2)} USD`,
-        borrowedFormatted: `$${borrowedUsd.toFixed(2)} USD`,
-        suppliedUsd,
-        borrowedUsd,
-        apy: 0,
-        apr: 0,
-        healthFactor,
-        ltv: ltvPct > 0 ? ltvPct : null,
-        liquidationPrice: null,
-        explorerUrl: `https://basescan.org/address/${AAVE_V3_POOL_BASE}`,
-        contractAddress: AAVE_V3_POOL_BASE,
-        canAdd: true,
-        canWithdraw: suppliedUsd > 0,
-        canBorrow: true,
-        canRepay: borrowedUsd > 0,
-      },
-    ];
-  } catch {
-    return [];
-  }
+export async function readAavePositions(userAddress: `0x${string}`): Promise<UserProtocolPosition[]> {
+  return readAaveV4PositionRows(createBasePublicClient() as unknown as PublicClient, userAddress);
 }
 
 /**
  * Master Position Reader: Queries real positions across our 4 verified protocols:
- * Beefy Finance, Aerodrome, IPOR Fusion, and Aave Pro.
- * Zero Moonwell, Zero Morpho Blue, Zero non-stock crypto clutter.
+ * Beefy Finance, Aerodrome, IPOR Fusion, Aave V4 and Morpho Blue (stock loans).
  */
 export async function fetchAllUserPositions(
-  userAddress: `0x${string}`
+  userAddress: `0x${string}`,
+  /** The Morpho markets the discovery engine found; without them Morpho loans are not read. */
+  morphoMarkets: readonly NormalizedMarket[] = []
 ): Promise<PositionsFetchResult> {
   const isMockEnabled =
     typeof process !== "undefined" &&
@@ -543,11 +474,12 @@ export async function fetchAllUserPositions(
   const errors: Record<string, string> = {};
   const allPositions: UserProtocolPosition[] = [];
 
-  const [beefyRes, aeroRes, iporRes, aaveRes] = await Promise.allSettled([
+  const [beefyRes, aeroRes, iporRes, aaveRes, morphoRes] = await Promise.allSettled([
     readBeefyPositions(userAddress),
     readAerodromeGaugePositions(userAddress),
     readIporPositions(userAddress),
     readAavePositions(userAddress),
+    readMorphoPositionRows(createBasePublicClient() as unknown as PublicClient, userAddress, morphoMarkets),
   ]);
 
   if (beefyRes.status === "fulfilled") {
@@ -571,7 +503,13 @@ export async function fetchAllUserPositions(
   if (aaveRes.status === "fulfilled") {
     allPositions.push(...aaveRes.value);
   } else {
-    errors["Aave Pro"] = aaveRes.reason?.message || "Failed to query Aave Pro";
+    errors["Aave V4"] = aaveRes.reason?.message || "Failed to query Aave V4";
+  }
+
+  if (morphoRes.status === "fulfilled") {
+    allPositions.push(...morphoRes.value);
+  } else {
+    errors["Morpho Blue"] = morphoRes.reason?.message || "Failed to query Morpho Blue";
   }
 
   return {

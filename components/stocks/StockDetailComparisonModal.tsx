@@ -303,6 +303,12 @@ export default function StockDetailComparisonModal({
       return;
     }
 
+    // Aave V4 borrow and withdraw need the health-factor checks that only the market panel on the Lend page has.
+    if (selectedOption.executionType === "aave_v4" && (activeAction === "borrow" || activeAction === "withdraw")) {
+      setErrorMessage("For Aave V4, borrow and withdraw from the Aave V4 row in the Lend list: it checks your health factor first.");
+      return;
+    }
+
     // Validation checks
     if (activeAction === "supply" || activeAction === "strategy_deposit") {
       if (numAmount > stockBalance) {

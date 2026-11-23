@@ -11,6 +11,7 @@ import React, {
 import { createPortal } from "react-dom";
 import { isUnlimitedApprovalAllowed } from "@/lib/security/trusted-spenders";
 import { useAaveV4 } from "./useAaveV4";
+import AaveV4LeveragePanel from "./AaveV4LeveragePanel";
 import { AAVE_V4_RESERVES, AAVE_V4_SPOKE, AAVE_V4_SPOKE_ABI } from "@/lib/lending/aave-v4/constants";
 import { borrowPower, healthFactor, healthLevel, liquidationPrice, maxBorrowUsd, maxWithdrawPowerUsd, MIN_HEALTH_FACTOR, SAFE_HEALTH_FACTOR } from "@/lib/lending/aave-v4/math";
 import {
@@ -154,6 +155,7 @@ function ActionDrawerContent({
   const compliance = useCompliance();
   const isV4 = option?.executionType === "aave_v4";
   const v4 = useAaveV4(isV4, userAddress);
+  const [leverageOpen, setLeverageOpen] = useState(false);
 
   // Balances: floats for display and BigInts for exact on-chain calculations
   const [stockBalance, setStockBalance] = useState<number>(0);
@@ -341,6 +343,21 @@ function ActionDrawerContent({
           </button>
         </div>
       </div>
+    );
+  }
+
+  // Aave V4: the leverage screen replaces the drawer body
+  if (isV4 && leverageOpen) {
+    return (
+      <AaveV4LeveragePanel
+        option={option}
+        userAddress={userAddress}
+        connType={connType}
+        onBack={() => setLeverageOpen(false)}
+        onClose={onClose}
+        onRequestConnect={onRequestConnect}
+        onSuccess={onSuccess}
+      />
     );
   }
 
@@ -656,6 +673,15 @@ function ActionDrawerContent({
             );
           })}
         </div>
+        {isV4 && (
+          <button
+            type="button"
+            onClick={() => setLeverageOpen(true)}
+            className="w-full rounded-full border border-white/25 bg-white/8 py-1.5 text-xs font-bold text-[var(--ink)] hover:bg-white/15 transition cursor-pointer"
+          >
+            Leverage {option.stockSymbol} →
+          </button>
+        )}
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
