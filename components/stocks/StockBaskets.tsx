@@ -7,6 +7,8 @@ import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
 import { buildSwapLink } from "@/lib/swap/swap-link";
 import { USDC_BASE } from "@/lib/utils/voucher";
 import { basketLegs, BASKETS } from "./basket-math";
+import { equalTargets, mixReturnPct } from "@/lib/stocks/portfolio-math";
+import { signedPct, useStockReturns } from "@/hooks/useStockReturns";
 
 const AMOUNTS = [10, 25, 50, 100];
 const storeKey = (basket: string) => `stock_basket_opened_${basket}`;
@@ -24,6 +26,13 @@ export default function StockBaskets() {
   const [opened, setOpened] = useState<string[]>([]);
 
   const basket = baskets.find((b) => b.id === basketId) ?? baskets[0];
+  const returns = useStockReturns(useMemo(() => baskets.flatMap((b) => b.symbols), [baskets]));
+  // Equal-weight, buy-and-hold: each stock's move weighted by its share, only over stocks with enough history.
+  const basketReturns = useMemo(() => {
+    if (!basket) return [];
+    const t = equalTargets(basket.symbols.filter((s) => live.has(s)));
+    return ([30, 90] as const).map((d) => ({ d, ...mixReturnPct(t, Object.fromEntries(Object.entries(returns).map(([k, v]) => [k, v?.[d]]))) }));
+  }, [basket, live, returns]);
   const legs = useMemo(() => (basket ? basketLegs(basket.symbols.filter((s) => live.has(s)), total) : null), [basket, live, total]);
 
   useEffect(() => {
@@ -76,6 +85,18 @@ export default function StockBaskets() {
         ))}
       </div>
       <p className="text-xs text-[var(--ink-muted)]">{basket.note}</p>
+      {basketReturns.some((r) => r.returnPct !== null) && (
+        <p className="flex flex-wrap gap-x-4 text-xs font-bold text-[var(--ink-soft)]">
+          {basketReturns.map((r) =>
+            r.returnPct === null ? null : (
+              <span key={r.d} className={r.returnPct >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500"}>
+                {r.d}d {signedPct(r.returnPct)}
+                <span className="font-normal text-[var(--ink-muted)]"> (DEX prices, {Math.round(r.covered)}% of basket)</span>
+              </span>
+            )
+          )}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-xs font-bold text-[var(--ink-soft)]" htmlFor="basket-total">
