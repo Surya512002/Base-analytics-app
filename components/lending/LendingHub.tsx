@@ -986,6 +986,7 @@ export default function LendingHub({
           walletAddress={userAddress}
           onRequestConnect={onRequestConnect}
           rows={stockRows}
+          onSwap={app.handleTokenSwap}
           onOpenStock={(symbol) => {
             setActiveTab("stocks");
             setSelectedStockSymbol(symbol);

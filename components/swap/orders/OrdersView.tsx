@@ -34,6 +34,8 @@ import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyOrdersPanel from "./MyOrdersPanel";
 import SimpleOrderCard from "@/components/trade/SimpleOrderCard";
 import LadderCard from "@/components/trade/LadderCard";
+import { MoveLine, PercentChips, RewardRiskLine } from "./TriggerHelpers";
+import { gapPct, moveUsd, orderToTerminalPrice, rewardToRisk } from "@/src/lib/limitOrders/priceBasis";
 
 type OrderTypeTab = "LIMIT_BUY" | "LIMIT_SELL" | "STOP_LOSS" | "TRAILING_STOP" | "BRACKET";
 
@@ -89,6 +91,8 @@ interface OrdersViewProps {
   scale?: boolean;
   /** Pool liquidity (USD) of the selected market, used for order-size warnings. */
   liquidityUsd?: number | null;
+  /** Trade page: the DEX (chart) price, shown next to the Chainlink price orders use. */
+  terminalPrice?: number | null;
 }
 
 export default function OrdersView({
@@ -107,6 +111,7 @@ export default function OrdersView({
   hideSideSwitch = false,
   scale = false,
   liquidityUsd = null,
+  terminalPrice = null,
 }: OrdersViewProps) {
   const {
     config,
@@ -286,6 +291,16 @@ export default function OrdersView({
     const devBps = activeMarket?.maxDeviationBps || config.defaultMaxDeviationBps;
     return fillFloor(kindForFloor, parsedAmountIn, currentPrice, stockDecimals, quoteDecimals, devBps);
   }, [parsedAmountIn, currentPrice, orderType, activeMarket?.maxDeviationBps, config.defaultMaxDeviationBps, stockDecimals, quoteDecimals]);
+
+  // Orders trigger on the Chainlink price; the terminal chart is the DEX price. Show both and what the gap is.
+  const orderPx = currentPrice ? Number(formatUnits(currentPrice, PRICE_DECIMALS)) : null;
+  const priceGap = gapPct(orderPx, terminalPrice);
+  const stockAmount = !isBuy && parsedAmountIn ? Number(formatUnits(parsedAmountIn, stockDecimals)) : null;
+  const positionUsd = stockAmount !== null && orderPx ? stockAmount * orderPx : null;
+  const triggerNum = parsedTrigger ? Number(formatUnits(parsedTrigger, PRICE_DECIMALS)) : null;
+  const tpNum = parsedTakeProfit ? Number(formatUnits(parsedTakeProfit, PRICE_DECIMALS)) : null;
+  const slNum = parsedStopLoss ? Number(formatUnits(parsedStopLoss, PRICE_DECIMALS)) : null;
+  const triggerOnTerminal = triggerNum !== null ? orderToTerminalPrice(triggerNum, orderPx, terminalPrice) : null;
 
   // Distance calculations
   const triggerDistance = useMemo(() => {
@@ -713,12 +728,24 @@ export default function OrdersView({
           </div>
 
           <div className="text-right shrink-0">
-            <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
-              Market Price
+            <span
+              className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider"
+              title="Orders trigger on the Chainlink price (the real stock price). It stands still when the stock market is closed."
+            >
+              Order price · Chainlink
             </span>
             <span className="text-sm font-mono font-bold text-[var(--ink)] tabular-nums">
               {currentPrice !== null ? `$${formatUnits(currentPrice, PRICE_DECIMALS)}` : "—"}
             </span>
+            {terminalPrice != null && priceGap !== null && (
+              <span
+                className={`block text-[11px] tabular-nums ${Math.abs(priceGap) > 1 ? "font-semibold text-amber-500" : "text-[var(--ink-muted)]"}`}
+                title="The chart and order book show the DEX pool price, which trades 24/7 and can sit a little above or below the Chainlink price."
+              >
+                Terminal ${terminalPrice >= 1 ? terminalPrice.toFixed(2) : terminalPrice.toFixed(6)} · {priceGap >= 0 ? "+" : ""}
+                {priceGap.toFixed(2)}%
+              </span>
+            )}
           </div>
         </div>
 
@@ -849,6 +876,8 @@ export default function OrdersView({
                 placeholder="Target above current price"
                 className="w-full px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-mono text-sm"
               />
+              <PercentChips base={orderPx} pcts={[5, 10, 20]} label="Take-profit shortcuts" onPick={setTpInput} />
+              <MoveLine kind="target" move={positionUsd && orderPx && tpNum ? moveUsd(positionUsd, orderPx, tpNum) : null} />
             </div>
             {/* Stop-loss leg input */}
             <div>
@@ -871,7 +900,10 @@ export default function OrdersView({
                 placeholder="Target below current price"
                 className="w-full px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-mono text-sm"
               />
+              <PercentChips base={orderPx} pcts={[-3, -5, -10]} label="Stop-loss shortcuts" onPick={setSlInput} />
+              <MoveLine kind="stop" move={positionUsd && orderPx && slNum ? moveUsd(positionUsd, orderPx, slNum) : null} />
             </div>
+            <RewardRiskLine ratio={orderPx && tpNum && slNum ? rewardToRisk(orderPx, tpNum, slNum) : null} />
           </div>
         ) : (
           /* Standard Trigger Price */
@@ -906,6 +938,23 @@ export default function OrdersView({
                 USD
               </span>
             </div>
+            {triggerOnTerminal !== null && (
+              <p className="text-[11px] text-[var(--ink-muted)] tabular-nums">
+                About ${triggerOnTerminal >= 1 ? triggerOnTerminal.toFixed(2) : triggerOnTerminal.toFixed(6)} on the terminal chart
+              </p>
+            )}
+            <PercentChips
+              base={orderPx}
+              label="Trigger shortcuts"
+              pcts={orderType === "LIMIT_BUY" ? [-1, -2, -5, -10] : orderType === "LIMIT_SELL" ? [1, 2, 5, 10] : [-2, -5, -10, -15]}
+              onPick={setTriggerInput}
+            />
+            {(orderType === "STOP_LOSS" || orderType === "LIMIT_SELL") && (
+              <MoveLine
+                kind={orderType === "STOP_LOSS" ? "stop" : "target"}
+                move={positionUsd && orderPx && triggerNum ? moveUsd(positionUsd, orderPx, triggerNum) : null}
+              />
+            )}
           </div>
         )}
 
