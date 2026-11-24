@@ -5,7 +5,8 @@
  *   1. ratchets trailing stops up when the price makes a new high (updateTrailing)
  *   2. executes limit / take-profit / stop-loss / trailing / bracket orders whose trigger was hit (executeOrder)
  *   3. refunds expired orders so users get their deposit back automatically (refundExpired)
- *   4. executes due recurring-buy plans (executeDca)
+ *   4. executes due recurring-buy plans (executeDca), after checking the owner's signed plan rules (optional,
+ *      see keeper/rulesFilter.ts: set KEEPER_RULES_URL and KEEPER_RULES_TOKEN to turn it on)
  *
  * Anyone can run a keeper: the caller earns `keeperFeeBps` of each output.
  * Optional: VALIDITY_TX=1 submits executeOrder through Base's `base_sendRawTransactionValidity` with a block_number
@@ -20,6 +21,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia, hardhat } from "viem/chains";
 import { orderBookAbi } from "../shared/abi";
+import { createRulesFilter, type StoredEntry } from "./rulesFilter";
 import "../shared/loadEnv";
 
 function env(name: string, fallback?: string): string {
@@ -63,6 +65,45 @@ type WriteFn = "executeOrder" | "refundExpired" | "updateTrailing" | "executeDca
 
 const log = (...a: unknown[]) => console.log(new Date().toISOString(), ...a);
 const firstLine = (e: unknown) => (e as Error).message.split("\n")[0];
+
+// Plan rules (optional). Off unless both settings exist, so the keeper behaves exactly as before.
+const RULES_URL = process.env.KEEPER_RULES_URL?.trim();
+const RULES_TOKEN = process.env.KEEPER_RULES_TOKEN?.trim();
+const RULES_ON = Boolean(RULES_URL && RULES_TOKEN && RULES_TOKEN.length >= 24);
+const rulesFilter = createRulesFilter(
+  { enabled: RULES_ON, chainId: CHAIN.id, orderBook: ORDER_BOOK, refreshMs: Number(process.env.KEEPER_RULES_REFRESH_MS) || undefined },
+  {
+    async fetchEntries(ids) {
+      const out: Record<string, StoredEntry> = {};
+      for (let i = 0; i < ids.length; i += 200) {
+        const r = await fetch(`${RULES_URL}?chainId=${CHAIN.id}&ids=${ids.slice(i, i + 200).join(",")}`, {
+          headers: { authorization: `Bearer ${RULES_TOKEN}` },
+          signal: AbortSignal.timeout(8_000),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = (await r.json()) as { entries?: Record<string, StoredEntry> };
+        Object.assign(out, j.entries ?? {});
+      }
+      return out;
+    },
+    verify: ({ address, message, signature }) =>
+      publicClient.verifyMessage({ address: address as Address, message, signature: signature as Hex }),
+    async readPrice(stockToken) {
+      const [price] = (await publicClient.readContract({ address: ORDER_BOOK, abi: orderBookAbi, functionName: "currentPrice", args: [stockToken as Address] })) as readonly [bigint, bigint];
+      return price > 0n ? Number(price) / 1e8 : null;
+    },
+    async fetchHistory(stockToken) {
+      const start = Math.floor(Date.now() / 1000) - 35 * 86_400;
+      const r = await fetch(`https://coins.llama.fi/chart/base:${stockToken}?start=${start}&span=35&period=1d`, { signal: AbortSignal.timeout(8_000) });
+      if (!r.ok) return [];
+      const j = (await r.json()) as { coins?: Record<string, { prices?: Array<{ timestamp: number; price: number }> }> };
+      const series = Object.values(j.coins ?? {})[0]?.prices ?? [];
+      return series.map((p) => ({ t: p.timestamp, c: p.price }));
+    },
+    now: () => new Date(),
+    log: (m) => log(m),
+  }
+);
 
 const openOrders = new Map<bigint, OrderTuple>();
 const openPlans = new Map<bigint, PlanTuple>();
@@ -209,6 +250,11 @@ async function handlePlan(id: bigint): Promise<void> {
   if (backedOff(key)) return;
   const due = await publicClient.readContract({ address: ORDER_BOOK, abi: orderBookAbi, functionName: "canExecuteDca", args: [id] });
   if (!due) return;
+  const plan = openPlans.get(id);
+  if (plan) {
+    const decision = await rulesFilter.check(String(id), { owner: plan.owner, stockToken: plan.stockToken });
+    if (!decision.run) return; // the owner's rules say wait; the run stays due and is checked again next poll
+  }
   log(`plan ${id}: run due, executing`);
   await run(`plan ${id}`, key, "executeDca", id);
   // the next refresh() picks up the new state (remaining / completed)
@@ -222,6 +268,7 @@ async function tick(): Promise<void> {
     if (!running) return;
     await handleOrder(id, o); // sequential on purpose: one tx at a time keeps nonces simple
   }
+  await rulesFilter.refresh([...openPlans.keys()].map(String));
   for (const id of [...openPlans.keys()]) {
     if (!running) return;
     await handlePlan(id);
@@ -229,7 +276,7 @@ async function tick(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  log(`keeper ${account.address} watching ${ORDER_BOOK} on ${CHAIN.name} (validity=${VALIDITY_TX})`);
+  log(`keeper ${account.address} watching ${ORDER_BOOK} on ${CHAIN.name} (validity=${VALIDITY_TX}, plan rules ${RULES_ON ? "on" : "off"})`);
   try {
     const [only, allowed] = await Promise.all([
       publicClient.readContract({ address: ORDER_BOOK, abi: orderBookAbi, functionName: "keeperOnly" }),

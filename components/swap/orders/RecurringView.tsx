@@ -595,6 +595,7 @@ export default function RecurringView({
         quoteDecimals={quoteDecimals}
         onCancelPlan={cancelDca}
         isSubmitting={txSubmitting}
+        rulesCtx={walletAddress ? { chainId, orderBook: config.orderBook, owner: walletAddress, sign: limitOrders.signMessage } : null}
       />
     </div>
   );
