@@ -21,7 +21,7 @@ import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import OrdersView from "@/components/swap/orders/OrdersView";
-import RecurringView from "@/components/swap/orders/RecurringView";
+import RecurringHub from "@/components/swap/orders/RecurringHub";
 
 type SwapSubTab = "market" | "orders" | "recurring";
 
@@ -392,7 +392,7 @@ export default function SwapTab({
 
       {/* RECURRING TAB: Recurring buys (DCA) with optional price ceiling */}
       {isOrdersEnabled && activeSubTab === "recurring" && (
-        <RecurringView
+        <RecurringHub
           limitOrders={limitOrders}
           onConnectWallet={onRequestConnect}
           onSwitchChain={handleSwitchBase}
