@@ -292,7 +292,7 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
         )}
       </div>
 
-      <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={quoteSym} quoteDecimals={quoteDec} onCancelPlan={cancelDca} isSubmitting={txSubmitting} />
+      <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={quoteSym} quoteDecimals={quoteDec} onCancelPlan={cancelDca} isSubmitting={txSubmitting} rulesCtx={walletAddress ? { chainId: limitOrders.chainId, orderBook: limitOrders.config.orderBook, owner: walletAddress, sign: limitOrders.signMessage } : null} />
     </div>
   );
 }

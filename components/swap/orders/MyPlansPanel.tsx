@@ -13,6 +13,10 @@ import {
 import type { OnChainPlan } from "@/src/lib/limitOrders/types";
 import { PRICE_DECIMALS } from "@/src/lib/limitOrders/orderMath";
 import type { MarketState } from "@/src/lib/limitOrders/useLimitOrders";
+import PlanRulesEditor, { type PlanRulesContext } from "./PlanRulesEditor";
+
+/** Rules only do something once the keeper is set up for them, so the editor stays hidden until this is switched on. */
+const PLAN_RULES_ENABLED = process.env.NEXT_PUBLIC_PLAN_RULES_ENABLED === "true";
 
 interface MyPlansPanelProps {
   plans: OnChainPlan[];
@@ -21,6 +25,8 @@ interface MyPlansPanelProps {
   quoteDecimals: number;
   onCancelPlan: (id: bigint) => Promise<boolean>;
   isSubmitting: boolean;
+  /** When given, each running plan gets a Rules editor (days, time of day, dip and skip filters). */
+  rulesCtx?: PlanRulesContext | null;
 }
 
 export default function MyPlansPanel({
@@ -30,6 +36,7 @@ export default function MyPlansPanel({
   quoteDecimals,
   onCancelPlan,
   isSubmitting,
+  rulesCtx = null,
 }: MyPlansPanelProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [currentTimeSec, setCurrentTimeSec] = useState<number>(() => Math.floor(Date.now() / 1000));
@@ -196,6 +203,8 @@ export default function MyPlansPanel({
                     <span>Runs left: {p.remaining}</span>
                   </div>
                 )}
+
+                {isOpen && rulesCtx && PLAN_RULES_ENABLED && <PlanRulesEditor planId={p.id.toString()} ctx={rulesCtx} />}
 
                 {/* Action: Cancel plan */}
                 {isOpen && (

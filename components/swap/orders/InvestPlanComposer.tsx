@@ -341,7 +341,7 @@ export default function InvestPlanComposer({
         <button type="button" onClick={reset} className="text-xs font-bold text-[var(--ink-muted)] underline">Start a new basket plan</button>
       )}
 
-      <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={config.quoteToken.symbol} quoteDecimals={config.quoteToken.decimals} onCancelPlan={cancelDca} isSubmitting={txSubmitting} />
+      <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={config.quoteToken.symbol} quoteDecimals={config.quoteToken.decimals} onCancelPlan={cancelDca} isSubmitting={txSubmitting} rulesCtx={walletAddress ? { chainId, orderBook: config.orderBook, owner: walletAddress, sign: limitOrders.signMessage } : null} />
     </div>
   );
 }

@@ -50,7 +50,7 @@ export async function fetchSiweSession(): Promise<{
   }
 }
 
-async function signMessageWithWallet(
+export async function signMessageWithWallet(
   address: string,
   connType: ConnectionType,
   message: string
