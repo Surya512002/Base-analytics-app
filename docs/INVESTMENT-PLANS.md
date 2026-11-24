@@ -97,11 +97,14 @@ Read from `limit-orders/contracts/LimitOrderBook.sol`, `limit-orders/keeper/keep
 | Weekend or stale price | Blocked automatically (feed older than 25 hours) |
 | Cost per run | Keeper fee 0.10% of the stock bought, plus the 0.3% pool fee, plus price impact |
 | Money | All of `amount x runs` is escrowed in the contract at creation |
-| Beta limits (mainnet config) | A plan's total can be at most `maxQuoteIn` (250 USDC per market) and escrow per market is capped (2,500 USDC) |
+| Beta limits (deployed on mainnet now, canary config) | A plan's total can be at most `maxQuoteIn` = 50 USDC per market, and escrow per market is capped at 500 USDC. The step-2 Safe proposal raises these to 250 and 2,500 |
 
-Two things follow. The beta cap means one plan can invest at most $250 in total, so "10 stocks over
-months" is many small plans until the caps are raised. And recurring is switched off on Base mainnet
-in the app until a deployment with recurring support is live there.
+What follows: the order book is already deployed on Base mainnet (`limit-orders/deployments/base-mainnet.json`,
+deployed 2026-11-21 from this source, which includes recurring buys and sells), so Layer 1 can run on
+mainnet today. The limit is the beta cap: one plan can invest at most $50 in total right now ($250 after the
+step-2 Safe transaction), so "10 stocks over months" is many small plans until the caps are raised.
+The app only hides the Recurring tab when its mainnet order-book address setting is missing from the
+environment (this is what a local run without that setting shows), not because of the contract.
 
 ## 4. Proposed product: Invest Plans
 
@@ -161,7 +164,8 @@ stop-loss on plan runs, plan expiry. This is where the real power is, and the re
 4. Layer 3 only if Layers 1 and 2 are used enough to justify an audit.
 
 Needed from the owner:
-- Raise the per-plan and escrow caps (the Safe proposal in `limit-orders/proposals`) and deploy a
-  recurring-capable order book to Base mainnet. Without that, Layer 1 only works on Sepolia.
+- Raise the per-plan and escrow caps with the step-2 Safe proposal in `limit-orders/proposals`. At the
+  current $50 per plan, Layer 1 works on mainnet but only for small plans. Sepolia (the test network with
+  fake money) is where it gets tested first.
 - Decide whether value averaging and dip rules are offered at all, given the evidence.
 - Decide who runs a second keeper.
