@@ -14,10 +14,12 @@ import {
   drift,
   equalTargets,
   planRebalance,
+  mixReturnPct,
   validateTargets,
   type Targets,
 } from "@/lib/stocks/portfolio-math";
 import type { AssetMarketRow } from "@/components/lending/MarketsTable";
+import { signedPct, useStockReturns } from "@/hooks/useStockReturns";
 
 const usd = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pct = (n: number) => `${n.toFixed(1)}%`;
@@ -76,6 +78,8 @@ export default function StockPortfolio({
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
   const [cash, setCash] = useState("");
+  const returns = useStockReturns(held.map((h) => h.symbol).concat(Object.keys(targets ?? {})));
+  const mix30 = targets ? mixReturnPct(targets, Object.fromEntries(Object.entries(returns).map(([k, v]) => [k, v?.[30]]))) : null;
 
   useEffect(() => {
     if (!walletAddress) return;
@@ -179,6 +183,9 @@ export default function StockPortfolio({
                   <span className="min-w-[88px]">
                     <span className="block text-sm font-black text-[var(--ink)]">{a.symbol}</span>
                     <span className="block text-[11px] text-[var(--ink-muted)]">{usd(a.valueUsd)}</span>
+                    {returns[a.symbol]?.[30] != null && (
+                      <span className={`block text-[11px] font-bold ${(returns[a.symbol]![30] as number) >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500"}`}>30d {signedPct(returns[a.symbol]![30] as number)}</span>
+                    )}
                   </span>
                   <span className="min-w-[120px] flex-1">
                     <span className="flex justify-between text-[11px] font-bold text-[var(--ink-soft)]">
@@ -296,6 +303,12 @@ export default function StockPortfolio({
           </p>
         ) : (
           <p className="text-xs text-[var(--ink-muted)]">Pick the share you want in each stock. We show how far you have drifted and the trades that bring you back.</p>
+        )}
+        {!editing && mix30 && mix30.returnPct !== null && (
+          <p className={`text-xs font-bold ${mix30.returnPct >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500"}`}>
+            This mix over the last 30 days: {signedPct(mix30.returnPct)}
+            <span className="font-normal text-[var(--ink-muted)]"> if you had held it, from DEX pool prices ({Math.round(mix30.covered)}% of it has history). Past results don&apos;t predict future ones.</span>
+          </p>
         )}
       </div>
 
