@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { PieChart, Plus, RefreshCw, Scale, Trash2, TrendingUp, Wallet } from "lucide-react";
+import { Loader2, PieChart, Plus, RefreshCw, Scale, Trash2, TrendingUp, Wallet } from "lucide-react";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
 import { buildSwapLink } from "@/lib/swap/swap-link";
@@ -20,6 +20,24 @@ import {
 } from "@/lib/stocks/portfolio-math";
 import type { AssetMarketRow } from "@/components/lending/MarketsTable";
 import { signedPct, useStockReturns } from "@/hooks/useStockReturns";
+
+type SwapRunner = (args: {
+  token: string;
+  symbol: string;
+  decimals: number;
+  direction: "buy" | "sell";
+  amount: string;
+  slippageBps: number;
+  payAsset?: "eth" | "usdc" | "token";
+  receiveAsset?: "eth" | "usdc" | "token";
+  counterDecimals?: number;
+}) => Promise<boolean>;
+
+type RunStep = { kind: "sell" | "buy"; symbol: string; usd: number; token: `0x${string}`; decimals: number; amount: string };
+
+const SLIPPAGE_BPS = 100;
+/** With no extra cash the buys are paid by the sells, so keep 1% back for fees and price movement. */
+const BUY_HEADROOM = 0.99;
 
 const usd = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pct = (n: number) => `${n.toFixed(1)}%`;
@@ -48,11 +66,14 @@ export default function StockPortfolio({
   onRequestConnect,
   rows,
   onOpenStock,
+  onSwap,
 }: {
   walletAddress: string | null;
   onRequestConnect?: () => void;
   rows: AssetMarketRow[];
   onOpenStock: (symbol: string) => void;
+  /** The app's own swap (same quote, price-impact, region and wallet checks as the Swap page). */
+  onSwap?: SwapRunner;
 }) {
   const holdings = useWalletHoldings(walletAddress);
   const official = useMemo(() => new Map(BASE_OFFICIAL_STOCKS.map((s) => [s.symbol, s])), []);
@@ -61,12 +82,12 @@ export default function StockPortfolio({
 
   // Held stocks keyed by their official symbol (matched by address, so a look-alike symbol never counts).
   const held = useMemo(() => {
-    const out: Array<{ symbol: string; address: `0x${string}`; balance: number; valueUsd: number; price: number | null }> = [];
+    const out: Array<{ symbol: string; address: `0x${string}`; balance: number; valueUsd: number; price: number | null; decimals: number }> = [];
     for (const t of holdings.allTokens) {
       if (!t.address || t.isSpam || t.balanceNumber <= 0) continue;
       const symbol = byAddress.get(t.address.toLowerCase());
       if (!symbol) continue;
-      out.push({ symbol, address: t.address, balance: t.balanceNumber, valueUsd: t.usdValue, price: t.priceUsd });
+      out.push({ symbol, address: t.address, balance: t.balanceNumber, valueUsd: t.usdValue, price: t.priceUsd, decimals: t.decimals });
     }
     return out;
   }, [holdings.allTokens, byAddress]);
@@ -124,6 +145,61 @@ export default function StockPortfolio({
   const holdingsForMath = useMemo(() => held.map((h) => ({ symbol: h.symbol, valueUsd: h.valueUsd })), [held]);
   const driftView = useMemo(() => (targets ? drift(holdingsForMath, targets, extraCash) : null), [targets, holdingsForMath, extraCash]);
   const plan = useMemo(() => (targets ? planRebalance(holdingsForMath, targets, { extraCashUsd: extraCash }) : null), [targets, holdingsForMath, extraCash]);
+
+  const [confirming, setConfirming] = useState(false);
+  const [run, setRun] = useState<{ index: number; total: number; label: string } | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  const steps: RunStep[] = useMemo(() => {
+    if (!plan || plan.balanced) return [];
+    const out: RunStep[] = [];
+    for (const l of plan.sells) {
+      const h = held.find((x) => x.symbol === l.symbol);
+      if (!h || !h.price || h.price <= 0) continue;
+      const qty = Math.min(h.balance, l.usd / h.price);
+      if (!(qty > 0)) continue;
+      out.push({ kind: "sell", symbol: l.symbol, usd: l.usd, token: h.address, decimals: h.decimals, amount: qty.toFixed(Math.min(h.decimals, 8)) });
+    }
+    const headroom = extraCash > 0 ? 1 : BUY_HEADROOM;
+    for (const l of plan.buys) {
+      const st = official.get(l.symbol);
+      if (!st) continue;
+      const amt = Math.floor(l.usd * headroom * 100) / 100;
+      if (amt < 1) continue;
+      out.push({ kind: "buy", symbol: l.symbol, usd: amt, token: st.address, decimals: 8, amount: amt.toFixed(2) });
+    }
+    return out;
+  }, [plan, held, official, extraCash]);
+
+  const runAll = async () => {
+    if (!onSwap || run) return;
+    setConfirming(false);
+    setResult(null);
+    for (let i = 0; i < steps.length; i++) {
+      const st = steps[i];
+      setRun({ index: i + 1, total: steps.length, label: `${st.kind === "sell" ? "Sell" : "Buy"} ${st.symbol}` });
+      const ok = await onSwap({
+        token: st.token,
+        symbol: st.symbol,
+        decimals: st.decimals,
+        direction: st.kind,
+        amount: st.amount,
+        slippageBps: SLIPPAGE_BPS,
+        payAsset: st.kind === "buy" ? "usdc" : "eth",
+        receiveAsset: st.kind === "sell" ? "usdc" : "eth",
+        counterDecimals: 6,
+      });
+      if (!ok) {
+        setRun(null);
+        setResult(`Stopped at step ${i + 1} of ${steps.length} (${st.kind === "sell" ? "sell" : "buy"} ${st.symbol}). ${i} step${i === 1 ? "" : "s"} done. Nothing else was traded. Refresh, then run it again to continue.`);
+        void holdings.refresh?.();
+        return;
+      }
+    }
+    setRun(null);
+    setResult(`Done: ${steps.length} trade${steps.length === 1 ? "" : "s"} completed.`);
+    void holdings.refresh?.();
+  };
 
   if (!walletAddress) {
     return (
@@ -312,6 +388,12 @@ export default function StockPortfolio({
         )}
       </div>
 
+      {result && (
+        <p role="status" className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-xs font-semibold text-[var(--ink)]">
+          {result}
+        </p>
+      )}
+
       {targets && plan && (
         <div className="space-y-3 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -373,6 +455,37 @@ export default function StockPortfolio({
                 })}
               </ul>
               {plan.note && <p className="text-[11px] text-[var(--ink-muted)]">{plan.note}</p>}
+              {onSwap && steps.length > 0 && !run && !confirming && (
+                <button type="button" onClick={() => setConfirming(true)} className="min-h-[44px] w-full rounded-xl bg-[var(--brand)] text-sm font-bold text-white hover:opacity-90">
+                  Rebalance now ({steps.length} trade{steps.length === 1 ? "" : "s"})
+                </button>
+              )}
+              {confirming && (
+                <div role="alertdialog" aria-label="Confirm rebalance" className="space-y-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-xs font-bold text-[var(--ink)]">This runs {steps.length} swap{steps.length === 1 ? "" : "s"} in order. Your wallet asks you to confirm each one.</p>
+                  <ul className="space-y-0.5 text-[11px] text-[var(--ink-muted)]">
+                    {steps.map((st, i) => (
+                      <li key={`${st.kind}-${st.symbol}`}>
+                        {i + 1}. {st.kind === "sell" ? "Sell" : "Buy"} {st.symbol} about {usd(st.usd)} (up to {SLIPPAGE_BPS / 100}% slippage)
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-[var(--ink-muted)]">Not one single transaction: if one fails, it stops and the rest stay untraded. Prices can move between steps.</p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => void runAll()} className="min-h-[40px] flex-1 rounded-xl bg-[var(--brand)] text-sm font-bold text-white">
+                      Confirm and start
+                    </button>
+                    <button type="button" onClick={() => setConfirming(false)} className="min-h-[40px] rounded-xl border border-[var(--border-subtle)] px-4 text-sm font-bold text-[var(--ink-soft)]">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {run && (
+                <p role="status" className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-xs font-bold text-[var(--ink)]">
+                  <Loader2 size={14} className="animate-spin" /> Step {run.index} of {run.total}: {run.label}. Confirm in your wallet.
+                </p>
+              )}
             </>
           )}
         </div>
