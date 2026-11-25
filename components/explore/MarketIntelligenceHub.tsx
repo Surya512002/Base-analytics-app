@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Compass,
   Clock,
@@ -31,6 +31,8 @@ import {
   type AlertTriggerType,
   type AlertChannel,
 } from "@/lib/alerts/smarter-alerts";
+import { ALERTS_CHANGED, alertAddress, isWatchable } from "@/lib/alerts/price-watch";
+import { ageText, readChainlinkReference } from "@/lib/stocks/chainlink-reference";
 import { shortAddr } from "@/lib/launchpad/format";
 import type { StockMarketItem } from "@/lib/markets/types";
 import BodyPortal from "@/components/ui/BodyPortal";
@@ -75,6 +77,20 @@ export default function MarketIntelligenceHub({
     };
   }, [selectedNavSymbol, stockMarkets]);
 
+  // The stock's Chainlink price on Base, read live. Stocks without a feed show no comparison.
+  const [reference, setReference] = useState<{ address: string; price: number | null; updatedAt: number } | null>(null);
+  const referenceAddress = activeStock?.address;
+  useEffect(() => {
+    if (!referenceAddress) return;
+    let alive = true;
+    void readChainlinkReference(referenceAddress).then((r) => {
+      if (alive) setReference({ address: referenceAddress, price: r?.price ?? null, updatedAt: r?.updatedAt ?? 0 });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [referenceAddress]);
+
   const navComparison: StockNavComparison | null = useMemo(() => {
     if (!activeStock) return null;
     return computeNavSpread({
@@ -82,9 +98,9 @@ export default function MarketIntelligenceHub({
       name: activeStock.name,
       contractAddress: activeStock.address,
       dexPriceUsd: activeStock.price,
-      oracleNavUsd: Number((activeStock.price * (1 - (activeStock.change24h / 100))).toFixed(2)),
+      oracleNavUsd: reference?.address === activeStock.address ? reference.price : null,
     });
-  }, [activeStock]);
+  }, [activeStock, reference]);
 
   // ─────────────────────────────────────────────────────────────
   // 2. SMART MONEY RADAR STATE & FEED
@@ -108,7 +124,8 @@ export default function MarketIntelligenceHub({
       const data = await res.json();
       setRadarEvents(data?.recentBuys || []);
     } catch {
-      setRadarError("Indexer busy. Tap refresh to retry.");
+      setRadarEvents([]);
+      setRadarError("Wallet activity is unavailable right now.");
     } finally {
       setIsLoadingRadar(false);
     }
@@ -142,20 +159,27 @@ export default function MarketIntelligenceHub({
   // ─────────────────────────────────────────────────────────────
   const [alerts, setAlerts] = useState<SmarterAlert[]>([]);
   const [showAlertModal, setShowAlertModal] = useState<boolean>(false);
-  const [alertType, setAlertType] = useState<AlertTriggerType>("whale_swap");
+  const [alertError, setAlertError] = useState("");
   const [alertChannel, setAlertChannel] = useState<AlertChannel>("in_app");
-  const [alertSymbol, setAlertSymbol] = useState<string>("ETH");
-  const [alertThreshold, setAlertThreshold] = useState<number>(25_000);
+  const [alertSymbol, setAlertSymbol] = useState<string>("NVDAc");
+  const [alertThreshold, setAlertThreshold] = useState<number>(0);
   const [alertDirection, setAlertDirection] = useState<"above" | "below">("above");
-  const [alertWebhook, setAlertWebhook] = useState<string>("");
 
   React.useEffect(() => {
-    setAlerts(readSmarterAlerts(userWallet));
+    const read = () => setAlerts(readSmarterAlerts(userWallet));
+    read();
+    window.addEventListener(ALERTS_CHANGED, read);
+    return () => window.removeEventListener(ALERTS_CHANGED, read);
   }, [userWallet]);
+
+  const alertsChanged = () => window.dispatchEvent(new Event(ALERTS_CHANGED));
 
   const handleCreateAlert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!alertSymbol.trim() || alertThreshold <= 0) return;
+    const symbol = alertSymbol.trim();
+    if (!alertAddress({ targetSymbol: symbol })) return setAlertError("Use a stock symbol such as NVDAc, or a major token such as ETH or cbBTC.");
+    if (!(alertThreshold > 0)) return setAlertError("Enter a price above zero.");
+    setAlertError("");
 
     if (alertChannel === "browser" && typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission !== "granted") {
@@ -163,21 +187,22 @@ export default function MarketIntelligenceHub({
       }
     }
 
-    const updated = saveSmarterAlert(userWallet, {
-      type: alertType,
-      channel: alertChannel,
-      targetSymbol: alertSymbol.trim().toUpperCase(),
-      thresholdValue: alertThreshold,
-      direction: alertType === "price" ? alertDirection : undefined,
-      webhookUrl: alertChannel === "webhook" ? alertWebhook : undefined,
-    });
-    setAlerts(updated);
+    setAlerts(
+      saveSmarterAlert(userWallet, {
+        type: "price",
+        channel: alertChannel,
+        targetSymbol: symbol,
+        thresholdValue: alertThreshold,
+        direction: alertDirection,
+      })
+    );
     setShowAlertModal(false);
+    alertsChanged();
   };
 
   const handleDeleteAlert = (id: string) => {
-    const updated = deleteSmarterAlert(userWallet, id);
-    setAlerts(updated);
+    setAlerts(deleteSmarterAlert(userWallet, id));
+    alertsChanged();
   };
 
   const handleQuickAddAlert = (preset: {
@@ -186,14 +211,16 @@ export default function MarketIntelligenceHub({
     thresholdValue: number;
     direction?: "above" | "below";
   }) => {
-    const updated = saveSmarterAlert(userWallet, {
-      type: preset.type,
-      channel: "in_app",
-      targetSymbol: preset.targetSymbol,
-      thresholdValue: preset.thresholdValue,
-      direction: preset.direction,
-    });
-    setAlerts(updated);
+    setAlerts(
+      saveSmarterAlert(userWallet, {
+        type: preset.type,
+        channel: "in_app",
+        targetSymbol: preset.targetSymbol,
+        thresholdValue: preset.thresholdValue,
+        direction: preset.direction,
+      })
+    );
+    alertsChanged();
   };
 
   const todayFormatted = useMemo(() => {
@@ -225,7 +252,7 @@ export default function MarketIntelligenceHub({
               </span>
             </div>
             <p className="text-[11px] text-[var(--ink-muted)]">
-              Real-time 24/7 custodian NAV spreads, smart money whale stream, and automated triggers
+              Stock price check against Chainlink, wallet watch and price alerts
             </p>
           </div>
         </div>
@@ -268,7 +295,7 @@ export default function MarketIntelligenceHub({
                 activeTab === "smart_money" ? "bg-white/20 text-white" : "bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]"
               }`}
             >
-              Whales
+              Wallets
             </span>
           </button>
 
@@ -354,42 +381,31 @@ export default function MarketIntelligenceHub({
 
               <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-0.5">
                 <span className="text-[11px] text-[var(--ink-muted)] block font-medium">
-                  24/5 Official Custodian NAV
+                  Chainlink price
                 </span>
                 <span className="font-mono font-black text-base text-[var(--ink)] block tabular-nums">
-                  ${navComparison.oracleNavUsd?.toFixed(2)}
+                  {navComparison.oracleNavUsd != null ? `$${navComparison.oracleNavUsd.toFixed(2)}` : "—"}
                 </span>
-                <span className="text-[11px] text-[var(--ink-dim)]">Coinbase / Backed Custody</span>
+                <span className="text-[11px] text-[var(--ink-dim)]">
+                  {navComparison.oracleNavUsd != null && reference ? `On-chain feed, updated ${ageText(reference.updatedAt)}` : "No live Chainlink feed for this stock"}
+                </span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] space-y-0.5">
                 <span className="text-[11px] text-[var(--ink-muted)] block font-medium">
-                  Arbitrage Spread Delta
+                  Difference
                 </span>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`font-mono font-black text-base block tabular-nums ${
-                      (navComparison.spreadPct ?? 0) >= 0
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
-                    }`}
-                  >
-                    {(navComparison.spreadPct ?? 0) >= 0 ? "+" : ""}
-                    {navComparison.spreadPct?.toFixed(2)}%
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-mono font-black text-base block tabular-nums text-[var(--ink)]">
+                    {navComparison.spreadPct == null ? "—" : `${navComparison.spreadPct >= 0 ? "+" : ""}${navComparison.spreadPct.toFixed(2)}%`}
                   </span>
-                  <span
-                    className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-mono border ${
-                      navComparison.status === "par"
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                        : navComparison.status === "premium"
-                          ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                          : "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
-                    }`}
-                  >
-                    {navComparison.statusLabel}
-                  </span>
+                  {navComparison.spreadPct != null && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded-full font-bold font-mono border border-[var(--border-subtle)] text-[var(--ink-muted)]">
+                      {navComparison.statusLabel}
+                    </span>
+                  )}
                 </div>
-                <span className="text-[11px] text-[var(--ink-dim)]">DEX spread vs Official NAV</span>
+                <span className="text-[11px] text-[var(--ink-dim)]">Pool price against Chainlink. Stock feeds pause outside US market hours, so gaps are normal then.</span>
               </div>
             </div>
           )}
@@ -398,18 +414,9 @@ export default function MarketIntelligenceHub({
           <div className="flex items-center justify-between pt-1 text-[11px] text-[var(--ink-muted)] border-t border-[var(--border-subtle)]/60">
             <span className="flex items-center gap-1">
               <ShieldCheck size={12} className="text-[#0052FF]" />
-              <span>Backed 1:1 by real stock shares held in regulated custody (Regulation S)</span>
+              <span>For information only. Check the issuer&apos;s terms before trading.</span>
             </span>
             <div className="flex items-center gap-3 font-semibold">
-              <a
-                href="https://backed.fi/attestations"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[var(--brand)] inline-flex items-center gap-0.5 underline transition"
-              >
-                <span>Custody Attestations</span>
-                <ExternalLink size={10} />
-              </a>
               <a
                 href={`https://basescan.org/token/${activeStock.address}`}
                 target="_blank"
@@ -506,6 +513,10 @@ export default function MarketIntelligenceHub({
             </form>
           )}
 
+          <p className="text-[11px] text-[var(--ink-muted)]">
+            Verified tokens these wallets recently received. Receiving is not the same as buying, and this is not advice.
+          </p>
+
           {/* Event Stream or Compact Empty State */}
           {isLoadingRadar ? (
             <div className="h-28 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] skeleton-shimmer" />
@@ -524,13 +535,13 @@ export default function MarketIntelligenceHub({
             <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/40 text-center space-y-2">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-bold border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Listening to Base mainnet block stream</span>
+                <span>Base mainnet</span>
               </div>
               <p className="text-xs font-bold text-[var(--ink)]">
-                No new token swaps detected in the last 24h for {wallets.find((w) => w.address.toLowerCase() === selectedWallet?.toLowerCase())?.label || shortAddr(selectedWallet || "")}
+                No verified tokens received recently by {wallets.find((w) => w.address.toLowerCase() === selectedWallet?.toLowerCase())?.label || shortAddr(selectedWallet || "")}
               </p>
               <p className="text-[11px] text-[var(--ink-muted)] max-w-md mx-auto">
-                This whale address is actively tracked on-chain. When it acquires tokens on Aerodrome or Uniswap, transactions will appear here.
+                Only verified tokens are listed here.
               </p>
               {selectedWallet && (
                 <div className="pt-1">
@@ -593,7 +604,7 @@ export default function MarketIntelligenceHub({
         <div className="space-y-3 animate-fadeIn">
           <div className="flex items-center justify-between">
             <span className="text-xs text-[var(--ink-muted)]">
-              Monitor price crosses, whale swaps (&gt;$25k), yield spikes (&gt;5%), and liquidity drops
+              Price alerts, checked about once a minute while Base Analytics is open in a tab.
             </span>
             <button
               type="button"
@@ -608,55 +619,28 @@ export default function MarketIntelligenceHub({
           {alerts.length === 0 ? (
             <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)]/40 space-y-3">
               <div className="text-center space-y-1">
-                <p className="text-xs font-bold text-[var(--ink)]">No active smart alerts configured</p>
+                <p className="text-xs font-bold text-[var(--ink)]">No price alerts yet</p>
                 <p className="text-[11px] text-[var(--ink-muted)]">
-                  Pick a one-click starter trigger or create a custom webhook/browser alert:
+                  Pick a starter or set your own price:
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickAddAlert({
-                      type: "whale_swap",
-                      targetSymbol: "ETH",
-                      thresholdValue: 25000,
-                    })
-                  }
-                  className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[#0052FF] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Plus size={11} className="text-[#0052FF]" />
-                  <span>Whale Swap &gt; $25k</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickAddAlert({
-                      type: "price",
-                      targetSymbol: "NVDAc",
-                      thresholdValue: 140,
-                      direction: "above",
-                    })
-                  }
-                  className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[#0052FF] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Plus size={11} className="text-[#0052FF]" />
-                  <span>NVDAc &gt; $140</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickAddAlert({
-                      type: "yield_spike",
-                      targetSymbol: "USDC",
-                      thresholdValue: 10,
-                    })
-                  }
-                  className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[#0052FF] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Plus size={11} className="text-[#0052FF]" />
-                  <span>USDC Yield &gt; 10% APY</span>
-                </button>
+                {activeStock &&
+                  activeStock.price > 0 &&
+                  ([["above", 1.05], ["below", 0.95]] as const).map(([direction, factor]) => {
+                    const level = Number((activeStock.price * factor).toFixed(2));
+                    return (
+                      <button
+                        key={direction}
+                        type="button"
+                        onClick={() => handleQuickAddAlert({ type: "price", targetSymbol: activeStock.symbol, thresholdValue: level, direction })}
+                        className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[#0052FF] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Plus size={11} className="text-[#0052FF]" />
+                        <span>{activeStock.symbol} {direction} ${level}</span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
           ) : (
@@ -670,11 +654,11 @@ export default function MarketIntelligenceHub({
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-[var(--ink)]">{alt.targetSymbol}</span>
                       <span className="text-[11px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[#0052FF] border border-blue-500/20">
-                        {alt.type.replace("_", " ")}
+                        {!isWatchable(alt) ? "never sent" : alt.triggered ? "reached" : "waiting"}
                       </span>
                     </div>
                     <span className="text-[11px] text-[var(--ink-muted)] block font-mono">
-                      Threshold: ${alt.thresholdValue.toLocaleString()}
+                      {isWatchable(alt) ? `${alt.direction} $${alt.thresholdValue.toLocaleString()}` : "This kind of alert was never checked. Delete it."}
                     </span>
                   </div>
                   <button
@@ -695,7 +679,7 @@ export default function MarketIntelligenceHub({
             <BodyPortal><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
               <div className="w-full max-w-sm rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-2xl space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-sm text-[var(--ink)]">Create Smart Alert</h4>
+                  <h4 className="font-bold text-sm text-[var(--ink)]">New price alert</h4>
                   <button
                     type="button"
                     onClick={() => setShowAlertModal(false)}
@@ -707,23 +691,6 @@ export default function MarketIntelligenceHub({
 
                 <form onSubmit={handleCreateAlert} className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-[11px] font-medium text-[var(--ink-muted)] mb-1">
-                      Trigger Type
-                    </label>
-                    <select
-                      value={alertType}
-                      onChange={(e) => setAlertType(e.target.value as AlertTriggerType)}
-                      className="w-full p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] font-medium"
-                    >
-                      <option value="whale_swap">Whale Swap (&gt; $USD)</option>
-                      <option value="price">Price Threshold</option>
-                      <option value="yield_spike">Yield APY Spike (&gt; %)</option>
-                      <option value="liquidity_drop">Liquidity Drop (&gt; %)</option>
-                    </select>
-                  </div>
-
-                  {alertType === "price" && (
-                    <div>
                       <label className="block text-[11px] font-medium text-[var(--ink-muted)] mb-1">
                         Direction
                       </label>
@@ -736,7 +703,6 @@ export default function MarketIntelligenceHub({
                         <option value="below">Crosses Below ($)</option>
                       </select>
                     </div>
-                  )}
 
                   <div>
                     <label className="block text-[11px] font-medium text-[var(--ink-muted)] mb-1">
@@ -753,10 +719,11 @@ export default function MarketIntelligenceHub({
 
                   <div>
                     <label className="block text-[11px] font-medium text-[var(--ink-muted)] mb-1">
-                      Threshold Value
+                      Price (USD)
                     </label>
                     <input
                       type="number"
+                      step="any"
                       value={alertThreshold}
                       onChange={(e) => setAlertThreshold(Number(e.target.value))}
                       className="w-full p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] font-mono font-bold"
@@ -772,26 +739,12 @@ export default function MarketIntelligenceHub({
                       onChange={(e) => setAlertChannel(e.target.value as AlertChannel)}
                       className="w-full p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] font-medium"
                     >
-                      <option value="in_app">In-App Banner</option>
-                      <option value="browser">Browser Push</option>
-                      <option value="webhook">Webhook URL</option>
+                      <option value="in_app">Message in the app</option>
+                      <option value="browser">Browser notification too</option>
                     </select>
                   </div>
 
-                  {alertChannel === "webhook" && (
-                    <div>
-                      <label className="block text-[11px] font-medium text-[var(--ink-muted)] mb-1">
-                        Webhook URL
-                      </label>
-                      <input
-                        type="url"
-                        value={alertWebhook}
-                        onChange={(e) => setAlertWebhook(e.target.value)}
-                        placeholder="https://discord.com/api/webhooks/..."
-                        className="w-full p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink)] font-mono text-xs"
-                      />
-                    </div>
-                  )}
+                  {alertError && <p role="alert" className="text-[11px] font-semibold text-amber-600">{alertError}</p>}
 
                   <div className="pt-2 flex justify-end gap-2">
                     <button

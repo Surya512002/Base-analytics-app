@@ -1,5 +1,7 @@
 "use client";
 
+import { ALERTS_CHANGED, alertAddress } from "@/lib/alerts/price-watch";
+import { deleteSmarterAlert, readSmarterAlerts, saveSmarterAlert, type SmarterAlert } from "@/lib/alerts/smarter-alerts";
 import { useEffect, useState } from "react";
 import { Bell, ExternalLink } from "lucide-react";
 import type { RecentTrade } from "@/app/api/trade/trades/route";
@@ -148,53 +150,91 @@ export function Position({ holding, price, symbol }: { holding: TokenHolding | u
 export function AlertButton({ wallet, address, symbol, price, onToast }: { wallet?: string; address: string; symbol: string; price: number | null; onToast: (m: string) => void }) {
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [mine, setMine] = useState<Array<{ owner: string | null; alert: SmarterAlert }>>([]);
+
+  useEffect(() => {
+    const read = () =>
+      setMine(
+        (wallet ? [wallet, null] : [null]).flatMap((owner) =>
+          readSmarterAlerts(owner)
+            .filter((a) => a.type === "price" && alertAddress(a) === address.toLowerCase())
+            .map((alert) => ({ owner, alert }))
+        )
+      );
+    read();
+    window.addEventListener(ALERTS_CHANGED, read);
+    return () => window.removeEventListener(ALERTS_CHANGED, read);
+  }, [wallet, address]);
+
+  const changed = () => window.dispatchEvent(new Event(ALERTS_CHANGED));
+  // Base App push is a bonus on top of the in-app check, so a failure here is not an error.
+  const syncPush = (init: RequestInit, query = "") => {
+    if (wallet) void fetch(`/api/price-alerts${query}`, init).catch(() => undefined);
+  };
 
   const submit = async () => {
     const px = Number(target);
-    if (!wallet || !Number.isFinite(px) || px <= 0) return;
-    setBusy(true);
-    try {
-      const r = await fetch("/api/price-alerts", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ wallet, address, symbol, direction: price != null && px < price ? "below" : "above", priceUsd: px }),
-      });
-      onToast(r.ok ? `Alert set: ${symbol} at ${formatPrice(px)}` : r.status === 401 ? "Sign in with your wallet first, then set the alert again" : "Could not set alert");
-      if (r.ok) setOpen(false);
-    } catch {
-      onToast("Could not set alert");
-    } finally {
-      setBusy(false);
-    }
+    if (price == null) return onToast("The price is still loading. Try again in a moment.");
+    if (!Number.isFinite(px) || px <= 0) return onToast("Enter a price above zero.");
+    // Asked straight from the click, which browsers require.
+    const permission = "Notification" in window ? await Notification.requestPermission().catch(() => "denied") : "denied";
+    const direction = px < price ? "below" : "above";
+    saveSmarterAlert(wallet, { type: "price", channel: permission === "granted" ? "browser" : "in_app", targetSymbol: symbol, targetAddress: address, thresholdValue: px, direction });
+    syncPush({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ wallet, address, symbol, direction, priceUsd: px }) });
+    changed();
+    setTarget("");
+    onToast(`Alert set: ${symbol} ${direction} ${formatPrice(px)}. It is checked while Base Analytics is open.`);
+  };
+
+  const remove = (owner: string | null, id: string) => {
+    deleteSmarterAlert(owner, id);
+    syncPush({ method: "DELETE" }, `?wallet=${wallet}&address=${address}`);
+    changed();
   };
 
   return (
     <div className="relative">
       <button
         type="button"
-        aria-label="Set price alert"
-        title={wallet ? "Set price alert" : "Connect a wallet to set alerts"}
-        disabled={!wallet}
+        aria-label="Price alerts"
+        aria-expanded={open}
+        title="Price alerts"
         onClick={() => setOpen((v) => !v)}
-        className="grid h-10 w-10 place-items-center rounded-xl text-[var(--ink-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:opacity-40"
+        className="relative grid h-10 w-10 place-items-center rounded-xl text-[var(--ink-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
       >
         <Bell size={17} />
+        {mine.some((m) => !m.alert.triggered) && <span aria-hidden className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[var(--brand)]" />}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 shadow-card">
-          <label className="text-[11px] font-semibold text-[var(--ink-muted)]" htmlFor="alert-price">Alert me when {symbol} reaches (USD)</label>
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 shadow-card">
+          <label className="block text-[11px] font-semibold text-[var(--ink-muted)]" htmlFor="alert-price">Tell me when {symbol} reaches (USD)</label>
           <input
             id="alert-price"
             inputMode="decimal"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             placeholder={price != null ? formatPrice(price) : "0.00"}
-            className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
+            className="h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[var(--brand-text)]"
           />
-          <button type="button" disabled={busy} onClick={() => void submit()} className="mt-2 h-9 w-full rounded-lg bg-[var(--brand)] text-sm font-semibold text-white disabled:opacity-60">
-            {busy ? "Saving…" : "Set alert"}
+          <button type="button" onClick={() => void submit()} className="h-9 w-full rounded-lg bg-[var(--brand)] text-sm font-semibold text-white">
+            Set alert
           </button>
+          <p className="text-[11px] text-[var(--ink-muted)]">Checked about once a minute while Base Analytics is open in a tab.</p>
+          {mine.length > 0 && (
+            <ul className="space-y-1 border-t border-[var(--border-subtle)] pt-2">
+              {mine.map(({ owner, alert }) => (
+                <li key={alert.id} className="flex items-center justify-between gap-2 text-xs text-[var(--ink)]">
+                  <span>
+                    {alert.direction} {formatPrice(alert.thresholdValue)}
+                    {alert.triggered && <span className="ml-1 text-emerald-600 dark:text-emerald-400">· reached</span>}
+                  </span>
+                  <button type="button" aria-label={`Delete alert ${alert.direction} ${alert.thresholdValue}`} onClick={() => remove(owner, alert.id)} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--ink-muted)] hover:text-red-500">
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

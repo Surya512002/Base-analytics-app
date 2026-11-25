@@ -157,7 +157,7 @@ test.describe("Core App User Flows", () => {
     await navTab.click();
     await expect(page.getByText(/Stock NAV Tracker/i).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/Market Open|Market Closed/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/Custody Attestations/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Chainlink price/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("12. Smarter Alerts: renders multi-trigger alert panel on Explore", async ({ page }) => {

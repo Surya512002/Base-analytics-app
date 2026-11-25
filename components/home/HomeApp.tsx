@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
+import PriceAlertWatcher from "@/components/alerts/PriceAlertWatcher";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
@@ -156,6 +157,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
   return (
     <main className="main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative">
       <AppBackground />
+      <PriceAlertWatcher wallet={wallet?.address ?? null} onAlert={(msg) => setToast({ msg, hash: "" })} />
 
       {toast && (
         <ToastNotification
