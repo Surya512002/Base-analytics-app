@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ChevronDown,
@@ -42,6 +42,7 @@ import {
   resolveDexSwapRoute,
 } from "@/lib/launchpad/dex-swap-params";
 import { enrichSwapCounter } from "@/lib/launchpad/token-logo";
+import { floorFor, rememberQuote, type ShownQuote } from "@/lib/swap/price-guard";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -154,6 +155,7 @@ export default function DexSwapPanel({
   const [isLaunchedToken, setIsLaunchedToken] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  const shownQuote = useRef<ShownQuote | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -440,6 +442,9 @@ export default function DexSwapPanel({
         const outDec =
           q.outDecimals ??
           (route.direction === "buy" ? pageDecimals : route.counterDecimals);
+        shownQuote.current = q.hasLiquidity
+          ? rememberQuote([route.pageToken.address, route.direction, quoteAmount, slippage, dex, route.payAsset, route.receiveAsset, route.payToken, route.receiveToken].join("|"), q.amountOutMinimum)
+          : null;
         if (q.hasLiquidity && q.amountOut) {
           setQuoteOut(formatQuoteOut(q.amountOut, outDec));
           setMinReceive(
@@ -593,6 +598,10 @@ export default function DexSwapPanel({
       receiveAsset: route.receiveAsset,
       payToken: route.payToken,
       receiveToken: route.receiveToken,
+      floorOut: floorFor(
+        shownQuote.current,
+        [route.pageToken.address, route.direction, sanitizeTokenAmountInput(amount, quoteAmountDecimals), slippage, dex, route.payAsset, route.receiveAsset, route.payToken, route.receiveToken].join("|")
+      ),
     });
     if (ok) {
       setAmount(defaultFromAmount(from));

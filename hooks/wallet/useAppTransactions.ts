@@ -80,6 +80,7 @@ import { BASE_RPC } from "@/lib/constants/env";
 import { ERC20_ABI } from "@/lib/constants/contracts";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import { parseUnits, parseEther } from "viem";
+import { belowFloor } from "@/lib/swap/price-guard";
 
 export function pushFeeSplitCalls(
   calls: ReturnType<typeof buildContractCall>[],
@@ -491,6 +492,9 @@ export function useAppTransactions({
       payToken?: string | null;
       receiveToken?: string | null;
       counterDecimals?: number;
+      /** Least output (base units) the person agreed to; a fresh quote under it is not sent. */
+      floorOut?: bigint;
+      floorMessage?: string;
     }): Promise<boolean> => {
       if (!wallet) return false;
 
@@ -534,6 +538,11 @@ export function useAppTransactions({
               "No swap route found — trade on Aerodrome or add a WETH pool",
             ""
           );
+          return false;
+        }
+
+        if (args.floorOut !== undefined && belowFloor(quote.amountOut, args.floorOut)) {
+          showToast(`❌ ${args.floorMessage ?? "The price moved more than your slippage allows, so nothing was sent. Check the new quote and try again."}`, "");
           return false;
         }
 
