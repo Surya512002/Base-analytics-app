@@ -6,6 +6,8 @@ import { AlertTriangle, CalendarClock, Loader2, Plus, Trash2 } from "lucide-reac
 import { parseDecimalInput } from "@/src/lib/limitOrders/orderMath";
 import {
   MAX_BASKET_STOCKS,
+  PLAN_PRESETS,
+  ceilingBelow,
   ceilingFromPct,
   composeBasketPlan,
   equalWeights,
@@ -59,6 +61,9 @@ export default function InvestPlanComposer({
   const [buysInput, setBuysInput] = useState("12");
   const [freq, setFreq] = useState<number>(604_800);
   const [ceilingPct, setCeilingPct] = useState("");
+  const [dipOn, setDipOn] = useState(false);
+  const [dipShare, setDipShare] = useState("30");
+  const [dipBelow, setDipBelow] = useState("5");
   const [holdFirst, setHoldFirst] = useState(false);
   const [created, setCreated] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
@@ -78,13 +83,26 @@ export default function InvestPlanComposer({
   const budgetUnits = parseDecimalInput(budget, 6) ?? 0n;
   const buys = Number(buysInput);
   const rowsKey = JSON.stringify(rows);
+  const dip = dipOn ? { sharePct: Number(dipShare), belowPct: Number(dipBelow) } : null;
   const composed = useMemo(
-    () => composeBasketPlan({ stocks, budget: budgetUnits, buys, intervalSec: freq, balance: quoteBalance }),
+    () => composeBasketPlan({ stocks, budget: budgetUnits, buys, intervalSec: freq, balance: quoteBalance, dip }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rowsKey, budgetUnits, buys, freq, quoteBalance, marketStates]
+    [rowsKey, budgetUnits, buys, freq, quoteBalance, marketStates, dipOn, dipShare, dipBelow]
   );
+  const activePreset = PLAN_PRESETS.find(
+    (p) => String(p.buys) === buysInput && p.intervalSec === freq && Boolean(p.dip) === dipOn && (!p.dip || (String(p.dip.sharePct) === dipShare && String(p.dip.belowPct) === dipBelow))
+  );
+  const applyPreset = (p: (typeof PLAN_PRESETS)[number]) => {
+    setBuysInput(String(p.buys));
+    setFreq(p.intervalSec);
+    setDipOn(Boolean(p.dip));
+    if (p.dip) {
+      setDipShare(String(p.dip.sharePct));
+      setDipBelow(String(p.dip.belowPct));
+    }
+  };
 
-  const remaining = composed.ok ? composed.plan.legs.filter((l) => !created.includes(l.symbol)) : [];
+  const remaining = composed.ok ? composed.plan.legs.filter((l) => !created.includes(l.key)) : [];
   const remainingTotal = remaining.reduce((a, l) => a + l.total, 0n);
   const needsApproval = remainingTotal > quoteAllowance;
   const ceilingNum = ceilingPct.trim() === "" ? null : Number(ceilingPct);
@@ -135,10 +153,13 @@ export default function InvestPlanComposer({
         return;
       }
       for (const leg of composed.plan.legs) {
-        if (done.includes(leg.symbol)) continue;
+        if (done.includes(leg.key)) continue;
         const st = marketStates[leg.stockToken.toLowerCase()];
-        const maxPrice = ceilingNum !== null ? ceilingFromPct(st?.currentPrice ?? null, ceilingNum) : 0n;
-        if (ceilingNum !== null && maxPrice === null) {
+        const today = st?.currentPrice ?? null;
+        // A dip plan always needs its lower ceiling; other plans only if the user asked for a limit.
+        const limited = leg.kind === "dip" || ceilingNum !== null;
+        const maxPrice = leg.kind === "dip" ? ceilingBelow(today, Number(dipBelow)) : ceilingNum !== null ? ceilingFromPct(today, ceilingNum) : 0n;
+        if (limited && maxPrice === null) {
           setMessage(`${leg.symbol}: its price isn't available right now, so a price limit can't be set. Clear the limit or try again.`);
           break;
         }
@@ -147,14 +168,14 @@ export default function InvestPlanComposer({
           setMessage(`Stopped at ${leg.symbol}. ${done.length} of ${composed.plan.legs.length} plans were created and are running. Nothing else was started. Press the button again to continue with the rest.`);
           break;
         }
-        done.push(leg.symbol);
+        done.push(leg.key);
         setCreated([...done]);
       }
-      if (composed.ok && composed.plan.legs.every((l) => done.includes(l.symbol))) {
+      if (composed.ok && composed.plan.legs.every((l) => done.includes(l.key))) {
         setMessage(
           holdFirst
             ? `All ${done.length} plans are created. Open "Add rules" on each one below. Their first buys wait for you for up to 30 minutes.`
-            : `All ${done.length} plans are running. The first buy of each happens on the next keeper run, then every ${FREQUENCIES.find((f) => f.seconds === freq)?.word ?? "interval"}.`
+            : `All ${done.length} plans are running. ${dipOn ? "Regular plans buy" : "Each one buys"} on the next keeper run, then every ${FREQUENCIES.find((f) => f.seconds === freq)?.word ?? "interval"}.${dipOn ? " Dip plans wait until the price is low enough." : ""}`
         );
       }
     } finally {
@@ -202,12 +223,31 @@ export default function InvestPlanComposer({
           <CalendarClock size={15} /> Invest in several stocks over time
         </h3>
         <p className="text-xs text-[var(--ink-muted)]">
-          One recurring buy per stock, started together. Your USDC for each plan is held by the order-book contract until each buy runs. You can cancel any plan and get the unspent USDC back. Buys only run while the stock price feed is fresh, so nothing runs on weekends.
+          One recurring buy per stock (two if you add dip buys), started together. Your USDC for each plan is held by the order-book contract until each buy runs. You can cancel any plan and get the unspent USDC back. Buys only run while the stock price feed is fresh, so nothing runs on weekends.
         </p>
       </div>
 
       {paused && <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">Orders are paused right now. You can still cancel plans.</p>}
       {regionRestricted && <p className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-300">These orders aren&apos;t available in your region. You can still cancel existing plans.</p>}
+
+      <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
+        <h4 className="text-xs font-black uppercase tracking-wider text-[var(--ink-muted)]">Start with</h4>
+        <div role="group" aria-label="Ready-made plans" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {PLAN_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={locked}
+              aria-pressed={activePreset?.id === p.id}
+              onClick={() => applyPreset(p)}
+              className={`rounded-xl border p-3 text-left disabled:opacity-50 ${activePreset?.id === p.id ? "border-[var(--brand)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-2)]"}`}
+            >
+              <span className="block text-sm font-black text-[var(--ink)]">{p.label}</span>
+              <span className="block text-[11px] text-[var(--ink-muted)]">{p.note}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -224,7 +264,7 @@ export default function InvestPlanComposer({
         <ul className="space-y-1.5">
           {rows.map((r, i) => {
             const m = stockMarkets.find((x) => x.stockToken.toLowerCase() === r.stockToken.toLowerCase());
-            const leg = composed.ok ? composed.plan.legs.find((l) => l.symbol === m?.symbol) : null;
+            const legs = composed.ok ? composed.plan.legs.filter((l) => l.symbol === m?.symbol) : [];
             return (
               <li key={r.stockToken} className="flex flex-wrap items-center gap-2">
                 <span className="min-w-[72px] text-sm font-black text-[var(--ink)]">{m?.symbol}</span>
@@ -237,11 +277,12 @@ export default function InvestPlanComposer({
                   className={`${field} w-20 text-center`}
                 />
                 <span className="text-xs text-[var(--ink-muted)]">%</span>
-                {leg && (
-                  <span className="text-[11px] text-[var(--ink-muted)]">
-                    {usd(fromUnits(leg.amountPerBuy))} each buy · {usd(fromUnits(leg.total))} total{created.includes(leg.symbol) ? " · started" : ""}
+                {legs.map((leg) => (
+                  <span key={leg.key} className="text-[11px] text-[var(--ink-muted)]">
+                    {leg.kind === "dip" ? "Dips: " : ""}
+                    {usd(fromUnits(leg.amountPerBuy))} each buy · {usd(fromUnits(leg.total))} total{created.includes(leg.key) ? " · started" : ""}
                   </span>
-                )}
+                ))}
                 <button type="button" aria-label={`Remove ${m?.symbol}`} disabled={locked} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-muted)] hover:text-red-500 disabled:opacity-40">
                   <Trash2 size={14} />
                 </button>
@@ -284,6 +325,25 @@ export default function InvestPlanComposer({
             ))}
           </div>
         </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <label className="flex items-center gap-2 text-xs font-bold text-[var(--ink-soft)]">
+            <input type="checkbox" disabled={locked} checked={dipOn} onChange={(e) => setDipOn(e.target.checked)} /> Keep part of the budget to buy dips
+          </label>
+          {dipOn && (
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-muted)]">
+                Keep
+                <input aria-label="Percent of budget kept for dips" inputMode="numeric" disabled={locked} value={dipShare} onChange={(e) => setDipShare(e.target.value.replace(/\D/g, "").slice(0, 2))} className={`${field} w-16 text-center`} />
+                % and buy with it only when a price is
+                <input aria-label="How far below today's price" inputMode="decimal" disabled={locked} value={dipBelow} onChange={(e) => setDipBelow(e.target.value.replace(/[^0-9.]/g, "").slice(0, 4))} className={`${field} w-16 text-center`} />
+                % below today&apos;s.
+              </div>
+              <p className="text-[11px] text-[var(--ink-muted)]">
+                This makes a second plan for each stock, so you confirm twice as many times. The dip price is fixed in dollars when you start: if a stock never drops that far, that money waits in the contract until you cancel the plan.
+              </p>
+            </>
+          )}
+        </div>
         <label className="space-y-1 text-xs font-bold text-[var(--ink-soft)] sm:col-span-2">
           Optional: skip buys while a price is more than this % above today&apos;s price
           <input inputMode="decimal" disabled={locked} value={ceilingPct} placeholder="no limit" onChange={(e) => setCeilingPct(e.target.value.replace(/[^0-9.]/g, "").slice(0, 5))} className={`${field} w-32`} />
@@ -296,10 +356,11 @@ export default function InvestPlanComposer({
         composed.ok ? (
           <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 text-xs text-[var(--ink-muted)]">
             <p className="text-sm font-black text-[var(--ink)]">
-              {usd(fromUnits(composed.plan.totalCommitted))} across {composed.plan.legs.length} stock{composed.plan.legs.length === 1 ? "" : "s"}
+              {usd(fromUnits(composed.plan.totalCommitted))} across {rows.length} stock{rows.length === 1 ? "" : "s"}
+              {dipOn ? ` (${composed.plan.legs.length} plans)` : ""}
             </p>
             <p>
-              {buys} buy{buys === 1 ? "" : "s"} each, one every {FREQUENCIES.find((f) => f.seconds === freq)?.word}, over {durationText(composed.plan.durationSec)}. The first buy runs right away.
+              {buys} buy{buys === 1 ? "" : "s"} each, one every {FREQUENCIES.find((f) => f.seconds === freq)?.word}, over {durationText(composed.plan.durationSec)}. {dipOn ? "The first regular buy runs right away; dip buys wait for the lower price." : "The first buy runs right away."}
             </p>
             <p>
               Keeper fee about {usd(keeperFeeUsd(composed.plan.totalCommitted, keeperFeeBps))} in total ({(keeperFeeBps / 100).toFixed(2)}% of what is bought), plus the pool&apos;s own trading fee and price impact on each buy.

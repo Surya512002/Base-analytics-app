@@ -20,7 +20,18 @@ export interface ComposerStock {
   maxQuoteIn: bigint;
 }
 
+/** Part of each stock's budget that only buys after a drop: its own plan with a lower price ceiling. */
+export interface DipOption {
+  /** Percent of the budget kept for dips (10 to 90). */
+  sharePct: number;
+  /** The dip plan buys only while the price is at least this far below today's (1 to 50). */
+  belowPct: number;
+}
+
 export interface PlanLeg {
+  /** Unique per plan: a stock can have a regular plan and a dip plan. */
+  key: string;
+  kind: "regular" | "dip";
   symbol: string;
   stockToken: `0x${string}`;
   weightPct: number;
@@ -89,8 +100,9 @@ export function composeBasketPlan(input: {
   intervalSec: number;
   /** The wallet's USDC balance, so a plan it cannot pay for is refused up front. */
   balance: bigint;
+  dip?: DipOption | null;
 }): ComposeResult {
-  const { stocks, budget, buys, intervalSec, balance } = input;
+  const { stocks, budget, buys, intervalSec, balance, dip = null } = input;
   const weightError = validateWeights(stocks.map((s) => s.weightPct));
   if (weightError) return { ok: false, error: weightError };
   if (new Set(stocks.map((s) => s.stockToken.toLowerCase())).size !== stocks.length) return { ok: false, error: "A stock is listed twice." };
@@ -98,21 +110,32 @@ export function composeBasketPlan(input: {
   if (!Number.isInteger(buys) || buys < 1 || buys > MAX_DCA_BUYS) return { ok: false, error: `Number of buys must be between 1 and ${MAX_DCA_BUYS}.` };
   if (!Number.isInteger(intervalSec) || intervalSec < MIN_DCA_INTERVAL_SEC) return { ok: false, error: "Buys must be at least 1 hour apart." };
 
+  if (dip) {
+    if (!Number.isFinite(dip.sharePct) || dip.sharePct < 10 || dip.sharePct > 90) return { ok: false, error: "Keep between 10% and 90% of the budget for dips." };
+    if (!Number.isFinite(dip.belowPct) || dip.belowPct < 1 || dip.belowPct > 50) return { ok: false, error: "A dip means 1% to 50% below today's price." };
+  }
+
   const legs: PlanLeg[] = [];
   const warnings: string[] = [];
   for (const s of stocks) {
     const share = (budget * BigInt(toBps(s.weightPct))) / 10_000n;
-    const amountPerBuy = share / BigInt(buys);
-    if (amountPerBuy < MIN_BUY_USDC) {
-      return { ok: false, error: `${s.symbol}: each buy would be under $1. Use a bigger budget, fewer buys or fewer stocks.` };
+    const forDips = dip ? (share * BigInt(toBps(dip.sharePct))) / 10_000n : 0n;
+    const parts: Array<["regular" | "dip", bigint]> = dip ? [["regular", share - forDips], ["dip", forDips]] : [["regular", share]];
+    for (const [kind, part] of parts) {
+      const word = kind === "dip" ? "dip buy" : "buy";
+      const amountPerBuy = part / BigInt(buys);
+      if (amountPerBuy < MIN_BUY_USDC) {
+        return { ok: false, error: `${s.symbol}: each ${word} would be under $1. Use a bigger budget, fewer buys or fewer stocks.` };
+      }
+      const total = amountPerBuy * BigInt(buys);
+      if (total > s.maxQuoteIn) {
+        const capUsd = Number(s.maxQuoteIn) / 1e6;
+        return { ok: false, error: `${s.symbol}: its plan would be $${(Number(total) / 1e6).toFixed(2)}, above the $${capUsd.toLocaleString()} per-plan limit during beta.` };
+      }
+      const small = `${s.symbol}: buys under $5 lose a larger share to fees.`;
+      if (amountPerBuy < SOFT_MIN_BUY_USDC && !warnings.includes(small)) warnings.push(small);
+      legs.push({ key: `${s.symbol}:${kind}`, kind, symbol: s.symbol, stockToken: s.stockToken, weightPct: s.weightPct, amountPerBuy, buys, total });
     }
-    const total = amountPerBuy * BigInt(buys);
-    if (total > s.maxQuoteIn) {
-      const capUsd = Number(s.maxQuoteIn) / 1e6;
-      return { ok: false, error: `${s.symbol}: its plan would be $${(Number(total) / 1e6).toFixed(2)}, above the $${capUsd.toLocaleString()} per-plan limit during beta.` };
-    }
-    if (amountPerBuy < SOFT_MIN_BUY_USDC) warnings.push(`${s.symbol}: buys under $5 lose a larger share to fees.`);
-    legs.push({ symbol: s.symbol, stockToken: s.stockToken, weightPct: s.weightPct, amountPerBuy, buys, total });
   }
 
   const totalCommitted = legs.reduce((a, l) => a + l.total, 0n);
@@ -126,6 +149,20 @@ export function ceilingFromPct(todayPrice8: bigint | null, pctAbove: number): bi
   const bps = BigInt(Math.round(pctAbove * 100));
   return (todayPrice8 * (10_000n + bps)) / 10_000n;
 }
+
+/** The ceiling of a dip plan: `pctBelow` percent under today's price, as the contract's 8-decimal price. */
+export function ceilingBelow(todayPrice8: bigint | null, pctBelow: number): bigint | null {
+  if (!todayPrice8 || todayPrice8 <= 0n || !Number.isFinite(pctBelow) || pctBelow <= 0 || pctBelow >= 100) return null;
+  const price = (todayPrice8 * (10_000n - BigInt(Math.round(pctBelow * 100)))) / 10_000n;
+  return price > 0n ? price : null;
+}
+
+/** One-tap starting points. They only fill in the form; everything stays editable. */
+export const PLAN_PRESETS: ReadonlyArray<{ id: string; label: string; note: string; buys: number; intervalSec: number; dip: DipOption | null }> = [
+  { id: "weekly", label: "Weekly buys", note: "A little every week for 12 weeks.", buys: 12, intervalSec: 604_800, dip: null },
+  { id: "spread", label: "Spread a lump sum", note: "Ease one amount in over 4 weekly buys.", buys: 4, intervalSec: 604_800, dip: null },
+  { id: "dips", label: "Extra on dips", note: "Buys weekly, and keeps 30% back to buy only when a price is 5% lower than today.", buys: 12, intervalSec: 604_800, dip: { sharePct: 30, belowPct: 5 } },
+];
 
 /** How a keeper fee shows up on a plan: fee percent of what is bought, in total dollars. */
 export function keeperFeeUsd(totalCommitted: bigint, keeperFeeBps: number): number {

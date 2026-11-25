@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ceilingFromPct, composeBasketPlan, equalWeights, keeperFeeUsd, normalizeWeights, validateWeights, type ComposerStock } from "@/src/lib/limitOrders/planComposer";
+import { PLAN_PRESETS, ceilingBelow, ceilingFromPct, composeBasketPlan, equalWeights, keeperFeeUsd, normalizeWeights, validateWeights, type ComposerStock } from "@/src/lib/limitOrders/planComposer";
 
 const usdc = (n: number) => BigInt(Math.round(n * 1e6));
 const tok = (i: number) => `0x${String(i).padStart(40, "0")}` as `0x${string}`;
@@ -102,5 +102,70 @@ describe("ceiling and fee helpers", () => {
   });
   it("keeper fee in dollars", () => {
     expect(keeperFeeUsd(usdc(1000), 10)).toBeCloseTo(1, 8);
+  });
+});
+
+describe("dip buys", () => {
+  const base = { buys: 4, intervalSec: 604_800, balance: usdc(10_000) };
+  const two = [stock(1, 50), stock(2, 50)];
+
+  it("splits each stock's share into a regular plan and a dip plan without spending more", () => {
+    const r = composeBasketPlan({ ...base, stocks: two, budget: usdc(200), dip: { sharePct: 30, belowPct: 5 } });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.plan.legs.map((l) => l.key)).toEqual(["S1:regular", "S1:dip", "S2:regular", "S2:dip"]);
+    expect(r.plan.legs.map((l) => l.total)).toEqual([usdc(70), usdc(30), usdc(70), usdc(30)]);
+    expect(r.plan.totalCommitted).toBe(usdc(200));
+    expect(new Set(r.plan.legs.map((l) => l.key)).size).toBe(4);
+  });
+
+  it("never commits more than the budget when amounts do not divide evenly", () => {
+    const r = composeBasketPlan({ ...base, buys: 7, stocks: [stock(1, 33.34), stock(2, 33.33), stock(3, 33.33)], budget: usdc(100.01), dip: { sharePct: 37, belowPct: 3 } });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.plan.totalCommitted).toBeLessThanOrEqual(usdc(100.01));
+      expect(r.plan.totalCommitted + r.plan.unspent).toBe(usdc(100.01));
+    }
+  });
+
+  it("refuses a dip buy under $1 and says it is the dip buy", () => {
+    const r = composeBasketPlan({ ...base, buys: 12, stocks: two, budget: usdc(40), dip: { sharePct: 10, belowPct: 5 } });
+    expect(r).toEqual({ ok: false, error: expect.stringMatching(/S1: each dip buy would be under \$1/) });
+  });
+
+  it("applies the per-plan cap to each plan separately", () => {
+    // $80 for one stock is over a $50 cap as one plan, but 50/50 gives two $40 plans
+    expect(composeBasketPlan({ ...base, stocks: [stock(1, 100, 50)], budget: usdc(80) }).ok).toBe(false);
+    expect(composeBasketPlan({ ...base, stocks: [stock(1, 100, 50)], budget: usdc(80), dip: { sharePct: 50, belowPct: 5 } }).ok).toBe(true);
+  });
+
+  it("refuses silly dip settings", () => {
+    for (const dip of [{ sharePct: 5, belowPct: 5 }, { sharePct: 95, belowPct: 5 }, { sharePct: 30, belowPct: 0 }, { sharePct: 30, belowPct: 60 }, { sharePct: Number.NaN, belowPct: 5 }]) {
+      expect(composeBasketPlan({ ...base, stocks: two, budget: usdc(200), dip }).ok).toBe(false);
+    }
+  });
+
+  it("warns once per stock about small buys", () => {
+    const r = composeBasketPlan({ ...base, stocks: two, budget: usdc(32), dip: { sharePct: 50, belowPct: 5 } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.plan.warnings).toHaveLength(2);
+  });
+
+  it("the dip ceiling sits below today's price", () => {
+    expect(ceilingBelow(20_000_000_000n, 5)).toBe(19_000_000_000n);
+    expect(ceilingBelow(null, 5)).toBeNull();
+    expect(ceilingBelow(20_000_000_000n, 0)).toBeNull();
+    expect(ceilingBelow(20_000_000_000n, 100)).toBeNull();
+    expect(ceilingBelow(1n, 50)).toBeNull();
+  });
+});
+
+describe("ready-made plans", () => {
+  it("every preset produces a plan the maths accepts", () => {
+    expect(new Set(PLAN_PRESETS.map((p) => p.id)).size).toBe(PLAN_PRESETS.length);
+    for (const p of PLAN_PRESETS) {
+      const r = composeBasketPlan({ stocks: [stock(1, 50), stock(2, 50)], budget: usdc(200), buys: p.buys, intervalSec: p.intervalSec, balance: usdc(1000), dip: p.dip });
+      expect(r.ok, p.id).toBe(true);
+    }
   });
 });
