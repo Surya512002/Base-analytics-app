@@ -22,7 +22,7 @@ export default function RecurringHub(props: Props) {
   }, [props.initialPlan]);
   return (
     <div className="space-y-4">
-      <div role="tablist" aria-label="Plan type" className="grid grid-cols-2 gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1">
+      <div role="tablist" aria-label="Plan type" className="mx-auto grid w-full max-w-[480px] grid-cols-2 gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1">
         {(
           [
             ["single", "One stock"],
@@ -41,7 +41,13 @@ export default function RecurringHub(props: Props) {
           </button>
         ))}
       </div>
-      {mode === "single" ? <RecurringView {...props} /> : <InvestPlanComposer limitOrders={props.limitOrders} onConnectWallet={props.onConnectWallet} />}
+      {mode === "single" ? (
+        <div className="mx-auto w-full max-w-[560px]">
+          <RecurringView {...props} />
+        </div>
+      ) : (
+        <InvestPlanComposer limitOrders={props.limitOrders} onConnectWallet={props.onConnectWallet} />
+      )}
     </div>
   );
 }

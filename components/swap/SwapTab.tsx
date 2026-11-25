@@ -220,10 +220,10 @@ export default function SwapTab({
   }, [searchParams, initialToken]);
 
   return (
-    <div className="w-full max-w-[480px] mx-auto space-y-3 pb-8">
+    <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[480px]"}`}>
       {/* Top Navigation Bar: Market | Orders | Recurring (Orders & Recurring gated by feature flag) */}
       {isOrdersEnabled && (
-        <div className="p-1 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center shadow-xs">
+        <div className="mx-auto flex w-full max-w-[480px] items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 shadow-xs">
           <button
             type="button"
             onClick={() => setActiveSubTab("market")}
