@@ -29,38 +29,34 @@ const DEFAULT_ROWS: DisplayRow[] = [
   {
     sym: "NVDAc",
     name: "NVIDIA Corp",
-    chg: "+6.8%",
+    chg: "24/5",
     type: "stock",
     badgeText: "EQUITY",
-    yieldInfo: "1,070% APY · Beefy",
-    vol: "$3.8M",
+    yieldInfo: "Swap on Base",
   },
   {
     sym: "AAPLc",
     name: "Apple Inc",
-    chg: "+2.4%",
+    chg: "24/5",
     type: "stock",
     badgeText: "EQUITY",
-    yieldInfo: "78.1% APY · Beefy",
-    vol: "$4.1M",
+    yieldInfo: "Swap on Base",
   },
   {
     sym: "TSLAc",
     name: "Tesla Inc",
-    chg: "+5.1%",
+    chg: "24/5",
     type: "stock",
     badgeText: "EQUITY",
-    yieldInfo: "293% APY · Beefy",
-    vol: "$2.9M",
+    yieldInfo: "Swap on Base",
   },
   {
     sym: "B20",
     name: "Vanity Mine",
-    chg: "+18.5%",
+    chg: "24/5",
     type: "b20",
     badgeText: "0xB200…",
-    yieldInfo: "50% Fee Stream",
-    vol: "$860K",
+    yieldInfo: "Swap on Base",
   },
 ];
 
@@ -88,7 +84,7 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
       customRows.push({
         sym: t.sym,
         name: isStock ? "Tokenized Stock" : isB20 ? "Vanity B20" : "Base Token",
-        chg: t.chg || "+12.4%",
+        chg: t.chg || "24/5",
         type: isStock ? "stock" : isB20 ? "b20" : "token",
         badgeText: isStock ? "EQUITY" : isB20 ? "0xB200…" : "TOKEN",
         yieldInfo: isStock ? "Auto-Compound Yield" : "50% Fee Stream",
@@ -223,7 +219,7 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
                 marginTop: 10,
               }}
             >
-              {`Instant 24/5 liquidity for ${TOKENIZED_STOCKS_LABEL} tokenized US stocks ($NVDA, $AAPL, $TSLA). Auto-compounding vaults on Beefy & Aerodrome (up to 1,070% APY), 3-mode B20 launchpad with 50% creator fee share, and smart multi-DEX routing.`}
+              {`Instant 24/5 liquidity for ${TOKENIZED_STOCKS_LABEL} tokenized US stocks ($NVDA, $AAPL, $TSLA). Vaults on Beefy & Aerodrome, 3-mode B20 launchpad with 50% creator fee share, and smart multi-DEX routing.`}
             </span>
 
             {/* 2x2 High-Tech Feature Grid */}
@@ -277,7 +273,7 @@ export function renderAppThumbnail(trending?: OgTrendingToken[]) {
                       Beefy &amp; Aero Vaults
                     </span>
                     <span style={{ color: "#34D399", fontSize: 9.5, fontWeight: 700 }}>
-                      Auto-Compound up to 1,070% APY
+                      Rates change; deposits can lose value
                     </span>
                   </div>
                 </div>
