@@ -4,7 +4,7 @@ import { orderBookAbi } from "@/limit-orders/shared/abi";
 import { getLimitOrdersConfig } from "@/src/config/limitOrders";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { getReadyRedis } from "@/lib/redis-cache";
-import type { RulesDeps, StoredRules } from "./rules-service";
+import type { RulesDeps, StoredHold, StoredRules } from "./rules-service";
 
 const ZERO = /^0x0{40}$/i;
 const KEY_TTL_SEC = 400 * 24 * 3600;
@@ -33,6 +33,21 @@ export async function readStored(chainId: number, planId: string): Promise<Store
   }
 }
 
+export const holdKey = (chainId: number, owner: string) => `planhold:v1:${chainId}:${owner.toLowerCase()}`;
+
+/** The owner's hold, if it has not run out yet. */
+export async function readHold(chainId: number, owner: string): Promise<StoredHold | null> {
+  const redis = await getReadyRedis();
+  if (!redis) return null;
+  try {
+    const raw = await redis.get(holdKey(chainId, owner));
+    const h = raw ? (JSON.parse(raw) as StoredHold) : null;
+    return h && h.until > Math.floor(Date.now() / 1000) ? h : null;
+  } catch {
+    return null;
+  }
+}
+
 export const realDeps: RulesDeps = {
   nowSec: () => Math.floor(Date.now() / 1000),
   orderBookFor,
@@ -55,6 +70,18 @@ export const realDeps: RulesDeps = {
     }
   },
   load: readStored,
+  loadHold: readHold,
+  async saveHold(chainId, owner, hold) {
+    const redis = await getReadyRedis();
+    if (!redis) return false;
+    try {
+      const ttl = Math.max(60, hold.until - Math.floor(Date.now() / 1000) + 60);
+      await redis.set(holdKey(chainId, owner), JSON.stringify(hold), "EX", ttl);
+      return (await redis.exists(holdKey(chainId, owner))) === 1;
+    } catch {
+      return false;
+    }
+  },
   async save(chainId, planId, entry) {
     const redis = await getReadyRedis();
     if (!redis) return false;

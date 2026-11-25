@@ -22,6 +22,7 @@ import {
 import type { useLimitOrders, MarketState } from "@/src/lib/limitOrders/useLimitOrders";
 import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyPlansPanel from "./MyPlansPanel";
+import HoldFirstBuyToggle from "./HoldFirstBuyToggle";
 
 const INTERVAL_PRESETS = [
   { label: "1 hour", seconds: 3600 },
@@ -67,6 +68,7 @@ export default function RecurringView({
   const [intervalSec, setIntervalSec] = useState(86400); // 1 day
   const [customIntervalHours, setCustomIntervalHours] = useState("");
   const [priceCeilingInput, setPriceCeilingInput] = useState("");
+  const [holdFirst, setHoldFirst] = useState(false);
 
   // Keep selectedStock valid across chain switches (e.g. Sepolia vs Mainnet)
   useEffect(() => {
@@ -147,6 +149,7 @@ export default function RecurringView({
   const handleStartDca = async () => {
     if (validationError || !parsedAmountPerBuy || !activeMarket) return;
     const maxPriceVal = parsedPriceCeiling !== null ? parsedPriceCeiling : 0n;
+    if (holdFirst && !(await limitOrders.holdNewPlans())) return;
     const hash = await createDca({
       stockToken: activeMarket.stockToken,
       amountPerBuy: parsedAmountPerBuy,
@@ -500,6 +503,8 @@ export default function RecurringView({
 
         {/* Submit Actions */}
         <div>
+          {walletAddress && !regionRestricted && !paused && <HoldFirstBuyToggle checked={holdFirst} onChange={setHoldFirst} disabled={txSubmitting} />}
+
           {!walletAddress ? (
             <button
               type="button"

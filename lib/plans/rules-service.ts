@@ -1,4 +1,4 @@
-import { validateRules, rulesMessage, type PlanRules } from "@/limit-orders/shared/planRules";
+import { validateRules, rulesMessage, holdMessage, MAX_HOLD_SEC, type PlanHold, type PlanRules } from "@/limit-orders/shared/planRules";
 
 export const MAX_SIGNATURE_AGE_SEC = 10 * 60;
 const PLAN_OPEN = 1;
@@ -19,6 +19,13 @@ export interface RulesDeps {
   verify: (a: { chainId: number; address: string; message: string; signature: string }) => Promise<boolean>;
   load: (chainId: number, planId: string) => Promise<StoredRules | null>;
   save: (chainId: number, planId: string, entry: StoredRules) => Promise<boolean>;
+  loadHold: (chainId: number, owner: string) => Promise<StoredHold | null>;
+  /** Stores a hold until it runs out. */
+  saveHold: (chainId: number, owner: string, hold: StoredHold) => Promise<boolean>;
+}
+
+export interface StoredHold extends PlanHold {
+  signature: string;
 }
 
 export type SubmitResult = { ok: true; rules: PlanRules | null } | { ok: false; status: number; error: string };
@@ -83,4 +90,42 @@ export async function entryIsAuthentic(
   if (e.signer.toLowerCase() !== ctx.owner.toLowerCase()) return false;
   const message = rulesMessage({ chainId: ctx.chainId, orderBook: ctx.orderBook, planId: ctx.planId, rules: e.rules, issuedAt: e.issuedAt });
   return verify({ chainId: ctx.chainId, address: ctx.owner, message, signature: e.signature });
+}
+
+export type HoldResult = { ok: true; from: string; until: number } | { ok: false; status: number; error: string };
+
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+/**
+ * Accept a "wait before the first buy" hold only if the owner it names signed exactly this text,
+ * recently, with an end no more than an hour away, and newer than any hold already stored.
+ */
+export async function submitHold(body: unknown, deps: RulesDeps): Promise<HoldResult> {
+  if (typeof body !== "object" || body === null) return { ok: false, status: 400, error: "Invalid request." };
+  const b = body as Record<string, unknown>;
+  const { chainId, owner, from, until, issuedAt, signature } = b;
+
+  if (typeof chainId !== "number" || !Number.isInteger(chainId)) return { ok: false, status: 400, error: "Unsupported network." };
+  const orderBook = deps.orderBookFor(chainId);
+  if (!orderBook) return { ok: false, status: 400, error: "Unsupported network." };
+  if (typeof owner !== "string" || !ADDRESS_RE.test(owner)) return { ok: false, status: 400, error: "Invalid wallet." };
+  if (typeof from !== "string" || !PLAN_RE.test(from)) return { ok: false, status: 400, error: "Invalid plan." };
+  if (typeof issuedAt !== "number" || !Number.isInteger(issuedAt) || typeof until !== "number" || !Number.isInteger(until)) {
+    return { ok: false, status: 400, error: "Invalid time." };
+  }
+  if (typeof signature !== "string" || !SIG_RE.test(signature)) return { ok: false, status: 400, error: "Invalid signature." };
+
+  const now = deps.nowSec();
+  if (Math.abs(now - issuedAt) > MAX_SIGNATURE_AGE_SEC) return { ok: false, status: 400, error: "The signature is too old or its clock is off. Sign again." };
+  if (until <= now || until <= issuedAt || until - issuedAt > MAX_HOLD_SEC) return { ok: false, status: 400, error: "A hold must end within an hour." };
+
+  const message = holdMessage({ chainId, orderBook, owner, from, until, issuedAt });
+  if (!(await deps.verify({ chainId, address: owner, message, signature }))) return { ok: false, status: 401, error: "The signature does not match the wallet." };
+
+  const existing = await deps.loadHold(chainId, owner);
+  if (existing && existing.issuedAt >= issuedAt) return { ok: false, status: 409, error: "A newer request was already saved. Sign again." };
+
+  const saved = await deps.saveHold(chainId, owner, { from, until, issuedAt, signature });
+  if (!saved) return { ok: false, status: 503, error: "Could not save that right now. Try again." };
+  return { ok: true, from, until };
 }

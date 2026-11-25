@@ -165,3 +165,41 @@ export function rulesMessage(a: { chainId: number; orderBook: string; planId: st
     `Issued: ${a.issuedAt}`,
   ].join("\n");
 }
+
+// --- First-buy hold -------------------------------------------------------------------------------
+// A new plan is due the moment it is created, before its owner can save rules for it. Before creating
+// plans, the owner can sign a short hold: "do not run plans of mine with this id or higher until I have
+// chosen rules, or until this time". It only delays, and it runs out by itself.
+
+/** A hold can never be longer than this, whatever was signed. */
+export const MAX_HOLD_SEC = 3600;
+export const DEFAULT_HOLD_SEC = 30 * 60;
+
+export interface PlanHold {
+  /** First plan id the hold covers (the contract's next plan id when it was signed). */
+  from: string;
+  /** Unix seconds when the hold runs out. */
+  until: number;
+  /** Unix seconds when it was signed. */
+  issuedAt: number;
+}
+
+export function holdCovers(h: PlanHold, planId: string, nowSec: number): boolean {
+  if (!/^[1-9]\d{0,11}$/.test(h.from) || !/^[1-9]\d{0,11}$/.test(planId)) return false;
+  if (!(h.until > nowSec) || !(h.until - h.issuedAt <= MAX_HOLD_SEC)) return false;
+  return BigInt(planId) >= BigInt(h.from);
+}
+
+/** The exact text the owner signs for a hold. */
+export function holdMessage(a: { chainId: number; orderBook: string; owner: string; from: string; until: number; issuedAt: number }): string {
+  return [
+    "Base Analytics: wait before the first buy",
+    "Do not run the recurring plans I create now until I have chosen their rules. This only delays runs and ends by itself.",
+    `Chain: ${a.chainId}`,
+    `Order book: ${a.orderBook.toLowerCase()}`,
+    `Owner: ${a.owner.toLowerCase()}`,
+    `Plans from: ${a.from}`,
+    `Ends: ${a.until}`,
+    `Issued: ${a.issuedAt}`,
+  ].join("\n");
+}

@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { privateKeyToAccount } from "viem/accounts";
 import { verifyMessage } from "viem";
 import { rulesMessage, type PlanRules } from "@/limit-orders/shared/planRules";
-import type { RulesDeps, StoredRules } from "@/lib/plans/rules-service";
+import type { RulesDeps, StoredHold, StoredRules } from "@/lib/plans/rules-service";
+import { saveFirstBuyHold } from "@/lib/plans/hold-client";
 
 const owner = privateKeyToAccount(("0x" + "33".repeat(32)) as `0x${string}`);
 const BOOK = "0x080D52b060A467aE63d7d2cC7178dc6B1A3DB29D";
 const store = new Map<string, StoredRules>();
+const holds = new Map<string, StoredHold>();
 
 vi.mock("@/lib/api/rate-limit", () => ({ limitByIp: async () => null }));
 vi.mock("@/lib/plans/rules-deps", () => {
@@ -17,8 +19,10 @@ vi.mock("@/lib/plans/rules-deps", () => {
     verify: async ({ address, message, signature }) => verifyMessage({ address: address as `0x${string}`, message, signature: signature as `0x${string}` }),
     load: async (c, id) => store.get(`${c}:${id}`) ?? null,
     save: async (c, id, e) => (store.set(`${c}:${id}`, e), true),
+    loadHold: async (c, o) => holds.get(`${c}:${o.toLowerCase()}`) ?? null,
+    saveHold: async (c, o, h) => (holds.set(`${c}:${o.toLowerCase()}`, h), true),
   };
-  return { realDeps: deps, orderBookFor: deps.orderBookFor, readStored: deps.load };
+  return { realDeps: deps, orderBookFor: deps.orderBookFor, readStored: deps.load, readHold: deps.loadHold };
 });
 
 const TOKEN = "k".repeat(32);
@@ -40,6 +44,7 @@ async function goodBody(r: PlanRules | null = rules, issuedAt = Math.floor(Date.
 describe("/api/plans/rules", () => {
   beforeEach(() => {
     store.clear();
+    holds.clear();
     process.env.KEEPER_RULES_TOKEN = TOKEN;
   });
   afterEach(() => {
@@ -92,5 +97,52 @@ describe("/api/plans/rules", () => {
     expect((await get("chainId=8453&ids=", `Bearer ${TOKEN}`)).status).toBe(400);
     const many = Array.from({ length: 201 }, (_, i) => i + 1).join(",");
     expect((await get(`chainId=8453&ids=${many}`, `Bearer ${TOKEN}`)).status).toBe(400);
+  });
+});
+
+describe("/api/plans/hold with the browser helper", () => {
+  beforeEach(() => {
+    holds.clear();
+    store.clear();
+    process.env.KEEPER_RULES_TOKEN = TOKEN;
+  });
+  afterEach(() => {
+    delete process.env.KEEPER_RULES_TOKEN;
+  });
+
+  /** Routes the helper's fetch calls to the real handlers. */
+  const viaRoutes: typeof fetch = async (input, init) => {
+    const { GET, POST } = await import("@/app/api/plans/hold/route");
+    const req = new Request(`http://x${String(input)}`, init);
+    return init?.method === "POST" ? POST(req) : GET(req);
+  };
+  const call = (nextPlanId: bigint, nowSec = Math.floor(Date.now() / 1000)) =>
+    saveFirstBuyHold({ chainId: 8453, orderBook: BOOK, owner: owner.address, nextPlanId, sign: (message) => owner.signMessage({ message }), fetchImpl: viaRoutes, nowSec });
+
+  it("what the browser signs is what the server accepts, and the keeper can read it with the token", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    expect(await call(7n, now)).toEqual({ from: "7", until: now + 1800 });
+    const res = await get(`chainId=8453&ids=7&owners=${owner.address}`, `Bearer ${TOKEN}`);
+    const j = await res.json();
+    expect(j.holds[owner.address.toLowerCase()]).toMatchObject({ from: "7" });
+    expect(j.holds[owner.address.toLowerCase()].signature).toMatch(/^0x/);
+  });
+
+  it("a second hold keeps covering the earlier plans", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    await call(7n, now - 5);
+    expect((await call(12n, now)).from).toBe("7");
+  });
+
+  it("reports the server's reason when it refuses", async () => {
+    await expect(
+      saveFirstBuyHold({ chainId: 8453, orderBook: BOOK, owner: owner.address, nextPlanId: 7n, sign: (message) => privateKeyToAccount(`0x${"44".repeat(32)}`).signMessage({ message }), fetchImpl: viaRoutes })
+    ).rejects.toThrow(/does not match/);
+  });
+
+  it("holds are only in the keeper read with the token, and bad owners are refused", async () => {
+    await call(7n);
+    expect((await get(`chainId=8453&ids=7&owners=${owner.address}`)).status).toBe(401);
+    expect((await get("chainId=8453&ids=7&owners=abc", `Bearer ${TOKEN}`)).status).toBe(400);
   });
 });

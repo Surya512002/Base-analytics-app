@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   type Address,
+  createPublicClient,
   encodeFunctionData,
+  http,
   parseAbi,
 } from "viem";
+import { baseSepolia } from "viem/chains";
 import { useAccount, useChainId } from "wagmi";
 import { orderBookAbi } from "./abi";
 import {
@@ -37,6 +40,7 @@ import type { OnChainOrder, OnChainPlan, GroupedOrderItem } from "./types";
 import { groupOrders } from "./bracketGrouping";
 import { mapOrderError } from "./errorMapper";
 import { signMessageWithWallet } from "@/lib/auth/siwe-client";
+import { saveFirstBuyHold } from "@/lib/plans/hold-client";
 
 const ERC20_ABI = parseAbi([
   "function balanceOf(address account) external view returns (uint256)",
@@ -930,6 +934,28 @@ export function useLimitOrders(app: WalletAppState) {
     [walletAddress, app.connType]
   );
 
+  /**
+   * Ask the keeper to wait before the first run of plans about to be created, so their rules can be set
+   * first. One signed message, no gas. Returns false (and says why) if it could not be saved.
+   */
+  const holdNewPlans = useCallback(async (): Promise<boolean> => {
+    if (!walletAddress || !config.orderBook || !app.connType) return false;
+    try {
+      setTxSubmitting(true);
+      const chain = chainId === 84532 ? 84532 : 8453;
+      const client = chain === 84532 ? createPublicClient({ chain: baseSepolia, transport: http() }) : publicClient;
+      const nextPlanId = (await client.readContract({ address: config.orderBook, abi: orderBookAbi, functionName: "nextPlanId" })) as bigint;
+      await saveFirstBuyHold({ chainId: chain, orderBook: config.orderBook, owner: walletAddress, nextPlanId, sign: signMessage });
+      return true;
+    } catch (err) {
+      const m = err instanceof Error ? err.message.split("\n")[0] : "";
+      app.showToast(/reject|denied|cancel/i.test(m) ? "Signing was cancelled. No plan was created." : `${m || "Could not save that request."} No plan was created.`, "");
+      return false;
+    } finally {
+      setTxSubmitting(false);
+    }
+  }, [app, chainId, config.orderBook, publicClient, signMessage, walletAddress]);
+
   const cancelDca = useCallback(
     async (id: bigint) => {
       if (!walletAddress || !config.orderBook || !app.connType) return false;
@@ -988,6 +1014,7 @@ export function useLimitOrders(app: WalletAppState) {
     createDca,
     createDcaSell,
     signMessage,
+    holdNewPlans,
     placeOrderBatch,
     placeBuyWithExits,
     cancelOrdersBatch,

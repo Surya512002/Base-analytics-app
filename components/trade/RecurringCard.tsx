@@ -13,6 +13,7 @@ import {
   validateDcaSell,
 } from "@/src/lib/limitOrders/orderMath";
 import { FREQUENCIES, distancePct, formatDuration, movePrice, planSchedule } from "@/lib/trade/safety";
+import HoldFirstBuyToggle from "@/components/swap/orders/HoldFirstBuyToggle";
 import MyPlansPanel from "@/components/swap/orders/MyPlansPanel";
 import { formatPrice } from "./CandleChart";
 
@@ -60,6 +61,7 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
   const [freq, setFreq] = useState<number>(FREQUENCIES[1].seconds);
   const [customHours, setCustomHours] = useState("");
   const [guardPct, setGuardPct] = useState(0);
+  const [holdFirst, setHoldFirst] = useState(false);
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
@@ -137,6 +139,7 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
   const submit = async () => {
     if (error || !perRun || !market) return;
     const stockToken = market.stockToken as Address;
+    if (holdFirst && !(await limitOrders.holdNewPlans())) return;
     const hash = isSell
       ? await createDcaSell({ stockToken, amountPerSell: perRun, sells: runCount, interval: intervalSec, minPrice: guardPrice ?? 0n })
       : await createDca({ stockToken, amountPerBuy: perRun, buys: runCount, interval: intervalSec, maxPrice: guardPrice ?? 0n });
@@ -270,6 +273,8 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
             <li key={t} className="flex gap-1.5"><ShieldCheck size={13} className="mt-px shrink-0 text-emerald-500" />{t}</li>
           ))}
         </ul>
+
+        {walletAddress && !blocked && <HoldFirstBuyToggle checked={holdFirst} onChange={setHoldFirst} disabled={txSubmitting} />}
 
         {!walletAddress ? (
           <button type="button" onClick={onConnectWallet} className="min-h-[48px] w-full rounded-xl bg-[var(--brand)] text-sm font-bold text-white hover:bg-[var(--brand-hover)]">Connect wallet</button>
