@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownUp,
   CheckCircle2,
@@ -52,6 +52,7 @@ import {
   formatTokenInputAmount,
   sanitizeTokenAmountInput,
 } from "@/lib/launchpad/token-amount";
+import { floorFor, rememberQuote, type ShownQuote } from "@/lib/swap/price-guard";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -168,6 +169,7 @@ export default function TokenSwapPanel({
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  const shownQuote = useRef<ShownQuote | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
   const [hasPool, setHasPool] = useState<boolean | null>(null);
@@ -463,6 +465,9 @@ export default function TokenSwapPanel({
       }
       const outDec =
         q.outDecimals ?? (direction === "buy" ? tokenDecimals : counterDecimals);
+      shownQuote.current = q.hasLiquidity
+        ? rememberQuote([token.address, direction, quoteAmount, slippage, dex, counterAssetParam, counterTokenParam].join("|"), q.amountOutMinimum)
+        : null;
       if (q.hasLiquidity && q.amountOut) {
         setQuoteOut(formatQuoteOut(q.amountOut, outDec));
         setMinReceive(
@@ -655,6 +660,10 @@ export default function TokenSwapPanel({
       receiveAsset: direction === "sell" ? counterAssetParam : "eth",
       payToken: direction === "buy" ? counterTokenParam : null,
       receiveToken: direction === "sell" ? counterTokenParam : null,
+      floorOut: floorFor(
+        shownQuote.current,
+        [token.address, direction, sanitizeTokenAmountInput(amount, quoteAmountDecimals), slippage, dex, counterAssetParam, counterTokenParam].join("|")
+      ),
     });
     if (ok) {
       resetAmount(direction);

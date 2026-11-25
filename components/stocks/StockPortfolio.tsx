@@ -20,6 +20,7 @@ import {
 } from "@/lib/stocks/portfolio-math";
 import type { AssetMarketRow } from "@/components/lending/MarketsTable";
 import { signedPct, useStockReturns } from "@/hooks/useStockReturns";
+import { MAX_UNATTENDED_SHORTFALL_PCT, fairFloor } from "@/lib/swap/price-guard";
 
 type SwapRunner = (args: {
   token: string;
@@ -31,9 +32,11 @@ type SwapRunner = (args: {
   payAsset?: "eth" | "usdc" | "token";
   receiveAsset?: "eth" | "usdc" | "token";
   counterDecimals?: number;
+  floorOut?: bigint;
+  floorMessage?: string;
 }) => Promise<boolean>;
 
-type RunStep = { kind: "sell" | "buy"; symbol: string; usd: number; token: `0x${string}`; decimals: number; amount: string };
+type RunStep = { kind: "sell" | "buy"; symbol: string; usd: number; token: `0x${string}`; decimals: number; amount: string; priceUsd: number | null };
 
 const SLIPPAGE_BPS = 100;
 /** With no extra cash the buys are paid by the sells, so keep 1% back for fees and price movement. */
@@ -158,7 +161,7 @@ export default function StockPortfolio({
       if (!h || !h.price || h.price <= 0) continue;
       const qty = Math.min(h.balance, l.usd / h.price);
       if (!(qty > 0)) continue;
-      out.push({ kind: "sell", symbol: l.symbol, usd: l.usd, token: h.address, decimals: h.decimals, amount: qty.toFixed(Math.min(h.decimals, 8)) });
+      out.push({ kind: "sell", symbol: l.symbol, usd: l.usd, token: h.address, decimals: h.decimals, amount: qty.toFixed(Math.min(h.decimals, 8)), priceUsd: h.price });
     }
     const headroom = extraCash > 0 ? 1 : BUY_HEADROOM;
     for (const l of plan.buys) {
@@ -166,10 +169,11 @@ export default function StockPortfolio({
       if (!st) continue;
       const amt = Math.floor(l.usd * headroom * 100) / 100;
       if (amt < 1) continue;
-      out.push({ kind: "buy", symbol: l.symbol, usd: amt, token: st.address, decimals: 8, amount: amt.toFixed(2) });
+      const h = held.find((x) => x.symbol === l.symbol);
+      out.push({ kind: "buy", symbol: l.symbol, usd: amt, token: st.address, decimals: h?.decimals ?? 8, amount: amt.toFixed(2), priceUsd: rowBySymbol.get(l.symbol)?.priceUsd ?? h?.price ?? null });
     }
     return out;
-  }, [plan, held, official, extraCash]);
+  }, [plan, held, official, extraCash, rowBySymbol]);
 
   const runAll = async () => {
     if (!onSwap || run) return;
@@ -178,6 +182,14 @@ export default function StockPortfolio({
     for (let i = 0; i < steps.length; i++) {
       const st = steps[i];
       setRun({ index: i + 1, total: steps.length, label: `${st.kind === "sell" ? "Sell" : "Buy"} ${st.symbol}` });
+      // No preview here, so the swap must come within a few percent of the market price or it is not sent.
+      const floorOut = fairFloor({ side: st.kind, amountIn: Number(st.amount), priceUsd: st.priceUsd, outDecimals: st.kind === "sell" ? 6 : st.decimals });
+      if (floorOut === null) {
+        setRun(null);
+        setResult(`Stopped at step ${i + 1} of ${steps.length}: there is no market price for ${st.symbol} to check the trade against. ${i} step${i === 1 ? "" : "s"} done. Nothing else was traded.`);
+        void holdings.refresh?.();
+        return;
+      }
       const ok = await onSwap({
         token: st.token,
         symbol: st.symbol,
@@ -188,6 +200,8 @@ export default function StockPortfolio({
         payAsset: st.kind === "buy" ? "usdc" : "eth",
         receiveAsset: st.kind === "sell" ? "usdc" : "eth",
         counterDecimals: 6,
+        floorOut,
+        floorMessage: `${st.symbol}: this trade would get you more than ${MAX_UNATTENDED_SHORTFALL_PCT}% less than the market price, so it was not sent. Check it on the Swap page.`,
       });
       if (!ok) {
         setRun(null);
@@ -470,7 +484,7 @@ export default function StockPortfolio({
                       </li>
                     ))}
                   </ul>
-                  <p className="text-[11px] text-[var(--ink-muted)]">Not one single transaction: if one fails, it stops and the rest stay untraded. Prices can move between steps.</p>
+                  <p className="text-[11px] text-[var(--ink-muted)]">Not one single transaction: if one fails, it stops and the rest stay untraded. Prices can move between steps. A trade that would get you more than {MAX_UNATTENDED_SHORTFALL_PCT}% less than the market price is not sent.</p>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => void runAll()} className="min-h-[40px] flex-1 rounded-xl bg-[var(--brand)] text-sm font-bold text-white">
                       Confirm and start

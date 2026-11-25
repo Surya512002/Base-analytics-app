@@ -56,6 +56,7 @@ import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registr
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
+import { floorFor, rememberQuote, type ShownQuote } from "@/lib/swap/price-guard";
 
 const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "auto", label: "Auto Best" },
@@ -147,6 +148,8 @@ export default function DexSwapCard({
   // Quote State
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  // The minimum behind the numbers on screen, so the send cannot be worse than what was reviewed.
+  const shownQuote = useRef<ShownQuote | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -451,6 +454,9 @@ export default function DexSwapCard({
 
         const outDec =
           q.outDecimals ?? (route.direction === "buy" ? pageDecimals : route.counterDecimals);
+        shownQuote.current = q.hasLiquidity
+          ? rememberQuote([route.pageToken.address, route.direction, quoteAmount, slippage, dex, route.payAsset, route.receiveAsset, route.payToken, route.receiveToken].join("|"), q.amountOutMinimum)
+          : null;
         if (q.hasLiquidity && q.amountOut) {
           setQuoteOut(formatTokenAmount(q.amountOut, outDec));
           setMinReceive(
@@ -710,6 +716,10 @@ export default function DexSwapCard({
       receiveAsset: route.receiveAsset,
       payToken: route.payToken,
       receiveToken: route.receiveToken,
+      floorOut: floorFor(
+        shownQuote.current,
+        [route.pageToken.address, route.direction, sanitizeTokenAmountInput(amount, quoteAmountDecimals), slippage, dex, route.payAsset, route.receiveAsset, route.payToken, route.receiveToken].join("|")
+      ),
     });
 
     if (ok) {
