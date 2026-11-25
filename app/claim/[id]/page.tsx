@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import GiftClaimStage from "@/components/voucher/GiftClaimStage";
 import { EligibilityChecklist, OwnershipTerms, SenderIdentity } from "@/components/voucher/CampaignTrust";
 import AppLogo from "@/components/ui/AppLogo";
+import SafetyNote from "@/components/ui/SafetyNote";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
 import type { CampaignPublicView } from "@/lib/voucher/campaign-server";
 
@@ -93,6 +94,7 @@ function ClaimLanding({ id }: { id: string }) {
           <Link href="/?tab=basehub" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--ink-muted)] hover:text-[var(--ink)]">
             Send your own gift <ArrowRight size={12} />
           </Link>
+          <SafetyNote />
         </div>
       </div>
     </div>

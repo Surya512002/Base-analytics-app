@@ -21,6 +21,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { parseUnits, parseEther, encodeFunctionData } from "viem";
 import AppLogo from "@/components/ui/AppLogo";
+import SafetyNote from "@/components/ui/SafetyNote";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import { APP_URL_WEB } from "@/lib/constants/env";
 import { useWalletApp } from "@/hooks/useWalletApp";
@@ -417,6 +418,13 @@ export default function PayLinkPage() {
               </div>
             </div>
 
+            {!isSelf && (
+              <p role="note" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-[var(--ink)]">
+                <strong>Check who you are paying.</strong> Anyone can make a page like this for their own wallet, and
+                Base Analytics has not verified this person. Payments cannot be reversed.
+              </p>
+            )}
+
             {/* Pay Action Button */}
             {isSelf ? (
               <div className="space-y-2">
@@ -577,6 +585,7 @@ export default function PayLinkPage() {
             ← Back to Base Analytics App
           </Link>
         </p>
+        <SafetyNote className="text-center" />
       </div>
 
       <ConnectWalletModal

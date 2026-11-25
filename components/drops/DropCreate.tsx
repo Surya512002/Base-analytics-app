@@ -545,7 +545,7 @@ export default function DropCreate({
             </button>
           </div>
           {done.listed && <Notice tone="ok">Listed in Explore — people can find it there.</Notice>}
-          <Notice>Links are saved in this browser and in your private backup if it&apos;s on (My Cards → Recovery &amp; backup). Lost one? Make a new link from My drops.</Notice>
+          <Notice>Links are saved in this browser and in your private backup if it&apos;s on (My Cards → Private backup). Lost one? Make a new link from My drops.</Notice>
         </div>
       </section>
     );
