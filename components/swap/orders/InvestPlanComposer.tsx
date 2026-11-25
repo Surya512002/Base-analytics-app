@@ -85,9 +85,10 @@ export default function InvestPlanComposer({
   const rowsKey = JSON.stringify(rows);
   const dip = dipOn ? { sharePct: Number(dipShare), belowPct: Number(dipBelow) } : null;
   const composed = useMemo(
-    () => composeBasketPlan({ stocks, budget: budgetUnits, buys, intervalSec: freq, balance: quoteBalance, dip }),
+    // Without a wallet there is no balance to check yet: the preview is for trying the numbers.
+    () => composeBasketPlan({ stocks, budget: budgetUnits, buys, intervalSec: freq, balance: walletAddress ? quoteBalance : budgetUnits, dip }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rowsKey, budgetUnits, buys, freq, quoteBalance, marketStates, dipOn, dipShare, dipBelow]
+    [rowsKey, budgetUnits, buys, freq, walletAddress, quoteBalance, marketStates, dipOn, dipShare, dipBelow]
   );
   const activePreset = PLAN_PRESETS.find(
     (p) => String(p.buys) === buysInput && p.intervalSec === freq && Boolean(p.dip) === dipOn && (!p.dip || (String(p.dip.sharePct) === dipShare && String(p.dip.belowPct) === dipBelow))
@@ -189,7 +190,7 @@ export default function InvestPlanComposer({
     setConfirming(false);
   };
 
-  if (!walletAddress) {
+  if (!walletAddress && configError) {
     return (
       <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center">
         <h3 className="text-base font-bold text-[var(--ink)]">Invest in several stocks over time</h3>
@@ -256,9 +257,11 @@ export default function InvestPlanComposer({
             <button type="button" disabled={locked || rows.length === 0} onClick={() => setWeights(equalWeights(rows.length))} className="min-h-[32px] rounded-full border border-[var(--border-subtle)] px-3 text-[11px] font-bold text-[var(--ink-muted)] disabled:opacity-40">
               Equal split
             </button>
-            <button type="button" disabled={locked} onClick={loadMix} className="min-h-[32px] rounded-full border border-[var(--border-subtle)] px-3 text-[11px] font-bold text-[var(--ink-muted)] disabled:opacity-40">
-              Use my target mix
-            </button>
+            {walletAddress && (
+              <button type="button" disabled={locked} onClick={loadMix} className="min-h-[32px] rounded-full border border-[var(--border-subtle)] px-3 text-[11px] font-bold text-[var(--ink-muted)] disabled:opacity-40">
+                Use my target mix
+              </button>
+            )}
           </div>
         </div>
         <ul className="space-y-1.5">
@@ -291,9 +294,9 @@ export default function InvestPlanComposer({
           })}
         </ul>
         {rows.length < MAX_BASKET_STOCKS && !locked && (
-          <label className="flex items-center gap-2 text-xs text-[var(--ink-muted)]">
-            <Plus size={13} />
-            <select aria-label="Add a stock" value="" onChange={(e) => addStock(e.target.value)} className={`${field} flex-1 text-xs`}>
+          <label className="flex min-w-0 items-center gap-2 text-xs text-[var(--ink-muted)]">
+            <Plus size={13} className="shrink-0" />
+            <select aria-label="Add a stock" value="" onChange={(e) => addStock(e.target.value)} className={`${field} w-full min-w-0 flex-1 text-xs`}>
               <option value="">Add a stock…</option>
               {unused.map((m) => (
                 <option key={m.stockToken} value={m.stockToken}>
@@ -309,7 +312,7 @@ export default function InvestPlanComposer({
         <label className="space-y-1 text-xs font-bold text-[var(--ink-soft)]">
           Total budget (USDC)
           <input inputMode="decimal" disabled={locked} value={budget} placeholder="100" onChange={(e) => setBudget(e.target.value.replace(/[^0-9.]/g, "").slice(0, 10))} className={`${field} w-full`} />
-          <span className="block text-[11px] font-normal text-[var(--ink-muted)]">Wallet: {usd(fromUnits(quoteBalance))}</span>
+          <span className="block text-[11px] font-normal text-[var(--ink-muted)]">{walletAddress ? `Wallet: ${usd(fromUnits(quoteBalance))}` : "Try any amount. Your balance is checked after you connect."}</span>
         </label>
         <label className="space-y-1 text-xs font-bold text-[var(--ink-soft)]">
           Number of buys (1 to 365)
@@ -380,7 +383,13 @@ export default function InvestPlanComposer({
 
       {message && <p role="status" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--ink)]">{message}</p>}
 
-      {composed.ok && remaining.length > 0 && !blocked && (
+      {!walletAddress && onConnectWallet && (
+        <button type="button" onClick={onConnectWallet} className="min-h-[46px] w-full rounded-xl bg-[var(--brand)] text-sm font-bold text-white">
+          Connect wallet to start this plan
+        </button>
+      )}
+
+      {walletAddress && composed.ok && remaining.length > 0 && !blocked && (
         <div className="space-y-2">
           <HoldFirstBuyToggle checked={holdFirst} onChange={setHoldFirst} disabled={running} />
           {needsApproval ? (
@@ -414,7 +423,9 @@ export default function InvestPlanComposer({
         <button type="button" onClick={reset} className="text-xs font-bold text-[var(--ink-muted)] underline">Start a new basket plan</button>
       )}
 
-      <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={config.quoteToken.symbol} quoteDecimals={config.quoteToken.decimals} onCancelPlan={cancelDca} isSubmitting={txSubmitting} rulesCtx={walletAddress ? { chainId, orderBook: config.orderBook, owner: walletAddress, sign: limitOrders.signMessage } : null} />
+      {walletAddress && (
+        <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={config.quoteToken.symbol} quoteDecimals={config.quoteToken.decimals} onCancelPlan={cancelDca} isSubmitting={txSubmitting} rulesCtx={{ chainId, orderBook: config.orderBook, owner: walletAddress, sign: limitOrders.signMessage }} />
+      )}
     </div>
   );
 }

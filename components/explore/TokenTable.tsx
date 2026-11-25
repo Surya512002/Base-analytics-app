@@ -19,6 +19,7 @@ import {
   isExtremeMove,
 } from "@/lib/explore/explore-config";
 import TokenCard from "./TokenCard";
+import TokenRow from "./TokenRow";
 import { BuySellBar } from "./LiveMarketMap";
 import TokenAvatar from "@/components/ui/TokenAvatar";
 import TokenSparkline from "@/components/ui/TokenSparkline";
@@ -345,19 +346,18 @@ export default function TokenTable({
         </table>
       </div>
 
-      {/* Mobile Card List Fallback */}
-      <div className="grid grid-cols-1 gap-3 md:hidden">
+      {/* Phones: one line per token (the grid view still shows full cards) */}
+      <ul className="divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] md:hidden">
         {tokens.map((token) => (
-          <TokenCard
+          <TokenRow
             key={token.id}
             token={token}
             onTrade={onTradeToken}
             onSelect={onSelectToken}
-            onToggleWatch={onToggleWatch}
             isWatched={watchlist.includes(token.address.toLowerCase())}
           />
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

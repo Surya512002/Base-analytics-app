@@ -36,6 +36,10 @@ const BaseVoucherTab = dynamic(
   () => import("@/components/wallet/tabs/BaseVoucherTab"),
   { loading: () => <TabSkeleton /> }
 );
+const VoucherGuestView = dynamic(
+  () => import("@/components/voucher/VoucherGuestView"),
+  { loading: () => <TabSkeleton /> }
+);
 const DropsTab = dynamic(
   () => import("@/components/drops/DropsTab"),
   { loading: () => <TabSkeleton /> }
@@ -240,7 +244,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
               onRequestConnect={openConnect}
             />
           )}
-          {!guest && activeTab === "basehub" && <BaseVoucherTab app={app} />}
+          {activeTab === "basehub" && (guest ? <VoucherGuestView onConnect={openConnect} /> : <BaseVoucherTab app={app} />)}
           {activeTab === "drops" && <DropsTab app={app} guestMode={guest} onRequestConnect={openConnect} />}
         </div>
 
