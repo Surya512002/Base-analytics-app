@@ -5,8 +5,6 @@ import { Search, Command } from "lucide-react";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
 import SpotlightCarousel from "./SpotlightCarousel";
 import PageHero from "@/components/ui/PageHero";
-import Link from "next/link";
-import { AUTO_INVEST_HREF } from "@/lib/constants/destinations";
 
 interface ExploreHeroProps {
   spotlightTokens: UnifiedToken[];
@@ -17,12 +15,6 @@ interface ExploreHeroProps {
   onSearchChange: (query: string) => void;
   onOpenCommandPalette: () => void;
 }
-
-const START = [
-  { href: "/trade", title: "Buy a stock", note: "Live chart and one-tap buy" },
-  { href: AUTO_INVEST_HREF, title: "Invest automatically", note: "A little every week or month" },
-  { href: "/lend", title: "Borrow or earn", note: "Put your stocks to work" },
-] as const;
 
 export default function ExploreHero({
   spotlightTokens,
@@ -45,17 +37,9 @@ export default function ExploreHero({
             <span className="text-[var(--brand-text)]">swap in seconds.</span>
           </>
         }
-        subtitle="Pick what you want to do, or search any token on Base."
+        subtitle="Search any stock or token on Base."
       >
         <div className="flex w-full flex-col items-start gap-3 sm:items-center">
-        <nav aria-label="Start here" className="grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-3">
-          {START.map((s) => (
-            <Link key={s.href} href={s.href} className="flex min-h-[64px] flex-col items-start justify-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 text-left shadow-xs transition hover:border-[var(--brand)]">
-              <span className="text-sm font-black text-[var(--ink)]">{s.title}</span>
-              <span className="text-[11px] text-[var(--ink-muted)]">{s.note}</span>
-            </Link>
-          ))}
-        </nav>
         <div className="flex gap-4 text-xs font-bold text-white/90">
           <button type="button" onClick={onBrowseTokens} className="min-h-[40px] cursor-pointer underline underline-offset-4">
             Browse tokens

@@ -3,101 +3,53 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Compass, ArrowLeftRight, Gift, User, Menu } from "lucide-react";
+import { CandlestickChart, Gift, Home, Menu, PieChart } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
+import { MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 
 interface MobileBottomNavProps {
   tab?: AppTab;
   onTabChange?: (t: AppTab) => void;
-  guest?: boolean;
-  onConnect?: () => void;
-  walletAddress?: string | null;
 }
 
-export default function MobileBottomNav({
-  tab,
-  onTabChange,
-  guest,
-  onConnect,
-  walletAddress,
-}: MobileBottomNavProps) {
+export default function MobileBottomNav({ tab, onTabChange }: MobileBottomNavProps) {
   const pathname = usePathname() || "";
-
-  // Determine active states for the tabs
-  const isProfile =
-    pathname === "/profile" ||
-    pathname.startsWith("/profile") ||
-    pathname.startsWith("/creator");
-
-  const isTrade =
-    !isProfile &&
-    (pathname === "/trade" ||
-      pathname.startsWith("/trade") ||
-      (pathname === "/" && tab === "trade"));
-
-  const isSwap =
-    !isProfile &&
-    (pathname === "/swap" ||
-      pathname.startsWith("/swap") ||
-      (pathname === "/" && tab === "swap"));
-
-  const isVouchers = !isProfile && pathname === "/" && tab === "basehub";
-
-  const isExplore =
-    !isProfile &&
-    (pathname === "/explore" ||
-      pathname.startsWith("/explore") ||
-      ((pathname === "/" || !pathname) && (tab === "launchpad" || !tab)));
-
-  const profileHref = walletAddress
-    ? `/creator/${walletAddress.toLowerCase()}`
-    : "/profile";
+  // Home, Vouchers and a few other screens share the "/" page and differ only by tab.
+  const onRoot = pathname === "/";
+  const under = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
 
   const tabs = [
     {
-      id: "trade",
-      label: "Trade",
-      href: "/trade",
-      icon: CandlestickChart,
-      active: isTrade,
-      tabId: "trade" as AppTab,
-      guestOk: true,
-    },
-    {
-      id: "explore",
-      label: "Explore",
-      href: "/explore",
-      icon: Compass,
-      active: isExplore,
+      id: "home",
+      label: "Home",
+      href: "/",
+      icon: Home,
+      active: onRoot && (!tab || tab === "launchpad"),
       tabId: "launchpad" as AppTab,
-      guestOk: true,
     },
     {
-      id: "swap",
-      label: "Swap",
-      href: "/swap",
-      icon: ArrowLeftRight,
-      active: isSwap,
-      tabId: "swap" as AppTab,
-      guestOk: true,
+      id: "stocks",
+      label: "Stocks",
+      href: STOCK_LIST_HREF,
+      icon: CandlestickChart,
+      active: under("/explore") || under("/trade") || (onRoot && tab === "trade"),
+      tabId: undefined,
+    },
+    {
+      id: "mystocks",
+      label: "My Stocks",
+      href: MY_STOCKS_HREF,
+      icon: PieChart,
+      active: under("/lend") || (onRoot && tab === "lend"),
+      tabId: undefined,
     },
     {
       id: "vouchers",
       label: "Vouchers",
       href: "/?tab=basehub",
       icon: Gift,
-      active: isVouchers,
+      active: onRoot && tab === "basehub",
       tabId: "basehub" as AppTab,
-      guestOk: true,
-    },
-    {
-      id: "profile",
-      label: "Profile",
-      href: profileHref,
-      icon: User,
-      active: isProfile,
-      tabId: undefined,
-      guestOk: true,
     },
   ];
 
@@ -110,30 +62,10 @@ export default function MobileBottomNav({
       <div className="flex w-full items-stretch justify-around gap-0.5 p-1.5">
         {tabs.map((item) => {
           const Icon = item.icon;
-          const locked = guest && !item.guestOk;
 
-          const handleClick = (e: React.MouseEvent) => {
-            if (item.id === "profile" && guest && !walletAddress && onConnect) {
-              onConnect();
-              return;
-            }
-            if (locked) {
-              e.preventDefault();
-              onConnect?.();
-              return;
-            }
-            // Guests simply follow the link, except to Vouchers: it lives on this same page, so the
-            // link alone would change the address without changing the screen.
-            if (
-              pathname === "/" &&
-              (!guest || item.id === "vouchers") &&
-              onTabChange &&
-              item.tabId &&
-              item.id !== "launch" &&
-              item.id !== "explore"
-            ) {
-              onTabChange(item.tabId);
-            }
+          const handleClick = () => {
+            // These live on this same page, so the link alone would change the address, not the screen.
+            if (onRoot && item.tabId) onTabChange?.(item.tabId);
           };
 
           return (
@@ -167,7 +99,7 @@ export default function MobileBottomNav({
             </Link>
           );
         })}
-        {/* Lend, Launch and Drops live in the menu; this opens it */}
+        {/* Everything else lives in the menu; this opens it */}
         <button
           type="button"
           aria-label="More"

@@ -48,7 +48,7 @@ export function hrefForAppTab(
     case "trade":
       return "/trade";
     case "launchpad":
-      return "/explore";
+      return "/";
     case "swap":
       return buildSwapLink({
         buy: opts?.buy ?? opts?.token,

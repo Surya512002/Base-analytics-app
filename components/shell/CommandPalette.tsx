@@ -21,7 +21,7 @@ import { shortAddr } from "@/lib/launchpad/format";
 import { APP_NAV } from "@/lib/nav/app-nav";
 import TokenLogo from "@/components/ui/TokenLogo";
 import { parseIntent, type ParsedIntent } from "@/lib/intent/intent-parser";
-import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
+import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 
 type CommandPaletteProps = {
   open: boolean;
@@ -93,6 +93,8 @@ export default function CommandPalette({
       label: n.label,
       hint: n.hint,
       icon: n.icon,
+      // "Explore" is its own page; the launchpad tab on "/" is now the home screen.
+      href: n.id === "launchpad" ? "/explore" : undefined,
     }));
     list.unshift(
       { id: "auto-invest", label: "Auto-invest", hint: "Buy stocks on a schedule, one or a whole basket", icon: TrendingUp, href: AUTO_INVEST_HREF },
@@ -111,6 +113,7 @@ export default function CommandPalette({
       label: "Tokenized Equities & RWAs",
       hint: "NVDAc, AAPLc, TSLAc 24/5 equity trading on Base",
       icon: TrendingUp,
+      href: STOCK_LIST_HREF,
     });
     list.push({
       id: "profile",
@@ -162,7 +165,8 @@ export default function CommandPalette({
       if (intent.href.startsWith("/")) {
         router.push(intent.href);
       }
-      onTabChange(intent.tab);
+      // "launchpad" now means home; the launch action already went to /launch above.
+      if (intent.tab !== "launchpad") onTabChange(intent.tab);
       onClose();
     },
     [router, onTabChange, onClose]
@@ -283,7 +287,6 @@ export default function CommandPalette({
                     key={t.address}
                     type="button"
                     onClick={() => {
-                      onTabChange("launchpad");
                       onOpenToken?.(t);
                       onClose();
                     }}

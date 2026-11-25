@@ -235,8 +235,7 @@ function useWalletAppController() {
           return;
         }
         if (path === "/" || path === "") {
-          const next = resolveTabFromUrl();
-          if (next) setTab(next);
+          setTab(resolveTabFromUrl() ?? "launchpad");
         }
       };
 
