@@ -167,7 +167,7 @@ export default function MyPlansPanel({
                     )}
                     {isOpen && isPausedByCeiling && (
                       <span className="flex items-center gap-1 text-[11px] text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full">
-                        <PauseCircle size={12} /> {p.isSell ? "Waiting for price floor" : "Paused by price ceiling"}
+                        <PauseCircle size={12} /> {p.isSell ? "Waiting for a higher price" : "Waiting for a lower price"}
                       </span>
                     )}
                     {isOpen && !isPausedByCeiling && (

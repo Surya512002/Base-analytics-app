@@ -255,6 +255,17 @@ async function main() {
   check("totals add up and are marked complete for all 7 plans", allComplete);
   check("average price matches the $100 market price plus the fee", allPriced);
 
+  // --- dip plan: an ordinary plan with a ceiling 5% under today's price ($100 -> $95) ---
+  await send(alice, book.address, book.abi, "createDca", [stock.address, parseUnits("100", 6), 3, 3600, P(95)]); // plan 8
+  await wait(6000);
+  const r8 = await remaining(8n);
+  check("a dip plan waits while the price is above its ceiling", r8 === 3, `remaining ${r8}`);
+  await send(deployer, adapter.address, adapter.abi, "setRate", [usdc.address, stock.address, 10n ** 20n, P(90)]);
+  await send(deployer, feed.address, feed.abi, "setAnswer", [P(90)]);
+  await wait(7000);
+  const r8b = await remaining(8n);
+  check("and buys once the price drops below it", r8b === 2, `remaining ${r8b}`);
+
   server.close();
   killAll();
   console.log(failures === 0 ? "\nALL PLAN-RULES E2E CHECKS PASSED" : `\n${failures} CHECK(S) FAILED\n--- keeper log ---\n${logs.join("").slice(-3000)}`);
