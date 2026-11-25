@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Compass, ArrowLeftRight, Sparkles, User, Menu } from "lucide-react";
+import { CandlestickChart, Compass, ArrowLeftRight, Gift, User, Menu } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface MobileBottomNavProps {
@@ -41,9 +41,7 @@ export default function MobileBottomNav({
       pathname.startsWith("/swap") ||
       (pathname === "/" && tab === "swap"));
 
-  const isDrops =
-    !isProfile &&
-    (pathname.startsWith("/drops") || (pathname === "/" && tab === "drops"));
+  const isVouchers = !isProfile && pathname === "/" && tab === "basehub";
 
   const isExplore =
     !isProfile &&
@@ -84,12 +82,12 @@ export default function MobileBottomNav({
       guestOk: true,
     },
     {
-      id: "drops",
-      label: "Drops",
-      href: "/drops",
-      icon: Sparkles,
-      active: isDrops,
-      tabId: "drops" as AppTab,
+      id: "vouchers",
+      label: "Vouchers",
+      href: "/?tab=basehub",
+      icon: Gift,
+      active: isVouchers,
+      tabId: "basehub" as AppTab,
       guestOk: true,
     },
     {
@@ -124,10 +122,11 @@ export default function MobileBottomNav({
               onConnect?.();
               return;
             }
-            // Guests simply follow the link; switching tabs in place would ask them to connect.
+            // Guests simply follow the link, except to Vouchers: it lives on this same page, so the
+            // link alone would change the address without changing the screen.
             if (
               pathname === "/" &&
-              !guest &&
+              (!guest || item.id === "vouchers") &&
               onTabChange &&
               item.tabId &&
               item.id !== "launch" &&
@@ -168,7 +167,7 @@ export default function MobileBottomNav({
             </Link>
           );
         })}
-        {/* Lend, Launch and Vouchers live in the menu; this opens it */}
+        {/* Lend, Launch and Drops live in the menu; this opens it */}
         <button
           type="button"
           aria-label="More"

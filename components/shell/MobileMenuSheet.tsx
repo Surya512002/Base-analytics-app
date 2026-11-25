@@ -28,6 +28,7 @@ import { AUTO_INVEST_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import type { AppTab } from "@/hooks/useWalletApp";
+import { DROPS_CONTRACT } from "@/lib/drops/client";
 
 type Item = { id: string; icon: LucideIcon; title: string; note: string; tab?: AppTab; href?: string; guestOk?: boolean };
 
@@ -39,9 +40,9 @@ const ITEMS: Item[] = [
   { id: "mystocks", icon: PieChart, title: "My Stocks", note: "Your stocks, target mix and rebalance", href: MY_STOCKS_HREF },
   { id: "lend", icon: Landmark, title: "Lend & Stake", note: "Borrow against stocks, earn yield", tab: "lend", guestOk: true },
   { id: "vouchers", icon: Gift, title: "Vouchers", note: "Send gifts with one link", tab: "basehub", guestOk: true },
-  { id: "drops", icon: Sparkles, title: "Drops", note: "Gifts with rules, daily claims and tasks", tab: "drops", guestOk: true },
   { id: "launch", icon: Rocket, title: "Launch", note: "Launch a token, earn on every trade", href: "/launch" },
   { id: "profile", icon: User, title: "Profile", note: "Your launches and revenue" },
+  { id: "drops", icon: Sparkles, title: "Drops", note: DROPS_CONTRACT ? "Gifts with rules, daily claims and tasks" : "Coming soon", tab: "drops", guestOk: true },
 ];
 
 /**

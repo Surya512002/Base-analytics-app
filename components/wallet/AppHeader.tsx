@@ -25,6 +25,7 @@ import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useI18n } from "@/lib/i18n/context";
 import type { AppTab } from "@/hooks/useWalletApp";
 import { AUTO_INVEST_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
+import { DROPS_CONTRACT } from "@/lib/drops/client";
 
 interface AppHeaderProps {
   tab: AppTab;
@@ -47,7 +48,7 @@ const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
   { tab: "swap", label: "Swap", guestOk: true },
   { tab: "lend", label: "Lend & Stake", guestOk: true },
   { tab: "launchpad", label: "Explore", guestOk: true },
-  { tab: "drops", label: "Drops", guestOk: true },
+  { tab: "basehub", label: "Vouchers", guestOk: true },
 ];
 
 const navItemClass = "shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer";
@@ -200,7 +201,7 @@ export default function AppHeader({
     </Link>
   );
   const moreItem = "block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] cursor-pointer";
-  const moreActive = isProfile || isLaunch || tab === "basehub";
+  const moreActive = isProfile || isLaunch || tab === "drops";
 
   const navLinks = (
     <>
@@ -244,10 +245,10 @@ export default function AppHeader({
             className={moreItem}
             onClick={() => {
               setMoreOpen(false);
-              pickTab("basehub", true);
+              pickTab("drops", true);
             }}
           >
-            {t.nav.vouchers}
+            {DROPS_CONTRACT ? "Drops" : "Drops (soon)"}
           </button>
           <Link href="/launch" className={moreItem} onClick={() => setMoreOpen(false)} aria-current={isLaunch ? "page" : undefined}>
             {t.nav.launch}

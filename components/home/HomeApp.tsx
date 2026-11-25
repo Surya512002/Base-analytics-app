@@ -15,7 +15,7 @@ import AppShell from "@/components/shell/AppShell";
 import BaseAppPinBanner from "@/components/shell/BaseAppPinBanner";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import type { LaunchpadShellBridge } from "@/components/launchpad/LaunchpadTab";
-import { syncTabUrl } from "@/lib/utils/app-url";
+import { resolveTabFromUrl, syncTabUrl } from "@/lib/utils/app-url";
 import { captureGuestResumeFromUrl, saveGuestResume } from "@/lib/utils/guest-resume";
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
@@ -115,6 +115,17 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
     setSiweSkipped(false);
   }, [wallet?.address]);
 
+  // Arriving from another page (e.g. Swap → "/?tab=basehub"), the address updates just after this
+  // screen mounts, so read it once more or the previous page's screen stays up.
+  useEffect(() => {
+    if (forceTab || !ready) return;
+    const timer = setTimeout(() => {
+      const fromUrl = resolveTabFromUrl();
+      if (fromUrl) setTab(fromUrl);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [forceTab, ready, setTab]);
+
   const openConnect = useCallback(() => {
     saveGuestResume(captureGuestResumeFromUrl());
     setShowModal(true);
@@ -125,7 +136,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
       next: AppTab,
       opts?: { token?: string | null; buy?: string | null; sell?: string | null; amount?: string | number | null }
     ) => {
-      if (guest && next !== "launchpad" && next !== "trade" && next !== "swap" && next !== "lend" && next !== "drops") {
+      if (guest && next !== "launchpad" && next !== "trade" && next !== "swap" && next !== "lend" && next !== "drops" && next !== "basehub") {
         openConnect();
         return;
       }
