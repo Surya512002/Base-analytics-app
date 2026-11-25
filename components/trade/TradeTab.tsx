@@ -9,6 +9,7 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { TradeMarket } from "@/app/api/trade/markets/route";
 import DexSwapCard from "@/components/swap/DexSwapCard";
 import OrdersView from "@/components/swap/orders/OrdersView";
+import Link from "next/link";
 import RecurringCard from "./RecurringCard";
 import MyOrdersPanel from "@/components/swap/orders/MyOrdersPanel";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
@@ -27,6 +28,7 @@ import CandleChart, { formatPrice, type Candle, type ChartType, type Indicators,
 import { AlertButton, MarketInfo, Position, RecentTrades, type MarketStats } from "./TradePanels";
 import MarketRail from "./MarketRail";
 import OrderBookPanel from "./OrderBookPanel";
+import { AUTO_INVEST_HREF } from "@/lib/constants/destinations";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 type Timeframe = (typeof TIMEFRAMES)[number];
@@ -680,6 +682,13 @@ export default function TradeTab({
                 terminalPrice={price}
               />
             </>
+          )}
+
+          {ticket === "recurring" && ordersEnabled && (
+            <Link href={AUTO_INVEST_HREF} className="flex items-center justify-between gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] px-3 py-2.5 text-xs font-bold text-[var(--ink)] hover:border-[var(--brand)]">
+              <span>Buying several stocks? Set up one basket plan</span>
+              <span aria-hidden>→</span>
+            </Link>
           )}
 
           {ticket === "recurring" && ordersEnabled && (

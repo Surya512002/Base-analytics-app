@@ -33,159 +33,50 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     expect(fatalErrors).toHaveLength(0);
   });
 
-  test("2. Desktop (1280px): Orders and Recurring tabs render properly with no scroll blowout", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-
-    const consoleErrors: string[] = [];
-    page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
-    });
-
-    await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
-
-    // Switch to Orders tab if Pro Orders feature flag is active
-    const ordersTab = page.locator('button:has-text("Orders")');
-    if (!(await ordersTab.isVisible({ timeout: 3000 }).catch(() => false))) {
-      // Pro Orders feature flag is not enabled in this environment; verify base swap page has no overflow
-      const isOverflowing = await page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+  for (const size of [
+    { name: "Desktop (1280px)", width: 1280, height: 900 },
+    { name: "Mobile (360px - iPhone SE)", width: 360, height: 740 },
+  ]) {
+    test(`${size.name}: Swap offers auto-invest and sends limit orders to Trade, with no sideways scroll`, async ({ page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      const consoleErrors: string[] = [];
+      page.on("console", (msg) => {
+        if (msg.type() === "error") consoleErrors.push(msg.text());
       });
-      expect(isOverflowing).toBe(false);
-      const fatalErrors = consoleErrors.filter(
-        (e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught")
-      );
-      expect(fatalErrors).toHaveLength(0);
-      return;
-    }
-    await ordersTab.click();
+      const noOverflow = async () =>
+        expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      const noFatal = () =>
+        expect(consoleErrors.filter((e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught"))).toHaveLength(0);
 
-    // Verify Orders tab content:
-    // On Base mainnet without deployed order book (default in CI), displays the informational placeholder.
-    // On Base Sepolia (or when order book is deployed), displays full order book options.
-    const mainnetNotice = page
-      .locator('[data-testid="mainnet-orders-placeholder"]')
-      .or(page.getByText(/Orders aren't live on Base mainnet yet/i));
-    if (await mainnetNotice.first().isVisible({ timeout: 5000 }).catch(() => false)) {
-      await expect(page.locator('button:has-text("Switch to Base Sepolia")').first()).toBeVisible();
-    } else {
-      await expect(page.locator('button:has-text("Limit buy")')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('button:has-text("Take-profit")')).toBeVisible();
-      await expect(page.locator('button:has-text("Stop-loss")')).toBeVisible();
-      await expect(page.locator('button:has-text("Trailing stop")')).toBeVisible();
-      await expect(page.locator('button:has-text("Bracket")')).toBeVisible();
+      await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
+      const ordersLink = page.locator('a:has-text("Limit orders")').first();
+      if (!(await ordersLink.isVisible({ timeout: 3000 }).catch(() => false))) {
+        // Orders feature flag is off in this environment: the plain swap page must still fit.
+        await noOverflow();
+        noFatal();
+        return;
+      }
+      await noOverflow();
 
-      const amountInput = page.locator("#order-amount-input");
-      await expect(amountInput).toBeVisible();
-    }
+      await page.locator('button:has-text("Auto-invest")').click();
+      const notLive = page.locator('[data-testid="mainnet-recurring-placeholder"]').or(page.getByText(/Recurring buys aren't live on Base mainnet yet/i));
+      if (await notLive.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+        await expect(page.locator('button:has-text("Switch to Base Sepolia")').first()).toBeVisible();
+      } else {
+        await expect(page.locator("body")).toContainText(/Amount Per Buy|Repeat Frequency|Start with/i, { timeout: 10000 });
+      }
+      await noOverflow();
 
-    // Verify no horizontal overflow blowout on desktop
-    const isOverflowing = await page.evaluate(() => {
-      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      // The orders link opens the order ticket on the Trade page.
+      await ordersLink.click();
+      await expect(page).toHaveURL(/\/trade\?ticket=orders/, { timeout: 15000 });
+      await noOverflow();
+      noFatal();
     });
-    expect(isOverflowing).toBe(false);
+  }
 
-    // Switch to Recurring tab
-    const recurringTab = page.locator('button:has-text("Recurring")');
-    await expect(recurringTab).toBeVisible();
-    await recurringTab.click();
-
-    // Verify Recurring tab content (mainnet notice or DCA form)
-    const recurringNotice = page
-      .locator('[data-testid="mainnet-recurring-placeholder"]')
-      .or(page.getByText(/Recurring buys aren't live on Base mainnet yet/i));
-    if (await recurringNotice.first().isVisible({ timeout: 5000 }).catch(() => false)) {
-      await expect(page.locator('button:has-text("Switch to Base Sepolia")').first()).toBeVisible();
-    } else {
-      await expect(page.locator("body")).toContainText(/Amount Per Buy|Repeat Every|Price Ceiling/i, { timeout: 10000 });
-      await expect(page.locator('button:has-text("1 day")')).toBeVisible();
-    }
-
-    // Verify no fatal console errors
-    const fatalErrors = consoleErrors.filter(
-      (e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught")
-    );
-    expect(fatalErrors).toHaveLength(0);
-  });
-
-  test("3. Mobile (360px - iPhone SE): Orders & Recurring tabs fit without blowout, buttons tap-friendly", async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 740 });
-
-    const consoleErrors: string[] = [];
-    page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
-    });
-
-    await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
-
-    // Switch to Orders tab if Pro Orders feature flag is active
-    const ordersTab = page.locator('button:has-text("Orders")');
-    if (!(await ordersTab.isVisible({ timeout: 3000 }).catch(() => false))) {
-      // Pro Orders feature flag is not enabled in this environment; verify base swap page has no overflow
-      const isOverflowing = await page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
-      });
-      expect(isOverflowing).toBe(false);
-      const fatalErrors = consoleErrors.filter(
-        (e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught")
-      );
-      expect(fatalErrors).toHaveLength(0);
-      return;
-    }
-    await ordersTab.click();
-
-    // Verify Orders tab elements on mobile (mainnet notice or order buttons)
-    const mainnetNotice = page
-      .locator('[data-testid="mainnet-orders-placeholder"]')
-      .or(page.getByText(/Orders aren't live on Base mainnet yet/i));
-    if (await mainnetNotice.first().isVisible({ timeout: 5000 }).catch(() => false)) {
-      const switchBtn = page.locator('button:has-text("Switch to Base Sepolia")').first();
-      await expect(switchBtn).toBeVisible();
-      const box = await switchBtn.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.height).toBeGreaterThanOrEqual(28);
-    } else {
-      const limitBuyBtn = page.locator('button:has-text("Limit buy")');
-      await expect(limitBuyBtn).toBeVisible();
-      const box = await limitBuyBtn.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.height).toBeGreaterThanOrEqual(28);
-
-      // Click Trailing stop to test dynamic trail inputs at 360px
-      const trailingStopBtn = page.locator('button:has-text("Trailing stop")');
-      await trailingStopBtn.click();
-      await expect(page.locator("body")).toContainText(/Trail Distance/i);
-    }
-
-    // Verify no horizontal overflow blowout at 360px
-    const isOverflowingMobile = await page.evaluate(() => {
-      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
-    });
-    expect(isOverflowingMobile).toBe(false);
-
-    // Switch to Recurring tab
-    const recurringTab = page.locator('button:has-text("Recurring")');
-    await recurringTab.click();
-
-    const recurringNotice = page
-      .locator('[data-testid="mainnet-recurring-placeholder"]')
-      .or(page.getByText(/Recurring buys aren't live on Base mainnet yet/i));
-    if (await recurringNotice.first().isVisible({ timeout: 5000 }).catch(() => false)) {
-      const switchBtn = page.locator('button:has-text("Switch to Base Sepolia")').first();
-      await expect(switchBtn).toBeVisible();
-    } else {
-      await expect(page.locator("body")).toContainText(/Amount Per Buy/i);
-    }
-
-    // Verify no horizontal overflow on recurring tab either
-    const isRecurringOverflowing = await page.evaluate(() => {
-      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
-    });
-    expect(isRecurringOverflowing).toBe(false);
-
-    // Verify 0 hydration / fatal console errors
-    const fatalErrors = consoleErrors.filter(
-      (e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught")
-    );
-    expect(fatalErrors).toHaveLength(0);
+  test("old Swap orders links open Trade", async ({ page }) => {
+    await page.goto(`${BASE}/swap?mode=orders`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await expect(page).toHaveURL(/\/trade\?ticket=orders/, { timeout: 20000 });
   });
 });

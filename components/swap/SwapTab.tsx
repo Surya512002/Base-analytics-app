@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Wallet, ChevronRight, Loader2, BarChart2, Layers, Repeat } from "lucide-react";
 import { useSwitchChain } from "wagmi";
 import { base } from "viem/chains";
@@ -20,10 +20,11 @@ import SwapTokenInsight, { RecentSwapTokens } from "@/components/swap/SwapTokenI
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
-import OrdersView from "@/components/swap/orders/OrdersView";
+import Link from "next/link";
+import { LIMIT_ORDERS_HREF } from "@/lib/constants/destinations";
 import RecurringHub from "@/components/swap/orders/RecurringHub";
 
-type SwapSubTab = "market" | "orders" | "recurring";
+type SwapSubTab = "market" | "recurring";
 
 export default function SwapTab({
   app,
@@ -52,6 +53,14 @@ export default function SwapTab({
   const limitOrders = useLimitOrders(app);
 
   const isOrdersEnabled = isLimitOrdersFeatureEnabled();
+
+  // Old links to the Swap orders tab now open the order ticket in Trade, keeping the chosen token.
+  const router = useRouter();
+  const wantsOrders = searchParams?.get("mode") === "orders";
+  const ordersToken = searchParams?.get("buy");
+  useEffect(() => {
+    if (wantsOrders) router.replace(ordersToken ? `${LIMIT_ORDERS_HREF}&token=${encodeURIComponent(ordersToken)}` : LIMIT_ORDERS_HREF);
+  }, [wantsOrders, ordersToken, router]);
 
   useEffect(() => {
     if (!isOrdersEnabled && activeSubTab !== "market") {
@@ -159,7 +168,7 @@ export default function SwapTab({
 
     // Check if subtab requested in url (e.g. ?mode=orders or ?tab=recurring)
     const modeParam = searchParams?.get("mode");
-    if (modeParam === "orders" || modeParam === "recurring" || modeParam === "market") {
+    if (modeParam === "recurring" || modeParam === "market") {
       setActiveSubTab(modeParam);
     }
 
@@ -228,23 +237,18 @@ export default function SwapTab({
             <span>Market</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("orders")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
-              activeSubTab === "orders"
-                ? "pulse-tab-on"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
+          <Link
+            href={LIMIT_ORDERS_HREF}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition text-[var(--ink-muted)] hover:text-[var(--ink)]"
           >
             <Layers size={14} />
-            <span>Orders</span>
+            <span>Limit orders</span>
             {limitOrders.openOrders.length > 0 && (
               <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[#0052FF] text-white">
                 {limitOrders.openOrders.length}
               </span>
             )}
-          </button>
+          </Link>
 
           <button
             type="button"
@@ -256,7 +260,7 @@ export default function SwapTab({
             }`}
           >
             <Repeat size={14} />
-            <span>Recurring</span>
+            <span>Auto-invest</span>
             {limitOrders.plans.length > 0 && (
               <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-cyan-600 text-white">
                 {limitOrders.plans.length}
@@ -381,18 +385,11 @@ export default function SwapTab({
       )}
 
       {/* ORDERS TAB: Pro Order Types (Limit buy, Take-profit, Stop-loss, Trailing stop, Bracket) */}
-      {isOrdersEnabled && activeSubTab === "orders" && (
-        <OrdersView
-          limitOrders={limitOrders}
-          onConnectWallet={onRequestConnect}
-          onSwitchChain={handleSwitchBase}
-          onSwitchSepolia={handleSwitchSepolia}
-        />
-      )}
 
       {/* RECURRING TAB: Recurring buys (DCA) with optional price ceiling */}
       {isOrdersEnabled && activeSubTab === "recurring" && (
         <RecurringHub
+          initialPlan={searchParams?.get("plan") === "basket" ? "basket" : undefined}
           limitOrders={limitOrders}
           onConnectWallet={onRequestConnect}
           onSwitchChain={handleSwitchBase}

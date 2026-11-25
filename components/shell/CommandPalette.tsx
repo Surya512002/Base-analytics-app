@@ -21,6 +21,7 @@ import { shortAddr } from "@/lib/launchpad/format";
 import { APP_NAV } from "@/lib/nav/app-nav";
 import TokenLogo from "@/components/ui/TokenLogo";
 import { parseIntent, type ParsedIntent } from "@/lib/intent/intent-parser";
+import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
 
 type CommandPaletteProps = {
   open: boolean;
@@ -93,6 +94,12 @@ export default function CommandPalette({
       hint: n.hint,
       icon: n.icon,
     }));
+    list.unshift(
+      { id: "auto-invest", label: "Auto-invest", hint: "Buy stocks on a schedule, one or a whole basket", icon: TrendingUp, href: AUTO_INVEST_HREF },
+      { id: "my-stocks", label: "My Stocks", hint: "Your stocks, target mix and rebalance", icon: TrendingUp, href: MY_STOCKS_HREF },
+      { id: "limit-orders", label: "Limit & stop orders", hint: "Buy the dip, take profit, stop a loss", icon: TrendingUp, href: LIMIT_ORDERS_HREF },
+      { id: "help", label: "Help", hint: "How to buy, invest, earn, and what the risks are", icon: BookOpen, href: "/help" }
+    );
     list.push({
       id: "lend",
       label: "Yield & APY Calculator",

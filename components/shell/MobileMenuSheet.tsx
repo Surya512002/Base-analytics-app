@@ -6,7 +6,9 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowLeftRight,
+  CalendarClock,
   CandlestickChart,
+  PieChart,
   ChevronRight,
   Compass,
   Gift,
@@ -22,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { AUTO_INVEST_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -32,6 +35,8 @@ const ITEMS: Item[] = [
   { id: "trade", icon: CandlestickChart, title: "Trade", note: "Charts, limit and stop-loss orders", tab: "trade", guestOk: true },
   { id: "explore", icon: Compass, title: "Explore", note: "Live tokens, trades and stocks", tab: "launchpad", guestOk: true },
   { id: "swap", icon: ArrowLeftRight, title: "Swap", note: "Best route across Base DEXs", tab: "swap", guestOk: true },
+  { id: "invest", icon: CalendarClock, title: "Auto-invest", note: "Buy stocks on a schedule", href: AUTO_INVEST_HREF },
+  { id: "mystocks", icon: PieChart, title: "My Stocks", note: "Your stocks, target mix and rebalance", href: MY_STOCKS_HREF },
   { id: "lend", icon: Landmark, title: "Lend & Stake", note: "Borrow against stocks, earn yield", tab: "lend", guestOk: true },
   { id: "vouchers", icon: Gift, title: "Vouchers", note: "Send gifts with one link", tab: "basehub", guestOk: true },
   { id: "drops", icon: Sparkles, title: "Drops", note: "Gifts with rules, daily claims and tasks", tab: "drops", guestOk: true },
@@ -134,7 +139,7 @@ export default function MobileMenuSheet({
           <motion.div
             key="backdrop"
             aria-hidden
-            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] md:hidden"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -145,7 +150,7 @@ export default function MobileMenuSheet({
             role="dialog"
             aria-modal="true"
             aria-label="Menu"
-            className="fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+64px)] z-[61] max-h-[calc(100dvh-80px)] overflow-y-auto rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2 shadow-2xl md:hidden"
+            className="fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+64px)] z-[61] max-h-[calc(100dvh-80px)] overflow-y-auto rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2 shadow-2xl lg:hidden mx-auto max-w-xl"
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}

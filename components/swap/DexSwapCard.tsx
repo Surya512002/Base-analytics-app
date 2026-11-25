@@ -1309,7 +1309,7 @@ export default function DexSwapCard({
                   <div className="flex items-center justify-between pt-1 text-[11px]">
                     <span className="font-semibold opacity-95">💡 {tradeSafety.suggestion}</span>
                     <a
-                      href="/swap?mode=orders"
+                      href="/trade?ticket=orders"
                       className="inline-flex items-center gap-0.5 text-[#0052FF] dark:text-blue-400 font-bold underline shrink-0 ml-1 hover:opacity-80 cursor-pointer"
                     >
                       <span>Limit Orders</span>
