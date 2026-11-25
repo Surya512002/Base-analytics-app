@@ -2,30 +2,15 @@
 
 import React from "react";
 import { RefreshCw } from "lucide-react";
-import PageHero, { HeroStats } from "@/components/ui/PageHero";
+import PageHero from "@/components/ui/PageHero";
 
 interface LendingHeaderProps {
-  topSupplyApy: number;
-  lowestBorrowApr: number;
-  totalLiquidityUsd: number;
-  verifiedPoolsCount: number;
   lastUpdatedSecondsAgo?: number;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-function formatCompactUsd(val: number): string {
-  if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
-  if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
-  if (val >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
-  return `$${val.toFixed(0)}`;
-}
-
 export default function LendingHeader({
-  topSupplyApy,
-  lowestBorrowApr,
-  totalLiquidityUsd,
-  verifiedPoolsCount,
   lastUpdatedSecondsAgo = 0,
   onRefresh,
   isRefreshing = false,
@@ -44,18 +29,6 @@ export default function LendingHeader({
       subtitle="Borrow cash against tokenized stock collateral, or supply assets for verified onchain yield."
     >
       <div className="flex flex-col items-start gap-3 sm:items-center">
-        <HeroStats
-          items={[
-            // Shown only when a plain lending market pays on stocks; pool-vault rates never headline.
-            ...(topSupplyApy > 0 ? [{ label: "Top lending APY", value: <span className="text-[var(--success-text)]">{topSupplyApy.toFixed(2)}%</span> }] : []),
-            { label: "Lowest borrow", value: lowestBorrowApr > 0 ? `${lowestBorrowApr.toFixed(2)}%` : "—" },
-            { label: "Liquidity", value: formatCompactUsd(totalLiquidityUsd) },
-            {
-              label: "Verified",
-              value: <span className="text-[var(--brand-text)]">{verifiedPoolsCount} pools</span>,
-            },
-          ]}
-        />
         <div className="flex items-center gap-2">
           <div className="pulse-chip">
             <span className="pulse-status-dot" aria-hidden />

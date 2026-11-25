@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Gift, Wallet, ArrowRight } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
+import SafetyNote from "@/components/ui/SafetyNote";
 import { useRouter } from "next/navigation";
 import GiftClaimStage from "@/components/voucher/GiftClaimStage";
 import { APP_URL_WEB } from "@/lib/constants/env";
@@ -96,8 +97,8 @@ function RedeemLandingContent() {
           </div>
 
           <p className="text-sm text-[var(--ink-muted)] leading-relaxed">
-            Enter the Card ID and secret you received. Connect your wallet on Base to claim ETH or
-            USDC — fully onchain.
+            Someone sent you a gift card? Enter its Card ID, then connect your wallet on Base to receive
+            the ETH or USDC on it. You are receiving money, not sending it; a small network fee may apply.
           </p>
 
           <div>
@@ -122,7 +123,7 @@ function RedeemLandingContent() {
                   : `${(Number(preview.amountPerCard) / 1e18).toFixed(4)} ETH`}
               </p>
               {preview.message && (
-                <p className="text-sm text-[var(--ink-muted)] italic mt-2">&quot;{preview.message}&quot;</p>
+                <p className="text-sm text-[var(--ink-muted)] italic mt-2">Sender&apos;s message: &quot;{preview.message}&quot;</p>
               )}
               <p className={`text-xs font-bold mt-2 ${preview.redeemed ? "text-red-300" : "text-emerald-400"}`}>
                 {preview.redeemed ? "Already redeemed onchain" : "Ready to claim — connect wallet below"}
@@ -140,7 +141,7 @@ function RedeemLandingContent() {
           </Link>
 
           <p className="text-center text-[11px] text-[var(--ink-dim)]">
-            You&apos;ll need the secret key in the app after connecting.
+            After connecting you&apos;ll also need the card&apos;s claim code from the sender.
           </p>
             </div>
           </div>
@@ -164,6 +165,7 @@ function RedeemLandingContent() {
           >
             Share redeem link on Farcaster ↗
           </a>
+          <SafetyNote />
         </div>
       </div>
     </div>

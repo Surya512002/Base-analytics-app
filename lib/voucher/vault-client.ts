@@ -157,7 +157,7 @@ export async function prepareNewVault(
   addr: string
 ): Promise<{ envelope: VaultEnvelope; vaultKey: string; phrase: string; contents: VaultContents }> {
   const existing = await fetchRemoteVault(addr);
-  if (existing) throw new Error("A private backup already exists. Unlock it with your recovery phrase.");
+  if (existing) throw new Error("A private backup already exists. Unlock it with your backup words.");
   const server = await fetchServerCardSecrets(addr);
   const contents = mergeVaultContents(collectLocalSecrets(addr), { cards: server, campaigns: [] });
   const { envelope, vaultKey, phrase } = await createVault(addr, contents);
@@ -202,7 +202,7 @@ export async function syncVault(addr: string): Promise<VaultContents> {
       remoteContents = await openContents(addr, key, remote.envelope);
     } catch {
       setLocalVaultKey(addr, null);
-      throw new Error("This device's key no longer opens your backup. Unlock it with your recovery phrase.");
+      throw new Error("This device's key no longer opens your backup. Unlock it with your backup words.");
     }
     const merged = mergeVaultContents(remoteContents, collectLocalSecrets(addr));
     applyContentsLocally(addr, merged);

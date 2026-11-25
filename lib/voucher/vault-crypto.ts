@@ -172,7 +172,7 @@ export async function openContents(creator: string, vaultKey: string, envelope: 
 
 /** Recover the vault key from the phrase. Throws "Wrong recovery phrase" when it doesn't match. */
 export async function unlockWithPhrase(creator: string, envelope: VaultEnvelope, phrase: string): Promise<string> {
-  if (!isPhraseShapeValid(phrase)) throw new Error("A recovery phrase is 12 words from the list");
+  if (!isPhraseShapeValid(phrase)) throw new Error("Backup words are 12 words from the list");
   try {
     const raw = await open(
       await phraseKey(phrase, fromB64(envelope.phraseWrap.salt), creator),
@@ -181,7 +181,7 @@ export async function unlockWithPhrase(creator: string, envelope: VaultEnvelope,
     );
     return toB64(raw);
   } catch {
-    throw new Error("Wrong recovery phrase");
+    throw new Error("Wrong backup words");
   }
 }
 

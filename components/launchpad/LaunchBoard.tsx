@@ -53,14 +53,13 @@ export function LaunchStatsStrip() {
     { label: "Launched today", value: s ? <NumberTicker value={s.launchedToday} /> : "—" },
     { label: "24h volume", value: s ? formatCompactUsd(s.volume24h) : "—" },
     { label: "24h trades", value: s ? <NumberTicker value={s.trades24h} /> : "—" },
-    { label: "Platform launch fee", value: "$0" },
   ];
   return (
     <div className="pulse-surface p-4 sm:p-5">
       <p className="pulse-eyebrow mb-3">
         <span className="pulse-status-dot" aria-hidden /> Launchpad pulse · today
       </p>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {items.map((it) => (
           <div key={it.label} className="min-w-0 rounded-2xl border border-white/20 bg-white/12 px-3 py-3 text-center backdrop-blur-sm">
             <div className="pulse-big text-2xl sm:text-3xl">{it.value}</div>

@@ -171,6 +171,20 @@ export function saveSmarterAlert(
   }
 }
 
+/** An alert fires once: this keeps it listed as reached. */
+export function markSmarterAlertTriggered(wallet: string | null | undefined, id: string): void {
+  const updated = readSmarterAlerts(wallet).map((a) => (a.id === id ? { ...a, triggered: true, lastTriggeredAt: Date.now() } : a));
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem(`${STORAGE_KEY}_${wallet?.toLowerCase() ?? "guest"}`, JSON.stringify(updated));
+      return;
+    }
+  } catch {
+    /* storage blocked: fall back to memory */
+  }
+  memoryAlerts = updated;
+}
+
 export function deleteSmarterAlert(
   wallet: string | null | undefined,
   id: string

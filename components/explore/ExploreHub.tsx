@@ -477,7 +477,7 @@ export default function ExploreHub({
         >
           <span>
             <span className="block text-sm font-black text-[var(--ink)]">Market tools</span>
-            <span className="block text-xs text-[var(--ink-muted)]">Trending, live trades, stock signals, whale radar and alerts</span>
+            <span className="block text-xs text-[var(--ink-muted)]">Trending, live trades, stock signals, wallet watch and price alerts</span>
           </span>
           <ChevronDown size={18} aria-hidden className={`shrink-0 transition-transform ${showMarketTools ? "rotate-180" : ""}`} />
         </button>
@@ -530,7 +530,7 @@ export default function ExploreHub({
               <LiveMarketMap tokens={allUnifiedTokens} onOpenToken={(t) => setSelectedQuickViewToken(t)} />
             </BlurFade>
 
-            {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}
+            {/* 3. MARKET INTELLIGENCE HUB (Stock price check, wallet watch, price alerts) */}
             <MarketIntelligenceHub
               userWallet={userAddress}
               onTradeToken={(addr) => {

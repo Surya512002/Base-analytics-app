@@ -22,23 +22,24 @@ export interface SmartMoneyBuyEvent {
   timestamp: number;
 }
 
+// Public addresses, named only where the name can be checked (an ENS name or the address itself).
 export const PRESET_SMART_MONEY: SmartMoneyWallet[] = [
   {
     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-    label: "vitalik.eth (Base Active)",
-    tag: "Ecosystem Whale",
+    label: "vitalik.eth",
+    tag: "Public wallet",
     isPreset: true,
   },
   {
     address: "0x3799cafa388da047cAF7c999e31c844705FadfAe",
-    label: "Aerodrome Liquidity Provider",
-    tag: "Aerodrome Top LP",
+    label: "0x3799…dfAe",
+    tag: "Public wallet",
     isPreset: true,
   },
   {
     address: "0x8bcB8044719c6e1C526f76c8C4a5c531D279326F",
-    label: "Base Ecosystem Alpha",
-    tag: "Base DEX Trader",
+    label: "0x8bcB…326F",
+    tag: "Public wallet",
     isPreset: true,
   },
 ];

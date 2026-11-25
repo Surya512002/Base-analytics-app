@@ -2,13 +2,14 @@
  * Base's official tokenized-stock registry — Coinbase Tokenized Stocks on Base.
  *
  * Source: https://www.base.org/stocks#registry (Listings), read from the rendered page on
- * 2026-11-14: 358 entries. Addresses are taken verbatim from each row's basescan link.
+ * 2026-11-14: 358 entries; 57 more mirrored on 2026-11-25 (415 entries,
+ * the same address set as Coinbase's list at api.coinbase.com/v1/tokenized-stocks). Addresses are taken verbatim from each row's basescan link.
  * Base: "If a token is not on this list, Coinbase did not issue it."
  *
  * Format: [ticker, company name, contract address]. Do not edit by hand except to mirror the
  * official page; test/stocks/base-verified.test.ts checks checksums and uniqueness.
  */
-export const BASE_OFFICIAL_REGISTRY_READ_AT = "2026-11-14";
+export const BASE_OFFICIAL_REGISTRY_READ_AT = "2026-11-25";
 export const BASE_OFFICIAL_REGISTRY_URL = "https://www.base.org/stocks#registry";
 
 export const BASE_OFFICIAL_REGISTRY: ReadonlyArray<readonly [string, string, `0x${string}`]> = [
@@ -371,4 +372,61 @@ export const BASE_OFFICIAL_REGISTRY: ReadonlyArray<readonly [string, string, `0x
   ["UALc", "United Airlines Holdings, Inc.", "0xb200000000000000000000Cdbf3E786FF34DBE51"],
   ["WUc", "The Western Union Company", "0xb20000000000000000000033be01089Cf02a2025"],
   ["YOUc", "CLEAR Secure, Inc.", "0xb2000000000000000000003cdB2c0F94e4EBf605"],
+  ["AAPc", "Advance Auto Parts, Inc.", "0xB200000000000000000000B576d2d93De1e93c8e"],
+  ["ACIc", "Albertsons Companies, Inc.", "0xB200000000000000000000964eeD57D188766e55"],
+  ["AMPXc", "Amprius Technologies, Inc.", "0xB2000000000000000000007c7088757Cb3703648"],
+  ["ANNXc", "Annexon, Inc.", "0xB200000000000000000000473F033036350312Da"],
+  ["ANTc", "Anthropic, PBC", "0xb20000000000000000000016e38FD364d271Ba28"],
+  ["AVAVc", "AeroVironment, Inc.", "0xb200000000000000000000D0d00a5e1f2D2eb61A"],
+  ["BWc", "Babcock & Wilcox Enterprises, Inc.", "0xb200000000000000000000F9274fE22C626373F2"],
+  ["CADLc", "Candel Therapeutics, Inc.", "0xb200000000000000000000593460934fEC1b43Dc"],
+  ["CCc", "The Chemours Company", "0xB200000000000000000000E359b2ca361E1905C9"],
+  ["COHUc", "Cohu, Inc.", "0xb20000000000000000000007b4Fcc48E2d70dCc6"],
+  ["CRMDc", "CorMedix Inc.", "0xb200000000000000000000386f243773D48a4Be7"],
+  ["CRVSc", "Corvus Pharmaceuticals, Inc.", "0xB200000000000000000000Cf9b4854BEb312e351"],
+  ["DRIc", "Darden Restaurants, Inc.", "0xB2000000000000000000008451dB06977dEF7b3A"],
+  ["ESc", "Eversource Energy", "0xb200000000000000000000E90b1aC2DA02106417"],
+  ["FIGSc", "FIGS, Inc.", "0xB2000000000000000000003EbE6a3A1Df07DB619"],
+  ["FMCc", "FMC Corporation", "0xB2000000000000000000002756093a39E13E08c6"],
+  ["FPSc", "Forgent Power Solutions, Inc.", "0xb20000000000000000000095528Fb26aC48Bda96"],
+  ["HEc", "Hawaiian Electric Industries, Inc.", "0xb200000000000000000000D2a1ee1F57Be718E71"],
+  ["HONc", "Honeywell International Inc.", "0xB200000000000000000000aB665a0775E19F0Dc5"],
+  ["HRBc", "H&R Block, Inc.", "0xB2000000000000000000003C5564b8161680C86D"],
+  ["IONSc", "Ionis Pharmaceuticals, Inc.", "0xB2000000000000000000001997390508A5617d47"],
+  ["KTOSc", "Kratos Defense & Security Solutions, Inc.", "0xB200000000000000000000e47c019ec313AaD347"],
+  ["LWLGc", "Lightwave Logic, Inc.", "0xb200000000000000000000Ba4309E1E35bc09F54"],
+  ["MIRc", "Mirion Technologies, Inc.", "0xb20000000000000000000009614107be6f562BA8"],
+  ["MTNc", "Vail Resorts, Inc.", "0xb200000000000000000000EE80a37e1f888644b3"],
+  ["NEXTc", "NextDecade Corporation", "0xb2000000000000000000007c92881e458338B34d"],
+  ["NKTRc", "Nektar Therapeutics", "0xb2000000000000000000009B6D9e39d1667cabE1"],
+  ["NNc", "NextNav Inc.", "0xB2000000000000000000005D6Afb89705Cd203eA"],
+  ["NOCc", "Northrop Grumman Corporation", "0xb200000000000000000000C5B17C065e5378d2A5"],
+  ["NRGc", "NRG Energy, Inc.", "0xb2000000000000000000008cE554342C043602a4"],
+  ["NRGVc", "Energy Vault Holdings, Inc.", "0xB2000000000000000000003ac3D02891f0FC785e"],
+  ["NTAPc", "NetApp, Inc.", "0xb200000000000000000000e6D729A9705303bd2B"],
+  ["NUVBc", "Nuvation Bio Inc.", "0xB2000000000000000000000dE6A780902Db4eC09"],
+  ["PCTc", "PureCycle Technologies, Inc.", "0xB200000000000000000000796c05DD2536C7f91c"],
+  ["PRMEc", "Prime Medicine, Inc.", "0xb200000000000000000000351bd76098B359ADa8"],
+  ["PSc", "Pershing Square Inc.", "0xb200000000000000000000A071d80FA5B480c448"],
+  ["QUITc", "Achieve Life Sciences, Inc.", "0xb200000000000000000000426663e7212288FA97"],
+  ["RIGLc", "Rigel Pharmaceuticals, Inc.", "0xB200000000000000000000966Cbe5b99Be9b981a"],
+  ["SANAc", "Sana Biotechnology, Inc.", "0xb200000000000000000000Bc043Cf5053540A588"],
+  ["SHAKc", "Shake Shack Inc.", "0xb2000000000000000000005C16DD6f675BF8Ceb7"],
+  ["SMc", "SM Energy Company", "0xb200000000000000000000DD40740E9c445E211b"],
+  ["SNDXc", "Syndax Pharmaceuticals, Inc.", "0xB2000000000000000000005B8CEcE4a5F9306bb4"],
+  ["SOc", "The Southern Company", "0xB200000000000000000000F814b4666c2d70a670"],
+  ["SOCc", "Sable Offshore Corp.", "0xb2000000000000000000001fAb744De0b829EeD1"],
+  ["SPHRc", "Sphere Entertainment Co.", "0xb200000000000000000000aBaDF9B1FDb845DB73"],
+  ["SWKSc", "Skyworks Solutions, Inc.", "0xB200000000000000000000d154b5666b2d1e5A02"],
+  ["TMDXc", "TransMedics Group, Inc.", "0xb200000000000000000000AA0aA80F99c33081E1"],
+  ["TNDMc", "Tandem Diabetes Care, Inc.", "0xB2000000000000000000001F6B9c31e43560a924"],
+  ["TOSTc", "Toast, Inc.", "0xB200000000000000000000cF2593D5FFC13Bd817"],
+  ["TRIPc", "Tripadvisor, Inc.", "0xb2000000000000000000002f12AfA8f583b6CE85"],
+  ["UIc", "Ubiquiti Inc.", "0xb2000000000000000000003fC6f17C8B775bcA78"],
+  ["UPSc", "United Parcel Service, Inc.", "0xb2000000000000000000008D84C0d360848dBbdE"],
+  ["VCc", "Visteon Corporation", "0xb20000000000000000000030945cB9c538D0B326"],
+  ["VERAc", "Vera Therapeutics, Inc.", "0xB200000000000000000000Ef7F9A89256Fa06887"],
+  ["VRDNc", "Viridian Therapeutics, Inc.", "0xb200000000000000000000ef8D64f65302eC1FB2"],
+  ["WAYc", "Waystar Holding Corp.", "0xB2000000000000000000003496C04Fcfee6997E0"],
+  ["YELPc", "Yelp Inc.", "0xB2000000000000000000006454926Ad8576DC50e"],
 ];
