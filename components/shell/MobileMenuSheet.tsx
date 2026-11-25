@@ -19,6 +19,7 @@ import {
   Sparkles,
   User,
   type LucideIcon,
+  X,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import LanguageSelector from "@/components/ui/LanguageSelector";
@@ -150,6 +151,12 @@ export default function MobileMenuSheet({
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
           >
+            <div className="flex items-center justify-between px-2.5 pb-1 pt-0.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">Menu</span>
+              <button type="button" aria-label="Close menu" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--ink-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]">
+                <X size={18} />
+              </button>
+            </div>
             <nav aria-label="Sections" className="space-y-0.5">
               {ITEMS.map(row)}
             </nav>

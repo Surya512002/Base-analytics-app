@@ -273,16 +273,16 @@ export default function StockPortfolio({
                     </span>
                   </span>
                   <span className="min-w-[96px] text-right text-[11px] text-[var(--ink-muted)]">
-                    {row && row.bestSupplyApy > 0 ? (
+                    {row?.bestLendApy ? (
                       <button type="button" onClick={() => onOpenStock(a.symbol)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2 py-1 font-bold text-emerald-700 dark:text-emerald-300">
-                        <TrendingUp size={11} /> Earn {row.bestSupplyApy.toFixed(1)}%
+                        <TrendingUp size={11} /> Earn {row.bestLendApy.toFixed(1)}%
                       </button>
                     ) : (
                       <button type="button" onClick={() => onOpenStock(a.symbol)} className="rounded-lg border border-[var(--border-subtle)] px-2 py-1 font-bold">
                         Markets
                       </button>
                     )}
-                    {row && row.bestSupplyApy > 0 && <span className="mt-0.5 block truncate">{row.bestSupplyProtocol}</span>}
+                    {row?.bestLendApy ? <span className="mt-0.5 block truncate">{row.bestLendProtocol}</span> : null}
                   </span>
                   <span className="sr-only">{h.balance} tokens</span>
                 </li>

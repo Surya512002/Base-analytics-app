@@ -14,6 +14,7 @@ import {
 } from "@/src/lib/limitOrders/orderMath";
 import type { MarketState } from "@/src/lib/limitOrders/useLimitOrders";
 import BodyPortal from "@/components/ui/BodyPortal";
+import { priceText } from "@/src/lib/limitOrders/priceBasis";
 
 interface EditOrderModalProps {
   order: OnChainOrder;
@@ -122,7 +123,7 @@ export default function EditOrderModal({
             <div className="flex items-center justify-between text-xs text-[var(--ink-muted)] px-3 py-2 rounded-xl bg-[var(--surface-2)]">
               <span>Market Price</span>
               <span className="font-semibold text-[var(--ink)] tabular-nums">
-                ${formatUnits(currentPrice, PRICE_DECIMALS)}
+                ${priceText(currentPrice)}
               </span>
             </div>
           )}

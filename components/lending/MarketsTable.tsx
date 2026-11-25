@@ -34,6 +34,9 @@ export interface AssetMarketRow {
   priceChange24h?: number;
   bestSupplyApy: number;
   bestSupplyProtocol: string;
+  /** Plain lending only (no liquidity-pool vaults), for headline figures. 0 when there is none. */
+  bestLendApy?: number;
+  bestLendProtocol?: string;
   supplyKindChip?: string;
   bestBorrowApr: number | null;
   bestBorrowProtocol: string | null;

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Command } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import CommandPalette from "@/components/shell/CommandPalette";
@@ -62,20 +61,6 @@ export default function AppShell({
       {header}
 
       <div data-command-palette-host className="app-container flex w-full min-w-0 flex-1 flex-col py-5 sm:py-6 md:py-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10 lg:pb-10">
-        <div className="mb-4 md:hidden">
-          <button
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            className="w-full flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 text-[var(--ink-muted)] shadow-[var(--shadow-card)]"
-          >
-            <Command size={14} />
-            <span className="text-[13px]">Search tokens &amp; pages</span>
-            <kbd className="ml-auto text-[11px] font-mono border border-[var(--border-subtle)] rounded px-1">
-              ⌘K
-            </kbd>
-          </button>
-        </div>
-
         {children}
       </div>
 

@@ -124,8 +124,10 @@ export default function MobileBottomNav({
               onConnect?.();
               return;
             }
+            // Guests simply follow the link; switching tabs in place would ask them to connect.
             if (
               pathname === "/" &&
+              !guest &&
               onTabChange &&
               item.tabId &&
               item.id !== "launch" &&

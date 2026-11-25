@@ -23,6 +23,7 @@ import type { useLimitOrders, MarketState } from "@/src/lib/limitOrders/useLimit
 import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyPlansPanel from "./MyPlansPanel";
 import HoldFirstBuyToggle from "./HoldFirstBuyToggle";
+import { priceText } from "@/src/lib/limitOrders/priceBasis";
 
 const INTERVAL_PRESETS = [
   { label: "1 hour", seconds: 3600 },
@@ -182,11 +183,11 @@ export default function RecurringView({
       {/* Alert banners */}
       <div className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-cyan-600 text-white uppercase tracking-wider">
-            DCA Automation
+          <span className="shrink-0 whitespace-nowrap text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-cyan-600 text-white uppercase tracking-wider">
+            Auto-invest
           </span>
           <span className="text-[var(--ink-muted)]">
-            Recurring accumulation with optional price protection
+            Buy on a schedule, with an optional price limit
           </span>
         </div>
       </div>
@@ -260,7 +261,7 @@ export default function RecurringView({
               Recurring buys aren&apos;t live on Base mainnet yet. Switch to Base Sepolia to test.
             </h3>
             <p className="text-xs text-[var(--ink-muted)] mt-1.5 max-w-sm mx-auto">
-              Testnet contracts are deployed on Base Sepolia. You can test recurring accumulation (DCA) with test tokens.
+              Testnet contracts are deployed on Base Sepolia. You can try scheduled buys there with test tokens.
             </p>
           </div>
           <button
@@ -282,12 +283,12 @@ export default function RecurringView({
               htmlFor="recurring-stock-select"
               className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider mb-0.5"
             >
-              Accumulate Stock
+              Stock
             </label>
             <div className="relative">
               <select
                 id="recurring-stock-select"
-                aria-label="Accumulate Stock"
+                aria-label="Stock"
                 value={selectedStock}
                 onChange={(e) => setSelectedStock(e.target.value)}
                 className="w-full bg-transparent text-sm font-bold text-[var(--ink)] focus:outline-hidden cursor-pointer appearance-none pr-6"
@@ -314,7 +315,7 @@ export default function RecurringView({
               Market Price
             </span>
             <span className="text-sm font-mono font-bold text-[var(--ink)] tabular-nums">
-              {currentPrice !== null ? `$${formatUnits(currentPrice, PRICE_DECIMALS)}` : "—"}
+              {currentPrice !== null ? `$${priceText(currentPrice)}` : "—"}
             </span>
           </div>
         </div>
@@ -398,14 +399,14 @@ export default function RecurringView({
           </div>
         </div>
 
-        {/* Optional Price Ceiling */}
+        {/* Optional price limit */}
         <div className="space-y-1 p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
             <label
               htmlFor="price-ceiling-input"
               className="text-xs font-semibold text-[var(--ink)]"
             >
-              Optional Price Ceiling (USD)
+              Don&apos;t buy above (USD)
             </label>
             <span className="text-[11px] text-[var(--ink-muted)]">Optional</span>
           </div>
@@ -414,18 +415,18 @@ export default function RecurringView({
             type="text"
             value={priceCeilingInput}
             onChange={(e) => setPriceCeilingInput(e.target.value)}
-            placeholder="Skip buys while price is above this"
+            placeholder="No limit"
             className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-mono text-sm"
           />
           <p className="text-[11px] text-[var(--ink-muted)]">
-            If market price exceeds this ceiling when a buy is due, the buy is skipped automatically.
+            While the price is higher than this, buys wait. They run again once it is lower.
           </p>
         </div>
 
         {/* Schedule Summary & Budget Card */}
         <div className="p-3.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[var(--ink-muted)]">Total Escrow Budget:</span>
+            <span className="text-[var(--ink-muted)]">Total you set aside:</span>
             <span className="font-bold text-[var(--ink)] tabular-nums text-sm">
               {formatUnits(totalBudget, quoteDecimals)} {quoteSymbol}
             </span>
@@ -471,7 +472,7 @@ export default function RecurringView({
             </div>
             <div className="space-y-1 text-[11px] text-[var(--ink-muted)]">
               <div className="flex justify-between">
-                <span>Total Escrow Deposit:</span>
+                <span>Total you set aside:</span>
                 <span className="font-semibold text-[var(--ink)] tabular-nums">
                   {formatUnits(totalBudget, quoteDecimals)} {quoteSymbol}
                 </span>
@@ -483,9 +484,9 @@ export default function RecurringView({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Price Ceiling:</span>
+                <span>Don&apos;t buy above:</span>
                 <span className="font-semibold text-[var(--ink)]">
-                  {priceCeilingInput.trim() ? `≤ $${priceCeilingInput}` : "None (market rate)"}
+                  {priceCeilingInput.trim() ? `≤ $${priceCeilingInput}` : "No limit"}
                 </span>
               </div>
               <div className="flex justify-between">
