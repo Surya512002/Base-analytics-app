@@ -854,9 +854,9 @@ export default function LendingHub({
       ? currentStockBalance * comparison.navUsd
       : null;
 
+  // Not "while loading": a wallet with nothing open would see the panel jump up and back down.
   const positionsFirst =
-    isConnected &&
-    (isWrongNetwork || isLoadingPositions || userPositions.length > 0 || Object.keys(positionsErrors).length > 0);
+    isConnected && (isWrongNetwork || userPositions.length > 0 || Object.keys(positionsErrors).length > 0);
   // 2. YOUR POSITIONS & HEALTH (Real on-chain positions)
   const positionsPanel = (
     <PositionsPanel
