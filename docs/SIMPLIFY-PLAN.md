@@ -23,7 +23,7 @@ version inside Trade, and nothing else in the app links to it.
 | 1 | Lend & Stake's headline says **"Top supply APY 1251.86%"**. It is the highest rate of any listed market, whatever its size. A number like that looks like a scam. | Only count markets with real money in them, or drop this headline figure. |
 | 2 | The recurring form shows the price as **$152.03644218**. | Show $152.04. |
 | 3 | Jargon: "DCA AUTOMATION", "Accumulate stock", "Recurring accumulation", "Price ceiling". | "Auto-invest", "Stock", "Buy on a schedule", "Don't buy above". |
-| 4 | On a phone, **Lend & Stake is not in the bottom bar**; Drops is. | Owner's decision (2026-11-25): **Drops stays in the bar.** Lend & Stake is reached through "More". |
+| 4 | On a phone, **Lend & Stake is not in the bottom bar**; Drops is. | Owner's decision (2026-11-25, later): while Drops is not live, **Vouchers takes its place** in the menus and Drops sits under "More". Lend & Stake is reached through "More". |
 | 5 | On a phone there are two searches (icon and bar) and two menus (top and "More"). The brand reads just "Base". | One search, one menu, full name. |
 
 ## Step 2: one place for each job
