@@ -122,6 +122,7 @@ export default function PositionsPanel({
         {/* Liquidation Guard Simulator Preview */}
         <LiquidationGuardBanner
           positions={[]}
+          unchecked
         />
       </div>
     );

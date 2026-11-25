@@ -23,6 +23,8 @@ import type { UserProtocolPosition } from "@/lib/lending/user-positions";
 
 interface LiquidationGuardBannerProps {
   positions: UserProtocolPosition[];
+  /** No wallet is connected, so nothing has been checked. */
+  unchecked?: boolean;
   onOpenAction?: (
     marketId: string,
     action: "supply" | "withdraw" | "borrow" | "repay" | "stake" | "unstake"
@@ -32,6 +34,7 @@ interface LiquidationGuardBannerProps {
 
 export default function LiquidationGuardBanner({
   positions,
+  unchecked = false,
   onOpenAction,
   className = "",
 }: LiquidationGuardBannerProps) {
@@ -176,7 +179,7 @@ export default function LiquidationGuardBanner({
                       : "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                 }`}
               >
-                {status.statusLabel}
+                {unchecked ? "Not checked" : status.statusLabel}
               </span>
             </div>
 
@@ -199,10 +202,12 @@ export default function LiquidationGuardBanner({
                 </>
               ) : (
                 <span className="text-sm font-semibold text-[var(--ink)]">
-                  Zero Debt · Collateral Safe
-                  <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">
-                    (No active liquidation risk)
-                  </span>
+                  {unchecked ? "Connect a wallet to check your loans" : "Zero Debt · Collateral Safe"}
+                  {!unchecked && (
+                    <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">
+                      (No active liquidation risk)
+                    </span>
+                  )}
                 </span>
               )}
             </div>

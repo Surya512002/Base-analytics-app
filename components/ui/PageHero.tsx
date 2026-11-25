@@ -118,17 +118,3 @@ export default function PageHero({
     </section>
   );
 }
-
-/** Frosted glass stat pills shown under a hero (e.g. "Top APY 17.6%"). */
-export function HeroStats({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
-  return (
-    <div className="flex flex-wrap gap-2.5 sm:justify-center">
-      {items.map((s) => (
-        <div key={s.label} className="pulse-chip min-h-9 gap-2 px-3.5 py-1.5 text-sm">
-          <span className="font-semibold text-[var(--ink-muted)]">{s.label}</span>
-          <span className="font-mono font-black tabular-nums text-[var(--ink)]">{s.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}

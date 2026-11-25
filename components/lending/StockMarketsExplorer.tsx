@@ -166,11 +166,11 @@ export default function StockMarketsExplorer({
           },
           { label: "Total depth", value: usd(stats.depth), note: `${stats.venues} protocols`, icon: Layers, color: "#F59E0B" },
         ].map((s) => (
-          <div key={s.label} className="min-w-0 rounded-[1.1rem] p-3.5 sm:p-4">
+          <div key={s.label} className="min-w-0 rounded-[1.1rem] p-2.5 sm:p-4">
             <p className="pulse-eyebrow max-w-full gap-1.5 text-[11px] tracking-[0.04em] sm:tracking-[0.14em]">
               <s.icon size={12} aria-hidden className="shrink-0" /> <span className="min-w-0 truncate">{s.label}</span>
             </p>
-            <p className="pulse-big mt-2 text-2xl sm:text-3xl">{loading && !stats.markets ? "…" : s.value}</p>
+            <p className="pulse-big mt-1 text-xl sm:mt-2 sm:text-3xl">{loading && !stats.markets ? "…" : s.value}</p>
             <p className="mt-1 truncate text-[11px] text-[var(--ink-dim)]">{s.note}</p>
           </div>
         ))}
