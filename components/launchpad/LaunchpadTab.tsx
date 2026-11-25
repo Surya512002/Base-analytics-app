@@ -25,7 +25,6 @@ import type { WalletAppState, AppTab } from "@/hooks/useWalletApp";
 import ExploreHub from "@/components/explore/ExploreHub";
 import StockDetailComparisonModal from "@/components/stocks/StockDetailComparisonModal";
 import type { CoinbaseTokenizedStock } from "@/lib/stocks/coinbase-api";
-import { checkAlerts } from "@/lib/utils/token-price-alerts";
 import { buildExploreTokenPath, syncTabUrl } from "@/lib/utils/app-url";
 
 type View = "explore" | "create" | "trade";
@@ -258,18 +257,6 @@ export default function LaunchpadTab({
       b20Activated: launchEnabled,
     });
   }, [tokens, launchEnabled, onShellBridge, requestCreate, openSwap]);
-
-  useEffect(() => {
-    if (!isActive || typeof Notification === "undefined") return;
-    checkAlerts(markets, (alert, price) => {
-      if (Notification.permission === "granted") {
-        new Notification(`${alert.symbol} price alert`, {
-          body: `Price hit $${price.toFixed(4)} (target ${alert.direction} $${alert.priceUsd})`,
-        });
-      }
-      app.showToast(`${alert.symbol} hit $${price.toFixed(4)}`, "");
-    });
-  }, [markets, isActive, app]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {

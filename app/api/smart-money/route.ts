@@ -1,88 +1,41 @@
 import { NextResponse } from "next/server";
 import { limitByIp } from "@/lib/api/rate-limit";
-import { PRESET_SMART_MONEY, type SmartMoneyBuyEvent } from "@/lib/smart-money/smart-money-store";
-import { formatUnits } from "viem";
+import { alchemyRpcForKey, getAlchemyKey } from "@/lib/constants/env";
+import { PRESET_SMART_MONEY } from "@/lib/smart-money/smart-money-store";
+import { radarEvents, type RadarTransfer } from "@/lib/smart-money/radar";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-interface BlockscoutTokenTxItem {
-  hash: string;
-  from: string;
-  to: string;
-  value: string;
-  contractAddress: string;
-  tokenName: string;
-  tokenSymbol: string;
-  tokenDecimal: string;
-  timeStamp: string;
-}
 
 export async function GET(req: Request) {
   const limited = await limitByIp(req, "smart-money", 30);
   if (limited) return limited;
   const { searchParams } = new URL(req.url);
-  const targetWallet =
-    searchParams.get("wallet")?.trim().toLowerCase() ||
-    PRESET_SMART_MONEY[0].address.toLowerCase();
+  const requested = searchParams.get("wallet")?.trim().toLowerCase() || PRESET_SMART_MONEY[0]!.address.toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(requested)) return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
 
-  const matchedPreset = PRESET_SMART_MONEY.find(
-    (w) => w.address.toLowerCase() === targetWallet
-  );
-  const walletLabel = matchedPreset?.label || `Wallet ${targetWallet.slice(0, 6)}…`;
+  const label = PRESET_SMART_MONEY.find((w) => w.address.toLowerCase() === requested)?.label || `Wallet ${requested.slice(0, 6)}…`;
+  // A failed lookup must say so: an empty list would read as "this wallet received nothing".
+  const unavailable = () => NextResponse.json({ error: "Wallet activity is unavailable right now", wallets: PRESET_SMART_MONEY }, { status: 503 });
 
-  const now = Date.now();
-  const recentBuys: SmartMoneyBuyEvent[] = [];
-
+  const key = getAlchemyKey();
+  if (!key) return unavailable();
   try {
-    const url = `https://base.blockscout.com/api?module=account&action=tokentx&address=${targetWallet}&page=1&offset=8&sort=desc`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(4000),
-      headers: { Accept: "application/json" },
+    const res = await fetch(alchemyRpcForKey(key), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(6000),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [{ fromBlock: "0x0", toBlock: "latest", toAddress: requested, category: ["erc20"], order: "desc", maxCount: "0x64", withMetadata: true, excludeZeroValue: true }],
+      }),
     });
-
-    if (res.ok) {
-      const data = (await res.json()) as {
-        status?: string;
-        message?: string;
-        result?: BlockscoutTokenTxItem[];
-      };
-
-      if (Array.isArray(data?.result)) {
-        for (const tx of data.result) {
-          // Identify inbound token acquisitions (buys / received)
-          if (tx.to && tx.to.toLowerCase() === targetWallet) {
-            const decimals = parseInt(tx.tokenDecimal || "18", 10);
-            let formattedAmount = "0";
-            try {
-              const parsed = formatUnits(BigInt(tx.value || "0"), isNaN(decimals) ? 18 : decimals);
-              const num = parseFloat(parsed);
-              formattedAmount = num > 1000 ? num.toLocaleString(undefined, { maximumFractionDigits: 2 }) : num.toFixed(4);
-            } catch {
-              formattedAmount = tx.value;
-            }
-
-            recentBuys.push({
-              txHash: tx.hash,
-              walletAddress: targetWallet,
-              walletLabel,
-              tokenAddress: tx.contractAddress,
-              tokenSymbol: tx.tokenSymbol || "TOKEN",
-              amount: formattedAmount,
-              usdValue: null,
-              timestamp: Number(tx.timeStamp || "0") * 1000,
-            });
-          }
-        }
-      }
-    }
+    const body = (await res.json()) as { result?: { transfers?: RadarTransfer[] } };
+    if (!body.result?.transfers) return unavailable();
+    return NextResponse.json({ wallets: PRESET_SMART_MONEY, recentBuys: radarEvents(body.result.transfers, requested, label), timestamp: Date.now() });
   } catch {
-    // Upstream indexer rate limit or timeout — degrade gracefully without crashing
+    return unavailable();
   }
-
-  return NextResponse.json({
-    wallets: PRESET_SMART_MONEY,
-    recentBuys,
-    timestamp: now,
-  });
 }

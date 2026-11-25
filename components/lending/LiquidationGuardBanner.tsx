@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { shouldWarnLiquidation } from "@/lib/lending/liquidation-warning";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -71,6 +72,23 @@ export default function LiquidationGuardBanner({
     totalDebtUsd,
   });
 
+  // The warning itself: positions are re-read every 30 seconds while the Lend page is open.
+  useEffect(() => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const key = "base_liquidation_last_warned";
+    const now = Date.now();
+    if (!shouldWarnLiquidation({ enabled: notificationsEnabled, healthFactor: lowestHF, debtUsd: totalDebtUsd, lastWarnedAt: Number(localStorage.getItem(key) ?? 0), now })) return;
+    try {
+      new Notification("Your loan is close to liquidation", {
+        body: `Health factor ${lowestHF!.toFixed(2)}. Repay or add collateral on Lend & Stake.`,
+        icon: "/favicon.ico",
+      });
+      localStorage.setItem(key, String(now));
+    } catch {
+      // The page itself still shows the red warning.
+    }
+  }, [notificationsEnabled, lowestHF, totalDebtUsd]);
+
   const effectiveBaseHF = status.healthFactor ?? 1.5;
   const simulatedHF = simulateCollateralDrop(effectiveBaseHF, simulatedDrop);
 
@@ -94,7 +112,7 @@ export default function LiquidationGuardBanner({
         setNotificationsEnabled(true);
         localStorage.setItem("base_liquidation_alert_enabled", "true");
         new Notification("Base Terminal Liquidation Guard", {
-          body: "Liquidation alerts enabled. We'll warn you if your Health Factor falls below 1.25.",
+          body: "Warnings are on. While the Lend & Stake page is open, we will tell you if your health factor falls below 1.25.",
           icon: "/favicon.ico",
         });
       }
