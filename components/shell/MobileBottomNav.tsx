@@ -106,7 +106,7 @@ export default function MobileBottomNav({
   return (
     <nav
       aria-label="Mobile navigation"
-      className="md:hidden fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] z-50 rounded-[1.6rem] border border-[var(--border-subtle)] bg-[var(--surface)]/90 backdrop-blur-xl shadow-[0_12px_40px_-8px_rgba(11,21,38,0.35)]"
+      className="lg:hidden fixed inset-x-3 mx-auto max-w-xl bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] z-50 rounded-[1.6rem] border border-[var(--border-subtle)] bg-[var(--surface)]/90 backdrop-blur-xl shadow-[0_12px_40px_-8px_rgba(11,21,38,0.35)]"
     >
       {/* Floating dock: the active tab gets a soft blue pill that slides between tabs */}
       <div className="flex w-full items-stretch justify-around gap-0.5 p-1.5">

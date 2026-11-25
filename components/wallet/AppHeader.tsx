@@ -24,6 +24,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useI18n } from "@/lib/i18n/context";
 import type { AppTab } from "@/hooks/useWalletApp";
+import { AUTO_INVEST_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
 
 interface AppHeaderProps {
   tab: AppTab;
@@ -43,12 +44,13 @@ interface AppHeaderProps {
 
 const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
   { tab: "trade", label: "Trade", guestOk: true },
-  { tab: "launchpad", label: "Explore", guestOk: true },
   { tab: "swap", label: "Swap", guestOk: true },
   { tab: "lend", label: "Lend & Stake", guestOk: true },
-  { tab: "basehub", label: "Vouchers", guestOk: true },
+  { tab: "launchpad", label: "Explore", guestOk: true },
   { tab: "drops", label: "Drops", guestOk: true },
 ];
+
+const navItemClass = "shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer";
 
 function navActive(itemTab: AppTab, active: AppTab): boolean {
   return active === itemTab;
@@ -123,6 +125,23 @@ export default function AppHeader({
           ? "vouchers"
           : tab;
 
+  // "More" menu (computer layout)
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [moreOpen]);
+
   // Account Menu dropdown state
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -158,55 +177,97 @@ export default function AppHeader({
     onTabChange(next);
   };
 
+  const tabButton = (item: (typeof HEADER_NAV)[number], extraClass = "") => {
+    const active = !isProfile && !isLaunch && navActive(item.tab, tab);
+    return (
+      <button
+        key={item.label}
+        type="button"
+        onClick={() => pickTab(item.tab, item.guestOk)}
+        aria-current={active ? "page" : undefined}
+        className={`relative isolate shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors touch-manipulation cursor-pointer ${extraClass} ${
+          active ? "font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
+        }`}
+      >
+        {active && <ActivePill layoutId="header-nav-pill" className="bg-[var(--brand-soft)]" />}
+        {getNavLabel(item.tab, item.label)}
+      </button>
+    );
+  };
+  const plainLink = (href: string, label: string) => (
+    <Link href={href} className={`${navItemClass} text-[var(--muted)] hover:text-[var(--ink)]`}>
+      {label}
+    </Link>
+  );
+  const moreItem = "block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] cursor-pointer";
+  const moreActive = isProfile || isLaunch || tab === "basehub";
+
   const navLinks = (
     <>
-      {HEADER_NAV.map((item) => {
-        const active = !isProfile && !isLaunch && navActive(item.tab, tab);
-        return (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => pickTab(item.tab, item.guestOk)}
-            aria-current={active ? "page" : undefined}
-            className={`relative isolate shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors touch-manipulation cursor-pointer ${
-              active ? "font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            {active && <ActivePill layoutId="header-nav-pill" className="bg-[var(--brand-soft)]" />}
-            {getNavLabel(item.tab, item.label)}
-          </button>
-        );
-      })}
-      <Link
-        href="/launch"
-        className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer ${
-          isLaunch
-            ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
-            : "text-[var(--muted)] hover:text-[var(--ink)]"
-        }`}
-        aria-current={isLaunch ? "page" : undefined}
-      >
-        {t.nav.launch}
-      </Link>
-      <Link
-        href={profileHref}
-        className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer ${
-          isProfile
-            ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]"
-            : "text-[var(--muted)] hover:text-[var(--ink)]"
-        }`}
-        aria-current={isProfile ? "page" : undefined}
-      >
-        {t.nav.profile}
-      </Link>
+      {HEADER_NAV.slice(0, 2).map((item) => tabButton(item))}
+      {plainLink(AUTO_INVEST_HREF, "Auto-invest")}
+      {plainLink(MY_STOCKS_HREF, "My Stocks")}
+      {tabButton(HEADER_NAV[2])}
+      {HEADER_NAV.slice(3).map((item) => tabButton(item, "max-xl:hidden"))}
     </>
+  );
+
+  // Outside the scrolling row, so its dropdown is not clipped.
+  const moreMenu = (
+    <div ref={moreRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={moreOpen}
+        onClick={() => setMoreOpen((v) => !v)}
+        className={`${navItemClass} inline-flex items-center gap-1 ${moreActive ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+      >
+        More <ChevronDown size={13} aria-hidden />
+      </button>
+      {moreOpen && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-1.5 shadow-2xl">
+          {HEADER_NAV.slice(3).map((item) => (
+            <button
+              key={item.tab}
+              type="button"
+              className={`${moreItem} xl:hidden`}
+              onClick={() => {
+                setMoreOpen(false);
+                pickTab(item.tab, item.guestOk);
+              }}
+            >
+              {getNavLabel(item.tab, item.label)}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={moreItem}
+            onClick={() => {
+              setMoreOpen(false);
+              pickTab("basehub", true);
+            }}
+          >
+            {t.nav.vouchers}
+          </button>
+          <Link href="/launch" className={moreItem} onClick={() => setMoreOpen(false)} aria-current={isLaunch ? "page" : undefined}>
+            {t.nav.launch}
+          </Link>
+          <Link href={profileHref} className={moreItem} onClick={() => setMoreOpen(false)} aria-current={isProfile ? "page" : undefined}>
+            {t.nav.profile}
+          </Link>
+          <Link href="/help" className={moreItem} onClick={() => setMoreOpen(false)}>
+            Help
+          </Link>
+        </div>
+      )}
+    </div>
   );
 
   return (
     <header
       className={`sticky top-0 ${mobileMenuOpen ? "z-[70]" : "z-50"} w-full pt-[env(safe-area-inset-top,0px)] transition-colors duration-300 ${
         scrolled
-          ? "border-b border-transparent max-md:bg-transparent md:border-[var(--border)] md:bg-[var(--surface)]/90 md:backdrop-blur-md"
+          ? "border-b border-transparent max-lg:bg-transparent lg:border-[var(--border)] lg:bg-[var(--surface)]/90 lg:backdrop-blur-md"
           : "border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md"
       }`}
     >
@@ -215,7 +276,7 @@ export default function AppHeader({
         <div
           className={`flex min-w-0 items-center justify-between gap-3 py-2.5 transition-all duration-300 sm:py-3 ${
             scrolled
-              ? "max-md:mt-2 max-md:rounded-2xl max-md:border max-md:border-[var(--border-subtle)] max-md:bg-[var(--surface)]/95 max-md:px-3 max-md:shadow-lg max-md:backdrop-blur-md"
+              ? "max-lg:mt-2 max-lg:rounded-2xl max-lg:border max-lg:border-[var(--border-subtle)] max-lg:bg-[var(--surface)]/95 max-lg:px-3 max-lg:shadow-lg max-lg:backdrop-blur-md"
               : ""
           }`}
         >
@@ -228,17 +289,17 @@ export default function AppHeader({
           </Link>
 
           {/* Desktop Navigation Links (inline) */}
-          <nav
-            aria-label="Main"
-            className="hidden md:flex min-w-0 items-center gap-1 overflow-x-auto text-sm no-scrollbar"
-          >
-            {navLinks}
-          </nav>
+          <div className="hidden lg:flex min-w-0 items-center gap-1 text-sm">
+            <nav aria-label="Main" className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
+              {navLinks}
+            </nav>
+            {moreMenu}
+          </div>
 
           {/* Right: ONE Unified Account Area */}
           <div className="flex shrink-0 items-center gap-2">
             {/* Phones: search, plus the menu on pages without the bottom bar (which has its own "More") */}
-            <div className="flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] md:hidden">
+            <div className="flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] lg:hidden">
               <button
                 type="button"
                 aria-label="Search tokens and pages"
@@ -268,7 +329,7 @@ export default function AppHeader({
             </div>
             {guest || !walletAddress ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="hidden items-center gap-2 md:flex">
+                <div className="hidden items-center gap-2 lg:flex">
                   <LanguageSelector />
                   <ThemeToggle />
                 </div>

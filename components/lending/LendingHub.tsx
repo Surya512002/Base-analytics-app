@@ -43,6 +43,7 @@ import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { getStockQuotes, type StockQuote } from "@/lib/stocks/stock-prices";
 import StockPortfolio from "@/components/stocks/StockPortfolio";
+import { useSearchParams } from "next/navigation";
 
 
 interface LendingHubProps {
@@ -75,6 +76,17 @@ export default function LendingHub({
     return initialStock ? "stocks" : "markets";
   });
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(initialStock ?? null);
+
+  // A menu link such as "My Stocks" can arrive while this page is already open.
+  const viewParam = useSearchParams()?.get("view");
+  useEffect(() => {
+    if (viewParam !== "portfolio") return;
+    setActiveTab("portfolio");
+    setSelectedStockSymbol(null);
+    // "instant" because the page-wide smooth scrolling gets cancelled while the page is still filling in.
+    const t = setTimeout(() => document.getElementById("lending-view-tabs")?.scrollIntoView({ block: "start", behavior: "instant" }), 600);
+    return () => clearTimeout(t);
+  }, [viewParam]);
 
   // Level 2 data
   const [comparison, setComparison] = useState<StockLendingComparison | null>(null);
@@ -959,7 +971,7 @@ export default function LendingHub({
       />
 
       {/* 4. UNIFIED WORKSPACE NAVIGATION (Directly controlling showcase view below) */}
-      <div id="lending-view-tabs" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+      <div id="lending-view-tabs" className="scroll-mt-20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <LendingViewTabs
           value={activeTab}
           onChange={(newTab) => {

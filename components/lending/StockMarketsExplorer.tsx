@@ -363,7 +363,7 @@ export default function StockMarketsExplorer({
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+86px)] z-40 mx-auto flex max-w-xl items-center gap-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]/95 p-2.5 shadow-2xl backdrop-blur-md md:bottom-6"
+            className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+86px)] z-40 mx-auto flex max-w-xl items-center gap-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]/95 p-2.5 shadow-2xl backdrop-blur-md lg:bottom-6"
           >
             <Scale size={16} className="ml-1 shrink-0 text-[var(--brand-text)]" />
             <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto no-scrollbar">
