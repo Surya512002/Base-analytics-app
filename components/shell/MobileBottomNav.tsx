@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Compass, ArrowLeftRight, Landmark, User, Menu } from "lucide-react";
+import { CandlestickChart, Compass, ArrowLeftRight, Sparkles, User, Menu } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface MobileBottomNavProps {
@@ -41,9 +41,9 @@ export default function MobileBottomNav({
       pathname.startsWith("/swap") ||
       (pathname === "/" && tab === "swap"));
 
-  const isLend =
+  const isDrops =
     !isProfile &&
-    (pathname.startsWith("/lend") || pathname.startsWith("/earn") || (pathname === "/" && tab === "lend"));
+    (pathname.startsWith("/drops") || (pathname === "/" && tab === "drops"));
 
   const isExplore =
     !isProfile &&
@@ -84,12 +84,12 @@ export default function MobileBottomNav({
       guestOk: true,
     },
     {
-      id: "lend",
-      label: "Lend",
-      href: "/lend",
-      icon: Landmark,
-      active: isLend,
-      tabId: "lend" as AppTab,
+      id: "drops",
+      label: "Drops",
+      href: "/drops",
+      icon: Sparkles,
+      active: isDrops,
+      tabId: "drops" as AppTab,
       guestOk: true,
     },
     {
@@ -168,7 +168,7 @@ export default function MobileBottomNav({
             </Link>
           );
         })}
-        {/* Drops, Launch and Vouchers live in the menu; this opens it */}
+        {/* Lend, Launch and Vouchers live in the menu; this opens it */}
         <button
           type="button"
           aria-label="More"
