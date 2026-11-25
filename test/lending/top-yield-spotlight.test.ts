@@ -1,70 +1,45 @@
 import { describe, it, expect } from "vitest";
 import type { GaugeRowData } from "@/components/lending/GaugesTable";
+import { pickSpotlight, SPOTLIGHT_MIN_TVL_USD } from "@/components/lending/TopYieldSpotlight";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
 
-describe("Top Yield Spotlight Dynamic Resolution", () => {
-  it("resolves the highest yield opportunity among verified baseline pools", () => {
-    const mockMarkets = [
-      {
-        marketId: "morpho-weth",
-        protocol: "morpho",
-        protocolLabel: "Morpho Blue",
-        supplyApy: 4.85,
-        type: "lend",
-        contractAddress: "0xBBBB",
-        supplyAsset: { symbol: "USDC", name: "USD Coin", decimals: 6, isStock: false, address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
-      },
-      {
-        marketId: "moonwell-usdc",
-        protocol: "moonwell",
-        protocolLabel: "Moonwell Base",
-        supplyApy: 4.65,
-        type: "lend",
-        contractAddress: "0xCCCC",
-        supplyAsset: { symbol: "mUSDC", name: "Moonwell USDC", decimals: 6, isStock: false, address: "0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22" },
-      },
-    ] as unknown as NormalizedMarket[];
+const gauge = (id: string, gaugeApr: number, tvlUsd: number): GaugeRowData => ({
+  id,
+  pairName: `${id}-USDC`,
+  stockSymbol: id,
+  category: "equities",
+  gaugeApr,
+  tvlUsd,
+  rewardToken: "AERO",
+  stakedAmount: 0,
+  stakedUsd: 0,
+  pendingRewards: 0,
+  pendingRewardsUsd: 0,
+  contractAddress: "0xAAAA",
+});
 
-    const mockGauges: GaugeRowData[] = [
-      {
-        id: "aero-gauge",
-        pairName: "NVDAc-USDC Gauge",
-        stockSymbol: "NVDAc",
-        category: "equities",
-        gaugeApr: 17.64,
-        tvlUsd: 517538,
-        rewardToken: "AERO",
-        stakedAmount: 0,
-        stakedUsd: 0,
-        pendingRewards: 0,
-        pendingRewardsUsd: 0,
-        contractAddress: "0xAAAA",
-      },
-    ];
+const lend = {
+  marketId: "usdc",
+  protocol: "morpho",
+  protocolLabel: "Morpho Blue",
+  supplyApy: 4.85,
+  tvlUsd: 2_000_000,
+  type: "lend",
+  contractAddress: "0xBBBB",
+  supplyAsset: { symbol: "USDC", name: "USD Coin", decimals: 6, isStock: false, address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+} as unknown as NormalizedMarket;
 
-    // Verify Aerodrome gauge (17.64%) is picked over Morpho (4.85%) and Moonwell (4.65%)
-    const topGauge = mockGauges[0];
-    const topMarket = mockMarkets[0];
-    expect(topGauge.gaugeApr).toBeGreaterThan(topMarket.supplyApy ?? 0);
+describe("Top Yield Spotlight", () => {
+  it("never features a tiny pool, however large its rate", () => {
+    expect(pickSpotlight([lend], [gauge("HIMSc", 1057.74, 5_880)])?.marketId).toBe("usdc");
   });
 
-  it("dynamically selects higher live gauge APR when available", () => {
-    const liveGauge: GaugeRowData = {
-      id: "aero-high-yield",
-      pairName: "AERO-USDC Gauge",
-      stockSymbol: "AERO",
-      category: "crypto",
-      gaugeApr: 42.15,
-      tvlUsd: 1250000,
-      rewardToken: "AERO",
-      stakedAmount: 0,
-      stakedUsd: 0,
-      pendingRewards: 0,
-      pendingRewardsUsd: 0,
-      contractAddress: "0xDDDD",
-    };
+  it("picks the highest rate among pools that are big enough", () => {
+    expect(pickSpotlight([lend], [gauge("NVDAc", 17.64, 517_538)])?.apy).toBe(17.64);
+    expect(pickSpotlight([], [gauge("EDGE", 9, SPOTLIGHT_MIN_TVL_USD)])?.apy).toBe(9);
+  });
 
-    expect(liveGauge.gaugeApr).toBe(42.15);
-    expect(liveGauge.gaugeApr).toBeGreaterThan(17.64);
+  it("features nothing when no pool qualifies", () => {
+    expect(pickSpotlight([], [gauge("HIMSc", 1057.74, SPOTLIGHT_MIN_TVL_USD - 1)])).toBeNull();
   });
 });

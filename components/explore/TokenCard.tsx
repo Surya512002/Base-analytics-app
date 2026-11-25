@@ -35,6 +35,16 @@ interface TokenCardProps {
   isWatched?: boolean;
 }
 
+/** Same regional rule for every Swap button on a token in the list. */
+export function useStockSwapRestricted(token: UnifiedToken): boolean {
+  const compliance = useCompliance();
+  const isStock = token.type === "stock" || token.type === "b20" || token.symbol.endsWith("c");
+  return (
+    isStock &&
+    (!compliance.status.features["stocks.swap"] || (compliance.isRestricted && !compliance.canEnter))
+  );
+}
+
 export default function TokenCard({
   token,
   onTrade,
@@ -44,17 +54,7 @@ export default function TokenCard({
 }: TokenCardProps) {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const compliance = useCompliance();
-
-  const isStock = Boolean(
-    token.type === "stock" ||
-    token.type === "b20" ||
-    token.symbol.endsWith("c")
-  );
-  const isStockSwapRestricted =
-    isStock &&
-    (!compliance.status.features["stocks.swap"] ||
-      (compliance.isRestricted && !compliance.canEnter));
+  const isStockSwapRestricted = useStockSwapRestricted(token);
 
   const isUp = token.priceChange24h >= 0;
   const isZero = token.priceChange24h === 0;

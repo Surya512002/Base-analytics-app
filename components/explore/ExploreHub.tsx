@@ -350,7 +350,7 @@ export default function ExploreHub({
             Token Explorer
           </h2>
           <span className="text-xs font-mono font-bold text-[var(--ink-muted)]">
-            {filteredTokens.length} tokens
+            {filteredTokens.length === 0 && (initialLoading || stockMarketsLoading) ? "Loading…" : `${filteredTokens.length} tokens`}
           </span>
         </div>
 
@@ -363,7 +363,7 @@ export default function ExploreHub({
         />
 
         {/* Tokens Table or Grid View */}
-        {initialLoading && allUnifiedTokens.length === 0 ? (
+        {filteredTokens.length === 0 && (initialLoading || stockMarketsLoading) ? (
           /* Skeletons */
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (

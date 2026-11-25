@@ -398,13 +398,15 @@ export default function SwapTab({
       )}
 
       {/* About Swap (moved under the swap section) */}
-      <PageHero
-        size="sm"
-        as="h2"
-        eyebrow="Swap on Base"
-        title={<>Trade any token — <span className="text-[var(--brand-text)]">best route, one tap.</span></>}
-        subtitle="Quotes from Base DEXs, a clear preview before you sign, and nothing held by us."
-      />
+      {activeSubTab === "market" && (
+        <PageHero
+          size="sm"
+          as="h2"
+          eyebrow="Swap on Base"
+          title={<>Trade any token — <span className="text-[var(--brand-text)]">best route, one tap.</span></>}
+          subtitle="Quotes from Base DEXs, a clear preview before you sign, and nothing held by us."
+        />
+      )}
     </div>
   );
 }

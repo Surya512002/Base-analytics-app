@@ -43,6 +43,8 @@ import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { getStockQuotes, type StockQuote } from "@/lib/stocks/stock-prices";
 import StockPortfolio from "@/components/stocks/StockPortfolio";
+import AutomationStrip from "@/components/stocks/AutomationStrip";
+import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import { useSearchParams } from "next/navigation";
 
 
@@ -855,8 +857,12 @@ export default function LendingHub({
       : null;
 
   // Not "while loading": a wallet with nothing open would see the panel jump up and back down.
+  // On My Stocks only a loan (it can be liquidated) or a problem goes above the stocks.
   const positionsFirst =
-    isConnected && (isWrongNetwork || userPositions.length > 0 || Object.keys(positionsErrors).length > 0);
+    isConnected &&
+    (isWrongNetwork ||
+      Object.keys(positionsErrors).length > 0 ||
+      userPositions.some((p) => p.borrowedUsd > 0 || activeTab !== "portfolio"));
   // 2. YOUR POSITIONS & HEALTH (Real on-chain positions)
   const positionsPanel = (
     <PositionsPanel
@@ -965,7 +971,7 @@ export default function LendingHub({
       />
 
       {/* Positions go on top only when there is something to check; otherwise the markets come first. */}
-      {positionsFirst && positionsPanel}
+      {positionsFirst && activeTab !== "portfolio" && positionsPanel}
 
       {/* 4. UNIFIED WORKSPACE NAVIGATION (Directly controlling showcase view below) */}
       <div id="lending-view-tabs" className="scroll-mt-20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
@@ -980,6 +986,9 @@ export default function LendingHub({
           marketsCount={discoveredMarkets.length}
         />
       </div>
+
+      {/* Under the tabs on My Stocks, so a late-loading panel does not push the page away from them. */}
+      {positionsFirst && activeTab === "portfolio" && positionsPanel}
 
       {/* 5. ACTIVE SHOWCASE VIEW */}
       {activeTab === "markets" ? (
@@ -996,16 +1005,19 @@ export default function LendingHub({
         />
       ) : activeTab === "portfolio" ? (
         /* MY STOCKS: holdings as one portfolio, target mix, rebalance, earn per stock */
-        <StockPortfolio
-          walletAddress={userAddress}
-          onRequestConnect={onRequestConnect}
-          rows={stockRows}
-          onSwap={app.handleTokenSwap}
-          onOpenStock={(symbol) => {
-            setActiveTab("stocks");
-            setSelectedStockSymbol(symbol);
-          }}
-        />
+        <div className="space-y-4">
+          {userAddress && isLimitOrdersFeatureEnabled() && <AutomationStrip app={app} />}
+          <StockPortfolio
+            walletAddress={userAddress}
+            onRequestConnect={onRequestConnect}
+            rows={stockRows}
+            onSwap={app.handleTokenSwap}
+            onOpenStock={(symbol) => {
+              setActiveTab("stocks");
+              setSelectedStockSymbol(symbol);
+            }}
+          />
+        </div>
       ) : activeTab === "vaults" ? (
         /* STAKE & GAUGES VIEW */
         <GaugesTable
