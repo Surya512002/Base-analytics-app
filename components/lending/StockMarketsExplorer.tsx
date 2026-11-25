@@ -26,6 +26,7 @@ import {
   groupMarketsByStock,
   isApyUnreliable,
   marketDepthUsd,
+  topLendingMarket,
   yearlyEarnings,
   type StockMarketGroup,
   type StockMarketKind,
@@ -93,7 +94,8 @@ export default function StockMarketsExplorer({
   const [mode, setMode] = useState<Mode>("all");
   const [query, setQuery] = useState("");
   const [venue, setVenue] = useState<string | null>(null);
-  const [sort, setSort] = useState<Sort>("earn");
+  // Deepest first: ranking by rate would put small, volatile pool vaults on top.
+  const [sort, setSort] = useState<Sort>("depth");
   const [showSmall, setShowSmall] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [compare, setCompare] = useState<string[]>([]);
@@ -124,7 +126,7 @@ export default function StockMarketsExplorer({
 
   const stats = useMemo(() => {
     const flat = allGroups.flatMap((g) => g.markets);
-    const earn = flat.filter((m) => m.kind !== "borrow" && !isApyUnreliable(m)).sort((a, b) => b.supplyApy - a.supplyApy)[0];
+    const earn = topLendingMarket(flat);
     const borrow = flat
       .filter((m) => m.kind === "borrow" && (m.liquidityUsd || 0) > 0 && (m.borrowApr ?? 0) > 0)
       .sort((a, b) => (a.borrowApr ?? 99) - (b.borrowApr ?? 99))[0];
@@ -147,11 +149,11 @@ export default function StockMarketsExplorer({
       {/* Summary */}
       <div className="pulse-surface grid grid-cols-2 gap-px p-1.5 lg:grid-cols-4">
         {[
-          { label: "Stocks with markets", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#0052FF" },
+          { label: "Stocks", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#0052FF" },
           {
-            label: "Best yield",
+            label: "Top lending APY",
             value: pct(stats.earn?.supplyApy),
-            note: stats.earn ? `${stats.earn.collateralAsset?.symbol ?? ""} · ${stats.earn.venue}` : "—",
+            note: stats.earn ? `${(stats.earn.collateralAsset ?? stats.earn.supplyAsset).symbol} · ${stats.earn.venue}` : "No plain lending market now",
             icon: Coins,
             color: "#10B981",
           },
@@ -165,8 +167,8 @@ export default function StockMarketsExplorer({
           { label: "Total depth", value: usd(stats.depth), note: `${stats.venues} protocols`, icon: Layers, color: "#F59E0B" },
         ].map((s) => (
           <div key={s.label} className="min-w-0 rounded-[1.1rem] p-3.5 sm:p-4">
-            <p className="pulse-eyebrow gap-1.5 text-[11px] tracking-[0.14em]">
-              <s.icon size={12} aria-hidden /> <span className="truncate">{s.label}</span>
+            <p className="pulse-eyebrow max-w-full gap-1.5 text-[11px] tracking-[0.04em] sm:tracking-[0.14em]">
+              <s.icon size={12} aria-hidden className="shrink-0" /> <span className="min-w-0 truncate">{s.label}</span>
             </p>
             <p className="pulse-big mt-2 text-2xl sm:text-3xl">{loading && !stats.markets ? "…" : s.value}</p>
             <p className="mt-1 truncate text-[11px] text-[var(--ink-dim)]">{s.note}</p>
@@ -291,7 +293,9 @@ export default function StockMarketsExplorer({
                     <span className="hidden min-w-[96px] text-right sm:block">
                       <span className="block text-[11px] font-semibold text-[var(--ink-muted)]">Best yield</span>
                       <span className="block font-mono text-base font-black text-emerald-600 dark:text-emerald-400">{pct(g.bestEarn?.supplyApy)}</span>
-                      <span className="block truncate text-[11px] text-[var(--ink-dim)]">{g.bestEarn?.venue ?? "—"}</span>
+                      <span className="block truncate text-[11px] text-[var(--ink-dim)]">
+                        {g.bestEarn ? `${g.bestEarn.venue}${g.bestEarn.kind === "lp" ? " · pool vault" : ""}` : "—"}
+                      </span>
                     </span>
                     <span className="hidden min-w-[96px] text-right md:block">
                       <span className="block text-[11px] font-semibold text-[var(--ink-muted)]">Borrow USDC</span>
@@ -323,7 +327,7 @@ export default function StockMarketsExplorer({
                 {/* phone metrics */}
                 <div className="grid grid-cols-2 gap-2 px-3 pb-3 sm:hidden">
                   <div className="rounded-xl bg-[var(--surface-2)] px-2.5 py-1.5">
-                    <p className="text-[11px] text-[var(--ink-muted)]">Best yield</p>
+                    <p className="text-[11px] text-[var(--ink-muted)]">Best yield{g.bestEarn?.kind === "lp" ? " · pool vault" : ""}</p>
                     <p className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">{pct(g.bestEarn?.supplyApy)}</p>
                   </div>
                   <div className="rounded-xl bg-[var(--surface-2)] px-2.5 py-1.5">
@@ -449,6 +453,9 @@ function StockDetail({
             <p className="text-[var(--ink-muted)]">Earn per year (best yield)</p>
             <p className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400">{usd(earn)}</p>
             <p className="text-[11px] text-[var(--ink-dim)]">{group.bestEarn ? `${pct(group.bestEarn.supplyApy)} on ${group.bestEarn.venue}` : "No earning market"}</p>
+            {group.bestEarn?.kind === "lp" && (
+              <p className="mt-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Pool vault: this rate changes quickly and the deposit can lose value.</p>
+            )}
           </div>
           <div className="rounded-xl bg-[var(--surface)] p-2.5 text-xs">
             <p className="text-[var(--ink-muted)]">Borrow USDC, comfortably</p>

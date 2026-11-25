@@ -854,6 +854,103 @@ export default function LendingHub({
       ? currentStockBalance * comparison.navUsd
       : null;
 
+  // Not "while loading": a wallet with nothing open would see the panel jump up and back down.
+  const positionsFirst =
+    isConnected && (isWrongNetwork || userPositions.length > 0 || Object.keys(positionsErrors).length > 0);
+  // 2. YOUR POSITIONS & HEALTH (Real on-chain positions)
+  const positionsPanel = (
+    <PositionsPanel
+      isConnected={isConnected}
+      isWrongNetwork={isWrongNetwork}
+      onSwitchNetwork={handleSwitchNetwork}
+      isLoading={isLoadingPositions}
+      positions={userPositions}
+      errors={positionsErrors}
+      onRetryProtocol={handleRetryProtocol}
+      onRefresh={() => {
+        if (userAddress) void loadUserPositions(userAddress, true);
+      }}
+      isRefreshing={isRefreshingPositions}
+      lastUpdatedSecondsAgo={positionsSecondsAgo}
+      onRequestConnect={onRequestConnect}
+      isMockData={isMockPositionsData}
+      onOpenAction={(marketId, action) => {
+        // Check if it's a gauge action
+        const gaugeMatch = gaugeRows.find(
+          (g) => g.id === marketId || g.contractAddress === marketId
+        );
+        if (gaugeMatch) {
+          const market = BASE_LENDING_MARKETS.find(
+            (m) => m.contractAddress === gaugeMatch.contractAddress
+          ) ?? {
+            id: gaugeMatch.id,
+            name: `${gaugeMatch.pairName} Gauge`,
+            protocol: "aerodrome",
+            protocolLabel: "Aerodrome Finance",
+            protocolBadge: "Slipstream Gauge",
+            protocolAddress: gaugeMatch.contractAddress,
+            protocolUrl: "https://aerodrome.finance",
+            category: "stocks_stake",
+            asset: {
+              symbol: gaugeMatch.pairName,
+              name: gaugeMatch.pairName,
+              address: gaugeMatch.contractAddress,
+              decimals: 18,
+            },
+            supplyApy: gaugeMatch.gaugeApr,
+            stakingApr: gaugeMatch.gaugeApr,
+            tvlUsd: gaugeMatch.tvlUsd,
+            oracle: "Aerodrome TWAP",
+            contractAddress: gaugeMatch.contractAddress,
+            contractType: "aerodrome_gauge",
+            builderAttributed: true,
+            isStockFocus: true,
+          };
+          handleOpenMarketModal(
+            market,
+            action === "supply" ? "stake" : action === "withdraw" ? "unstake" : "stake"
+          );
+          return;
+        }
+
+        // Stock or lending market
+        const pos = userPositions.find((p) => p.marketId === marketId || p.id === marketId);
+        const sym = pos ? pos.assetSymbol : marketId.replace(/^pos-/, "");
+
+        if (comparison && comparison.stockSymbol === sym && comparison.bestSupplyOption) {
+          const opt =
+            comparison.options.find((o) => o.id === marketId) ??
+            ((action === "borrow" || action === "repay") && comparison.bestBorrowOption
+              ? comparison.bestBorrowOption
+              : comparison.bestSupplyOption);
+          handleOpenStockDrawer(
+            opt,
+            action === "stake" || action === "unstake" ? "supply" : action
+          );
+        } else {
+          getUnifiedStockLendingComparison(sym, undefined, false, discoveredMarkets)
+            .then((res) => {
+              setComparison(res);
+              const opt =
+                res.options.find((o) => o.id === marketId) ??
+                ((action === "borrow" || action === "repay") && res.bestBorrowOption
+                  ? res.bestBorrowOption
+                  : (res.bestSupplyOption ?? res.options[0]));
+              if (opt) {
+                handleOpenStockDrawer(
+                  opt,
+                  action === "stake" || action === "unstake" ? "supply" : action
+                );
+              }
+            })
+            .catch((e) => {
+              console.error("Failed to load position option:", e);
+            });
+        }
+      }}
+    />
+  );
+
   return (
     <div className="space-y-6 pb-16 animate-meridian-rise">
       {/* 1. COMPACT HEADER WITH LIVE STATS & DISCLAIMER */}
@@ -867,108 +964,8 @@ export default function LendingHub({
         isRefreshing={isRefreshing}
       />
 
-      {/* 2. YOUR POSITIONS & HEALTH (Real on-chain positions) */}
-      <PositionsPanel
-        isConnected={isConnected}
-        isWrongNetwork={isWrongNetwork}
-        onSwitchNetwork={handleSwitchNetwork}
-        isLoading={isLoadingPositions}
-        positions={userPositions}
-        errors={positionsErrors}
-        onRetryProtocol={handleRetryProtocol}
-        onRefresh={() => {
-          if (userAddress) void loadUserPositions(userAddress, true);
-        }}
-        isRefreshing={isRefreshingPositions}
-        lastUpdatedSecondsAgo={positionsSecondsAgo}
-        onRequestConnect={onRequestConnect}
-        isMockData={isMockPositionsData}
-        onOpenAction={(marketId, action) => {
-          // Check if it's a gauge action
-          const gaugeMatch = gaugeRows.find(
-            (g) => g.id === marketId || g.contractAddress === marketId
-          );
-          if (gaugeMatch) {
-            const market = BASE_LENDING_MARKETS.find(
-              (m) => m.contractAddress === gaugeMatch.contractAddress
-            ) ?? {
-              id: gaugeMatch.id,
-              name: `${gaugeMatch.pairName} Gauge`,
-              protocol: "aerodrome",
-              protocolLabel: "Aerodrome Finance",
-              protocolBadge: "Slipstream Gauge",
-              protocolAddress: gaugeMatch.contractAddress,
-              protocolUrl: "https://aerodrome.finance",
-              category: "stocks_stake",
-              asset: {
-                symbol: gaugeMatch.pairName,
-                name: gaugeMatch.pairName,
-                address: gaugeMatch.contractAddress,
-                decimals: 18,
-              },
-              supplyApy: gaugeMatch.gaugeApr,
-              stakingApr: gaugeMatch.gaugeApr,
-              tvlUsd: gaugeMatch.tvlUsd,
-              oracle: "Aerodrome TWAP",
-              contractAddress: gaugeMatch.contractAddress,
-              contractType: "aerodrome_gauge",
-              builderAttributed: true,
-              isStockFocus: true,
-            };
-            handleOpenMarketModal(
-              market,
-              action === "supply" ? "stake" : action === "withdraw" ? "unstake" : "stake"
-            );
-            return;
-          }
-
-          // Stock or lending market
-          const pos = userPositions.find((p) => p.marketId === marketId || p.id === marketId);
-          const sym = pos ? pos.assetSymbol : marketId.replace(/^pos-/, "");
-
-          if (comparison && comparison.stockSymbol === sym && comparison.bestSupplyOption) {
-            const opt =
-              comparison.options.find((o) => o.id === marketId) ??
-              ((action === "borrow" || action === "repay") && comparison.bestBorrowOption
-                ? comparison.bestBorrowOption
-                : comparison.bestSupplyOption);
-            handleOpenStockDrawer(
-              opt,
-              action === "stake" || action === "unstake" ? "supply" : action
-            );
-          } else {
-            getUnifiedStockLendingComparison(sym, undefined, false, discoveredMarkets)
-              .then((res) => {
-                setComparison(res);
-                const opt =
-                  res.options.find((o) => o.id === marketId) ??
-                  ((action === "borrow" || action === "repay") && res.bestBorrowOption
-                    ? res.bestBorrowOption
-                    : (res.bestSupplyOption ?? res.options[0]));
-                if (opt) {
-                  handleOpenStockDrawer(
-                    opt,
-                    action === "stake" || action === "unstake" ? "supply" : action
-                  );
-                }
-              })
-              .catch((e) => {
-                console.error("Failed to load position option:", e);
-              });
-          }
-        }}
-      />
-
-      {/* Top Yield Spotlight: Highlights top verified yield opportunity with zero calculation clutter */}
-      <TopYieldSpotlight
-        markets={discoveredMarkets}
-        gaugeRows={gaugeRows}
-        stockRows={stockRows}
-        onExploreVault={handleExploreYieldOption}
-        onSelectOption={(protocol) => {
-          handleExploreYieldOption({ protocol });
-        }}
-      />
+      {/* Positions go on top only when there is something to check; otherwise the markets come first. */}
+      {positionsFirst && positionsPanel}
 
       {/* 4. UNIFIED WORKSPACE NAVIGATION (Directly controlling showcase view below) */}
       <div id="lending-view-tabs" className="scroll-mt-20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
@@ -1117,6 +1114,19 @@ export default function LendingHub({
           secondsAgo={secondsAgo}
         />
       )}
+
+      {/* Top Yield Spotlight: Highlights top verified yield opportunity with zero calculation clutter */}
+      <TopYieldSpotlight
+        markets={discoveredMarkets}
+        gaugeRows={gaugeRows}
+        stockRows={stockRows}
+        onExploreVault={handleExploreYieldOption}
+        onSelectOption={(protocol) => {
+          handleExploreYieldOption({ protocol });
+        }}
+      />
+
+      {!positionsFirst && positionsPanel}
 
       {/* Smart Deposit for pair vaults + "Get {stock}" first, all in-app */}
       <SmartVaultDrawer

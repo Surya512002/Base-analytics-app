@@ -29,12 +29,6 @@ export default function LendingViewTabs({
       countBadge: marketsCount && marketsCount > 0 ? `${marketsCount} verified` : undefined,
     },
     {
-      id: "stocks" as LendingViewTab,
-      label: "All Stocks",
-      icon: Sparkles,
-      countBadge: stocksCount > 0 ? stocksCount.toString() : undefined,
-    },
-    {
       id: "portfolio" as LendingViewTab,
       label: "My Stocks",
       icon: PieChart,
@@ -46,16 +40,22 @@ export default function LendingViewTabs({
       countBadge: vaultsCount && vaultsCount > 0 ? vaultsCount.toString() : undefined,
     },
     {
+      id: "stocks" as LendingViewTab,
+      label: "All Stocks",
+      icon: Sparkles,
+      countBadge: stocksCount > 0 ? stocksCount.toString() : undefined,
+    },
+    {
       id: "finder" as LendingViewTab,
       label: "Yield Scanner",
       icon: Compass,
-      countBadge: "Multi-Protocol",
+      countBadge: undefined,
     },
     {
       id: "compare" as LendingViewTab,
       label: "Compare Protocols",
       icon: ArrowLeftRight,
-      countBadge: "8 Protocols",
+      countBadge: undefined,
     },
   ];
 

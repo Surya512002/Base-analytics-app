@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { ChevronDown } from "lucide-react";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
@@ -48,6 +49,8 @@ interface ExploreHubProps {
   onRequestConnect?: () => void;
   onRefreshData?: () => void;
 }
+
+const ROWS_PER_PAGE = 20;
 
 export default function ExploreHub({
   app,
@@ -114,6 +117,15 @@ export default function ExploreHub({
   } = useStockMarkets({
     query: filters.searchQuery,
   });
+
+  // The list shows one page of rows at a time; changing a filter starts again from the top.
+  const [visibleRows, setVisibleRows] = useState(ROWS_PER_PAGE);
+  useEffect(() => {
+    setVisibleRows(ROWS_PER_PAGE);
+  }, [filters]);
+
+  // Extra market panels stay closed (and unloaded) until asked for.
+  const [showMarketTools, setShowMarketTools] = useState(false);
 
   // Top movers discovery row liquidity toggle
   const [moversHideLowLiquidity, setMoversHideLowLiquidity] = useState(true);
@@ -328,75 +340,8 @@ export default function ExploreHub({
         }}
       />
 
-      {/* 1.2 LATEST TRADE: live pill cycling the newest buys / sells */}
-      <LatestTradeTicker tokens={allUnifiedTokens} />
-
       {/* 1.4 LIVE STOCK TICKER TAPE (real prices from the stock markets feed) */}
       <StockTickerTape stocks={stockMarketsList} onSelect={(stock) => setSelectedStockForDrawer(stock)} />
-
-      {/* 1.6 MARKET SIGNALS & MOVERS (Top Gainer, Most Liquid, Top Collateral, Lowest Impact) */}
-      <BlurFade>
-        <MoversSignalsStrip
-          stocks={stockMarketsList}
-          loading={stockMarketsLoading}
-          onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
-        />
-      </BlurFade>
-
-      {/* 1.7 LAUNCH SPOTLIGHT: tokens launched through Base Analytics, newest first */}
-      <BlurFade>
-        <LaunchSpotlightStrip
-          tokens={tokens}
-          unifiedByAddress={unifiedByAddress}
-          onOpen={(t) => setSelectedQuickViewToken(t)}
-          onTrade={handleTrade}
-          onLaunch={onRequestCreateToken}
-        />
-      </BlurFade>
-
-      {/* 2. DISCOVERY HUB (Segmented Tabs: Trending | Top Gainers | New Launches | Stocks) */}
-      <BlurFade>
-      <DiscoveryHub
-        trendingTokens={trendingTokens}
-        topMoversTokens={topMoversTokens}
-        recentlyLaunchedTokens={recentlyLaunchedTokens}
-        stockTokens={stockTokens}
-        onTrade={handleTrade}
-        onSelect={(t) => setSelectedQuickViewToken(t)}
-        onToggleWatch={handleToggleWatch}
-        watchlist={watchlist}
-        moversHideLowLiquidity={moversHideLowLiquidity}
-        onToggleLowLiquidity={() => setMoversHideLowLiquidity((prev) => !prev)}
-        onLaunch={onRequestCreateToken}
-        onViewAllCategory={(cat) => {
-          if (cat === "trending") {
-            setFilters((prev) => ({ ...prev, sort: "trending", catalogTab: "all" }));
-          } else if (cat === "gainers") {
-            setFilters((prev) => ({ ...prev, sort: "gainers", catalogTab: "all" }));
-          } else if (cat === "new") {
-            setFilters((prev) => ({ ...prev, sort: "newest", catalogTab: "all" }));
-          } else if (cat === "stocks") {
-            setFilters((prev) => ({ ...prev, catalogTab: "stocks" }));
-          }
-          handleScrollToExplorer();
-        }}
-      />
-      </BlurFade>
-
-      {/* 2.5 LIVE MARKET: volume bubbles + latest buys/sells feed */}
-      <BlurFade>
-        <LiveMarketMap tokens={allUnifiedTokens} onOpenToken={(t) => setSelectedQuickViewToken(t)} />
-      </BlurFade>
-
-      {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}
-      <MarketIntelligenceHub
-        userWallet={userAddress}
-        onTradeToken={(addr) => {
-          const matched = allUnifiedTokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
-          if (matched) handleTrade(matched);
-        }}
-        stockMarkets={stockMarketsList}
-      />
 
       {/* 4. MAIN EXPLORER SECTION */}
       <div ref={explorerRef} className="space-y-4 pt-2 scroll-mt-20">
@@ -479,7 +424,7 @@ export default function ExploreHub({
           </div>
         ) : (
           <TokenTable
-            tokens={filteredTokens}
+            tokens={filteredTokens.slice(0, visibleRows)}
             onSelectToken={(t) => setSelectedQuickViewToken(t)}
             onTradeToken={handleTrade}
             onToggleWatch={handleToggleWatch}
@@ -488,10 +433,107 @@ export default function ExploreHub({
           />
         )}
 
+        {filters.catalogTab !== "stocks" && filteredTokens.length > visibleRows && (
+          <button
+            type="button"
+            onClick={() => setVisibleRows((n) => n + ROWS_PER_PAGE)}
+            className="mx-auto flex min-h-[44px] cursor-pointer items-center rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 text-sm font-bold text-[var(--brand-text)] transition hover:border-[var(--brand)]"
+          >
+            Show more ({filteredTokens.length - visibleRows} left)
+          </button>
+        )}
+
         {/* Informational Disclaimer Footnote */}
         <p className="text-xs text-[var(--ink-dim)] text-center pt-3 leading-relaxed">
           Token data is informational. Always check liquidity and contract details before trading. Not financial advice.
         </p>
+      </div>
+
+      {/* 1.7 LAUNCH SPOTLIGHT: tokens launched through Base Analytics, newest first */}
+      <BlurFade>
+        <LaunchSpotlightStrip
+          tokens={tokens}
+          unifiedByAddress={unifiedByAddress}
+          onOpen={(t) => setSelectedQuickViewToken(t)}
+          onTrade={handleTrade}
+          onLaunch={onRequestCreateToken}
+        />
+      </BlurFade>
+
+      {/* More market panels: trending rows, live map, signals and alerts */}
+      <div className="space-y-8">
+        <button
+          type="button"
+          aria-expanded={showMarketTools}
+          onClick={() => setShowMarketTools((v) => !v)}
+          className="flex min-h-[56px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 text-left transition hover:border-[var(--brand)]"
+        >
+          <span>
+            <span className="block text-sm font-black text-[var(--ink)]">Market tools</span>
+            <span className="block text-xs text-[var(--ink-muted)]">Trending, live trades, stock signals, whale radar and alerts</span>
+          </span>
+          <ChevronDown size={18} aria-hidden className={`shrink-0 transition-transform ${showMarketTools ? "rotate-180" : ""}`} />
+        </button>
+
+        {showMarketTools && (
+          <>
+            {/* 1.2 LATEST TRADE: live pill cycling the newest buys / sells */}
+            <LatestTradeTicker tokens={allUnifiedTokens} />
+
+            {/* 1.6 MARKET SIGNALS & MOVERS (Top Gainer, Most Liquid, Top Collateral, Lowest Impact) */}
+            <BlurFade>
+              <MoversSignalsStrip
+                stocks={stockMarketsList}
+                loading={stockMarketsLoading}
+                onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
+              />
+            </BlurFade>
+
+            {/* 2. DISCOVERY HUB (Segmented Tabs: Trending | Top Gainers | New Launches | Stocks) */}
+            <BlurFade>
+            <DiscoveryHub
+              trendingTokens={trendingTokens}
+              topMoversTokens={topMoversTokens}
+              recentlyLaunchedTokens={recentlyLaunchedTokens}
+              stockTokens={stockTokens}
+              onTrade={handleTrade}
+              onSelect={(t) => setSelectedQuickViewToken(t)}
+              onToggleWatch={handleToggleWatch}
+              watchlist={watchlist}
+              moversHideLowLiquidity={moversHideLowLiquidity}
+              onToggleLowLiquidity={() => setMoversHideLowLiquidity((prev) => !prev)}
+              onLaunch={onRequestCreateToken}
+              onViewAllCategory={(cat) => {
+                if (cat === "trending") {
+                  setFilters((prev) => ({ ...prev, sort: "trending", catalogTab: "all" }));
+                } else if (cat === "gainers") {
+                  setFilters((prev) => ({ ...prev, sort: "gainers", catalogTab: "all" }));
+                } else if (cat === "new") {
+                  setFilters((prev) => ({ ...prev, sort: "newest", catalogTab: "all" }));
+                } else if (cat === "stocks") {
+                  setFilters((prev) => ({ ...prev, catalogTab: "stocks" }));
+                }
+                handleScrollToExplorer();
+              }}
+            />
+            </BlurFade>
+
+            {/* 2.5 LIVE MARKET: volume bubbles + latest buys/sells feed */}
+            <BlurFade>
+              <LiveMarketMap tokens={allUnifiedTokens} onOpenToken={(t) => setSelectedQuickViewToken(t)} />
+            </BlurFade>
+
+            {/* 3. MARKET INTELLIGENCE HUB (NAV Arbitrage, Smart Money Whales, Smarter Alerts) */}
+            <MarketIntelligenceHub
+              userWallet={userAddress}
+              onTradeToken={(addr) => {
+                const matched = allUnifiedTokens.find((t) => t.address.toLowerCase() === addr.toLowerCase());
+                if (matched) handleTrade(matched);
+              }}
+              stockMarkets={stockMarketsList}
+            />
+          </>
+        )}
       </div>
 
       {/* 5. TOKEN QUICK VIEW DRAWER (Slide-over desktop, bottom-sheet mobile) */}

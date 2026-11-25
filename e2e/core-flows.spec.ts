@@ -1,4 +1,15 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/** The extra Explore panels are closed until asked for. */
+async function openMarketTools(page: Page) {
+  const toggle = page.getByRole("button", { name: /market tools/i });
+  await expect(toggle).toBeVisible({ timeout: 15_000 });
+  // A click before the page is interactive does nothing, so repeat until it opens.
+  await expect(async () => {
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+}
 
 test.describe("Core App User Flows", () => {
   test("1. Connect Wallet: modal opens with provider choices", async ({ page }) => {
@@ -106,6 +117,7 @@ test.describe("Core App User Flows", () => {
 
   test("8. Smart Money Radar: renders live onchain feed and wallet follower on Explore", async ({ page }) => {
     await page.goto("/explore");
+    await openMarketTools(page);
     const radarTab = page.locator('button:has-text("Smart Money Radar")').first();
     await expect(radarTab).toBeVisible({ timeout: 15_000 });
     await radarTab.click();
@@ -138,6 +150,7 @@ test.describe("Core App User Flows", () => {
 
   test("11. Stock NAV Tracker: renders 24/5 vs 24/7 spread tracker and market hours indicator", async ({ page }) => {
     await page.goto("/explore");
+    await openMarketTools(page);
     const navTab = page.locator('button:has-text("Stock NAV Tracker")').first();
     await expect(navTab).toBeVisible({ timeout: 15_000 });
     await navTab.click();
@@ -148,6 +161,7 @@ test.describe("Core App User Flows", () => {
 
   test("12. Smarter Alerts: renders multi-trigger alert panel on Explore", async ({ page }) => {
     await page.goto("/explore");
+    await openMarketTools(page);
     const alertsTab = page.locator('button:has-text("Smarter Alerts")').first();
     await expect(alertsTab).toBeVisible({ timeout: 15_000 });
     await alertsTab.click();

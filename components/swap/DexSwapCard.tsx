@@ -1006,7 +1006,7 @@ export default function DexSwapCard({
               <div className="flex items-center gap-2">
                 {priceImpactBadge && (
                   <span className={`text-[11px] ${priceImpactBadge.colorClass}`}>
-                    {priceImpactBadge.label} impact
+                    {priceImpactBadge.label}
                   </span>
                 )}
                 {/* Advanced Accordion Toggle Button */}

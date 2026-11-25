@@ -32,7 +32,7 @@ export default function LendingHeader({
 }: LendingHeaderProps) {
   return (
     <PageHero
-      size="md"
+      size="sm"
       as="h2"
       eyebrow="Lend, Borrow & Stake on Base"
       title={
