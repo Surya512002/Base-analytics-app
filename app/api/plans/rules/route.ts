@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { limitByIp } from "@/lib/api/rate-limit";
 import { submitRules } from "@/lib/plans/rules-service";
-import { orderBookFor, readStored, realDeps } from "@/lib/plans/rules-deps";
+import { orderBookFor, readHold, readStored, realDeps } from "@/lib/plans/rules-deps";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BODY = 4_000;
 const MAX_IDS = 200;
 const PLAN_RE = /^[1-9]\d{0,11}$/;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 function sameToken(given: string, expected: string): boolean {
   const a = Buffer.from(given);
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
 /**
  * Read rules. One plan (`planId`) is public and returns only the rules and when they were signed.
  * Many plans (`ids`) is for the keeper: it needs the shared token and also gets the signatures, so it
- * can check them itself.
+ * can check them itself. With `owners` it also gets those wallets' first-buy holds.
  */
 export async function GET(req: Request) {
   const limited = await limitByIp(req, "plan-rules-read", 120);
@@ -63,5 +64,12 @@ export async function GET(req: Request) {
     const e = await readStored(chainId, id);
     if (e) entries[id] = e;
   }));
-  return NextResponse.json({ ok: true, entries });
+  const owners = [...new Set((url.searchParams.get("owners") ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean))];
+  if (owners.length > MAX_IDS || owners.some((o) => !ADDRESS_RE.test(o))) return NextResponse.json({ ok: false, error: "Invalid owners." }, { status: 400 });
+  const holds: Record<string, unknown> = {};
+  await Promise.all(owners.map(async (o) => {
+    const h = await readHold(chainId, o);
+    if (h) holds[o] = h;
+  }));
+  return NextResponse.json({ ok: true, entries, holds });
 }

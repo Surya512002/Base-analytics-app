@@ -14,9 +14,7 @@ import type { OnChainPlan } from "@/src/lib/limitOrders/types";
 import { PRICE_DECIMALS } from "@/src/lib/limitOrders/orderMath";
 import type { MarketState } from "@/src/lib/limitOrders/useLimitOrders";
 import PlanRulesEditor, { type PlanRulesContext } from "./PlanRulesEditor";
-
-/** Rules only do something once the keeper is set up for them, so the editor stays hidden until this is switched on. */
-const PLAN_RULES_ENABLED = process.env.NEXT_PUBLIC_PLAN_RULES_ENABLED === "true";
+import { PLAN_RULES_ENABLED } from "@/lib/plans/hold-client";
 
 interface MyPlansPanelProps {
   plans: OnChainPlan[];

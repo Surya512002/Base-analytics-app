@@ -24,6 +24,22 @@ whatever the rules say.
    with a shared token, **re-checks every signature itself**, and before each due run asks the shared
    rule engine (`limit-orders/shared/planRules.ts`, the same code the app uses) whether it may go ahead.
 
+## The first buy (hold)
+
+A new plan is due the moment it is created, before its owner can save rules for it, because the contract
+sets the first run to "now". So the plan forms offer "Let me set rules before the first run":
+
+1. Before creating the plan, the app reads the contract's next plan id and asks the wallet to sign a
+   **hold**: "do not run plans of mine from this id until I have chosen rules, until this time". It is
+   saved (`POST /api/plans/hold`) **before** the create transaction is sent.
+2. The keeper reads holds for the owners of its open plans, and looks a plan it has not seen up right away.
+3. A covered plan without rules waits. It goes ahead as soon as the owner saves rules (which then apply),
+   chooses "No rules", or the hold runs out. A hold lasts 30 minutes from the app and can never be longer
+   than an hour, whatever was signed.
+
+If the keeper cannot read the store for a brand-new plan, it waits two minutes for it and then runs the
+plan on its schedule.
+
 ## Threat model
 
 | Threat | What happens |
@@ -33,7 +49,9 @@ whatever the rules say.
 | An old signature is replayed (even to restore old rules) | The timestamp must be recent and newer than the stored one. Refused (409). |
 | A signature is copied to another plan, order book or chain | Plan id, order book and chain are inside the signed text. Refused. |
 | The Redis store or the API is tampered with to hold back plans | The keeper checks each signature itself and ignores any entry that fails. Plans run as if they had no rules. |
-| The API is down | The keeper keeps using the rules it already knows. Plans it knows nothing about run as before. |
+| The API is down | The keeper keeps using the rules and holds it already knows. A plan it has never looked up waits two minutes, then runs as before. |
+| Someone tries to hold back another person's new plans | A hold must be signed by the wallet that owns the plan, and the keeper checks it. Refused or ignored. |
+| A hold is left behind | It ends by itself within an hour. |
 | The token for the keeper's bulk read leaks | An attacker can read signed rules (the rules are not secret money data). They cannot write or change anything. |
 | Hostile or huge input | Strict validation, unknown keys refused, 4 KB body limit, rate limits, plan ids and counts bounded. |
 | A rule that is never met (for example a 50% dip) | The plan waits. The owner can change the rules or cancel for a refund at any time. The UI warns about this. |
@@ -41,6 +59,8 @@ whatever the rules say.
 | The keeper is down | All runs are delayed, rules or not. This is the existing single-keeper risk, not a new one. |
 
 Accepted limits:
+- The hold is optional. Without it, a new plan's first buy runs right away and rules apply from the next one.
+- If the app is unreachable for more than two minutes just as a held plan is created, its first buy runs.
 - A rule set that fails its signature check is ignored, so the plan runs on its schedule. This is the
   safe direction (a forged rule can never block a plan), but it means the owner's intended wait is not
   applied in that case.
@@ -73,5 +93,7 @@ Nothing changes until both sides are configured.
 - `limit-orders/scripts/e2e/e2e-plan-rules.ts`: the **real keeper** against the **real order-book contract** on
   a local chain with a mock rules server and real signatures: a signed rule holds a due plan; a tampered
   rule is ignored; a plan without rules runs; a new signed rule releases the held plan; a rule copied onto
-  another plan is ignored. Run with `npx tsx scripts/e2e/e2e-plan-rules.ts` inside `limit-orders/` after
+  another plan is ignored; and for plans created while the keeper is running, a held first buy does not run
+  until "no rules" is chosen, a short hold runs out by itself, and a hold signed by someone else is ignored.
+  Run with `npx tsx scripts/e2e/e2e-plan-rules.ts` inside `limit-orders/` after
   `npm run compile`.

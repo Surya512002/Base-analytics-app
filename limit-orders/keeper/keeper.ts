@@ -21,7 +21,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia, hardhat } from "viem/chains";
 import { orderBookAbi } from "../shared/abi";
-import { createRulesFilter, type StoredEntry } from "./rulesFilter";
+import { createRulesFilter, type Fetched } from "./rulesFilter";
 import "../shared/loadEnv";
 
 function env(name: string, fallback?: string): string {
@@ -73,16 +73,19 @@ const RULES_ON = Boolean(RULES_URL && RULES_TOKEN && RULES_TOKEN.length >= 24);
 const rulesFilter = createRulesFilter(
   { enabled: RULES_ON, chainId: CHAIN.id, orderBook: ORDER_BOOK, refreshMs: Number(process.env.KEEPER_RULES_REFRESH_MS) || undefined },
   {
-    async fetchEntries(ids) {
-      const out: Record<string, StoredEntry> = {};
-      for (let i = 0; i < ids.length; i += 200) {
-        const r = await fetch(`${RULES_URL}?chainId=${CHAIN.id}&ids=${ids.slice(i, i + 200).join(",")}`, {
+    async fetchEntries(plans) {
+      const out: Fetched = { entries: {}, holds: {} };
+      for (let i = 0; i < plans.length; i += 200) {
+        const chunk = plans.slice(i, i + 200);
+        const owners = [...new Set(chunk.map((p) => p.owner.toLowerCase()))];
+        const r = await fetch(`${RULES_URL}?chainId=${CHAIN.id}&ids=${chunk.map((p) => p.id).join(",")}&owners=${owners.join(",")}`, {
           headers: { authorization: `Bearer ${RULES_TOKEN}` },
           signal: AbortSignal.timeout(8_000),
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = (await r.json()) as { entries?: Record<string, StoredEntry> };
-        Object.assign(out, j.entries ?? {});
+        const j = (await r.json()) as Partial<Fetched>;
+        Object.assign(out.entries, j.entries ?? {});
+        Object.assign(out.holds, j.holds ?? {});
       }
       return out;
     },
@@ -268,7 +271,7 @@ async function tick(): Promise<void> {
     if (!running) return;
     await handleOrder(id, o); // sequential on purpose: one tx at a time keeps nonces simple
   }
-  await rulesFilter.refresh([...openPlans.keys()].map(String));
+  await rulesFilter.refresh([...openPlans.entries()].map(([id, p]) => ({ id: String(id), owner: p.owner })));
   for (const id of [...openPlans.keys()]) {
     if (!running) return;
     await handlePlan(id);

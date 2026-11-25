@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { privateKeyToAccount } from "viem/accounts";
 import { verifyMessage } from "viem";
-import { rulesMessage, type PlanRules } from "@/limit-orders/shared/planRules";
-import { entryIsAuthentic, submitRules, type RulesDeps, type StoredRules } from "@/lib/plans/rules-service";
+import { holdCovers, holdMessage, rulesMessage, type PlanRules } from "@/limit-orders/shared/planRules";
+import { entryIsAuthentic, submitHold, submitRules, type RulesDeps, type StoredHold, type StoredRules } from "@/lib/plans/rules-service";
 
 const owner = privateKeyToAccount(("0x" + "11".repeat(32)) as `0x${string}`);
 const stranger = privateKeyToAccount(("0x" + "22".repeat(32)) as `0x${string}`);
@@ -12,7 +12,10 @@ const rules: PlanRules = { v: 1, weekdays: [2], window: { startMin: 570, endMin:
 
 function makeDeps(over: Partial<RulesDeps> = {}) {
   const store = new Map<string, StoredRules>();
+  const holds = new Map<string, StoredHold>();
   const deps: RulesDeps = {
+    loadHold: async (c, o) => holds.get(`${c}:${o.toLowerCase()}`) ?? null,
+    saveHold: async (c, o, h) => (holds.set(`${c}:${o.toLowerCase()}`, h), true),
     nowSec: () => NOW,
     orderBookFor: (c) => (c === 8453 ? BOOK : null),
     readPlan: async (_c, id) => (id === "7" ? { owner: owner.address, status: 1 } : id === "8" ? { owner: owner.address, status: 3 } : null),
@@ -21,7 +24,7 @@ function makeDeps(over: Partial<RulesDeps> = {}) {
     save: async (c, id, e) => (store.set(`${c}:${id}`, e), true),
     ...over,
   };
-  return { deps, store };
+  return { deps, store, holds };
 }
 
 async function signed(a: { signer?: typeof owner; planId?: string; chainId?: number; r?: PlanRules | null; issuedAt?: number; messageRules?: PlanRules | null }) {
@@ -135,5 +138,63 @@ describe("entryIsAuthentic (what the keeper checks)", () => {
   });
   it("rejects an entry copied to a different plan", async () => {
     expect(await entryIsAuthentic(await entry(), { ...ctx, planId: "8" }, verify)).toBe(false);
+  });
+});
+
+describe("submitHold", () => {
+  async function body(over: Partial<{ from: string; until: number; issuedAt: number; signer: typeof owner; chainId: number }> = {}) {
+    const a = { chainId: 8453, from: "5", issuedAt: NOW, until: NOW + 1800, signer: owner, ...over };
+    const message = holdMessage({ chainId: a.chainId, orderBook: BOOK, owner: owner.address, from: a.from, until: a.until, issuedAt: a.issuedAt });
+    return { chainId: a.chainId, owner: owner.address, from: a.from, until: a.until, issuedAt: a.issuedAt, signature: await a.signer.signMessage({ message }) };
+  }
+
+  it("stores a hold the owner signed", async () => {
+    const { deps, holds } = makeDeps();
+    expect(await submitHold(await body(), deps)).toEqual({ ok: true, from: "5", until: NOW + 1800 });
+    expect(holds.size).toBe(1);
+  });
+
+  it("refuses someone else's signature, and edited fields", async () => {
+    const { deps, holds } = makeDeps();
+    expect(await submitHold(await body({ signer: stranger }), deps)).toMatchObject({ ok: false, status: 401 });
+    const good = await body();
+    expect(await submitHold({ ...good, from: "1" }, deps)).toMatchObject({ ok: false, status: 401 });
+    expect(await submitHold({ ...good, until: NOW + 3600 }, deps)).toMatchObject({ ok: false, status: 401 });
+    expect(await submitHold({ ...good, owner: stranger.address }, deps)).toMatchObject({ ok: false, status: 401 });
+    expect(holds.size).toBe(0);
+  });
+
+  it("refuses holds over an hour, already over, stale, or malformed", async () => {
+    const { deps } = makeDeps();
+    expect(await submitHold(await body({ until: NOW + 3601 }), deps)).toMatchObject({ ok: false, status: 400 });
+    expect(await submitHold(await body({ until: NOW }), deps)).toMatchObject({ ok: false, status: 400 });
+    expect(await submitHold(await body({ issuedAt: NOW - 601 }), deps)).toMatchObject({ ok: false, status: 400 });
+    const good = await body();
+    expect(await submitHold({ ...good, owner: "0x12" }, deps)).toMatchObject({ ok: false, status: 400 });
+    expect(await submitHold({ ...good, from: "0" }, deps)).toMatchObject({ ok: false, status: 400 });
+    expect(await submitHold({ ...good, chainId: 1 }, deps)).toMatchObject({ ok: false, status: 400 });
+    expect(await submitHold(null, deps)).toMatchObject({ ok: false, status: 400 });
+  });
+
+  it("refuses replaying an older request after a newer one", async () => {
+    const { deps } = makeDeps();
+    const older = await body({ issuedAt: NOW - 30, from: "2" });
+    expect((await submitHold(await body(), deps)).ok).toBe(true);
+    expect(await submitHold(older, deps)).toMatchObject({ ok: false, status: 409 });
+  });
+});
+
+describe("holdCovers", () => {
+  const h = { from: "10", issuedAt: NOW, until: NOW + 1800 };
+  it("covers the first plan and later ones while running", () => {
+    expect(holdCovers(h, "10", NOW)).toBe(true);
+    expect(holdCovers(h, "250", NOW + 1799)).toBe(true);
+    expect(holdCovers(h, "9", NOW)).toBe(false);
+    expect(holdCovers(h, "10", NOW + 1800)).toBe(false);
+  });
+  it("never covers anything when over an hour long or malformed", () => {
+    expect(holdCovers({ ...h, until: NOW + 3601 }, "10", NOW)).toBe(false);
+    expect(holdCovers({ ...h, from: "x" }, "10", NOW)).toBe(false);
+    expect(holdCovers(h, "1e3", NOW)).toBe(false);
   });
 });

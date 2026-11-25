@@ -9,6 +9,9 @@
  *   plan 2: the same rules, but the signature is from someone else (a tampered store)        -> rules ignored, must RUN
  *   plan 3: no rules                                                                         -> must RUN
  * Then plan 1's owner signs a newer rule that allows today, and plan 1 must RUN.
+ * Finally the first-buy hold, with plans created WHILE the keeper is running:
+ *   a held plan's first buy must not run until its owner chooses "no rules"; a short hold must run out
+ *   by itself; a hold signed by someone else must be ignored.
  */
 import { spawn, execSync, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
@@ -18,7 +21,7 @@ import { createPublicClient, createWalletClient, http as viemHttp, parseUnits, t
 import { privateKeyToAccount } from "viem/accounts";
 import { hardhat } from "viem/chains";
 import { orderBookAbi } from "../../shared/abi";
-import { easternParts, rulesMessage, type PlanRules } from "../../shared/planRules";
+import { easternParts, holdMessage, rulesMessage, type PlanRules } from "../../shared/planRules";
 
 const ROOT = path.resolve(__dirname, "../..");
 const PORT = 8549;
@@ -120,6 +123,9 @@ async function main() {
     "2": { rules: notToday, issuedAt, signer: aliceAcct.address.toLowerCase(), signature: await sign(bobAcct, "2", notToday, issuedAt) },
   };
 
+  type Hold = { from: string; until: number; issuedAt: number; signature: string };
+  const holds: Record<string, Hold> = {};
+
   const server = http.createServer((req, res) => {
     const u = new URL(req.url ?? "/", "http://x");
     if (req.headers.authorization !== `Bearer ${TOKEN}` || u.searchParams.get("chainId") !== "31337") {
@@ -129,7 +135,10 @@ async function main() {
     const ids = (u.searchParams.get("ids") ?? "").split(",");
     const out: Record<string, Entry> = {};
     for (const id of ids) if (entries[id]) out[id] = entries[id];
-    res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ok: true, entries: out }));
+    const owners = (u.searchParams.get("owners") ?? "").split(",");
+    const outHolds: Record<string, Hold> = {};
+    for (const o of owners) if (holds[o]) outHolds[o] = holds[o];
+    res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ok: true, entries: out, holds: outHolds }));
   });
   await new Promise<void>((r) => server.listen(RULES_PORT, "127.0.0.1", r));
 
@@ -180,6 +189,44 @@ async function main() {
   await wait(7000);
   const r4 = await remaining(4n);
   check("a rule signed for plan 1, copied onto plan 4, is ignored (plan 4 runs)", r4 === 2, `remaining ${r4}`);
+
+  // --- first-buy hold: plans are created while the keeper is polling every second ---
+  const alice_ = aliceAcct.address.toLowerCase();
+  const now = () => Math.floor(Date.now() / 1000);
+  const setHold = async (signer: typeof aliceAcct, from: string, seconds: number) => {
+    const issued = now();
+    const until = issued + seconds;
+    const signature = await signer.signMessage({ message: holdMessage({ chainId: 31337, orderBook: book.address, owner: aliceAcct.address, from, until, issuedAt: issued }) });
+    holds[alice_] = { from, until, issuedAt: issued, signature };
+  };
+  const create = () => send(alice, book.address, book.abi, "createDca", [stock.address, parseUnits("100", 6), 3, 3600, 0n]);
+
+  await setHold(aliceAcct, "5", 1800); // saved BEFORE the plan exists, as the app does
+  await create(); // plan 5
+  await wait(8000);
+  const r5 = await remaining(5n);
+  check("a held plan's first buy does not run", r5 === 3, `remaining ${r5}`);
+  check("keeper reports the owner is choosing rules", logs.join("").includes("plan 5: waiting, the owner is choosing rules"));
+  entries["5"] = { rules: null as unknown as PlanRules, issuedAt: now(), signer: alice_, signature: "" };
+  entries["5"].signature = await aliceAcct.signMessage({ message: rulesMessage({ chainId: 31337, orderBook: book.address, planId: "5", rules: null, issuedAt: entries["5"].issuedAt }) });
+  await wait(6000);
+  const r5b = await remaining(5n);
+  check("choosing no rules lets the held first buy run", r5b === 2, `remaining ${r5b}`);
+
+  await setHold(aliceAcct, "6", 14);
+  await create(); // plan 6
+  await wait(5000);
+  const r6 = await remaining(6n);
+  check("a short hold holds while it lasts", r6 === 3, `remaining ${r6}`);
+  await wait(15000);
+  const r6b = await remaining(6n);
+  check("and runs out by itself", r6b === 2, `remaining ${r6b}`);
+
+  await setHold(bobAcct, "7", 1800); // signed by the wrong wallet
+  await create(); // plan 7
+  await wait(7000);
+  const r7 = await remaining(7n);
+  check("a hold signed by someone else is ignored (plan 7 runs)", r7 === 2, `remaining ${r7}`);
 
   server.close();
   killAll();

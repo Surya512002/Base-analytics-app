@@ -16,6 +16,7 @@ import {
 import type { useLimitOrders } from "@/src/lib/limitOrders/useLimitOrders";
 import { getOrdersConfigError } from "@/src/config/limitOrders";
 import MyPlansPanel from "./MyPlansPanel";
+import HoldFirstBuyToggle from "./HoldFirstBuyToggle";
 
 const FREQUENCIES = [
   { label: "Daily", seconds: 86_400, word: "day" },
@@ -50,7 +51,7 @@ export default function InvestPlanComposer({
   limitOrders: ReturnType<typeof useLimitOrders>;
   onConnectWallet?: () => void;
 }) {
-  const { config, chainId, walletAddress, paused, regionRestricted, marketStates, plans, keeperFeeBps, quoteBalance, quoteAllowance, txSubmitting, approveToken, createDca, cancelDca } = limitOrders;
+  const { config, chainId, walletAddress, paused, regionRestricted, marketStates, plans, keeperFeeBps, quoteBalance, quoteAllowance, txSubmitting, approveToken, createDca, cancelDca, holdNewPlans } = limitOrders;
 
   const stockMarkets = useMemo(() => config.markets.filter((m) => (m.kind ?? "stock") === "stock"), [config.markets]);
   const [rows, setRows] = useState<Row[]>([]);
@@ -58,6 +59,7 @@ export default function InvestPlanComposer({
   const [buysInput, setBuysInput] = useState("12");
   const [freq, setFreq] = useState<number>(604_800);
   const [ceilingPct, setCeilingPct] = useState("");
+  const [holdFirst, setHoldFirst] = useState(false);
   const [created, setCreated] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -127,6 +129,11 @@ export default function InvestPlanComposer({
     setMessage(null);
     const done: string[] = [...created];
     try {
+      // Saved before any plan exists, so the keeper already knows when the first one appears.
+      if (holdFirst && !(await holdNewPlans())) {
+        setMessage("Nothing was started. Try again, or untick the option to let the first buys run right away.");
+        return;
+      }
       for (const leg of composed.plan.legs) {
         if (done.includes(leg.symbol)) continue;
         const st = marketStates[leg.stockToken.toLowerCase()];
@@ -144,7 +151,11 @@ export default function InvestPlanComposer({
         setCreated([...done]);
       }
       if (composed.ok && composed.plan.legs.every((l) => done.includes(l.symbol))) {
-        setMessage(`All ${done.length} plans are running. The first buy of each happens on the next keeper run, then every ${FREQUENCIES.find((f) => f.seconds === freq)?.word ?? "interval"}.`);
+        setMessage(
+          holdFirst
+            ? `All ${done.length} plans are created. Open "Add rules" on each one below. Their first buys wait for you for up to 30 minutes.`
+            : `All ${done.length} plans are running. The first buy of each happens on the next keeper run, then every ${FREQUENCIES.find((f) => f.seconds === freq)?.word ?? "interval"}.`
+        );
       }
     } finally {
       setRunning(false);
@@ -310,6 +321,7 @@ export default function InvestPlanComposer({
 
       {composed.ok && remaining.length > 0 && !blocked && (
         <div className="space-y-2">
+          <HoldFirstBuyToggle checked={holdFirst} onChange={setHoldFirst} disabled={running} />
           {needsApproval ? (
             <button type="button" disabled={txSubmitting || running} onClick={() => void approve()} className="min-h-[46px] w-full rounded-xl bg-[var(--brand)] text-sm font-bold text-white disabled:opacity-50">
               {txSubmitting ? "Confirm in your wallet…" : `Step 1: approve ${usd(fromUnits(remainingTotal))} USDC`}

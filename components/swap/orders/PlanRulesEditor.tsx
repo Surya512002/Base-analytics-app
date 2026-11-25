@@ -179,16 +179,15 @@ export default function PlanRulesEditor({ planId, ctx }: { planId: string; ctx: 
           {!draft.ok && <p role="alert" className="text-[11px] font-semibold text-amber-600 dark:text-amber-300">{draft.error}</p>}
           {draft.ok && <p className="text-[11px] text-[var(--ink)]">You will sign: {describeRules(draft.rules)}.</p>}
           {msg && <p role="status" className="text-[11px] font-semibold text-[var(--ink)]">{msg}</p>}
+          {!saved && <p className="text-[11px] text-[var(--ink-muted)]">If you asked to wait before the first run, saving rules or choosing none lets it go ahead.</p>}
 
           <div className="flex gap-2">
             <button type="button" disabled={busy || !draft.ok} onClick={() => draft.ok && void post(draft.rules)} className="min-h-[36px] flex-1 rounded-lg bg-[var(--brand)] text-xs font-bold text-white disabled:opacity-40">
               {busy ? "Waiting for your wallet…" : "Sign and save rules"}
             </button>
-            {saved && (
-              <button type="button" disabled={busy} onClick={() => void post(null)} className="min-h-[36px] rounded-lg border border-[var(--border-subtle)] px-3 text-xs font-bold text-rose-500 disabled:opacity-40">
-                Remove rules
-              </button>
-            )}
+            <button type="button" disabled={busy} onClick={() => void post(null)} className={`min-h-[36px] rounded-lg border border-[var(--border-subtle)] px-3 text-xs font-bold disabled:opacity-40 ${saved ? "text-rose-500" : "text-[var(--ink-soft)]"}`}>
+              {saved ? "Remove rules" : "No rules"}
+            </button>
           </div>
         </div>
       )}
