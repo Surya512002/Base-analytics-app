@@ -47,8 +47,12 @@ schedule, on dips) without watching the screen, and without us holding more risk
   and risk, and it is simply how people with a salary invest. We should say this in the product and not
   promise better returns. Sources: [Vanguard summary, smartcashflow](https://smartcashflow.org/posts/lump-sum-vs-dca-vanguard-study/),
   [Vanguard-based overview, ftmarketwatch](https://ftmarketwatch.com/research/dollar-cost-averaging-vs-lump-sum-vanguard.html).
-  The figures vary a little between secondary sources; the primary Vanguard papers are the ones to cite
-  before we publish any number.
+  Checked on 2026-11-25 against Vanguard's own pages: the 68% compares wealth after **one year** for
+  investing at once against splitting the money over **three months**
+  ([paper](https://corporate.vanguard.com/content/dam/corp/research/pdf/cost_averaging_invest_now_or_temporarily_hold_your_cash.pdf),
+  read through search extracts because the PDF is protected;
+  [investor page](https://investor.vanguard.com/investor-resources-education/online-trading/dollar-cost-averaging-vs-lump-sum)).
+  The app's wording names that comparison.
 - **Value averaging and dip rules are contested.** Some studies find a small edge for value averaging at
   long horizons, others argue the edge is a mathematical illusion, and the mean-reversion idea behind
   "buy the dip" is disputed. I found no solid backtest of a pure buy-the-dip rule. These should be
