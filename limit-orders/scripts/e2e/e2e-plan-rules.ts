@@ -22,6 +22,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { hardhat } from "viem/chains";
 import { orderBookAbi } from "../../shared/abi";
 import { easternParts, holdMessage, rulesMessage, type PlanRules } from "../../shared/planRules";
+import { fillsFromLogs, planProgress } from "../../shared/planHistory";
 
 const ROOT = path.resolve(__dirname, "../..");
 const PORT = 8549;
@@ -227,6 +228,32 @@ async function main() {
   await wait(7000);
   const r7 = await remaining(7n);
   check("a hold signed by someone else is ignored (plan 7 runs)", r7 === 2, `remaining ${r7}`);
+
+  // --- plan history: read back from real receipts and compare with what the wallet actually holds ---
+  const logsAll = await pub.getLogs({ address: book.address, fromBlock: 0n });
+  const hashes = [...new Set(logsAll.map((l) => l.transactionHash as Hex))];
+  const fills = (
+    await Promise.all(
+      hashes.map(async (h) => fillsFromLogs((await pub.getTransactionReceipt({ hash: h })).logs as never, book.address, aliceAcct.address, h, null))
+    )
+  ).flat();
+  let runs = 0;
+  let received = 0n;
+  let allComplete = true;
+  let allPriced = true;
+  for (let id = 1n; id <= 7n; id++) {
+    const p = (await pub.readContract({ address: book.address, abi: orderBookAbi, functionName: "getPlan", args: [id] })) as { status: number; remaining: number };
+    const pr = planProgress({ id: String(id), status: Number(p.status), remaining: Number(p.remaining), isSell: false, amountPerRun: parseUnits("100", 6) }, fills, { stock: 18, quote: 6 });
+    runs += pr.runsDone;
+    received += pr.received;
+    allComplete = allComplete && pr.complete && pr.runsTotal === 3 && pr.spent === BigInt(pr.runsDone) * parseUnits("100", 6);
+    if (pr.runsDone > 0) allPriced = allPriced && pr.avgPrice !== null && pr.avgPrice > 99 && pr.avgPrice < 102;
+  }
+  const held = (await pub.readContract({ address: stock.address, abi: stock.abi, functionName: "balanceOf", args: [aliceAcct.address] })) as bigint;
+  check("history finds every run the wallet's plans did", runs === 7 * 1 && fills.length === runs, `runs ${runs}`);
+  check("tokens in the history equal the tokens the wallet holds", received === held && held > 0n, `history ${received}, wallet ${held}`);
+  check("totals add up and are marked complete for all 7 plans", allComplete);
+  check("average price matches the $100 market price plus the fee", allPriced);
 
   server.close();
   killAll();

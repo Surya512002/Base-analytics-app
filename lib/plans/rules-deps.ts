@@ -1,5 +1,5 @@
 import { createPublicClient, getAddress, http, type PublicClient } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { orderBookAbi } from "@/limit-orders/shared/abi";
 import { getLimitOrdersConfig } from "@/src/config/limitOrders";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";

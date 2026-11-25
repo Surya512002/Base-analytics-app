@@ -15,6 +15,8 @@ import { PRICE_DECIMALS } from "@/src/lib/limitOrders/orderMath";
 import type { MarketState } from "@/src/lib/limitOrders/useLimitOrders";
 import PlanRulesEditor, { type PlanRulesContext } from "./PlanRulesEditor";
 import { PLAN_RULES_ENABLED } from "@/lib/plans/hold-client";
+import { PlanProgressLine, PlansSummaryCard, usePlanHistory } from "./PlanProgress";
+import { planProgress, summarize, type PlanState } from "@/limit-orders/shared/planHistory";
 
 interface MyPlansPanelProps {
   plans: OnChainPlan[];
@@ -49,6 +51,18 @@ export default function MyPlansPanel({
   const getMarket = (stockToken: string): MarketState | undefined => {
     return markets[stockToken.toLowerCase()];
   };
+
+  // Past runs, read once per change in the plans themselves.
+  const version = plans.map((p) => `${p.id}:${p.status}:${p.remaining}`).join(",");
+  const history = usePlanHistory(rulesCtx?.chainId ?? null, rulesCtx?.owner ?? null, version);
+  const rows = plans.map((p) => {
+    const m = getMarket(p.stockToken);
+    const decimals = { stock: m?.decimals ?? 8, quote: quoteDecimals };
+    const plan: PlanState = { id: p.id.toString(), status: p.status, remaining: p.remaining, isSell: p.isSell, amountPerRun: p.amountPerBuy };
+    const priceNow = m?.currentPrice ? Number(formatUnits(m.currentPrice, PRICE_DECIMALS)) : null;
+    return { plan, progress: planProgress(plan, history.fills, decimals), priceNow, decimals };
+  });
+  const progressById = new Map(rows.map((r) => [r.plan.id, r]));
 
   const formatInterval = (sec: number) => {
     if (sec === 3600) return "1 hour";
@@ -87,6 +101,8 @@ export default function MyPlansPanel({
           {plans.length} {plans.length === 1 ? "plan" : "plans"}
         </span>
       </div>
+
+      {plans.length > 0 && <PlansSummaryCard summary={summarize(rows)} history={history} />}
 
       <div className="space-y-2.5">
         {plans.length === 0 ? (
@@ -191,6 +207,17 @@ export default function MyPlansPanel({
                     </span>
                   </div>
                 </div>
+
+                {history.status === "ready" && progressById.has(p.id.toString()) && (
+                  <PlanProgressLine
+                    progress={progressById.get(p.id.toString())!.progress}
+                    isSell={p.isSell}
+                    stockSymbol={symbol}
+                    stockDecimals={market?.decimals ?? 8}
+                    quoteDecimals={quoteDecimals}
+                    priceNow={progressById.get(p.id.toString())!.priceNow}
+                  />
+                )}
 
                 {/* Schedule & Timing status */}
                 {isOpen && (

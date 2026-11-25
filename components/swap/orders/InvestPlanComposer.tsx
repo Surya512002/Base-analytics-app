@@ -308,7 +308,7 @@ export default function InvestPlanComposer({
             {composed.plan.warnings.map((w) => (
               <p key={w} className="font-semibold text-amber-600 dark:text-amber-300">{w}</p>
             ))}
-            <p>Spreading a lump sum over time usually does not earn more than investing it at once (Vanguard found lump sum ahead in about two thirds of periods). It does smooth out the price you pay. Prices can fall.</p>
+            <p>Spreading a lump sum over time usually does not earn more than investing it at once. Vanguard compared investing at once with spreading over three months: after one year, investing at once was ahead about two thirds of the time. Spreading smooths out the price you pay. Prices can fall.</p>
           </div>
         ) : (
           <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
