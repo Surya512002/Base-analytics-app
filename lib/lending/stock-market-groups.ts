@@ -33,6 +33,13 @@ export function isApyUnreliable(m: NormalizedMarket): boolean {
   return m.supplyApy > 100 && marketDepthUsd(m) < 10_000;
 }
 
+/** The only rate fit for a headline: plain lending of the stock. Pool vaults never headline. */
+export function topLendingMarket<T extends NormalizedMarket & { kind: StockMarketKind }>(markets: T[]): T | undefined {
+  return markets
+    .filter((m) => m.kind === "lend" && m.supplyApy > 0 && !isApyUnreliable(m))
+    .sort((a, b) => b.supplyApy - a.supplyApy)[0];
+}
+
 export type StockMarketGroup = {
   symbol: string;
   name: string;

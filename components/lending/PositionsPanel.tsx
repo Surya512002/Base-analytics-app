@@ -240,7 +240,7 @@ export default function PositionsPanel({
               className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--brand-text)] hover:border-[var(--brand)] text-xs font-bold transition flex items-center gap-1 cursor-pointer"
             >
               <span>Explore Markets</span>
-              <span>↓</span>
+              <span>↑</span>
             </button>
 
             {onRefresh && (

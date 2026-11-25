@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import { deriveStockMarketOptions } from "@/lib/lending/market-classifier";
+import { classifyStockMarket, topLendingMarket } from "@/lib/lending/stock-market-groups";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
 import { priceText } from "@/src/lib/limitOrders/priceBasis";
 
@@ -33,6 +34,14 @@ describe("headline lending rate", () => {
   });
   it("is empty when a stock only has pool vaults", () => {
     expect(deriveStockMarketOptions(stock, [vault]).bestLendOption).toBeNull();
+  });
+});
+
+describe("market panel headline", () => {
+  const kinds = (list: NormalizedMarket[]) => list.map((m) => ({ ...m, kind: classifyStockMarket(m) }));
+  it("skips pool vaults the same way", () => {
+    expect(topLendingMarket(kinds([vault, lend]))?.supplyApy).toBe(2.1);
+    expect(topLendingMarket(kinds([vault]))).toBeUndefined();
   });
 });
 
