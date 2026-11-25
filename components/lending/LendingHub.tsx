@@ -42,6 +42,7 @@ import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { getStockQuotes, type StockQuote } from "@/lib/stocks/stock-prices";
+import StockPortfolio from "@/components/stocks/StockPortfolio";
 
 
 interface LendingHubProps {
@@ -66,7 +67,7 @@ export default function LendingHub({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const v = params.get("view");
-      if (v === "finder" || v === "vaults" || v === "compare" || v === "stocks" || v === "markets") {
+      if (v === "finder" || v === "vaults" || v === "compare" || v === "stocks" || v === "markets" || v === "portfolio") {
         return v;
       }
     }
@@ -977,6 +978,18 @@ export default function LendingHub({
             const next = t.mode === "get" ? t.onContinue : undefined;
             // "Continue" closes this drawer, then opens the market's own drawer.
             setSmartTarget(t.mode === "get" && next ? { ...t, onContinue: () => (setSmartTarget(null), next()) } : t);
+          }}
+        />
+      ) : activeTab === "portfolio" ? (
+        /* MY STOCKS: holdings as one portfolio, target mix, rebalance, earn per stock */
+        <StockPortfolio
+          walletAddress={userAddress}
+          onRequestConnect={onRequestConnect}
+          rows={stockRows}
+          onSwap={app.handleTokenSwap}
+          onOpenStock={(symbol) => {
+            setActiveTab("stocks");
+            setSelectedStockSymbol(symbol);
           }}
         />
       ) : activeTab === "vaults" ? (

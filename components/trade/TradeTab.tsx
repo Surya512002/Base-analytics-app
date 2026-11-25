@@ -22,6 +22,7 @@ import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import { useWatchlist } from "@/lib/trade/watchlist";
 import { formatUnits } from "viem";
 import { oracleHealth } from "@/lib/trade/safety";
+import { chartToOrderPrice } from "@/src/lib/limitOrders/priceBasis";
 import CandleChart, { formatPrice, type Candle, type ChartType, type Indicators, type PriceLine } from "./CandleChart";
 import { AlertButton, MarketInfo, Position, RecentTrades, type MarketStats } from "./TradePanels";
 import MarketRail from "./MarketRail";
@@ -209,7 +210,7 @@ export default function TradeTab({
     return () => clearInterval(t);
   }, []);
   const [swapPick, setSwapPick] = useState<SwapCounter | null>(null);
-  const [pickedPrice, setPickedPrice] = useState<{ price: string; nonce: number } | null>(null);
+  const [pickedPrice, setPickedPrice] = useState<{ price: string; nonce: number; note?: { chartPrice: number; gapPct: number; suspect: boolean } } | null>(null);
   const nonce = useRef(0);
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [indicators, setIndicators] = useState<Indicators>({ ma: false, ema: false, boll: false, rsi: false });
@@ -379,6 +380,18 @@ export default function TradeTab({
   const change = summary?.priceChange24h ?? market?.change24h ?? null;
   const intraday = tf !== "1d";
 
+  // Chart and order-book prices are DEX prices; orders trigger on Chainlink. Convert so the field holds the order price.
+  const pickPrice = (p: number) => {
+    const c = chartToOrderPrice(p, oraclePx, price);
+    const use = c ? c.price : p;
+    nonce.current += 1;
+    setPickedPrice({
+      price: use.toFixed(use >= 1 ? 2 : 6),
+      nonce: nonce.current,
+      note: c ? { chartPrice: p, gapPct: c.gapPct, suspect: c.suspect } : undefined,
+    });
+  };
+
   const pickMarket = (m: TradeMarket) => {
     setMarket(m);
     setPickedPrice(null);
@@ -546,10 +559,7 @@ export default function TradeTab({
               height={fullscreen ? 640 : narrow ? 340 : 460}
               onPickPrice={
                 onOrderTab && canPlaceOrders && orderMode === "pro"
-                  ? (p) => {
-                      nonce.current += 1;
-                      setPickedPrice({ price: p.toFixed(p >= 1 ? 2 : 6), nonce: nonce.current });
-                    }
+                  ? pickPrice
                   : undefined
               }
             />
@@ -635,6 +645,19 @@ export default function TradeTab({
                   )}
                 </>
               )}
+              {pickedPrice?.note && (
+                <p
+                  role="status"
+                  className={`rounded-xl border px-3 py-2 text-[11px] leading-snug ${
+                    pickedPrice.note.suspect ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300" : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)]"
+                  }`}
+                >
+                  You picked <b className="tabular-nums text-[var(--ink)]">${formatPrice(pickedPrice.note.chartPrice)}</b> on the chart. Orders trigger on the Chainlink price, which is{" "}
+                  <b>{pickedPrice.note.gapPct >= 0 ? "+" : ""}{pickedPrice.note.gapPct.toFixed(2)}%</b> from the chart right now, so the price field shows{" "}
+                  <b className="tabular-nums text-[var(--ink)]">${pickedPrice.price}</b>.
+                  {pickedPrice.note.suspect && " The two prices are far apart, so double-check before you confirm."}
+                </p>
+              )}
               <OrdersView
                 key={`${ticket}-${side}-${market?.address ?? ""}`}
                 hideSideSwitch
@@ -654,6 +677,7 @@ export default function TradeTab({
                 initialGoal={initialGoal && ticket !== "stop" && side === "buy" && initialGoal !== "stop-loss" && initialGoal !== "protect" ? initialGoal : simpleGoal}
                 scale={orderMode === "scale" && canPlaceOrders}
                 liquidityUsd={summary?.liquidityUsd ?? null}
+                terminalPrice={price}
               />
             </>
           )}
@@ -745,8 +769,7 @@ export default function TradeTab({
                   oraclePrice={oraclePx}
                   onPickPrice={(p) => {
                     // A click on a level fills the Pro limit form with that price
-                    nonce.current += 1;
-                    setPickedPrice({ price: p.toFixed(p >= 1 ? 2 : 6), nonce: nonce.current });
+                    pickPrice(p);
                     setOrderMode("pro");
                     setTicket((t) => (t === "stop" ? "stop" : "limit"));
                   }}

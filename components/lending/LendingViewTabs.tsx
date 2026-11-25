@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Coins, Compass, ArrowLeftRight, BadgeCheck } from "lucide-react";
+import { Sparkles, Coins, Compass, ArrowLeftRight, BadgeCheck, PieChart } from "lucide-react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 
-export type LendingViewTab = "markets" | "stocks" | "vaults" | "finder" | "compare";
+export type LendingViewTab = "markets" | "stocks" | "portfolio" | "vaults" | "finder" | "compare";
 
 interface LendingViewTabsProps {
   value: LendingViewTab;
@@ -33,6 +33,11 @@ export default function LendingViewTabs({
       label: "All Stocks",
       icon: Sparkles,
       countBadge: stocksCount > 0 ? stocksCount.toString() : undefined,
+    },
+    {
+      id: "portfolio" as LendingViewTab,
+      label: "My Stocks",
+      icon: PieChart,
     },
     {
       id: "vaults" as LendingViewTab,

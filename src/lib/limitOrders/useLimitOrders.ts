@@ -36,6 +36,7 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { OnChainOrder, OnChainPlan, GroupedOrderItem } from "./types";
 import { groupOrders } from "./bracketGrouping";
 import { mapOrderError } from "./errorMapper";
+import { signMessageWithWallet } from "@/lib/auth/siwe-client";
 
 const ERC20_ABI = parseAbi([
   "function balanceOf(address account) external view returns (uint256)",
@@ -920,6 +921,15 @@ export function useLimitOrders(app: WalletAppState) {
     [app, config, chainId, loadData, walletAddress]
   );
 
+  /** Sign a plain-text message with the connected wallet (used to sign plan rules; costs no gas). */
+  const signMessage = useCallback(
+    async (message: string): Promise<string> => {
+      if (!walletAddress || !app.connType) throw new Error("Connect a wallet first.");
+      return signMessageWithWallet(walletAddress, app.connType, message);
+    },
+    [walletAddress, app.connType]
+  );
+
   const cancelDca = useCallback(
     async (id: bigint) => {
       if (!walletAddress || !config.orderBook || !app.connType) return false;
@@ -977,6 +987,7 @@ export function useLimitOrders(app: WalletAppState) {
     refundExpired,
     createDca,
     createDcaSell,
+    signMessage,
     placeOrderBatch,
     placeBuyWithExits,
     cancelOrdersBatch,
