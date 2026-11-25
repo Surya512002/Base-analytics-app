@@ -56,17 +56,17 @@ test.describe("Tokenized Stocks Swap & Status E2E Suite", () => {
     await expect(page.locator("body")).toContainText(/Lend & Stake/i);
   });
 
-  test("4. Explore section preselects stock via 1-click Trade button", async ({ page }) => {
+  test("4. Explore list preselects the token via its Swap button", async ({ page }) => {
     await page.goto(`${BASE}/explore`);
 
     // Wait for stocks section to load
     await expect(page.locator("body")).toContainText(/Tokenized Stocks|COINBASE/i, { timeout: 15_000 });
 
-    // Find Trade button for NVDAc or MSFTc
-    // Not the header / bottom-nav "Trade" tab (the Trade page), only the buy button on a stock card.
-    const tradeBtn = page.locator('button:has-text("Trade"):not(header button):not(nav button)').first();
-    if (await tradeBtn.isVisible()) {
-      await tradeBtn.click();
+    // The Swap button on the first row of the token list.
+    const swapBtn = page.locator('table tbody button:has-text("Swap")').first();
+    // The list depends on live market data, which can be missing in CI.
+    if (await swapBtn.waitFor({ timeout: 20_000 }).then(() => true, () => false)) {
+      await swapBtn.click();
       // Should navigate to /swap?buy=...
       await page.waitForURL(/.*\/swap.*/, { timeout: 10_000 });
       expect(page.url()).toContain("swap");
