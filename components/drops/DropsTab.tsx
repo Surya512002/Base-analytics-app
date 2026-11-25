@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { Compass, Gift, PackageOpen, type LucideIcon } from "lucide-react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import type { WalletAppState } from "@/hooks/useWalletApp";
-import { parseDropLink, type ParsedDropLink } from "@/lib/drops/client";
+import Link from "next/link";
+import { DROPS_CONTRACT, parseDropLink, type ParsedDropLink } from "@/lib/drops/client";
 import { IS_DROPS_TESTNET } from "@/lib/drops/network";
 import DropCreate from "./DropCreate";
 import DropsHero from "./DropsHero";
@@ -57,6 +58,30 @@ export default function DropsTab({
   const testnet = IS_DROPS_TESTNET ? (
     <Notice tone="warn">Test network: Drops here run on Base Sepolia with test funds. Switch your wallet to Base Sepolia.</Notice>
   ) : null;
+
+  // No contract on this deployment: say so once, instead of a page of controls that cannot work.
+  if (!DROPS_CONTRACT) {
+    return (
+      <div className="mx-auto max-w-xl space-y-4 pb-12">
+        <Card className="space-y-3 text-center">
+          <Gift size={28} aria-hidden className="mx-auto text-[var(--brand-text)]" />
+          <h2 className="text-xl font-black text-[var(--ink)]">Drops are coming soon</h2>
+          <p className="text-sm text-[var(--ink-muted)]">
+            Airdrops with your own rules, daily claims and tasks are not switched on yet. Nothing here can take or move your funds.
+          </p>
+          <p className="text-sm text-[var(--ink-muted)]">To send someone crypto or stocks today, use a gift voucher.</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Link href="/?tab=basehub" className={btnPrimary}>
+              Send a gift voucher
+            </Link>
+            <Link href="/redeem" className="inline-flex min-h-[44px] items-center rounded-xl border border-[var(--border-subtle)] px-5 text-sm font-bold text-[var(--ink)]">
+              Redeem a card
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (link) {
     return (
