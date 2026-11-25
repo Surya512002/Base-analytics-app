@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AppBackground from "@/components/ui/AppBackground";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import AppHeader from "@/components/wallet/AppHeader";
+import MobileBottomNav from "@/components/shell/MobileBottomNav";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { feeShareLabels } from "@/lib/launchpad/fee-split";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
@@ -67,6 +68,7 @@ export default function ProfilePage() {
       <AppBackground />
       <div className="relative z-10 w-full min-w-0">
         <AppHeader
+          hasBottomNav
           tab={tab}
           onTabChange={handleTabChange}
           guest={guest}
@@ -77,7 +79,7 @@ export default function ProfilePage() {
           siweSigningIn={siweSigningIn}
           onSiweSignIn={() => void handleSiweSignIn()}
         />
-        <div className="app-container py-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:py-14 w-full min-w-0">
+        <div className="app-container py-8 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:py-14 lg:pb-14 w-full min-w-0">
           {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
@@ -125,6 +127,7 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+      <MobileBottomNav tab={tab} onTabChange={handleTabChange} />
       <ConnectWalletModal
         open={showModal}
         loading={loading}

@@ -3,18 +3,18 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Gift, Home, Menu, PieChart } from "lucide-react";
+import { ArrowLeftRight, Home, Landmark, Menu, User } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
-import { MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 
 interface MobileBottomNavProps {
   tab?: AppTab;
   onTabChange?: (t: AppTab) => void;
+  walletAddress?: string | null;
 }
 
-export default function MobileBottomNav({ tab, onTabChange }: MobileBottomNavProps) {
+export default function MobileBottomNav({ tab, onTabChange, walletAddress }: MobileBottomNavProps) {
   const pathname = usePathname() || "";
-  // Home, Vouchers and a few other screens share the "/" page and differ only by tab.
+  // Home and a few other screens share the "/" page and differ only by tab.
   const onRoot = pathname === "/";
   const under = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
 
@@ -28,28 +28,28 @@ export default function MobileBottomNav({ tab, onTabChange }: MobileBottomNavPro
       tabId: "launchpad" as AppTab,
     },
     {
-      id: "stocks",
-      label: "Stocks",
-      href: STOCK_LIST_HREF,
-      icon: CandlestickChart,
-      active: under("/explore") || under("/trade") || (onRoot && tab === "trade"),
+      id: "swap",
+      label: "Swap",
+      href: "/swap",
+      icon: ArrowLeftRight,
+      active: under("/swap") || (onRoot && tab === "swap"),
       tabId: undefined,
     },
     {
-      id: "mystocks",
-      label: "My Stocks",
-      href: MY_STOCKS_HREF,
-      icon: PieChart,
+      id: "lend",
+      label: "Lend & Stake",
+      href: "/lend",
+      icon: Landmark,
       active: under("/lend") || (onRoot && tab === "lend"),
       tabId: undefined,
     },
     {
-      id: "vouchers",
-      label: "Vouchers",
-      href: "/?tab=basehub",
-      icon: Gift,
-      active: onRoot && tab === "basehub",
-      tabId: "basehub" as AppTab,
+      id: "profile",
+      label: "Profile",
+      href: walletAddress ? `/creator/${walletAddress.toLowerCase()}` : "/profile",
+      icon: User,
+      active: under("/profile") || under("/creator"),
+      tabId: undefined,
     },
   ];
 
@@ -75,7 +75,7 @@ export default function MobileBottomNav({ tab, onTabChange }: MobileBottomNavPro
               onClick={handleClick}
               aria-current={item.active ? "page" : undefined}
               aria-label={item.label}
-              className={`relative isolate flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[50px] py-1 px-0.5 rounded-2xl transition-colors touch-manipulation select-none ${
+              className={`relative isolate flex min-w-0 ${item.id === "lend" ? "flex-[1.4]" : "flex-1"} flex-col items-center justify-center gap-0.5 min-h-[50px] py-1 px-0.5 rounded-2xl transition-colors touch-manipulation select-none ${
                 item.active
                   ? "text-[#0052FF] dark:text-[#3888ff] font-bold"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)] font-semibold"
