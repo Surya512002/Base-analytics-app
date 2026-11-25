@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { formatUnits } from "viem";
-import { AlertTriangle, CalendarClock, Loader2, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Layers, Loader2, Plus, Trash2, TrendingDown } from "lucide-react";
+import TokenLogo from "@/components/ui/TokenLogo";
 import { parseDecimalInput } from "@/src/lib/limitOrders/orderMath";
 import {
   MAX_BASKET_STOCKS,
@@ -26,6 +27,19 @@ const FREQUENCIES = [
   { label: "Every 2 weeks", seconds: 1_209_600, word: "2 weeks" },
   { label: "Monthly", seconds: 2_592_000, word: "30 days" },
 ] as const;
+
+const PRESET_ICONS: Record<string, typeof CalendarClock> = { weekly: CalendarClock, spread: Layers, dips: TrendingDown };
+const card = "space-y-3 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5";
+
+/** Numbered heading, so the form reads as three short steps. */
+function StepTitle({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <h4 className="flex items-center gap-2 text-sm font-black text-[var(--ink)]">
+      <span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-[var(--brand)] text-xs text-white">{n}</span>
+      {children}
+    </h4>
+  );
+}
 
 const usd = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fromUnits = (v: bigint) => Number(formatUnits(v, 6));
@@ -218,12 +232,13 @@ export default function InvestPlanComposer({
   const field = "min-h-[40px] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 text-sm font-bold text-[var(--ink)] outline-none";
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
-        <h3 className="flex items-center gap-2 text-sm font-black text-[var(--ink)]">
-          <CalendarClock size={15} /> Invest in several stocks over time
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+      <div className="min-w-0 space-y-4">
+      <div className="space-y-1.5 rounded-3xl border border-[var(--brand)]/25 bg-[var(--brand-soft)] p-4 sm:p-5">
+        <h3 className="flex items-center gap-2 text-lg font-black text-[var(--ink)]">
+          <CalendarClock size={18} className="text-[var(--brand-text)]" /> Invest in several stocks over time
         </h3>
-        <p className="text-xs text-[var(--ink-muted)]">
+        <p className="text-xs leading-relaxed text-[var(--ink-muted)]">
           One recurring buy per stock (two if you add dip buys), started together. Your USDC for each plan is held by the order-book contract until each buy runs. You can cancel any plan and get the unspent USDC back. Buys only run while the stock price feed is fresh, so nothing runs on weekends.
         </p>
       </div>
@@ -231,28 +246,36 @@ export default function InvestPlanComposer({
       {paused && <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">Orders are paused right now. You can still cancel plans.</p>}
       {regionRestricted && <p className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-300">These orders aren&apos;t available in your region. You can still cancel existing plans.</p>}
 
-      <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
-        <h4 className="text-xs font-black uppercase tracking-wider text-[var(--ink-muted)]">Start with</h4>
+      <div className={card}>
+        <StepTitle n={1}>Start with a plan</StepTitle>
         <div role="group" aria-label="Ready-made plans" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {PLAN_PRESETS.map((p) => (
+          {PLAN_PRESETS.map((p) => {
+            const Icon = PRESET_ICONS[p.id] ?? CalendarClock;
+            return (
             <button
               key={p.id}
               type="button"
               disabled={locked}
               aria-pressed={activePreset?.id === p.id}
               onClick={() => applyPreset(p)}
-              className={`rounded-xl border p-3 text-left disabled:opacity-50 ${activePreset?.id === p.id ? "border-[var(--brand)] bg-[var(--brand-soft)]" : "border-[var(--border-subtle)] bg-[var(--surface-2)]"}`}
+              className={`flex items-start gap-3 rounded-2xl border p-3 text-left transition disabled:opacity-50 sm:flex-col sm:gap-2 ${activePreset?.id === p.id ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-xs" : "border-[var(--border-subtle)] bg-[var(--surface-2)] hover:border-[var(--brand)]/50"}`}
             >
-              <span className="block text-sm font-black text-[var(--ink)]">{p.label}</span>
-              <span className="block text-[11px] text-[var(--ink-muted)]">{p.note}</span>
+              <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${activePreset?.id === p.id ? "bg-[var(--brand)] text-white" : "bg-[var(--surface)] text-[var(--brand-text)]"}`}>
+                <Icon size={17} />
+              </span>
+              <span>
+                <span className="block text-sm font-black text-[var(--ink)]">{p.label}</span>
+                <span className="block text-[11px] text-[var(--ink-muted)]">{p.note}</span>
+              </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
+      <div className={card}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="text-xs font-black uppercase tracking-wider text-[var(--ink-muted)]">Stocks and shares</h4>
+          <StepTitle n={2}>Pick stocks and shares</StepTitle>
           <div className="flex gap-1.5">
             <button type="button" disabled={locked || rows.length === 0} onClick={() => setWeights(equalWeights(rows.length))} className="min-h-[32px] rounded-full border border-[var(--border-subtle)] px-3 text-[11px] font-bold text-[var(--ink-muted)] disabled:opacity-40">
               Equal split
@@ -270,7 +293,10 @@ export default function InvestPlanComposer({
             const legs = composed.ok ? composed.plan.legs.filter((l) => l.symbol === m?.symbol) : [];
             return (
               <li key={r.stockToken} className="flex flex-wrap items-center gap-2">
-                <span className="min-w-[72px] text-sm font-black text-[var(--ink)]">{m?.symbol}</span>
+                <span className="flex min-w-[96px] items-center gap-2 text-sm font-black text-[var(--ink)]">
+                  <TokenLogo address={r.stockToken} symbol={m?.symbol ?? ""} size={24} />
+                  {m?.symbol}
+                </span>
                 <input
                   aria-label={`${m?.symbol} share in percent`}
                   inputMode="decimal"
@@ -281,7 +307,7 @@ export default function InvestPlanComposer({
                 />
                 <span className="text-xs text-[var(--ink-muted)]">%</span>
                 {legs.map((leg) => (
-                  <span key={leg.key} className="text-[11px] text-[var(--ink-muted)]">
+                  <span key={leg.key} className="text-[11px] text-[var(--ink-muted)] max-sm:order-last max-sm:basis-full">
                     {leg.kind === "dip" ? "Dips: " : ""}
                     {usd(fromUnits(leg.amountPerBuy))} each buy · {usd(fromUnits(leg.total))} total{created.includes(leg.key) ? " · started" : ""}
                   </span>
@@ -293,22 +319,23 @@ export default function InvestPlanComposer({
             );
           })}
         </ul>
-        {rows.length < MAX_BASKET_STOCKS && !locked && (
-          <label className="flex min-w-0 items-center gap-2 text-xs text-[var(--ink-muted)]">
-            <Plus size={13} className="shrink-0" />
-            <select aria-label="Add a stock" value="" onChange={(e) => addStock(e.target.value)} className={`${field} w-full min-w-0 flex-1 text-xs`}>
-              <option value="">Add a stock…</option>
-              {unused.map((m) => (
-                <option key={m.stockToken} value={m.stockToken}>
-                  {m.symbol} — {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        {rows.length < MAX_BASKET_STOCKS && !locked && unused.length > 0 && (
+          <div role="group" aria-label="Add a stock" className="flex flex-wrap gap-2">
+            {unused.map((m) => (
+              <button key={m.stockToken} type="button" onClick={() => addStock(m.stockToken)} title={m.name} className="flex min-h-[40px] items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] py-1 pl-1.5 pr-3 text-xs font-bold text-[var(--ink)] transition hover:border-[var(--brand)]">
+                <TokenLogo address={m.stockToken} symbol={m.symbol} size={26} />
+                {m.symbol}
+                <Plus size={13} aria-hidden className="text-[var(--brand-text)]" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      <div className="grid gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:grid-cols-2">
+      <div className={`${card} grid gap-3 space-y-0 sm:grid-cols-2`}>
+        <div className="sm:col-span-2">
+          <StepTitle n={3}>Set the budget and rhythm</StepTitle>
+        </div>
         <label className="space-y-1 text-xs font-bold text-[var(--ink-soft)]">
           Total budget (USDC)
           <input inputMode="decimal" disabled={locked} value={budget} placeholder="100" onChange={(e) => setBudget(e.target.value.replace(/[^0-9.]/g, "").slice(0, 10))} className={`${field} w-full`} />
@@ -355,13 +382,44 @@ export default function InvestPlanComposer({
         </label>
       </div>
 
+      </div>
+
+      <aside aria-label="Your plan" className="min-w-0 space-y-3 lg:sticky lg:top-24">
+      {!(rows.length > 0 && budgetUnits > 0n) && (
+        <div className={card}>
+          <h4 className="text-sm font-black text-[var(--ink)]">Your plan appears here</h4>
+          <ol className="space-y-2 text-xs text-[var(--ink-muted)]">
+            <li>1. Pick a rhythm, or keep weekly buys.</li>
+            <li>2. Add one or more stocks.</li>
+            <li>3. Enter a budget to see each buy before you start.</li>
+          </ol>
+        </div>
+      )}
+
       {rows.length > 0 && budgetUnits > 0n && (
         composed.ok ? (
-          <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 text-xs text-[var(--ink-muted)]">
-            <p className="text-sm font-black text-[var(--ink)]">
+          <div className={`${card} text-xs text-[var(--ink-muted)]`}>
+            <p className="text-base font-black text-[var(--ink)]">
               {usd(fromUnits(composed.plan.totalCommitted))} across {rows.length} stock{rows.length === 1 ? "" : "s"}
               {dipOn ? ` (${composed.plan.legs.length} plans)` : ""}
             </p>
+            <ul className="space-y-2" aria-label="What each plan buys">
+              {composed.plan.legs.map((leg) => (
+                <li key={leg.key} className="space-y-1">
+                  <span className="flex items-center justify-between gap-2 font-bold text-[var(--ink)]">
+                    <span className="flex items-center gap-2">
+                      <TokenLogo address={leg.stockToken} symbol={leg.symbol} size={20} />
+                      {leg.symbol}
+                      {leg.kind === "dip" ? " · dips" : ""}
+                    </span>
+                    <span className="tabular-nums">{usd(fromUnits(leg.amountPerBuy))} each</span>
+                  </span>
+                  <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                    <span className="block h-full rounded-full bg-[var(--brand)]" style={{ width: `${Number((leg.total * 100n) / (composed.plan.totalCommitted || 1n))}%` }} />
+                  </span>
+                </li>
+              ))}
+            </ul>
             <p>
               {buys} buy{buys === 1 ? "" : "s"} each, one every {FREQUENCIES.find((f) => f.seconds === freq)?.word}, over {durationText(composed.plan.durationSec)}. {dipOn ? "The first regular buy runs right away; dip buys wait for the lower price." : "The first buy runs right away."}
             </p>
@@ -423,8 +481,12 @@ export default function InvestPlanComposer({
         <button type="button" onClick={reset} className="text-xs font-bold text-[var(--ink-muted)] underline">Start a new basket plan</button>
       )}
 
+      </aside>
+
       {walletAddress && (
+        <div className="min-w-0 lg:col-span-2">
         <MyPlansPanel plans={plans} markets={marketStates} quoteSymbol={config.quoteToken.symbol} quoteDecimals={config.quoteToken.decimals} onCancelPlan={cancelDca} isSubmitting={txSubmitting} rulesCtx={{ chainId, orderBook: config.orderBook, owner: walletAddress, sign: limitOrders.signMessage }} />
+        </div>
       )}
     </div>
   );
