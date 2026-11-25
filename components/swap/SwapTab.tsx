@@ -11,7 +11,6 @@ import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import DexSwapCard from "@/components/swap/DexSwapCard";
-import PageHero from "@/components/ui/PageHero";
 import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
 import SwapTokenActivity from "@/components/swap/SwapTokenActivity";
@@ -274,50 +273,52 @@ export default function SwapTab({
       {activeSubTab === "market" && (
         <>
           {/* Portfolio Summary Line above Swap Card */}
-          <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
-            <button
-              type="button"
-              onClick={() => setHoldingsDrawerOpen(true)}
-              className="flex items-center gap-2 group text-left cursor-pointer transition hover:opacity-85"
-            >
-              <div className="w-7 h-7 rounded-lg bg-[var(--brand)]/10 text-[var(--brand-text)] flex items-center justify-center shrink-0">
-                <Wallet size={15} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)]">
-                  Base Portfolio
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-[var(--ink)] tabular-nums">
-                    {holdingsLoading ? (
-                      <span className="inline-flex items-center gap-1 text-[var(--ink-muted)]">
-                        <Loader2 size={12} className="animate-spin" /> Loading…
-                      </span>
-                    ) : (
-                      `$${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    )}
-                  </span>
-                  <span className="text-[11px] text-[var(--ink-muted)]">
-                    · {allTokens.length} assets
-                  </span>
-                  {unpricedTokens.length > 0 && (
-                    <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] font-medium">
-                      +{unpricedTokens.length} unpriced
-                    </span>
-                  )}
+          {Boolean(app.wallet?.address) && !guestMode && (
+            <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
+              <button
+                type="button"
+                onClick={() => setHoldingsDrawerOpen(true)}
+                className="flex items-center gap-2 group text-left cursor-pointer transition hover:opacity-85"
+              >
+                <div className="w-7 h-7 rounded-lg bg-[var(--brand)]/10 text-[var(--brand-text)] flex items-center justify-center shrink-0">
+                  <Wallet size={15} />
                 </div>
-              </div>
-            </button>
+                <div className="flex flex-col">
+                  <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)]">
+                    Base Portfolio
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-[var(--ink)] tabular-nums">
+                      {holdingsLoading ? (
+                        <span className="inline-flex items-center gap-1 text-[var(--ink-muted)]">
+                          <Loader2 size={12} className="animate-spin" /> Loading…
+                        </span>
+                      ) : (
+                        `$${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      )}
+                    </span>
+                    <span className="text-[11px] text-[var(--ink-muted)]">
+                      · {allTokens.length} assets
+                    </span>
+                    {unpricedTokens.length > 0 && (
+                      <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[var(--surface-2)] text-[var(--ink-muted)] font-medium">
+                        +{unpricedTokens.length} unpriced
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setHoldingsDrawerOpen(true)}
-              className="tap-target p-1 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition"
-              aria-label="Open portfolio drawer"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setHoldingsDrawerOpen(true)}
+                className="tap-target p-1 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition"
+                aria-label="Open portfolio drawer"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
 
           {/* Main Single Action Swap Card */}
           <DexSwapCard
@@ -394,17 +395,6 @@ export default function SwapTab({
           onConnectWallet={onRequestConnect}
           onSwitchChain={handleSwitchBase}
           onSwitchSepolia={handleSwitchSepolia}
-        />
-      )}
-
-      {/* About Swap (moved under the swap section) */}
-      {activeSubTab === "market" && (
-        <PageHero
-          size="sm"
-          as="h2"
-          eyebrow="Swap on Base"
-          title={<>Trade any token — <span className="text-[var(--brand-text)]">best route, one tap.</span></>}
-          subtitle="Quotes from Base DEXs, a clear preview before you sign, and nothing held by us."
         />
       )}
     </div>

@@ -12,7 +12,6 @@ import {
   type StockLendingOption,
 } from "@/lib/lending/unified-comparison";
 import { deriveStockMarketOptions } from "@/lib/lending/market-classifier";
-import { MIN_TVL_USD } from "@/lib/lending/constants";
 import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
 import LendingHeader from "./LendingHeader";
 import LendingViewTabs, { type LendingViewTab } from "./LendingViewTabs";
@@ -403,34 +402,6 @@ export default function LendingHub({
     return liveVaults;
   }, [discoveredMarkets]);
 
-  // 3. Live Stats Calculations for Header
-  const headerStats = useMemo(() => {
-    let topSupply = 0;
-    let lowestBorrow = 999;
-    let totalLiquidity = 0;
-
-    allMarketsRows.forEach((r) => {
-      if (r.hasLendingMarket) {
-        // Pool vaults can quote thousands of percent on small, volatile pools: not a headline figure.
-        topSupply = Math.max(topSupply, r.bestLendApy ?? 0);
-        if (r.bestBorrowApr && r.bestBorrowApr > 0 && r.bestBorrowApr < lowestBorrow) {
-          lowestBorrow = r.bestBorrowApr;
-        }
-        totalLiquidity += r.totalLiquidityUsd;
-      }
-    });
-
-    const verifiedPools = discoveredMarkets.filter(
-      (m) => (m.liquidityUsd > 0 ? m.liquidityUsd : (m.tvlUsd || 0)) >= MIN_TVL_USD
-    ).length;
-
-    return {
-      topSupplyApy: topSupply > 0 ? topSupply : 0,
-      lowestBorrowApr: lowestBorrow < 999 ? lowestBorrow : 0,
-      totalLiquidityUsd: totalLiquidity,
-      verifiedPoolsCount: verifiedPools > 0 ? verifiedPools : discoveredMarkets.length,
-    };
-  }, [allMarketsRows, discoveredMarkets]);
 
   // 4. Real On-chain User Positions
   const [userPositions, setUserPositions] = useState<UserProtocolPosition[]>([]);
@@ -961,10 +932,6 @@ export default function LendingHub({
     <div className="space-y-6 pb-16 animate-meridian-rise">
       {/* 1. COMPACT HEADER WITH LIVE STATS & DISCLAIMER */}
       <LendingHeader
-        topSupplyApy={headerStats.topSupplyApy}
-        lowestBorrowApr={headerStats.lowestBorrowApr}
-        totalLiquidityUsd={headerStats.totalLiquidityUsd}
-        verifiedPoolsCount={headerStats.verifiedPoolsCount}
         lastUpdatedSecondsAgo={secondsAgo}
         onRefresh={handleManualRefresh}
         isRefreshing={isRefreshing}
@@ -1137,7 +1104,7 @@ export default function LendingHub({
         }}
       />
 
-      {!positionsFirst && positionsPanel}
+      {!positionsFirst && (isConnected || activeTab !== "portfolio") && positionsPanel}
 
       {/* Smart Deposit for pair vaults + "Get {stock}" first, all in-app */}
       <SmartVaultDrawer

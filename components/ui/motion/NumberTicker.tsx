@@ -48,7 +48,7 @@ export default function NumberTicker({
       duration,
       ease: [0.16, 1, 0.3, 1],
       onUpdate: (v) => {
-        el.textContent = formatRef.current(v);
+        el.textContent = formatRef.current(Number.isInteger(value) ? Math.round(v) : v);
       },
     });
     return () => controls.stop();

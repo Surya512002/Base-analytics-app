@@ -23,18 +23,18 @@ export default function LaunchHeader() {
       }
       subtitle="Deploy verified B20 vanity tokens, standard meme coins, or stock-paired tokens with built-in creator revenue sharing."
     >
-      <div className="grid w-full max-w-3xl grid-cols-1 gap-2.5 sm:grid-cols-3">
+      <div className="grid w-full max-w-3xl grid-cols-3 gap-2 sm:gap-2.5">
         {FACTS.map(({ icon: Icon, title, note }) => (
           <div
             key={title}
-            className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 text-left shadow-sm"
+            className="flex items-center justify-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-2.5 text-center shadow-sm sm:justify-start sm:p-3 sm:text-left"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)]">
+            <span className="hidden h-9 w-9 shrink-0 sm:flex items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)]">
               <Icon size={16} />
             </span>
             <span>
-              <span className="block text-sm font-bold text-[var(--ink)]">{title}</span>
-              <span className="block text-[11px] text-[var(--ink-muted)]">{note}</span>
+              <span className="block text-xs font-bold text-[var(--ink)] sm:text-sm">{title}</span>
+              <span className="hidden text-[11px] text-[var(--ink-muted)] sm:block">{note}</span>
             </span>
           </div>
         ))}
