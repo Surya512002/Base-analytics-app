@@ -1130,7 +1130,6 @@ export default function LendingHub({
       {/* Top Yield Spotlight: Highlights top verified yield opportunity with zero calculation clutter */}
       <TopYieldSpotlight
         markets={discoveredMarkets}
-        gaugeRows={gaugeRows}
         stockRows={stockRows}
         onExploreVault={handleExploreYieldOption}
         onSelectOption={(protocol) => {
