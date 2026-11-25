@@ -8,8 +8,15 @@ test.describe("Release Readiness E2E Suite", () => {
     await page.goto(`${BASE}/`);
   });
 
-  test("1. Explore section: search, filtering, and token table", async ({ page }) => {
+  test("0. Home: three actions and a way to the stock list", async ({ page }) => {
     await page.goto(`${BASE}/`);
+    const start = page.getByRole("navigation", { name: "Start here" });
+    await expect(start.getByRole("link")).toHaveCount(3, { timeout: 15_000 });
+    await expect(page.getByRole("link", { name: /see all stocks/i })).toBeVisible();
+  });
+
+  test("1. Explore section: search, filtering, and token table", async ({ page }) => {
+    await page.goto(`${BASE}/explore`);
     // Explore hero & search
     const searchInput = page.locator('input[placeholder*="Search"], input[placeholder*="search"]').first();
     await expect(searchInput).toBeVisible({ timeout: 15_000 });

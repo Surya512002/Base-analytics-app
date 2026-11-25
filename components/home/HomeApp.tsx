@@ -10,6 +10,7 @@ import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import LoadingScreen from "@/components/wallet/LoadingScreen";
 import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
+import SimpleStart from "@/components/home/SimpleStart";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import SignInOverlay from "@/components/wallet/SignInOverlay";
 import AppShell from "@/components/shell/AppShell";
@@ -117,13 +118,10 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
   }, [wallet?.address]);
 
   // Arriving from another page (e.g. Swap → "/?tab=basehub"), the address updates just after this
-  // screen mounts, so read it once more or the previous page's screen stays up.
+  // screen mounts, so read it once more or the previous page's screen stays up. A plain "/" is home.
   useEffect(() => {
     if (forceTab || !ready) return;
-    const timer = setTimeout(() => {
-      const fromUrl = resolveTabFromUrl();
-      if (fromUrl) setTab(fromUrl);
-    }, 0);
+    const timer = setTimeout(() => setTab(resolveTabFromUrl() ?? "launchpad"), 0);
     return () => clearTimeout(timer);
   }, [forceTab, ready, setTab]);
 
@@ -141,7 +139,8 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         openConnect();
         return;
       }
-      if (forceTab && next !== forceTab) {
+      // "launchpad" is the home screen, which lives at "/" and not on /explore or /launch.
+      if (forceTab && (next !== forceTab || next === "launchpad")) {
         router.push(hrefForAppTab(next, opts));
         return;
       }
@@ -185,7 +184,6 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         onConnect={openConnect}
         onOpenToken={(t) => launchBridge?.openToken(t)}
         tokens={launchBridge?.tokens ?? []}
-        walletAddress={wallet?.address}
         header={
           <AppHeader
             hasBottomNav
@@ -231,7 +229,8 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
           {activeTab === "trade" && (
             <TradeTab app={app} guestMode={guest} onRequestConnect={openConnect} />
           )}
-          {activeTab === "launchpad" && (
+          {activeTab === "launchpad" && !forceTab && <SimpleStart />}
+          {activeTab === "launchpad" && forceTab && (
             <LaunchpadTab
               app={app}
               guestMode={guest}

@@ -64,8 +64,8 @@ for (const vp of MOBILE_VIEWPORTS) {
       if (vp.width < 1024) {
         const bottomNav = page.locator("nav[aria-label='Mobile navigation']");
         await expect(bottomNav).toBeVisible({ timeout: 20_000 });
-        await expect(bottomNav.getByText(/Explore/i).first()).toBeVisible();
-        await expect(bottomNav.getByText(/Swap/i).first()).toBeVisible();
+        await expect(bottomNav.getByText("Home", { exact: true })).toBeVisible();
+        await expect(bottomNav.getByText("Stocks", { exact: true })).toBeVisible();
       }
     });
   });

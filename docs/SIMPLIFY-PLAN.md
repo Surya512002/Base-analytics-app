@@ -65,3 +65,8 @@ and you approve each merge. Old links keep working (they redirect). No contract 
 1. May Drops leave the phone's bottom bar to make room for Lend & Stake or My Stocks?
 2. Should auto-invest and orders move out of Swap, as in Step 2?
 3. Start with Step 1? (Recommended: it fixes the trust problem in row 1 first.)
+
+## Chosen layout: simple start (2026-11-25)
+
+"/" is a home screen with three actions and today's most traded stocks. The full list is "Stocks"
+(`/explore`). The phone bar is Home, Stocks, My Stocks, Vouchers and More; Trade, Swap and Profile are in More.

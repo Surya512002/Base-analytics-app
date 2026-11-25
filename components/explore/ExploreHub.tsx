@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { ChevronDown } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import type { TokenMarketSummary } from "@/lib/launchpad/dexscreener";
@@ -97,9 +98,10 @@ export default function ExploreHub({
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
   const [selectedStockForDrawer, setSelectedStockForDrawer] = useState<StockMarketItem | null>(null);
 
-  // Filter state
+  // Filter state. "Stocks" in the menus arrives as ?list=stocks.
+  const wantsStocks = useSearchParams()?.get("list") === "stocks";
   const [filters, setFilters] = useState<ExploreFiltersState>({
-    catalogTab: "all",
+    catalogTab: wantsStocks ? "stocks" : "all",
     sort: "trending",
     searchQuery: "",
     onlyWatching: false,
@@ -117,6 +119,11 @@ export default function ExploreHub({
   } = useStockMarkets({
     query: filters.searchQuery,
   });
+
+  // The same screen stays up when the menu is used while already on this page.
+  useEffect(() => {
+    if (wantsStocks) setFilters((prev) => ({ ...prev, catalogTab: "stocks" }));
+  }, [wantsStocks]);
 
   // The list shows one page of rows at a time; changing a filter starts again from the top.
   const [visibleRows, setVisibleRows] = useState(ROWS_PER_PAGE);

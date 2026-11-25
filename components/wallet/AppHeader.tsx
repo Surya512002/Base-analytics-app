@@ -24,7 +24,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useI18n } from "@/lib/i18n/context";
 import type { AppTab } from "@/hooks/useWalletApp";
-import { AUTO_INVEST_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
+import { AUTO_INVEST_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 import { DROPS_CONTRACT } from "@/lib/drops/client";
 
 interface AppHeaderProps {
@@ -47,7 +47,6 @@ const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
   { tab: "trade", label: "Trade", guestOk: true },
   { tab: "swap", label: "Swap", guestOk: true },
   { tab: "lend", label: "Lend & Stake", guestOk: true },
-  { tab: "launchpad", label: "Explore", guestOk: true },
   { tab: "basehub", label: "Vouchers", guestOk: true },
 ];
 
@@ -121,7 +120,9 @@ export default function AppHeader({
     : isLaunch
       ? "launch"
       : tab === "launchpad"
-        ? "explore"
+        ? pathname === "/"
+          ? "home"
+          : "explore"
         : tab === "basehub"
           ? "vouchers"
           : tab;
@@ -203,9 +204,26 @@ export default function AppHeader({
   const moreItem = "block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] cursor-pointer";
   const moreActive = isProfile || isLaunch || tab === "drops";
 
+  // The home screen shares the "/" page with other tabs, so there the link must also switch tab.
+  const goHome = () => {
+    if (pathname === "/") pickTab("launchpad", true);
+  };
+  const placeLink = (href: string, label: string, active: boolean, onClick?: () => void, extraClass = "") => (
+    <Link
+      href={href}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={`${navItemClass} ${extraClass} ${active ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+    >
+      {label}
+    </Link>
+  );
+
   const navLinks = (
     <>
-      {HEADER_NAV.slice(0, 2).map((item) => tabButton(item))}
+      {placeLink("/", "Home", pathname === "/" && tab === "launchpad", goHome, "max-xl:hidden")}
+      {placeLink(STOCK_LIST_HREF, "Stocks", Boolean(pathname?.startsWith("/explore")))}
+      {HEADER_NAV.slice(0, 2).map((item) => tabButton(item, "max-xl:hidden"))}
       {plainLink(AUTO_INVEST_HREF, "Auto-invest")}
       {plainLink(MY_STOCKS_HREF, "My Stocks")}
       {tabButton(HEADER_NAV[2])}
@@ -227,7 +245,11 @@ export default function AppHeader({
       </button>
       {moreOpen && (
         <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-1.5 shadow-2xl">
-          {HEADER_NAV.slice(3).map((item) => (
+          {/* Below xl the bar has no room for these (the logo also goes home). */}
+          <Link href="/" className={`${moreItem} xl:hidden`} onClick={() => { setMoreOpen(false); goHome(); }}>
+            Home
+          </Link>
+          {[...HEADER_NAV.slice(0, 2), ...HEADER_NAV.slice(3)].map((item) => (
             <button
               key={item.tab}
               type="button"
@@ -282,7 +304,7 @@ export default function AppHeader({
           }`}
         >
           {/* Left: Brand Logo & Title */}
-          <Link href="/explore" className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
+          <Link href="/" onClick={goHome} className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
             <AppLogo size="sm" />
             <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
               Base Analytics

@@ -13,6 +13,7 @@ import {
   Compass,
   Gift,
   HelpCircle,
+  Home,
   Landmark,
   Languages,
   LogOut,
@@ -24,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-import { AUTO_INVEST_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
+import { AUTO_INVEST_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import type { AppTab } from "@/hooks/useWalletApp";
@@ -33,8 +34,9 @@ import { DROPS_CONTRACT } from "@/lib/drops/client";
 type Item = { id: string; icon: LucideIcon; title: string; note: string; tab?: AppTab; href?: string; guestOk?: boolean };
 
 const ITEMS: Item[] = [
+  { id: "home", icon: Home, title: "Home", note: "Buy, invest, earn or borrow", tab: "launchpad", guestOk: true },
+  { id: "explore", icon: Compass, title: "Stocks", note: "Every stock, plus live tokens", href: STOCK_LIST_HREF },
   { id: "trade", icon: CandlestickChart, title: "Trade", note: "Charts, limit and stop-loss orders", tab: "trade", guestOk: true },
-  { id: "explore", icon: Compass, title: "Explore", note: "Live tokens, trades and stocks", tab: "launchpad", guestOk: true },
   { id: "swap", icon: ArrowLeftRight, title: "Swap", note: "Best route across Base DEXs", tab: "swap", guestOk: true },
   { id: "invest", icon: CalendarClock, title: "Auto-invest", note: "Buy stocks on a schedule", href: AUTO_INVEST_HREF },
   { id: "mystocks", icon: PieChart, title: "My Stocks", note: "Your stocks, target mix and rebalance", href: MY_STOCKS_HREF },
