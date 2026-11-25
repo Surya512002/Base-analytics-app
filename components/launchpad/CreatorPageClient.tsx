@@ -97,7 +97,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
         </div>
       </div>
 
-      <MobileBottomNav tab={tab} onTabChange={handleTabChange} />
+      <MobileBottomNav tab={tab} onTabChange={handleTabChange} walletAddress={wallet?.address} />
 
       <ConnectWalletModal
         open={showModal}

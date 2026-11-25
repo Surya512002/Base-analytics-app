@@ -184,6 +184,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         onConnect={openConnect}
         onOpenToken={(t) => launchBridge?.openToken(t)}
         tokens={launchBridge?.tokens ?? []}
+        walletAddress={wallet?.address}
         header={
           <AppHeader
             hasBottomNav
