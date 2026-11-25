@@ -165,7 +165,7 @@ export default function VoucherVaultPanel({
   const downloadPhrase = () => {
     if (stage.kind !== "show-phrase") return;
     const text = [
-      "Base gift backup — recovery phrase",
+      "Base gift backup — backup words",
       `Wallet: ${address}`,
       "",
       stage.phrase,
@@ -176,7 +176,7 @@ export default function VoucherVaultPanel({
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `gift-backup-phrase-${address.slice(2, 8)}.txt`;
+    a.download = `gift-backup-words-${address.slice(2, 8)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -196,13 +196,13 @@ export default function VoucherVaultPanel({
         </div>
         <div className="min-w-0 flex-1">
           <h3 id="vault-title" className="text-base font-black text-[var(--ink)]">
-            Recovery &amp; backup
+            Private backup
           </h3>
           <p className="text-xs text-[var(--ink-muted)]">
             {stage.kind === "on"
               ? "Private backup is on. Your claim links are encrypted on this device before they're saved, so only you can read them."
               : stage.kind === "locked"
-                ? "This wallet has a private backup. Enter your 12-word recovery phrase to load your claim links on this device."
+                ? "This wallet has a private backup. Enter the 12 backup words this app gave you to load your claim links on this device."
                 : "Keep your claim links safe if you lose this device. Private backup encrypts them so only you can read them."}
           </p>
         </div>
@@ -229,9 +229,10 @@ export default function VoucherVaultPanel({
       {stage.kind === "off" && (
         <div className="space-y-3">
           <ul className="space-y-1.5 text-xs text-[var(--ink-muted)]">
-            <li>• You get a 12-word recovery phrase. With it, any device can load your claim links.</li>
+            <li>• This app gives you 12 backup words. With them, any device can load your claim links.</li>
+            <li>• They are not your wallet&apos;s recovery phrase. Keep them private.</li>
             <li>• Our server stores only encrypted data and can&apos;t read your links. The copy it keeps today is deleted.</li>
-            <li>• If you lose the phrase and every signed-in device, the links are gone for good. Gift funds stay onchain.</li>
+            <li>• If you lose the words and every signed-in device, the links are gone for good. Gift funds stay onchain.</li>
           </ul>
           <button type="button" className={primary} disabled={busy} onClick={() => void startCreate()}>
             <ShieldCheck size={15} /> {busy ? "Preparing…" : "Turn on private backup"}
@@ -242,13 +243,13 @@ export default function VoucherVaultPanel({
       {stage.kind === "show-phrase" && (
         <div className="space-y-3">
           <p className="text-sm font-bold text-[var(--ink)]">
-            {stage.purpose === "create" ? "Your recovery phrase" : "Your new recovery phrase"}
+            {stage.purpose === "create" ? "Your backup words" : "Your new backup words"}
           </p>
           <p className="text-xs text-[var(--ink-muted)]">
             Write these 12 words down in order and keep them offline. We can&apos;t show them again
-            {stage.purpose === "rotate" ? ", and your old phrase stops working" : ""}.
+            {stage.purpose === "rotate" ? ", and your old words stop working" : ""}.
           </p>
-          <ol className="grid grid-cols-2 sm:grid-cols-3 gap-2" aria-label="Recovery phrase">
+          <ol className="grid grid-cols-2 sm:grid-cols-3 gap-2" aria-label="Backup words">
             {words.map((w, i) => (
               <li
                 key={i}
@@ -269,7 +270,7 @@ export default function VoucherVaultPanel({
           </div>
           <label className="flex items-center gap-2 text-sm text-[var(--ink)] min-h-[44px] cursor-pointer">
             <input type="checkbox" className="h-5 w-5" checked={savedIt} onChange={(e) => setSavedIt(e.target.checked)} />
-            I saved my recovery phrase somewhere safe
+            I saved my backup words somewhere safe
           </label>
           <div className="flex flex-wrap gap-2">
             <button
@@ -299,7 +300,7 @@ export default function VoucherVaultPanel({
             void run(stage.commit);
           }}
         >
-          <p className="text-sm font-bold text-[var(--ink)]">Check your phrase</p>
+          <p className="text-sm font-bold text-[var(--ink)]">Check your backup words</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {stage.ask.map((wordIdx, i) => (
               <label key={wordIdx} className="space-y-1 text-xs font-semibold text-[var(--ink-muted)]">
@@ -318,7 +319,7 @@ export default function VoucherVaultPanel({
           <div className="flex flex-wrap gap-2">
             <button type="submit" className={primary} disabled={!confirmOk || busy}>
               <ShieldCheck size={15} />{" "}
-              {busy ? "Saving…" : stage.purpose === "create" ? "Turn on private backup" : "Use new phrase"}
+              {busy ? "Saving…" : stage.purpose === "create" ? "Turn on private backup" : "Use new words"}
             </button>
             <button type="button" className={secondary} onClick={() => setStage({ ...stage, kind: "show-phrase" })}>
               Back
@@ -338,8 +339,11 @@ export default function VoucherVaultPanel({
             });
           }}
         >
+          <p role="note" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-[var(--ink)]">
+            Only type the 12 backup words this app showed you. Never type your wallet&apos;s recovery phrase here or on any website.
+          </p>
           <label className="block space-y-1 text-xs font-semibold text-[var(--ink-muted)]">
-            Recovery phrase (12 words)
+            Backup words (12)
             <textarea
               value={phraseInput}
               onChange={(e) => setPhraseInput(e.target.value)}
@@ -355,14 +359,14 @@ export default function VoucherVaultPanel({
               <Lock size={15} /> {busy ? "Unlocking…" : "Unlock on this device"}
             </button>
             <button type="button" className={secondary} onClick={() => setShowReset((v) => !v)}>
-              Lost your phrase?
+              Lost your backup words?
             </button>
           </div>
           {showReset && (
             <div className="space-y-2 rounded-xl border border-red-500/25 bg-red-500/5 p-3">
               <p className="text-xs text-[var(--ink-muted)]">
                 If another device still has your backup unlocked, open My Cards there and choose{" "}
-                <strong>New recovery phrase</strong>. Otherwise you can reset: the saved links in this backup are
+                <strong>New backup words</strong>. Otherwise you can reset: the saved links in this backup are
                 deleted. Your gifts and their funds are not affected, and unclaimed gifts with an expiry can still
                 be reclaimed.
               </p>
@@ -416,7 +420,7 @@ export default function VoucherVaultPanel({
               <RefreshCcw size={14} className={busy ? "animate-spin" : ""} /> Sync now
             </button>
             <button type="button" className={secondary} disabled={busy} onClick={() => void startRotate()}>
-              <KeyRound size={14} /> New recovery phrase
+              <KeyRound size={14} /> New backup words
             </button>
             <button
               type="button"

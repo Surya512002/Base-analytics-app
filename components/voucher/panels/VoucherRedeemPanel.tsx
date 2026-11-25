@@ -185,7 +185,7 @@ export default function VoucherRedeemPanel({
                   : !claimer
                     ? "Connect your wallet to open it"
                     : !redeemSecret.trim()
-                      ? "Enter the secret key to unlock it"
+                      ? "Enter the card's claim code to unlock it"
                       : undefined
             }
             claimer={claimer}

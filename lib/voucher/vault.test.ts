@@ -106,7 +106,7 @@ describe("private vault crypto", () => {
     expect(await unlockWithPhrase(ALICE, envelope, messy)).toBe(vaultKey);
 
     const other = (await createVault(ALICE, contents)).phrase;
-    await expect(unlockWithPhrase(ALICE, envelope, other)).rejects.toThrow("Wrong recovery phrase");
+    await expect(unlockWithPhrase(ALICE, envelope, other)).rejects.toThrow("Wrong backup words");
     await expect(unlockWithPhrase(ALICE, envelope, "not a phrase")).rejects.toThrow();
   });
 

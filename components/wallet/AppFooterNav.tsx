@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AppLogo from "@/components/ui/AppLogo";
+import SafetyNote from "@/components/ui/SafetyNote";
 import { ShieldCheck, ExternalLink, Github } from "lucide-react";
 
 /** High-contrast, theme-adaptive site footer matching Blue Hour Meridian design tokens. */
@@ -23,8 +24,9 @@ export default function AppFooterNav() {
           </p>
           <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             <ShieldCheck size={14} className="shrink-0 text-emerald-500" />
-            <span>Verified Base Builder Attribution · Chain ID: 8453</span>
+            <span>Transactions carry our Base Builder Code · Chain ID: 8453</span>
           </div>
+          <SafetyNote className="mt-3 max-w-md" />
         </div>
 
         <nav className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm sm:justify-items-end">
