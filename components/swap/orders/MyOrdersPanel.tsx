@@ -22,6 +22,7 @@ import {
 } from "@/src/lib/limitOrders/orderMath";
 import type { MarketState } from "@/src/lib/limitOrders/useLimitOrders";
 import EditOrderModal from "./EditOrderModal";
+import { priceText } from "@/src/lib/limitOrders/priceBasis";
 
 interface MyOrdersPanelProps {
   openOrders: GroupedOrderItem[];
@@ -104,17 +105,17 @@ export default function MyOrdersPanel({
     const outSymbol = isBuy ? symbol : quoteSymbol;
 
     const amountInStr = formatUnits(order.amountIn, inDecimals);
-    const triggerStr = formatUnits(order.triggerPrice, PRICE_DECIMALS);
+    const triggerStr = priceText(order.triggerPrice);
     const minOutStr = formatUnits(order.minAmountOut, outDecimals);
     const distance = formatDistance(currentPrice, order.triggerPrice);
 
     // Trailing stop metrics
     const isTrailing = orderKind === "TRAILING_STOP";
-    const peakStr = order.peakPrice > 0n ? formatUnits(order.peakPrice, PRICE_DECIMALS) : "—";
+    const peakStr = order.peakPrice > 0n ? priceText(order.peakPrice) : "—";
     const currentStop = isTrailing && order.peakPrice > 0n
       ? trailingStopPrice(order.peakPrice, order.trailBps)
       : null;
-    const currentStopStr = currentStop ? formatUnits(currentStop, PRICE_DECIMALS) : "—";
+    const currentStopStr = currentStop ? priceText(currentStop) : "—";
     const stopDistance = isTrailing && currentPrice && currentStop
       ? formatDistance(currentPrice, currentStop)
       : null;
@@ -266,8 +267,8 @@ export default function MyOrdersPanel({
     const currentPrice = market?.currentPrice || null;
 
     const amountInStr = formatUnits(takeProfitLeg.amountIn, stockDecimals);
-    const tpPriceStr = formatUnits(takeProfitLeg.triggerPrice, PRICE_DECIMALS);
-    const slPriceStr = formatUnits(stopLossLeg.triggerPrice, PRICE_DECIMALS);
+    const tpPriceStr = priceText(takeProfitLeg.triggerPrice);
+    const slPriceStr = priceText(stopLossLeg.triggerPrice);
 
     const tpDistance = formatDistance(currentPrice, takeProfitLeg.triggerPrice);
     const slDistance = formatDistance(currentPrice, stopLossLeg.triggerPrice);

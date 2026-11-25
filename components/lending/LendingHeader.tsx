@@ -46,14 +46,8 @@ export default function LendingHeader({
       <div className="flex flex-col items-start gap-3 sm:items-center">
         <HeroStats
           items={[
-            {
-              label: "Top supply APY",
-              value: (
-                <span className="text-[var(--success-text)]">
-                  {topSupplyApy > 0 ? `${topSupplyApy.toFixed(2)}%` : "—"}
-                </span>
-              ),
-            },
+            // Shown only when a plain lending market pays on stocks; pool-vault rates never headline.
+            ...(topSupplyApy > 0 ? [{ label: "Top lending APY", value: <span className="text-[var(--success-text)]">{topSupplyApy.toFixed(2)}%</span> }] : []),
             { label: "Lowest borrow", value: lowestBorrowApr > 0 ? `${lowestBorrowApr.toFixed(2)}%` : "—" },
             { label: "Liquidity", value: formatCompactUsd(totalLiquidityUsd) },
             {

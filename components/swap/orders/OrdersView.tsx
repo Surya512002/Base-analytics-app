@@ -35,7 +35,7 @@ import MyOrdersPanel from "./MyOrdersPanel";
 import SimpleOrderCard from "@/components/trade/SimpleOrderCard";
 import LadderCard from "@/components/trade/LadderCard";
 import { MoveLine, PercentChips, RewardRiskLine } from "./TriggerHelpers";
-import { gapPct, moveUsd, orderToTerminalPrice, rewardToRisk } from "@/src/lib/limitOrders/priceBasis";
+import { gapPct, moveUsd, orderToTerminalPrice, rewardToRisk, priceText } from "@/src/lib/limitOrders/priceBasis";
 
 type OrderTypeTab = "LIMIT_BUY" | "LIMIT_SELL" | "STOP_LOSS" | "TRAILING_STOP" | "BRACKET";
 
@@ -735,7 +735,7 @@ export default function OrdersView({
               Order price · Chainlink
             </span>
             <span className="text-sm font-mono font-bold text-[var(--ink)] tabular-nums">
-              {currentPrice !== null ? `$${formatUnits(currentPrice, PRICE_DECIMALS)}` : "—"}
+              {currentPrice !== null ? `$${priceText(currentPrice)}` : "—"}
             </span>
             {terminalPrice != null && priceGap !== null && (
               <span
@@ -845,7 +845,7 @@ export default function OrdersView({
               <div className="text-[11px] text-[var(--ink-muted)] flex items-center justify-between">
                 <span>Initial Stop Price:</span>
                 <span className="font-mono font-bold text-[var(--ink)]">
-                  ${formatUnits(initialTrailingStop, PRICE_DECIMALS)}
+                  ${priceText(initialTrailingStop)}
                 </span>
               </div>
             )}

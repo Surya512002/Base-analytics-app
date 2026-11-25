@@ -59,3 +59,10 @@ export function rewardToRisk(entry: number, target: number, stop: number): numbe
   if (!(entry > 0) || !(target > entry) || !(stop > 0) || !(stop < entry)) return null;
   return (target - entry) / (entry - stop);
 }
+
+/** A contract price (8 decimals) for people: cents from $1 up, a few significant digits below. No "$". */
+export function priceText(price8: bigint): string {
+  const n = Number(price8) / 1e8;
+  if (n === 0) return "0.00";
+  return n >= 1 ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : n.toLocaleString("en-US", { maximumSignificantDigits: 4 });
+}

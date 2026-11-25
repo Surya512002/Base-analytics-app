@@ -37,6 +37,8 @@ interface AppHeaderProps {
   siweAuthenticated?: boolean;
   siweSigningIn?: boolean;
   onSiweSignIn?: () => void;
+  /** The page also shows the phone bottom bar, whose "More" opens the menu. */
+  hasBottomNav?: boolean;
 }
 
 const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
@@ -64,6 +66,7 @@ export default function AppHeader({
   siweAuthenticated,
   siweSigningIn,
   onSiweSignIn,
+  hasBottomNav = false,
 }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -217,11 +220,10 @@ export default function AppHeader({
           }`}
         >
           {/* Left: Brand Logo & Title */}
-          <Link href="/explore" className="group flex shrink-0 items-center gap-2.5">
+          <Link href="/explore" className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
             <AppLogo size="sm" />
             <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
-              <span className="sm:hidden">Base</span>
-              <span className="hidden sm:inline">Base Analytics</span>
+              Base Analytics
             </span>
           </Link>
 
@@ -235,7 +237,7 @@ export default function AppHeader({
 
           {/* Right: ONE Unified Account Area */}
           <div className="flex shrink-0 items-center gap-2">
-            {/* Phones: one pill with search + menu (language & theme live in the menu) */}
+            {/* Phones: search, plus the menu on pages without the bottom bar (which has its own "More") */}
             <div className="flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] md:hidden">
               <button
                 type="button"
@@ -252,15 +254,17 @@ export default function AppHeader({
               >
                 <Search size={17} />
               </button>
-              <button
-                type="button"
-                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen((v) => !v)}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--surface)]"
-              >
-                {mobileMenuOpen ? <X size={17} /> : <Menu size={17} />}
-              </button>
+              {!hasBottomNav && (
+                <button
+                  type="button"
+                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                  aria-expanded={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen((v) => !v)}
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--surface)]"
+                >
+                  {mobileMenuOpen ? <X size={17} /> : <Menu size={17} />}
+                </button>
+              )}
             </div>
             {guest || !walletAddress ? (
               <div className="flex items-center gap-1.5 sm:gap-2">

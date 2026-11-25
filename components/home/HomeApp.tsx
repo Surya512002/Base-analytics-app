@@ -171,6 +171,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         walletAddress={wallet?.address}
         header={
           <AppHeader
+            hasBottomNav
             tab={activeTab}
             onTabChange={handleTabChange}
             walletAddress={wallet?.address}

@@ -17,6 +17,7 @@ import PlanRulesEditor, { type PlanRulesContext } from "./PlanRulesEditor";
 import { PLAN_RULES_ENABLED } from "@/lib/plans/hold-client";
 import { PlanProgressLine, PlansSummaryCard, usePlanHistory } from "./PlanProgress";
 import { planProgress, summarize, type PlanState } from "@/limit-orders/shared/planHistory";
+import { priceText } from "@/src/lib/limitOrders/priceBasis";
 
 interface MyPlansPanelProps {
   plans: OnChainPlan[];
@@ -124,7 +125,7 @@ export default function MyPlansPanel({
             const remainingRefund = p.amountPerBuy * BigInt(p.remaining);
             const refundStr = formatUnits(remainingRefund, unitDecimals);
             const hasCeiling = p.maxPrice > 0n;
-            const ceilingStr = hasCeiling ? formatUnits(p.maxPrice, PRICE_DECIMALS) : "None";
+            const ceilingStr = hasCeiling ? priceText(p.maxPrice) : "None";
 
             const isOpen = p.status === 1;
             const isExecuted = p.status === 2;
@@ -200,7 +201,7 @@ export default function MyPlansPanel({
 
                   <div className="p-2 rounded-xl bg-[var(--surface-2)]">
                     <span className="block text-[11px] text-[var(--ink-muted)] uppercase tracking-wider">
-                      {p.isSell ? "Price floor" : "Price ceiling"}
+                      {p.isSell ? "Sells above" : "Buys up to"}
                     </span>
                     <span className="font-semibold text-[var(--ink)] tabular-nums">
                       {hasCeiling ? `$${ceilingStr}` : "None"}

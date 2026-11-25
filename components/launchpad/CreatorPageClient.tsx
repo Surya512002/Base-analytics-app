@@ -60,6 +60,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
       <AppBackground />
       <div className="relative z-10 w-full min-w-0">
         <AppHeader
+          hasBottomNav
           tab={tab}
           onTabChange={handleTabChange}
           guest={guest}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Compass, ArrowLeftRight, Sparkles, User, Menu } from "lucide-react";
+import { CandlestickChart, Compass, ArrowLeftRight, Landmark, User, Menu } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 
 interface MobileBottomNavProps {
@@ -41,9 +41,9 @@ export default function MobileBottomNav({
       pathname.startsWith("/swap") ||
       (pathname === "/" && tab === "swap"));
 
-  const isDrops =
+  const isLend =
     !isProfile &&
-    (pathname.startsWith("/drops") || (pathname === "/" && tab === "drops"));
+    (pathname.startsWith("/lend") || pathname.startsWith("/earn") || (pathname === "/" && tab === "lend"));
 
   const isExplore =
     !isProfile &&
@@ -84,12 +84,12 @@ export default function MobileBottomNav({
       guestOk: true,
     },
     {
-      id: "drops",
-      label: "Drops",
-      href: "/drops",
-      icon: Sparkles,
-      active: isDrops,
-      tabId: "drops" as AppTab,
+      id: "lend",
+      label: "Lend",
+      href: "/lend",
+      icon: Landmark,
+      active: isLend,
+      tabId: "lend" as AppTab,
       guestOk: true,
     },
     {
@@ -124,8 +124,10 @@ export default function MobileBottomNav({
               onConnect?.();
               return;
             }
+            // Guests simply follow the link; switching tabs in place would ask them to connect.
             if (
               pathname === "/" &&
+              !guest &&
               onTabChange &&
               item.tabId &&
               item.id !== "launch" &&
@@ -166,7 +168,7 @@ export default function MobileBottomNav({
             </Link>
           );
         })}
-        {/* Lend, Launch and Vouchers live in the menu; this opens it */}
+        {/* Drops, Launch and Vouchers live in the menu; this opens it */}
         <button
           type="button"
           aria-label="More"

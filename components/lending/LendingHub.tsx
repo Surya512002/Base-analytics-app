@@ -273,6 +273,8 @@ export default function LendingHub({
         summary.bestOverallYieldOption?.protocolLabel ??
         (summary.hasLendingMarket ? "Collateral only" : "None");
       const supplyKindChip = summary.bestOverallYieldOption?.kindChip;
+      const bestLendApy = summary.bestLendOption?.supplyApy ?? 0;
+      const bestLendProtocol = summary.bestLendOption?.protocolLabel ?? "";
 
       const bestBorrowApr = summary.bestBorrowOption?.borrowApr ?? null;
       const bestBorrowProtocol = summary.bestBorrowOption?.protocolLabel ?? null;
@@ -333,6 +335,8 @@ export default function LendingHub({
         priceUsd,
         priceChange24h: quote?.change24h ?? undefined,
         bestSupplyApy,
+        bestLendApy,
+        bestLendProtocol,
         bestSupplyProtocol,
         supplyKindChip,
         bestBorrowApr,
@@ -393,7 +397,8 @@ export default function LendingHub({
 
     allMarketsRows.forEach((r) => {
       if (r.hasLendingMarket) {
-        if (r.bestSupplyApy > topSupply) topSupply = r.bestSupplyApy;
+        // Pool vaults can quote thousands of percent on small, volatile pools: not a headline figure.
+        topSupply = Math.max(topSupply, r.bestLendApy ?? 0);
         if (r.bestBorrowApr && r.bestBorrowApr > 0 && r.bestBorrowApr < lowestBorrow) {
           lowestBorrow = r.bestBorrowApr;
         }
