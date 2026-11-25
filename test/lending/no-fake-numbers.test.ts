@@ -5,7 +5,6 @@ import {
   VERIFIED_IPOR_STOCK_VAULTS,
   fetchUserStockPortfolioSummary,
 } from "@/lib/lending/unified-comparison";
-import { computeStockTerminalScore } from "@/components/wallet/StockPortfolioBreakdownCard";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 
 describe("Strict Production Truth: No Fake/Hardcoded Yield or Holdings Numbers", () => {
@@ -69,12 +68,4 @@ describe("Strict Production Truth: No Fake/Hardcoded Yield or Holdings Numbers",
     expect(summary.positions).toHaveLength(0);
   });
 
-  it("verifies computeStockTerminalScore returns score 0 for empty portfolio without fake fallbacks", () => {
-    const emptyScore = computeStockTerminalScore(0, 0, 999, 0);
-    expect(emptyScore.score).toBe(0);
-    expect(emptyScore.components.exposure).toBe(0);
-    expect(emptyScore.components.productiveLending).toBe(0);
-    expect(emptyScore.components.diversification).toBe(0);
-    expect(emptyScore.components.healthDiscipline).toBe(0);
-  });
 });

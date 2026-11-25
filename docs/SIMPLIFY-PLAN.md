@@ -52,6 +52,9 @@ version inside Trade, and nothing else in the app links to it.
 Some screens are no longer shown anywhere (`StocksLendingHub`, `StocksExploreSection` and its tracker,
 `StockPortfolioBreakdownCard`). Removing them changes nothing users see and makes later work safer.
 
+A search from every page and route found 78 component files (about 10,000 lines) that nothing loads; they
+are removed. One more, `DexSwapPanel`, is left for now because an open safety change edits it.
+
 ## How I would do it
 
 One small pull request per step, each checked on a phone and a computer, with before and after pictures,
