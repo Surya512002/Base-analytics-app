@@ -63,7 +63,7 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
       if (await notLive.first().isVisible({ timeout: 5000 }).catch(() => false)) {
         await expect(page.locator('button:has-text("Switch to Base Sepolia")').first()).toBeVisible();
       } else {
-        await expect(page.locator("body")).toContainText(/Amount Per Buy|Repeat Frequency|Start with/i, { timeout: 10000 });
+        await expect(page.locator("body")).toContainText(/spend each time|How often|Start with/i, { timeout: 10000 });
       }
       await noOverflow();
 

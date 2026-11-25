@@ -105,6 +105,16 @@ export const FREQUENCIES = [
   { label: "Monthly", seconds: 2_592_000 },
 ] as const;
 
+/**
+ * A plan's price limit: an exact price typed by the user wins over a percent preset. A typed value that
+ * cannot be read (or is zero, which the contract treats as "no limit") is invalid, never dropped.
+ */
+export function resolveGuard(typed: string, presetPrice: bigint | null, parse: (v: string) => bigint | null): { price: bigint | null; invalid: boolean } {
+  if (typed.trim() === "") return { price: presetPrice, invalid: false };
+  const price = parse(typed);
+  return price !== null && price > 0n ? { price, invalid: false } : { price: null, invalid: true };
+}
+
 /** Percent offsets from the current price, evenly spaced from `startPct` to `endPct` inclusive. */
 export function ladderOffsets(startPct: number, endPct: number, n: number): number[] {
   const count = Math.floor(n);

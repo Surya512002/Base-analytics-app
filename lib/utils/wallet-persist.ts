@@ -33,6 +33,12 @@ export function isStandaloneWalletRoute(pathname?: string): boolean {
 
 import { buildSwapLink, type SwapLinkParams } from "@/lib/swap/swap-link";
 
+/** Pages whose address already says which screen is open: connecting a wallet must leave that address alone. */
+export function routeOwnsTab(pathname?: string): boolean {
+  const path = pathname ?? (typeof window !== "undefined" ? window.location.pathname : "");
+  return /^\/(swap|trade|lend|drops|explore|launch)(\/|$)/.test(path);
+}
+
 /** Map app tabs to real routes when leaving standalone pages or navigating between tabs. */
 export function hrefForAppTab(
   tab: string,

@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react";
 import { formatUsd } from "@/lib/launchpad/format";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
-import type { GaugeRowData } from "./GaugesTable";
+import { classifyStockMarket } from "@/lib/lending/stock-market-groups";
 import type { AssetMarketRow } from "./MarketsTable";
 
 export interface YieldOptionTarget {
@@ -24,7 +24,6 @@ export interface YieldOptionTarget {
 
 interface TopYieldSpotlightProps {
   markets?: NormalizedMarket[];
-  gaugeRows?: GaugeRowData[];
   stockRows?: AssetMarketRow[];
   onSelectOption?: (protocol: string) => void;
   onExploreVault?: (target: YieldOptionTarget) => void;
@@ -34,15 +33,21 @@ interface TopYieldSpotlightProps {
 /** A featured rate must come from a pool with real money in it: tiny pools quote huge, short-lived numbers. */
 export const SPOTLIGHT_MIN_TVL_USD = 100_000;
 
-/** Highest rate among pools of at least that size, or null when none qualifies. */
-export function pickSpotlight(markets: NormalizedMarket[], gaugeRows: GaugeRowData[]): YieldOptionTarget | null {
+/**
+ * Highest plain lending rate among markets of at least that size, or null when none qualifies. Pool
+ * vaults and gauges are never featured: their rates swing wildly and the deposit can lose value to price
+ * moves, so a large number there is not a fair headline.
+ */
+export function pickSpotlight(markets: NormalizedMarket[]): YieldOptionTarget | null {
   const list: YieldOptionTarget[] = [];
 
   // 1. Evaluate verified discovered markets deep enough to feature
   for (const m of markets) {
     const tvl = m.tvlUsd || m.liquidityUsd || 0;
     if (tvl < SPOTLIGHT_MIN_TVL_USD) continue;
-    const rate = m.supplyApy > 0 ? m.supplyApy : (m.stakingApr ?? 0);
+    // A DEX pool, or any pair asset ("NVDAc-USDC"), is a pool position rather than lending.
+    if (m.protocol === "aerodrome" || /[-/]/.test(m.supplyAsset.symbol) || classifyStockMarket(m) === "lp") continue;
+    const rate = m.supplyApy;
     if (rate <= 0) continue;
 
     const isCompounding = m.protocol === "beefy";
@@ -70,37 +75,6 @@ export function pickSpotlight(markets: NormalizedMarket[], gaugeRows: GaugeRowDa
     });
   }
 
-  // 2. Evaluate gauge rows deep enough to feature
-  for (const g of gaugeRows) {
-    const tvl = g.tvlUsd || 0;
-    if (tvl < SPOTLIGHT_MIN_TVL_USD) continue;
-    if (g.gaugeApr <= 0) continue;
-
-    const isBeefy = g.rewardToken?.toUpperCase() === "BEEFY";
-    const isPendle = g.rewardToken?.toUpperCase() === "PENDLE";
-    const proto = isBeefy ? "beefy" : isPendle ? "pendle" : "aerodrome";
-    const protoLabel = isBeefy
-      ? "Beefy Finance"
-      : isPendle
-        ? "Pendle Finance"
-        : "Aerodrome Finance";
-
-    list.push({
-      protocol: proto,
-      protocolName: protoLabel,
-      asset: g.pairName || "LP Gauge",
-      stockSymbol: g.stockSymbol,
-      contractAddress: g.contractAddress,
-      marketId: g.id,
-      apy: Math.round(g.gaugeApr * 100) / 100,
-      apr: Math.round(g.gaugeApr * 100) / 100,
-      tvlUsd: tvl,
-      isAutoCompounding: isBeefy,
-      riskTier: "low",
-      typeLabel: isBeefy ? "Auto-Compounder" : isPendle ? "Yield Token" : "DEX Gauge",
-    });
-  }
-
   if (list.length === 0) return null;
 
   // Sort by APY / APR descending
@@ -110,13 +84,12 @@ export function pickSpotlight(markets: NormalizedMarket[], gaugeRows: GaugeRowDa
 
 export default function TopYieldSpotlight({
   markets = [],
-  gaugeRows = [],
   stockRows: _stockRows = [],
   onSelectOption,
   onExploreVault,
   className = "",
 }: TopYieldSpotlightProps) {
-  const bestOption = useMemo(() => pickSpotlight(markets, gaugeRows), [markets, gaugeRows]);
+  const bestOption = useMemo(() => pickSpotlight(markets), [markets]);
 
   const handleTriggerAction = (target: YieldOptionTarget) => {
     if (onExploreVault) {
@@ -126,8 +99,8 @@ export default function TopYieldSpotlight({
     }
   };
 
-  // Data arrived but no pool is big enough to feature: show nothing.
-  if (!bestOption && (markets.length > 0 || gaugeRows.length > 0)) return null;
+  // Data arrived but nothing qualifies: show nothing.
+  if (!bestOption && markets.length > 0) return null;
 
   if (!bestOption) {
     return (
@@ -160,7 +133,7 @@ export default function TopYieldSpotlight({
               <span>Top Yield Spotlight</span>
             </span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
-              Highest rate among pools over $100K
+              Highest lending rate, markets over $100K
             </span>
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-muted)]">
               <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
@@ -181,7 +154,7 @@ export default function TopYieldSpotlight({
                 : "Active fee rewards & onchain staking emissions on Base mainnet with no lockup period."}
             </p>
             <p className="mt-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-              Rates change quickly, and a pool deposit can lose value.
+              Rates change, and a deposit can lose value.
             </p>
           </div>
         </div>

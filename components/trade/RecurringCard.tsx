@@ -9,10 +9,11 @@ import {
   dcaTotal,
   expectedAmountOut,
   parseDecimalInput,
+  parseTriggerPrice,
   validateDca,
   validateDcaSell,
 } from "@/src/lib/limitOrders/orderMath";
-import { FREQUENCIES, distancePct, formatDuration, movePrice, planSchedule } from "@/lib/trade/safety";
+import { FREQUENCIES, distancePct, formatDuration, movePrice, planSchedule, resolveGuard } from "@/lib/trade/safety";
 import HoldFirstBuyToggle from "@/components/swap/orders/HoldFirstBuyToggle";
 import MyPlansPanel from "@/components/swap/orders/MyPlansPanel";
 import { formatPrice } from "./CandleChart";
@@ -61,6 +62,7 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
   const [freq, setFreq] = useState<number>(FREQUENCIES[1].seconds);
   const [customHours, setCustomHours] = useState("");
   const [guardPct, setGuardPct] = useState(0);
+  const [exactPrice, setExactPrice] = useState("");
   const [holdFirst, setHoldFirst] = useState(false);
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
 
@@ -72,6 +74,10 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
     setGuardPct(0);
     setAmountInput("");
   }, [side]);
+  // A dollar limit belongs to one stock and one side: never carry it over.
+  useEffect(() => {
+    setExactPrice("");
+  }, [side, stockAddress]);
 
   const isSell = side === "sell";
   const market = stockAddress ? marketStates[stockAddress.toLowerCase()] : undefined;
@@ -110,7 +116,8 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
   const total = perRun ? dcaTotal(perRun, Math.max(0, runCount)) : 0n;
 
   // Price guard: ceiling for buys (below now), floor for sells (above now). 0 = none.
-  const guardPrice = guardPct !== 0 && cur != null ? movePrice(cur, guardPct) : null;
+  const guard = resolveGuard(exactPrice, guardPct !== 0 && cur != null ? movePrice(cur, guardPct) : null, parseTriggerPrice);
+  const guardPrice = guard.price;
 
   const estPerRun = useMemo(() => {
     if (!perRun || !cur) return 0n;
@@ -119,11 +126,12 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
 
   const error = useMemo(() => {
     if (!market) return "Pick a market that supports orders.";
+    if (guard.invalid) return "Enter a valid price limit, or clear it.";
     if (isSell) {
       return validateDcaSell({ amountPerSell: perRun, sells: runCount, intervalSec: intervalSec || 0, minPrice: guardPrice, balance, maxStockIn: cap });
     }
     return validateDca({ amountPerBuy: perRun, buys: runCount, intervalSec: intervalSec || 0, maxPrice: guardPrice, balance, maxQuoteIn: cap });
-  }, [market, isSell, perRun, runCount, intervalSec, guardPrice, balance, cap]);
+  }, [market, guard.invalid, isSell, perRun, runCount, intervalSec, guardPrice, balance, cap]);
 
   const schedule = planSchedule(nowSec, runCount, intervalSec || 3600);
   const needsApproval = total > 0n && allowance < total;
@@ -234,11 +242,20 @@ export default function RecurringCard({ limitOrders, stockAddress, onConnectWall
           </div>
           <div className="flex gap-1">
             {presets.map((p) => (
-              <button key={p} type="button" aria-pressed={guardPct === p} onClick={() => setGuardPct(p)} className={`min-h-[34px] flex-1 rounded-lg text-xs font-bold ${guardPct === p ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
+              <button key={p} type="button" aria-pressed={exactPrice === "" && guardPct === p} onClick={() => { setGuardPct(p); setExactPrice(""); }} className={`min-h-[34px] flex-1 rounded-lg text-xs font-bold ${exactPrice === "" && guardPct === p ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
                 {p === 0 ? "Any price" : `${p > 0 ? "+" : ""}${p}%`}
               </button>
             ))}
           </div>
+          <input
+            aria-label={isSell ? "Or an exact lowest price in dollars" : "Or an exact highest price in dollars"}
+            inputMode="decimal"
+            value={exactPrice}
+            onChange={(e) => setExactPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+            placeholder="Or an exact price in USD"
+            className="h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 text-base text-[var(--ink)] outline-none focus:border-[var(--brand-text)] sm:text-xs"
+          />
+          {guard.invalid && <p role="alert" className="text-[11px] font-semibold text-amber-600 dark:text-amber-300">Enter a price above zero, or clear the box.</p>}
           {guardPrice != null && curNum != null && (
             <p className="text-[11px] text-[var(--ink-muted)]">
               {isSell ? "Floor" : "Ceiling"} <b className="text-[var(--ink)]">${formatPrice(priceNum(guardPrice) ?? 0)}</b> ({(distancePct(curNum, priceNum(guardPrice) ?? 0) ?? 0).toFixed(1)}% from now). Runs that miss it wait for the next window.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { distancePct, formatDuration, movePrice, oracleHealth, ladderOffsets, planSchedule, sizeAdvice, splitEvenly } from "@/lib/trade/safety";
+import { distancePct, formatDuration, movePrice, oracleHealth, ladderOffsets, planSchedule, sizeAdvice, splitEvenly, resolveGuard } from "@/lib/trade/safety";
 import { validateDcaSell } from "@/src/lib/limitOrders/orderMath";
 
 describe("oracleHealth", () => {
@@ -105,5 +105,17 @@ describe("ladder helpers", () => {
     expect(parts).toEqual([334n, 333n, 333n]);
     expect(parts.reduce((a, b) => a + b, 0n)).toBe(1000n);
     expect(splitEvenly(0n, 3)).toEqual([]);
+  });
+});
+
+describe("resolveGuard", () => {
+  const parse = (v: string) => (/^\d+(\.\d+)?$/.test(v) ? BigInt(Math.round(Number(v) * 1e8)) : null);
+  it("uses the preset until a price is typed", () => {
+    expect(resolveGuard("", 5n, parse)).toEqual({ price: 5n, invalid: false });
+    expect(resolveGuard("  ", null, parse)).toEqual({ price: null, invalid: false });
+    expect(resolveGuard("150", 5n, parse)).toEqual({ price: 15_000_000_000n, invalid: false });
+  });
+  it("never turns a bad or zero price into 'no limit'", () => {
+    for (const typed of ["0", ".", "1.2.3"]) expect(resolveGuard(typed, 5n, parse)).toEqual({ price: null, invalid: true });
   });
 });

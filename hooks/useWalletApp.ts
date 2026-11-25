@@ -38,6 +38,7 @@ import {
 import {
   clearPersistedWalletAddress,
   isStandaloneWalletRoute,
+  routeOwnsTab,
   persistWalletAddress,
   readPersistedWalletAddress,
 } from "@/lib/utils/wallet-persist";
@@ -826,8 +827,8 @@ function useWalletAppController() {
       const resume = readGuestResume() ?? {};
       const resumeTab =
         (resume.tab && resolveTabFromUrl(`?tab=${resume.tab}`)) || "launchpad";
-      // Don't rewrite /creator or /profile URLs — keep user on the page they connected from.
-      if (!isStandaloneWalletRoute()) {
+      // Keep people on the page they connected from, with its address (chosen token, view) intact.
+      if (!isStandaloneWalletRoute() && !routeOwnsTab()) {
         setTab(resumeTab);
         syncTabUrl(resumeTab, { token: resume.token ?? null });
       }

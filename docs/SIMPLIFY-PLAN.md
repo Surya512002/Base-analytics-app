@@ -53,7 +53,7 @@ Some screens are no longer shown anywhere (`StocksLendingHub`, `StocksExploreSec
 `StockPortfolioBreakdownCard`). Removing them changes nothing users see and makes later work safer.
 
 A search from every page and route found 78 component files (about 10,000 lines) that nothing loads; they
-are removed. One more, `DexSwapPanel`, is left for now because an open safety change edits it.
+are removed, and later `DexSwapPanel` too, once the safety change that edited it was merged.
 
 ## How I would do it
 
