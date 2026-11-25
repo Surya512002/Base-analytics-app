@@ -13,10 +13,10 @@ import { getTokenizedStockBySymbol, isLiveStockAddress } from "@/lib/stocks/toke
 import { ALL_BASE_STOCKS, BASE_STOCKS } from "@/lib/stocks/base-stocks";
 
 describe("Base official stock list (base.org copy)", () => {
-  it("mirrors every stock Base lists (358), with valid checksummed, unique addresses", () => {
-    expect(BASE_OFFICIAL_REGISTRY).toHaveLength(358);
+  it("mirrors every stock Base lists (415), with valid checksummed, unique addresses", () => {
+    expect(BASE_OFFICIAL_REGISTRY).toHaveLength(415);
     for (const [, , address] of BASE_OFFICIAL_REGISTRY) expect(getAddress(address)).toBe(address);
-    expect(new Set(BASE_OFFICIAL_REGISTRY.map(([, , a]) => a.toLowerCase())).size).toBe(358);
+    expect(new Set(BASE_OFFICIAL_REGISTRY.map(([, , a]) => a.toLowerCase())).size).toBe(415);
   });
 
   it("every Coinbase stock with tokens in circulation is on base.org's list", () => {
@@ -47,8 +47,8 @@ describe("stocks the app offers (Launch pairs, Vouchers, Swap, Lend)", () => {
     }
   });
 
-  it("hides stocks that were never minted (zero supply), e.g. RKTc, and tokens Base does not list (COINc)", () => {
-    for (const sym of ["RKTc", "COINc"]) {
+  it("hides stocks that were never minted (zero supply), e.g. ABNBc, and tokens Base does not list (COINc)", () => {
+    for (const sym of ["ABNBc", "COINc"]) {
       const entry = getTokenizedStockBySymbol(sym);
       expect(entry, sym).toBeDefined(); // still known by address, so lookups work
       expect(entry!.status, sym).not.toBe("active");

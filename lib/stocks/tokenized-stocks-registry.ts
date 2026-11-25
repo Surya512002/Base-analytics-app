@@ -1,6 +1,6 @@
 import { getAddress, type Address } from "viem";
 import { BASE_OFFICIAL_REGISTRY, BASE_OFFICIAL_REGISTRY_READ_AT } from "./base-official-registry";
-import { COINBASE_LIVE_STOCKS, OTHER_LIVE_STOCK_ADDRESSES } from "./live-stocks.generated";
+import { COINBASE_LIQUID_STOCKS, COINBASE_LIVE_STOCKS, OTHER_LIVE_STOCK_ADDRESSES } from "./live-stocks.generated";
 
 export type StockCategory =
   | "Tech"
@@ -4164,9 +4164,12 @@ export const VERIFIED_BASE_STOCKS_8 = VERIFIED_BASE_STOCKS;
  * Get all active verified tokenized stocks on Base mainnet.
  */
 export function getActiveTokenizedStocks(): TokenizedStockEntry[] {
-  return VERIFIED_BASE_STOCKS.map((sym) => getTokenizedStockBySymbol(sym)).filter(
-    (e): e is TokenizedStockEntry => e !== null && e.status === "active"
-  );
+  // The hand-picked names first, then every other stock that can actually be traded today.
+  const all = [
+    ...VERIFIED_BASE_STOCKS.map((sym) => getTokenizedStockBySymbol(sym)),
+    ...COINBASE_LIQUID_STOCKS.map((address) => getTokenizedStockByAddress(address)),
+  ].filter((e): e is TokenizedStockEntry => e !== null && e.status === "active");
+  return [...new Map(all.map((e) => [e.address.toLowerCase(), e])).values()];
 }
 
 /**
