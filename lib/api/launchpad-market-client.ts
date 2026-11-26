@@ -58,7 +58,7 @@ export async function fetchGlobalActivity(limit = 20): Promise<{
   ethUsd: number;
 }> {
   const r = await fetch(`/api/launchpad/activity?limit=${limit}`, { cache: "no-store" });
-  if (!r.ok) return { activities: [], ethUsd: 2500 };
+  if (!r.ok) return { activities: [], ethUsd: 0 };
   return r.json();
 }
 

@@ -9,6 +9,7 @@ import { fetchNftSnapshot } from "@/lib/api/nft-snapshot";
 import { countNftTxHashesFromTransfers } from "@/lib/utils/nft-stats";
 import { buildDailyStatsFromState } from "@/lib/wallet/sync-engine";
 import { getWeekKey, getMonthKey } from "@/lib/utils/dates";
+import { fetchEthUsd } from "@/lib/prices/eth-usd";
 
 export interface WalletMetricsPatch {
   uniqueDays: number;
@@ -133,7 +134,7 @@ export async function buildWalletMetricsPatch(
   } = {}
 ): Promise<WalletMetricsPatch> {
   const addr = address.toLowerCase();
-  const ethUsd = options.ethUsd ?? 3200;
+  const ethUsd = options.ethUsd || (await fetchEthUsd());
   const partial = options.partialSync === true && options.priorWallet != null;
   const prior = options.priorWallet;
 

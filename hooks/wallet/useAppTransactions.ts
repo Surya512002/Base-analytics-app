@@ -399,7 +399,7 @@ export function useAppTransactions({
           const seed = computeLiquiditySeedAmounts({
             seedEth: args.seedLiquidityEth,
             startPriceUsd: args.startPriceUsd,
-            ethUsd: args.ethUsd ?? 2500,
+            ethUsd: args.ethUsd ?? 0, // 0 skips seeding
             decimals: args.decimals,
           });
           if (seed) {
@@ -934,7 +934,6 @@ export function useAppTransactions({
       decimals: number;
       tokenAmount: string;
       seedEth: string;
-      startPriceUsd?: string;
       seedDex?: SeedDex;
     }): Promise<boolean> => {
       if (!wallet) return false;
@@ -953,21 +952,8 @@ export function useAppTransactions({
 
         const token = args.token as `0x${string}`;
         const creator = wallet.address as `0x${string}`;
-        let tokenWei = parseUnits(args.tokenAmount, args.decimals);
-        let ethWei = parseEther(args.seedEth);
-
-        if (args.startPriceUsd) {
-          const computed = computeLiquiditySeedAmounts({
-            seedEth: args.seedEth,
-            startPriceUsd: args.startPriceUsd,
-            ethUsd: 2500,
-            decimals: args.decimals,
-          });
-          if (computed) {
-            tokenWei = computed.tokenWei;
-            ethWei = computed.ethWei;
-          }
-        }
+        const tokenWei = parseUnits(args.tokenAmount, args.decimals);
+        const ethWei = parseEther(args.seedEth);
 
         if (tokenWei <= BigInt(0) || ethWei <= BigInt(0)) {
           showToast("Invalid liquidity amounts", "");

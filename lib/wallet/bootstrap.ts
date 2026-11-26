@@ -8,6 +8,7 @@ import {
 } from "@/lib/constants/contracts";
 import { calcWalletHealth } from "@/lib/utils/wallet-health";
 import type { AnalyzeWalletResult, DayStats, WalletData } from "@/lib/types/wallet";
+import { fetchEthUsd } from "@/lib/prices/eth-usd";
 
 /** Fast shell (~3–8s) so Base App / smart wallets unblock before full history sync. */
 export async function bootstrapWalletAnalysis(
@@ -17,7 +18,7 @@ export async function bootstrapWalletAnalysis(
 
   const addr = address.toLowerCase();
   const pub = createBasePublicClient();
-  const balancesP = fetchWalletBalances(address, 3200);
+  const balancesP = fetchEthUsd().then((ethUsd) => fetchWalletBalances(address, ethUsd));
 
   const [smart, bn, balances, streakRaw, lastCheckIn] = await Promise.all([
     detectSmartAccount(addr),

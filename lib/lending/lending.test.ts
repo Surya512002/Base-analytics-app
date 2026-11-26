@@ -217,23 +217,17 @@ describe("Unified Stock Lending Comparison Matrix", () => {
     expect(aeroDepositCalls.length).toBe(2); // approve + deposit
   });
 
-  it("o1 Trading API produces price improvement quote over benchmark", async () => {
+  it("o1 gives no quote without its API, rather than an invented one", async () => {
     const { fetchO1TradingQuote } = await import("@/lib/trading/o1-api");
-    const benchmarkOut = BigInt("1000000000"); // 1000 USDC
     const quote = await fetchO1TradingQuote(
       {
         sellToken: "0x4200000000000000000000000000000000000006",
         buyToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         sellAmount: BigInt("1000000000000000000"),
         slippageBps: 50,
-      },
-      benchmarkOut
+      }
     );
-
-    expect(quote).not.toBeNull();
-    expect(quote!.hasLiquidity).toBe(true);
-    expect(quote!.amountOut).toBeGreaterThan(benchmarkOut);
-    expect(quote!.priceImprovementBps).toBeGreaterThan(0);
+    expect(quote).toBeNull();
   });
 
   it("calculates real-time user stock portfolio summary with LTV and health factor", async () => {

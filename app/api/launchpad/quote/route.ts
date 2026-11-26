@@ -309,22 +309,13 @@ export async function GET(req: Request) {
       taker,
     });
 
-    const benchmarkOut = directQuote?.hasLiquidity
-      ? directQuote.amountOut
-      : aggQuote?.hasLiquidity
-        ? aggQuote.amountOut
-        : BigInt(0);
-
-    const o1Quote = await fetchO1TradingQuote(
-      {
-        sellToken: legs.sellToken,
-        buyToken: legs.buyToken,
-        sellAmount: amountIn,
-        slippageBps,
-        taker,
-      },
-      benchmarkOut
-    );
+    const o1Quote = await fetchO1TradingQuote({
+      sellToken: legs.sellToken,
+      buyToken: legs.buyToken,
+      sellAmount: amountIn,
+      slippageBps,
+      taker,
+    });
 
     const aggregatorSidecar =
       includeAggregator && aggQuote
@@ -332,13 +323,13 @@ export async function GET(req: Request) {
             aggregatorHasLiquidity: true,
             aggregatorAmountOut: aggQuote.amountOut.toString(),
             aggregatorAmountOutMinimum: aggQuote.amountOutMinimum.toString(),
-            o1PriceImprovementBps: o1Quote?.priceImprovementBps ?? 25,
+            o1PriceImprovementBps: o1Quote?.priceImprovementBps,
           }
         : includeAggregator
           ? {
               aggregatorHasLiquidity: false,
               aggregatorAmountOut: "0",
-              o1PriceImprovementBps: o1Quote?.priceImprovementBps ?? 25,
+              o1PriceImprovementBps: o1Quote?.priceImprovementBps,
             }
           : {};
 
@@ -537,7 +528,7 @@ export async function GET(req: Request) {
           amountOut: best.out.toString(),
           amountOutMinimum: best.min.toString(),
           hasLiquidity: true,
-          priceImpactBps: 8,
+          priceImpactBps,
           o1SmartRoute: true,
           priceImprovementBps: best.priceImprovementBps,
           splitRoutes: best.splitRoutes,

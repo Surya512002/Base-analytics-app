@@ -140,7 +140,7 @@ export function reconcileSwapMetrics(
   flow: EthFlowVolumes,
   ethUsd: number
 ): SwapVolumeMetrics {
-  const safeEthUsd = ethUsd > 0 ? ethUsd : 3200;
+  const safeEthUsd = ethUsd > 0 ? ethUsd : 0; // 0: ETH legs are left unpriced
   const ethSentUsd = flow.ethSent * safeEthUsd;
   const measuredSwapUsd = flow.ethSwapSent * safeEthUsd;
   const activeTrader =
@@ -164,7 +164,7 @@ export function reconcileSwapMetrics(
     ...detected,
     dexTradeCount,
     dexVolumeUSD: totalSwapVolumeUSD,
-    dexVolumeETH: parseFloat((totalSwapVolumeUSD / safeEthUsd).toFixed(4)),
+    dexVolumeETH: safeEthUsd ? parseFloat((totalSwapVolumeUSD / safeEthUsd).toFixed(4)) : 0,
     ethSwapVolumeUSD: parseFloat(ethSwapVolumeUSD.toFixed(2)),
     totalSwapVolumeUSD,
   };
@@ -722,7 +722,7 @@ export async function computeSwapVolume(
   options: { quick?: boolean } = {}
 ): Promise<SwapVolumeMetrics> {
   const addr = walletAddress.toLowerCase();
-  const safeEthUsd = ethUsd > 0 ? ethUsd : 3200;
+  const safeEthUsd = ethUsd > 0 ? ethUsd : 0; // 0: ETH legs are left unpriced
 
   const userHashes = new Set<string>();
   const hashTransfers = new Map<string, AlchemyTransfer[]>();
@@ -865,7 +865,7 @@ export async function computeSwapVolume(
   const detected: SwapVolumeMetrics = {
     dexTradeCount: swapHashes.size,
     dexVolumeUSD: totalSwapVolumeUSD,
-    dexVolumeETH: parseFloat((totalSwapVolumeUSD / safeEthUsd).toFixed(4)),
+    dexVolumeETH: safeEthUsd ? parseFloat((totalSwapVolumeUSD / safeEthUsd).toFixed(4)) : 0,
     dexTradeCount30d: swapCount30d,
     dexVolumeUSD30d: parseFloat(swapVolumeUSD30d.toFixed(2)),
     ethSwapVolumeUSD: parseFloat(ethSwapVolumeUSD.toFixed(2)),

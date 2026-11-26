@@ -89,7 +89,7 @@ export default function TokenDetailPanel({
   const [holders, setHolders] = useState<EnrichedHolder[]>([]);
   const [holdersErr, setHoldersErr] = useState<string | null>(null);
   const [top10Pct, setTop10Pct] = useState<number | null>(null);
-  const [ethUsd, setEthUsd] = useState(2500);
+  const [ethUsd, setEthUsd] = useState(0);
   const [antiSnipeActive, setAntiSnipeActive] = useState(false);
   const [antiSnipeMsg, setAntiSnipeMsg] = useState<string | null>(null);
 
@@ -578,8 +578,8 @@ export default function TokenDetailPanel({
                         const tokenAmt =
                           Number(s.amountToken) / 10 ** (token.decimals || 18);
                         const ethAmt = Number(s.amountEth) / 1e18;
-                        const price = s.priceUsd ?? (s.priceEth ? s.priceEth * ethUsd : 0);
-                        const value = s.valueUsd ?? ethAmt * ethUsd;
+                        const price = s.priceUsd ?? (s.priceEth ? s.priceEth * ethUsd : 0); // 0 shows as a dash
+                        const value = s.valueUsd ?? (ethUsd > 0 ? ethAmt * ethUsd : null);
                         const txUrl = s.txHash ? basescanTxUrl(s.txHash) : null;
                         return (
                           <tr

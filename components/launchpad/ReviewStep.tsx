@@ -199,7 +199,7 @@ export default function ReviewStep({
             <div className="flex flex-wrap justify-between items-center text-[var(--ink-muted)] gap-1">
               <span>Initial LP Seed Deposit</span>
               <span className="font-mono font-bold text-[var(--ink)]">
-                {seedLiquidityEth} ETH (~${seedUsdNum.toFixed(2)})
+                {seedLiquidityEth} ETH{ethUsd > 0 ? ` (~$${seedUsdNum.toFixed(2)})` : ""}
               </span>
             </div>
           )}
@@ -207,7 +207,7 @@ export default function ReviewStep({
             <span>Total Estimated Cost</span>
             <span className="font-mono text-[var(--brand-text)]">
               {seedEthNum > 0 ? `${seedEthNum.toFixed(4)} ETH ` : ""}
-              (~${totalEstimatedUsd.toFixed(2)})
+              {ethUsd > 0 || seedEthNum === 0 ? `(~$${totalEstimatedUsd.toFixed(2)})` : "+ gas"}
             </span>
           </div>
         </div>
