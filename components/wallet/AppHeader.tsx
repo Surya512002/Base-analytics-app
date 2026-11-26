@@ -17,7 +17,6 @@ import {
   Globe,
   ExternalLink,
   Search,
-  Wallet,
 } from "lucide-react";
 import AppLogo from "@/components/ui/AppLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -111,7 +110,7 @@ export default function AppHeader({
           {/* Left: Brand Logo & Title */}
           <Link href="/" className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
             <AppLogo size="sm" />
-            <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
+            <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] max-[359px]:sr-only sm:text-xl">
               Base Analytics
             </span>
           </Link>
@@ -159,9 +158,9 @@ export default function AppHeader({
             <Link
               href={profileHref}
               aria-label={t.nav.account}
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--edge)] text-[var(--ink)] transition hover:bg-[var(--surface-2)] lg:flex"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--edge)] text-[var(--ink)] transition hover:bg-[var(--surface-2)] lg:hidden"
             >
-              <Wallet size={18} aria-hidden />
+              <User size={18} aria-hidden />
             </Link>
             {guest || !walletAddress ? (
               <div className="flex items-center gap-1.5 sm:gap-2">

@@ -81,7 +81,7 @@ export function AccountTabs({ current, creatorHref = "/profile" }: { current: "h
   return (
     <div className="mx-auto w-full max-w-[480px]">
       <PlaceTabs
-        label="Account"
+        label="Profile"
         current={current}
         items={[
           { id: "holdings", label: "Holdings", href: MY_STOCKS_HREF },

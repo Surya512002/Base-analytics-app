@@ -10,7 +10,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
       earn: "Earn",
       gifts: "Gifts",
       launch: "Launch",
-      account: "Account",
+      account: "Profile",
     },
     actions: {
       connectWallet: "Connect Wallet",
@@ -41,7 +41,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
       earn: "कमाएँ",
       gifts: "उपहार",
       launch: "लॉन्च",
-      account: "खाता",
+      account: "प्रोफ़ाइल",
     },
     actions: {
       connectWallet: "वॉलेट जोड़ें",
@@ -72,7 +72,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
       earn: "ஈட்டு",
       gifts: "பரிசுகள்",
       launch: "தொடங்கு",
-      account: "கணக்கு",
+      account: "சுயவிவரம்",
     },
     actions: {
       connectWallet: "வாலட்டை இணைக்கவும்",
@@ -103,7 +103,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
       earn: "Ganar",
       gifts: "Regalos",
       launch: "Lanzar",
-      account: "Cuenta",
+      account: "Perfil",
     },
     actions: {
       connectWallet: "Conectar Billetera",
@@ -134,7 +134,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
       earn: "Ganhar",
       gifts: "Presentes",
       launch: "Lançar",
-      account: "Conta",
+      account: "Perfil",
     },
     actions: {
       connectWallet: "Conectar Carteira",
@@ -165,7 +165,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
       earn: "Hasilkan",
       gifts: "Hadiah",
       launch: "Luncurkan",
-      account: "Akun",
+      account: "Profil",
     },
     actions: {
       connectWallet: "Hubungkan Dompet",

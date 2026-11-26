@@ -68,7 +68,7 @@ export default function SimpleStart() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-10 pb-8">
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-10">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-10">
         <div className="relative isolate space-y-3">
           <h2 className="max-w-[16rem] pb-3 pt-2 text-[2rem] font-bold leading-[1.1] text-[var(--ink)] sm:max-w-sm sm:text-[2.5rem]">
             What would you like to do?

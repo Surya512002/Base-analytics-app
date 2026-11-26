@@ -19,8 +19,9 @@ export const PLACE_HREF: Record<PlaceId, string> = {
   account: "/profile",
 };
 
-/** Computer menu and phone bottom bar. Gifts and Launch are reached from Home and search on phones. */
-export const TOP_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "gifts", "launch"];
+/** Computer menu and phone bottom bar. Gifts and Launch are reached from Home and search on phones;
+ * phones also get a Profile button in the top bar. */
+export const TOP_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "gifts", "launch", "account"];
 export const DOCK_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "account"];
 
 export type Entry = {
@@ -80,7 +81,7 @@ export const GROUPS: Group[] = [
   },
   {
     id: "account",
-    title: "Account",
+    title: "Profile",
     entries: [
       { id: "holdings", title: "Holdings", note: "Your stocks and rebalancing", href: MY_STOCKS_HREF, words: "my stocks portfolio balance rebalance" },
       { id: "my-orders", title: "Orders", note: "Open orders and auto-invest plans", href: MY_ORDERS_HREF, words: "my orders plans cancel history" },
