@@ -11,7 +11,7 @@ import {
   type CommonToken,
 } from "@/lib/launchpad/common-tokens";
 import { resolveTokenByAddress } from "@/lib/api/launchpad-client";
-import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
+import { commonTokenToCounter, enrichSwapCounter, tokenLogoUrl } from "@/lib/launchpad/token-logo";
 import {
   CounterAvatar,
   ETH_COUNTER,
@@ -22,7 +22,8 @@ import {
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { formatUsd } from "@/lib/launchpad/format";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
-import { isVerifiedBaseToken, searchVerifiedTokens } from "@/lib/swap/verified-tokens";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import { loadTokenCatalog, peekTokenCatalog } from "@/lib/swap/load-token-catalog";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -69,10 +70,19 @@ export default function TokenSelectorModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const compliance = useCompliance();
   const [mounted, setMounted] = useState(false);
+  const [catalog, setCatalog] = useState(peekTokenCatalog);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // The 3,100-token search list is fetched when the picker opens, not with the page.
+  useEffect(() => {
+    if (!open || catalog) return;
+    loadTokenCatalog().then(setCatalog, () => {
+      /* the hand-picked list still works; reopening or typing tries again */
+    });
+  }, [open, catalog, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -223,7 +233,9 @@ export default function TokenSelectorModal({
     }
 
     if (activeTab === "crypto" && q) {
-      const verifiedMatches: CommonToken[] = searchVerifiedTokens(q, 40).map((v) => ({
+      const found = catalog?.searchVerifiedTokens(q, 40) ?? [];
+      const catalogLogos = new Map(found.map((v) => [v.address.toLowerCase(), v.logoURI]));
+      const verifiedMatches: CommonToken[] = found.map((v) => ({
         address: v.address,
         symbol: v.symbol,
         name: v.name,
@@ -247,7 +259,11 @@ export default function TokenSelectorModal({
           }
         }
       }
-      return combined.map(commonTokenToCounter);
+      return combined.map((t) => {
+        const logo = catalogLogos.get(t.address.toLowerCase());
+        const counter = commonTokenToCounter(t);
+        return logo ? { ...counter, imageUrl: tokenLogoUrl(t.address, undefined, logo) } : counter;
+      });
     }
 
     return baseList
@@ -262,7 +278,7 @@ export default function TokenSelectorModal({
         );
       })
       .map(commonTokenToCounter);
-  }, [activeTab, stockCategory, query, excluded, holdings]);
+  }, [activeTab, stockCategory, query, excluded, holdings, catalog]);
 
   const showEth = useMemo(() => {
     if (activeTab === "stocks") return false;
@@ -482,7 +498,9 @@ export default function TokenSelectorModal({
               )}
 
               {/* Filtered tokens */}
-              {filteredTokens.length === 0 && !showEth && !resolved && !resolving ? (
+              {!catalog && activeTab === "crypto" && query.trim() && filteredTokens.length === 0 && !showEth ? (
+                <p role="status" className="py-8 text-center text-sm text-[var(--ink-muted)]">Searching…</p>
+              ) : filteredTokens.length === 0 && !showEth && !resolved && !resolving ? (
                 <div className="p-8 text-center text-xs text-[var(--ink-muted)]">
                   <p className="font-semibold text-sm text-[var(--ink)] mb-1">No tokens found</p>
                   <p>Check the ticker or paste any verified Base 0x address.</p>

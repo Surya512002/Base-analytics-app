@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isVerifiedBaseToken, findVerifiedToken } from "@/lib/swap/verified-tokens";
+import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
+import { findVerifiedToken } from "@/lib/swap/token-catalog";
 import { evaluateTokenSpam } from "@/lib/portfolio/spam-filter";
 import { batchPriceTokens } from "@/lib/portfolio/pricing";
 import { discoverWalletBalances } from "@/lib/portfolio/indexer";

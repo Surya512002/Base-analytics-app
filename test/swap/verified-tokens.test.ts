@@ -3,12 +3,10 @@ import {
   isVerifiedBaseToken,
   VERIFIED_BASE_CRYPTO_TOKENS,
   AERO_BASE_ADDRESS,
-  ALL_VERIFIED_BASE_TOKENS,
-  searchVerifiedTokens,
-  findVerifiedToken,
   VERIFIED_LIQUIDITY_USD_THRESHOLD,
   registerVerifiedLiquidityToken,
 } from "@/lib/swap/verified-tokens";
+import { ALL_VERIFIED_BASE_TOKENS, searchVerifiedTokens, findVerifiedToken } from "@/lib/swap/token-catalog";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
 

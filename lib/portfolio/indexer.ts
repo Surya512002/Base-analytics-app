@@ -3,7 +3,7 @@ import { createBasePublicClient } from "../utils/base-rpc";
 import { getAlchemyKey, alchemyRpcForKey } from "../constants/env";
 import { COMMON_BASE_TOKENS } from "../launchpad/common-tokens";
 import { TOKENIZED_STOCKS_REGISTRY } from "../stocks/tokenized-stocks-registry";
-import { ALL_VERIFIED_BASE_TOKENS } from "../swap/verified-tokens";
+import { ALL_VERIFIED_BASE_TOKENS } from "../swap/token-catalog";
 
 const ERC20_ABI = parseAbi([
   "function balanceOf(address owner) external view returns (uint256)",

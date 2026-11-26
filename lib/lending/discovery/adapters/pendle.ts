@@ -16,6 +16,7 @@ export const pendleAdapter: DiscoveryAdapter = {
       const resp = await fetch(PENDLE_MARKETS_URL, {
         headers: { Accept: "application/json" },
         next: { revalidate: 300 },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!resp.ok) {

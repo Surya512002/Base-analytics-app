@@ -28,7 +28,7 @@ async function fetchDexScreenerB20Addresses(): Promise<string[]> {
       try {
         const r = await fetch(
           `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(q)}`,
-          { cache: "no-store" }
+          { cache: "no-store", signal: AbortSignal.timeout(6_000) }
         );
         if (!r.ok) return;
         const data = (await r.json()) as DexSearchResp;

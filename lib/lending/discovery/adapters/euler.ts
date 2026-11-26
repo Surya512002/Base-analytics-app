@@ -16,6 +16,7 @@ export const eulerAdapter: DiscoveryAdapter = {
       const response = await fetch("https://api.euler.finance/v1/vaults?chainId=8453&governed=true", {
         headers: { Accept: "application/json" },
         next: { revalidate: 300 },
+        signal: AbortSignal.timeout(10_000),
       }).catch(() => null);
 
       if (response && response.ok) {

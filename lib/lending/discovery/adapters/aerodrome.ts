@@ -99,7 +99,7 @@ export const aerodromeAdapter: DiscoveryAdapter = {
 
     // 1. Try real-time yields from DefiLlama pools (live Slipstream/Aerodrome Base yields)
     try {
-      const res = await fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 } });
+      const res = await fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 }, signal: AbortSignal.timeout(15_000) });
       if (res.ok) {
         const json = (await res.json()) as any;
         const aeroBase = (json?.data || []).filter(

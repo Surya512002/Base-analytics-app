@@ -11,7 +11,8 @@ import {
 } from "@/lib/stocks/tokenized-stocks-registry";
 import { COMMON_BASE_TOKENS } from "@/lib/launchpad/common-tokens";
 import { SELF_HOSTED_LOGOS } from "@/lib/launchpad/token-logo";
-import { getVerifiedTokenLogo, findVerifiedToken } from "@/lib/swap/verified-tokens";
+import { VERIFIED_BASE_CRYPTO_TOKENS } from "@/lib/swap/verified-tokens";
+import { loadTokenCatalog, peekTokenCatalog, type TokenCatalog } from "@/lib/swap/load-token-catalog";
 import { isAddress } from "viem";
 
 export interface TokenLogoProps {
@@ -54,12 +55,21 @@ const KNOWN_REMOTE_LOGOS: Record<string, string> = {
     "https://assets.coingecko.com/coins/images/54683/small/zora.jpg",
 };
 
+/** Our hand-picked tokens by symbol: resolved without downloading the large catalog. */
+function findCurated(symbol: string) {
+  const s = symbol.toLowerCase();
+  return (
+    VERIFIED_BASE_CRYPTO_TOKENS.find((t) => t.symbol.toLowerCase() === s) ??
+    COMMON_BASE_TOKENS.find((t) => t.symbol.toLowerCase() === s)
+  );
+}
+
 /**
  * Standardized, bulletproof TokenLogo component.
  * Fallback chain:
  * 1. Self-hosted local PNG in /tokens/<effectiveAddress>.png (0ms latency, zero CDN fail)
  * 2. Explicit src / registry logo
- * 3. Verified token catalog logos (3,100+ Base tokens from CoinGecko/Superchain)
+ * 3. Verified token catalog logos (3,100+ Base tokens, fetched only when 1 and 2 have nothing)
  * 4. DexScreener Base CDN
  * 5. Parqet stock CDN
  * 6. Server-side proxy & cache (/api/token-logo/<effectiveAddress>)
@@ -79,6 +89,8 @@ export default function TokenLogo({
   const [attemptIndex, setAttemptIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  // undefined: not fetched yet. null: the fetch failed, carry on without it.
+  const [catalog, setCatalog] = useState<TokenCatalog | null | undefined>(peekTokenCatalog);
 
   // Clean symbol: strip leading dollar signs and trim
   const rawSymbol = (symbol || "TK").trim();
@@ -122,7 +134,9 @@ export default function TokenLogo({
       if (stockInfo) {
         return stockInfo.address.toLowerCase();
       }
-      const vTok = findVerifiedToken(cleanSymbol) || findVerifiedToken(baseTicker);
+      const vTok =
+        findCurated(cleanSymbol) ?? findCurated(baseTicker) ??
+        catalog?.findVerifiedToken(cleanSymbol) ?? catalog?.findVerifiedToken(baseTicker);
       if (vTok && !isAddress(trimmed)) {
         return vTok.address.toLowerCase();
       }
@@ -136,22 +150,11 @@ export default function TokenLogo({
 
     if (stockInfo) return stockInfo.address.toLowerCase();
 
-    try {
-      const verified = findVerifiedToken(cleanSymbol) || findVerifiedToken(baseTicker);
-      if (verified) return verified.address.toLowerCase();
-
-      const common = COMMON_BASE_TOKENS.find(
-        (t) =>
-          t.symbol.toLowerCase() === cleanSymbol.toLowerCase() ||
-          t.symbol.toLowerCase() === baseTicker.toLowerCase()
-      );
-      if (common) return common.address.toLowerCase();
-    } catch {
-      // ignore
-    }
-
-    return null;
-  }, [address, cleanSymbol, baseTicker, stockInfo]);
+    const found =
+      findCurated(cleanSymbol) ?? findCurated(baseTicker) ??
+      catalog?.findVerifiedToken(cleanSymbol) ?? catalog?.findVerifiedToken(baseTicker);
+    return found ? found.address.toLowerCase() : null;
+  }, [address, cleanSymbol, baseTicker, stockInfo, catalog]);
 
   // Registry stock logo lookup if available
   const registryLogo = useMemo(() => {
@@ -167,20 +170,39 @@ export default function TokenLogo({
     }
   }, [effectiveAddress, stockInfo]);
 
+  // The large catalog is only worth fetching when no earlier logo source applies.
+  const needsCatalog =
+    !src &&
+    !registryLogo &&
+    !(
+      effectiveAddress &&
+      (SELF_HOSTED_LOGOS.has(effectiveAddress) ||
+        effectiveAddress.startsWith("0xb200000000000000000000") ||
+        effectiveAddress === "0x0000000000000000000000000000000000000000" ||
+        KNOWN_REMOTE_LOGOS[effectiveAddress])
+    );
+
+  useEffect(() => {
+    if (!needsCatalog || catalog !== undefined) return;
+    let alive = true;
+    loadTokenCatalog().then(
+      (c) => alive && setCatalog(c),
+      () => alive && setCatalog(null)
+    );
+    return () => {
+      alive = false;
+    };
+  }, [needsCatalog, catalog]);
+
   // Verified catalog logo (3,108 Base tokens)
   const verifiedCatalogLogo = useMemo(() => {
-    try {
-      if (effectiveAddress) {
-        const l = getVerifiedTokenLogo(effectiveAddress);
-        if (l) return l;
-      }
-      const bySym = getVerifiedTokenLogo(cleanSymbol) || getVerifiedTokenLogo(baseTicker);
-      if (bySym) return bySym;
-      return null;
-    } catch {
-      return null;
-    }
-  }, [effectiveAddress, cleanSymbol, baseTicker]);
+    if (!catalog) return null;
+    return (
+      (effectiveAddress ? catalog.getVerifiedTokenLogo(effectiveAddress) : null) ||
+      catalog.getVerifiedTokenLogo(cleanSymbol) ||
+      catalog.getVerifiedTokenLogo(baseTicker)
+    );
+  }, [catalog, effectiveAddress, cleanSymbol, baseTicker]);
 
   // Reset attempt index when address or src changes
   useEffect(() => {
@@ -255,7 +277,9 @@ export default function TokenLogo({
     return list;
   }, [src, registryLogo, verifiedCatalogLogo, effectiveAddress, cleanSymbol, stockInfo]);
 
-  const currentSrc = attemptIndex < candidateUrls.length ? candidateUrls[attemptIndex] : null;
+  // While the catalog is on its way, show the initials instead of requesting a worse source first.
+  const waiting = needsCatalog && catalog === undefined;
+  const currentSrc = !waiting && attemptIndex < candidateUrls.length ? candidateUrls[attemptIndex] : null;
 
   // Immediate detection for cached images
   useEffect(() => {
@@ -348,6 +372,7 @@ export default function TokenLogo({
         }}
         src={currentSrc}
         alt={altText}
+        loading="lazy"
         decoding="async"
         className={`relative z-10 w-full h-full object-cover shrink-0 ${roundedClass} border border-[var(--border-subtle)] bg-transparent transition-opacity duration-150 ${
           loaded ? "opacity-100" : "opacity-0"

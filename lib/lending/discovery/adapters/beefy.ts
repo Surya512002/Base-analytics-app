@@ -40,10 +40,10 @@ export const beefyAdapter: DiscoveryAdapter = {
 
     try {
       const [vaultsRes, apyRes, tvlRes, tokensRes] = await Promise.all([
-        fetch(BEEFY_VAULTS_URL, { next: { revalidate: 300 } }),
-        fetch(BEEFY_APY_URL, { next: { revalidate: 300 } }).catch(() => null),
-        fetch(BEEFY_TVL_URL, { next: { revalidate: 300 } }).catch(() => null),
-        fetch(BEEFY_TOKENS_URL, { next: { revalidate: 3600 } }).catch(() => null),
+        fetch(BEEFY_VAULTS_URL, { next: { revalidate: 300 }, signal: AbortSignal.timeout(15_000) }),
+        fetch(BEEFY_APY_URL, { next: { revalidate: 300 }, signal: AbortSignal.timeout(15_000) }).catch(() => null),
+        fetch(BEEFY_TVL_URL, { next: { revalidate: 300 }, signal: AbortSignal.timeout(15_000) }).catch(() => null),
+        fetch(BEEFY_TOKENS_URL, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(15_000) }).catch(() => null),
       ]);
 
       if (!vaultsRes.ok) {

@@ -1,5 +1,4 @@
-import { BrowserProvider, Eip1193Provider, JsonRpcSigner } from "ethers";
-import { sdk } from "@farcaster/miniapp-sdk";
+import type { BrowserProvider, Eip1193Provider, JsonRpcSigner } from "ethers";
 import {
   pickCoinbaseExtensionProvider,
   pickMetaMaskProvider,
@@ -25,6 +24,7 @@ export async function getEip1193Provider(
   } else if (type === "injected") {
     selectedProvider = pickOtherInjectedProvider();
   } else if (type === "farcaster") {
+    const { sdk } = await import("@farcaster/miniapp-sdk");
     if (sdk?.actions?.ready) {
       await sdk.actions.ready();
     }
@@ -56,6 +56,8 @@ export async function getWalletProvider(
   type: "farcaster" | "baseAccount" | "coinbase" | "metamask" | "injected"
 ): Promise<BrowserProvider> {
   const selectedProvider = await getEip1193Provider(type);
+  // Loaded on demand: ethers is large and only the extension-wallet connect needs it.
+  const { BrowserProvider } = await import("ethers");
   return new BrowserProvider(selectedProvider);
 }
 
