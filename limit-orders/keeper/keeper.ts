@@ -15,12 +15,13 @@
  * Run:  npx tsx keeper/keeper.ts
  */
 import {
-  createPublicClient, createWalletClient, http, encodeFunctionData, toHex, formatEther,
+  createPublicClient, createWalletClient, http, encodeFunctionData, toHex, formatEther, concat,
   type Address, type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia, hardhat } from "viem/chains";
 import { orderBookAbi } from "../shared/abi";
+import { builderDataSuffix } from "../shared/builderCode";
 import { createRulesFilter, type Fetched } from "./rulesFilter";
 import "../shared/loadEnv";
 
@@ -43,6 +44,7 @@ const AUTO_REFUND_EXPIRED = env("AUTO_REFUND_EXPIRED", "1") === "1";
 const MIN_GAS_BALANCE_ETH = Number(env("MIN_GAS_BALANCE_ETH", "0.00005"));
 const DRY_RUN = env("DRY_RUN", "0") === "1";
 const RETRY_BACKOFF_MS = 60_000;
+const BUILDER_SUFFIX = builderDataSuffix();
 
 const pk = env("KEEPER_PK", DRY_RUN ? "0x0000000000000000000000000000000000000000000000000000000000000001" : undefined);
 if (!/^0x[0-9a-fA-F]{64}$/.test(pk)) throw new Error("KEEPER_PK must be a 0x-prefixed 32-byte hex key");
@@ -160,15 +162,15 @@ async function refresh(): Promise<void> {
 
 async function sendNormal(id: bigint, fn: WriteFn): Promise<Hex> {
   const { request } = await publicClient.simulateContract({
-    account, address: ORDER_BOOK, abi: orderBookAbi, functionName: fn, args: [id],
+    account, address: ORDER_BOOK, abi: orderBookAbi, functionName: fn, args: [id], dataSuffix: BUILDER_SUFFIX,
   });
-  return walletClient.writeContract(request);
+  return walletClient.writeContract({ ...request, dataSuffix: BUILDER_SUFFIX });
 }
 
 /** Submit executeOrder via Base validity transactions (block_number upper bound). */
 async function sendValidity(id: bigint): Promise<Hex> {
   if (!SEQUENCER_RPC_URL) throw new Error("SEQUENCER_RPC_URL not set");
-  const data = encodeFunctionData({ abi: orderBookAbi, functionName: "executeOrder", args: [id] });
+  const data = concat([encodeFunctionData({ abi: orderBookAbi, functionName: "executeOrder", args: [id] }), BUILDER_SUFFIX]);
   await publicClient.simulateContract({ account, address: ORDER_BOOK, abi: orderBookAbi, functionName: "executeOrder", args: [id] });
   const [gas, fees, nonce, latest] = await Promise.all([
     publicClient.estimateGas({ account, to: ORDER_BOOK, data }),

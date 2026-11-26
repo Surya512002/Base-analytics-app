@@ -98,7 +98,9 @@ export function buildAerodromeSeedCalls(params: {
   creator: `0x${string}`;
   tokenAmount: bigint;
   ethAmount: bigint;
+  newPool?: boolean;
 }): ContractCall[] {
+  const atLeast = (amount: bigint) => (params.newPool ? (amount * BigInt(99)) / BigInt(100) : BigInt(0));
   return [
     buildContractCall(
       params.token,
@@ -110,6 +112,8 @@ export function buildAerodromeSeedCalls(params: {
         token: params.token,
         amountTokenDesired: params.tokenAmount,
         recipient: params.creator,
+        amountTokenMin: atLeast(params.tokenAmount),
+        amountETHMin: atLeast(params.ethAmount),
       }),
       params.ethAmount
     ),
@@ -122,6 +126,8 @@ export function buildSeedLiquidityCalls(params: {
   tokenAmount: bigint;
   ethAmount: bigint;
   dex?: SeedDex;
+  /** True right after a launch, when no pool should exist yet. */
+  newPool?: boolean;
 }): ContractCall[] {
   const dex = params.dex ?? "aerodrome";
   if (dex === "uniswap") {
@@ -130,6 +136,7 @@ export function buildSeedLiquidityCalls(params: {
       creator: params.creator,
       tokenAmount: params.tokenAmount,
       ethAmount: params.ethAmount,
+      newPool: params.newPool,
     });
   }
   if (dex === "both") {
@@ -145,6 +152,7 @@ export function buildSeedLiquidityCalls(params: {
         creator: params.creator,
         tokenAmount: halfToken,
         ethAmount: halfEth,
+        newPool: params.newPool,
       }),
     ];
   }

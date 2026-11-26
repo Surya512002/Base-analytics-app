@@ -4,7 +4,6 @@ import { SWAP_ROUTER_02 } from "@/lib/launchpad/uniswap";
 import { AERODROME_ROUTER } from "@/lib/launchpad/aerodrome";
 import { SLIPSTREAM_SWAP_ROUTER, SLIPSTREAM_V2_ROUTER } from "@/lib/launchpad/slipstream";
 import { UNISWAP_NPM } from "@/lib/launchpad/uniswap-seed";
-import { O1_TRADING_ROUTER_BASE } from "@/lib/trading/o1-api";
 import { ZEROX_ALLOWANCE_HOLDER, type ContractCall } from "@/lib/utils/tx";
 import { MORPHO_BLUE_BASE, AAVE_V3_POOL_BASE } from "@/lib/lending/constants";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
@@ -31,7 +30,6 @@ const FIXED: string[] = [
   SLIPSTREAM_SWAP_ROUTER,
   SLIPSTREAM_V2_ROUTER,
   ZEROX_ALLOWANCE_HOLDER,
-  O1_TRADING_ROUTER_BASE,
   UNISWAP_NPM,
   // gifts, campaigns, drops, orders (our own contracts)
   VOUCHER_CONTRACT,
