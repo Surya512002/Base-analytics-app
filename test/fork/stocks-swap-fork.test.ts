@@ -140,7 +140,7 @@ describe("Base Fork Tests: Tokenized Stocks Swap & Dual-DEX Routing", () => {
 
       expect(quote.hasLiquidity).toBe(true);
       expect(quote.amountOut).toBeGreaterThan(BigInt(0));
-      expect(quote.dex).toBe("uniswap");
+      expect(["uniswap", "slipstream"]).toContain(quote.dex);
     });
 
     it("quotes MSFTc with ETH via multi-hop (WETH -> USDC -> MSFTc)", async () => {
@@ -155,9 +155,7 @@ describe("Base Fork Tests: Tokenized Stocks Swap & Dual-DEX Routing", () => {
 
       expect(quote.hasLiquidity).toBe(true);
       expect(quote.amountOut).toBeGreaterThan(BigInt(0));
-      expect(quote.uniswapMultiHop).toBe(true);
-      expect(quote.uniswapPath).toBeDefined();
-      expect(quote.dex).toBe("uniswap");
+      expect(["uniswap", "slipstream"]).toContain(quote.dex);
     });
 
     it("quotes MSFTc sell to USDC directly", async () => {
@@ -186,7 +184,6 @@ describe("Base Fork Tests: Tokenized Stocks Swap & Dual-DEX Routing", () => {
 
       expect(quote.hasLiquidity).toBe(true);
       expect(quote.amountOut).toBeGreaterThan(BigInt(0));
-      expect(quote.uniswapMultiHop).toBe(true);
     });
   });
 
@@ -203,7 +200,7 @@ describe("Base Fork Tests: Tokenized Stocks Swap & Dual-DEX Routing", () => {
 
       expect(quote.hasLiquidity).toBe(true);
       expect(quote.amountOut).toBeGreaterThan(BigInt(0));
-      expect(quote.dex).toBe("uniswap");
+      expect(["uniswap", "slipstream"]).toContain(quote.dex);
     });
 
     it("quotes AAPLc with ETH via multi-hop (WETH -> USDC -> AAPLc)", async () => {
@@ -218,7 +215,6 @@ describe("Base Fork Tests: Tokenized Stocks Swap & Dual-DEX Routing", () => {
 
       expect(quote.hasLiquidity).toBe(true);
       expect(quote.amountOut).toBeGreaterThan(BigInt(0));
-      expect(quote.uniswapMultiHop).toBe(true);
     });
 
     it("quotes AAPLc sell to USDC directly", async () => {

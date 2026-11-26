@@ -410,6 +410,7 @@ export function useAppTransactions({
                 tokenAmount: seed.tokenWei,
                 ethAmount: seed.ethWei,
                 dex: args.seedDex ?? "aerodrome",
+                newPool: true,
               });
               await sendAppTransactions(activeConn, wallet.address, seedCalls);
               showToast(
