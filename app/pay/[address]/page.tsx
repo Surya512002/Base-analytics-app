@@ -389,7 +389,7 @@ export default function PayLinkPage() {
                   onClick={() => setAmount(preset)}
                   className={`py-1.5 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
                     amount === preset
-                      ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)] dark:text-[#8e5fc4]"
+                      ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand-text)]"
                       : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >

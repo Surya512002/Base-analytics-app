@@ -114,7 +114,7 @@ export default function LiquidationGuardBanner({
       if (permission === "granted") {
         setNotificationsEnabled(true);
         localStorage.setItem("base_liquidation_alert_enabled", "true");
-        new Notification("Base Terminal Liquidation Guard", {
+        new Notification("Base Analytics Liquidation Guard", {
           body: "Warnings are on. While the Earn page is open, we will tell you if your health factor falls below 1.25.",
           icon: "/favicon.ico",
         });

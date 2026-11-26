@@ -342,6 +342,7 @@
   --color-slate-900: #1a1530;
   --color-slate-950: #100b1d;
 
+  --text-xs: 0.8125rem;
   --font-sans: var(--font-figtree);
   --font-display: var(--font-archivo);
 }
@@ -3929,6 +3930,47 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   color: var(--on-brand);
 }
 /* On a heading block the fill is the light lilac, set by the token above. */
+
+/* Gain and loss text in light mode: the approved colours, readable on tinted rows and chips. */
+:root:not(.dark) {
+  --color-emerald-600: #0a6b3b;
+  --color-emerald-700: #085730;
+  --color-green-600: #0a6b3b;
+  --color-green-700: #085730;
+  --color-emerald-500: #0a6b3b;
+  --color-red-400: #b3202f;
+  --color-red-500: #b3202f;
+  --color-red-600: #b3202f;
+  --color-rose-500: #b3202f;
+  --color-rose-600: #b3202f;
+  --color-amber-600: #7f4b00;
+}
+/* Heading blocks stay dark in light mode, so they keep the bright versions. */
+:root:not(.dark) .pulse-surface {
+  --color-emerald-500: #4fdb9b;
+  --color-emerald-600: #4fdb9b;
+  --color-emerald-700: #4fdb9b;
+  --color-green-600: #4fdb9b;
+  --color-green-700: #4fdb9b;
+  --color-red-400: #ff9096;
+  --color-red-500: #ff9096;
+  --color-red-600: #ff9096;
+  --color-rose-500: #ff9096;
+  --color-rose-600: #ff9096;
+  --color-amber-600: #f4c255;
+}
+/* The Buy button keeps white text readable in both themes. */
+[class~="bg-green-600"] {
+  background-color: #0a6b3b;
+}
+.dark :is([class~="text-red-500"], [class~="text-rose-500"]) {
+  color: #ff9096;
+}
+
+/* Nothing under 13px: the small one-off sizes read at the smallest step. */
+[class*="text-[8px]"], [class*="text-[9px]"], [class*="text-[10px]"], [class*="text-[11px]"], [class*="text-[12px]"] {
+  font-size: 0.8125rem;
+}
 
 /* Sentence case: wide-spaced capital labels read as they are written. */
 .uppercase:is(.tracking-wide, .tracking-wider, .tracking-widest, [class*="tracking-["]) {

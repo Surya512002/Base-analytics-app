@@ -146,7 +146,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     category: "launchpad",
     title: "Launchpad Global Market Stats",
     description:
-      "Returns aggregate launchpad volume, market cap, total tokens launched, fee distributions, and top performers across Base Terminal.",
+      "Returns aggregate launchpad volume, market cap, total tokens launched, fee distributions, and top performers across Base Analytics.",
     params: [],
     exampleCurl: "curl -X GET 'https://baseanalytics.app/api/launchpad/market'",
     exampleResponse: JSON.stringify(
@@ -246,7 +246,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     category: "launchpad",
     title: "Live Activity & Trade Stream",
     description:
-      "Chronological live feed of token launches, liquidity additions, and swap executions across all Base Terminal tokens.",
+      "Chronological live feed of token launches, liquidity additions, and swap executions across all Base Analytics tokens.",
     params: [
       { name: "limit", type: "number", required: false, description: "Number of events (default: 50)" },
       { name: "token", type: "string", required: false, description: "Filter by specific token address" },
@@ -508,7 +508,7 @@ const FAQ_ITEMS = [
   {
     category: "Token Launchpad & Creator Revenue",
     q: "How does Creator Revenue Sharing work on token swaps?",
-    a: "All tokens deployed through Base Terminal feature a built-in 0.50% total platform fee split on swaps. 0.25% (or 60% of the platform fee) is automatically and irrevocably streamed directly to the token creator's wallet on every single swap executed through our routing infrastructure.",
+    a: "All tokens deployed through Base Analytics feature a built-in 0.50% total platform fee split on swaps. 0.25% (or 60% of the platform fee) is automatically and irrevocably streamed directly to the token creator's wallet on every single swap executed through our routing infrastructure.",
   },
   {
     category: "Token Launchpad & Creator Revenue",
@@ -537,7 +537,7 @@ const FAQ_ITEMS = [
   },
   {
     category: "Base Voucher & AI Agents",
-    q: "What is Model Context Protocol (MCP) and how can AI agents use Base Terminal?",
+    q: "What is Model Context Protocol (MCP) and how can AI agents use Base Analytics?",
     a: "Our public endpoint at /api/mcp implements Anthropic's Model Context Protocol (MCP). Autonomous agents in Claude Desktop, Cursor, and Base MCP can invoke tools like 'voucher_prepare_create' (build batch calldata), 'voucher_prepare_redeem' (build claim calldata), 'voucher_lookup_batch' (inspect live status), and 'voucher_list_by_creator' to gift and commerce autonomously.",
   },
   {
@@ -552,8 +552,8 @@ const FAQ_ITEMS = [
   },
   {
     category: "Compliance & Product Safeguards",
-    q: "Does Base Terminal claim to be legally compliant?",
-    a: "No. These controls are product safeguards pending formal legal counsel review, not legal advice. Base Terminal is a non-custodial decentralized interface and never claims to be legally 'compliant' or government-endorsed. Always consult your own legal, tax, and financial advisors.",
+    q: "Does Base Analytics claim to be legally compliant?",
+    a: "No. These controls are product safeguards pending formal legal counsel review, not legal advice. Base Analytics is a non-custodial decentralized interface and never claims to be legally 'compliant' or government-endorsed. Always consult your own legal, tax, and financial advisors.",
   },
   {
     category: "Tokenized Equities & Trading",
@@ -647,17 +647,8 @@ export default function DocumentsClient() {
       {/* Main Content Container */}
       <main className="app-container relative z-10 py-8 sm:py-10 md:py-12 flex-1 space-y-12">
         {/* Hero Section */}
-        <div className="brand-hero-wrap min-h-[220px] sm:min-h-[260px] rounded-2xl overflow-hidden relative shadow-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/base-analytics-hero-lanes.webp"
-            alt="Base Terminal Hero"
-            className="brand-hero-img"
-          />
-          <div className="brand-hero-overlay" aria-hidden />
-          <div className="lane-rail absolute bottom-0 left-0 right-0 h-1.5 z-[2]" aria-hidden />
-
-          <div className="brand-hero-body flex h-full flex-col justify-end p-6 sm:p-8">
+        <div className="pulse-surface">
+          <div className="flex flex-col p-6 sm:p-8">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="badge badge-brand inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider">
                 <Sparkles size={12} /> Documentation &amp; Developer Portal
@@ -668,7 +659,7 @@ export default function DocumentsClient() {
             </div>
 
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl md:text-5xl">
-              Base Terminal Documents
+              Base Analytics Documents
             </h1>
             <p className="mt-2 max-w-2xl text-[15px] sm:text-base leading-relaxed text-[var(--ink-muted)]">
               Architecture, developer guides, Model Context Protocol (MCP) agent tools, and public REST APIs for
@@ -922,7 +913,7 @@ export default function DocumentsClient() {
 
             <div className="card p-6 space-y-5">
               <p className="text-sm text-[var(--ink-muted)] leading-relaxed">
-                Base Terminal exposes an official remote MCP server at{" "}
+                Base Analytics exposes an official remote MCP server at{" "}
                 <code className="rounded bg-[var(--surface-2)] px-2 py-0.5 font-mono text-xs text-[var(--ink)] font-bold">
                   https://baseanalytics.app/api/mcp
                 </code>
@@ -1280,7 +1271,7 @@ export default function DocumentsClient() {
                 </span>
                 <p>
                   These features are product safeguards pending formal legal counsel review, not legal advice.
-                  Base Terminal is a decentralized, non-custodial interface and never claims to be legally &ldquo;compliant&rdquo;
+                  Base Analytics is a decentralized, non-custodial interface and never claims to be legally &ldquo;compliant&rdquo;
                   or government-endorsed. Availability depends on your jurisdiction and the issuer&apos;s regulatory terms.
                 </p>
               </div>
