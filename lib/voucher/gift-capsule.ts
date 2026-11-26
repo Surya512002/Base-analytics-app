@@ -17,7 +17,7 @@ export function buildGiftCapsuleShareUrls(data: GiftCapsuleData): {
   shareText: string;
 } {
   const { cardId, asset, amountFormatted } = data;
-  const shareText = `I just unwrapped a ${amountFormatted} ${asset} Gift Capsule on Base Terminal! 🎁\n\nSend and claim onchain gift vouchers with instant Base settlement:`;
+  const shareText = `I just unwrapped a ${amountFormatted} ${asset} Gift Capsule on Base Analytics! 🎁\n\nSend and claim onchain gift vouchers with instant Base settlement:`;
   const url = `https://base-terminal.vercel.app/redeem?card=${encodeURIComponent(cardId)}`;
 
   return {

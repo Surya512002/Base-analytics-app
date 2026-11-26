@@ -19,6 +19,8 @@ import LiveMarketMap from "./LiveMarketMap";
 import LatestTradeTicker from "./LatestTradeTicker";
 import DiscoveryHub from "./DiscoveryHub";
 import FilterBar from "./FilterBar";
+import PlaceTabs from "@/components/shell/PlaceTabs";
+import { STOCK_LIST_HREF } from "@/lib/constants/destinations";
 import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
 import MarketIntelligenceHub from "./MarketIntelligenceHub";
@@ -98,13 +100,13 @@ export default function ExploreHub({
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
   const [selectedStockForDrawer, setSelectedStockForDrawer] = useState<StockMarketItem | null>(null);
 
-  // Filter state. "Stocks" in the menus arrives as ?list=stocks.
-  const wantsStocks = useSearchParams()?.get("list") === "stocks";
+  // The three switches arrive in the address: ?list=stocks, ?list=watch, or neither for all tokens.
+  const listParam = useSearchParams()?.get("list");
   const [filters, setFilters] = useState<ExploreFiltersState>({
-    catalogTab: wantsStocks ? "stocks" : "all",
+    catalogTab: listParam === "stocks" ? "stocks" : "all",
     sort: "trending",
     searchQuery: "",
-    onlyWatching: false,
+    onlyWatching: listParam === "watch",
     onlyMine: false,
     hideLowLiquidity: true,
     onlyVerified: false,
@@ -121,9 +123,17 @@ export default function ExploreHub({
   });
 
   // The same screen stays up when the menu is used while already on this page.
+  const showList = useCallback((list: string | null | undefined) => {
+    setFilters((prev) => ({
+      ...prev,
+      catalogTab: list === "stocks" ? "stocks" : "all",
+      onlyWatching: list === "watch",
+    }));
+  }, []);
   useEffect(() => {
-    if (wantsStocks) setFilters((prev) => ({ ...prev, catalogTab: "stocks" }));
-  }, [wantsStocks]);
+    showList(listParam);
+  }, [listParam, showList]);
+  const currentList = filters.onlyWatching ? "watch" : filters.catalogTab === "stocks" ? "stocks" : "all";
 
   // The list shows one page of rows at a time; changing a filter starts again from the top.
   const [visibleRows, setVisibleRows] = useState(ROWS_PER_PAGE);
@@ -281,7 +291,8 @@ export default function ExploreHub({
       result = result.filter((t) => t.isMine);
     }
 
-    if (filters.hideLowLiquidity) {
+    // A watchlist shows everything the person starred, however small.
+    if (filters.hideLowLiquidity && !filters.onlyWatching) {
       result = result.filter((t) => t.liquidityUsd >= EXPLORE_CONFIG.LOW_LIQUIDITY_THRESHOLD_USD);
     }
 
@@ -361,16 +372,42 @@ export default function ExploreHub({
           </span>
         </div>
 
-        {/* ONE Filter Bar: Catalog Tab Row, Filter Chips, Toggles & View Mode */}
-        <FilterBar
-          filters={filters}
-          onChangeFilters={setFilters}
-          counts={catalogCounts}
-          isConnected={isConnected}
-        />
+        <div className="w-full sm:max-w-[480px]">
+          <PlaceTabs
+            label="Markets"
+            current={currentList}
+            onSelect={showList}
+            items={[
+              { id: "stocks", label: "Stocks", href: STOCK_LIST_HREF },
+              { id: "all", label: "All tokens", href: "/explore" },
+              { id: "watch", label: "Watchlist", href: "/explore?list=watch", badge: watchlist.length },
+            ]}
+          />
+        </div>
+
+        {/* Sorting and filter chips for the token lists; the stock table sorts itself. */}
+        {currentList !== "stocks" && (
+          <FilterBar
+            filters={filters}
+            onChangeFilters={setFilters}
+            counts={catalogCounts}
+            isConnected={isConnected}
+          />
+        )}
 
         {/* Tokens Table or Grid View */}
-        {filteredTokens.length === 0 && (initialLoading || stockMarketsLoading) ? (
+        {currentList === "stocks" ? (
+          <div className="space-y-4">
+            <StockBaskets />
+            <StockMarketsTable
+              stocks={stockMarketsList}
+              loading={stockMarketsLoading}
+              watchlist={watchlist}
+              onToggleWatchlist={handleToggleWatchByAddress}
+              onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
+            />
+          </div>
+        ) : filteredTokens.length === 0 && (initialLoading || stockMarketsLoading) ? (
           /* Skeletons */
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -397,14 +434,13 @@ export default function ExploreHub({
                   ? "Deploy a vanity B20 token or standard ERC-20 to manage it here."
                   : "Try clearing search keywords or unchecking 'Hide low liquidity'."}
             </p>
-            {(filters.onlyWatching || filters.onlyMine || filters.searchQuery || filters.onlyVerified || filters.minVolume100k || filters.breakoutOnly) && (
+            {(filters.onlyMine || filters.searchQuery || filters.onlyVerified || filters.minVolume100k || filters.breakoutOnly) && (
               <button
                 type="button"
                 onClick={() =>
                   setFilters((prev) => ({
                     ...prev,
                     searchQuery: "",
-                    onlyWatching: false,
                     onlyMine: false,
                     hideLowLiquidity: false,
                     onlyVerified: false,
@@ -418,17 +454,6 @@ export default function ExploreHub({
               </button>
             )}
           </div>
-        ) : filters.catalogTab === "stocks" ? (
-          <div className="space-y-4">
-            <StockBaskets />
-            <StockMarketsTable
-              stocks={stockMarketsList}
-              loading={stockMarketsLoading}
-              watchlist={watchlist}
-              onToggleWatchlist={handleToggleWatchByAddress}
-              onSelectStock={(stock) => setSelectedStockForDrawer(stock)}
-            />
-          </div>
         ) : (
           <TokenTable
             tokens={filteredTokens.slice(0, visibleRows)}
@@ -440,7 +465,7 @@ export default function ExploreHub({
           />
         )}
 
-        {filters.catalogTab !== "stocks" && filteredTokens.length > visibleRows && (
+        {currentList !== "stocks" && filteredTokens.length > visibleRows && (
           <button
             type="button"
             onClick={() => setVisibleRows((n) => n + ROWS_PER_PAGE)}
@@ -512,13 +537,13 @@ export default function ExploreHub({
               onLaunch={onRequestCreateToken}
               onViewAllCategory={(cat) => {
                 if (cat === "trending") {
-                  setFilters((prev) => ({ ...prev, sort: "trending", catalogTab: "all" }));
+                  setFilters((prev) => ({ ...prev, sort: "trending", catalogTab: "all", onlyWatching: false }));
                 } else if (cat === "gainers") {
-                  setFilters((prev) => ({ ...prev, sort: "gainers", catalogTab: "all" }));
+                  setFilters((prev) => ({ ...prev, sort: "gainers", catalogTab: "all", onlyWatching: false }));
                 } else if (cat === "new") {
-                  setFilters((prev) => ({ ...prev, sort: "newest", catalogTab: "all" }));
+                  setFilters((prev) => ({ ...prev, sort: "newest", catalogTab: "all", onlyWatching: false }));
                 } else if (cat === "stocks") {
-                  setFilters((prev) => ({ ...prev, catalogTab: "stocks" }));
+                  showList("stocks");
                 }
                 handleScrollToExplorer();
               }}

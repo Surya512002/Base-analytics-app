@@ -367,7 +367,7 @@ export default function DailyActionsPanel({
                     className={`pop-pill px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                       isDone
                         ? "bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)] hover:text-[var(--ink)]"
-                        : "bg-[#0052FF] text-white hover:bg-[#0047e0] shadow-xs active:scale-[0.98]"
+                        : "bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] shadow-xs active:scale-[0.98]"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isLoading ? (

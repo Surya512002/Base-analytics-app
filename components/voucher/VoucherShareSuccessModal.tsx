@@ -230,7 +230,7 @@ export default function VoucherShareSuccessModal({
             <button
               type="button"
               onClick={handleCopyAll}
-              className="pop-pill flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0052FF] text-white hover:bg-[#0047e0] transition cursor-pointer"
+              className="pop-pill flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] transition cursor-pointer"
             >
               {copiedId === "all-links" ? (
                 <CheckCircle2 size={14} />
@@ -373,7 +373,7 @@ export default function VoucherShareSuccessModal({
             type="button"
             disabled={!confirmedSaved}
             onClick={onClose}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition cursor-pointer shadow-md"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition cursor-pointer shadow-md"
           >
             <ShieldCheck size={18} />
             <span>I&apos;ve saved these — Continue to My Cards</span>
@@ -429,7 +429,7 @@ export default function VoucherShareSuccessModal({
             <button
               type="button"
               onClick={() => handleCopy(activeQrCard.link, `qr-copied`)}
-              className="w-full py-2.5 rounded-xl text-xs font-bold bg-[#0052FF] text-white hover:bg-[#0047e0] transition"
+              className="w-full py-2.5 rounded-xl text-xs font-bold bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] transition"
             >
               {copiedId === "qr-copied" ? "Copied Link!" : "Copy Claim Link"}
             </button>

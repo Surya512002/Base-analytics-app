@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
             name: "Base Analytics",
             url: `${app}/claim/${safeId}`,
             splashImageUrl: `${app}/splash.png`,
-            splashBackgroundColor: "#030712",
+            splashBackgroundColor: "#0B0F19",
           },
         },
       }),

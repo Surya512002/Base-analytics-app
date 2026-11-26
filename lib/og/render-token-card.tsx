@@ -1,174 +1,35 @@
+import { Brand, Footer, Frame } from "./share-cards";
 import { shortenAddress, type OgTokenCardData } from "./types";
-import {
-  OgBackground,
-  OgFooter,
-  OgHeader,
-  OG_COLORS,
-} from "./brand-kit";
+
+const SOFT = "rgba(255,255,255,0.82)";
 
 export function renderOgTokenCard(data: OgTokenCardData) {
   const { symbol, change24h: change } = data;
-  const name = [data.name, shortenAddress(data.address)].filter(Boolean).join("  ");
-  const price = data.price ?? "—";
-  const mcap = data.mcap ?? "—";
-  const up = (change ?? 0) >= 0;
-  const when = data.asOf ? `PRICE AT ${data.asOf.toISOString().slice(11, 16)} UTC` : "NO LIVE PRICE";
+  const name = [data.name, shortenAddress(data.address)].filter(Boolean).join("  ·  ");
+  const when = data.asOf ? `Price from DexScreener at ${data.asOf.toISOString().slice(11, 16)} UTC` : "No live price";
+  const stats = [
+    { label: "24 hours", value: change === undefined ? "—" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`, color: change === undefined ? SOFT : change >= 0 ? "#86EFAC" : "#FECACA" },
+    { label: "Market cap", value: data.mcap ?? "—", color: "#FFFFFF" },
+  ];
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "system-ui, sans-serif",
-        background: OG_COLORS.bg,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <OgBackground />
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          padding: "30px 40px 24px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 22,
-        }}
-      >
-        <OgHeader label={when} />
-        <div style={{ display: "flex", flex: 1, gap: 34, minHeight: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              flex: 1,
-              flexDirection: "column",
-              justifyContent: "center",
-            }}
-          >
-            <span
-              style={{
-                color: OG_COLORS.cyan,
-                fontSize: 13,
-                fontWeight: 900,
-                letterSpacing: "0.18em",
-              }}
-            >
-              TRADE ON BASE
-            </span>
-            <span
-              style={{
-                fontSize: 76,
-                fontWeight: 950,
-                color: OG_COLORS.text,
-                marginTop: 12,
-                lineHeight: 0.95,
-                letterSpacing: "-0.055em",
-              }}
-            >
-              ${symbol}
-            </span>
-            <span style={{ fontSize: 24, color: OG_COLORS.muted, marginTop: 12 }}>
-              {name}
-            </span>
-            <div style={{ display: "flex", gap: 9, marginTop: 26 }}>
-              {["Smart routing", "USD quotes", "In-app swaps"].map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    color: OG_COLORS.text,
-                    border: `1px solid ${OG_COLORS.border}`,
-                    background: OG_COLORS.panel,
-                    borderRadius: 999,
-                    padding: "8px 12px",
-                    fontSize: 11,
-                    fontWeight: 800,
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
+    <Frame>
+      <Brand right="Token on Base" />
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+        <div style={{ display: "flex", fontSize: symbol.length > 10 ? 64 : 88, fontWeight: 800, letterSpacing: -2 }}>${symbol}</div>
+        <div style={{ display: "flex", fontSize: 28, color: SOFT, marginTop: 8 }}>{name}</div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 44, marginTop: 30 }}>
+          <div style={{ display: "flex", fontSize: 72, fontWeight: 800 }}>{data.price ?? "—"}</div>
+          {stats.map((s) => (
+            <div key={s.label} style={{ display: "flex", flexDirection: "column", paddingBottom: 8 }}>
+              <div style={{ display: "flex", fontSize: 22, color: SOFT }}>{s.label}</div>
+              <div style={{ display: "flex", fontSize: 38, fontWeight: 800, color: s.color }}>{s.value}</div>
             </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flex: 0.86,
-              flexDirection: "column",
-              justifyContent: "center",
-              border: "1px solid rgba(107,163,255,0.30)",
-              background: "rgba(255,255,255,0.055)",
-              borderRadius: 24,
-              padding: 26,
-            }}
-          >
-            <span style={{ color: OG_COLORS.dim, fontSize: 11, fontWeight: 900 }}>
-              PRICE FROM DEXSCREENER
-            </span>
-            <span
-              style={{
-                color: OG_COLORS.text,
-                fontSize: 47,
-                fontWeight: 950,
-                letterSpacing: "-0.04em",
-                marginTop: 6,
-              }}
-            >
-              {price}
-            </span>
-            <div style={{ display: "flex", gap: 12, marginTop: 22 }}>
-              <div
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  flexDirection: "column",
-                  border: `1px solid ${OG_COLORS.border}`,
-                  borderRadius: 14,
-                  padding: 14,
-                }}
-              >
-                <span style={{ color: OG_COLORS.dim, fontSize: 10 }}>24H</span>
-                <span
-                  style={{
-                    color: change === undefined ? OG_COLORS.muted : up ? OG_COLORS.green : "#FB7185",
-                    fontSize: 27,
-                    fontWeight: 950,
-                    marginTop: 4,
-                  }}
-                >
-                  {change === undefined ? "—" : `${up ? "+" : ""}${change.toFixed(1)}%`}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  flexDirection: "column",
-                  border: `1px solid ${OG_COLORS.border}`,
-                  borderRadius: 14,
-                  padding: 14,
-                }}
-              >
-                <span style={{ color: OG_COLORS.dim, fontSize: 10 }}>MARKET CAP</span>
-                <span
-                  style={{
-                    color: OG_COLORS.cyan,
-                    fontSize: 27,
-                    fontWeight: 950,
-                    marginTop: 4,
-                  }}
-                >
-                  {mcap}
-                </span>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
-        <OgFooter cta={`TRADE $${symbol}`} />
+        <div style={{ display: "flex", fontSize: 22, color: SOFT, marginTop: 16 }}>{when}</div>
       </div>
-    </div>
+      <Footer left="baseanalytics.app" cta="Open the token →" />
+    </Frame>
   );
 }

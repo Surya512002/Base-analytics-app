@@ -68,13 +68,12 @@ export default function AppShell({
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
-        tab={tab}
         onTabChange={handleTabChange}
         tokens={tokens ?? []}
         onOpenToken={onOpenToken}
       />
 
-      <MobileBottomNav tab={tab} onTabChange={handleTabChange} walletAddress={walletAddress} />
+      <MobileBottomNav tab={tab} walletAddress={walletAddress} />
     </>
   );
 }

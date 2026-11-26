@@ -117,7 +117,7 @@ function CountUp({ label }: { label: string }) {
   );
 }
 
-const CONFETTI = ["#FDE68A", "#F59E0B", "#FFFFFF", "#93C5FD", "#A78BFA", "#34D399", "#F472B6"];
+const CONFETTI = ["#FDE68A", "#F59E0B", "#FFFFFF", "#C7D9FF", "#A78BFA", "#34D399", "#F472B6"];
 
 /** Confetti raining over the whole stage once, after the gift opens. */
 function ConfettiRain({ count = 46 }: { count?: number }) {
@@ -250,7 +250,7 @@ export default function GiftClaimStage({
         : claimLabel || `Claim ${amountLabel}`;
 
   return (
-    <div className="pulse-surface relative px-4 pb-6 pt-5 sm:px-8">
+    <div className="pulse-surface pulse-solid relative px-4 pb-6 pt-5 sm:px-8">
       {opened && <ConfettiRain />}
 
       {/* Top line: what it is + gifts left */}
@@ -320,9 +320,9 @@ export default function GiftClaimStage({
               whileTap={canTap && !reduce ? { scale: 0.97 } : undefined}
               className={`mt-4 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-black transition ${
                 canTap
-                  ? "cursor-pointer bg-white text-[#0041cc] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.45)] hover:bg-amber-50"
+                  ? "cursor-pointer bg-white text-[#0041CC] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.45)] hover:bg-amber-50"
                   : claiming
-                    ? "cursor-wait bg-white/90 text-[#0041cc]"
+                    ? "cursor-wait bg-white/90 text-[#0041CC]"
                     : "cursor-not-allowed bg-white/15 text-white/80 ring-1 ring-white/20"
               }`}
             >
@@ -360,7 +360,7 @@ export default function GiftClaimStage({
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: -150, scale: 0.25, rotate: -12 }}
             animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
             transition={reduce ? { duration: 0.2 } : { type: "spring", stiffness: 150, damping: 15, delay: 0.45 }}
-            className="relative z-10 mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-white p-5 text-[#0B1B4D] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)]"
+            className="relative z-10 mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-white p-5 text-[#0A2A78] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)]"
           >
             {/* shine */}
             {!reduce && (
@@ -373,7 +373,7 @@ export default function GiftClaimStage({
               />
             )}
             <div className="relative flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-[#0052FF]">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--brand-text)]">
                 <Gift size={13} /> Gift unwrapped
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-200">
@@ -381,13 +381,13 @@ export default function GiftClaimStage({
               </span>
             </div>
 
-            <p className="relative mt-3 bg-gradient-to-r from-[#0052FF] to-[#6366F1] bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
+            <p className="relative mt-3 bg-gradient-to-r from-[var(--brand)] to-[#3D7BFF] bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
               <CountUp label={amountLabel} />
             </p>
             <p className="relative text-xs font-semibold text-slate-500">is now in your wallet</p>
 
             {message?.trim() && (
-              <blockquote className="relative mt-4 rounded-2xl bg-blue-50 p-3 text-sm italic leading-relaxed text-[#1E3A8A]">
+              <blockquote className="relative mt-4 rounded-2xl bg-blue-50 p-3 text-sm italic leading-relaxed text-[#0A2A78]">
                 &ldquo;{message.trim()}&rdquo;
               </blockquote>
             )}
@@ -413,14 +413,14 @@ export default function GiftClaimStage({
 
             {txHash && TX_RE.test(txHash) && (
               <div className="relative mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-[11px] font-bold">
-                <a href={`/receipt/${txHash}`} className="inline-flex items-center gap-1 text-[#0052FF] hover:underline">
+                <a href={`/receipt/${txHash}`} className="inline-flex items-center gap-1 text-[var(--brand-text)] hover:underline">
                   <ReceiptText size={12} /> Receipt
                 </a>
                 <a
                   href={`https://basescan.org/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-slate-500 hover:text-[#0052FF] hover:underline"
+                  className="inline-flex items-center gap-1 text-slate-500 hover:text-[var(--brand-text)] hover:underline"
                 >
                   View on Basescan <ExternalLink size={11} />
                 </a>
@@ -439,7 +439,7 @@ export default function GiftClaimStage({
           className="relative z-10 mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-2"
         >
           {onShare && (
-            <button type="button" onClick={onShare} className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 text-xs font-black text-[#0041cc] shadow-sm transition hover:bg-amber-50">
+            <button type="button" onClick={onShare} className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 text-xs font-black text-[#0041CC] shadow-sm transition hover:bg-amber-50">
               <Share2 size={14} /> Share the love
             </button>
           )}

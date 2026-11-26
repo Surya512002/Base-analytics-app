@@ -5,7 +5,7 @@
  * Styles live in app/globals.css (".pulse-*" classes and "--pulse-*" tokens). These are
  * purely presentational: no data, no effects beyond entrance motion.
  *
- *   <PulseSurface>            vivid blue→violet gradient with dot grid + glow
+ *   <PulseSurface>            a plain themed card; add "pulse-solid" for the blue gift stage
  *   <PulseEyebrow live>       small uppercase label with a glowing status dot
  *   <BigStat value caption>   huge bold number with a lighter inline caption
  *   <GlassChip icon>          frosted pill chip
@@ -132,7 +132,7 @@ export function MiniBars({
             <span className="font-mono text-[11px] font-bold text-[var(--ink-muted)]">{d.display ?? d.value}</span>
             <motion.div
               className="w-full rounded-lg"
-              style={{ background: d.current ? "#ffffff" : "var(--pulse-bar)" }}
+              style={{ background: d.current ? "var(--pulse-bar-current)" : "var(--pulse-bar)" }}
               initial={reduce ? false : { height: 0 }}
               animate={{ height: h }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}

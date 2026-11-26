@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
+import { getAppUrl, sectionShare } from "@/lib/constants/app-url";
 import HomeApp from "@/components/home/HomeApp";
 
 const appUrl = getAppUrl();
@@ -10,11 +10,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title: safe ? `Drop #${safe} · Base Analytics` : "Drop · Base Analytics",
     description: "Claim a gift on Base. The claim link's key stays in your browser.",
+    twitter: sectionShare("drops").twitter,
     openGraph: {
       title: safe ? `You've got a drop (#${safe})` : "You've got a drop",
       description: "Open to see what's inside and claim it on Base.",
       url: safe ? `${appUrl}/drops/${safe}` : `${appUrl}/drops`,
-      images: [{ url: appOgImage(), width: 1200, height: 630 }],
+      images: sectionShare("drops").images,
     },
     // Claim pages are personal; keep them out of search results.
     robots: { index: false, follow: false },

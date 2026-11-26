@@ -254,7 +254,7 @@ export default function EditProfileDrawer({
               ) : (
                 <CreatorAvatar address={address} profile={profile} size="xl" ring />
               )}
-              <label className="pop-pill absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-[#0052FF] text-white flex items-center justify-center cursor-pointer shadow-md transition">
+              <label className="pop-pill absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-[var(--brand)] text-white flex items-center justify-center cursor-pointer shadow-md transition">
                 {uploading ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
@@ -400,7 +400,7 @@ export default function EditProfileDrawer({
             <button
               type="submit"
               disabled={saving || uploading}
-              className="w-full py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] disabled:opacity-50 active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              className="w-full py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] disabled:opacity-50 active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
             >
               {saving ? (
                 <>

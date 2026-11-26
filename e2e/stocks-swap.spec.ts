@@ -53,7 +53,7 @@ test.describe("Tokenized Stocks Swap & Status E2E Suite", () => {
     await expect(basescanLink).toBeVisible();
 
     // Verify Lend & Stake suggested action is provided
-    await expect(page.locator("body")).toContainText(/Lend & Stake/i);
+    await expect(page.locator("body")).toContainText(/Earn/);
   });
 
   test("4. Explore list preselects the token via its Swap button", async ({ page }) => {

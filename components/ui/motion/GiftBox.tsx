@@ -123,7 +123,7 @@ export default function GiftBox({
       <div
         aria-hidden
         className="absolute inset-0 -z-10 rounded-full blur-3xl"
-        style={{ background: "radial-gradient(circle at 50% 60%, rgba(0,82,255,0.45), rgba(99,102,241,0.18) 45%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle at 50% 60%, rgba(0,82,255,0.45), rgba(61,123,255,0.18) 45%, transparent 70%)" }}
       />
 
       {/* twinkling stars around the box */}
@@ -179,7 +179,7 @@ export default function GiftBox({
                   marginLeft: -px(64),
                   bottom: px(120),
                   padding: px(10),
-                  background: "linear-gradient(135deg, #0052FF 0%, #6366F1 100%)",
+                  background: "linear-gradient(135deg, #0052FF 0%, #3D7BFF 100%)",
                 }}
                 initial={peek && !open ? false : { y: px(60), opacity: 0, rotate: 0 }}
                 animate={cardTarget}
@@ -206,7 +206,7 @@ export default function GiftBox({
             bottom: px(20),
             width: px(190),
             height: px(130),
-            background: "linear-gradient(160deg, #2F6BFF 0%, #0052FF 45%, #1E3A8A 100%)",
+            background: "linear-gradient(160deg, #1A5CE0 0%, #0052FF 45%, #0A2A78 100%)",
           }}
         >
           <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.18), transparent 40%)" }} />
@@ -227,7 +227,7 @@ export default function GiftBox({
           {locked && (
             <div
               aria-hidden
-              className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#1E3A8A] shadow-lg"
+              className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#0A2A78] shadow-lg"
               style={{ width: px(46), height: px(46), fontSize: px(22) }}
             >
               🔒
@@ -250,7 +250,7 @@ export default function GiftBox({
         >
           <div
             className="absolute inset-0 overflow-hidden rounded-[14px] shadow-lg"
-            style={{ background: "linear-gradient(160deg, #4C82FF 0%, #1D4ED8 100%)" }}
+            style={{ background: "linear-gradient(160deg, #1A5CE0 0%, #0B3190 100%)" }}
           >
             <div
               aria-hidden

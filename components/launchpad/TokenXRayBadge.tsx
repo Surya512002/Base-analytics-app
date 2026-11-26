@@ -232,7 +232,7 @@ export default function TokenXRayBadge({
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="w-full py-2.5 rounded-xl bg-[#0052FF] text-white font-bold text-xs hover:bg-[#0047e0] transition cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-[var(--brand)] text-white font-bold text-xs hover:bg-[var(--brand-hover)] transition cursor-pointer"
             >
               Done
             </button>

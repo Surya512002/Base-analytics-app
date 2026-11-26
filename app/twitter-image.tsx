@@ -7,7 +7,7 @@ export const size = OG_SIZE;
 export const contentType = "image/png";
 export const revalidate = 300;
 
-/** X (Twitter) card preview — same design as the Open Graph image. */
+/** X (Twitter) card preview, Clean Cobalt: same design as the Open Graph image. */
 export default async function Image() {
   return homeShareImage();
 }

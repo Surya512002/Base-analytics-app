@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
+import { getAppUrl, sectionShare } from "@/lib/constants/app-url";
 
 type Props = { params: Promise<{ address: string }> };
 
@@ -20,9 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url: address ? `${appUrl}/pay/${address}` : appUrl,
-      images: [{ url: appOgImage(), width: 1200, height: 630 }],
+      images: sectionShare("pay").images,
     },
-    twitter: { card: "summary_large_image", title, description, images: [appOgImage()] },
+    twitter: { card: "summary_large_image", title, description, images: sectionShare("pay").twitter.images },
   };
 }
 

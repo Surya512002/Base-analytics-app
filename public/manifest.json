@@ -1,7 +1,7 @@
 {
-  "name": "Base Terminal — Onchain DeFi & Equities",
-  "short_name": "Base Terminal",
-  "description": "Next-generation Base terminal for DEX swaps, tokenized equities, yield discovery, and onchain vouchers.",
+  "name": "Base Analytics — Onchain DeFi & Equities",
+  "short_name": "Base Analytics",
+  "description": "Swaps, tokenized stocks, lending and gift vouchers on Base.",
   "icons": [
     {
       "src": "/icon.png",

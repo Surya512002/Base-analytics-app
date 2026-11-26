@@ -131,7 +131,7 @@ export default function LaunchSpotlightStrip({
                 <button
                   type="button"
                   onClick={() => trade(featured)}
-                  className="inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-full bg-white px-4 text-xs font-black text-[#0041cc] shadow-lg shadow-black/15 transition hover:bg-white/90"
+                  className="inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-full bg-white px-4 text-xs font-black text-[#0041CC] shadow-lg shadow-black/15 transition hover:bg-white/90"
                 >
                   Trade <ArrowUpRight size={13} aria-hidden />
                 </button>

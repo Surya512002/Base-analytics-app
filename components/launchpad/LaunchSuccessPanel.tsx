@@ -179,7 +179,7 @@ export default function LaunchSuccessPanel({
           <button
             type="button"
             onClick={onTrade}
-            className="py-3 px-4 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+            className="py-3 px-4 rounded-xl bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
           >
             <span>Open Token Page</span>
             <ArrowRight size={14} />

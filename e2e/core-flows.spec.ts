@@ -75,7 +75,7 @@ test.describe("Core App User Flows", () => {
 
   test("5. Lend & Stake: loads top yield spotlight and clicking Explore Vault opens market action modal", async ({ page }) => {
     await page.goto("/?tab=lend");
-    await expect(page.getByRole("tab", { name: /^markets/i }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("link", { name: /lend and borrow/i }).first()).toBeVisible({ timeout: 15_000 });
 
     // The spotlight needs live data and a large enough pool, so it may be absent.
     const exploreButton = page.getByRole("button", { name: /explore vault/i }).first();
@@ -138,6 +138,9 @@ test.describe("Core App User Flows", () => {
 
   test("10. Yield Finder: renders multi-protocol scanner and risk tier filters on Lend", async ({ page }) => {
     await page.goto("/?tab=lend");
+    const compare = page.getByRole("link", { name: /compare rates/i }).first();
+    await expect(compare).toBeVisible({ timeout: 15_000 });
+    await compare.click();
     const scannerTab = page.getByRole("tab", { name: /yield scanner/i }).first();
     await expect(scannerTab).toBeVisible({ timeout: 15_000 });
     await scannerTab.click();

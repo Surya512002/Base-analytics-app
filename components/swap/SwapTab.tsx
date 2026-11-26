@@ -13,6 +13,9 @@ import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import DexSwapCard from "@/components/swap/DexSwapCard";
 import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
+import RouterPanel from "@/components/swap/RouterPanel";
+import type { LaunchDex } from "@/lib/api/launchpad-client";
+import type { SwapVenue } from "@/lib/launchpad/dex";
 import SwapTokenActivity from "@/components/swap/SwapTokenActivity";
 import SwapPortfolio from "@/components/swap/SwapPortfolio";
 import SwapTokenInsight, { RecentSwapTokens } from "@/components/swap/SwapTokenInsight";
@@ -22,8 +25,7 @@ import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import Link from "next/link";
 import { LIMIT_ORDERS_HREF } from "@/lib/constants/destinations";
 import RecurringHub from "@/components/swap/orders/RecurringHub";
-
-type SwapSubTab = "market" | "recurring";
+import { TradeTabs } from "@/components/shell/PlaceTabs";
 
 export default function SwapTab({
   app,
@@ -37,7 +39,6 @@ export default function SwapTab({
   initialToken?: string | null;
 }) {
   const searchParams = useSearchParams();
-  const [activeSubTab, setActiveSubTab] = useState<SwapSubTab>("market");
 
   const [sidebarPick, setSidebarPick] = useState<SwapCounter | null>(null);
   const [fromPick, setFromPick] = useState<SwapCounter | null>(null);
@@ -47,6 +48,8 @@ export default function SwapTab({
   const [loadingSellMetadata, setLoadingSellMetadata] = useState(false);
   const [urlAmount, setUrlAmount] = useState<string | null>(null);
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
+  const [dex, setDex] = useState<LaunchDex>("auto");
+  const [activeDex, setActiveDex] = useState<SwapVenue | null>(null);
 
   const { switchChain } = useSwitchChain();
   const limitOrders = useLimitOrders(app);
@@ -61,11 +64,8 @@ export default function SwapTab({
     if (wantsOrders) router.replace(ordersToken ? `${LIMIT_ORDERS_HREF}&token=${encodeURIComponent(ordersToken)}` : LIMIT_ORDERS_HREF);
   }, [wantsOrders, ordersToken, router]);
 
-  useEffect(() => {
-    if (!isOrdersEnabled && activeSubTab !== "market") {
-      setActiveSubTab("market");
-    }
-  }, [isOrdersEnabled, activeSubTab]);
+  // The address decides which switch is open: /swap or /swap?mode=recurring.
+  const activeSubTab = isOrdersEnabled && searchParams?.get("mode") === "recurring" ? "recurring" : "market";
 
   const handleSwitchBase = useCallback(async () => {
     try {
@@ -165,12 +165,6 @@ export default function SwapTab({
     const sellParam = parsed.sell;
     const amountParam = parsed.amount;
 
-    // Check if subtab requested in url (e.g. ?mode=orders or ?tab=recurring)
-    const modeParam = searchParams?.get("mode");
-    if (modeParam === "recurring" || modeParam === "market") {
-      setActiveSubTab(modeParam);
-    }
-
     const ingestionKey = `${buyParam || ""}|${sellParam || ""}|${amountParam || ""}`;
     if (lastIngestedKeyRef.current === ingestionKey) {
       return;
@@ -219,62 +213,23 @@ export default function SwapTab({
   }, [searchParams, initialToken]);
 
   return (
-    <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[480px]"}`}>
-      {/* Top Navigation Bar: Market | Orders | Recurring (Orders & Recurring gated by feature flag) */}
-      {isOrdersEnabled && (
-        <div className="mx-auto flex w-full max-w-[480px] items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 shadow-xs">
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("market")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
-              activeSubTab === "market"
-                ? "pulse-tab-on"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <BarChart2 size={14} />
-            <span>Market</span>
-          </button>
-
-          <Link
-            href={LIMIT_ORDERS_HREF}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition text-[var(--ink-muted)] hover:text-[var(--ink)]"
-          >
-            <Layers size={14} />
-            <span>Limit orders</span>
-            {limitOrders.openOrders.length > 0 && (
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[#0052FF] text-white">
-                {limitOrders.openOrders.length}
-              </span>
-            )}
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("recurring")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
-              activeSubTab === "recurring"
-                ? "pulse-tab-on"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <Repeat size={14} />
-            <span>Auto-invest</span>
-            {limitOrders.plans.length > 0 && (
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-cyan-600 text-white">
-                {limitOrders.plans.length}
-              </span>
-            )}
-          </button>
-        </div>
+    <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[560px] lg:max-w-6xl"}`}>
+      {activeSubTab === "recurring" && (
+        <TradeTabs
+          current="auto-invest"
+          openOrders={limitOrders.openOrders.length}
+          plans={limitOrders.plans.length}
+        />
       )}
 
       {/* MARKET TAB: Exact original swap functionality */}
       {activeSubTab === "market" && (
-        <>
+        // Phones: swap, router, details, holdings. Computers: holdings | swap and details | router.
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[250px_minmax(0,1fr)_230px] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-4 xl:grid-cols-[290px_minmax(0,1fr)_270px]">
+          <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
           {/* Portfolio Summary Line above Swap Card */}
           {Boolean(app.wallet?.address) && !guestMode && (
-            <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
+            <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs lg:hidden">
               <button
                 type="button"
                 onClick={() => setHoldingsDrawerOpen(true)}
@@ -336,7 +291,16 @@ export default function SwapTab({
             loadingBuyMetadata={loadingBuyMetadata}
             loadingSellMetadata={loadingSellMetadata}
             initialAmount={urlAmount}
+            dex={dex}
+            onActiveDexChange={setActiveDex}
           />
+          </div>
+
+          <div className="min-w-0 lg:col-start-3 lg:row-span-2 lg:row-start-1">
+            <RouterPanel dex={dex} onChange={setDex} activeDex={activeDex} />
+          </div>
+
+          <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2">
 
           {/* Popular Chips Row below Swap Card */}
           <PopularChips
@@ -353,7 +317,10 @@ export default function SwapTab({
           {/* Live buys / sells of the token being bought, with Share and Chart */}
           <SwapTokenActivity token={buyToken} />
 
+          </div>
+
           {/* Your holdings: one tap to sell a token or buy more of it */}
+          <aside aria-label="Your holdings" className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
           <SwapPortfolio
             tokens={allTokens}
             totalUsd={totalUsd}
@@ -371,6 +338,7 @@ export default function SwapTab({
             onOpenAll={() => setHoldingsDrawerOpen(true)}
             onRefresh={() => void refreshHoldings()}
           />
+          </aside>
 
           {/* Holdings Drawer */}
           <HoldingsDrawer
@@ -382,7 +350,7 @@ export default function SwapTab({
               setHoldingsDrawerOpen(false);
             }}
           />
-        </>
+        </div>
       )}
 
       {/* ORDERS TAB: Pro Order Types (Limit buy, Take-profit, Stop-loss, Trailing stop, Bracket) */}
@@ -391,6 +359,7 @@ export default function SwapTab({
       {isOrdersEnabled && activeSubTab === "recurring" && (
         <RecurringHub
           initialPlan={searchParams?.get("plan") === "basket" ? "basket" : undefined}
+          initialStock={searchParams?.get("token") ?? undefined}
           limitOrders={limitOrders}
           onConnectWallet={onRequestConnect}
           onSwitchChain={handleSwitchBase}

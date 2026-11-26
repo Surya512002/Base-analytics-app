@@ -149,7 +149,7 @@ export default function GaugesTable({
               }`}
             >
               <span>Beefy Vaults</span>
-              <span className="text-[11px] bg-white/20 px-1 py-0.2 rounded font-mono">Auto</span>
+              <span className="text-[11px] bg-black/25 px-1 py-0.2 rounded font-mono">Auto</span>
             </button>
             <button
               type="button"
@@ -161,7 +161,7 @@ export default function GaugesTable({
               }`}
             >
               <span>Aerodrome Gauges</span>
-              <span className="text-[11px] bg-white/20 px-1 py-0.2 rounded font-mono">AERO</span>
+              <span className="text-[11px] bg-black/25 px-1 py-0.2 rounded font-mono">AERO</span>
             </button>
           </div>
 

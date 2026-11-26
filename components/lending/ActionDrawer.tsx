@@ -868,7 +868,7 @@ function ActionDrawerContent({
                     type="checkbox"
                     checked={approveUnlimited}
                     onChange={(e) => setApproveUnlimited(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-[var(--brand)] accent-[var(--brand)]"
+                    className="w-3.5 h-3.5 rounded text-[var(--brand-text)] accent-[var(--brand)]"
                   />
                   <span className="text-[11px]">Approve unlimited allowance (saves gas on future actions)</span>
                 </label>
@@ -1016,7 +1016,7 @@ function ActionDrawerContent({
         {activeTab === "borrow" && (
           <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs space-y-2">
             <div className="flex items-center gap-1.5 font-bold text-[var(--ink)]">
-              <Info size={14} className="text-[var(--brand)] shrink-0" />
+              <Info size={14} className="text-[var(--brand-text)] shrink-0" />
               <span>Leverage & Liquidation Disclosures</span>
             </div>
             <ul className="text-[11px] space-y-1 text-[var(--ink-muted)] list-disc pl-4">
@@ -1058,7 +1058,7 @@ function ActionDrawerContent({
                 type="checkbox"
                 checked={acknowledgedRisk}
                 onChange={(e) => setAcknowledgedRisk(e.target.checked)}
-                className="w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)]"
+                className="w-4 h-4 rounded text-[var(--brand-text)] accent-[var(--brand)]"
               />
               <span className="font-bold text-xs text-[var(--ink)]">
                 I understand protocol liquidation terms

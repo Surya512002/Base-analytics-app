@@ -314,7 +314,7 @@ export default function VoucherRedeemReveal({
             <button
               type="button"
               onClick={onClose}
-              className="text-center text-xs font-black px-5 py-3 rounded-xl bg-[#0052FF] text-white hover:bg-[#0047e0] transition"
+              className="text-center text-xs font-black px-5 py-3 rounded-xl bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] transition"
             >
               Done
             </button>

@@ -45,7 +45,7 @@ export default function CreatorStats({
   const statItems: Array<{ label: string; value: string; subtext: string; isEst?: boolean; icon: LucideIcon; accent: string }> = [
     {
       icon: Rocket,
-      accent: "#0052FF",
+      accent: "#3D7BFF",
       label: "Launches",
       value: String(launches),
       subtext: launches === 1 ? "1 Token" : `${launches} Tokens`,
@@ -60,7 +60,7 @@ export default function CreatorStats({
     },
     {
       icon: BarChart3,
-      accent: "#6366F1",
+      accent: "#3D7BFF",
       label: "24H Volume",
       value: volume24h > 0 ? formatUsd(volume24h) : "$0.00",
       subtext: volume24h > 0 ? "Past 24 hours" : "No volume yet",
@@ -128,7 +128,7 @@ export default function CreatorStats({
           <span>Launch your first token to start earning instant swap fee shares on Base.</span>
           <Link
             href="/explore?create=true"
-            className="pop-pill inline-flex items-center gap-1.5 font-bold text-xs bg-[#0052FF] text-white px-3 py-1.5 rounded-lg hover:bg-[#0047e0] transition shrink-0 cursor-pointer"
+            className="pop-pill inline-flex items-center gap-1.5 font-bold text-xs bg-[var(--brand)] text-white px-3 py-1.5 rounded-lg hover:bg-[var(--brand-hover)] transition shrink-0 cursor-pointer"
           >
             <Rocket size={13} />
             <span>Launch a token</span>

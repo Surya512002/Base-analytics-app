@@ -514,7 +514,7 @@ function CreateCampaign({
               {committed ? " (after it expires, since you chose a committed campaign)" : ""}.
             </p>
           </div>
-          <button type="button" className="text-sm font-bold text-[var(--brand)]" onClick={onCreated}>
+          <button type="button" className="text-sm font-bold text-[var(--brand-text)]" onClick={onCreated}>
             View my links →
           </button>
         </div>

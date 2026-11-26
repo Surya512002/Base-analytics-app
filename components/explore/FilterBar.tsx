@@ -6,7 +6,6 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowDownRight,
-  Star,
   User,
   LayoutGrid,
   Table as TableIcon,
@@ -38,11 +37,10 @@ export default function FilterBar({
   counts,
   isConnected,
 }: FilterBarProps) {
-  const catalogTabs: { id: ExploreCatalogTab; label: string; count: number }[] = [
-    { id: "all", label: "All Tokens", count: counts.all },
-    { id: "stocks", label: "Tokenized Stocks", count: counts.stocks },
-    { id: "b20", label: "B20 Standards", count: counts.b20 },
-    { id: "ecosystem", label: "Base Ecosystem", count: counts.ecosystem },
+  // Token types are chips: pick one to narrow the list, pick it again to see all.
+  const typeChips: { id: ExploreCatalogTab; label: string; count: number }[] = [
+    { id: "b20", label: "B20 tokens", count: counts.b20 },
+    { id: "ecosystem", label: "Base ecosystem", count: counts.ecosystem },
   ];
 
   const sortChips: { id: TokenSortOption; label: string; icon?: React.ReactNode }[] = [
@@ -56,41 +54,6 @@ export default function FilterBar({
 
   return (
     <div className="space-y-3.5">
-      {/* 1. ONE Tab Row for Token Type */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] overflow-x-auto no-scrollbar w-fit py-1.5">
-        {catalogTabs.map((tab) => {
-          const isActive = filters.catalogTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() =>
-                onChangeFilters((prev) => ({
-                  ...prev,
-                  catalogTab: tab.id,
-                }))
-              }
-              className={`pop-pill px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition flex items-center gap-2 cursor-pointer ${
-                isActive
-                  ? "bg-[var(--brand)] text-white shadow-xs"
-                  : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`text-[11px] font-mono px-1.5 py-0.2 rounded-md ${
-                  isActive
-                    ? "bg-white/20 text-white"
-                    : "bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]"
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* 2. Filter Bar: Sort Chips, Toggles, and Table/Grid Switch */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
         {/* Sort Chips */}
@@ -122,29 +85,6 @@ export default function FilterBar({
 
         {/* Toggles + View Mode Switcher */}
         <div className="flex items-center gap-2 self-start md:self-center shrink-0 flex-wrap">
-          {/* Watching Toggle */}
-          <button
-            type="button"
-            onClick={() =>
-              onChangeFilters((prev) => ({
-                ...prev,
-                onlyWatching: !prev.onlyWatching,
-              }))
-            }
-            className={`pop-pill px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border cursor-pointer ${
-              filters.onlyWatching
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
-                : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-            title="Filter watching tokens"
-          >
-            <Star
-              size={13}
-              className={filters.onlyWatching ? "fill-amber-500 text-amber-500" : ""}
-            />
-            <span>Watching</span>
-          </button>
-
           {/* Mine Toggle (when connected) */}
           {isConnected && (
             <button
@@ -168,6 +108,7 @@ export default function FilterBar({
           )}
 
           {/* Hide Low Liquidity Toggle */}
+          {!filters.onlyWatching && (
           <label className="pop-pill flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-xs font-medium text-[var(--ink-muted)] cursor-pointer select-none">
             <input
               type="checkbox"
@@ -178,10 +119,11 @@ export default function FilterBar({
                   hideLowLiquidity: e.target.checked,
                 }))
               }
-              className="rounded border-[var(--border-subtle)] text-[var(--brand)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
+              className="rounded border-[var(--border-subtle)] text-[var(--brand-text)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
             />
             <span>Hide &lt; $10K liq</span>
           </label>
+          )}
 
           {/* Table | Grid View Toggle */}
           <div className="flex items-center p-0.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)]">
@@ -231,6 +173,23 @@ export default function FilterBar({
         <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--ink-muted)] shrink-0 mr-0.5">
           Quick Filters:
         </span>
+
+        {typeChips.map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            aria-pressed={filters.catalogTab === chip.id}
+            onClick={() => onChangeFilters((prev) => ({ ...prev, catalogTab: prev.catalogTab === chip.id ? "all" : chip.id }))}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
+              filters.catalogTab === chip.id
+                ? "bg-[var(--brand-soft)] border-[var(--brand)]/30 text-[var(--brand-text)] shadow-xs"
+                : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <span>{chip.label}</span>
+            <span className="font-mono text-[11px] opacity-70">{chip.count}</span>
+          </button>
+        ))}
 
         {/* Verified Only */}
         <button

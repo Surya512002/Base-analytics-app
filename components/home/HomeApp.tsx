@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import AppBackground from "@/components/ui/AppBackground";
+import { useRouter, useSearchParams } from "next/navigation";
 import PriceAlertWatcher from "@/components/alerts/PriceAlertWatcher";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
@@ -61,6 +60,18 @@ function TabSkeleton() {
       <div className="h-48 skeleton-shimmer rounded-2xl border border-[var(--border-subtle)]" />
     </div>
   );
+}
+
+/** Menu links to "/" and "/?tab=…" change only the address when "/" is already open. */
+function RootTabFromUrl({ onTab }: { onTab: (tab: AppTab) => void }) {
+  const query = useSearchParams()?.toString() ?? "";
+  const seen = useRef(query);
+  useEffect(() => {
+    if (seen.current === query) return;
+    seen.current = query;
+    onTab(resolveTabFromUrl(`?${query}`) ?? "launchpad");
+  }, [query, onTab]);
+  return null;
 }
 
 export type HomeAppProps = {
@@ -167,7 +178,11 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
 
   return (
     <main className={`main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative${booted ? "" : " app-booting"}`}>
-      <AppBackground />
+      {!forceTab && ready && (
+        <Suspense fallback={null}>
+          <RootTabFromUrl onTab={setTab} />
+        </Suspense>
+      )}
       <PriceAlertWatcher wallet={wallet?.address ?? null} onAlert={(msg) => setToast({ msg, hash: "" })} />
 
       {toast && (
@@ -188,9 +203,7 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         walletAddress={wallet?.address}
         header={
           <AppHeader
-            hasBottomNav
             tab={activeTab}
-            onTabChange={handleTabChange}
             walletAddress={wallet?.address}
             walletRefreshing={walletRefreshing}
             scanProgress={scanProgress}

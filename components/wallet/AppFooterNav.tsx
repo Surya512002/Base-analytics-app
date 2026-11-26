@@ -1,20 +1,21 @@
 import Link from "next/link";
 import AppLogo from "@/components/ui/AppLogo";
 import SafetyNote from "@/components/ui/SafetyNote";
+import { GROUPS } from "@/lib/nav/directory";
 import { ShieldCheck, ExternalLink, Github } from "lucide-react";
 
 /** High-contrast, theme-adaptive site footer matching Blue Hour Meridian design tokens. */
 export default function AppFooterNav() {
   return (
     <footer className="mt-auto w-full border-t border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-0 transition-colors">
-      <div className="app-container grid gap-8 py-8 md:grid-cols-[1.4fr_1fr] md:py-10">
+      <div className="app-container grid gap-8 py-8 md:grid-cols-[1fr_1.4fr] md:py-10">
         <div>
           <div className="flex items-center gap-2.5">
             <AppLogo size="sm" />
             <span className="font-display text-lg font-black tracking-tight text-[var(--ink)]">
               Base Analytics
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+            <span className="inline-flex items-center gap-1 text-[13px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               Mainnet
             </span>
           </div>
@@ -29,82 +30,27 @@ export default function AppFooterNav() {
           <SafetyNote className="mt-3 max-w-md" />
         </div>
 
-        <nav className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm sm:justify-items-end">
-          <div className="space-y-2.5 flex flex-col">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
-              Products
-            </span>
-            <Link href="/explore" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Explore
-            </Link>
-            <Link href="/swap" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Swap
-            </Link>
-            <Link href="/launch" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Launchpad
-            </Link>
-          </div>
-
-          <div className="space-y-2.5 flex flex-col">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
-              Finance
-            </span>
-            <Link href="/lend" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Lend &amp; Stake
-            </Link>
-            <Link href="/redeem" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Redeem Voucher
-            </Link>
-          </div>
-
-          <div className="space-y-2.5 flex flex-col">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
-              Legal &amp; Safety
-            </span>
-            <Link href="/restricted-regions" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Restricted Regions
-            </Link>
-            <Link href="/risk-disclosure" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Risk Disclosure
-            </Link>
-            <Link href="/terms" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Terms of Service
-            </Link>
-            <Link href="/privacy" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Privacy Policy
-            </Link>
-          </div>
-
-          <div className="space-y-2.5 flex flex-col">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-dim)]">
-              Resources
-            </span>
-            <Link href="/docs" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Documents
-            </Link>
-            <Link href="/docs#compliance" className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium">
-              Compliance &amp; Safety Docs
-            </Link>
-            <a
-              href="https://github.com/Surya512002/Base-analytics-app"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium inline-flex items-center gap-1.5"
-            >
-              <Github size={13} className="shrink-0" />
-              <span>GitHub</span>
-              <ExternalLink size={11} className="opacity-70" />
-            </a>
-            <a
-              href="https://basescan.org"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors font-medium inline-flex items-center gap-1"
-            >
-              <span>BaseScan</span>
-              <ExternalLink size={11} className="opacity-70" />
-            </a>
-          </div>
+        <nav aria-label="All pages" className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm sm:grid-cols-3">
+          {GROUPS.map((group) => (
+            <div key={group.id} className="flex flex-col items-start">
+              <span className="pb-1 text-[13px] font-bold text-[var(--ink)]">{group.title}</span>
+              {group.entries.map((e) => (
+                <Link key={e.id} href={e.href} className="flex min-h-[32px] items-center font-medium text-[var(--ink-muted)] transition-colors hover:text-[var(--brand-text)]">
+                  {e.title}
+                </Link>
+              ))}
+              {group.id === "help" && (
+                <>
+                  <a href="https://github.com/Surya512002/Base-analytics-app" target="_blank" rel="noreferrer" className="inline-flex min-h-[32px] items-center gap-1.5 font-medium text-[var(--ink-muted)] transition-colors hover:text-[var(--brand-text)]">
+                    <Github size={13} className="shrink-0" /> GitHub <ExternalLink size={11} className="opacity-70" />
+                  </a>
+                  <a href="https://basescan.org" target="_blank" rel="noreferrer" className="inline-flex min-h-[32px] items-center gap-1 font-medium text-[var(--ink-muted)] transition-colors hover:text-[var(--brand-text)]">
+                    BaseScan <ExternalLink size={11} className="opacity-70" />
+                  </a>
+                </>
+              )}
+            </div>
+          ))}
         </nav>
       </div>
 
@@ -117,7 +63,7 @@ export default function AppFooterNav() {
               href="https://github.com/Surya512002/Base-analytics-app"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+              className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)] hover:text-[var(--brand-text)] transition-colors"
             >
               <Github size={14} className="text-[var(--ink-muted)]" />
               <span>Verify Open Source on GitHub</span>

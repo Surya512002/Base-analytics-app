@@ -14,7 +14,7 @@ export default function RiskDisclosurePage() {
       <main className="app-container flex-1 py-10 max-w-4xl space-y-8 animate-meridian-rise">
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-muted)]">
-          <Link href="/" className="hover:text-[var(--brand)] transition inline-flex items-center gap-1">
+          <Link href="/" className="hover:text-[var(--brand-text)] transition inline-flex items-center gap-1">
             <ArrowLeft size={13} />
             <span>Home</span>
           </Link>

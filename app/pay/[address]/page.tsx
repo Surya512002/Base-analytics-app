@@ -284,7 +284,7 @@ export default function PayLinkPage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Share2 size={13} className="text-[#0052FF]" />
+                    <Share2 size={13} className="text-[var(--brand-text)]" />
                     Share Your Personal Pay Link
                   </p>
                   <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
@@ -301,7 +301,7 @@ export default function PayLinkPage() {
                 <button
                   type="button"
                   onClick={copyShareUrl}
-                  className="px-3 py-1.5 rounded-lg bg-[#0052FF] text-white font-sans text-xs font-bold hover:bg-[#0047e0] transition shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--brand)] text-white font-sans text-xs font-bold hover:bg-[var(--brand-hover)] transition shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {copiedShareUrl ? <CheckCircle size={13} /> : <Copy size={13} />}
                   <span>{copiedShareUrl ? "Copied!" : "Copy Link"}</span>
@@ -357,7 +357,7 @@ export default function PayLinkPage() {
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     asset === "USDC"
-                      ? "bg-[#0052FF] text-white shadow-xs"
+                      ? "bg-[var(--brand)] text-white shadow-xs"
                       : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -371,7 +371,7 @@ export default function PayLinkPage() {
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     asset === "ETH"
-                      ? "bg-[#0052FF] text-white shadow-xs"
+                      ? "bg-[var(--brand)] text-white shadow-xs"
                       : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -389,7 +389,7 @@ export default function PayLinkPage() {
                   onClick={() => setAmount(preset)}
                   className={`py-1.5 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
                     amount === preset
-                      ? "border-[#0052FF] bg-[#0052FF]/10 text-[#0052FF] dark:text-[#3B82F6]"
+                      ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand-text)]"
                       : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -410,7 +410,7 @@ export default function PayLinkPage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.0"
-                  className="w-full bg-[var(--surface)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-base font-mono font-bold text-[var(--ink)] outline-none focus:border-[#0052FF] transition"
+                  className="w-full bg-[var(--surface)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-base font-mono font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] transition"
                 />
                 <span className="absolute right-4 text-xs font-bold font-mono text-[var(--ink-muted)]">
                   {asset}
@@ -433,7 +433,7 @@ export default function PayLinkPage() {
                   disabled
                   className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] cursor-not-allowed opacity-80"
                 >
-                  <ShieldCheck size={16} className="text-[#0052FF]" />
+                  <ShieldCheck size={16} className="text-[var(--brand-text)]" />
                   <span>Self-Payment Disabled (You are the recipient)</span>
                 </button>
                 <p className="text-center text-[11px] text-[var(--ink-muted)]">
@@ -444,7 +444,7 @@ export default function PayLinkPage() {
                       app.handleDisconnect();
                       setShowModal(true);
                     }}
-                    className="font-bold text-[#0052FF] dark:text-[#3B82F6] hover:underline cursor-pointer"
+                    className="font-bold text-[var(--brand-text)] dark:text-[#3D7BFF] hover:underline cursor-pointer"
                   >
                     Connect a different wallet
                   </button>
@@ -457,7 +457,7 @@ export default function PayLinkPage() {
                 onClick={handlePay}
                 className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
                   !isConnected
-                    ? "bg-[#0052FF] text-white hover:bg-[#0047e0]"
+                    ? "bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]"
                     : "bg-emerald-600 hover:bg-emerald-700 text-white"
                 }`}
               >

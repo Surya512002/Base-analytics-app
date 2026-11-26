@@ -7,7 +7,7 @@ import { Sun, Moon, Laptop } from "lucide-react";
 export type ThemeMode = "light" | "dark" | "system";
 
 export function getInitialTheme(): ThemeMode {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "system";
   try {
     const saved = localStorage.getItem("theme");
     if (saved === "light" || saved === "dark" || saved === "system") {
@@ -16,7 +16,7 @@ export function getInitialTheme(): ThemeMode {
   } catch {
     // ignore localStorage errors
   }
-  return "dark";
+  return "system";
 }
 
 export function applyTheme(theme: ThemeMode) {

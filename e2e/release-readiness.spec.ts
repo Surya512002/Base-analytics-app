@@ -8,10 +8,11 @@ test.describe("Release Readiness E2E Suite", () => {
     await page.goto(`${BASE}/`);
   });
 
-  test("0. Home: three actions and a way to the stock list", async ({ page }) => {
+  test("0. Home: the tile grid and a way to the stock list", async ({ page }) => {
     await page.goto(`${BASE}/`);
     const start = page.getByRole("navigation", { name: "Start here" });
-    await expect(start.getByRole("link")).toHaveCount(3, { timeout: 15_000 });
+    await expect(start.getByRole("link", { name: /buy a stock/i })).toBeVisible({ timeout: 15_000 });
+    await expect(start.getByRole("link")).toHaveCount(11);
     await expect(page.getByRole("link", { name: /see all stocks/i })).toBeVisible();
   });
 

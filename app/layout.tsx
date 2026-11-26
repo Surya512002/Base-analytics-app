@@ -11,11 +11,13 @@ const figtree = localFont({
   weight: "300 900",
 });
 
-const syne = localFont({
-  src: "../public/fonts/syne-latin.woff2",
-  variable: "--font-syne",
+// Headings: Archivo 700, semi-expanded (SIL Open Font License, from Google Fonts). One static
+// file covers every heading weight so the browser never fakes a bolder one.
+const archivo = localFont({
+  src: "../public/fonts/archivo-latin.woff2",
+  variable: "--font-archivo",
   display: "swap",
-  weight: "400 800",
+  weight: "400 900",
 });
 
 const APP_URL = getAppUrl();
@@ -25,6 +27,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F6F8FB" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0F19" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -68,7 +74,7 @@ export const metadata: Metadata = {
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#030712",
+          splashBackgroundColor: "#0B0F19",
         },
       },
     }),
@@ -78,12 +84,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${figtree.variable} ${syne.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${figtree.variable} ${archivo.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://auth.farcaster.xyz" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var isDark=t!=="light";if(isDark){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}if(location.pathname==="/"&&/[?&](tab|card|cardId|voucher|c)=|#(.*&)?(id|card)=/.test(location.search+location.hash))document.documentElement.setAttribute("data-deeplink","");}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("theme");var isDark=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(isDark){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}if(location.pathname==="/"&&/[?&](tab|card|cardId|voucher|c)=|#(.*&)?(id|card)=/.test(location.search+location.hash))document.documentElement.setAttribute("data-deeplink","");}catch(e){}})();`,
           }}
         />
       </head>

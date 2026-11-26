@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { sectionShare } from "@/lib/constants/app-url";
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
 
 export const metadata: Metadata = {
+  openGraph: { images: sectionShare("help").images },
+  twitter: sectionShare("help").twitter,
   title: "Help | Base Analytics",
   description: "How to buy tokenized stocks, invest automatically, place limit orders, borrow, and what the risks and fees are.",
 };
@@ -31,13 +34,13 @@ const TASKS: ReadonlyArray<{ title: string; href: string; link: string; steps: s
   {
     title: "See and rebalance your stocks",
     href: MY_STOCKS_HREF,
-    link: "Open My Stocks",
+    link: "Open Holdings",
     steps: ["See each stock's value and share of your portfolio.", "Set the mix you want and follow the suggested trades."],
   },
   {
     title: "Borrow or earn",
     href: "/lend",
-    link: "Open Lend & Stake",
+    link: "Open Earn",
     steps: ["You can borrow USDC against stocks. If their price falls too far, your stocks can be sold to repay the loan (liquidation).", "Pool vaults can show very high rates. They are often small and can lose value, so read the details first."],
   },
 ];
@@ -46,7 +49,7 @@ export default function HelpPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--ink)]">
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8">
-        <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--brand)]">
+        <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--brand-text)]">
           <ArrowLeft size={13} /> Home
         </Link>
         <h1 className="font-display text-3xl font-black tracking-tight">Help</h1>

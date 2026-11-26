@@ -46,7 +46,7 @@ export function SenderIdentity({ sender }: { sender: CampaignPublicView["sender"
         <div className="flex gap-3 mt-1.5 text-[11px] font-bold">
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-[var(--brand)]"
+            className="inline-flex items-center gap-1 text-[var(--brand-text)]"
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(sender.address);
@@ -63,7 +63,7 @@ export function SenderIdentity({ sender }: { sender: CampaignPublicView["sender"
             href={sender.basescanUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[var(--brand)]"
+            className="inline-flex items-center gap-1 text-[var(--brand-text)]"
           >
             View on Basescan <ExternalLink size={11} />
           </a>

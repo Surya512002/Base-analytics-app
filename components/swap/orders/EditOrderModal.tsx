@@ -210,7 +210,7 @@ export default function EditOrderModal({
             type="button"
             onClick={handleSave}
             disabled={Boolean(validationError) || saving}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-semibold hover:bg-[#0045D8] transition disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-1.5"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-white text-xs font-semibold hover:bg-[var(--brand-hover)] transition disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-1.5"
           >
             {saving ? (
               <>

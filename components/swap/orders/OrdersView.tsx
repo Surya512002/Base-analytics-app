@@ -488,7 +488,7 @@ export default function OrdersView({
       {/* Beta badge & Paused / Region alert banners */}
       <div className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-500 text-white uppercase tracking-wider">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-[var(--brand)] text-white uppercase tracking-wider">
             Beta
           </span>
           <span className="text-[var(--ink-muted)]">
@@ -540,7 +540,7 @@ export default function OrdersView({
               <button
                 type="button"
                 onClick={onSwitchSepolia}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:bg-[var(--brand-hover)] transition cursor-pointer shadow-xs"
               >
                 <span>Switch to Base Sepolia</span>
               </button>
@@ -575,7 +575,7 @@ export default function OrdersView({
           <button
             type="button"
             onClick={onSwitchSepolia}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:bg-[var(--brand-hover)] transition cursor-pointer shadow-xs"
           >
             <span>Switch to Base Sepolia</span>
           </button>
@@ -976,7 +976,7 @@ export default function OrdersView({
                   }}
                   className={`flex-1 text-[11px] font-bold py-1.5 rounded-md border ${
                     slippagePercent === p && customSlippage === ""
-                      ? "bg-[#0052FF] text-white border-[#0052FF]"
+                      ? "bg-[var(--brand)] text-white border-[var(--brand)]"
                       : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -999,7 +999,7 @@ export default function OrdersView({
                   onClick={() => setExpirySec(p.seconds)}
                   className={`flex-1 text-[11px] font-bold py-1.5 rounded-md border ${
                     expirySec === p.seconds
-                      ? "bg-[#0052FF] text-white border-[#0052FF]"
+                      ? "bg-[var(--brand)] text-white border-[var(--brand)]"
                       : "border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -1103,7 +1103,7 @@ export default function OrdersView({
             <button
               type="button"
               onClick={onConnectWallet}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition shadow-xs flex items-center justify-center cursor-pointer"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[var(--brand)] text-white font-bold text-sm hover:bg-[var(--brand-hover)] transition shadow-xs flex items-center justify-center cursor-pointer"
             >
               Connect Wallet
             </button>
@@ -1136,7 +1136,7 @@ export default function OrdersView({
               type="button"
               onClick={handleApprove}
               disabled={txSubmitting}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[var(--brand)] text-white font-bold text-sm hover:bg-[var(--brand-hover)] transition flex items-center justify-center gap-2 cursor-pointer"
             >
               {txSubmitting ? (
                 <>
@@ -1152,7 +1152,7 @@ export default function OrdersView({
               type="button"
               onClick={handleSubmitOrder}
               disabled={Boolean(validationMessage) || txSubmitting}
-              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[#0052FF] text-white font-bold text-sm hover:bg-[#0045D8] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-xs cursor-pointer"
+              className="w-full py-3.5 min-h-[44px] rounded-xl bg-[var(--brand)] text-white font-bold text-sm hover:bg-[var(--brand-hover)] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-xs cursor-pointer"
             >
               {txSubmitting ? (
                 <>

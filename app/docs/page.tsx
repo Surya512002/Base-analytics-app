@@ -3,7 +3,7 @@ import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
 import DocumentsClient from "@/components/docs/DocumentsClient";
 
 const appUrl = getAppUrl();
-const ogImage = appOgImage();
+const ogImage = appOgImage("docs");
 
 export const metadata: Metadata = {
   title: "Documents & Developer API — Base Analytics",

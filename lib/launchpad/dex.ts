@@ -131,6 +131,12 @@ export async function quoteLaunchSwap(params: {
   if (pref !== "auto" && pref !== "o1") {
     const q = await quoteVenue(pref);
     if (q.hasLiquidity) return pick(pref);
+    if (pref === "slipstream" && params.allowUsdcHop !== false) {
+      const via = await quoteSlipstreamV2ViaUsdc(tokenIn, tokenOut, params.amountIn);
+      if (via.hasLiquidity && via.path) {
+        return pick("slipstream", { slipstreamPath: via.path, router: via.router, amountOut: via.amountOut, hasLiquidity: true });
+      }
+    }
     if (pref === "aerodrome" && params.allowUsdcHop !== false) {
       const hop = await quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn);
       if (hop.hasLiquidity) {

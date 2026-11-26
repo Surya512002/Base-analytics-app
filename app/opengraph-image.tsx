@@ -7,7 +7,7 @@ export const size = OG_SIZE;
 export const contentType = "image/png";
 export const revalidate = 300;
 
-/** Default link preview (Open Graph). */
+/** Default link preview (Open Graph), Clean Cobalt. Editing this file changes the address apps cache. */
 export default async function Image() {
   return homeShareImage();
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
+import { getAppUrl, sectionShare } from "@/lib/constants/app-url";
 import { listLaunchedTokens } from "@/lib/launchpad/token-store";
 import { fetchMarketSummaries } from "@/lib/launchpad/dexscreener";
 import { isB20ExploreToken } from "@/lib/launchpad/token-meta";
@@ -12,11 +12,12 @@ export const metadata: Metadata = {
   title: "Explore B20 Tokens on Base — Live Markets & In-App Swaps",
   description:
     "Discover B20 vanity tokens on Base Analytics. Live liquidity, trending rails, Uniswap & Aerodrome swaps with USD quotes — launch or trade without leaving the app.",
+  twitter: sectionShare("markets").twitter,
   openGraph: {
     title: "Explore · Base Analytics Launchpad",
     description: "B20 tokens, live DEX data, in-app trading on Base.",
     url: `${appUrl}/explore`,
-    images: [{ url: appOgImage(), width: 1200, height: 630 }],
+    images: sectionShare("markets").images,
   },
   alternates: { canonical: `${appUrl}/explore` },
 };

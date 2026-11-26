@@ -23,7 +23,7 @@ export default function LaunchPromoBanner() {
       <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 w-full sm:w-auto">
         <Link
           href="/explore?create=true"
-          className="pop-pill flex items-center justify-center gap-1 font-bold text-xs bg-[#0052FF] text-white px-3 py-1.5 rounded-lg hover:bg-[#0047e0] transition cursor-pointer flex-1 sm:flex-initial"
+          className="pop-pill flex items-center justify-center gap-1 font-bold text-xs bg-[var(--brand)] text-white px-3 py-1.5 rounded-lg hover:bg-[var(--brand-hover)] transition cursor-pointer flex-1 sm:flex-initial"
         >
           <span>Launch a token</span>
           <ArrowRight size={12} />

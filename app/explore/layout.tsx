@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
+import { getAppUrl, sectionShare } from "@/lib/constants/app-url";
 
 const appUrl = getAppUrl();
 
@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     title: "Explore B20 on Base — Base Analytics",
     description: "Live B20 tokens, in-app swaps, and launchpad on Base.",
     url: `${appUrl}/explore`,
-    images: [{ url: appOgImage(), width: 1200, height: 630 }],
+    images: sectionShare("markets").images,
   },
   twitter: {
     card: "summary_large_image",
-    images: [appOgImage()],
+    images: sectionShare("markets").twitter.images,
   },
 };
 

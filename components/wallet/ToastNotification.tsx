@@ -44,7 +44,7 @@ export default function ToastNotification({
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-1 text-[var(--brand-dark)] dark:text-[var(--brand)] text-xs font-semibold hover:underline"
+            className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-1 text-[var(--brand-dark)] dark:text-[var(--brand-text)] text-xs font-semibold hover:underline"
           >
             <span>View on BaseScan</span>
             {shortHash && <span className="font-mono text-[11px] opacity-80">({shortHash})</span>}

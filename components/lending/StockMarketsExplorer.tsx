@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
+import type { AssetMarketRow } from "@/lib/lending/asset-row";
 import type { SmartVaultTarget } from "@/components/lending/SmartVaultDrawer";
 import {
   borrowCapacity,
@@ -30,13 +31,14 @@ import {
   yearlyEarnings,
   type StockMarketGroup,
   type StockMarketKind,
+  venueLabel,
 } from "@/lib/lending/stock-market-groups";
 import BodyPortal from "@/components/ui/BodyPortal";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import TokenLogo from "@/components/ui/TokenLogo";
 
 type Mode = "all" | StockMarketKind;
-type Sort = "earn" | "borrow" | "ltv" | "depth";
+type Sort = "earn" | "borrow" | "ltv" | "depth" | "price" | "name";
 type GroupMarket = StockMarketGroup["markets"][number];
 
 const MODES: Array<{ id: Mode; label: string; icon: React.ElementType }> = [
@@ -60,6 +62,11 @@ const usd = (n: number) => {
   return `$${n.toFixed(0)}`;
 };
 const pct = (n?: number | null) => (n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(n >= 100 ? 0 : 2)}%`);
+const SECTORS = ["tech", "crypto-related", "finance", "consumer", "healthcare"];
+const priceLine = (row?: AssetMarketRow) =>
+  [row?.priceUsd != null ? `$${row.priceUsd.toFixed(2)}` : null, (row?.walletBalance ?? 0) > 0 ? `you hold ${row!.walletBalance!.toFixed(3)}` : null]
+    .filter(Boolean)
+    .join(" · ");
 
 /**
  * Verified stock markets on Base, one row per stock: best yield, cheapest borrow, max LTV and
@@ -68,12 +75,28 @@ const pct = (n?: number | null) => (n == null || !Number.isFinite(n) ? "—" : `
  */
 export default function StockMarketsExplorer({
   markets,
+  rows,
   loading,
+  isConnected,
+  showAllStocks,
+  onToggleShowAllStocks,
+  protocolErrors,
+  onRetryProtocol,
+  onOpenStock,
   onAction,
   onSmart,
 }: {
   markets: NormalizedMarket[];
+  /** Price, sector and wallet balance per stock, including stocks without a market. */
+  rows: AssetMarketRow[];
   loading?: boolean;
+  isConnected: boolean;
+  showAllStocks: boolean;
+  onToggleShowAllStocks: (show: boolean) => void;
+  protocolErrors: Record<string, string>;
+  onRetryProtocol: () => void;
+  /** The stock's full comparison, with the wallet's position. */
+  onOpenStock: (symbol: string) => void;
   /** In-app action (Morpho borrow, single-stock vault deposit). */
   onAction: (market: NormalizedMarket, action: "borrow" | "supply") => void;
   /** In-app Smart Deposit for pair vaults, and "Get {stock}" before single-stock markets. */
@@ -100,19 +123,30 @@ export default function StockMarketsExplorer({
   const [open, setOpen] = useState<string | null>(null);
   const [compare, setCompare] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [sector, setSector] = useState("all");
+  const [onlyHoldings, setOnlyHoldings] = useState(false);
+  const rowByAddress = useMemo(() => new Map(rows.map((r) => [r.address.toLowerCase(), r])), [rows]);
 
   const allGroups = useMemo(() => groupMarketsByStock(markets, showSmall ? 0 : 1000), [markets, showSmall]);
   const venues = useMemo(() => [...new Set(allGroups.flatMap((g) => g.venues))].sort(), [allGroups]);
 
-  const groups = useMemo(() => {
+  const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = allGroups
-      .map((g) => ({
-        ...g,
-        markets: g.markets.filter((m) => (mode === "all" || m.kind === mode) && (!venue || m.venue === venue)),
-      }))
-      .filter((g) => g.markets.length > 0)
-      .filter((g) => !q || g.symbol.toLowerCase().includes(q) || g.name.toLowerCase().includes(q));
+    return (symbol: string, name: string, address: string) => {
+      const row = rowByAddress.get(address.toLowerCase());
+      if (sector !== "all" && row?.category.toLowerCase() !== sector) return false;
+      if (onlyHoldings && !((row?.walletBalance ?? 0) > 0)) return false;
+      return !q || [symbol, name, row?.category ?? ""].some((v) => v.toLowerCase().includes(q)) || address.toLowerCase() === q;
+    };
+  }, [query, sector, onlyHoldings, rowByAddress]);
+
+  const groups = useMemo(() => {
+    // Narrow to the protocol before grouping, so each stock's best rates are that protocol's.
+    const inVenue = venue ? markets.filter((m) => venueLabel(m) === venue) : markets;
+    const price = (g: StockMarketGroup) => rowByAddress.get(g.address.toLowerCase())?.priceUsd ?? -1;
+    const list = groupMarketsByStock(inVenue, showSmall ? 0 : 1000)
+      .map((g) => ({ ...g, markets: g.markets.filter((m) => mode === "all" || m.kind === mode) }))
+      .filter((g) => g.markets.length > 0 && matches(g.symbol, g.name, g.address));
     const key = (g: StockMarketGroup) =>
       sort === "earn"
         ? -(g.bestEarn?.supplyApy ?? -1)
@@ -120,9 +154,21 @@ export default function StockMarketsExplorer({
           ? g.bestBorrow?.borrowApr ?? 999
           : sort === "ltv"
             ? -g.maxLtv
-            : -g.totalDepthUsd;
-    return list.sort((a, b) => key(a) - key(b));
-  }, [allGroups, mode, venue, query, sort]);
+            : sort === "price"
+              ? -price(g)
+              : -g.totalDepthUsd;
+    return list.sort((a, b) => (sort === "name" ? a.symbol.localeCompare(b.symbol) : key(a) - key(b)));
+  }, [markets, mode, venue, showSmall, sort, matches, rowByAddress]);
+
+  // Stocks with no market at all, listed when asked for.
+  const unlisted = useMemo(() => {
+    if (!showAllStocks || mode !== "all" || venue) return [];
+    const listed = new Set(groupMarketsByStock(markets).map((g) => g.address.toLowerCase()));
+    return rows
+      .filter((r) => !listed.has(r.address.toLowerCase()) && matches(r.symbol, r.name, r.address))
+      .sort((a, b) => (sort === "price" ? (b.priceUsd ?? -1) - (a.priceUsd ?? -1) : a.symbol.localeCompare(b.symbol)));
+  }, [showAllStocks, mode, venue, markets, rows, matches, sort]);
+  const failed = Object.entries(protocolErrors).filter(([, error]) => Boolean(error));
 
   const stats = useMemo(() => {
     const flat = allGroups.flatMap((g) => g.markets);
@@ -146,10 +192,21 @@ export default function StockMarketsExplorer({
 
   return (
     <section className="space-y-4">
+      {failed.map(([protocol, error]) => (
+        <div key={protocol} role="alert" className="flex items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+          <span className="flex items-center gap-2">
+            <AlertTriangle size={14} className="shrink-0" /> Couldn&apos;t load <strong>{protocol.toUpperCase()}</strong>: {error}
+          </span>
+          <button type="button" onClick={onRetryProtocol} className="cursor-pointer rounded-lg bg-amber-500/20 px-2.5 py-1.5 font-bold hover:bg-amber-500/30">
+            Retry
+          </button>
+        </div>
+      ))}
+
       {/* Summary */}
       <div className="pulse-surface grid grid-cols-2 gap-px p-1.5 lg:grid-cols-4">
         {[
-          { label: "Stocks", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#0052FF" },
+          { label: "Stocks", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#3D7BFF" },
           {
             label: "Top lending APY",
             value: pct(stats.earn?.supplyApy),
@@ -202,7 +259,7 @@ export default function StockMarketsExplorer({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a stock (AAPL, Tesla…)"
+                placeholder="Search a stock, sector or address"
                 aria-label="Search stocks"
                 className="w-full rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] py-2 pl-8 pr-3 text-xs text-[var(--ink)] outline-none focus:border-[var(--brand)]"
               />
@@ -219,6 +276,8 @@ export default function StockMarketsExplorer({
                 <option value="borrow">Cheapest borrow</option>
                 <option value="ltv">Highest LTV</option>
                 <option value="depth">Deepest</option>
+                <option value="price">Highest price</option>
+                <option value="name">Name A to Z</option>
               </select>
             </label>
           </div>
@@ -245,10 +304,29 @@ export default function StockMarketsExplorer({
               {v}
             </button>
           ))}
-          <label className="ml-auto flex cursor-pointer select-none items-center gap-1.5 text-[11px] font-semibold text-[var(--ink-muted)]">
-            <input type="checkbox" checked={showSmall} onChange={(e) => setShowSmall(e.target.checked)} className="accent-[var(--brand)]" />
-            Show markets under $1K
-          </label>
+          <select
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            aria-label="Sector"
+            className="ml-auto min-h-[32px] cursor-pointer rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2.5 text-[11px] font-bold capitalize text-[var(--ink)]"
+          >
+            <option value="all">All sectors</option>
+            {SECTORS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          {[
+            { label: "Show all stocks", checked: showAllStocks, set: onToggleShowAllStocks, show: true },
+            { label: "Holdings only", checked: onlyHoldings, set: setOnlyHoldings, show: isConnected },
+            { label: "Show markets under $1K", checked: showSmall, set: setShowSmall, show: true },
+          ]
+            .filter((t) => t.show)
+            .map((t) => (
+              <label key={t.label} className="flex min-h-[32px] cursor-pointer select-none items-center gap-1.5 text-[11px] font-semibold text-[var(--ink-muted)]">
+                <input type="checkbox" checked={t.checked} onChange={(e) => t.set(e.target.checked)} className="accent-[var(--brand)]" />
+                {t.label}
+              </label>
+            ))}
         </div>
       </div>
 
@@ -259,9 +337,9 @@ export default function StockMarketsExplorer({
             <div key={i} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
           ))}
         </div>
-      ) : groups.length === 0 ? (
+      ) : groups.length === 0 && unlisted.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--border-strong)] p-8 text-center text-sm text-[var(--ink-muted)]">
-          No verified markets match. Try another filter{showSmall ? "" : " or show markets under $1K"}.
+          No stocks match. Try another filter{showAllStocks ? "" : " or show all stocks"}{showSmall ? "" : " and markets under $1K"}.
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -284,7 +362,18 @@ export default function StockMarketsExplorer({
                         <BadgeCheck size={14} className="shrink-0 text-[var(--brand-text)]" aria-label="On Base's official registry" />
                       </span>
                       <span className="block truncate text-[11px] text-[var(--ink-muted)]">{g.name}</span>
+                      {priceLine(rowByAddress.get(g.address.toLowerCase())) && (
+                        <span className="block truncate font-mono text-[11px] text-[var(--ink)]">{priceLine(rowByAddress.get(g.address.toLowerCase()))}</span>
+                      )}
                       <span className="mt-1 flex flex-wrap gap-1">
+                        {rowByAddress.get(g.address.toLowerCase())?.isNew && (
+                          <span className="rounded-full bg-[var(--brand-soft)] px-1.5 py-0.5 text-[11px] font-black text-[var(--brand-text)]">NEW</span>
+                        )}
+                        {rowByAddress.get(g.address.toLowerCase())?.riskFlags?.includes("UNKNOWN_ORACLE") && (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400" title="Unknown oracle: borrowing disabled">
+                            <AlertTriangle size={11} /> oracle
+                          </span>
+                        )}
                         {g.kinds.map((k) => (
                           <span key={k} className={`rounded-full px-1.5 py-0.5 text-[11px] font-black uppercase ${KIND_STYLE[k]}`}>{KIND_LABEL[k]}</span>
                         ))}
@@ -348,12 +437,41 @@ export default function StockMarketsExplorer({
                       className="border-t border-[var(--border-subtle)]"
                     >
                       <StockDetail group={g} onAction={onAction} onSmart={onSmart} pairVault={pairVaultBySymbol.get(g.symbol)} />
+                      {rowByAddress.has(g.address.toLowerCase()) && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenStock(g.symbol)}
+                          className="mx-3 mb-3 flex min-h-[44px] w-[calc(100%-1.5rem)] cursor-pointer items-center justify-center rounded-xl border border-[var(--brand)]/40 text-xs font-bold text-[var(--brand-text)] hover:bg-[var(--brand-soft)] sm:mx-4 sm:w-[calc(100%-2rem)]"
+                        >
+                          Full comparison and your position
+                        </button>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </li>
             );
           })}
+        </ul>
+      )}
+
+      {unlisted.length > 0 && (
+        <ul aria-label="Stocks without a market yet" className="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)]">
+          {unlisted.map((r) => (
+            <li key={r.address}>
+              <button type="button" onClick={() => onOpenStock(r.symbol)} className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-[var(--surface-2)] sm:px-4">
+                <TokenLogo address={r.address} symbol={r.symbol} size={32} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black text-[var(--ink)]">{r.symbol}</span>
+                  <span className="block truncate text-[11px] text-[var(--ink-muted)]">{r.name}</span>
+                </span>
+                <span className="text-right">
+                  <span className="block font-mono text-[11px] text-[var(--ink)]">{priceLine(r) || "—"}</span>
+                  <span className="block text-[11px] text-[var(--ink-dim)]">{r.hasLendingMarket ? "Details" : "No market yet"}</span>
+                </span>
+              </button>
+            </li>
+          ))}
         </ul>
       )}
 

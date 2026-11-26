@@ -184,7 +184,7 @@ export default function VoucherMyCards({
             type="button"
             onClick={mine.handleCreatorSignIn}
             disabled={mine.signingInCreator}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition shadow-md cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] active:scale-[0.98] transition shadow-md cursor-pointer disabled:opacity-50"
           >
             {mine.signingInCreator ? (
               <>
@@ -282,7 +282,7 @@ export default function VoucherMyCards({
           <button
             type="button"
             onClick={onCreateFirstGift}
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] active:scale-[0.98] transition shadow-md cursor-pointer"
           >
             <Sparkles size={16} />
             <span>Create Your First Gift</span>
@@ -669,7 +669,7 @@ export default function VoucherMyCards({
             <button
               type="button"
               onClick={() => copyText(activeQrCard.link, `qr-copied-drawer`)}
-              className="w-full py-2.5 rounded-xl text-xs font-bold bg-[#0052FF] text-white hover:bg-[#0047e0] transition"
+              className="w-full py-2.5 rounded-xl text-xs font-bold bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] transition"
             >
               {copiedId === "qr-copied-drawer" ? "Copied Link!" : "Copy Claim Link"}
             </button>

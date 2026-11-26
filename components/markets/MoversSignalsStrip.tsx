@@ -65,11 +65,11 @@ export default function MoversSignalsStrip({
       result.push({
         key: "most-liquid",
         badge: "Most Liquid",
-        icon: <Droplets size={13} className="text-[#0052FF]" />,
+        icon: <Droplets size={13} className="text-[var(--brand-text)]" />,
         stock: mostLiquid,
         metricLabel: "Pool Liquidity",
         metricValue: formatUsdDisplay(mostLiquid.tradingLiquidity),
-        metricColor: "text-[#0052FF] dark:text-blue-400",
+        metricColor: "text-[var(--brand-text)] dark:text-blue-400",
         bgGradient: "from-blue-500/10 via-transparent to-transparent",
       });
     }

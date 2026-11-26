@@ -389,7 +389,7 @@ export default function LiquidityStep({
             type="checkbox"
             checked={metadataEditable}
             onChange={(e) => onMetadataEditableChange(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer shrink-0"
+            className="mt-1 w-4 h-4 rounded text-[var(--brand-text)] accent-[var(--brand)] cursor-pointer shrink-0"
           />
           <div>
             <span className="text-xs font-bold text-[var(--ink)] block">
