@@ -761,7 +761,7 @@ export default function DocumentsClient() {
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="card p-5 hover:border-[var(--brand)] transition group">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
@@ -921,7 +921,7 @@ export default function DocumentsClient() {
                 autonomously query vouchers, prepare unsigned batches, and manage crypto gift commerce on Base.
               </p>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
                     <Terminal size={14} className="text-[var(--brand-text)]" />
@@ -1070,12 +1070,12 @@ export default function DocumentsClient() {
                   Public REST API Endpoints
                 </h2>
               </div>
-              <span className="text-xs font-mono text-[var(--ink-dim)]">
+              <span className="min-w-0 break-all text-xs font-mono text-[var(--ink-dim)]">
                 Base URL: {APP_URL_WEB}
               </span>
             </div>
 
-            <div className="grid lg:grid-cols-[1fr_1.4fr] gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-6 items-start">
               {/* Endpoint Selector List */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1 mb-2">
@@ -1276,7 +1276,7 @@ export default function DocumentsClient() {
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
                     <Shield size={14} className="text-[var(--brand-text)]" />
@@ -1361,7 +1361,7 @@ export default function DocumentsClient() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {CONTRACTS_LIST.map((c) => (
                 <div key={c.name} className="card p-5 space-y-3">
                   <div className="flex items-center justify-between">

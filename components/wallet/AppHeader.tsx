@@ -55,14 +55,6 @@ export default function AppHeader({
 
   const { t } = useI18n();
 
-  // The header becomes a floating pill once the page is scrolled.
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
   // Account Menu dropdown state
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -91,26 +83,13 @@ export default function AppHeader({
   };
 
   return (
-    <header
-      className={`sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)] transition-colors duration-300 ${
-        scrolled
-          ? "border-b border-transparent max-lg:bg-transparent lg:border-[var(--border)] lg:bg-[var(--surface)]/90 lg:backdrop-blur-md"
-          : "border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md"
-      }`}
-    >
+    <header className="sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)]">
       <div className="app-container">
-        {/* Main Header Bar — on phones it becomes a floating rounded pill after scrolling */}
-        <div
-          className={`flex min-w-0 items-center justify-between gap-3 py-2.5 transition-all duration-300 sm:py-3 ${
-            scrolled
-              ? "max-lg:mt-2 max-lg:rounded-2xl max-lg:border max-lg:border-[var(--border-subtle)] max-lg:bg-[var(--surface)]/95 max-lg:px-3 max-lg:shadow-lg max-lg:backdrop-blur-md"
-              : ""
-          }`}
-        >
+        <div className="mt-2.5 flex min-w-0 items-center justify-between gap-3 rounded-[20px] border border-[var(--card-edge)] bg-[var(--surface)]/85 px-2.5 py-2 shadow-[var(--card-shadow)] backdrop-blur-xl sm:px-3">
           {/* Left: Brand Logo & Title */}
           <Link href="/" className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
             <AppLogo size="sm" />
-            <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] max-[359px]:sr-only sm:text-xl">
+            <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
               Base Analytics
             </span>
           </Link>
@@ -123,10 +102,10 @@ export default function AppHeader({
                   {TOP_NAV.map((id) => (
                     <li key={id}>
                       <Link
-                        href={PLACE_HREF[id]}
+                        href={id === "account" ? profileHref : PLACE_HREF[id]}
                         aria-current={place === id ? "page" : undefined}
-                        className={`block whitespace-nowrap rounded-[10px] px-3 py-2 font-semibold transition-colors ${
-                          place === id ? "bg-[var(--surface-2)] text-[var(--brand-text)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                        className={`block whitespace-nowrap rounded-xl px-3 py-2 font-bold transition-colors ${
+                          place === id ? "bg-[var(--brand)] text-white" : "text-[var(--ink-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                         }`}
                       >
                         {t.nav[id]}
@@ -155,13 +134,6 @@ export default function AppHeader({
             >
               <Search size={18} aria-hidden />
             </button>
-            <Link
-              href={profileHref}
-              aria-label={t.nav.account}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--edge)] text-[var(--ink)] transition hover:bg-[var(--surface-2)] lg:hidden"
-            >
-              <User size={18} aria-hidden />
-            </Link>
             {guest || !walletAddress ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <div className="hidden items-center gap-2 xl:flex">

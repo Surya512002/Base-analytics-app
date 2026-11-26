@@ -1818,19 +1818,6 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
   transform: none;
 }
 
-/* ── Typography & theme utilities ── */
-.font-display {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
-  letter-spacing: -0.025em;
-}
 
 .theme-terminal {
   --bg-deep: var(--background);
@@ -4113,4 +4100,48 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 .pulse-surface:not(.pulse-solid) :is(a, button).bg-white {
   background-color: var(--brand);
   color: var(--on-brand);
+}
+
+/* ── Bento surfaces: the Home look (soft glow, framed cards) on every screen ─────────────
+   Unlayered on purpose, so it restyles the existing utility classes without editing each card. */
+:root,
+.dark,
+[data-theme="dark"] {
+  --radius-2xl: 1.375rem;
+  --radius-3xl: 1.75rem;
+  --card-edge: rgba(255, 255, 255, 0.09);
+  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  --page-glow:
+    radial-gradient(48rem 32rem at 100% 0, rgba(29, 98, 240, 0.26), transparent 70%),
+    radial-gradient(40rem 40rem at 0 44rem, rgba(104, 76, 255, 0.15), transparent 70%);
+}
+
+[data-theme="light"] {
+  --card-edge: #ffffff;
+  --card-shadow: 0 10px 30px rgba(31, 56, 120, 0.1);
+  --page-glow:
+    radial-gradient(48rem 32rem at 100% 0, #cfe0ff, transparent 70%),
+    radial-gradient(40rem 40rem at 0 44rem, #dedbff, transparent 70%);
+}
+
+body,
+[class~="bg-[var(--background)]"][class*="min-h-screen"] {
+  background-image: var(--page-glow);
+  background-repeat: no-repeat;
+}
+
+:is(
+    [class~="rounded-2xl"][class~="bg-[var(--surface)]"][class~="border-[var(--border-subtle)]"],
+    [class~="rounded-3xl"][class~="bg-[var(--surface)]"][class~="border-[var(--border-subtle)]"],
+    .card
+  ):not(:focus-within) {
+  box-shadow: var(--card-shadow);
+}
+
+:is(
+    [class~="rounded-2xl"][class~="bg-[var(--surface)]"][class~="border-[var(--border-subtle)]"],
+    [class~="rounded-3xl"][class~="bg-[var(--surface)]"][class~="border-[var(--border-subtle)]"],
+    .card
+  ):not(:hover, :focus-within) {
+  border-color: var(--card-edge);
 }

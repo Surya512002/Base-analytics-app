@@ -19,8 +19,7 @@ export const PLACE_HREF: Record<PlaceId, string> = {
   account: "/profile",
 };
 
-/** Computer menu and phone bottom bar. Gifts and Launch are reached from Home and search on phones;
- * phones also get a Profile button in the top bar. */
+/** Computer menu and phone bottom bar. Gifts and Launch are reached from Home and search on phones. */
 export const TOP_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "gifts", "launch", "account"];
 export const DOCK_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "account"];
 

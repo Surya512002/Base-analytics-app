@@ -57,13 +57,7 @@ import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
 import { floorFor, rememberQuote, type ShownQuote } from "@/lib/swap/price-guard";
-
-const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
-  { id: "auto", label: "Auto Best" },
-  { id: "aerodrome", label: "Aerodrome" },
-  { id: "uniswap", label: "Uniswap" },
-  { id: "slipstream", label: "Slipstream" },
-];
+import { ROUTE_OPTIONS } from "@/components/swap/RouterPanel";
 
 const SLIPPAGE_PRESETS = ["0.5", "1", "3"];
 /** One-tap pay amounts when paying with ETH. */
@@ -106,6 +100,9 @@ interface DexSwapCardProps {
   loadingBuyMetadata?: boolean;
   loadingSellMetadata?: boolean;
   initialAmount?: string | null;
+  /** Set when the router is chosen outside the card (the Swap page's side panel). */
+  dex?: LaunchDex;
+  onActiveDexChange?: (venue: SwapVenue | null) => void;
 }
 
 export default function DexSwapCard({
@@ -124,6 +121,8 @@ export default function DexSwapCard({
   loadingBuyMetadata = false,
   loadingSellMetadata: _loadingSellMetadata = false,
   initialAmount,
+  dex: chosenDex,
+  onActiveDexChange,
 }: DexSwapCardProps) {
   const { wallet, walletCore, swapLoading, handleTokenSwap } = app;
 
@@ -138,7 +137,8 @@ export default function DexSwapCard({
       setAmount(initialAmount);
     }
   }, [initialAmount]);
-  const [dex, setDex] = useState<LaunchDex>("auto");
+  const [ownDex, setDex] = useState<LaunchDex>("auto");
+  const dex = chosenDex ?? ownDex;
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSwapPreview, setShowSwapPreview] = useState(false);
   const [invertRate, setInvertRate] = useState(false);
@@ -156,6 +156,10 @@ export default function DexSwapCard({
   const [quoteImpactBps, setQuoteImpactBps] = useState<number | null>(null);
   const [isLaunchedToken, setIsLaunchedToken] = useState(false);
   const [referrer, setReferrer] = useState<string | null>(null);
+
+  useEffect(() => {
+    onActiveDexChange?.(hasLiquidity ? activeDex : null);
+  }, [activeDex, hasLiquidity, onActiveDexChange]);
 
   // 15-second Refresh Countdown Ring
   const [countdown, setCountdown] = useState(QUOTE_REFRESH_INTERVAL_SEC);
@@ -770,11 +774,11 @@ export default function DexSwapCard({
   }, [slippage]);
 
   return (
-    <div className="w-full max-w-[480px] mx-auto animate-meridian-rise">
+    <div className="w-full max-w-[560px] mx-auto animate-meridian-rise">
       {/* Swap Card Frame */}
-      <div className="relative rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-6 shadow-[var(--shadow-card)] space-y-3.5 transition-all">
+      <div className="relative rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-7 shadow-[0_20px_50px_rgba(0,70,220,0.18)] space-y-4 transition-all">
         {/* Card Header: Swap Title + Slippage & Settings Button */}
-        <div className="pulse-surface -mx-4 -mt-4 !mb-4 flex items-center justify-between rounded-b-none rounded-t-[calc(1.5rem-1px)] px-4 py-4 shadow-none sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-5">
+        <div className="pulse-surface pulse-solid !bg-[linear-gradient(140deg,#0a63ff,#0035b3_75%)] -mx-4 -mt-4 !mb-4 flex items-center justify-between rounded-b-none rounded-t-[calc(var(--radius-3xl)-1px)] px-4 py-4 shadow-none sm:-mx-7 sm:-mt-7 sm:px-7 sm:py-6">
           <div className="flex min-w-0 flex-col gap-1.5">
             <p className="pulse-eyebrow">
               <span className="pulse-status-dot" aria-hidden /> Live quotes · Base mainnet
@@ -843,7 +847,7 @@ export default function DexSwapCard({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.0"
-              className="w-full bg-transparent text-2xl sm:text-3xl font-black font-mono tracking-tight text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none tabular-nums"
+              className="w-full min-w-0 bg-transparent text-3xl max-md:!text-3xl sm:text-4xl font-black font-mono tracking-tight text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none tabular-nums"
               aria-label="Sell Amount"
             />
 
@@ -918,11 +922,11 @@ export default function DexSwapCard({
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <div className="w-full">
+            <div className="w-full min-w-0">
               {quoteLoading ? (
                 <div className="h-8 w-32 bg-[var(--surface-3)] animate-pulse rounded-lg" />
               ) : (
-                <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-[var(--ink)] tabular-nums truncate">
+                <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-[var(--ink)] tabular-nums truncate">
                   {quoteOut ?? "0.0"}
                 </p>
               )}
@@ -992,7 +996,7 @@ export default function DexSwapCard({
         {hasLiquidity && quoteOut && (
           <div className="card-pop rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 space-y-2.5 text-xs">
             {/* Primary Summary Row */}
-            <div className="flex items-center justify-between text-[var(--ink)] font-bold">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[var(--ink)] font-bold">
               <div
                 className="flex items-center gap-1.5 hover:text-[var(--brand-text)] transition-colors cursor-pointer"
                 onClick={() => setInvertRate((v) => !v)}
@@ -1083,7 +1087,7 @@ export default function DexSwapCard({
                   </div>
 
                   {/* DEX Routing Venue Selection */}
-                  <div>
+                  <div hidden={chosenDex !== undefined}>
                     <p className="text-xs font-bold text-[var(--ink)] mb-1.5">DEX Routing</p>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {ROUTE_OPTIONS.map((opt) => (

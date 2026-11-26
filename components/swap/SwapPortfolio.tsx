@@ -81,13 +81,13 @@ export default function SwapPortfolio({
   }
 
   return (
-    <section className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-xs">
+    <section className="space-y-2.5 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="flex items-center gap-1.5 text-sm font-black text-[var(--ink)]">
             <PieChart size={15} className="text-[var(--brand-text)]" /> Your portfolio
           </h3>
-          <p className="mt-1 font-mono text-2xl font-black tabular-nums text-[var(--ink)]">
+          <p className="mt-0.5 font-mono text-lg font-black tabular-nums text-[var(--ink)]">
             {loading && held.length === 0 ? "…" : usd(totalUsd)}
           </p>
           <p className="text-[11px] text-[var(--ink-muted)]">
@@ -115,7 +115,7 @@ export default function SwapPortfolio({
       {/* Allocation */}
       {totalUsd > 0 && top.length > 0 && (
         <div>
-          <div className="flex h-2.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+          <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
             {top.map((t, i) => (
               <motion.span
                 key={t.counter.kind === "token" ? t.counter.address : "eth"}
@@ -127,14 +127,6 @@ export default function SwapPortfolio({
               />
             ))}
             {otherUsd > 0 && <span style={{ width: `${(otherUsd / totalUsd) * 100}%`, background: "var(--ink-dim)" }} />}
-          </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[var(--ink-muted)]">
-            {top.map((t, i) => (
-              <span key={t.symbol + i} className="inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full" style={{ background: BAR_COLORS[i] }} />
-                {t.symbol} {((t.usdValue / totalUsd) * 100).toFixed(0)}%
-              </span>
-            ))}
           </div>
         </div>
       )}
@@ -149,20 +141,19 @@ export default function SwapPortfolio({
           {shown.map((t) => {
             const ch = t.priceChange24h;
             return (
-              <li key={t.counter.kind === "token" ? t.counter.address : "eth"} className="flex items-center gap-2.5 py-2">
-                <TokenLogo src={t.logo ?? undefined} address={t.address ?? undefined} symbol={t.symbol} size={30} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-[var(--ink)]">{t.symbol}</p>
-                  <p className="truncate font-mono text-[11px] text-[var(--ink-muted)]">{t.balanceFormatted}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-xs font-bold tabular-nums text-[var(--ink)]">{t.usdValue > 0 ? usd(t.usdValue) : "—"}</p>
-                  {ch != null && (
-                    <p className={`font-mono text-[11px] font-bold ${ch >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-                      {ch >= 0 ? "+" : ""}
-                      {ch.toFixed(1)}%
-                    </p>
-                  )}
+              <li key={t.counter.kind === "token" ? t.counter.address : "eth"} className="flex items-center gap-2 py-1.5">
+                <TokenLogo src={t.logo ?? undefined} address={t.address ?? undefined} symbol={t.symbol} size={26} />
+                <div className="min-w-0 flex-1" title={`${t.balanceFormatted} ${t.symbol}`}>
+                  <p className="truncate text-[13px] font-bold text-[var(--ink)]">{t.symbol}</p>
+                  <p className="truncate font-mono text-[11px] tabular-nums text-[var(--ink-muted)]">
+                    {t.usdValue > 0 ? usd(t.usdValue) : "—"}
+                    {ch != null && (
+                      <span className={`ml-1 font-bold ${ch >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                        {ch >= 0 ? "+" : ""}
+                        {ch.toFixed(1)}%
+                      </span>
+                    )}
+                  </p>
                 </div>
                 {t.hasTradeRoute && (
                   <div className="flex shrink-0 gap-1">
@@ -170,17 +161,19 @@ export default function SwapPortfolio({
                       type="button"
                       onClick={() => onSell(t.counter)}
                       title={`Sell ${t.symbol}`}
-                      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-bold text-[var(--ink-muted)] transition hover:border-red-500/40 hover:text-red-600"
+                      aria-label={`Sell ${t.symbol}`}
+                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] transition hover:border-red-500/40 hover:text-red-600"
                     >
-                      <ArrowUpRight size={11} /> Sell
+                      <ArrowUpRight size={14} aria-hidden />
                     </button>
                     <button
                       type="button"
                       onClick={() => onBuy(t.counter)}
                       title={`Buy more ${t.symbol}`}
-                      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-bold text-[var(--ink-muted)] transition hover:border-emerald-500/40 hover:text-emerald-600"
+                      aria-label={`Buy more ${t.symbol}`}
+                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] transition hover:border-emerald-500/40 hover:text-emerald-600"
                     >
-                      <ArrowDownLeft size={11} /> Buy
+                      <ArrowDownLeft size={14} aria-hidden />
                     </button>
                   </div>
                 )}

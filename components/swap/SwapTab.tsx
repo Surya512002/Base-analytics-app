@@ -13,6 +13,9 @@ import { useWalletHoldings } from "@/hooks/useWalletHoldings";
 import DexSwapCard from "@/components/swap/DexSwapCard";
 import HoldingsDrawer from "@/components/swap/HoldingsDrawer";
 import PopularChips from "@/components/swap/PopularChips";
+import RouterPanel from "@/components/swap/RouterPanel";
+import type { LaunchDex } from "@/lib/api/launchpad-client";
+import type { SwapVenue } from "@/lib/launchpad/dex";
 import SwapTokenActivity from "@/components/swap/SwapTokenActivity";
 import SwapPortfolio from "@/components/swap/SwapPortfolio";
 import SwapTokenInsight, { RecentSwapTokens } from "@/components/swap/SwapTokenInsight";
@@ -45,6 +48,8 @@ export default function SwapTab({
   const [loadingSellMetadata, setLoadingSellMetadata] = useState(false);
   const [urlAmount, setUrlAmount] = useState<string | null>(null);
   const [holdingsDrawerOpen, setHoldingsDrawerOpen] = useState(false);
+  const [dex, setDex] = useState<LaunchDex>("auto");
+  const [activeDex, setActiveDex] = useState<SwapVenue | null>(null);
 
   const { switchChain } = useSwitchChain();
   const limitOrders = useLimitOrders(app);
@@ -208,7 +213,7 @@ export default function SwapTab({
   }, [searchParams, initialToken]);
 
   return (
-    <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[480px]"}`}>
+    <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[560px] lg:max-w-6xl"}`}>
       {activeSubTab === "recurring" && (
         <TradeTabs
           current="auto-invest"
@@ -219,10 +224,12 @@ export default function SwapTab({
 
       {/* MARKET TAB: Exact original swap functionality */}
       {activeSubTab === "market" && (
-        <>
+        // Phones: swap, router, details, holdings. Computers: holdings | swap and details | router.
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[250px_minmax(0,1fr)_230px] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-4 xl:grid-cols-[290px_minmax(0,1fr)_270px]">
+          <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1">
           {/* Portfolio Summary Line above Swap Card */}
           {Boolean(app.wallet?.address) && !guestMode && (
-            <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs">
+            <div className="pop flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-xs lg:hidden">
               <button
                 type="button"
                 onClick={() => setHoldingsDrawerOpen(true)}
@@ -284,7 +291,16 @@ export default function SwapTab({
             loadingBuyMetadata={loadingBuyMetadata}
             loadingSellMetadata={loadingSellMetadata}
             initialAmount={urlAmount}
+            dex={dex}
+            onActiveDexChange={setActiveDex}
           />
+          </div>
+
+          <div className="min-w-0 lg:col-start-3 lg:row-span-2 lg:row-start-1">
+            <RouterPanel dex={dex} onChange={setDex} activeDex={activeDex} />
+          </div>
+
+          <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-2">
 
           {/* Popular Chips Row below Swap Card */}
           <PopularChips
@@ -301,7 +317,10 @@ export default function SwapTab({
           {/* Live buys / sells of the token being bought, with Share and Chart */}
           <SwapTokenActivity token={buyToken} />
 
+          </div>
+
           {/* Your holdings: one tap to sell a token or buy more of it */}
+          <aside aria-label="Your holdings" className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1">
           <SwapPortfolio
             tokens={allTokens}
             totalUsd={totalUsd}
@@ -319,6 +338,7 @@ export default function SwapTab({
             onOpenAll={() => setHoldingsDrawerOpen(true)}
             onRefresh={() => void refreshHoldings()}
           />
+          </aside>
 
           {/* Holdings Drawer */}
           <HoldingsDrawer
@@ -330,7 +350,7 @@ export default function SwapTab({
               setHoldingsDrawerOpen(false);
             }}
           />
-        </>
+        </div>
       )}
 
       {/* ORDERS TAB: Pro Order Types (Limit buy, Take-profit, Stop-loss, Trailing stop, Bracket) */}
