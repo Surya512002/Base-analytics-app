@@ -65,8 +65,8 @@ export default function MarketIntelligenceHub({
       (m) => m.symbol.toLowerCase() === selectedNavSymbol.toLowerCase()
     );
 
-    const price = liveMarket?.price || 135.25; // live price or fallback anchor
-    const change24h = liveMarket?.change24h || 1.85;
+    const price = liveMarket?.price || 0; // 0 means no live price
+    const change24h = liveMarket?.change24h || 0;
 
     return {
       symbol: fromBase?.symbol || selectedNavSymbol,
@@ -374,7 +374,7 @@ export default function MarketIntelligenceHub({
                   24/7 DEX AMM Pool Price
                 </span>
                 <span className="font-mono font-black text-base text-[var(--ink)] block tabular-nums">
-                  ${navComparison.dexPriceUsd?.toFixed(2)}
+                  {navComparison.dexPriceUsd ? `$${navComparison.dexPriceUsd.toFixed(2)}` : "—"}
                 </span>
                 <span className="text-[11px] text-[var(--ink-dim)]">Aerodrome / Uniswap on Base</span>
               </div>

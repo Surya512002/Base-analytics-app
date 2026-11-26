@@ -53,6 +53,16 @@ export default function TokenQuickView({
   const [quickAmountEth, setQuickAmountEth] = useState<string>("0.05");
   const [quickSide, setQuickSide] = useState<"buy" | "sell">("buy");
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [ethUsd, setEthUsd] = useState(0);
+  const isOpen = Boolean(token);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void fetch("/api/launchpad/eth-price", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { ethUsd?: number }) => setEthUsd(d.ethUsd ?? 0))
+      .catch(() => setEthUsd(0));
+  }, [isOpen]);
 
   useEffect(() => {
     setMounted(true);
@@ -109,8 +119,7 @@ export default function TokenQuickView({
   // Approximate token amount calculation for quick swap preview
   const estimatedTokenOutput = (() => {
     const ethAmount = parseFloat(quickAmountEth) || 0;
-    const ethPriceUsd = 2600; // estimated reference ETH price
-    const usdValue = ethAmount * ethPriceUsd;
+    const usdValue = ethAmount * ethUsd;
     if (token.priceUsd > 0 && usdValue > 0) {
       const tokens = usdValue / token.priceUsd;
       return tokens >= 1000000
@@ -119,7 +128,7 @@ export default function TokenQuickView({
         ? `${(tokens / 1000).toFixed(2)}K`
         : tokens.toFixed(2);
     }
-    return "0.00";
+    return "—";
   })();
 
   const chartEmbedUrl = `https://dexscreener.com/base/${token.pairAddress || token.address}?embed=1&theme=dark&trades=0&info=0`;

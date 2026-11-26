@@ -20,10 +20,10 @@ import {
 import { FEE_SHARE_CREATOR_BPS } from "@/lib/launchpad/fee-split";
 import LinkedAccounts from "@/components/drops/LinkedAccounts";
 
-function estimateCreatorEthFromVolume(volumeUsd: number): number {
+function estimateCreatorEthFromVolume(volumeUsd: number, ethUsd: number): number {
   const feePct = LAUNCHPAD_PLATFORM_FEE_BPS / 10000;
   const creatorPct = FEE_SHARE_CREATOR_BPS / 10000;
-  return (volumeUsd * feePct * creatorPct) / 3200;
+  return ethUsd > 0 ? (volumeUsd * feePct * creatorPct) / ethUsd : 0;
 }
 
 export default function CreatorProfilePanel({
@@ -51,6 +51,14 @@ export default function CreatorProfilePanel({
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [creatorRevenue, setCreatorRevenue] = useState<CreatorRevenueSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ethUsd, setEthUsd] = useState(0);
+
+  useEffect(() => {
+    void fetch("/api/launchpad/eth-price", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { ethUsd?: number }) => setEthUsd(d.ethUsd ?? 0))
+      .catch(() => {});
+  }, []);
 
   const creator = address.toLowerCase();
   const isOwner = connectedAddress?.toLowerCase() === creator;
@@ -90,18 +98,19 @@ export default function CreatorProfilePanel({
     if (creatorRevenue && creatorRevenue.eventCount > 0) {
       return Number(BigInt(creatorRevenue.totalShare)) / 1e18;
     }
-    return estimateCreatorEthFromVolume(stats.totalVol);
-  }, [creatorRevenue, stats.totalVol]);
+    return estimateCreatorEthFromVolume(stats.totalVol, ethUsd);
+  }, [creatorRevenue, stats.totalVol, ethUsd]);
 
   const earningsDisplay = useMemo(() => {
     if (creatorRevenue && creatorRevenue.eventCount > 0) {
       return `${estimatedEth.toFixed(4)} ETH`;
     }
     if (stats.totalVol > 0) {
+      if (!(ethUsd > 0)) return "—";
       return `~${estimatedEth.toFixed(4)} ETH`;
     }
     return "0 ETH";
-  }, [creatorRevenue, stats.totalVol, estimatedEth]);
+  }, [creatorRevenue, stats.totalVol, estimatedEth, ethUsd]);
 
   const onProfileSaved = useCallback((next: CreatorProfile) => {
     patchCreatorProfileCache(next);

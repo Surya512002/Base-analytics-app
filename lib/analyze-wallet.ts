@@ -45,6 +45,7 @@ import type {
   DayStats,
   WalletData,
 } from "@/lib/types/wallet";
+import { fetchEthUsd } from "@/lib/prices/eth-usd";
 
 export interface AnalyzeWalletOptions {
   onProgress?: (msg: string) => void;
@@ -205,16 +206,9 @@ export async function analyzeWalletAddress(
 
   const bnP = resolveBasename(address, { quick: isQuick });
 
-  const ethPriceP = fetch(
-    "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
-    { signal: AbortSignal.timeout(1200) }
-  )
-    .then((r) => r.json())
-    .catch(() => ({ ethereum: { usd: 3200 } }));
+  const ethPriceP = fetchEthUsd();
 
-  const balancesP = ethPriceP.then((d) =>
-    fetchWalletBalances(address, d?.ethereum?.usd || 3200)
-  );
+  const balancesP = ethPriceP.then((ethUsd) => fetchWalletBalances(address, ethUsd));
 
   const nftSnapshotP = fetchNftSnapshot(address, [], { quick: isQuick });
   const strkP = pub
@@ -273,7 +267,7 @@ export async function analyzeWalletAddress(
     historyBundle,
     dbStreak,
     dbLastCI,
-    ethPriceData,
+    ethUsd,
     nftSnapshot,
   ] = await Promise.all([
     bnP,
@@ -369,7 +363,6 @@ export async function analyzeWalletAddress(
   const bridgeTxCount = bridgeTxHashes.size;
   const paymasterTxCount = paymasterTxHashes.size;
 
-  const ethUSD = ethPriceData?.ethereum?.usd || 3200;
   const {
     dexTradeCount,
     dexVolumeUSD,
@@ -378,7 +371,7 @@ export async function analyzeWalletAddress(
     dexVolumeUSD30d,
     ethSwapVolumeUSD,
     totalSwapVolumeUSD,
-  } = await computeSwapVolume(allTxs, addrLow, ethUSD, { quick: isQuick });
+  } = await computeSwapVolume(allTxs, addrLow, ethUsd, { quick: isQuick });
 
   const ethFlow = computeEthFlowVolumes(allTxs, addrLow, countsTowardActivity);
   const ethVol = ethFlow.ethSent;

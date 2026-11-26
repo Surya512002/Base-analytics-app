@@ -4,6 +4,7 @@ import { fetchMarketSummaries } from "@/lib/launchpad/dexscreener";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/api/rate-limit";
 import { type Address } from "viem";
+import { fetchEthUsd } from "@/lib/prices/eth-usd";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,20 +52,6 @@ export type GlobalActivityItem = {
   timestamp: number;
   label: string;
 };
-
-async function fetchEthUsd(): Promise<number> {
-  try {
-    const r = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
-      { next: { revalidate: 60 } }
-    );
-    if (!r.ok) return 2500;
-    const data = (await r.json()) as { ethereum?: { usd?: number } };
-    return data.ethereum?.usd ?? 2500;
-  } catch {
-    return 2500;
-  }
-}
 
 export async function GET(req: Request) {
   const ip = getClientIp(req);
@@ -152,6 +139,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ activities: sorted, ethUsd });
   } catch (e) {
     console.error("[launchpad/activity]", e);
-    return NextResponse.json({ activities: [], ethUsd: 2500 });
+    return NextResponse.json({ activities: [], ethUsd: 0 });
   }
 }
