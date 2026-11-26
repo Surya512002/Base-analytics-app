@@ -53,6 +53,8 @@ export async function quoteLaunchSwap(params: {
   quoteToken?: Address;
   /** When true, try Aerodrome WETH↔USDC↔token if direct WETH pool is empty. */
   allowUsdcHop?: boolean;
+  /** Stocks: price the Slipstream WETH → USDC → token route even when a direct pool exists. */
+  compareViaUsdc?: boolean;
 }): Promise<DexQuoteResult> {
   const quoteToken = params.quoteToken ?? (WETH_BASE as Address);
   const tokenIn = params.direction === "buy" ? quoteToken : params.token;
@@ -69,10 +71,18 @@ export async function quoteLaunchSwap(params: {
     return quoteSlipstreamExactIn(tokenIn, tokenOut, params.amountIn);
   };
 
-  const [uni, aero, slip] = await Promise.all([
+  const noViaUsdc = { amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_SWAP_ROUTER };
+  // Stocks only pair with USDC; ETH ↔ stock goes WETH → USDC → stock in one Slipstream call.
+  const viaUsdc = () =>
+    params.allowUsdcHop !== false
+      ? quoteSlipstreamV2ViaUsdc(tokenIn, tokenOut, params.amountIn).catch(() => noViaUsdc)
+      : Promise.resolve(noViaUsdc);
+  const [uni, aero, slip, stockHop] = await Promise.all([
     quoteSwapExactIn(tokenIn, tokenOut, params.amountIn),
     quoteAerodromeExactIn(tokenIn, tokenOut, params.amountIn),
     quoteSlipstreamExactIn(tokenIn, tokenOut, params.amountIn),
+    // So a thin direct pool cannot win just because it is direct.
+    params.compareViaUsdc && (!params.dex || params.dex === "auto" || params.dex === "o1") ? viaUsdc() : null,
   ]);
 
   const routers: Record<Exclude<SwapVenue, "aggregator" | "o1">, `0x${string}`> = {
@@ -151,8 +161,7 @@ export async function quoteLaunchSwap(params: {
     return pick(pref);
   }
 
-  // Auto mode: compare the direct pools with the two-pool routes. A thin direct pool must not
-  // win just because it is direct.
+  // Auto mode: the direct pools and the Slipstream two-step route
   const candidates: Array<{
     dex: "uniswap" | "aerodrome" | "slipstream";
     out: bigint;
@@ -163,8 +172,10 @@ export async function quoteLaunchSwap(params: {
     { dex: "slipstream" as const, out: slip.hasLiquidity ? slip.amountOut : BigInt(0) },
   ].filter((c) => c.out > BigInt(0));
 
-  // Multi-hop routing through USDC or WETH
-  if (params.allowUsdcHop !== false) {
+  let slipUsdcHop = stockHop ?? noViaUsdc;
+
+  // Two-step routes are slow to look up: otherwise only when no direct pool exists
+  if (candidates.length === 0 && params.allowUsdcHop !== false) {
     const isUsdcMid =
       tokenIn.toLowerCase() !== USDC_BASE.toLowerCase() &&
       tokenOut.toLowerCase() !== USDC_BASE.toLowerCase();
@@ -172,15 +183,15 @@ export async function quoteLaunchSwap(params: {
       tokenIn.toLowerCase() !== WETH_BASE.toLowerCase() &&
       tokenOut.toLowerCase() !== WETH_BASE.toLowerCase();
 
-    const [aeroHop, uniUsdcHop, uniWethHop, slipUsdcHop] = await Promise.all([
-      quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, hops: [] as AerodromeHop[] })),
+    const [aeroHop, uniUsdcHop, uniWethHop, fallbackHop] = await Promise.all([
+      quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn),
       isUsdcMid
         ? quoteUniswapMultiHop({
             tokenIn,
             intermediateToken: USDC_BASE as Address,
             tokenOut,
             amountIn: params.amountIn,
-          }).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, path: null as Hex | null, fee1: 500, fee2: 3000 }))
+          })
         : Promise.resolve({
             amountOut: BigInt(0),
             hasLiquidity: false,
@@ -194,7 +205,7 @@ export async function quoteLaunchSwap(params: {
             intermediateToken: WETH_BASE as Address,
             tokenOut,
             amountIn: params.amountIn,
-          }).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, path: null as Hex | null, fee1: 500, fee2: 3000 }))
+          })
         : Promise.resolve({
             amountOut: BigInt(0),
             hasLiquidity: false,
@@ -202,11 +213,9 @@ export async function quoteLaunchSwap(params: {
             fee1: 500,
             fee2: 3000,
           }),
-      // Stocks only pair with USDC; ETH ↔ stock goes WETH → USDC → stock in one Slipstream call.
-      isUsdcMid
-        ? quoteSlipstreamV2ViaUsdc(tokenIn, tokenOut, params.amountIn).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_SWAP_ROUTER }))
-        : Promise.resolve({ amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_SWAP_ROUTER }),
+      stockHop ?? viaUsdc(),
     ]);
+    slipUsdcHop = fallbackHop;
 
     if (uniUsdcHop.hasLiquidity && uniUsdcHop.path) {
       candidates.push({
@@ -247,23 +256,23 @@ export async function quoteLaunchSwap(params: {
         },
       });
     }
+  }
 
-    if (slipUsdcHop.hasLiquidity && slipUsdcHop.path) {
-      candidates.push({
-        dex: "slipstream",
-        out: slipUsdcHop.amountOut,
-        extras: {
-          slipstreamPath: slipUsdcHop.path,
-          router: slipUsdcHop.router,
-          amountOut: slipUsdcHop.amountOut,
-          hasLiquidity: true,
-        },
-      });
-    }
+  if (slipUsdcHop.hasLiquidity && slipUsdcHop.path) {
+    candidates.push({
+      dex: "slipstream",
+      out: slipUsdcHop.amountOut,
+      extras: {
+        slipstreamPath: slipUsdcHop.path,
+        router: slipUsdcHop.router,
+        amountOut: slipUsdcHop.amountOut,
+        hasLiquidity: true,
+      },
+    });
   }
 
   if (candidates.length > 0) {
-    // Stable sort: on equal output the direct pool (listed first) wins.
+    // Stable sort: on equal output the route listed first (direct) wins.
     candidates.sort((a, b) => (b.out > a.out ? 1 : b.out < a.out ? -1 : 0));
     const best = candidates[0]!;
     return pick(best.dex, best.extras);

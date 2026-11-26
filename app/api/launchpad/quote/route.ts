@@ -280,6 +280,7 @@ export async function GET(req: Request) {
         dex,
         quoteToken,
         allowUsdcHop: !isUsdcLeg,
+        compareViaUsdc: isStock,
       });
     }
 
