@@ -5,10 +5,11 @@ import {
   WETH_BASE,
   applySlippage,
   quoteUniswapFeeTier,
+  quoteUniswapMultiHop,
 } from "@/lib/launchpad/uniswap";
 import { USDC_BASE } from "@/lib/launchpad/tokens-base";
 import { quoteAerodromeRoute } from "@/lib/launchpad/aerodrome";
-import { quoteSlipstreamTickSpacing } from "@/lib/launchpad/slipstream";
+import { quoteSlipstreamTickSpacing, quoteSlipstreamV2ViaUsdc } from "@/lib/launchpad/slipstream";
 import {
   estimatePriceImpactBps,
   type MarginalProbe,
@@ -21,8 +22,6 @@ import {
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { sanitizeTokenAmountInput } from "@/lib/launchpad/token-amount";
 import { quoteLaunchSwap, type LaunchDex } from "@/lib/launchpad/dex";
-import { fetchDexScreenerBatch } from "@/lib/launchpad/dexscreener";
-import { inferPreferredDex, pickRoutingPair } from "@/lib/launchpad/routing-pairs";
 import {
   fetchZeroXPrice,
   fetchZeroXQuote,
@@ -270,10 +269,6 @@ export async function GET(req: Request) {
 
     let directQuote: Awaited<ReturnType<typeof quoteLaunchSwap>> | null = null;
     if (legs.canUseDirectDex) {
-      const pairBatch = await fetchDexScreenerBatch([token]);
-      const routing = pickRoutingPair(pairBatch.get(token) ?? [], token);
-      const venueHint = inferPreferredDex(routing?.dexId);
-      const quoteDex: LaunchDex = dex !== "auto" ? dex : venueHint ?? "auto";
       const isUsdcLeg = legs.payAsset === "usdc" || legs.receiveAsset === "usdc";
       const quoteToken = isUsdcLeg ? (USDC_BASE as Address) : (WETH_BASE as Address);
 
@@ -282,23 +277,10 @@ export async function GET(req: Request) {
         direction,
         amountIn,
         slippageBps: effectiveSlippageBps,
-        dex: quoteDex,
+        dex,
         quoteToken,
         allowUsdcHop: !isUsdcLeg,
       });
-      // The DexScreener venue is only a hint. When it has no pool for this leg (e.g. stocks hinted
-      // to Uniswap while their USDC liquidity is on Slipstream), compare every venue instead.
-      if (!directQuote.hasLiquidity && dex === "auto" && quoteDex !== "auto") {
-        directQuote = await quoteLaunchSwap({
-          token: tokenAddr,
-          direction,
-          amountIn,
-          slippageBps: effectiveSlippageBps,
-          dex: "auto",
-          quoteToken,
-          allowUsdcHop: !isUsdcLeg,
-        });
-      }
     }
 
     const aggQuote = await tryAggregatorQuote({
@@ -470,6 +452,13 @@ export async function GET(req: Request) {
       const dirIn = direction === "buy" ? quoteAsset : tokenAddr;
       const dirOut = direction === "buy" ? tokenAddr : quoteAsset;
 
+      if (route.dex === "uniswap" && directQuote?.uniswapPath) {
+        return async (probeIn) =>
+          (await quoteUniswapMultiHop({ tokenIn: dirIn, intermediateToken: USDC_BASE as Address, tokenOut: dirOut, amountIn: probeIn })).amountOut;
+      }
+      if (route.dex === "slipstream" && directQuote?.slipstreamPath) {
+        return async (probeIn) => (await quoteSlipstreamV2ViaUsdc(dirIn, dirOut, probeIn)).amountOut;
+      }
       if (route.dex === "uniswap" && directQuote?.uniswapFeeTier) {
         const fee = directQuote.uniswapFeeTier;
         return (probeIn) => quoteUniswapFeeTier(dirIn, dirOut, probeIn, fee);

@@ -151,19 +151,19 @@ export async function quoteLaunchSwap(params: {
     return pick(pref);
   }
 
-  // Auto mode: check direct pairs first
-  const candidates = [
+  // Auto mode: compare the direct pools with the two-pool routes. A thin direct pool must not
+  // win just because it is direct.
+  const candidates: Array<{
+    dex: "uniswap" | "aerodrome" | "slipstream";
+    out: bigint;
+    extras?: Parameters<typeof pick>[1];
+  }> = [
     { dex: "uniswap" as const, out: uni.hasLiquidity ? uni.amountOut : BigInt(0) },
     { dex: "aerodrome" as const, out: aero.hasLiquidity ? aero.amountOut : BigInt(0) },
     { dex: "slipstream" as const, out: slip.hasLiquidity ? slip.amountOut : BigInt(0) },
   ].filter((c) => c.out > BigInt(0));
 
-  if (candidates.length > 0) {
-    candidates.sort((a, b) => (b.out > a.out ? 1 : b.out < a.out ? -1 : 0));
-    return pick(candidates[0]!.dex);
-  }
-
-  // Multi-hop routing through USDC or WETH if direct pair has no liquidity
+  // Multi-hop routing through USDC or WETH
   if (params.allowUsdcHop !== false) {
     const isUsdcMid =
       tokenIn.toLowerCase() !== USDC_BASE.toLowerCase() &&
@@ -173,14 +173,14 @@ export async function quoteLaunchSwap(params: {
       tokenOut.toLowerCase() !== WETH_BASE.toLowerCase();
 
     const [aeroHop, uniUsdcHop, uniWethHop, slipUsdcHop] = await Promise.all([
-      quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn),
+      quoteAerodromeUsdcHop(tokenIn, tokenOut, params.amountIn).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, hops: [] as AerodromeHop[] })),
       isUsdcMid
         ? quoteUniswapMultiHop({
             tokenIn,
             intermediateToken: USDC_BASE as Address,
             tokenOut,
             amountIn: params.amountIn,
-          })
+          }).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, path: null as Hex | null, fee1: 500, fee2: 3000 }))
         : Promise.resolve({
             amountOut: BigInt(0),
             hasLiquidity: false,
@@ -194,7 +194,7 @@ export async function quoteLaunchSwap(params: {
             intermediateToken: WETH_BASE as Address,
             tokenOut,
             amountIn: params.amountIn,
-          })
+          }).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, path: null as Hex | null, fee1: 500, fee2: 3000 }))
         : Promise.resolve({
             amountOut: BigInt(0),
             hasLiquidity: false,
@@ -204,18 +204,12 @@ export async function quoteLaunchSwap(params: {
           }),
       // Stocks only pair with USDC; ETH ↔ stock goes WETH → USDC → stock in one Slipstream call.
       isUsdcMid
-        ? quoteSlipstreamV2ViaUsdc(tokenIn, tokenOut, params.amountIn)
+        ? quoteSlipstreamV2ViaUsdc(tokenIn, tokenOut, params.amountIn).catch(() => ({ amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_SWAP_ROUTER }))
         : Promise.resolve({ amountOut: BigInt(0), hasLiquidity: false, path: null, router: SLIPSTREAM_SWAP_ROUTER }),
     ]);
 
-    const multiCandidates: Array<{
-      dex: "uniswap" | "aerodrome" | "slipstream";
-      out: bigint;
-      extras: Parameters<typeof pick>[1];
-    }> = [];
-
     if (uniUsdcHop.hasLiquidity && uniUsdcHop.path) {
-      multiCandidates.push({
+      candidates.push({
         dex: "uniswap",
         out: uniUsdcHop.amountOut,
         extras: {
@@ -229,7 +223,7 @@ export async function quoteLaunchSwap(params: {
     }
 
     if (uniWethHop.hasLiquidity && uniWethHop.path) {
-      multiCandidates.push({
+      candidates.push({
         dex: "uniswap",
         out: uniWethHop.amountOut,
         extras: {
@@ -243,7 +237,7 @@ export async function quoteLaunchSwap(params: {
     }
 
     if (aeroHop.hasLiquidity) {
-      multiCandidates.push({
+      candidates.push({
         dex: "aerodrome",
         out: aeroHop.amountOut,
         extras: {
@@ -255,7 +249,7 @@ export async function quoteLaunchSwap(params: {
     }
 
     if (slipUsdcHop.hasLiquidity && slipUsdcHop.path) {
-      multiCandidates.push({
+      candidates.push({
         dex: "slipstream",
         out: slipUsdcHop.amountOut,
         extras: {
@@ -266,12 +260,13 @@ export async function quoteLaunchSwap(params: {
         },
       });
     }
+  }
 
-    if (multiCandidates.length > 0) {
-      multiCandidates.sort((a, b) => (b.out > a.out ? 1 : b.out < a.out ? -1 : 0));
-      const best = multiCandidates[0]!;
-      return pick(best.dex, best.extras);
-    }
+  if (candidates.length > 0) {
+    // Stable sort: on equal output the direct pool (listed first) wins.
+    candidates.sort((a, b) => (b.out > a.out ? 1 : b.out < a.out ? -1 : 0));
+    const best = candidates[0]!;
+    return pick(best.dex, best.extras);
   }
 
   return {

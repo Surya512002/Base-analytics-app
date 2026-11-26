@@ -6,7 +6,7 @@ import { buildContractCall, type ContractCall } from "@/lib/utils/tx";
 
 /** Uniswap V3 NonfungiblePositionManager on Base. */
 export const UNISWAP_NPM =
-  "0x03a520b32C04e3bEEf1BEEB66a447cdf628e634" as const;
+  "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1" as const;
 
 export const UNISWAP_V3_SEED_FEE = 3000;
 
@@ -58,6 +58,13 @@ const NPM_ABI = [
     ],
   },
   {
+    name: "refundETH",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [],
+    outputs: [],
+  },
+  {
     name: "multicall",
     type: "function",
     stateMutability: "payable",
@@ -104,6 +111,8 @@ export function buildUniswapV3SeedCalls(params: {
   tokenAmount: bigint;
   ethAmount: bigint;
   fee?: number;
+  /** The pool is expected not to exist yet: fail rather than deposit at anyone else's price. */
+  newPool?: boolean;
 }): ContractCall[] {
   const weth = WETH_BASE as Address;
   const [token0, token1] = sortTokenPair(weth, params.token);
@@ -134,8 +143,8 @@ export function buildUniswapV3SeedCalls(params: {
         tickUpper: TICK_UPPER,
         amount0Desired: amount0,
         amount1Desired: amount1,
-        amount0Min: BigInt(0),
-        amount1Min: BigInt(0),
+        amount0Min: params.newPool ? (amount0 * BigInt(99)) / BigInt(100) : BigInt(0),
+        amount1Min: params.newPool ? (amount1 * BigInt(99)) / BigInt(100) : BigInt(0),
         recipient: params.creator,
         deadline: liquidityDeadline(),
       },
@@ -145,7 +154,8 @@ export function buildUniswapV3SeedCalls(params: {
   const multicall: Hex = encodeFunctionData({
     abi: NPM_ABI,
     functionName: "multicall",
-    args: [[createPool, mint]],
+    // The manager keeps ETH it did not use, and anyone could then take it.
+    args: [[createPool, mint, encodeFunctionData({ abi: NPM_ABI, functionName: "refundETH" })]],
   });
 
   return [

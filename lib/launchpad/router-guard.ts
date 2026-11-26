@@ -3,7 +3,6 @@ import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { SWAP_ROUTER_02 } from "@/lib/launchpad/uniswap";
 import { AERODROME_ROUTER } from "@/lib/launchpad/aerodrome";
 import { SLIPSTREAM_SWAP_ROUTER, SLIPSTREAM_V2_ROUTER } from "@/lib/launchpad/slipstream";
-import { O1_TRADING_ROUTER_BASE } from "@/lib/trading/o1-api";
 import { ZEROX_ALLOWANCE_HOLDER } from "@/lib/utils/tx";
 
 /**
@@ -38,7 +37,7 @@ export async function routerHasCode(router: Address): Promise<boolean> {
  * attacker. Add a router only after checking its address on BaseScan.
  */
 const TRUSTED_SWAP_TARGETS = new Set(
-  [SWAP_ROUTER_02, AERODROME_ROUTER, SLIPSTREAM_SWAP_ROUTER, SLIPSTREAM_V2_ROUTER, ZEROX_ALLOWANCE_HOLDER, O1_TRADING_ROUTER_BASE].map(
+  [SWAP_ROUTER_02, AERODROME_ROUTER, SLIPSTREAM_SWAP_ROUTER, SLIPSTREAM_V2_ROUTER, ZEROX_ALLOWANCE_HOLDER].map(
     (a) => a.toLowerCase()
   )
 );
