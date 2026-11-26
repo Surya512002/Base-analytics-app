@@ -22,7 +22,7 @@ import {
 import { FEATURES } from "@/lib/constants/features";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
 import type { GaugeRowData } from "./GaugesTable";
-import type { AssetMarketRow } from "./MarketsTable";
+import type { AssetMarketRow } from "@/lib/lending/asset-row";
 import {
   determineYieldRiskTier,
   filterAndSortYieldPools,

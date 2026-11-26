@@ -138,6 +138,9 @@ test.describe("Core App User Flows", () => {
 
   test("10. Yield Finder: renders multi-protocol scanner and risk tier filters on Lend", async ({ page }) => {
     await page.goto("/?tab=lend");
+    const compare = page.getByRole("link", { name: /compare rates/i }).first();
+    await expect(compare).toBeVisible({ timeout: 15_000 });
+    await compare.click();
     const scannerTab = page.getByRole("tab", { name: /yield scanner/i }).first();
     await expect(scannerTab).toBeVisible({ timeout: 15_000 });
     await scannerTab.click();

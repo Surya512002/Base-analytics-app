@@ -1,47 +1,34 @@
 "use client";
 
 import React from "react";
-import { Compass, ArrowLeftRight, BadgeCheck } from "lucide-react";
-import { LayoutGrid } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeftRight, Compass } from "lucide-react";
 import PlaceTabs, { AccountTabs } from "@/components/shell/PlaceTabs";
 
-type Tab = { id: LendingViewTab; label: string; icon: React.ElementType; countBadge?: string };
-
 export type LendingViewTab = "markets" | "stocks" | "portfolio" | "vaults" | "finder" | "compare";
+
+const COMPARE_VIEWS = [
+  { id: "compare", label: "Protocols side by side", icon: ArrowLeftRight },
+  { id: "finder", label: "Yield scanner", icon: Compass },
+] as const;
 
 interface LendingViewTabsProps {
   value: LendingViewTab;
   onChange: (tab: LendingViewTab) => void;
-  stocksCount?: number;
   vaultsCount?: number;
-  marketsCount?: number;
 }
 
-export default function LendingViewTabs({
-  value,
-  onChange,
-  stocksCount = 12,
-  vaultsCount,
-  marketsCount,
-}: LendingViewTabsProps) {
-  // Two switches. The ways of looking at lending markets sit in a second row under the first one.
-  const marketViews: Tab[] = [
-    { id: "markets", label: "By stock", icon: BadgeCheck, countBadge: marketsCount && marketsCount > 0 ? `${marketsCount} verified` : undefined },
-    { id: "stocks", label: "All stocks", icon: LayoutGrid, countBadge: stocksCount > 0 ? stocksCount.toString() : undefined },
-    { id: "finder", label: "Yield scanner", icon: Compass },
-    { id: "compare", label: "Compare rates", icon: ArrowLeftRight },
-  ];
-  const inMarkets = marketViews.some((t) => t.id === value);
+export default function LendingViewTabs({ value, onChange, vaultsCount }: LendingViewTabsProps) {
+  if (value === "portfolio") return <AccountTabs current="holdings" />;
+  const comparing = value === "compare" || value === "finder";
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-2">
-      {value === "portfolio" ? (
-        <AccountTabs current="holdings" />
-      ) : (
-        <div className="w-full sm:max-w-[420px]">
+      <div className="flex w-full items-center gap-2 sm:max-w-[600px]">
+        <div className="min-w-0 flex-1">
           <PlaceTabs
             label="Earn"
-            current={inMarkets ? "lend" : "vaults"}
+            current={comparing ? "compare" : value === "vaults" ? "vaults" : "lend"}
             onSelect={(id) => onChange(id === "vaults" ? "vaults" : "markets")}
             items={[
               { id: "lend", label: "Lend and borrow", href: "/lend" },
@@ -49,11 +36,20 @@ export default function LendingViewTabs({
             ]}
           />
         </div>
-      )}
+        <Link
+          href="/lend?view=compare"
+          scroll={false}
+          aria-current={comparing ? "page" : undefined}
+          onClick={() => onChange("compare")}
+          className="place-tabs-extra"
+        >
+          <ArrowLeftRight size={18} aria-hidden /> <span className="max-sm:sr-only">Compare rates</span>
+        </Link>
+      </div>
 
-      {inMarkets && (
-        <div className="flex w-full gap-1.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Market views">
-          {marketViews.map((tab) => (
+      {comparing && (
+        <div className="flex w-full gap-1.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Ways to compare">
+          {COMPARE_VIEWS.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -68,7 +64,6 @@ export default function LendingViewTabs({
             >
               <tab.icon size={13} aria-hidden />
               {tab.label}
-              {tab.countBadge && <span className="font-mono text-[11px] opacity-70">{tab.countBadge}</span>}
             </button>
           ))}
         </div>

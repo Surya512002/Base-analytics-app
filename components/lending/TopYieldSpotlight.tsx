@@ -5,7 +5,7 @@ import { Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react";
 import { formatUsd } from "@/lib/launchpad/format";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
 import { classifyStockMarket } from "@/lib/lending/stock-market-groups";
-import type { AssetMarketRow } from "./MarketsTable";
+import type { AssetMarketRow } from "@/lib/lending/asset-row";
 
 export interface YieldOptionTarget {
   protocol: string;

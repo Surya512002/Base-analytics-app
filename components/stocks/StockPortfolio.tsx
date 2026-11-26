@@ -18,7 +18,7 @@ import {
   validateTargets,
   type Targets,
 } from "@/lib/stocks/portfolio-math";
-import type { AssetMarketRow } from "@/components/lending/MarketsTable";
+import type { AssetMarketRow } from "@/lib/lending/asset-row";
 import { signedPct, useStockReturns } from "@/hooks/useStockReturns";
 import { MAX_UNATTENDED_SHORTFALL_PCT, fairFloor } from "@/lib/swap/price-guard";
 

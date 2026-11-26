@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AssetMarketRow } from "@/components/lending/MarketsTable";
+import type { AssetMarketRow } from "@/lib/lending/asset-row";
 
 describe("MarketsTable Protocol-specific Yield and Filtering", () => {
   const mockRows: AssetMarketRow[] = [

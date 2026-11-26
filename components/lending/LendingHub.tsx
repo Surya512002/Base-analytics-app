@@ -29,7 +29,7 @@ import {
 } from "@/lib/lending/user-positions";
 import { getEip1193Provider } from "@/app/connection";
 import { ensureBaseNetwork } from "@/lib/utils/wallet-connection";
-import MarketsTable, { type AssetMarketRow, type ProtocolRateInfo } from "./MarketsTable";
+import type { AssetMarketRow, ProtocolRateInfo } from "@/lib/lending/asset-row";
 import GaugesTable, { type GaugeRowData } from "./GaugesTable";
 import AssetDetailView from "./AssetDetailView";
 import ProtocolCompareHub from "./ProtocolCompareHub";
@@ -54,6 +54,8 @@ interface LendingHubProps {
   initialStock?: string;
 }
 
+const LINKABLE_VIEWS = ["vaults", "finder", "compare", "stocks", "portfolio", "markets"] as const;
+
 export default function LendingHub({
   app,
   guestMode: _guestMode = false,
@@ -64,28 +66,24 @@ export default function LendingHub({
   const userAddress = wallet?.address ?? null;
   const isConnected = !!userAddress;
 
-  // Level & Navigation state
-  const [activeTab, setActiveTab] = useState<LendingViewTab>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const v = params.get("view");
-      if (v === "finder" || v === "vaults" || v === "compare" || v === "stocks" || v === "markets" || v === "portfolio") {
-        return v;
-      }
-    }
-    // A stock deep link (initialStock) opens its detail in the All Stocks view.
-    return initialStock ? "stocks" : "markets";
-  });
-  const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(initialStock ?? null);
+  // Level & Navigation state. The router's own search params are read, not window.location, which
+  // still holds the previous address while a link from another page is opening this one.
+  const viewParam = useSearchParams()?.get("view");
+  // /lend?stock=NVDAc (the Earn link in a stock's details) opens that stock's comparison.
+  const stockParam = useSearchParams()?.get("stock");
+  const linkedStock = initialStock ?? stockParam ?? null;
+  const [activeTab, setActiveTab] = useState<LendingViewTab>(
+    () => LINKABLE_VIEWS.find((v) => v === viewParam) ?? (linkedStock ? "stocks" : "markets")
+  );
+  const [selectedStockSymbol, setSelectedStockSymbol] = useState<string | null>(linkedStock);
 
   // A menu link such as "My Stocks" can arrive while this page is already open.
-  const viewParam = useSearchParams()?.get("view");
   const lastViewParam = useRef(viewParam);
   useEffect(() => {
     const changed = lastViewParam.current !== viewParam;
     lastViewParam.current = viewParam;
     if (!changed && viewParam !== "portfolio") return;
-    const view = (["vaults", "finder", "compare", "stocks", "portfolio"] as const).find((v) => v === viewParam) ?? "markets";
+    const view = LINKABLE_VIEWS.find((v) => v === viewParam) ?? "markets";
     setActiveTab(view);
     setSelectedStockSymbol(null);
     if (view !== "portfolio") return;
@@ -956,9 +954,7 @@ export default function LendingHub({
             setActiveTab(newTab);
             setSelectedStockSymbol(null);
           }}
-          stocksCount={BASE_STOCKS.length}
           vaultsCount={gaugeRows.length}
-          marketsCount={discoveredMarkets.length}
         />
       </div>
 
@@ -966,19 +962,7 @@ export default function LendingHub({
       {positionsFirst && activeTab === "portfolio" && positionsPanel}
 
       {/* 5. ACTIVE SHOWCASE VIEW */}
-      {activeTab === "markets" ? (
-        /* VERIFIED STOCK MARKETS: one row per stock, compare, calculator */
-        <StockMarketsExplorer
-          markets={discoveredMarkets}
-          loading={isLoadingDiscovered}
-          onAction={handleExplorerAction}
-          onSmart={(t) => {
-            const next = t.mode === "get" ? t.onContinue : undefined;
-            // "Continue" closes this drawer, then opens the market's own drawer.
-            setSmartTarget(t.mode === "get" && next ? { ...t, onContinue: () => (setSmartTarget(null), next()) } : t);
-          }}
-        />
-      ) : activeTab === "portfolio" ? (
+      {activeTab === "portfolio" ? (
         /* MY STOCKS: holdings as one portfolio, target mix, rebalance, earn per stock */
         <div className="space-y-4">
           {userAddress && isLimitOrdersFeatureEnabled() && <AutomationStrip app={app} />}
@@ -1070,7 +1054,7 @@ export default function LendingHub({
           }}
           onRequestConnect={onRequestConnect}
         />
-      ) : selectedStockSymbol && comparison ? (
+      ) : activeTab === "stocks" && selectedStockSymbol && comparison ? (
         /* LEVEL 2: ASSET DETAIL VIEW */
         <AssetDetailView
           comparison={comparison}
@@ -1086,19 +1070,26 @@ export default function LendingHub({
           isRefreshing={isRefreshing || isLoadingComparison}
         />
       ) : (
-        /* LEVEL 1: MARKETS OVERVIEW (Sortable Virtualized Table) */
-        <MarketsTable
+        /* STOCKS: one searchable list; a row opens its markets, or the full comparison */
+        <StockMarketsExplorer
+          markets={discoveredMarkets}
           rows={allMarketsRows}
-          selectedSymbol={selectedStockSymbol}
-          onSelectAsset={(symbol) => setSelectedStockSymbol(symbol)}
-          isConnected={isConnected}
-          onRequestConnect={onRequestConnect}
           loading={isLoadingBalances || isLoadingDiscovered}
+          isConnected={isConnected}
           showAllStocks={showAllStocks}
           onToggleShowAllStocks={setShowAllStocks}
           protocolErrors={protocolErrors}
           onRetryProtocol={() => fetchDiscoveredMarkets(true)}
-          secondsAgo={secondsAgo}
+          onOpenStock={(symbol) => {
+            setActiveTab("stocks");
+            setSelectedStockSymbol(symbol);
+          }}
+          onAction={handleExplorerAction}
+          onSmart={(t) => {
+            const next = t.mode === "get" ? t.onContinue : undefined;
+            // "Continue" closes this drawer, then opens the market's own drawer.
+            setSmartTarget(t.mode === "get" && next ? { ...t, onContinue: () => (setSmartTarget(null), next()) } : t);
+          }}
         />
       )}
 
