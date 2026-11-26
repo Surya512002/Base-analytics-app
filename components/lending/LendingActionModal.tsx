@@ -423,7 +423,7 @@ export default function LendingActionModal({
                 }}
                 aria-pressed={action === act}
                 className={`flex-1 cursor-pointer rounded-full py-2 text-xs font-bold capitalize transition-all ${
-                  action === act ? "bg-white text-[#4a2170] shadow-sm" : "text-white/85 hover:text-white"
+                  action === act ? "bg-white text-[#0041CC] shadow-sm" : "text-white/85 hover:text-white"
                 }`}
               >
                 {act}

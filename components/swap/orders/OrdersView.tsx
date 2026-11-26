@@ -488,7 +488,7 @@ export default function OrdersView({
       {/* Beta badge & Paused / Region alert banners */}
       <div className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border-subtle)]">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-500 text-white uppercase tracking-wider">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-[var(--brand)] text-white uppercase tracking-wider">
             Beta
           </span>
           <span className="text-[var(--ink-muted)]">

@@ -63,7 +63,7 @@ export default function AppFooterNav() {
               href="https://github.com/Surya512002/Base-analytics-app"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+              className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)] hover:text-[var(--brand-text)] transition-colors"
             >
               <Github size={14} className="text-[var(--ink-muted)]" />
               <span>Verify Open Source on GitHub</span>

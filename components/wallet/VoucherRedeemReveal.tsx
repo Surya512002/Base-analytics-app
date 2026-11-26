@@ -153,7 +153,7 @@ export default function VoucherRedeemReveal({
           <div className={`voucher-flip-card ${isOpen ? "voucher-flip-card-open" : ""}`}>
             <div className="voucher-flip-face voucher-flip-front">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_0%,rgba(255,77,122,0.35),transparent_55%)]" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(91,42,134,0.28),transparent_50%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(0,82,255,0.28),transparent_50%)]" />
               <div className="relative h-full flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-5">
                   <Gift size={32} className="text-rose-300" />
@@ -173,7 +173,7 @@ export default function VoucherRedeemReveal({
 
             <div className="voucher-flip-face voucher-flip-inside">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(16,185,129,0.25),transparent_55%)]" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_80%,rgba(91,42,134,0.2),transparent_45%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_80%,rgba(0,82,255,0.2),transparent_45%)]" />
               <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-emerald-400/50 to-transparent" />
 
               <div className="relative h-full flex flex-col p-6 sm:p-8">

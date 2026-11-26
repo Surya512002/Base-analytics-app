@@ -37,7 +37,7 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     { name: "Desktop (1280px)", width: 1280, height: 900 },
     { name: "Mobile (360px - iPhone SE)", width: 360, height: 740 },
   ]) {
-    test(`${size.name}: Swap offers auto-invest and sends limit orders to Trade, with no sideways scroll`, async ({ page }) => {
+    test(`${size.name}: Trade offers limit orders and auto-invest, Swap stands alone, no sideways scroll`, async ({ page }) => {
       await page.setViewportSize({ width: size.width, height: size.height });
       const consoleErrors: string[] = [];
       page.on("console", (msg) => {
@@ -49,6 +49,8 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
         expect(consoleErrors.filter((e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught"))).toHaveLength(0);
 
       await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await expect(page.locator(".place-tabs")).toHaveCount(0);
+      await page.goto(`${BASE}/trade?ticket=orders`, { waitUntil: "domcontentloaded", timeout: 30000 });
       const ordersLink = page.locator('.place-tabs a:has-text("Limit and stop")').first();
       if (!(await ordersLink.isVisible({ timeout: 3000 }).catch(() => false))) {
         // Orders feature flag is off in this environment: the plain swap page must still fit.
@@ -82,7 +84,7 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
 
   test("an old recurring chart link opens the auto-invest form for that stock", async ({ page }) => {
     const nvda = "0xb20000000000000000000078ee7ce2fe4908108c";
-    await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(`${BASE}/trade`, { waitUntil: "domcontentloaded", timeout: 30000 });
     const switcher = page.locator('.place-tabs a:has-text("Auto-invest")');
     const enabled = await switcher.waitFor({ timeout: 10000 }).then(() => true, () => false);
     test.skip(!enabled, "Orders feature flag is off in this build");

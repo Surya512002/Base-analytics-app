@@ -284,7 +284,7 @@ export default function PayLinkPage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Share2 size={13} className="text-[var(--brand)]" />
+                    <Share2 size={13} className="text-[var(--brand-text)]" />
                     Share Your Personal Pay Link
                   </p>
                   <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
@@ -433,7 +433,7 @@ export default function PayLinkPage() {
                   disabled
                   className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink-muted)] cursor-not-allowed opacity-80"
                 >
-                  <ShieldCheck size={16} className="text-[var(--brand)]" />
+                  <ShieldCheck size={16} className="text-[var(--brand-text)]" />
                   <span>Self-Payment Disabled (You are the recipient)</span>
                 </button>
                 <p className="text-center text-[11px] text-[var(--ink-muted)]">
@@ -444,7 +444,7 @@ export default function PayLinkPage() {
                       app.handleDisconnect();
                       setShowModal(true);
                     }}
-                    className="font-bold text-[var(--brand)] dark:text-[#8e5fc4] hover:underline cursor-pointer"
+                    className="font-bold text-[var(--brand-text)] dark:text-[#3D7BFF] hover:underline cursor-pointer"
                   >
                     Connect a different wallet
                   </button>

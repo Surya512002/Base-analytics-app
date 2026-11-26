@@ -794,7 +794,7 @@ export default function DexSwapCard({
                 title={`Auto-refreshing in ${countdown}s. Click to refresh now.`}
               >
                 <RotateCcw size={13} className={quoteLoading ? "animate-spin" : ""} />
-                <span className="absolute -bottom-1 -right-1 text-[8px] font-mono font-bold bg-white text-[#4a2170] px-1 rounded-full">
+                <span className="absolute -bottom-1 -right-1 text-[8px] font-mono font-bold bg-white text-[#0041CC] px-1 rounded-full">
                   {countdown}s
                 </span>
               </button>
@@ -813,21 +813,21 @@ export default function DexSwapCard({
                   <button
                     type="button"
                     onClick={() => handleSetPct(0.25)}
-                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
+                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand-text)] transition-colors cursor-pointer"
                   >
                     25%
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSetPct(0.5)}
-                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
+                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--brand)] hover:text-[var(--brand-text)] transition-colors cursor-pointer"
                   >
                     50%
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSetPct(-1)}
-                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--brand-soft)] text-[var(--brand)] border border-[var(--brand)]/20 hover:bg-[var(--brand)] hover:text-white transition-colors cursor-pointer font-black"
+                    className="pop-pill px-1.5 py-0.5 rounded text-[11px] bg-[var(--brand-soft)] text-[var(--brand-text)] border border-[var(--brand)]/20 hover:bg-[var(--brand)] hover:text-white transition-colors cursor-pointer font-black"
                   >
                     MAX
                   </button>
@@ -900,7 +900,7 @@ export default function DexSwapCard({
             animate={{ rotate: flipDegree }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
             aria-label="Flip tokens"
-            className="pop-pill h-9 w-9 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] shadow-md hover:bg-[var(--surface-2)] hover:border-[var(--brand)] hover:text-[var(--brand)] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
+            className="pop-pill h-9 w-9 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] shadow-md hover:bg-[var(--surface-2)] hover:border-[var(--brand)] hover:text-[var(--brand-text)] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
           >
             <ArrowDownUp size={16} />
           </motion.button>
@@ -963,7 +963,7 @@ export default function DexSwapCard({
             <span>
               {quoteLoading ? (
                 <span className="flex items-center gap-1">
-                  <Loader2 size={11} className="animate-spin text-[var(--brand)]" />
+                  <Loader2 size={11} className="animate-spin text-[var(--brand-text)]" />
                   <span>Calculating price…</span>
                 </span>
               ) : (
@@ -994,7 +994,7 @@ export default function DexSwapCard({
             {/* Primary Summary Row */}
             <div className="flex items-center justify-between text-[var(--ink)] font-bold">
               <div
-                className="flex items-center gap-1.5 hover:text-[var(--brand)] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 hover:text-[var(--brand-text)] transition-colors cursor-pointer"
                 onClick={() => setInvertRate((v) => !v)}
                 title="Click to invert exchange rate"
               >
@@ -1017,7 +1017,7 @@ export default function DexSwapCard({
                 >
                   <Settings2 size={12} />
                   <span>Advanced</span>
-                  <span className="text-[11px] text-[var(--brand)] font-mono ml-0.5">{slippage}%</span>
+                  <span className="text-[11px] text-[var(--brand-text)] font-mono ml-0.5">{slippage}%</span>
                   <ChevronDown
                     size={12}
                     className={`transition-transform duration-200 ml-0.5 ${showAdvanced ? "rotate-180" : ""}`}
@@ -1039,7 +1039,7 @@ export default function DexSwapCard({
                   <div>
                     <div className="flex items-center justify-between text-xs font-bold text-[var(--ink)] mb-1.5">
                       <span>Slippage Tolerance</span>
-                      <span className="text-[var(--brand)] font-mono">{slippage}%</span>
+                      <span className="text-[var(--brand-text)] font-mono">{slippage}%</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       {SLIPPAGE_PRESETS.map((s) => (
@@ -1237,7 +1237,7 @@ export default function DexSwapCard({
                     href={stockTradability.suggestedAction.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] text-[var(--brand)] underline hover:opacity-80 inline-flex items-center gap-1"
+                    className="text-[11px] text-[var(--brand-text)] underline hover:opacity-80 inline-flex items-center gap-1"
                   >
                     <span>View token on BaseScan</span>
                     <ExternalLink size={10} />
@@ -1319,7 +1319,7 @@ export default function DexSwapCard({
                     <span className="font-semibold opacity-95">💡 {tradeSafety.suggestion}</span>
                     <a
                       href="/trade?ticket=orders"
-                      className="inline-flex items-center gap-0.5 text-[var(--brand)] dark:text-blue-400 font-bold underline shrink-0 ml-1 hover:opacity-80 cursor-pointer"
+                      className="inline-flex items-center gap-0.5 text-[var(--brand-text)] dark:text-blue-400 font-bold underline shrink-0 ml-1 hover:opacity-80 cursor-pointer"
                     >
                       <span>Limit Orders</span>
                       <ExternalLink size={10} />
@@ -1335,7 +1335,7 @@ export default function DexSwapCard({
                   type="checkbox"
                   checked={confirmHighImpact}
                   onChange={(e) => setConfirmHighImpact(e.target.checked)}
-                  className="rounded border-rose-400 text-[var(--brand)] focus:ring-[var(--brand)] cursor-pointer"
+                  className="rounded border-rose-400 text-[var(--brand-text)] focus:ring-[var(--brand)] cursor-pointer"
                 />
                 <span>I acknowledge high price impact ({tradeSafety.impactPct}%) and accept the risk of loss.</span>
               </label>

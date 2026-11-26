@@ -76,9 +76,9 @@ export default function VoucherGiftCard3D({
       : asset;
 
   const cardGradient = isVault
-    ? "linear-gradient(135deg, #2a1646 0%, #1e1145 35%, #0f172a 70%, #030712 100%)"
+    ? "linear-gradient(135deg, #0A2A78 0%, #0A1B4D 35%, #0f172a 70%, #030712 100%)"
     : isStock
-      ? "linear-gradient(135deg, #2a1646 0%, #2a1646 35%, #2a1646 70%, #030712 100%)"
+      ? "linear-gradient(135deg, #0A2A78 0%, #0A2A78 35%, #0A2A78 70%, #030712 100%)"
       : "linear-gradient(135deg, #0d3d2e 0%, #0a1f1a 35%, #111827 70%, #0f172a 100%)";
 
   return (
@@ -128,13 +128,13 @@ export default function VoucherGiftCard3D({
         <div
           className={`absolute inset-0 ${
             isVault
-              ? "bg-[radial-gradient(ellipse_at_20%_0%,rgba(168,85,247,0.35),transparent_55%)]"
+              ? "bg-[radial-gradient(ellipse_at_20%_0%,rgba(61,123,255,0.35),transparent_55%)]"
               : isStock
-                ? "bg-[radial-gradient(ellipse_at_20%_0%,rgba(142,95,196,0.3),transparent_55%)]"
+                ? "bg-[radial-gradient(ellipse_at_20%_0%,rgba(61,123,255,0.3),transparent_55%)]"
                 : "bg-[radial-gradient(ellipse_at_20%_0%,rgba(16,185,129,0.22),transparent_55%)]"
           }`}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(91,42,134,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(0,82,255,0.15),transparent_50%)]" />
         <div
           className={`absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent ${
             isVault

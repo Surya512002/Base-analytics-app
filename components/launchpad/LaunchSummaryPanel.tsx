@@ -262,7 +262,7 @@ export default function LaunchSummaryPanel({
           aria-label="Toggle Live Preview & Launch Summary"
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)] dark:bg-[#8e5fc4] shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)] dark:bg-[#3D7BFF] shrink-0" />
             <span className="truncate">Live Preview &amp; Launch Summary</span>
             <span className="text-[11px] font-mono font-bold text-[var(--brand-text)] shrink-0">
               ${displaySymbol}
@@ -299,7 +299,7 @@ export default function LaunchSummaryPanel({
           aria-label="Toggle Live Preview & Launch Summary"
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)] dark:bg-[#8e5fc4] shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand)] dark:bg-[#3D7BFF] shrink-0" />
             <span className="truncate">Live Preview &amp; Launch Summary</span>
             <span className="text-[11px] font-mono font-bold text-[var(--brand-text)] shrink-0">
               ${displaySymbol}

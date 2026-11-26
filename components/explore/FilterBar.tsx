@@ -119,7 +119,7 @@ export default function FilterBar({
                   hideLowLiquidity: e.target.checked,
                 }))
               }
-              className="rounded border-[var(--border-subtle)] text-[var(--brand)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
+              className="rounded border-[var(--border-subtle)] text-[var(--brand-text)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
             />
             <span>Hide &lt; $10K liq</span>
           </label>

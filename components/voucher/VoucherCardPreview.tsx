@@ -137,7 +137,7 @@ export default function VoucherCardPreview({
         >
           {/* Subtle Ambient Radial Highlight */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_10%,rgba(255,255,255,0.12),transparent_65%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(91,42,134,0.15),transparent_50%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_100%_100%,rgba(0,82,255,0.15),transparent_50%)] pointer-events-none" />
 
           {/* Top Line: Brand & Network Badge */}
           <div className="relative flex items-start justify-between gap-3 mb-4">

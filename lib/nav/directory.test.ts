@@ -27,8 +27,9 @@ describe("directory", () => {
     expect(placeFor("/")).toBe("home");
     expect(placeFor("/", "basehub")).toBe("gifts");
     expect(placeFor("/explore")).toBe("markets");
-    expect(placeFor("/explore/token/0xabc")).toBe("trade");
-    expect(placeFor("/swap")).toBe("trade");
+    expect(placeFor("/explore/token/0xabc")).toBe("swap");
+    expect(placeFor("/swap")).toBe("swap");
+    expect(placeFor("/trade")).toBe("trade");
     expect(placeFor("/lend")).toBe("earn");
     expect(placeFor("/creator/0xabc")).toBe("account");
   });

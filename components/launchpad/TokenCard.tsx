@@ -116,7 +116,7 @@ export default function TokenCard({
                 {safetyLabel}
               </span>
             </div>
-            <p className="mt-0.5 text-sm font-bold text-[var(--brand-dark)] dark:text-[var(--brand)]">${token.symbol}</p>
+            <p className="mt-0.5 text-sm font-bold text-[var(--brand-dark)] dark:text-[var(--brand-text)]">${token.symbol}</p>
             <p className="mt-0.5 font-mono text-[11px] text-[var(--ink-dim)]">
               {shortAddr(token.address)}
             </p>
@@ -196,7 +196,7 @@ export function CreateTokenCard({ onCreate }: { onCreate: () => void }) {
       className="flex h-full min-h-[240px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-2)] p-6 text-center transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-soft)]/40"
     >
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
-        <Rocket size={28} className="text-[var(--brand)]" />
+        <Rocket size={28} className="text-[var(--brand-text)]" />
       </div>
       <div>
         <p className="text-lg font-bold text-[var(--ink)]">Launch on Base</p>

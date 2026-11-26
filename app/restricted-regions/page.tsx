@@ -16,7 +16,7 @@ export default function RestrictedRegionsPage() {
       <main className="app-container flex-1 py-10 max-w-4xl space-y-8 animate-meridian-rise">
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-muted)]">
-          <Link href="/" className="hover:text-[var(--brand)] transition inline-flex items-center gap-1">
+          <Link href="/" className="hover:text-[var(--brand-text)] transition inline-flex items-center gap-1">
             <ArrowLeft size={13} />
             <span>Home</span>
           </Link>
@@ -120,15 +120,15 @@ export default function RestrictedRegionsPage() {
 
         {/* Legal Links */}
         <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-[var(--ink-muted)] pt-2">
-          <Link href="/terms" className="hover:text-[var(--brand)] transition">
+          <Link href="/terms" className="hover:text-[var(--brand-text)] transition">
             Terms of Service (Draft)
           </Link>
           <span>·</span>
-          <Link href="/privacy" className="hover:text-[var(--brand)] transition">
+          <Link href="/privacy" className="hover:text-[var(--brand-text)] transition">
             Privacy Policy (Draft)
           </Link>
           <span>·</span>
-          <Link href="/risk-disclosure" className="hover:text-[var(--brand)] transition">
+          <Link href="/risk-disclosure" className="hover:text-[var(--brand-text)] transition">
             Risk Disclosure (Draft)
           </Link>
           <span>·</span>
@@ -136,7 +136,7 @@ export default function RestrictedRegionsPage() {
             href="https://www.coinbase.com/legal/tokenized-stocks"
             target="_blank"
             rel="noreferrer"
-            className="hover:text-[var(--brand)] transition inline-flex items-center gap-1"
+            className="hover:text-[var(--brand-text)] transition inline-flex items-center gap-1"
           >
             <span>Coinbase Tokenized Stocks Terms</span>
             <ExternalLink size={11} />

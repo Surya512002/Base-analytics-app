@@ -20,6 +20,7 @@ export interface TranslationDictionary {
   /** One label per menu place (see lib/nav/directory.ts). */
   nav: {
     home: string;
+    swap: string;
     markets: string;
     trade: string;
     earn: string;

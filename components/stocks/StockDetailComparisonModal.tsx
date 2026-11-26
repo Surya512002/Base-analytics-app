@@ -529,7 +529,7 @@ export default function StockDetailComparisonModal({
         <div className="overflow-y-auto py-3 space-y-3.5 flex-1 pr-1 scrollbar-thin">
           {loading ? (
             <div className="py-16 text-center space-y-3">
-              <Loader2 size={30} className="mx-auto text-[var(--brand)] animate-spin" />
+              <Loader2 size={30} className="mx-auto text-[var(--brand-text)] animate-spin" />
               <p className="text-xs font-semibold text-[var(--ink-muted)]">
                 Querying verified onchain contracts across Morpho Blue, Beefy Finance, and Aerodrome…
               </p>

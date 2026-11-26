@@ -108,7 +108,7 @@ export default function TopYieldSpotlight({
         className={`rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5 shadow-card ${className}`}
       >
         <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-[var(--brand)] animate-pulse" />
+          <Sparkles size={16} className="text-[var(--brand-text)] animate-pulse" />
           <span className="text-sm font-bold text-[var(--ink-muted)]">
             Scanning verified on-chain yield opportunities on Base mainnet...
           </span>

@@ -42,9 +42,9 @@ export const CARD_THEME_OPTIONS: Array<{
   {
     id: "base-blue",
     label: "Base Blue",
-    gradient: "linear-gradient(135deg, #5b2a86 0%, #3d1b5e 45%, #080c1d 100%)",
-    borderColor: "rgba(91, 42, 134, 0.45)",
-    accentColor: "#5b2a86",
+    gradient: "linear-gradient(135deg, #0052FF 0%, #0B3190 45%, #080c1d 100%)",
+    borderColor: "rgba(0, 82, 255, 0.45)",
+    accentColor: "#0052FF",
   },
   {
     id: "midnight",
@@ -56,9 +56,9 @@ export const CARD_THEME_OPTIONS: Array<{
   {
     id: "stock",
     label: "Stock",
-    gradient: "linear-gradient(135deg, #2a1646 0%, #2a1646 45%, #09182b 100%)",
-    borderColor: "rgba(176, 143, 224, 0.4)",
-    accentColor: "#b08fe0",
+    gradient: "linear-gradient(135deg, #0A2A78 0%, #0A2A78 45%, #09182b 100%)",
+    borderColor: "rgba(127, 166, 245, 0.4)",
+    accentColor: "#7FA6F5",
   },
   {
     id: "mint",

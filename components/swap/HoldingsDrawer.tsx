@@ -255,7 +255,7 @@ export default function HoldingsDrawer({
                       <h2 className="text-base font-bold text-[var(--ink)] leading-tight">
                         Balances on Base
                       </h2>
-                      <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-[var(--brand-soft)] text-[var(--brand)]">
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-[var(--brand-soft)] text-[var(--brand-text)]">
                         8453
                       </span>
                     </div>
@@ -263,7 +263,7 @@ export default function HoldingsDrawer({
                       <button
                         type="button"
                         onClick={handleCopyAddress}
-                        className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors mt-0.5 cursor-pointer"
+                        className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--ink-muted)] hover:text-[var(--brand-text)] transition-colors mt-0.5 cursor-pointer"
                         title="Click to copy connected wallet address"
                       >
                         <span>{shortAddress}</span>
@@ -341,7 +341,7 @@ export default function HoldingsDrawer({
                     <button
                       type="button"
                       onClick={() => setIncludeDefiInTotal(!includeDefiInTotal)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--brand)] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--brand-text)] hover:underline cursor-pointer"
                       title="Toggle inclusion of DeFi deposits in the total"
                     >
                       <Layers size={11} />
@@ -515,7 +515,7 @@ export default function HoldingsDrawer({
                   <button
                     type="button"
                     onClick={() => setShowDust(!showDust)}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--ink-muted)] hover:text-[var(--brand-text)] transition-colors shrink-0 cursor-pointer"
                     title={showDust ? "Hide balances under $0.01" : "Show small balances (<$0.01)"}
                   >
                     {showDust ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -588,7 +588,7 @@ export default function HoldingsDrawer({
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand)] transition-colors">
+                            <p className="font-bold text-sm text-[var(--ink)] truncate group-hover:text-[var(--brand-text)] transition-colors">
                               {t.symbol}
                             </p>
                             {(() => {
@@ -662,7 +662,7 @@ export default function HoldingsDrawer({
                         </div>
                         <ArrowRight
                           size={14}
-                          className="text-[var(--ink-dim)] group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all opacity-0 group-hover:opacity-100"
+                          className="text-[var(--ink-dim)] group-hover:text-[var(--brand-text)] group-hover:translate-x-0.5 transition-all opacity-0 group-hover:opacity-100"
                         />
                       </div>
                     </button>
@@ -677,7 +677,7 @@ export default function HoldingsDrawer({
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="font-bold text-[var(--brand)] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                className="font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Plus size={12} />
                 <span>Add Token</span>

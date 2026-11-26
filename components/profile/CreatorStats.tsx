@@ -45,7 +45,7 @@ export default function CreatorStats({
   const statItems: Array<{ label: string; value: string; subtext: string; isEst?: boolean; icon: LucideIcon; accent: string }> = [
     {
       icon: Rocket,
-      accent: "#8e5fc4",
+      accent: "#3D7BFF",
       label: "Launches",
       value: String(launches),
       subtext: launches === 1 ? "1 Token" : `${launches} Tokens`,
@@ -60,7 +60,7 @@ export default function CreatorStats({
     },
     {
       icon: BarChart3,
-      accent: "#8e5fc4",
+      accent: "#3D7BFF",
       label: "24H Volume",
       value: volume24h > 0 ? formatUsd(volume24h) : "$0.00",
       subtext: volume24h > 0 ? "Past 24 hours" : "No volume yet",

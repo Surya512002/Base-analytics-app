@@ -70,7 +70,6 @@ export default function SimpleStart() {
     <div className="mx-auto w-full max-w-5xl space-y-10 pb-8">
       <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-10">
         <div className="relative isolate space-y-3">
-          <span aria-hidden className="home-rosette"><span /></span>
           <h2 className="max-w-[16rem] pb-3 pt-2 text-[2rem] font-bold leading-[1.1] text-[var(--ink)] sm:max-w-sm sm:text-[2.5rem]">
             What would you like to do?
           </h2>
@@ -148,14 +147,13 @@ export default function SimpleStart() {
             <div key={group.id}>
               <h4 className="pb-2 text-[17px] font-bold text-[var(--ink)]">{group.title}</h4>
               <ul className={list}>
-                {group.entries.map((e, i) => {
+                {group.entries.map((e) => {
                   const Icon = ICONS[e.id] ?? Compass;
                   return (
                     <li key={e.id}>
                       <Link href={e.href} className="flex min-h-[64px] items-center gap-3 px-3.5 py-2.5 hover:bg-[var(--surface-2)]">
-                        <span aria-hidden className={`seal ${group.id === "gifts" ? "seal-gift" : ""}`}>
-                          <span className="seal-ring" style={{ rotate: `${i * 11}deg` }} />
-                          <Icon size={17} />
+                        <span aria-hidden className="menu-icon">
+                          <Icon size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-[15px] font-bold text-[var(--ink)]">{e.title}</span>

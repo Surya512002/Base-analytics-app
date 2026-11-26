@@ -223,7 +223,7 @@ export default function TokenDetailPanel({
           <button
             type="button"
             onClick={onBack}
-            className="text-sm font-bold text-[var(--ink)] hover:text-[var(--brand)] transition-colors shrink-0"
+            className="text-sm font-bold text-[var(--ink)] hover:text-[var(--brand-text)] transition-colors shrink-0"
           >
             ← Back
           </button>
@@ -253,7 +253,7 @@ export default function TokenDetailPanel({
           <button
             type="button"
             onClick={onBack}
-            className="text-sm font-bold text-[var(--ink)] hover:text-[var(--brand)] transition-colors mb-4"
+            className="text-sm font-bold text-[var(--ink)] hover:text-[var(--brand-text)] transition-colors mb-4"
           >
             ← All tokens
           </button>

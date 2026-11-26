@@ -4,6 +4,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   en: {
     nav: {
       home: "Home",
+      swap: "Swap",
       markets: "Markets",
       trade: "Trade",
       earn: "Earn",
@@ -34,6 +35,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   hi: {
     nav: {
       home: "होम",
+      swap: "स्वैप",
       markets: "बाज़ार",
       trade: "ट्रेड",
       earn: "कमाएँ",
@@ -64,6 +66,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   ta: {
     nav: {
       home: "முகப்பு",
+      swap: "பரிமாற்று",
       markets: "சந்தைகள்",
       trade: "வர்த்தகம்",
       earn: "ஈட்டு",
@@ -94,6 +97,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   es: {
     nav: {
       home: "Inicio",
+      swap: "Intercambiar",
       markets: "Mercados",
       trade: "Operar",
       earn: "Ganar",
@@ -124,6 +128,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   pt: {
     nav: {
       home: "Início",
+      swap: "Trocar",
       markets: "Mercados",
       trade: "Negociar",
       earn: "Ganhar",
@@ -154,6 +159,7 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   id: {
     nav: {
       home: "Beranda",
+      swap: "Tukar",
       markets: "Pasar",
       trade: "Dagang",
       earn: "Hasilkan",

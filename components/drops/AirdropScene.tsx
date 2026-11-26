@@ -54,19 +54,19 @@ export default function AirdropScene({ size = 260, label, still = false }: { siz
         <defs>
           <linearGradient id="drop-canopy" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0" stopColor="#ffffff" />
-            <stop offset="1" stopColor="#ded0f9" />
+            <stop offset="1" stopColor="#C7D9FF" />
           </linearGradient>
           <linearGradient id="drop-crate" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#8e5fc4" />
-            <stop offset="1" stopColor="#3d1b5e" />
+            <stop offset="0" stopColor="#3D7BFF" />
+            <stop offset="1" stopColor="#0B3190" />
           </linearGradient>
           <linearGradient id="drop-lid" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#c3a2f5" />
-            <stop offset="1" stopColor="#8e5fc4" />
+            <stop offset="0" stopColor="#82ACFF" />
+            <stop offset="1" stopColor="#3D7BFF" />
           </linearGradient>
           <radialGradient id="drop-glow">
-            <stop offset="0" stopColor="#ded0f9" stopOpacity="0.55" />
-            <stop offset="1" stopColor="#ded0f9" stopOpacity="0" />
+            <stop offset="0" stopColor="#C7D9FF" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#C7D9FF" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -98,9 +98,9 @@ export default function AirdropScene({ size = 260, label, still = false }: { siz
             {/* canopy */}
             <motion.g style={{ originX: "130px", originY: "88px" }} {...canopy}>
               <path d="M70 88 C 72 40, 188 40, 190 88 Z" fill="url(#drop-canopy)" stroke="#dbe7ff" strokeWidth="1.5" />
-              <path d="M70 88 Q 85 78 100 88 Q 115 78 130 88 Q 145 78 160 88 Q 175 78 190 88" fill="#e8f0ff" stroke="#ded0f9" strokeWidth="1.2" />
-              <path d="M100 88 C 104 58, 118 48, 130 46" fill="none" stroke="#ded0f9" strokeWidth="1.2" />
-              <path d="M160 88 C 156 58, 142 48, 130 46" fill="none" stroke="#ded0f9" strokeWidth="1.2" />
+              <path d="M70 88 Q 85 78 100 88 Q 115 78 130 88 Q 145 78 160 88 Q 175 78 190 88" fill="#e8f0ff" stroke="#C7D9FF" strokeWidth="1.2" />
+              <path d="M100 88 C 104 58, 118 48, 130 46" fill="none" stroke="#C7D9FF" strokeWidth="1.2" />
+              <path d="M160 88 C 156 58, 142 48, 130 46" fill="none" stroke="#C7D9FF" strokeWidth="1.2" />
               {/* lines */}
               {[72, 100, 130, 160, 188].map((x) => (
                 <line key={x} x1={x} y1="88" x2={x < 130 ? 116 : x > 130 ? 144 : 130} y2="168" stroke="#dbe7ff" strokeWidth="1.1" opacity="0.9" />

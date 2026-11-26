@@ -33,7 +33,7 @@ export default function LanguageSelector() {
         aria-label="Select language"
         aria-expanded={open}
       >
-        <Globe size={13} className="text-[var(--brand)]" />
+        <Globe size={13} className="text-[var(--brand-text)]" />
         <span className="font-mono hidden sm:inline">{activeMeta.nativeName}</span>
         <ChevronDown size={12} className="text-[var(--ink-muted)] opacity-70 hidden sm:inline" />
       </button>
@@ -64,7 +64,7 @@ export default function LanguageSelector() {
                     <span>{loc.nativeName}</span>
                     <span className="text-[11px] text-[var(--ink-muted)]">{loc.label}</span>
                   </div>
-                  {isSelected && <Check size={14} className="text-[var(--brand)] shrink-0" />}
+                  {isSelected && <Check size={14} className="text-[var(--brand-text)] shrink-0" />}
                 </button>
               );
             })}

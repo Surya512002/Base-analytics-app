@@ -38,7 +38,7 @@ export default function PlaceTabs({
   );
 }
 
-export type TradeView = "swap" | "orders" | "auto-invest" | "chart";
+export type TradeView = "orders" | "auto-invest" | "chart";
 
 export function TradeTabs({
   current,
@@ -59,7 +59,6 @@ export function TradeTabs({
           current={current}
           onSelect={(id) => onSelect?.(id as TradeView)}
           items={[
-            { id: "swap", label: "Swap", href: "/swap" },
             { id: "orders", label: "Limit and stop", href: LIMIT_ORDERS_HREF, badge: openOrders },
             { id: "auto-invest", label: "Auto-invest", href: AUTO_INVEST_HREF, badge: plans },
           ]}
@@ -72,7 +71,7 @@ export function TradeTabs({
         onClick={() => onSelect?.("chart")}
         className="place-tabs-extra"
       >
-        <CandlestickChart size={18} aria-hidden /> <span className="max-sm:sr-only">Chart</span>
+        <CandlestickChart size={18} aria-hidden /> <span>Chart</span>
       </Link>
     </div>
   );

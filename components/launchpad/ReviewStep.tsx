@@ -228,7 +228,7 @@ export default function ReviewStep({
               type="checkbox"
               checked={acknowledgedRisk}
               onChange={(e) => setAcknowledgedRisk(e.target.checked)}
-              className="mt-0.5 sm:mt-0 w-4 h-4 rounded text-[var(--brand)] accent-[var(--brand)] cursor-pointer shrink-0"
+              className="mt-0.5 sm:mt-0 w-4 h-4 rounded text-[var(--brand-text)] accent-[var(--brand)] cursor-pointer shrink-0"
               aria-label="Acknowledge tokenized stock risks"
             />
             <span className="font-bold text-xs text-[var(--ink)] leading-snug">

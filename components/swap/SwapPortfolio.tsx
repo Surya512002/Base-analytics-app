@@ -7,7 +7,7 @@ import type { PortfolioToken } from "@/lib/portfolio/types";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import TokenLogo from "@/components/ui/TokenLogo";
 
-const BAR_COLORS = ["#8e5fc4", "#c3a2f5", "#6f3a9e", "#d8b565", "#10B981", "#F59E0B"];
+const BAR_COLORS = ["#3D7BFF", "#82ACFF", "#1D62F0", "#d8b565", "#10B981", "#F59E0B"];
 
 const usd = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

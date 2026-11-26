@@ -20,9 +20,9 @@ export default function SignInOverlay({
       <div className="sign-in-overlay-card">
         <div className="sign-in-overlay-icon">
           {signingIn ? (
-            <Loader2 size={40} className="animate-spin text-[var(--brand)]" />
+            <Loader2 size={40} className="animate-spin text-[var(--brand-text)]" />
           ) : (
-            <ShieldCheck size={40} className="text-[var(--brand)]" />
+            <ShieldCheck size={40} className="text-[var(--brand-text)]" />
           )}
         </div>
         <h2 className="sign-in-overlay-title">

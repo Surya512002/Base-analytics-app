@@ -209,9 +209,9 @@ export default function SwapTab({
 
   return (
     <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[480px]"}`}>
-      {isOrdersEnabled && (
+      {activeSubTab === "recurring" && (
         <TradeTabs
-          current={activeSubTab === "recurring" ? "auto-invest" : "swap"}
+          current="auto-invest"
           openOrders={limitOrders.openOrders.length}
           plans={limitOrders.plans.length}
         />

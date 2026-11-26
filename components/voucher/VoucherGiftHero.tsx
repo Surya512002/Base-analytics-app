@@ -36,7 +36,7 @@ export default function VoucherGiftHero({
   return (
     <section
       aria-label="Gift on Base"
-      className="pulse-surface"
+      className="pulse-surface pulse-solid"
     >
       <div className="grid items-center gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr] lg:gap-10 lg:p-10">
         <div className="order-2 space-y-5 lg:order-1">
@@ -64,12 +64,12 @@ export default function VoucherGiftHero({
               <button
                 type="button"
                 onClick={() => onNavigate("create")}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#4a2170] shadow-lg shadow-black/15 transition hover:bg-white/90 active:scale-[0.97]"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#0041CC] shadow-lg shadow-black/15 transition hover:bg-white/90 active:scale-[0.97]"
               >
                 <Gift size={16} /> Create a gift
               </button>
             </ClickSpark>
-            <ClickSpark color="#ded0f9">
+            <ClickSpark color="#C7D9FF">
               <button
                 type="button"
                 onClick={() => onNavigate("campaign")}

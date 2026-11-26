@@ -238,7 +238,7 @@ export default function MarketIntelligenceHub({
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]/70">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center border border-[var(--brand)]/20 shadow-xs shrink-0">
+          <div className="w-9 h-9 rounded-2xl bg-[var(--brand)]/10 text-[var(--brand-text)] flex items-center justify-center border border-[var(--brand)]/20 shadow-xs shrink-0">
             <Compass size={18} />
           </div>
           <div>
@@ -313,7 +313,7 @@ export default function MarketIntelligenceHub({
             {alerts.length > 0 && (
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                  activeTab === "alerts" ? "bg-white text-[var(--brand)]" : "bg-[var(--brand)] text-white"
+                  activeTab === "alerts" ? "bg-white text-[var(--brand-text)]" : "bg-[var(--brand)] text-white"
                 }`}
               >
                 {alerts.length}
@@ -413,7 +413,7 @@ export default function MarketIntelligenceHub({
           {/* Footer Proof Links */}
           <div className="flex items-center justify-between pt-1 text-[11px] text-[var(--ink-muted)] border-t border-[var(--border-subtle)]/60">
             <span className="flex items-center gap-1">
-              <ShieldCheck size={12} className="text-[var(--brand)]" />
+              <ShieldCheck size={12} className="text-[var(--brand-text)]" />
               <span>For information only. Check the issuer&apos;s terms before trading.</span>
             </span>
             <div className="flex items-center gap-3 font-semibold">
@@ -421,7 +421,7 @@ export default function MarketIntelligenceHub({
                 href={`https://basescan.org/token/${activeStock.address}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[var(--brand)] inline-flex items-center gap-0.5 underline transition"
+                className="hover:text-[var(--brand-text)] inline-flex items-center gap-0.5 underline transition"
               >
                 <span>Basescan</span>
                 <ExternalLink size={10} />
@@ -470,7 +470,7 @@ export default function MarketIntelligenceHub({
                 className="pop-pill p-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition cursor-pointer"
                 title="Refresh feed"
               >
-                <RefreshCw size={13} className={isLoadingRadar ? "animate-spin text-[var(--brand)]" : ""} />
+                <RefreshCw size={13} className={isLoadingRadar ? "animate-spin text-[var(--brand-text)]" : ""} />
               </button>
 
               <button
@@ -549,7 +549,7 @@ export default function MarketIntelligenceHub({
                     href={`https://basescan.org/address/${selectedWallet}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] hover:underline"
                   >
                     <span>Inspect wallet on BaseScan</span>
                     <ExternalLink size={12} />
@@ -577,7 +577,7 @@ export default function MarketIntelligenceHub({
                     <button
                       type="button"
                       onClick={() => onTradeToken?.(evt.tokenAddress)}
-                      className="text-[11px] text-[var(--brand)] font-bold hover:underline"
+                      className="text-[11px] text-[var(--brand-text)] font-bold hover:underline"
                     >
                       Swap →
                     </button>
@@ -636,7 +636,7 @@ export default function MarketIntelligenceHub({
                         onClick={() => handleQuickAddAlert({ type: "price", targetSymbol: activeStock.symbol, thresholdValue: level, direction })}
                         className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--brand)] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                       >
-                        <Plus size={11} className="text-[var(--brand)]" />
+                        <Plus size={11} className="text-[var(--brand-text)]" />
                         <span>{activeStock.symbol} {direction} ${level}</span>
                       </button>
                     );
@@ -653,7 +653,7 @@ export default function MarketIntelligenceHub({
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-[var(--ink)]">{alt.targetSymbol}</span>
-                      <span className="text-[11px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[var(--brand)] border border-blue-500/20">
+                      <span className="text-[11px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[var(--brand-text)] border border-blue-500/20">
                         {!isWatchable(alt) ? "never sent" : alt.triggered ? "reached" : "waiting"}
                       </span>
                     </div>

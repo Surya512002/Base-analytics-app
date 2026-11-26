@@ -86,7 +86,7 @@ export default function PageHero({
           <motion.div {...enter(0.15)} className={`flex w-full flex-wrap gap-3 sm:w-auto ${centered ? "sm:justify-center" : ""}`}>
             {actions.map((a) => {
               const cls = a.primary
-                ? "bg-white text-[#4a2170] shadow-lg shadow-black/15 hover:bg-white/90"
+                ? "bg-white text-[#0041CC] shadow-lg shadow-black/15 hover:bg-white/90"
                 : "border border-white/25 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25";
               const inner = (
                 <>

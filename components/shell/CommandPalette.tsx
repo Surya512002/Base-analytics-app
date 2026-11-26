@@ -139,8 +139,8 @@ export default function CommandPalette({
           {/* Smart Natural-Language Intent Match */}
           {matchedIntent && (
             <div className="mb-4">
-              <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--brand)] flex items-center gap-1.5">
-                <Zap size={13} className="text-[var(--brand)] fill-current" />
+              <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--brand-text)] flex items-center gap-1.5">
+                <Zap size={13} className="text-[var(--brand-text)] fill-current" />
                 <span>Smart Intent Detected</span>
               </p>
               <button

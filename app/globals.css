@@ -24,40 +24,40 @@
   color-scheme: dark;
 
   /* Surfaces & Canvas Hierarchy */
-  --background: #15101F;
-  --foreground: #F4F1FA;
-  --surface: #201930;              /* surface-1: cards */
-  --surface-1: #201930;            /* surface-1: cards & primary panels */
-  --surface-2: #2B2341;            /* surface-2: raised stat tiles, inputs, hover state */
-  --surface-3: #342A4E;            /* surface-3: popovers, drawers, modals, dropdowns */
-  --surface-popover: #342A4E;
-  --surface-drawer: #201930;
+  --background: #0B0F19;
+  --foreground: #F1F5F9;
+  --surface: #131A29;              /* surface-1: cards */
+  --surface-1: #131A29;            /* surface-1: cards & primary panels */
+  --surface-2: #1B2438;            /* surface-2: raised stat tiles, inputs, hover state */
+  --surface-3: #243049;            /* surface-3: popovers, drawers, modals, dropdowns */
+  --surface-popover: #243049;
+  --surface-drawer: #131A29;
 
   /* Text & Typography Hierarchy (WCAG AA compliant across all dark surfaces) */
-  --ink: #F4F1FA;                  /* text-primary (14.7:1 contrast on surface-1) */
-  --text-primary: #F4F1FA;
-  --ink-soft: #D6D0E8;             /* text-secondary (8.9:1 contrast on surface-1) */
-  --text-secondary: #D6D0E8;
-  --ink-muted: #BFB7D6;            /* text-muted (5.5:1 contrast on surface-1, meets AA) */
-  --text-muted: #BFB7D6;
-  --ink-dim: #A89FC2;              /* captions, placeholders, small numbers (4.5:1 AA) */
-  --text-dim: #A89FC2;
-  --muted: #BFB7D6;
+  --ink: #F1F5F9;                  /* text-primary (14.7:1 contrast on surface-1) */
+  --text-primary: #F1F5F9;
+  --ink-soft: #D5DEEC;             /* text-secondary (8.9:1 contrast on surface-1) */
+  --text-secondary: #D5DEEC;
+  --ink-muted: #A8B4C8;            /* text-muted (5.5:1 contrast on surface-1, meets AA) */
+  --text-muted: #A8B4C8;
+  --ink-dim: #98A4BA;              /* captions, placeholders, small numbers (4.5:1 AA) */
+  --text-dim: #98A4BA;
+  --muted: #A8B4C8;
 
   /* Brand / Base Blue Foundation */
-  --primary: #C3A2F5;              /* solid button fill */
-  --primary-foreground: #1A1030;   /* text on primary button */
-  --primary-text: #C3A2F5;         /* blue text, links, active tab labels (6.2:1 AA) */
-  --brand: #C3A2F5;                /* button fills */
-  --brand-text: #C3A2F5;           /* accessible Base Blue for text & icons on dark */
-  --brand-dark: #C3A2F5;           /* active nav labels & tab highlights */
-  --brand-hover: #D3BBF8;          /* button hover fill */
-  --brand-soft: rgba(195, 162, 245, 0.14); /* translucent blue badge/tint */
+  --primary: #1D62F0;              /* solid button fill */
+  --primary-foreground: #081233;   /* text on primary button */
+  --primary-text: #82ACFF;         /* blue text, links, active tab labels (6.2:1 AA) */
+  --brand: #1D62F0;                /* button fills */
+  --brand-text: #82ACFF;           /* accessible Base Blue for text & icons on dark */
+  --brand-dark: #82ACFF;           /* active nav labels & tab highlights */
+  --brand-hover: #1855D6;          /* button hover fill */
+  --brand-soft: rgba(61, 123, 255, 0.18); /* translucent blue badge/tint */
   --brand-glow: none;
   --teal: #4FDB9B;
   --teal-soft: rgba(79, 219, 155, 0.12);
-  --lane: linear-gradient(#C3A2F5, #C3A2F5);
-  --shadow-card: 0 0 0 1px #372D54;
+  --lane: linear-gradient(#82ACFF, #82ACFF);
+  --shadow-card: 0 0 0 1px #243049;
 
   /* Status Colors (WCAG AA compliant with 12% translucent soft backgrounds) */
   --success: #4FDB9B;
@@ -76,18 +76,18 @@
   --warning-border: rgba(244, 194, 85, 0.3);
 
   /* Borders & Dividers */
-  --border: #372D54;
-  --border-subtle: #372D54;
-  --border-strong: #7D739E;
-  --border-focus: #C3A2F5;
+  --border: #243049;
+  --border-subtle: #243049;
+  --border-strong: #6B7A99;
+  --border-focus: #82ACFF;
 
   /* Focus, Overlay, & Modals */
-  --ring: #C3A2F5;
-  --ring-offset: #15101F;
-  --overlay: rgba(10, 7, 18, 0.8);
+  --ring: #82ACFF;
+  --ring-offset: #0B0F19;
+  --overlay: rgba(8, 10, 16, 0.8);
 
   /* Chart & Data Visual Tokens */
-  --chart-1: #C3A2F5;
+  --chart-1: #82ACFF;
   --chart-2: #4FDB9B;
   --chart-3: #F4C255;
   --chart-4: #D8B565;
@@ -100,23 +100,23 @@
   --pop-duration: 220ms;
   --pop-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --pop-border-rest: transparent;
-  --pop-border-hover: rgba(195, 162, 245, 0.40);
+  --pop-border-hover: rgba(130, 172, 255, 0.40);
   --pop-bg-rest: transparent;
   --pop-bg-hover: var(--surface-2);
-  --pop-shadow-hover: 0 12px 28px -6px rgba(0, 0, 0, 0.65), 0 0 16px -2px rgba(195, 162, 245, 0.25);
-  --pop-shadow-lg-hover: 0 18px 36px -8px rgba(0, 0, 0, 0.75), 0 0 20px -2px rgba(195, 162, 245, 0.30);
-  --pop-shadow-pill-hover: 0 6px 16px -4px rgba(0, 0, 0, 0.5), 0 0 10px -1px rgba(195, 162, 245, 0.22);
+  --pop-shadow-hover: 0 12px 28px -6px rgba(0, 0, 0, 0.65), 0 0 16px -2px rgba(130, 172, 255, 0.25);
+  --pop-shadow-lg-hover: 0 18px 36px -8px rgba(0, 0, 0, 0.75), 0 0 20px -2px rgba(130, 172, 255, 0.30);
+  --pop-shadow-pill-hover: 0 6px 16px -4px rgba(0, 0, 0, 0.5), 0 0 10px -1px rgba(130, 172, 255, 0.22);
 
   /* Mapped app tokens */
   --bg-deep: var(--background);
   --bg-raised: var(--surface);
   --bg-elevated: var(--surface-2);
-  --bg-hover: rgba(195, 162, 245, 0.08);
-  --bg-active: rgba(195, 162, 245, 0.16);
+  --bg-hover: rgba(130, 172, 255, 0.08);
+  --bg-active: rgba(130, 172, 255, 0.16);
 
   --accent: var(--brand);
   --accent-hover: var(--brand-hover);
-  --accent-ink: #1A1030;
+  --accent-ink: #081233;
   --accent-soft: var(--brand-soft);
 
   --radius-sm: 0.5rem;
@@ -127,15 +127,15 @@
   /* Aliases mapped to high-contrast Base tokens */
   --bg-aurora-mid: var(--background);
   --bg-panel: var(--surface);
-  --bg-glass: rgba(32, 25, 48, 0.92);
+  --bg-glass: rgba(19, 26, 41, 0.92);
   --border-glass: var(--border-subtle);
-  --base-blue: #5b2a86;
-  --base-blue-soft: #c3a2f5;
-  --cyan: #b08fe0;
-  --cyan-soft: rgba(176, 143, 224, 0.12);
-  --violet: #c3a2f5;
-  --violet-soft: rgba(195, 162, 245, 0.12);
-  --blue: #c3a2f5;
+  --base-blue: #0052FF;
+  --base-blue-soft: #82ACFF;
+  --cyan: #7FA6F5;
+  --cyan-soft: rgba(127, 166, 245, 0.12);
+  --violet: #82ACFF;
+  --violet-soft: rgba(130, 172, 255, 0.12);
+  --blue: #82ACFF;
   --emerald: var(--success);
   --trade-yes: var(--success);
   --trade-yes-soft: #6EE7B7;
@@ -149,8 +149,8 @@
   --glow-violet: transparent;
   --glow-rose: transparent;
   --glow-yes: transparent;
-  --on-brand: #1A1030;
-  --edge: #7D739E;
+  --on-brand: #FFFFFF;
+  --edge: #6B7A99;
   --foil: #D8B565;
 }
 
@@ -162,29 +162,29 @@
      ────────────────────────────────────────────────────────────── */
   color-scheme: light;
 
-  --ink: #1A1530;
-  --ink-soft: #2E2947;
-  --background: #F1F2F6;
-  --foreground: #1A1530;
+  --ink: #0A1020;
+  --ink-soft: #2A3548;
+  --background: #F6F8FB;
+  --foreground: #0A1020;
   --surface: #FFFFFF;
   --surface-1: #FFFFFF;
-  --surface-2: #E9E8F1;
-  --surface-3: #DCDBE6;
+  --surface-2: #EDF1F8;
+  --surface-3: #E1E6EF;
   --surface-popover: #FFFFFF;
   --surface-drawer: #FFFFFF;
-  --brand: #5B2A86;
-  --brand-text: #5B2A86;
-  --brand-dark: #4A2170;
-  --brand-hover: #4A2170;
-  --brand-soft: rgba(91, 42, 134, 0.09);
+  --brand: #0052FF;
+  --brand-text: #0047DB;
+  --brand-dark: #0041CC;
+  --brand-hover: #0041CC;
+  --brand-soft: rgba(0, 82, 255, 0.09);
   --brand-glow: none;
-  --primary: #5B2A86;
+  --primary: #0052FF;
   --primary-foreground: #FFFFFF;
-  --primary-text: #5B2A86;
+  --primary-text: #0047DB;
   --teal: #0A6B3B;
   --teal-soft: rgba(10, 107, 59, 0.1);
-  --lane: linear-gradient(#5B2A86, #5B2A86);
-  --shadow-card: 0 0 0 1px #DCDBE6;
+  --lane: linear-gradient(#0052FF, #0052FF);
+  --shadow-card: 0 0 0 1px #E1E6EF;
 
   /* Hover Pop Interaction Tokens - Light Mode */
   --pop-lift: -5px;
@@ -192,7 +192,7 @@
   --pop-duration: 220ms;
   --pop-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --pop-border-rest: transparent;
-  --pop-border-hover: rgba(91, 42, 134, 0.35);
+  --pop-border-hover: rgba(0, 82, 255, 0.35);
   --pop-bg-rest: transparent;
   --pop-bg-hover: #ffffff;
   --pop-shadow-hover: 0 14px 32px -6px rgba(30, 41, 59, 0.22), 0 2px 6px rgba(30, 41, 59, 0.08);
@@ -202,17 +202,17 @@
   --bg-deep: var(--background);
   --bg-raised: var(--surface);
   --bg-elevated: var(--surface-2);
-  --bg-hover: rgba(91, 42, 134, 0.05);
-  --bg-active: rgba(91, 42, 134, 0.1);
+  --bg-hover: rgba(0, 82, 255, 0.05);
+  --bg-active: rgba(0, 82, 255, 0.1);
 
-  --border-subtle: #DCDBE6;
-  --border-strong: #7C7894;
+  --border-subtle: #E1E6EF;
+  --border-strong: #7A869C;
   --border-focus: var(--brand);
-  --border: #DCDBE6;
-  --muted: #514C6B;
+  --border: #E1E6EF;
+  --muted: #4A5568;
 
-  --ink-muted: #514C6B;
-  --ink-dim: #5F5A79;
+  --ink-muted: #4A5568;
+  --ink-dim: #556072;
 
   --accent: var(--brand);
   --accent-hover: var(--brand-hover);
@@ -234,11 +234,11 @@
   --warning-soft: rgba(127, 75, 0, 0.09);
   --warning-border: rgba(127, 75, 0, 0.28);
 
-  --ring: #5B2A86;
+  --ring: #0052FF;
   --ring-offset: #ffffff;
-  --overlay: rgba(26, 21, 48, 0.55);
+  --overlay: rgba(10, 16, 32, 0.55);
 
-  --chart-1: #5B2A86;
+  --chart-1: #0052FF;
   --chart-2: #0A6B3B;
   --chart-3: #7F4B00;
   --chart-4: #8A6410;
@@ -249,13 +249,13 @@
   --bg-panel: var(--surface);
   --bg-glass: rgba(255, 255, 255, 0.95);
   --border-glass: var(--border-strong);
-  --base-blue: #5b2a86;
-  --base-blue-soft: #7140A8;
-  --cyan: #7140a8;
-  --cyan-soft: rgba(113, 64, 168, 0.1);
-  --violet: #5b2a86;
+  --base-blue: #0052FF;
+  --base-blue-soft: #1A5CE0;
+  --cyan: #1A5CE0;
+  --cyan-soft: rgba(26, 92, 224, 0.1);
+  --violet: #0052FF;
   --violet-soft: var(--brand-soft);
-  --blue: #5b2a86;
+  --blue: #0052FF;
   --emerald: var(--success);
   --trade-yes: var(--success);
   --trade-yes-soft: #86efac;
@@ -274,73 +274,73 @@
   --glow-rose: transparent;
   --glow-yes: transparent;
   --on-brand: #FFFFFF;
-  --edge: #7C7894;
+  --edge: #7A869C;
   --foil: #C9962E;
 }
 
 @theme inline {
-  --color-brand-deep: #15101f;
-  --color-brand-cyan: #b08fe0;
-  --color-brand-violet: #8e5fc4;
-  --color-brand-blue: #8e5fc4;
+  --color-brand-deep: #0B0F19;
+  --color-brand-cyan: #7FA6F5;
+  --color-brand-violet: #3D7BFF;
+  --color-brand-blue: #3D7BFF;
   --color-brand-rose: #f43f5e;
   --color-trade-yes: #10b981;
   --color-trade-no: #f43f5e;
-  --color-blue-50: #f6f1fd;
-  --color-blue-100: #ede3fb;
-  --color-blue-200: #ded0f9;
-  --color-blue-300: #c9aef3;
-  --color-blue-400: #b48fe8;
-  --color-blue-500: #8e5fc4;
-  --color-blue-600: #6f3a9e;
-  --color-blue-700: #5b2a86;
-  --color-blue-800: #45206a;
-  --color-blue-900: #33194f;
-  --color-blue-950: #1f0e33;
-  --color-indigo-50: #f6f1fd;
-  --color-indigo-100: #ede3fb;
-  --color-indigo-200: #ded0f9;
-  --color-indigo-300: #c9aef3;
-  --color-indigo-400: #b48fe8;
-  --color-indigo-500: #8e5fc4;
-  --color-indigo-600: #6f3a9e;
-  --color-indigo-700: #5b2a86;
-  --color-indigo-800: #45206a;
-  --color-indigo-900: #33194f;
-  --color-indigo-950: #1f0e33;
-  --color-sky-50: #f6f1fd;
-  --color-sky-100: #ede3fb;
-  --color-sky-200: #ded0f9;
-  --color-sky-300: #c9aef3;
-  --color-sky-400: #b48fe8;
-  --color-sky-500: #8e5fc4;
-  --color-sky-600: #6f3a9e;
-  --color-sky-700: #5b2a86;
-  --color-sky-800: #45206a;
-  --color-sky-900: #33194f;
-  --color-sky-950: #1f0e33;
-  --color-cyan-50: #f6f1fd;
-  --color-cyan-100: #ede3fb;
-  --color-cyan-200: #ded0f9;
-  --color-cyan-300: #c9aef3;
-  --color-cyan-400: #b48fe8;
-  --color-cyan-500: #8e5fc4;
-  --color-cyan-600: #6f3a9e;
-  --color-cyan-700: #5b2a86;
-  --color-cyan-800: #45206a;
-  --color-cyan-900: #33194f;
-  --color-cyan-950: #1f0e33;
-  --color-slate-50: #f7f6fa;
-  --color-slate-100: #f1f0f6;
-  --color-slate-200: #e3e1ec;
-  --color-slate-300: #cbc8da;
-  --color-slate-400: #9d97b3;
-  --color-slate-500: #6f6987;
-  --color-slate-600: #514c6b;
-  --color-slate-700: #3b3555;
-  --color-slate-800: #29213f;
-  --color-slate-900: #1a1530;
-  --color-slate-950: #100b1d;
+  --color-blue-50: #F0F5FF;
+  --color-blue-100: #E0EAFF;
+  --color-blue-200: #C7D9FF;
+  --color-blue-300: #A3C0FF;
+  --color-blue-400: #6F9BFF;
+  --color-blue-500: #3D7BFF;
+  --color-blue-600: #1D62F0;
+  --color-blue-700: #0052FF;
+  --color-blue-800: #0041CC;
+  --color-blue-900: #00308F;
+  --color-blue-950: #001A52;
+  --color-indigo-50: #F0F5FF;
+  --color-indigo-100: #E0EAFF;
+  --color-indigo-200: #C7D9FF;
+  --color-indigo-300: #A3C0FF;
+  --color-indigo-400: #6F9BFF;
+  --color-indigo-500: #3D7BFF;
+  --color-indigo-600: #1D62F0;
+  --color-indigo-700: #0052FF;
+  --color-indigo-800: #0041CC;
+  --color-indigo-900: #00308F;
+  --color-indigo-950: #001A52;
+  --color-sky-50: #F0F5FF;
+  --color-sky-100: #E0EAFF;
+  --color-sky-200: #C7D9FF;
+  --color-sky-300: #A3C0FF;
+  --color-sky-400: #6F9BFF;
+  --color-sky-500: #3D7BFF;
+  --color-sky-600: #1D62F0;
+  --color-sky-700: #0052FF;
+  --color-sky-800: #0041CC;
+  --color-sky-900: #00308F;
+  --color-sky-950: #001A52;
+  --color-cyan-50: #F0F5FF;
+  --color-cyan-100: #E0EAFF;
+  --color-cyan-200: #C7D9FF;
+  --color-cyan-300: #A3C0FF;
+  --color-cyan-400: #6F9BFF;
+  --color-cyan-500: #3D7BFF;
+  --color-cyan-600: #1D62F0;
+  --color-cyan-700: #0052FF;
+  --color-cyan-800: #0041CC;
+  --color-cyan-900: #00308F;
+  --color-cyan-950: #001A52;
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F4F9;
+  --color-slate-200: #E1E6EF;
+  --color-slate-300: #CBD3E1;
+  --color-slate-400: #94A0B8;
+  --color-slate-500: #64718A;
+  --color-slate-600: #4A5568;
+  --color-slate-700: #334155;
+  --color-slate-800: #1F2937;
+  --color-slate-900: #0A1020;
+  --color-slate-950: #060A14;
 
   --text-xs: 0.8125rem;
   --font-sans: var(--font-figtree);
@@ -544,8 +544,8 @@ h3,
 
 .badge-brand {
   background: var(--brand-soft);
-  color: var(--brand);
-  border: 1px solid rgba(142, 95, 196, 0.25);
+  color: var(--brand-text);
+  border: 1px solid rgba(61, 123, 255, 0.25);
 }
 
 .badge-ok {
@@ -692,13 +692,13 @@ h3,
 
 /* Branded text selection */
 ::selection {
-  background-color: rgba(195, 162, 245, 0.30);
+  background-color: rgba(130, 172, 255, 0.30);
   color: #F1F5F9;
 }
 
 .light ::selection,
 [data-theme="light"] ::selection {
-  background-color: rgba(91, 42, 134, 0.20);
+  background-color: rgba(0, 82, 255, 0.20);
   color: #090d1a;
 }
 
@@ -804,7 +804,7 @@ h3,
 
 .brand-mode-card:hover {
   border-color: var(--brand);
-  box-shadow: 0 16px 48px rgba(113, 64, 168, 0.12);
+  box-shadow: 0 16px 48px rgba(26, 92, 224, 0.12);
 }
 
 .brand-mode-card img {
@@ -922,10 +922,10 @@ html.is-scrolling .prism-scene {
 
 .card-interactive:hover {
   transform: translateY(-2px);
-  border-color: rgba(142, 95, 196, 0.38);
+  border-color: rgba(61, 123, 255, 0.38);
   box-shadow:
     0 12px 32px -4px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(142, 95, 196, 0.22),
+    0 0 0 1px rgba(61, 123, 255, 0.22),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
@@ -966,7 +966,7 @@ html.is-scrolling .prism-scene {
   color: #ffffff;
   font-weight: 700;
   border: 1px solid transparent;
-  box-shadow: 0 2px 8px -1px rgba(91, 42, 134, 0.32);
+  box-shadow: 0 2px 8px -1px rgba(0, 82, 255, 0.32);
   transition:
     background 0.15s ease,
     transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
@@ -977,7 +977,7 @@ html.is-scrolling .prism-scene {
 .btn-action:hover:not(:disabled) {
   background: var(--brand-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px -2px rgba(91, 42, 134, 0.42);
+  box-shadow: 0 6px 18px -2px rgba(0, 82, 255, 0.42);
 }
 
 .btn-primary:disabled,
@@ -1099,7 +1099,7 @@ html.is-scrolling .prism-scene {
 }
 
 .filter-tab-active {
-  color: var(--brand) !important;
+  color: var(--brand-text) !important;
   font-weight: 700;
   border-bottom-color: var(--brand) !important;
 }
@@ -1332,7 +1332,7 @@ html.is-scrolling .prism-scene {
 
 .voucher-sparkle {
   animation: voucherSparkleFloat 2.8s ease-out infinite;
-  box-shadow: 0 0 10px rgba(222, 208, 249, 0.8);
+  box-shadow: 0 0 10px rgba(199, 217, 255, 0.8);
 }
 
 .voucher-flip-stage {
@@ -1365,12 +1365,12 @@ html.is-scrolling .prism-scene {
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow:
     0 32px 80px rgba(0, 0, 0, 0.65),
-    0 0 60px rgba(91, 42, 134, 0.18),
+    0 0 60px rgba(0, 82, 255, 0.18),
     0 0 40px rgba(255, 77, 122, 0.12);
 }
 
 .voucher-flip-front {
-  background: linear-gradient(145deg, #1a0f2e 0%, #0f172a 45%, #071220 100%);
+  background: linear-gradient(145deg, #081233 0%, #0f172a 45%, #071220 100%);
 }
 
 .voucher-flip-inside {
@@ -1639,7 +1639,7 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px dashed rgba(113, 64, 168, 0.35);
+  border: 2px dashed rgba(26, 92, 224, 0.35);
   animation: badgeOrbitSpin 10s linear infinite;
   pointer-events: none;
 }
@@ -1758,14 +1758,14 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
 }
 
 .share-btn-farcaster {
-  background: rgba(133, 93, 205, 0.12);
-  border: 1px solid rgba(133, 93, 205, 0.35);
-  color: #e9d5ff;
+  background: rgba(61, 123, 255, 0.12);
+  border: 1px solid rgba(61, 123, 255, 0.35);
+  color: #D6E4FF;
   transition: all 0.2s ease;
 }
 
 .share-btn-farcaster:hover {
-  background: rgba(133, 93, 205, 0.22);
+  background: rgba(61, 123, 255, 0.22);
 }
 
 .prob-pill-yes {
@@ -1872,7 +1872,7 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
 .b20-market-hero-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 0%, rgba(91, 42, 134, 0.12), transparent 45%);
+  background: radial-gradient(circle at 20% 0%, rgba(0, 82, 255, 0.12), transparent 45%);
   pointer-events: none;
 }
 
@@ -1937,7 +1937,7 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--accent) 0%, #8e5fc4 50%, rgba(91, 42, 134, 0.2) 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, #3D7BFF 50%, rgba(0, 82, 255, 0.2) 100%);
   pointer-events: none;
 }
 
@@ -1988,7 +1988,7 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--accent) 0%, rgba(91, 42, 134, 0.35) 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(0, 82, 255, 0.35) 100%);
   pointer-events: none;
 }
 
@@ -2036,7 +2036,7 @@ html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--brand-text);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 999px;
@@ -2725,7 +2725,7 @@ button.swap-token-pill:hover {
 }
 
 .swap-receive-usd {
-  color: rgba(222, 208, 249, 0.95);
+  color: rgba(199, 217, 255, 0.95);
 }
 
 /* ── DEX swap — light theme, full-width friendly ── */
@@ -2906,7 +2906,7 @@ button.swap-token-pill:hover {
 }
 
 .dex-swap-max:hover {
-  color: var(--accent);
+  color: var(--brand-text);
 }
 
 .dex-swap-field-body {
@@ -3008,7 +3008,7 @@ button.swap-token-pill:hover {
 }
 
 .dex-swap-flip:hover:not(:disabled) {
-  color: var(--brand);
+  color: var(--brand-text);
   background: var(--brand-soft);
   border-color: var(--brand);
   transform: scale(1.08);
@@ -3057,7 +3057,7 @@ button.swap-token-pill:hover {
   color: #fff;
   background: var(--brand);
   border: none;
-  box-shadow: 0 8px 24px rgba(113, 64, 168, 0.25);
+  box-shadow: 0 8px 24px rgba(26, 92, 224, 0.25);
   transition: opacity 0.15s, background 0.15s;
 }
 
@@ -3292,7 +3292,7 @@ button.swap-token-pill:hover {
 /* ── Share challenge page ── */
 .share-challenge-page {
   min-height: 100dvh;
-  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(91, 42, 134, 0.18), transparent 50%),
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(0, 82, 255, 0.18), transparent 50%),
     var(--bg-deep);
 }
 
@@ -3340,7 +3340,7 @@ button.swap-token-pill:hover {
 
 /* ──────────────────────────────────────────────────────────────
    Shared Reusable "Hover Pop" Interaction System (Single Source of Truth)
-   High-contrast, 60fps transform+opacity, Base Blue #5b2a86 focus & hover
+   High-contrast, 60fps transform+opacity, Base Blue #0052FF focus & hover
    Tiers: .pop (standard), .pop-lg (large cards), .pop-pill (pills/chips), .pop-row (table/list rows)
    ────────────────────────────────────────────────────────────── */
 
@@ -3412,7 +3412,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   .pop-row:hover:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]) {
     background-color: var(--pop-bg-hover);
     border-color: var(--pop-border-hover);
-    box-shadow: inset 2px 0 0 0 var(--brand, #5b2a86);
+    box-shadow: inset 2px 0 0 0 var(--brand, #0052FF);
     z-index: 2;
   }
 }
@@ -3430,7 +3430,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 
 .pop-row:active:not(:disabled):not([aria-disabled="true"]):not([data-pop="off"]) {
   background-color: var(--pop-bg-hover);
-  box-shadow: inset 3px 0 0 0 var(--brand, #5b2a86);
+  box-shadow: inset 3px 0 0 0 var(--brand, #0052FF);
   transition-duration: 80ms;
 }
 
@@ -3442,9 +3442,9 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 .pop-pill:focus-visible:not([data-pop="off"]),
 .hover-pop-sm:focus-visible:not([data-pop="off"]) {
   transform: translateY(var(--pop-lift)) scale(var(--pop-scale));
-  border-color: var(--brand, #5b2a86) !important;
+  border-color: var(--brand, #0052FF) !important;
   box-shadow: var(--pop-shadow-tier);
-  outline: 2px solid var(--brand, #5b2a86);
+  outline: 2px solid var(--brand, #0052FF);
   outline-offset: 2px;
   background-color: var(--pop-bg-hover);
   z-index: 3;
@@ -3453,9 +3453,9 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 
 .pop-row:focus-visible:not([data-pop="off"]) {
   background-color: var(--pop-bg-hover);
-  border-color: var(--brand, #5b2a86) !important;
-  box-shadow: inset 2px 0 0 0 var(--brand, #5b2a86);
-  outline: 2px solid var(--brand, #5b2a86);
+  border-color: var(--brand, #0052FF) !important;
+  box-shadow: inset 2px 0 0 0 var(--brand, #0052FF);
+  outline: 2px solid var(--brand, #0052FF);
   outline-offset: 2px;
   z-index: 3;
 }
@@ -3473,7 +3473,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 .pop[class*="text-white"]:hover,
 .pop-pill[class*="text-white"]:hover,
 .pop-lg[class*="text-white"]:hover {
-  border-color: var(--brand, #5b2a86) !important;
+  border-color: var(--brand, #0052FF) !important;
   box-shadow: var(--pop-shadow-tier);
   background-color: unset !important;
 }
@@ -3628,15 +3628,16 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 :root,
 .dark,
 [data-theme="dark"] {
-  /* Page heading blocks: one flat deep plum in both themes, with a line rosette. */
-  --pulse-gradient: linear-gradient(#2a1646, #2a1646);
+  /* The solid stage used by gift and drop scenes. */
+  --pulse-gradient: linear-gradient(#0A2A78, #0A2A78);
   --pulse-shadow: none;
   --pulse-dot: #7be8b4;
   --pulse-dot-glow: 0 0 0 3px rgba(123, 232, 180, 0.2);
   --pulse-glass: rgba(255, 255, 255, 0.1);
   --pulse-glass-hover: rgba(255, 255, 255, 0.18);
   --pulse-glass-border: rgba(255, 255, 255, 0.2);
-  --pulse-bar: rgba(255, 255, 255, 0.35);
+  --pulse-bar: var(--border-strong);
+  --pulse-bar-current: var(--brand);
   --pulse-radius: 1rem;
   --pill-bg: var(--brand-soft);
   --pill-border: var(--border-subtle);
@@ -3644,18 +3645,24 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 }
 
 @layer components {
-/* The gradient surface. It re-scopes the theme tokens so anything rendered
-   inside (inputs, stat tiles, chips written against --surface / --ink) turns
-   into frosted glass on blue with white text, in both themes. */
+/* Heading and stat blocks: an ordinary card that follows the theme. */
 .pulse-surface {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--pulse-radius);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--ink);
+}
+/* The gift stage re-scopes the theme tokens, so anything inside reads as white on blue. */
+.pulse-surface.pulse-solid {
+  border: 0;
   background: var(--pulse-gradient);
-  box-shadow: var(--pulse-shadow);
   color: #ffffff;
   color-scheme: dark;
+  --pulse-bar: rgba(255, 255, 255, 0.35);
+  --pulse-bar-current: #ffffff;
 
   --ink: #ffffff;
   --foreground: #ffffff;
@@ -3667,11 +3674,11 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   --muted: rgba(255, 255, 255, 0.86);
   --ink-dim: rgba(255, 255, 255, 0.78);
   --text-dim: rgba(255, 255, 255, 0.78);
-  --brand-text: #e6d8fd;
-  --primary-text: #e6d8fd;
+  --brand-text: #D6E4FF;
+  --primary-text: #D6E4FF;
   --brand-dark: #ffffff;
-  --brand: #c3a2f5;
-  --on-brand: #1a1030;
+  --brand: #82ACFF;
+  --on-brand: #081233;
   --brand-soft: rgba(255, 255, 255, 0.16);
   --surface: var(--pulse-glass);
   --surface-1: var(--pulse-glass);
@@ -3696,23 +3703,10 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   --pop-border-hover: rgba(255, 255, 255, 0.45);
 }
 
-/* The rosette in the corner, painted under the content (no extra DOM). */
-.pulse-surface::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: -6rem;
-  right: -6rem;
-  width: 18rem;
-  height: 18rem;
-  pointer-events: none;
-  background: url("/brand/rosette.svg") center / contain no-repeat;
-  opacity: 0.28;
+.pulse-solid ::placeholder {
+  color: rgba(255, 255, 255, 0.82);
 }
-.pulse-surface ::placeholder {
-  color: rgba(255, 255, 255, 0.74);
-}
-.pulse-surface :focus-visible {
+.pulse-solid :focus-visible {
   outline-color: #ffffff;
 }
 
@@ -3758,7 +3752,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   background: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18), 0 0 8px rgba(16, 185, 129, 0.55);
 }
-[data-theme="light"] .pulse-surface .pulse-status-dot {
+[data-theme="light"] .pulse-solid .pulse-status-dot {
   background: var(--pulse-dot);
   box-shadow: var(--pulse-dot-glow);
 }
@@ -3809,8 +3803,8 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   background: var(--success-soft);
   border-color: var(--success-border);
 }
-.pulse-surface .pulse-chip-muted,
-.pulse-surface .pulse-chip-up {
+.pulse-solid .pulse-chip-muted,
+.pulse-solid .pulse-chip-up {
   color: #ffffff;
   background: var(--pulse-glass);
   border-color: var(--pulse-glass-border);
@@ -3946,7 +3940,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   --color-amber-600: #7f4b00;
 }
 /* Heading blocks stay dark in light mode, so they keep the bright versions. */
-:root:not(.dark) .pulse-surface {
+:root:not(.dark) .pulse-solid {
   --color-emerald-500: #4fdb9b;
   --color-emerald-600: #4fdb9b;
   --color-emerald-700: #4fdb9b;
@@ -3982,10 +3976,10 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
 }
 
 /* Keyboard focus stays visible on the gradient. */
-.pulse-surface :focus-visible {
+.pulse-solid :focus-visible {
   outline-color: #ffffff !important;
 }
-.pulse-surface :is(.pop, .pop-pill, .pop-lg, .hover-pop, .hover-pop-sm, .card-pop):focus-visible {
+.pulse-solid :is(.pop, .pop-pill, .pop-lg, .hover-pop, .hover-pop-sm, .card-pop):focus-visible {
   border-color: #ffffff !important;
 }
 
@@ -4045,7 +4039,7 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   .place-tabs-extra[aria-current="page"] {
     background: var(--surface);
     color: var(--brand-text);
-    box-shadow: 0 1px 3px rgba(10, 5, 25, 0.16);
+    box-shadow: 0 1px 3px rgba(6, 10, 20, 0.16);
   }
   .place-tabs-badge {
     padding: 0 0.4rem;
@@ -4083,86 +4077,40 @@ a.pop, a.pop-lg, a.pop-pill, a.pop-row, a.hover-pop, a.hover-pop-sm,
   outline-color: var(--ring);
 }
 
-/* ── Home rosettes ─────────────────────────────────────────────── */
-@property --sweep {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 360deg;
-}
+/* Menu rows on Home: an ordinary icon on a plain tile. */
 @layer components {
-  /* The large rosette behind Home's question. It draws itself once: a sweeping mask over a
-     static file, so it costs no script and never delays the text. */
-  .home-rosette {
-    position: absolute;
-    z-index: -1;
-    top: -2.5rem;
-    right: -5.5rem;
-    width: 17rem;
-    height: 17rem;
-    pointer-events: none;
-    mask-image: conic-gradient(#000 var(--sweep), transparent 0);
-    animation: rosette-draw 1.2s ease-out both;
-  }
-  .home-rosette > span {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background: var(--brand);
-    opacity: 0.4;
-    mask: url("/brand/rosette.svg") center / contain no-repeat;
-  }
-  @media (min-width: 1024px) {
-    .home-rosette {
-      right: -1rem;
-    }
-  }
-  .seal {
-    position: relative;
+  .menu-icon {
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    width: 3rem;
-    height: 3rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: var(--brand-soft);
     color: var(--brand-text);
   }
-  .seal-ring {
-    position: absolute;
-    inset: 0;
-    background: currentColor;
-    opacity: 0.4;
-    mask: url("/brand/rosette-seal.svg") center / contain no-repeat;
-  }
-  .seal-gift .seal-ring {
-    background: var(--foil);
-    opacity: 0.8;
+}
+
+/* Six places must fit the narrowest phones without cutting a name short. */
+@media (max-width: 374px) {
+  nav[aria-label="Mobile navigation"] .dock-label.dock-label {
+    font-size: 11px;
+    letter-spacing: -0.02em;
   }
 }
-@keyframes rosette-draw {
-  from {
-    --sweep: 0deg;
-  }
-  to {
-    --sweep: 360deg;
-  }
+
+/* Markup written for a dark block (white text and white glass) reads from the theme on plain cards.
+   Unlayered on purpose: it has to win over the utility classes. Text on a coloured fill is left. */
+.pulse-surface:not(.pulse-solid) :is(.text-white, [class*="text-white/"]):not([class*="bg-"]:not([class*="bg-white/"])):not(.pulse-surface [class*="bg-"]:not([class*="bg-white"]) *):not(:has(> [class*="bg-[var(--brand)]"])) {
+  color: var(--ink);
 }
-/* Each row's rosette turns a little as it scrolls past, where the browser can do that. */
-@supports (animation-timeline: view()) {
-  .seal-ring {
-    animation: seal-turn linear both;
-    animation-timeline: view();
-  }
+.pulse-surface:not(.pulse-solid) [class*="bg-white/"] {
+  background-color: var(--surface-2);
 }
-@keyframes seal-turn {
-  from {
-    transform: rotate(-70deg);
-  }
-  to {
-    transform: rotate(70deg);
-  }
+.pulse-surface:not(.pulse-solid) [class*="border-white/"] {
+  border-color: var(--border-subtle);
 }
-@media (prefers-reduced-motion: reduce) {
-  .home-rosette,
-  .seal-ring {
-    animation: none;
-  }
+.pulse-surface:not(.pulse-solid) :is(a, button).bg-white {
+  background-color: var(--brand);
+  color: var(--on-brand);
 }

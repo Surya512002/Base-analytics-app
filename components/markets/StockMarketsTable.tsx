@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { StockMarketItem } from "@/lib/markets/types";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
+import TokenLogo from "@/components/ui/TokenLogo";
 
 interface StockMarketsTableProps {
   stocks: StockMarketItem[];
@@ -274,9 +275,7 @@ export default function StockMarketsTable({
                   {/* Stock Info */}
                   <td className="py-3.5 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs text-[var(--ink-muted)]">
-                        {stock.underlyingTicker.slice(0, 2)}
-                      </div>
+                      <TokenLogo address={stock.address} symbol={stock.symbol} size={32} />
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-[var(--ink)]">{stock.symbol}</span>
@@ -364,9 +363,7 @@ export default function StockMarketsTable({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center font-bold text-xs shrink-0 text-[var(--ink)]">
-                    {stock.underlyingTicker.slice(0, 2)}
-                  </div>
+                  <TokenLogo address={stock.address} symbol={stock.symbol} size={36} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-sm text-[var(--ink)]">{stock.symbol}</span>

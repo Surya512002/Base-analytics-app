@@ -752,7 +752,7 @@ export default function DocumentsClient() {
           <section id="quick-start" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                   Architecture &amp; Features
                 </span>
                 <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1">
@@ -775,7 +775,7 @@ export default function DocumentsClient() {
                   24/7 equities on Base (NVDAc, AAPLc, TSLAc, COINc, GOOGLc, MSFTc, AMZNc). 1:1 backing,
                   live reference pricing feeds, interactive charts, and instant in-app swap routing.
                 </p>
-                <Link href="/explore" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
+                <Link href="/explore" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
                   Explore stocks <ArrowUpRight size={13} />
                 </Link>
               </div>
@@ -793,7 +793,7 @@ export default function DocumentsClient() {
                   Aggregates Uniswap v3 (all fee tiers), Aerodrome volatile/stable, Slipstream concentrated
                   liquidity, and 0x API fallback with industry-low 0.25% trading fees (and 0.25% creator revenue share on platform launches).
                 </p>
-                <Link href="/swap" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
+                <Link href="/swap" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
                   Open Swap terminal <ArrowUpRight size={13} />
                 </Link>
               </div>
@@ -811,7 +811,7 @@ export default function DocumentsClient() {
                   Deploy vanity 0xB200... tokens, ERC-20 meme coins, or stock-paired memestocks (paired with
                   NVDAc / AAPLc) with built-in creator revenue sharing and anti-snipe block guards.
                 </p>
-                <Link href="/launch" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
+                <Link href="/launch" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
                   Launch a token <ArrowUpRight size={13} />
                 </Link>
               </div>
@@ -829,7 +829,7 @@ export default function DocumentsClient() {
                   Compare supply &amp; borrow yields across Morpho Blue, Aave v3, Euler, and Superform.
                   Interactive simulator stress-tests collateral price drops and liquidation thresholds.
                 </p>
-                <Link href="/lend" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
+                <Link href="/lend" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
                   Compare lending yields <ArrowUpRight size={13} />
                 </Link>
               </div>
@@ -847,7 +847,7 @@ export default function DocumentsClient() {
                   Onchain crypto gift cards. Split ETH, USDC, Tokenized Stocks, or Morpho Yield Vault shares
                   into up to 50 cards with secure Card ID + Secret redemption and instant gifting.
                 </p>
-                <Link href="/redeem" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
+                <Link href="/redeem" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
                   Redeem or create vouchers <ArrowUpRight size={13} />
                 </Link>
               </div>
@@ -865,7 +865,7 @@ export default function DocumentsClient() {
                   Autonomous agent integration via /api/mcp. Prepares unsigned calldata for batch creations,
                   redemptions, live status lookups, and creator batch indexing.
                 </p>
-                <a href="#mcp" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition">
+                <a href="#mcp" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
                   View MCP specs <ArrowUpRight size={13} />
                 </a>
               </div>
@@ -886,7 +886,7 @@ export default function DocumentsClient() {
                 <a
                   href="#compliance"
                   onClick={() => setActiveTab("compliance")}
-                  className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] group-hover:translate-x-0.5 transition cursor-pointer"
+                  className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition cursor-pointer"
                 >
                   View safety architecture <ArrowUpRight size={13} />
                 </a>
@@ -900,11 +900,11 @@ export default function DocumentsClient() {
           <section id="mcp" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                   Autonomous AI Integration
                 </span>
                 <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1 flex items-center gap-2">
-                  <Cpu size={22} className="text-[var(--brand)]" />
+                  <Cpu size={22} className="text-[var(--brand-text)]" />
                   Model Context Protocol (MCP)
                 </h2>
               </div>
@@ -924,7 +924,7 @@ export default function DocumentsClient() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Terminal size={14} className="text-[var(--brand)]" />
+                    <Terminal size={14} className="text-[var(--brand-text)]" />
                     Claude Code / CLI Setup
                   </span>
                   <div className="flex items-center justify-between rounded-lg bg-[var(--surface)] p-2.5 font-mono text-xs text-[var(--ink-muted)]">
@@ -946,7 +946,7 @@ export default function DocumentsClient() {
 
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Code2 size={14} className="text-[var(--brand)]" />
+                    <Code2 size={14} className="text-[var(--brand-text)]" />
                     Cursor / Claude Desktop Config
                   </span>
                   <div className="flex items-center justify-between rounded-lg bg-[var(--surface)] p-2.5 font-mono text-xs text-[var(--ink-muted)]">
@@ -994,7 +994,7 @@ export default function DocumentsClient() {
                     </thead>
                     <tbody className="divide-y divide-[var(--border-subtle)] text-[var(--ink)]">
                       <tr>
-                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand)]">
+                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand-text)]">
                           voucher_prepare_create
                         </td>
                         <td className="py-3 px-3 font-mono text-[var(--ink-muted)]">
@@ -1008,7 +1008,7 @@ export default function DocumentsClient() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand)]">
+                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand-text)]">
                           voucher_prepare_redeem
                         </td>
                         <td className="py-3 px-3 font-mono text-[var(--ink-muted)]">
@@ -1022,7 +1022,7 @@ export default function DocumentsClient() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand)]">
+                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand-text)]">
                           voucher_lookup_batch
                         </td>
                         <td className="py-3 px-3 font-mono text-[var(--ink-muted)]">
@@ -1036,7 +1036,7 @@ export default function DocumentsClient() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand)]">
+                        <td className="py-3 px-3 font-mono font-bold text-[var(--brand-text)]">
                           voucher_list_by_creator
                         </td>
                         <td className="py-3 px-3 font-mono text-[var(--ink-muted)]">
@@ -1062,11 +1062,11 @@ export default function DocumentsClient() {
           <section id="apis" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                   Developer Integration
                 </span>
                 <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1 flex items-center gap-2">
-                  <Terminal size={22} className="text-[var(--brand)]" />
+                  <Terminal size={22} className="text-[var(--brand-text)]" />
                   Public REST API Endpoints
                 </h2>
               </div>
@@ -1168,7 +1168,7 @@ export default function DocumentsClient() {
                               <td className="py-2 px-3 font-mono font-bold text-[var(--ink)]">
                                 {p.name}
                               </td>
-                              <td className="py-2 px-3 font-mono text-[var(--brand)]">
+                              <td className="py-2 px-3 font-mono text-[var(--brand-text)]">
                                 {p.type}
                               </td>
                               <td className="py-2 px-3">
@@ -1198,7 +1198,7 @@ export default function DocumentsClient() {
                     <button
                       type="button"
                       onClick={() => copyToClipboard(activeEndpoint.exampleCurl, "curl")}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand)] hover:underline"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand-text)] hover:underline"
                     >
                       {copiedId === "curl" ? (
                         <>
@@ -1225,7 +1225,7 @@ export default function DocumentsClient() {
                     <button
                       type="button"
                       onClick={() => copyToClipboard(activeEndpoint.exampleResponse, "resp")}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand)] hover:underline"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand-text)] hover:underline"
                     >
                       {copiedId === "resp" ? (
                         <>
@@ -1252,11 +1252,11 @@ export default function DocumentsClient() {
           <section id="compliance" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                   Product Safeguards &amp; Legal Disclosures
                 </span>
                 <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1 flex items-center gap-2">
-                  <ShieldCheck size={22} className="text-[var(--brand)]" />
+                  <ShieldCheck size={22} className="text-[var(--brand-text)]" />
                   Compliance Guardrails &amp; Exit-Only Architecture
                 </h2>
               </div>
@@ -1279,7 +1279,7 @@ export default function DocumentsClient() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Shield size={14} className="text-[var(--brand)]" />
+                    <Shield size={14} className="text-[var(--brand-text)]" />
                     The Exit-Only Guarantee
                   </span>
                   <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
@@ -1291,7 +1291,7 @@ export default function DocumentsClient() {
 
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Compass size={14} className="text-[var(--brand)]" />
+                    <Compass size={14} className="text-[var(--brand-text)]" />
                     Server-Side Edge Geo-Gating
                   </span>
                   <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
@@ -1303,7 +1303,7 @@ export default function DocumentsClient() {
 
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-4 space-y-2">
                   <span className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
-                    <Zap size={14} className="text-[var(--brand)]" />
+                    <Zap size={14} className="text-[var(--brand-text)]" />
                     Remote Safety Kill Switch
                   </span>
                   <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
@@ -1346,11 +1346,11 @@ export default function DocumentsClient() {
           <section id="contracts" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                   Onchain Protocol
                 </span>
                 <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1 flex items-center gap-2">
-                  <Shield size={22} className="text-[var(--brand)]" />
+                  <Shield size={22} className="text-[var(--brand-text)]" />
                   Verified Smart Contracts
                 </h2>
               </div>
@@ -1392,7 +1392,7 @@ export default function DocumentsClient() {
                           href={`https://basescan.org/address/${c.address}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[var(--ink-dim)] hover:text-[var(--brand)] p-1"
+                          className="text-[var(--ink-dim)] hover:text-[var(--brand-text)] p-1"
                           title="View on BaseScan"
                         >
                           <ExternalLink size={13} />
@@ -1422,11 +1422,11 @@ export default function DocumentsClient() {
           <section id="faq" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)]">
                   Knowledge Base
                 </span>
                 <h2 className="font-display text-2xl font-bold text-[var(--ink)] mt-1 flex items-center gap-2">
-                  <BookOpen size={22} className="text-[var(--brand)]" />
+                  <BookOpen size={22} className="text-[var(--brand-text)]" />
                   Frequently Asked Questions
                 </h2>
               </div>
@@ -1446,7 +1446,7 @@ export default function DocumentsClient() {
                       className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-[var(--surface-2)]/50 transition"
                     >
                       <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand)] block mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-text)] block mb-1">
                           {item.category}
                         </span>
                         <p className="text-sm font-bold text-[var(--ink)]">
@@ -1456,7 +1456,7 @@ export default function DocumentsClient() {
                       <ChevronDown
                         size={18}
                         className={`shrink-0 text-[var(--ink-dim)] transition-transform duration-200 ${
-                          isOpen ? "rotate-180 text-[var(--brand)]" : ""
+                          isOpen ? "rotate-180 text-[var(--brand-text)]" : ""
                         }`}
                       />
                     </button>

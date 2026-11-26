@@ -116,7 +116,7 @@ export default function SwapPreviewModal({
         <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 text-xs text-[var(--ink-muted)]">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Percent size={13} className="text-[var(--brand)]" />
+              <Percent size={13} className="text-[var(--brand-text)]" />
               <span>Slippage Tolerance</span>
             </span>
             <span className="font-mono font-bold text-[var(--ink)]">{slippagePct}%</span>

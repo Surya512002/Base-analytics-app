@@ -1,14 +1,13 @@
 /**
- * Link-preview images (X, Farcaster, Telegram, iMessage…), v4: Engraved.
+ * Link-preview images (X, Farcaster, Telegram, iMessage…), v5: Clean Cobalt.
  *
- * Plum ink with the app's line rosette; gold only on gifts. Rules: readable at X's ~500px preview
- * width (nothing under 20px), one message per card, real data only — prices carry their timestamp,
+ * Flat cobalt with white type; gold only on gifts. Rules: readable at X's ~500px preview width
+ * (nothing under 20px), one message per card, real data only — prices carry their timestamp,
  * nothing is invented when data is missing. Satori: flexbox only, every multi-child div has
  * display:flex.
  */
 import type { ReactElement } from "react";
 import { BrandLogoMark } from "@/lib/brand/logo-mark";
-import { OG_ROSETTE } from "./rosette-data";
 import { OG_SECTIONS, type OgSection } from "./sections";
 
 const SITE = "baseanalytics.app";
@@ -20,7 +19,7 @@ const W = {
   muted: "rgba(255,255,255,0.70)",
   glass: "rgba(255,255,255,0.14)",
   glassBorder: "rgba(255,255,255,0.28)",
-  ink: "#5B2A86",
+  ink: "#0052FF",
   gold: "#FDE68A",
   up: "#86EFAC",
   down: "#FECACA",
@@ -28,7 +27,7 @@ const W = {
 
 const RIBBON = "linear-gradient(90deg, #FDE68A 0%, #F59E0B 50%, #FDE68A 100%)";
 
-/** The plum surface with the rosette behind the content. */
+/** The flat cobalt surface. */
 export function Frame({ children }: { children: ReactElement | ReactElement[] }) {
   return (
     <div
@@ -38,16 +37,13 @@ export function Frame({ children }: { children: ReactElement | ReactElement[] })
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        backgroundColor: "#1A1030",
-        backgroundImage: "linear-gradient(135deg, #3A1D66 0%, #2A1650 45%, #1A1030 100%)",
+        backgroundColor: "#0047DB",
         padding: "46px 56px",
         color: W.strong,
         fontFamily: "Figtree",
         fontWeight: 500,
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={OG_ROSETTE} width={760} height={760} alt="" style={{ position: "absolute", top: -200, right: -210, opacity: 0.4 }} />
       {children}
     </div>
   );
@@ -143,10 +139,10 @@ function Sparkle({ x, y, size, color = "rgba(255,255,255,0.8)" }: { x: number; y
  */
 export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { label?: string; value?: string; dim?: boolean }) {
   const body = dim
-    ? "linear-gradient(160deg, #7D739E 0%, #514C6B 50%, #29213F 100%)"
-    : "linear-gradient(160deg, #9B6FD0 0%, #6F3A9E 45%, #3A1D66 100%)";
-  const lid = dim ? "linear-gradient(160deg, #9D97B3 0%, #514C6B 100%)" : "linear-gradient(160deg, #B48FE8 0%, #5B2A86 100%)";
-  const card = dim ? "linear-gradient(135deg, #514C6B 0%, #3B3555 100%)" : "linear-gradient(135deg, #5B2A86 0%, #8E5FC4 100%)";
+    ? "linear-gradient(160deg, #6B7A99 0%, #4A5568 50%, #1F2937 100%)"
+    : "linear-gradient(160deg, #4C86FF 0%, #1D62F0 45%, #0A3FB0 100%)";
+  const lid = dim ? "linear-gradient(160deg, #94A0B8 0%, #4A5568 100%)" : "linear-gradient(160deg, #6F9BFF 0%, #0052FF 100%)";
+  const card = dim ? "linear-gradient(135deg, #4A5568 0%, #334155 100%)" : "linear-gradient(135deg, #0052FF 0%, #3D7BFF 100%)";
   const valueSize = value.length > 14 ? 28 : value.length > 9 ? 36 : 44;
   return (
     <div style={{ position: "relative", width: 440, height: 440, display: "flex" }}>
@@ -203,7 +199,7 @@ export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { 
           display: "flex",
           borderRadius: 52,
           backgroundImage: body,
-          boxShadow: "0 30px 60px rgba(10,5,30,0.45)",
+          boxShadow: "0 30px 60px rgba(5,15,50,0.45)",
           overflow: "hidden",
         }}
       >
@@ -277,7 +273,7 @@ export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { 
             display: "flex",
             borderRadius: 22,
             backgroundImage: lid,
-            boxShadow: "0 14px 30px rgba(10,5,30,0.35)",
+            boxShadow: "0 14px 30px rgba(5,15,50,0.35)",
             overflow: "hidden",
           }}
         >

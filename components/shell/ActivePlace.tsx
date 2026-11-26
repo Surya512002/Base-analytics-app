@@ -8,7 +8,10 @@ type Render = (place: PlaceId) => ReactNode;
 
 function FromQuery({ tab, children }: { tab?: string; children: Render }) {
   const path = usePathname() || "/";
-  const view = useSearchParams()?.get("view");
+  const params = useSearchParams();
+  const view = params?.get("view");
+  // Auto-invest lives at /swap?mode=recurring but belongs to Trade.
+  if (path === "/swap" && params?.get("mode") === "recurring") return children("trade");
   // Holdings and Orders live on the lending page but belong to Account.
   const account = path === "/lend" && (view === "portfolio" || view === "orders");
   return children(account ? "account" : placeFor(path, tab));

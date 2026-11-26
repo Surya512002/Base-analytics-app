@@ -28,8 +28,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F1F2F6" },
-    { media: "(prefers-color-scheme: dark)", color: "#15101F" },
+    { media: "(prefers-color-scheme: light)", color: "#F6F8FB" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0F19" },
   ],
 };
 
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
           name: "Base Analytics",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/splash.png`,
-          splashBackgroundColor: "#15101F",
+          splashBackgroundColor: "#0B0F19",
         },
       },
     }),

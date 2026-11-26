@@ -49,7 +49,7 @@ export default function HelpPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--ink)]">
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8">
-        <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--brand)]">
+        <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--brand-text)]">
           <ArrowLeft size={13} /> Home
         </Link>
         <h1 className="font-display text-3xl font-black tracking-tight">Help</h1>

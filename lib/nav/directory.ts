@@ -5,13 +5,14 @@
 import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_ORDERS_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 import { DROPS_CONTRACT } from "@/lib/drops/client";
 
-export type PlaceId = "home" | "markets" | "trade" | "earn" | "gifts" | "launch" | "account";
+export type PlaceId = "home" | "swap" | "trade" | "markets" | "earn" | "gifts" | "launch" | "account";
 
 /** Where each menu item goes. Labels come from the translations (`t.nav[id]`). */
 export const PLACE_HREF: Record<PlaceId, string> = {
   home: "/",
+  swap: "/swap",
+  trade: LIMIT_ORDERS_HREF,
   markets: STOCK_LIST_HREF,
-  trade: "/swap",
   earn: "/lend",
   gifts: "/?tab=basehub",
   launch: "/launch",
@@ -19,8 +20,8 @@ export const PLACE_HREF: Record<PlaceId, string> = {
 };
 
 /** Computer menu and phone bottom bar. Gifts and Launch are reached from Home and search on phones. */
-export const TOP_NAV: PlaceId[] = ["home", "markets", "trade", "earn", "gifts", "launch"];
-export const DOCK_NAV: PlaceId[] = ["home", "markets", "trade", "earn", "account"];
+export const TOP_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "gifts", "launch"];
+export const DOCK_NAV: PlaceId[] = ["home", "swap", "trade", "markets", "earn", "account"];
 
 export type Entry = {
   id: string;
@@ -36,21 +37,27 @@ export type Group = { id: Exclude<PlaceId, "home" | "launch"> | "help"; title: s
 
 export const GROUPS: Group[] = [
   {
-    id: "markets",
-    title: "Markets",
+    id: "swap",
+    title: "Swap",
     entries: [
-      { id: "stocks", title: "Stocks", note: "Every tokenized stock, with live prices", href: STOCK_LIST_HREF, words: "shares equities nvda aapl tsla buy" },
-      { id: "tokens", title: "All tokens", note: "Live tokens, market map and price alerts", href: "/explore", words: "coins explore prices alerts watchlist b20" },
+      { id: "swap", title: "Swap", note: "Exchange one token for another", href: "/swap", words: "exchange buy sell convert market order" },
     ],
   },
   {
     id: "trade",
     title: "Trade",
     entries: [
-      { id: "swap", title: "Swap", note: "Exchange one token for another", href: "/swap", words: "exchange buy sell convert market order" },
       { id: "orders", title: "Limit and stop", note: "Buy the dip or stop a loss", href: LIMIT_ORDERS_HREF, words: "limit order stop loss take profit trailing open orders cancel" },
       { id: "auto-invest", title: "Auto-invest", note: "Buy on a schedule", href: AUTO_INVEST_HREF, words: "recurring weekly dca schedule basket plan" },
       { id: "chart", title: "Chart", note: "Charts and order book", href: "/trade", words: "candles order book trades terminal" },
+    ],
+  },
+  {
+    id: "markets",
+    title: "Markets",
+    entries: [
+      { id: "stocks", title: "Stocks", note: "Every tokenized stock, with live prices", href: STOCK_LIST_HREF, words: "shares equities nvda aapl tsla buy" },
+      { id: "tokens", title: "All tokens", note: "Live tokens, market map and price alerts", href: "/explore", words: "coins explore prices alerts watchlist b20" },
     ],
   },
   {
@@ -114,14 +121,16 @@ export function searchEntries(query: string): Entry[] {
 /** Which menu item to highlight for a page address (and the open tab on "/"). */
 export function placeFor(pathname: string, tab?: string | null): PlaceId {
   const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
-  if (under("/explore/token") || under("/swap") || under("/trade")) return "trade";
+  if (under("/explore/token") || under("/swap")) return "swap";
+  if (under("/trade")) return "trade";
   if (under("/explore")) return "markets";
   if (under("/lend")) return "earn";
   if (under("/drops") || under("/redeem") || under("/claim")) return "gifts";
   if (under("/launch")) return "launch";
   if (under("/profile") || under("/creator")) return "account";
   if (tab === "basehub" || tab === "drops") return "gifts";
-  if (tab === "swap" || tab === "trade") return "trade";
+  if (tab === "swap") return "swap";
+  if (tab === "trade") return "trade";
   if (tab === "lend") return "earn";
   return "home";
 }

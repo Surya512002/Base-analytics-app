@@ -110,13 +110,13 @@ export function heatmapCellStyle(count: number, intensity: number): CSSPropertie
   }
   const alpha = 0.28 + intensity * 0.16;
   return {
-    background: `rgba(91, 42, 134, ${alpha})`,
-    border: "1px solid rgba(142, 95, 196, 0.4)",
+    background: `rgba(0, 82, 255, ${alpha})`,
+    border: "1px solid rgba(61, 123, 255, 0.4)",
     boxShadow:
       intensity >= 3
-        ? "0 0 8px rgba(91, 42, 134, 0.45)"
+        ? "0 0 8px rgba(0, 82, 255, 0.45)"
         : intensity >= 2
-          ? "0 0 4px rgba(91, 42, 134, 0.25)"
+          ? "0 0 4px rgba(0, 82, 255, 0.25)"
           : undefined,
   };
 }

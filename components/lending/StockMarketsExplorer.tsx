@@ -206,7 +206,7 @@ export default function StockMarketsExplorer({
       {/* Summary */}
       <div className="pulse-surface grid grid-cols-2 gap-px p-1.5 lg:grid-cols-4">
         {[
-          { label: "Stocks", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#8e5fc4" },
+          { label: "Stocks", value: String(stats.stocks), note: `${stats.markets} verified markets`, icon: BadgeCheck, color: "#3D7BFF" },
           {
             label: "Top lending APY",
             value: pct(stats.earn?.supplyApy),
