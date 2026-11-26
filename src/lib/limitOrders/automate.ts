@@ -1,5 +1,6 @@
 import { BASE_MAINNET_CONFIG } from "@/src/config/limitOrders";
 import { isLimitOrdersFeatureEnabled } from "./featureFlag";
+import { autoInvestStockHref } from "@/lib/constants/destinations";
 
 /** Auto-invest and stop-loss run on the order book: only offer them where it is live and lists this token. */
 export function canAutomateStock(address: string): boolean {
@@ -7,7 +8,7 @@ export function canAutomateStock(address: string): boolean {
   return BASE_MAINNET_CONFIG.markets.some((m) => m.stockToken.toLowerCase() === address.toLowerCase());
 }
 
-/** Trade page deep link that opens the recurring-buy card, or the Simple card on its stop-loss goal. */
+/** Deep link to the auto-invest form, or to the Trade ticket on its stop-loss goal. */
 export function automateLink(address: string, kind: "auto-invest" | "stop-loss"): string {
-  return `/trade?token=${address}&ticket=${kind === "auto-invest" ? "recurring" : "orders&goal=stop-loss"}`;
+  return kind === "auto-invest" ? autoInvestStockHref(address) : `/trade?token=${address}&ticket=orders&goal=stop-loss`;
 }

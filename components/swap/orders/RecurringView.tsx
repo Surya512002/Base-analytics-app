@@ -11,6 +11,7 @@ interface RecurringViewProps {
   onConnectWallet?: () => void;
   onSwitchChain?: () => void;
   onSwitchSepolia?: () => void;
+  initialStock?: string;
 }
 
 /** One-stock plans on the Auto-invest screen: pick the stock, then the same form as on Trade. */
@@ -19,12 +20,18 @@ export default function RecurringView({
   onConnectWallet,
   onSwitchChain,
   onSwitchSepolia,
+  initialStock,
 }: RecurringViewProps) {
   const { config, chainId } = limitOrders;
 
+  const wanted = initialStock?.toLowerCase();
+  const wantedListed = config.markets.some((m) => m.stockToken.toLowerCase() === wanted);
   const [selectedStock, setSelectedStock] = useState<string>(
-    config.markets[0]?.stockToken.toLowerCase() || ""
+    wanted || config.markets[0]?.stockToken.toLowerCase() || ""
   );
+  useEffect(() => {
+    if (wanted) setSelectedStock(wanted);
+  }, [wanted]);
 
   // Keep selectedStock valid across chain switches (e.g. Sepolia vs Mainnet)
   useEffect(() => {
@@ -107,6 +114,11 @@ export default function RecurringView({
         </div>
       ) : (
         <>
+          {wanted && !wantedListed && (
+            <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-[var(--ink-muted)]">
+              Plans aren&apos;t available for the token in your link. Choose a stock below.
+            </p>
+          )}
           <label className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5">
             <span className="text-xs font-semibold text-[var(--ink)]">Stock</span>
             <select

@@ -79,4 +79,15 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     await page.goto(`${BASE}/swap?mode=orders`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await expect(page).toHaveURL(/\/trade\?ticket=orders/, { timeout: 20000 });
   });
+
+  test("an old recurring chart link opens the auto-invest form for that stock", async ({ page }) => {
+    const nvda = "0xb20000000000000000000078ee7ce2fe4908108c";
+    await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const switcher = page.locator('.place-tabs a:has-text("Auto-invest")');
+    const enabled = await switcher.waitFor({ timeout: 10000 }).then(() => true, () => false);
+    test.skip(!enabled, "Orders feature flag is off in this build");
+    await page.goto(`${BASE}/trade?token=${nvda}&ticket=recurring`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await expect(page).toHaveURL(new RegExp(`/swap\\?mode=recurring&token=${nvda}`), { timeout: 20000 });
+    await expect(page.getByRole("tab", { name: "One stock" })).toHaveAttribute("aria-selected", "true", { timeout: 15000 });
+  });
 });

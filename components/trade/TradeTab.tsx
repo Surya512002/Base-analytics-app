@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSwitchChain } from "wagmi";
 import { base } from "viem/chains";
 import { ChevronDown, Loader2, Maximize2, Minimize2, Search, Star, TrendingDown, TrendingUp } from "lucide-react";
@@ -10,7 +10,6 @@ import type { TradeMarket } from "@/app/api/trade/markets/route";
 import DexSwapCard from "@/components/swap/DexSwapCard";
 import OrdersView from "@/components/swap/orders/OrdersView";
 import Link from "next/link";
-import RecurringCard from "./RecurringCard";
 import MyOrdersPanel from "@/components/swap/orders/MyOrdersPanel";
 import { TradeTabs } from "@/components/shell/PlaceTabs";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
@@ -29,12 +28,12 @@ import CandleChart, { formatPrice, type Candle, type ChartType, type Indicators,
 import { AlertButton, MarketInfo, Position, RecentTrades, type MarketStats } from "./TradePanels";
 import MarketRail from "./MarketRail";
 import OrderBookPanel from "./OrderBookPanel";
-import { AUTO_INVEST_HREF } from "@/lib/constants/destinations";
+import { autoInvestStockHref } from "@/lib/constants/destinations";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 type Timeframe = (typeof TIMEFRAMES)[number];
 type Kind = "all" | "stocks" | "coins";
-type Ticket = "market" | "limit" | "stop" | "recurring";
+type Ticket = "market" | "limit" | "stop";
 type BottomTab = "orders" | "book" | "trades" | "info" | "balance";
 
 type MarketSummary = {
@@ -187,26 +186,28 @@ export default function TradeTab({
   const [summary, setSummary] = useState<MarketSummary | null>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartNote, setChartNote] = useState<string | null>(null);
-  // Deep links from stock cards: /trade?token=0x…&ticket=recurring (auto-invest) or &ticket=orders&goal=stop-loss
+  // Deep links from stock cards: /trade?token=0x…&ticket=orders&goal=stop-loss
   const goalParam = searchParams?.get("goal");
   const initialGoal = (["buy-dip", "take-profit", "stop-loss", "protect"] as const).find((g) => g === goalParam);
   const ticketParam = searchParams?.get("ticket");
   const [ticket, setTicket] = useState<Ticket>(
-    ticketParam === "recurring"
-      ? "recurring"
-      : ticketParam === "orders"
-        ? initialGoal === "stop-loss" || initialGoal === "protect"
-          ? "stop"
-          : "limit"
-        : "market"
+    ticketParam === "orders" ? (initialGoal === "stop-loss" || initialGoal === "protect" ? "stop" : "limit") : "market"
   );
   // Arriving from a menu switch while this screen is already open.
   const lastTicketParam = useRef(ticketParam);
   useEffect(() => {
     if (lastTicketParam.current === ticketParam) return;
     lastTicketParam.current = ticketParam;
-    setTicket(ticketParam === "recurring" ? "recurring" : ticketParam === "orders" ? "limit" : "market");
+    setTicket(ticketParam === "orders" ? "limit" : "market");
   }, [ticketParam]);
+  // Old links to the recurring ticket open the auto-invest form, keeping the chosen stock.
+  const router = useRouter();
+  const recurringToken = searchParams?.get("token") ?? searchParams?.get("buy");
+  useEffect(() => {
+    if (ticketParam === "recurring" && ordersEnabled) {
+      router.replace(recurringToken ? autoInvestStockHref(recurringToken) : "/swap?mode=recurring");
+    }
+  }, [ticketParam, ordersEnabled, recurringToken, router]);
   const [side, setSide] = useState<"buy" | "sell">(
     ticket === "stop" || initialGoal === "take-profit" || initialGoal === "protect" ? "sell" : "buy"
   );
@@ -413,7 +414,7 @@ export default function TradeTab({
     <div className="mx-auto w-full max-w-[1760px] space-y-3 px-1 pb-24 sm:px-2 lg:pb-4">
       {ordersEnabled && (
         <TradeTabs
-          current={ticket === "recurring" ? "auto-invest" : ticket === "market" ? "chart" : "orders"}
+          current={ticket === "market" ? "chart" : "orders"}
           onSelect={(view) => {
             if (view === "orders") setTicket((t) => (t === "stop" ? "stop" : "limit"));
             if (view === "chart") setTicket("market");
@@ -595,23 +596,20 @@ export default function TradeTab({
           aria-label="Order ticket"
           className="min-w-0 space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 2xl:col-start-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-1.5rem)] lg:self-start lg:overflow-y-auto"
         >
-          {ticket !== "recurring" && (
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Buy or sell">
-              <button type="button" aria-pressed={side === "buy"} onClick={() => pickSide("buy")} className={`min-h-[42px] rounded-lg text-sm font-extrabold transition ${side === "buy" ? "bg-green-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
-                Buy
-              </button>
-              <button type="button" aria-pressed={side === "sell"} onClick={() => pickSide("sell")} className={`min-h-[42px] rounded-lg text-sm font-extrabold transition ${side === "sell" ? "bg-red-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
-                Sell
-              </button>
-            </div>
-          )}
-          <div className={`grid gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 ${!ordersEnabled ? "grid-cols-1" : side === "sell" || ticket === "recurring" ? "grid-cols-4" : "grid-cols-3"}`} role="tablist">
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1" role="group" aria-label="Buy or sell">
+            <button type="button" aria-pressed={side === "buy"} onClick={() => pickSide("buy")} className={`min-h-[42px] rounded-lg text-sm font-extrabold transition ${side === "buy" ? "bg-green-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
+              Buy
+            </button>
+            <button type="button" aria-pressed={side === "sell"} onClick={() => pickSide("sell")} className={`min-h-[42px] rounded-lg text-sm font-extrabold transition ${side === "sell" ? "bg-red-600 text-white" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}>
+              Sell
+            </button>
+          </div>
+          <div className={`grid gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 ${!ordersEnabled ? "grid-cols-1" : side === "sell" || ticket === "stop" ? "grid-cols-3" : "grid-cols-2"}`} role="tablist">
             {(
               [
                 ["market", "Market"],
                 ["limit", "Limit"],
                 ["stop", "Stop"],
-                ["recurring", "Recurring"],
               ] as const
             )
               .filter(([id]) => id === "market" || (ordersEnabled && (id !== "stop" || side === "sell" || ticket === "stop")))
@@ -702,27 +700,11 @@ export default function TradeTab({
             </>
           )}
 
-          {ticket === "recurring" && ordersEnabled && (
-            <Link href={AUTO_INVEST_HREF} className="flex items-center justify-between gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] px-3 py-2.5 text-xs font-bold text-[var(--ink)] hover:border-[var(--brand)]">
-              <span>Buying several stocks? Set up one basket plan</span>
+          {canPlaceOrders && orderMarket && (
+            <Link href={autoInvestStockHref(orderMarket.stockToken)} className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] px-3 py-2.5 text-xs font-bold text-[var(--ink)] hover:border-[var(--brand)]">
+              <span>Auto-invest: buy or sell {orderMarket.symbol} on a schedule</span>
               <span aria-hidden>→</span>
             </Link>
-          )}
-
-          {ticket === "recurring" && ordersEnabled && (
-            limitOrders.chainId === 8453 && /^0x0{40}$/i.test(limitOrders.config.orderBook) ? (
-              <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-center shadow-card">
-                <h3 className="text-base font-bold text-[var(--ink)]">Recurring plans aren&apos;t live on Base mainnet yet</h3>
-                <p className="mx-auto max-w-sm text-xs text-[var(--ink-muted)]">You can try auto-buy and auto-sell with test tokens on Base Sepolia.</p>
-                <button type="button" onClick={() => switchChain?.({ chainId: 84532 })} className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-xs font-bold text-white hover:bg-[var(--brand-hover)]">Switch to Base Sepolia</button>
-              </div>
-            ) : canPlaceOrders ? (
-              <RecurringCard limitOrders={limitOrders} stockAddress={orderMarket?.stockToken} onConnectWallet={onRequestConnect} />
-            ) : (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-[var(--ink-muted)]">
-                Recurring plans run on the on-chain order book. Supported markets here: {limitOrders.config.markets.map((m) => m.symbol).join(", ") || "none"}. Pick one from the market list to continue.
-              </div>
-            )
           )}
         </aside>
 
