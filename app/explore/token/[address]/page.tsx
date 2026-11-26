@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import HomeApp from "@/components/home/HomeApp";
 import { getAppUrl } from "@/lib/constants/app-url";
-import { OG_VERSION } from "@/lib/og/brand-kit";
+import { getTokenOgImageUrl } from "@/lib/og/types";
 import { formatUsd } from "@/lib/launchpad/format";
 
 const BASE = getAppUrl();
@@ -37,31 +37,23 @@ export async function generateMetadata({
         ? `$${(market.marketCap / 1e6).toFixed(2)}M`
         : `$${market.marketCap.toFixed(0)}`
       : "—";
-    const chg = market?.priceChange24h ?? 0;
-
-    const ogParams = new URLSearchParams({
-      v: "token",
-      sym,
-      tname: name,
-      tprice: price,
-      tchg: String(chg),
-      tmcap: mcap,
-      ogv: OG_VERSION,
-    });
+    const chg: number | null = market?.priceChange24h ?? null;
+    const change = chg === null ? "" : `${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% 24h · `;
+    const ogImage = getTokenOgImageUrl(origin, token);
 
     return {
       title: `$${sym} · ${name} · Base Analytics`,
-      description: `Trade $${sym} in-app on Base Analytics — Uniswap + Aerodrome, USD swap quotes. ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% 24h · MCap ${mcap}`,
+      description: `Trade $${sym} in-app on Base Analytics — Uniswap + Aerodrome, USD swap quotes. ${change}MCap ${mcap}`,
       openGraph: {
         title: `$${sym} on Base`,
         description: `${name} · ${price} · Swap in-app via Uniswap & Aerodrome on Base Analytics`,
-        images: [{ url: `${origin}/api/og?${ogParams}` }],
+        images: [{ url: ogImage }],
       },
       twitter: {
         card: "summary_large_image",
         title: `$${sym} on Base`,
         description: `Trade $${sym} in-app — Uniswap + Aerodrome · USD quotes · B20 launchpad`,
-        images: [`${origin}/api/og?${ogParams}`],
+        images: [ogImage],
       },
     };
   } catch {

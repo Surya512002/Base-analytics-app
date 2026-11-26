@@ -1,6 +1,4 @@
-import { APP_URL_WEB } from "@/lib/constants/env";
 import type { WalletData } from "@/lib/types/wallet";
-import { getOgImageUrl } from "@/lib/og/types";
 import { formatDexVolumeUsd } from "@/lib/utils/swap-volume";
 
 export const SHARE_TAGLINE =
@@ -23,41 +21,6 @@ export function buildActivityShareText(
 
 export function buildTokenShareText(symbol: string, name: string): string {
   return `$${symbol} on Base — ${name}\n\nTrade on Base Analytics: Uniswap + Aerodrome in-app, USD swap quotes, explore rails. No tab-hopping.`;
-}
-
-export function buildTokenSharePageUrl(
-  symbol: string,
-  name: string,
-  optsOrPrice?:
-    | string
-    | {
-        price?: string;
-        change24h?: number;
-        mcap?: string;
-        tokenAddress?: string;
-      },
-  change24h?: number,
-  mcapUsd?: string,
-  tokenAddress?: string
-): string {
-  const isObj = typeof optsOrPrice === "object" && optsOrPrice !== null;
-  const price = isObj ? optsOrPrice.price : optsOrPrice;
-  const chg = isObj ? optsOrPrice.change24h : change24h;
-  const mc = isObj ? optsOrPrice.mcap : mcapUsd;
-  const addr = isObj ? optsOrPrice.tokenAddress : tokenAddress;
-
-  const ogUrl = getOgImageUrl(APP_URL_WEB, {
-    variant: "token",
-    tokenSymbol: symbol,
-    tokenName: name,
-    tokenPrice: price,
-    tokenChange24h: chg,
-    tokenMcap: mc,
-  });
-  const pageUrl = addr
-    ? `${APP_URL_WEB}/launchpad?token=${addr}`
-    : `${APP_URL_WEB}/launchpad`;
-  return `${pageUrl}#og=${encodeURIComponent(ogUrl)}`;
 }
 
 export function buildShareBody(text: string, url: string): string {

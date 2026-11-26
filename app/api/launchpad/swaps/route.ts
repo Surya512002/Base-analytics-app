@@ -4,6 +4,7 @@ import { decodeEventLog, type Address, type Hex } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { WETH_BASE } from "@/lib/launchpad/uniswap";
 import { ensurePoolOpenBlock } from "@/lib/launchpad/token-protection";
+import { fetchEthUsd } from "@/lib/prices/eth-usd";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -94,20 +95,6 @@ function pickBestPair(pairs: DexScreenerPair[]) {
 
 function absBigInt(x: bigint): bigint {
   return x < BigInt(0) ? -x : x;
-}
-
-async function fetchEthUsd(): Promise<number> {
-  try {
-    const r = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
-      { next: { revalidate: 60 } }
-    );
-    if (!r.ok) return 2500;
-    const data = (await r.json()) as { ethereum?: { usd?: number } };
-    return data.ethereum?.usd ?? 2500;
-  } catch {
-    return 2500;
-  }
 }
 
 export async function GET(req: Request) {
@@ -252,8 +239,8 @@ export async function GET(req: Request) {
       const tokenAmt = Number(amountToken) / 1e18;
       const ethAmt = Number(amountEth) / 1e18;
       const priceEth = tokenAmt > 0 ? ethAmt / tokenAmt : 0;
-      const priceUsd = priceEth * ethUsd;
-      const valueUsd = ethAmt * ethUsd;
+      const priceUsd = ethUsd > 0 ? priceEth * ethUsd : undefined;
+      const valueUsd = ethUsd > 0 ? ethAmt * ethUsd : undefined;
 
       return {
         txHash: log.transactionHash,

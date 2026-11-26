@@ -28,7 +28,7 @@ export default function SeedLiquidityPanel({
   const [seedEth, setSeedEth] = useState(DEFAULT_SEED_LIQUIDITY_ETH);
   const [seedDex, setSeedDex] = useState<SeedDex>("aerodrome");
   const [tokenPct, setTokenPct] = useState(25);
-  const [ethUsd, setEthUsd] = useState(2500);
+  const [ethUsd, setEthUsd] = useState(0);
 
   useEffect(() => {
     let alive = true;

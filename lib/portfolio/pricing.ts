@@ -3,14 +3,12 @@ import { createBasePublicClient } from "../utils/base-rpc";
 import { TOKENIZED_STOCKS_REGISTRY } from "../stocks/tokenized-stocks-registry";
 import { fetchDexScreenerBatch, pickBestPair } from "../launchpad/dexscreener";
 import type { PriceSource } from "./types";
+import { fetchEthUsd } from "@/lib/prices/eth-usd";
 
 const CHAINLINK_AGGREGATOR_ABI = parseAbi([
   "function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)",
   "function decimals() external view returns (uint8)",
 ]);
-
-// Official Base mainnet Chainlink feeds
-const CHAINLINK_ETH_USD_BASE = "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70" as const;
 
 // Pegged assets dictionary
 const PEGGED_PRICES: Record<string, number> = {
@@ -19,7 +17,6 @@ const PEGGED_PRICES: Record<string, number> = {
   "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca": 1.0, // USDbC
   "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2": 1.0, // USDT
   "0x50c5725949a6f0c72e6c4a641f24049a917db0cb": 1.0, // DAI
-  "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": 1.08, // EURC
 };
 
 export interface PriceResult {
@@ -73,49 +70,22 @@ export async function batchPriceTokens(
     }
   }
 
-  // 1. Fetch ETH Price from Chainlink (feed 0x7104... with 8 decimals)
-  let ethPriceUsd = 2500;
-  try {
-    const [, answer] = await client.readContract({
-      address: CHAINLINK_ETH_USD_BASE,
-      abi: CHAINLINK_AGGREGATOR_ABI,
-      functionName: "latestRoundData",
-    });
-    if (answer > BigInt(0)) {
-      ethPriceUsd = Number(answer) / 1e8;
-    }
-  } catch {
-    // Fallback ETH price fetch from DefiLlama
-    try {
-      const r = await fetch("https://coins.llama.fi/prices/current/coingecko:ethereum", {
-        signal: AbortSignal.timeout(3_000),
-      });
-      if (r.ok) {
-        const d = (await r.json()) as { coins?: { [key: string]: { price?: number } } };
-        const p = d.coins?.["coingecko:ethereum"]?.price;
-        if (p && p > 0) ethPriceUsd = p;
-      }
-    } catch {
-      // Keep fallback
-    }
-  }
+  // 1. Live ETH price; unpriced when no source answers
+  const ethPriceUsd = (await fetchEthUsd()) || null;
+  const ethPrice: PriceResult = {
+    priceUsd: ethPriceUsd,
+    priceSource: ethPriceUsd ? "chainlink" : "none",
+    priceChange24h: null,
+  };
 
   if (hasEth) {
-    results.set("eth", {
-      priceUsd: ethPriceUsd,
-      priceSource: "chainlink",
-      priceChange24h: null,
-    });
+    results.set("eth", ethPrice);
   }
 
   // WETH address pegged to ETH price
   const wethAddr = "0x4200000000000000000000000000000000000006";
   if (results.has(wethAddr)) {
-    results.set(wethAddr, {
-      priceUsd: ethPriceUsd,
-      priceSource: "chainlink",
-      priceChange24h: null,
-    });
+    results.set(wethAddr, ethPrice);
   }
 
   // 2. Check Pegged Assets

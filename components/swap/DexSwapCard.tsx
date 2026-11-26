@@ -63,7 +63,6 @@ const ROUTE_OPTIONS: { id: LaunchDex; label: string }[] = [
   { id: "aerodrome", label: "Aerodrome" },
   { id: "uniswap", label: "Uniswap" },
   { id: "slipstream", label: "Slipstream" },
-  { id: "o1", label: "o1 Router" },
 ];
 
 const SLIPPAGE_PRESETS = ["0.5", "1", "3"];
@@ -165,7 +164,7 @@ export default function DexSwapCard({
   const [balanceTick, setBalanceTick] = useState(0);
   const [fromBalance, setFromBalance] = useState(0);
   const [fromBalanceRaw, setFromBalanceRaw] = useState<bigint>(BigInt(0));
-  const [ethUsd, setEthUsd] = useState(2500);
+  const [ethUsd, setEthUsd] = useState(0);
   const [fromTokenUsd, setFromTokenUsd] = useState<number | null>(null);
   const [pageTokenUsd, setPageTokenUsd] = useState<number | null>(null);
   const [pageDecimals, setPageDecimals] = useState(18);
@@ -330,19 +329,19 @@ export default function DexSwapCard({
   }, [route]);
 
   const fromUsd = useMemo(() => {
-    if (from.kind === "eth") return ethUsd;
+    if (from.kind === "eth") return ethUsd || null;
     const sym = from.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(sym)) return 1;
-    if (sym === "WETH") return ethUsd;
+    if (sym === "WETH") return ethUsd || null;
     return fromTokenUsd;
   }, [from, ethUsd, fromTokenUsd]);
 
   const toUsd = useMemo(() => {
     if (!to) return null;
-    if (to.kind === "eth") return ethUsd;
+    if (to.kind === "eth") return ethUsd || null;
     const sym = to.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(sym)) return 1;
-    if (sym === "WETH") return ethUsd;
+    if (sym === "WETH") return ethUsd || null;
     return pageTokenUsd;
   }, [to, ethUsd, pageTokenUsd]);
 

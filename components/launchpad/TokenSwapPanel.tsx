@@ -183,7 +183,7 @@ export default function TokenSwapPanel({
   const [counterTokenBalance, setCounterTokenBalance] = useState(0);
   const [counterTokenUsd, setCounterTokenUsd] = useState<number | null>(null);
   const [priceUsd, setPriceUsd] = useState<number | null>(null);
-  const [ethUsd, setEthUsd] = useState(2500);
+  const [ethUsd, setEthUsd] = useState(0);
   const [antiSnipeActive, setAntiSnipeActive] = useState(false);
   const [antiSnipeMsg, setAntiSnipeMsg] = useState<string | null>(null);
   const [referrer, setReferrer] = useState<string | null>(null);
@@ -212,10 +212,10 @@ export default function TokenSwapPanel({
    * a number derived from nothing.
    */
   const counterUsd = useMemo(() => {
-    if (effectiveCounter.kind === "eth") return ethUsd;
+    if (effectiveCounter.kind === "eth") return ethUsd || null;
     const symbol = effectiveCounter.symbol.toUpperCase();
     if (DOLLAR_PEGGED.has(symbol)) return 1;
-    if (symbol === "WETH") return ethUsd;
+    if (symbol === "WETH") return ethUsd || null;
     return counterTokenUsd;
   }, [effectiveCounter, ethUsd, counterTokenUsd]);
 

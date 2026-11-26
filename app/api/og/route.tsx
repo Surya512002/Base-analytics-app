@@ -1,56 +1,25 @@
 import { ImageResponse } from "next/og";
-import { renderOgCard } from "@/lib/og/render-card";
+import { homeShareImage } from "@/lib/og/home-share";
 import { renderOgTokenCard } from "@/lib/og/render-token-card";
-import { OG_SIZE, parseOgParams } from "@/lib/og/types";
+import { tokenCardData } from "@/lib/og/token-card-data";
+import { OG_SIZE } from "@/lib/og/types";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
+/** Short-lived: the image carries live prices and the time they were read. */
+const CACHE = "public, max-age=60, s-maxage=300, stale-while-revalidate=600";
+
+/**
+ * GET /api/og?v=token&addr=0x… draws a token card from live data. Every other request, including
+ * old links that carried their own numbers, gets the home image.
+ */
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const data = parseOgParams(searchParams);
-  const variant = searchParams.get("v") ?? data.variant;
+  const params = new URL(request.url).searchParams;
+  const address = params.get("v") === "token" ? params.get("addr") : null;
+  const data = address && /^0x[0-9a-fA-F]{40}$/.test(address) ? await tokenCardData(address) : null;
 
-  if (variant === "token") {
-    return new ImageResponse(
-      renderOgTokenCard({
-        variant: "token",
-        tokenSymbol: searchParams.get("sym") ?? undefined,
-        tokenName: searchParams.get("tname") ?? undefined,
-        tokenPrice: searchParams.get("tprice") ?? undefined,
-        tokenChange24h: parseFloat(searchParams.get("tchg") ?? "0") || 0,
-        tokenMcap: searchParams.get("tmcap") ?? undefined,
-      }),
-      {
-        ...OG_SIZE,
-        headers: {
-          "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
-        },
-      }
-    );
-  }
-
-  return new ImageResponse(
-    renderOgCard({
-      score: data.score,
-      rank: data.rank,
-      badges: data.badges,
-      days: data.days,
-      xp: data.xp,
-      streak: data.streak,
-      title: data.title || undefined,
-      subtitle: data.subtitle || undefined,
-      variant: data.variant,
-      address: data.address,
-      activeDays: data.activeDays,
-      txs: data.txs,
-      healthScore: data.healthScore,
-      boosts: data.boosts,
-    }),
-    {
-      ...OG_SIZE,
-      headers: {
-        "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
-      },
-    }
-  );
+  if (data) return new ImageResponse(renderOgTokenCard(data), { ...OG_SIZE, headers: { "Cache-Control": CACHE } });
+  const home = await homeShareImage();
+  home.headers.set("Cache-Control", CACHE);
+  return home;
 }

@@ -116,7 +116,7 @@ export default function TokenLaunchForm({
   const [vanityAddress, setVanityAddress] = useState<string | null>(null);
   const [vanityAttempts, setVanityAttempts] = useState(0);
   const [grinding, setGrinding] = useState(false);
-  const [ethUsd, setEthUsd] = useState(2500);
+  const [ethUsd, setEthUsd] = useState(0);
 
   // Success & Error States
   const [launchedToken, setLaunchedToken] = useState<LaunchedToken | null>(null);
@@ -230,7 +230,7 @@ export default function TokenLaunchForm({
   useEffect(() => {
     void fetch("/api/launchpad/eth-price")
       .then((r) => r.json())
-      .then((d: { ethUsd?: number }) => setEthUsd(d.ethUsd ?? 2500))
+      .then((d: { ethUsd?: number }) => setEthUsd(d.ethUsd ?? 0))
       .catch(() => {});
   }, []);
 
@@ -360,6 +360,20 @@ export default function TokenLaunchForm({
       return;
     }
 
+    // The pool's starting price is worked out from the ETH price, so seeding needs a live one.
+    let liveEthUsd = ethUsd;
+    if (autoSeedLiquidity && seedLiquidityEth) {
+      liveEthUsd = await fetch("/api/launchpad/eth-price", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: { ethUsd?: number }) => d.ethUsd ?? 0)
+        .catch(() => 0);
+      if (!(liveEthUsd > 0)) {
+        showToast("Live ETH price is unavailable. Try again, or turn off pool seeding.", "");
+        return;
+      }
+      setEthUsd(liveEthUsd);
+    }
+
     setLaunchError(null);
     setLaunchStepStatus("Uploading metadata & preparing contract…");
 
@@ -393,7 +407,7 @@ export default function TokenLaunchForm({
       const seed = computeLiquiditySeedAmounts({
         seedEth: seedLiquidityEth,
         startPriceUsd,
-        ethUsd,
+        ethUsd: liveEthUsd,
         decimals,
       });
       if (seed && seed.tokenWei > BigInt(0)) {
@@ -454,7 +468,7 @@ export default function TokenLaunchForm({
         seedLiquidityEth: autoSeedLiquidity ? seedLiquidityEth : undefined,
         autoSeedLiquidity,
         seedDex: autoSeedLiquidity ? (seedDex as SeedDex) : undefined,
-        ethUsd,
+        ethUsd: liveEthUsd,
         tokenType: launchType,
         quoteAsset: effectiveQuoteSymbol,
         quoteAssetAddress: effectiveQuoteAddress,
