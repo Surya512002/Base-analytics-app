@@ -12,6 +12,7 @@ import OrdersView from "@/components/swap/orders/OrdersView";
 import Link from "next/link";
 import RecurringCard from "./RecurringCard";
 import MyOrdersPanel from "@/components/swap/orders/MyOrdersPanel";
+import { TradeTabs } from "@/components/shell/PlaceTabs";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { USDC_BASE } from "@/lib/launchpad/tokens-base";
 import { resolveSwapToken } from "@/lib/swap/token-metadata";
@@ -199,6 +200,13 @@ export default function TradeTab({
           : "limit"
         : "market"
   );
+  // Arriving from a menu switch while this screen is already open.
+  const lastTicketParam = useRef(ticketParam);
+  useEffect(() => {
+    if (lastTicketParam.current === ticketParam) return;
+    lastTicketParam.current = ticketParam;
+    setTicket(ticketParam === "recurring" ? "recurring" : ticketParam === "orders" ? "limit" : "market");
+  }, [ticketParam]);
   const [side, setSide] = useState<"buy" | "sell">(
     ticket === "stop" || initialGoal === "take-profit" || initialGoal === "protect" ? "sell" : "buy"
   );
@@ -403,6 +411,16 @@ export default function TradeTab({
 
   return (
     <div className="mx-auto w-full max-w-[1760px] space-y-3 px-1 pb-24 sm:px-2 lg:pb-4">
+      {ordersEnabled && (
+        <TradeTabs
+          current={ticket === "recurring" ? "auto-invest" : ticket === "market" ? "chart" : "orders"}
+          onSelect={(view) => {
+            if (view === "orders") setTicket((t) => (t === "stop" ? "stop" : "limit"));
+            if (view === "chart") setTicket("market");
+          }}
+        />
+      )}
+
       {/* Market bar */}
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3 shadow-card">
         <div className="relative">

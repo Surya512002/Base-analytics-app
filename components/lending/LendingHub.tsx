@@ -80,10 +80,15 @@ export default function LendingHub({
 
   // A menu link such as "My Stocks" can arrive while this page is already open.
   const viewParam = useSearchParams()?.get("view");
+  const lastViewParam = useRef(viewParam);
   useEffect(() => {
-    if (viewParam !== "portfolio") return;
-    setActiveTab("portfolio");
+    const changed = lastViewParam.current !== viewParam;
+    lastViewParam.current = viewParam;
+    if (!changed && viewParam !== "portfolio") return;
+    const view = (["vaults", "finder", "compare", "stocks", "portfolio"] as const).find((v) => v === viewParam) ?? "markets";
+    setActiveTab(view);
     setSelectedStockSymbol(null);
+    if (view !== "portfolio") return;
     // "instant" because the page-wide smooth scrolling gets cancelled while the page is still filling in.
     const t = setTimeout(() => document.getElementById("lending-view-tabs")?.scrollIntoView({ block: "start", behavior: "instant" }), 600);
     return () => clearTimeout(t);

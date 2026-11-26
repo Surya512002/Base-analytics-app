@@ -795,7 +795,7 @@ export default function DexSwapCard({
                 title={`Auto-refreshing in ${countdown}s. Click to refresh now.`}
               >
                 <RotateCcw size={13} className={quoteLoading ? "animate-spin" : ""} />
-                <span className="absolute -bottom-1 -right-1 text-[8px] font-mono font-bold bg-white text-[#0041cc] px-1 rounded-full">
+                <span className="absolute -bottom-1 -right-1 text-[8px] font-mono font-bold bg-white text-[#4a2170] px-1 rounded-full">
                   {countdown}s
                 </span>
               </button>
@@ -1255,7 +1255,7 @@ export default function DexSwapCard({
               }}
               className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:bg-[var(--brand-dark)] transition-colors shrink-0 cursor-pointer"
             >
-              Lend &amp; Stake
+              Earn
             </button>
           </div>
         )}
@@ -1320,7 +1320,7 @@ export default function DexSwapCard({
                     <span className="font-semibold opacity-95">💡 {tradeSafety.suggestion}</span>
                     <a
                       href="/trade?ticket=orders"
-                      className="inline-flex items-center gap-0.5 text-[#0052FF] dark:text-blue-400 font-bold underline shrink-0 ml-1 hover:opacity-80 cursor-pointer"
+                      className="inline-flex items-center gap-0.5 text-[var(--brand)] dark:text-blue-400 font-bold underline shrink-0 ml-1 hover:opacity-80 cursor-pointer"
                     >
                       <span>Limit Orders</span>
                       <ExternalLink size={10} />
@@ -1336,7 +1336,7 @@ export default function DexSwapCard({
                   type="checkbox"
                   checked={confirmHighImpact}
                   onChange={(e) => setConfirmHighImpact(e.target.checked)}
-                  className="rounded border-rose-400 text-[#0052FF] focus:ring-[#0052FF] cursor-pointer"
+                  className="rounded border-rose-400 text-[var(--brand)] focus:ring-[var(--brand)] cursor-pointer"
                 />
                 <span>I acknowledge high price impact ({tradeSafety.impactPct}%) and accept the risk of loss.</span>
               </label>

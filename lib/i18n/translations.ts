@@ -3,13 +3,13 @@ import type { SupportedLocale, TranslationDictionary } from "./types";
 export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   en: {
     nav: {
+      home: "Home",
+      markets: "Markets",
       trade: "Trade",
-      explore: "Explore",
-      swap: "Swap",
-      lend: "Lend & Stake",
-      vouchers: "Vouchers",
+      earn: "Earn",
+      gifts: "Gifts",
       launch: "Launch",
-      profile: "Profile",
+      account: "Account",
     },
     actions: {
       connectWallet: "Connect Wallet",
@@ -33,13 +33,13 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   hi: {
     nav: {
-      trade: "Trade",
-      explore: "खोजें",
-      swap: "स्वैप",
-      lend: "ऋण और स्टेक",
-      vouchers: "वाउचर",
+      home: "होम",
+      markets: "बाज़ार",
+      trade: "ट्रेड",
+      earn: "कमाएँ",
+      gifts: "उपहार",
       launch: "लॉन्च",
-      profile: "प्रोफ़ाइल",
+      account: "खाता",
     },
     actions: {
       connectWallet: "वॉलेट जोड़ें",
@@ -63,13 +63,13 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   ta: {
     nav: {
-      trade: "Trade",
-      explore: "ஆராய்க",
-      swap: "மாற்று",
-      lend: "கடன் & ஸ்டேக்",
-      vouchers: "வவுச்சர்கள்",
-      launch: "துவக்கு",
-      profile: "சுயவிவரம்",
+      home: "முகப்பு",
+      markets: "சந்தைகள்",
+      trade: "வர்த்தகம்",
+      earn: "ஈட்டு",
+      gifts: "பரிசுகள்",
+      launch: "தொடங்கு",
+      account: "கணக்கு",
     },
     actions: {
       connectWallet: "வாலட்டை இணைக்கவும்",
@@ -93,13 +93,13 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   es: {
     nav: {
-      trade: "Trade",
-      explore: "Explorar",
-      swap: "Intercambiar",
-      lend: "Prestar y Stake",
-      vouchers: "Vales",
+      home: "Inicio",
+      markets: "Mercados",
+      trade: "Operar",
+      earn: "Ganar",
+      gifts: "Regalos",
       launch: "Lanzar",
-      profile: "Perfil",
+      account: "Cuenta",
     },
     actions: {
       connectWallet: "Conectar Billetera",
@@ -123,13 +123,13 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   pt: {
     nav: {
-      trade: "Trade",
-      explore: "Explorar",
-      swap: "Trocar",
-      lend: "Emprestar e Stake",
-      vouchers: "Vales",
+      home: "Início",
+      markets: "Mercados",
+      trade: "Negociar",
+      earn: "Ganhar",
+      gifts: "Presentes",
       launch: "Lançar",
-      profile: "Perfil",
+      account: "Conta",
     },
     actions: {
       connectWallet: "Conectar Carteira",
@@ -153,13 +153,13 @@ export const TRANSLATIONS: Record<SupportedLocale, TranslationDictionary> = {
   },
   id: {
     nav: {
-      trade: "Trade",
-      explore: "Jelajahi",
-      swap: "Tukar",
-      lend: "Pinjam & Stake",
-      vouchers: "Voucher",
+      home: "Beranda",
+      markets: "Pasar",
+      trade: "Dagang",
+      earn: "Hasilkan",
+      gifts: "Hadiah",
       launch: "Luncurkan",
-      profile: "Profil",
+      account: "Akun",
     },
     actions: {
       connectWallet: "Hubungkan Dompet",

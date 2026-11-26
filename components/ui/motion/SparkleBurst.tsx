@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo } from "react";
 
-const COLORS = ["#FDE68A", "#F59E0B", "#60A5FA", "#0052FF", "#A78BFA", "#34D399", "#F472B6"];
+const COLORS = ["#FDE68A", "#F59E0B", "#c3a2f5", "#5b2a86", "#A78BFA", "#34D399", "#F472B6"];
 
 /**
  * One-shot celebration burst: coloured confetti pieces and stars fly out from the centre of the

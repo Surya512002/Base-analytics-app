@@ -20,12 +20,9 @@ describe("i18n Multi-Language System", () => {
       expect(dict).toBeDefined();
 
       // Navigation keys
-      expect(dict.nav.explore).toBeTruthy();
-      expect(dict.nav.swap).toBeTruthy();
-      expect(dict.nav.lend).toBeTruthy();
-      expect(dict.nav.vouchers).toBeTruthy();
-      expect(dict.nav.launch).toBeTruthy();
-      expect(dict.nav.profile).toBeTruthy();
+      for (const key of ["home", "markets", "trade", "earn", "gifts", "launch", "account"] as const) {
+        expect(dict.nav[key]).toBeTruthy();
+      }
 
       // Action keys
       expect(dict.actions.connectWallet).toBeTruthy();

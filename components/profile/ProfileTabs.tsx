@@ -103,7 +103,7 @@ export default function ProfileTabs({
               onClick={() => setActiveTab(t.id)}
               className={`flex-1 min-w-[6.5rem] py-2.5 px-3 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer ${
                 isSelected
-                  ? "bg-[#0052FF] text-white shadow-xs"
+                  ? "bg-[var(--brand)] text-white shadow-xs"
                   : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
               }`}
             >
@@ -142,7 +142,7 @@ export default function ProfileTabs({
               {isOwner && (
                 <Link
                   href="/explore?create=true"
-                  className="pop-pill inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#0052FF] text-white hover:bg-[#0047e0] transition shadow-md cursor-pointer"
+                  className="pop-pill inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] transition shadow-md cursor-pointer"
                 >
                   <Rocket size={14} />
                   <span>Launch a token</span>
@@ -240,7 +240,7 @@ export default function ProfileTabs({
                       onClick={() => setRevenueRange(r)}
                       className={`pop-pill px-2.5 py-1 rounded-lg uppercase transition cursor-pointer ${
                         revenueRange === r
-                          ? "bg-[#0052FF] text-white"
+                          ? "bg-[var(--brand)] text-white"
                           : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                       }`}
                     >

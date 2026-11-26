@@ -65,7 +65,7 @@ export default function RecurringView({
               <button
                 type="button"
                 onClick={onSwitchSepolia}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:bg-[var(--brand-hover)] transition cursor-pointer shadow-xs"
               >
                 <span>Switch to Base Sepolia</span>
               </button>
@@ -100,7 +100,7 @@ export default function RecurringView({
           <button
             type="button"
             onClick={onSwitchSepolia}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:bg-[#0045D8] transition cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:bg-[var(--brand-hover)] transition cursor-pointer shadow-xs"
           >
             <span>Switch to Base Sepolia</span>
           </button>

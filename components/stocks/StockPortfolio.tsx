@@ -219,7 +219,7 @@ export default function StockPortfolio({
     return (
       <section className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 text-center">
         <Wallet className="mx-auto mb-2 text-[var(--brand-text)]" size={22} />
-        <h2 className="text-base font-black text-[var(--ink)]">My Stocks</h2>
+        <h2 className="text-base font-black text-[var(--ink)]">Holdings</h2>
         <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--ink-muted)]">Connect a wallet to see your tokenized stocks as one portfolio, set a target mix and rebalance it.</p>
         {onRequestConnect && (
           <button type="button" onClick={onRequestConnect} className="mt-4 min-h-[44px] rounded-xl bg-[var(--brand)] px-5 text-sm font-bold text-white hover:opacity-90">
@@ -241,7 +241,7 @@ export default function StockPortfolio({
             <PieChart size={18} />
           </span>
           <div>
-            <h2 className="text-base font-black text-[var(--ink)]">My Stocks</h2>
+            <h2 className="text-base font-black text-[var(--ink)]">Holdings</h2>
             <p className="text-xs text-[var(--ink-muted)]">
               {held.length === 0 ? "No tokenized stocks in this wallet yet." : `${held.length} stock${held.length === 1 ? "" : "s"} · ${usd(totalUsd)}`}
             </p>

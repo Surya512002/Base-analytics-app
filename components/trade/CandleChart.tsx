@@ -9,7 +9,7 @@ export type PriceLine = { price: number; label: string; tone: "buy" | "sell" | "
 
 const TONE_COLOR: Record<PriceLine["tone"], string> = {
   buy: "#16a34a",
-  sell: "#0052FF",
+  sell: "#8e5fc4",
   stop: "#dc2626",
   info: "#a1a1aa",
 };
@@ -200,7 +200,7 @@ export default function CandleChart({ chartType = "candles", indicators, candles
         })}
 
         {chartType === "line" && (
-          <path d={path(candles.map((c) => c.c), xCenter, yPrice)} fill="none" stroke="#0052FF" strokeWidth={1.75} />
+          <path d={path(candles.map((c) => c.c), xCenter, yPrice)} fill="none" stroke="var(--brand)" strokeWidth={1.75} />
         )}
         {ind.boll && (
           <>
@@ -210,7 +210,7 @@ export default function CandleChart({ chartType = "candles", indicators, candles
           </>
         )}
         {ind.ma7 && <path d={path(ind.ma7, xCenter, yPrice)} fill="none" stroke="#f59e0b" strokeWidth={1.25} />}
-        {ind.ma25 && <path d={path(ind.ma25, xCenter, yPrice)} fill="none" stroke="#06b6d4" strokeWidth={1.25} />}
+        {ind.ma25 && <path d={path(ind.ma25, xCenter, yPrice)} fill="none" stroke="#b08fe0" strokeWidth={1.25} />}
         {ind.ema21 && <path d={path(ind.ema21, xCenter, yPrice)} fill="none" stroke="#ec4899" strokeWidth={1.25} />}
 
         {ind.rsi && (

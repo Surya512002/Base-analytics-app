@@ -337,7 +337,7 @@ export default function StockMarketsTable({
                   <td className="py-3.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <Link
                       href={`/swap?buy=${stock.address}`}
-                      className="inline-flex items-center gap-1 py-1 px-2.5 rounded-xl text-xs font-bold bg-[#0052FF] text-white hover:opacity-90 active:scale-95 transition"
+                      className="inline-flex items-center gap-1 py-1 px-2.5 rounded-xl text-xs font-bold bg-[var(--brand)] text-white hover:opacity-90 active:scale-95 transition"
                     >
                       <span>Swap</span>
                       <ArrowRight size={11} />
@@ -443,7 +443,7 @@ export default function StockMarketsTable({
               >
                 <Link
                   href={`/swap?buy=${stock.address}`}
-                  className="min-h-[44px] px-4 rounded-xl text-xs font-bold bg-[#0052FF] text-white flex items-center gap-1.5 active:scale-95 transition"
+                  className="min-h-[44px] px-4 rounded-xl text-xs font-bold bg-[var(--brand)] text-white flex items-center gap-1.5 active:scale-95 transition"
                 >
                   <span>Trade {stock.symbol}</span>
                   <ArrowRight size={13} />

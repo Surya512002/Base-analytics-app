@@ -225,7 +225,7 @@ export default function DiscoveryHub({
                 type="checkbox"
                 checked={moversHideLowLiquidity}
                 onChange={onToggleLowLiquidity}
-                className="rounded border-[var(--border-subtle)] text-[#0052FF] accent-[#0052FF] focus:ring-0 cursor-pointer"
+                className="rounded border-[var(--border-subtle)] text-[var(--brand)] accent-[var(--brand)] focus:ring-0 cursor-pointer"
               />
               <span>Hide &lt; $10K liquidity</span>
             </label>
@@ -258,7 +258,7 @@ export default function DiscoveryHub({
                 <button
                   type="button"
                   onClick={onLaunch}
-                  className="px-3 py-1.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer hover:opacity-95"
+                  className="px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer hover:opacity-95"
                 >
                   <Rocket size={13} />
                   <span>Launch First Token</span>

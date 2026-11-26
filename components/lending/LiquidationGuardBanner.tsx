@@ -83,7 +83,7 @@ export default function LiquidationGuardBanner({
     if (!shouldWarnLiquidation({ enabled: notificationsEnabled, healthFactor: lowestHF, debtUsd: totalDebtUsd, lastWarnedAt: Number(localStorage.getItem(key) ?? 0), now })) return;
     try {
       new Notification("Your loan is close to liquidation", {
-        body: `Health factor ${lowestHF!.toFixed(2)}. Repay or add collateral on Lend & Stake.`,
+        body: `Health factor ${lowestHF!.toFixed(2)}. Repay or add collateral on the Earn page.`,
         icon: "/favicon.ico",
       });
       localStorage.setItem(key, String(now));
@@ -115,7 +115,7 @@ export default function LiquidationGuardBanner({
         setNotificationsEnabled(true);
         localStorage.setItem("base_liquidation_alert_enabled", "true");
         new Notification("Base Terminal Liquidation Guard", {
-          body: "Warnings are on. While the Lend & Stake page is open, we will tell you if your health factor falls below 1.25.",
+          body: "Warnings are on. While the Earn page is open, we will tell you if your health factor falls below 1.25.",
           icon: "/favicon.ico",
         });
       }

@@ -199,7 +199,7 @@ export function getStockTradability(addressOrSymbol: string): StockTradabilityIn
       hasPool: false,
       dexVenues: [],
       suggestedAction: {
-        label: "Lend & Stake",
+        label: "Earn",
         tab: "lend",
         url: `https://basescan.org/token/${stock.address}`,
       },

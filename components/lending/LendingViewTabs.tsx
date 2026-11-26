@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Coins, Compass, ArrowLeftRight, BadgeCheck, PieChart } from "lucide-react";
-import ActivePill from "@/components/ui/motion/ActivePill";
+import { Compass, ArrowLeftRight, BadgeCheck } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
+import PlaceTabs, { AccountTabs } from "@/components/shell/PlaceTabs";
 
 type Tab = { id: LendingViewTab; label: string; icon: React.ElementType; countBadge?: string };
 
@@ -23,62 +24,32 @@ export default function LendingViewTabs({
   vaultsCount,
   marketsCount,
 }: LendingViewTabsProps) {
-  // Three everyday places. The other ways of looking at markets sit in a second row under "Markets".
-  const main: Tab[] = [
-    { id: "markets", label: "Markets", icon: BadgeCheck, countBadge: marketsCount && marketsCount > 0 ? `${marketsCount} verified` : undefined },
-    { id: "portfolio", label: "My Stocks", icon: PieChart },
-    { id: "vaults", label: "Staking & Vaults", icon: Coins, countBadge: vaultsCount && vaultsCount > 0 ? vaultsCount.toString() : undefined },
-  ];
+  // Two switches. The ways of looking at lending markets sit in a second row under the first one.
   const marketViews: Tab[] = [
-    { id: "markets", label: "By stock", icon: BadgeCheck },
-    { id: "stocks", label: "All Stocks", icon: Sparkles, countBadge: stocksCount > 0 ? stocksCount.toString() : undefined },
-    { id: "finder", label: "Yield Scanner", icon: Compass },
-    { id: "compare", label: "Compare Protocols", icon: ArrowLeftRight },
+    { id: "markets", label: "By stock", icon: BadgeCheck, countBadge: marketsCount && marketsCount > 0 ? `${marketsCount} verified` : undefined },
+    { id: "stocks", label: "All stocks", icon: LayoutGrid, countBadge: stocksCount > 0 ? stocksCount.toString() : undefined },
+    { id: "finder", label: "Yield scanner", icon: Compass },
+    { id: "compare", label: "Compare rates", icon: ArrowLeftRight },
   ];
   const inMarkets = marketViews.some((t) => t.id === value);
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-2">
-      <div
-        className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] w-full sm:w-fit overflow-x-auto no-scrollbar"
-        role="tablist"
-        aria-label="Lending and Yield Views"
-      >
-        {main.map((tab) => {
-          const isSelected = tab.id === "markets" ? inMarkets : value === tab.id;
-          const Icon = tab.icon;
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isSelected}
-              onClick={() => onChange(tab.id)}
-              className={`relative isolate min-h-[44px] flex-1 justify-center px-3 sm:flex-none sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 select-none ${
-                isSelected
-                  ? "text-white"
-                  : "text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
-              }`}
-            >
-              {isSelected && <ActivePill layoutId="lending-view-pill" className="bg-[var(--brand)] shadow-xs" />}
-              <Icon size={15} className={`hidden sm:block ${isSelected ? "text-white" : "text-[var(--ink-dim)]"}`} />
-              <span>{tab.label}</span>
-              {tab.countBadge && (
-                <span
-                  className={`hidden sm:inline text-[11px] px-1.5 py-0.5 rounded-md font-mono ${
-                    isSelected
-                      ? "bg-white/20 text-white font-semibold"
-                      : "bg-[var(--surface)] text-[var(--ink-dim)] border border-[var(--border-subtle)]"
-                  }`}
-                >
-                  {tab.countBadge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {value === "portfolio" ? (
+        <AccountTabs current="holdings" />
+      ) : (
+        <div className="w-full sm:max-w-[420px]">
+          <PlaceTabs
+            label="Earn"
+            current={inMarkets ? "lend" : "vaults"}
+            onSelect={(id) => onChange(id === "vaults" ? "vaults" : "markets")}
+            items={[
+              { id: "lend", label: "Lend and borrow", href: "/lend" },
+              { id: "vaults", label: vaultsCount ? `Vaults and staking (${vaultsCount})` : "Vaults and staking", href: "/lend?view=vaults" },
+            ]}
+          />
+        </div>
+      )}
 
       {inMarkets && (
         <div className="flex w-full gap-1.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Market views">

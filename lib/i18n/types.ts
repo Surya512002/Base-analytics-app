@@ -17,14 +17,15 @@ export const SUPPORTED_LOCALES: LocaleMeta[] = [
 ];
 
 export interface TranslationDictionary {
+  /** One label per menu place (see lib/nav/directory.ts). */
   nav: {
+    home: string;
+    markets: string;
     trade: string;
-    explore: string;
-    swap: string;
-    lend: string;
-    vouchers: string;
+    earn: string;
+    gifts: string;
     launch: string;
-    profile: string;
+    account: string;
   };
   actions: {
     connectWallet: string;

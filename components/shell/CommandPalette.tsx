@@ -7,26 +7,18 @@ import {
   Command,
   Search,
   ArrowRight,
-  Flame,
-  BookOpen,
-  ShieldCheck,
-  Calculator,
-  TrendingUp,
   Zap,
-  type LucideIcon,
 } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
 import { shortAddr } from "@/lib/launchpad/format";
-import { APP_NAV } from "@/lib/nav/app-nav";
+import { searchEntries } from "@/lib/nav/directory";
 import TokenLogo from "@/components/ui/TokenLogo";
 import { parseIntent, type ParsedIntent } from "@/lib/intent/intent-parser";
-import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 
 type CommandPaletteProps = {
   open: boolean;
   onClose: () => void;
-  tab: AppTab;
   onTabChange: (tab: AppTab) => void;
   tokens: LaunchedToken[];
   onOpenToken?: (token: LaunchedToken) => void;
@@ -35,7 +27,6 @@ type CommandPaletteProps = {
 export default function CommandPalette({
   open,
   onClose,
-  tab,
   onTabChange,
   tokens,
   onOpenToken,
@@ -81,81 +72,15 @@ export default function CommandPalette({
       .slice(0, 12);
   }, [query, tokens]);
 
-  const navItems = useMemo(() => {
-    const list: Array<{
-      id: AppTab | string;
-      label: string;
-      hint: string;
-      icon: LucideIcon;
-      href?: string;
-    }> = APP_NAV.map((n) => ({
-      id: n.id,
-      label: n.label,
-      hint: n.hint,
-      icon: n.icon,
-      // "Explore" is its own page; the launchpad tab on "/" is now the home screen.
-      href: n.id === "launchpad" ? "/explore" : undefined,
-    }));
-    list.unshift(
-      { id: "auto-invest", label: "Auto-invest", hint: "Buy stocks on a schedule, one or a whole basket", icon: TrendingUp, href: AUTO_INVEST_HREF },
-      { id: "my-stocks", label: "My Stocks", hint: "Your stocks, target mix and rebalance", icon: TrendingUp, href: MY_STOCKS_HREF },
-      { id: "limit-orders", label: "Limit & stop orders", hint: "Buy the dip, take profit, stop a loss", icon: TrendingUp, href: LIMIT_ORDERS_HREF },
-      { id: "help", label: "Help", hint: "How to buy, invest, earn, and what the risks are", icon: BookOpen, href: "/help" }
-    );
-    list.push({
-      id: "lend",
-      label: "Yield & APY Calculator",
-      hint: "Simulate lending, auto-compounding & staking returns",
-      icon: Calculator,
-    });
-    list.push({
-      id: "launchpad",
-      label: "Tokenized Equities & RWAs",
-      hint: "NVDAc, AAPLc, TSLAc 24/5 equity trading on Base",
-      icon: TrendingUp,
-      href: STOCK_LIST_HREF,
-    });
-    list.push({
-      id: "profile",
-      label: "Daily Actions & Streaks",
-      hint: "Check-in, Daily Boost, GM/GN on Base",
-      icon: Flame,
-    });
-    list.push({
-      id: "docs",
-      label: "Documents & Developer API",
-      hint: "REST endpoints, MCP tools, and smart contracts",
-      icon: BookOpen,
-      href: "/docs",
-    });
-    list.push({
-      id: "compliance",
-      label: "Compliance & Safety Guardrails",
-      hint: "Exit-only invariant, geo-gating, and edge kill switch",
-      icon: ShieldCheck,
-      href: "/docs#compliance",
-    });
-    return list;
-  }, []);
-
-  const filteredNav = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return navItems;
-    return navItems.filter(
-      (n) => n.label.toLowerCase().includes(q) || n.hint.toLowerCase().includes(q)
-    );
-  }, [query, navItems]);
+  // Pages come from the shared list, so search uses the same names as the menu and Home.
+  const filteredNav = useMemo(() => searchEntries(query), [query]);
 
   const selectNav = useCallback(
-    (item: (typeof navItems)[number]) => {
-      if (item.href) {
-        router.push(item.href);
-      } else {
-        onTabChange(item.id as AppTab);
-      }
+    (href: string) => {
+      router.push(href);
       onClose();
     },
-    [onTabChange, onClose, router]
+    [onClose, router]
   );
 
   const matchedIntent = useMemo(() => parseIntent(query), [query]);
@@ -201,7 +126,8 @@ export default function CommandPalette({
                 executeIntent(matchedIntent);
               }
             }}
-            placeholder="Search tokens, B20, or type an action (e.g. 'swap 50 USDC to ETH')…"
+            placeholder='Search, or try "gift", "limit order" or "borrow"'
+            aria-label="Search pages and tokens"
             className="command-palette-input flex-1 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--ink-dim)]"
           />
           <kbd className="hidden sm:inline text-[11px] font-mono text-[var(--ink-muted)] border border-[var(--border-subtle)] rounded-md px-2 py-1">
@@ -224,7 +150,7 @@ export default function CommandPalette({
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-[#0052FF] text-white">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-[var(--brand)] text-white">
                       {matchedIntent.type}
                     </span>
                     <span className="text-[15px] font-black text-[var(--ink)] truncate">
@@ -235,7 +161,7 @@ export default function CommandPalette({
                     {matchedIntent.description}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold shadow-xs group-hover:scale-105 transition-transform">
+                <div className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold shadow-xs group-hover:scale-105 transition-transform">
                   <span>{matchedIntent.actionText}</span>
                   <ArrowRight size={14} />
                 </div>
@@ -249,29 +175,23 @@ export default function CommandPalette({
                 Go to
               </p>
               <div className="grid sm:grid-cols-2 gap-1.5">
-                {filteredNav.map((item, idx) => {
-                  const Icon = item.icon;
-                  const active = !item.href && tab === item.id;
-                  return (
-                    <button
-                      key={`${item.id}-${item.label}-${idx}`}
-                      type="button"
-                      onClick={() => selectNav(item)}
-                      className={`pop-row flex items-center gap-3 rounded-xl px-4 py-3.5 text-left cursor-pointer transition-colors ${
-                        active
-                          ? "bg-[var(--brand-soft)] border border-[var(--brand)] text-[var(--brand-dark)]"
-                          : "hover:bg-[var(--surface-2)] border border-transparent text-[var(--ink-soft)]"
-                      }`}
-                    >
-                      <Icon size={18} className="text-[var(--ink-muted)] shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[15px] font-bold">{item.label}</p>
-                        <p className="text-[12px] text-[var(--ink-muted)] truncate">{item.hint}</p>
-                      </div>
-                      <ArrowRight size={16} className="text-[var(--ink-dim)] shrink-0" />
-                    </button>
-                  );
-                })}
+                {filteredNav.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectNav(item.href)}
+                    className="flex min-h-[56px] items-center gap-3 rounded-xl border border-transparent px-4 py-2.5 text-left cursor-pointer transition-colors text-[var(--ink-soft)] hover:bg-[var(--surface-2)]"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-bold text-[var(--ink)]">
+                        {item.title}
+                        {item.soon && <span className="ml-2 text-[13px] font-semibold text-[var(--ink-muted)]">Coming soon</span>}
+                      </p>
+                      <p className="text-[13px] text-[var(--ink-muted)] truncate">{item.note}</p>
+                    </div>
+                    <ArrowRight size={16} aria-hidden className="text-[var(--ink-dim)] shrink-0" />
+                  </button>
+                ))}
               </div>
             </div>
           )}

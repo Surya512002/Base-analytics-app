@@ -2,114 +2,52 @@
 
 import Link from "next/link";
 import ActivePill from "@/components/ui/motion/ActivePill";
-import { usePathname } from "next/navigation";
-import { ArrowLeftRight, Home, Landmark, Menu, User } from "lucide-react";
+import ActivePlace from "@/components/shell/ActivePlace";
+import { ArrowLeftRight, Compass, Home, Landmark, User, type LucideIcon } from "lucide-react";
 import type { AppTab } from "@/hooks/useWalletApp";
+import { DOCK_NAV, PLACE_HREF, type PlaceId } from "@/lib/nav/directory";
+import { useI18n } from "@/lib/i18n/context";
 
-interface MobileBottomNavProps {
-  tab?: AppTab;
-  onTabChange?: (t: AppTab) => void;
-  walletAddress?: string | null;
-}
+const ICONS: Partial<Record<PlaceId, LucideIcon>> = {
+  home: Home,
+  markets: Compass,
+  trade: ArrowLeftRight,
+  earn: Landmark,
+  account: User,
+};
 
-export default function MobileBottomNav({ tab, onTabChange, walletAddress }: MobileBottomNavProps) {
-  const pathname = usePathname() || "";
-  // Home and a few other screens share the "/" page and differ only by tab.
-  const onRoot = pathname === "/";
-  const under = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
-
-  const tabs = [
-    {
-      id: "home",
-      label: "Home",
-      href: "/",
-      icon: Home,
-      active: onRoot && (!tab || tab === "launchpad"),
-      tabId: "launchpad" as AppTab,
-    },
-    {
-      id: "swap",
-      label: "Swap",
-      href: "/swap",
-      icon: ArrowLeftRight,
-      active: under("/swap") || (onRoot && tab === "swap"),
-      tabId: undefined,
-    },
-    {
-      id: "lend",
-      label: "Lend & Stake",
-      href: "/lend",
-      icon: Landmark,
-      active: under("/lend") || (onRoot && tab === "lend"),
-      tabId: undefined,
-    },
-    {
-      id: "profile",
-      label: "Profile",
-      href: walletAddress ? `/creator/${walletAddress.toLowerCase()}` : "/profile",
-      icon: User,
-      active: under("/profile") || under("/creator"),
-      tabId: undefined,
-    },
-  ];
+export default function MobileBottomNav({ tab, walletAddress }: { tab?: AppTab; walletAddress?: string | null }) {
+  const { t } = useI18n();
 
   return (
     <nav
       aria-label="Mobile navigation"
-      className="lg:hidden fixed inset-x-3 mx-auto max-w-xl bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] z-50 rounded-[1.6rem] border border-[var(--border-subtle)] bg-[var(--surface)]/90 backdrop-blur-xl shadow-[0_12px_40px_-8px_rgba(11,21,38,0.35)]"
+      className="lg:hidden fixed inset-x-3 mx-auto max-w-xl bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] z-50 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/90 backdrop-blur-xl shadow-[0_10px_30px_rgba(10,5,25,0.22)]"
     >
-      {/* Floating dock: the active tab gets a soft blue pill that slides between tabs */}
-      <div className="flex w-full items-stretch justify-around gap-0.5 p-1.5">
-        {tabs.map((item) => {
-          const Icon = item.icon;
-
-          const handleClick = () => {
-            // These live on this same page, so the link alone would change the address, not the screen.
-            if (onRoot && item.tabId) onTabChange?.(item.tabId);
-          };
-
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={handleClick}
-              aria-current={item.active ? "page" : undefined}
-              aria-label={item.label}
-              className={`relative isolate flex min-w-0 ${item.id === "lend" ? "flex-[1.4]" : "flex-1"} flex-col items-center justify-center gap-0.5 min-h-[50px] py-1 px-0.5 rounded-2xl transition-colors touch-manipulation select-none ${
-                item.active
-                  ? "text-[#0052FF] dark:text-[#3888ff] font-bold"
-                  : "text-[var(--ink-muted)] hover:text-[var(--ink)] font-semibold"
-              }`}
-            >
-              {item.active && <ActivePill layoutId="mobile-dock-pill" className="bg-[var(--brand-soft)]" />}
-              <div className="relative">
-                <Icon
-                  size={19}
-                  strokeWidth={item.active ? 2.3 : 1.8}
-                  className={
-                    item.active
-                      ? "stroke-[#0052FF] dark:stroke-[#3888ff]"
-                      : "stroke-current"
-                  }
-                />
-              </div>
-              <span className="max-w-full truncate text-[11px] sm:text-[11px] tracking-tight leading-none">
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
-        {/* Everything else lives in the menu; this opens it */}
-        <button
-          type="button"
-          aria-label="More"
-          onClick={() => window.dispatchEvent(new Event("open-mobile-menu"))}
-          className="relative isolate flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 min-h-[50px] py-1 px-0.5 rounded-2xl text-[var(--ink-muted)] hover:text-[var(--ink)] font-semibold touch-manipulation select-none"
-        >
-          <Menu size={19} strokeWidth={1.8} />
-          <span className="max-w-full truncate text-[11px] tracking-tight leading-none">More</span>
-        </button>
-      </div>
+      <ActivePlace tab={tab}>
+        {(place) => (
+          <div className="flex w-full items-stretch gap-0.5 p-1.5">
+            {DOCK_NAV.map((id) => {
+              const Icon = ICONS[id]!;
+              const active = place === id;
+              return (
+                <Link
+                  key={id}
+                  href={id === "account" && walletAddress ? `/creator/${walletAddress.toLowerCase()}` : PLACE_HREF[id]}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative isolate flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-0.5 py-1 font-bold transition-colors touch-manipulation select-none ${
+                    active ? "text-[var(--brand-text)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {active && <ActivePill layoutId="mobile-dock-pill" className="bg-[var(--surface-2)]" />}
+                  <Icon size={19} aria-hidden strokeWidth={active ? 2.3 : 1.8} />
+                  <span className="max-w-full truncate text-[13px] leading-tight">{t.nav[id]}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </ActivePlace>
     </nav>
   );
 }

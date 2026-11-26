@@ -159,7 +159,7 @@ export default function StockDetailDrawer({
                     return (
                       <div
                         key={i}
-                        className="flex-1 bg-[#0052FF]/30 hover:bg-[#0052FF] rounded-t transition-all group relative cursor-pointer"
+                        className="flex-1 bg-[var(--brand)]/30 hover:bg-[var(--brand)] rounded-t transition-all group relative cursor-pointer"
                         style={{ height: `${hPct}%` }}
                         title={`${pt.date}: $${pt.value.toFixed(2)}`}
                       />
@@ -209,7 +209,7 @@ export default function StockDetailDrawer({
                 <span>Morpho Blue · Moonwell · Euler</span>
                 <Link
                   href={`/lend?stock=${stock.symbol}`}
-                  className="text-[#0052FF] font-bold hover:underline inline-flex items-center gap-0.5"
+                  className="text-[var(--brand)] font-bold hover:underline inline-flex items-center gap-0.5"
                 >
                   <span>View lending markets</span>
                   <ArrowRight size={10} />
@@ -274,7 +274,7 @@ export default function StockDetailDrawer({
               <button
                 type="button"
                 onClick={() => setShowAllVenues((prev) => !prev)}
-                className="text-xs text-[#0052FF] font-bold hover:underline"
+                className="text-xs text-[var(--brand)] font-bold hover:underline"
               >
                 {showAllVenues ? "Show fewer" : `View all (${OFFICIAL_TRADE_VENUES.length})`}
               </button>
@@ -317,7 +317,7 @@ export default function StockDetailDrawer({
           <Link
             href={`/swap?buy=${stock.address}`}
             onClick={onClose}
-            className="w-full py-3.5 px-4 rounded-2xl bg-[#0052FF] text-white font-bold text-sm flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.98] transition shadow-md"
+            className="w-full py-3.5 px-4 rounded-2xl bg-[var(--brand)] text-white font-bold text-sm flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.98] transition shadow-md"
           >
             <span>Trade {stock.symbol} on Base</span>
             <ArrowRight size={16} />

@@ -13,9 +13,9 @@ describe("one create flow for personal and one-link gifts", () => {
     expect(VOUCHER_VIEW_TABS.map(([id]) => id)).toEqual(["create", "redeem", "mine"]);
   });
 
-  it("keeps Claim highlighted while claiming a one-link gift", () => {
+  it("keeps Receive highlighted while claiming a one-link gift", () => {
     const html = renderToStaticMarkup(createElement(VoucherSegmentTabs, { view: "campaign", onChange: noop }));
-    expect(html).toMatch(/aria-selected="true"[^>]*>(?:(?!aria-selected).)*Claim/s);
+    expect(html).toMatch(/aria-selected="true"[^>]*>(?:(?!aria-selected).)*Receive/s);
     expect(html).not.toContain("One link");
   });
 

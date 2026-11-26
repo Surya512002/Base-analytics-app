@@ -518,7 +518,7 @@ const FAQ_ITEMS = [
   {
     category: "Lending & Health Simulator",
     q: "How does the Collateral Health Factor Simulator work?",
-    a: "In the Lend & Stake tab (/lend), you can compare lending pools across Morpho Blue, Aave v3, Euler, and Superform. The interactive Health Simulator allows you to adjust collateral valuation drops and borrow utilization surges to visualize your liquidation threshold before executing transactions.",
+    a: "On the Earn page (/lend), you can compare lending pools across Morpho Blue, Aave v3, Euler, and Superform. The interactive Health Simulator allows you to adjust collateral valuation drops and borrow utilization surges to visualize your liquidation threshold before executing transactions.",
   },
   {
     category: "Lending & Health Simulator",
@@ -533,7 +533,7 @@ const FAQ_ITEMS = [
   {
     category: "Base Voucher & AI Agents",
     q: "How does a recipient redeem a Base Voucher?",
-    a: "Recipients go to /redeem (or open the Vouchers tab), enter their Card ID (e.g. '12-3') and secret, connect any Base wallet, and click 'Redeem'. The contract verifies the keccak256 hash onchain, ensures the card hasn't been claimed, and enforces a one-card-per-wallet rate limit before releasing funds.",
+    a: "Recipients go to /redeem (or open Gifts), enter their Card ID (e.g. '12-3') and secret, connect any Base wallet, and click 'Redeem'. The contract verifies the keccak256 hash onchain, ensures the card hasn't been claimed, and enforces a one-card-per-wallet rate limit before releasing funds.",
   },
   {
     category: "Base Voucher & AI Agents",
@@ -633,7 +633,7 @@ export default function DocumentsClient() {
                 Launchpad
               </Link>
               <Link href="/lend" className="px-2.5 py-1.5 rounded-lg hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition">
-                Lend &amp; Stake
+                Earn
               </Link>
               <Link href="/redeem" className="px-2.5 py-1.5 rounded-lg hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition">
                 Vouchers
@@ -1502,7 +1502,7 @@ export default function DocumentsClient() {
               <Coins size={16} /> Launchpad
             </Link>
             <Link href="/lend" className="btn-secondary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold">
-              <Scale size={16} /> Lend &amp; Stake
+              <Scale size={16} /> Earn
             </Link>
             <Link href="/redeem" className="btn-secondary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold">
               <Gift size={16} /> Base Voucher

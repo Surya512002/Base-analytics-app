@@ -64,12 +64,12 @@ export default function VoucherGiftHero({
               <button
                 type="button"
                 onClick={() => onNavigate("create")}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#0041cc] shadow-lg shadow-black/15 transition hover:bg-white/90 active:scale-[0.97]"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#4a2170] shadow-lg shadow-black/15 transition hover:bg-white/90 active:scale-[0.97]"
               >
                 <Gift size={16} /> Create a gift
               </button>
             </ClickSpark>
-            <ClickSpark color="#93C5FD">
+            <ClickSpark color="#ded0f9">
               <button
                 type="button"
                 onClick={() => onNavigate("campaign")}

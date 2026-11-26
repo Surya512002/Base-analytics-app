@@ -31,13 +31,13 @@ const TASKS: ReadonlyArray<{ title: string; href: string; link: string; steps: s
   {
     title: "See and rebalance your stocks",
     href: MY_STOCKS_HREF,
-    link: "Open My Stocks",
+    link: "Open Holdings",
     steps: ["See each stock's value and share of your portfolio.", "Set the mix you want and follow the suggested trades."],
   },
   {
     title: "Borrow or earn",
     href: "/lend",
-    link: "Open Lend & Stake",
+    link: "Open Earn",
     steps: ["You can borrow USDC against stocks. If their price falls too far, your stocks can be sold to repay the loan (liquidation).", "Pool vaults can show very high rates. They are often small and can lose value, so read the details first."],
   },
 ];

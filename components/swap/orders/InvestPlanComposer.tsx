@@ -133,7 +133,7 @@ export default function InvestPlanComposer({
     if (!walletAddress) return;
     try {
       const raw = JSON.parse(localStorage.getItem(mixKey(walletAddress)) ?? "null") as Record<string, number> | null;
-      if (!raw) return setMessage("No saved target mix yet. Set one in Lend & Stake → My Stocks.");
+      if (!raw) return setMessage("No saved target mix yet. Set one in Account → Holdings.");
       const picked = Object.entries(raw)
         .flatMap(([symbol, w]) => {
           const m = stockMarkets.find((x) => x.symbol === symbol);

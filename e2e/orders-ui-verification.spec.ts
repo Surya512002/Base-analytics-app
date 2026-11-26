@@ -49,7 +49,7 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
         expect(consoleErrors.filter((e) => e.includes("Hydration failed") || e.includes("Unhandled") || e.includes("Uncaught"))).toHaveLength(0);
 
       await page.goto(`${BASE}/swap`, { waitUntil: "domcontentloaded", timeout: 30000 });
-      const ordersLink = page.locator('a:has-text("Limit orders")').first();
+      const ordersLink = page.locator('.place-tabs a:has-text("Limit and stop")').first();
       if (!(await ordersLink.isVisible({ timeout: 3000 }).catch(() => false))) {
         // Orders feature flag is off in this environment: the plain swap page must still fit.
         await noOverflow();
@@ -58,7 +58,7 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
       }
       await noOverflow();
 
-      await page.locator('button:has-text("Auto-invest")').click();
+      await page.locator('.place-tabs a:has-text("Auto-invest")').click();
       const notLive = page.locator('[data-testid="mainnet-recurring-placeholder"]').or(page.getByText(/Recurring buys aren't live on Base mainnet yet/i));
       if (await notLive.first().isVisible({ timeout: 5000 }).catch(() => false)) {
         await expect(page.locator('button:has-text("Switch to Base Sepolia")').first()).toBeVisible();

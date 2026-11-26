@@ -3,12 +3,13 @@
 import { useUniqueUsers } from "@/hooks/useUniqueUsers";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AppBackground from "@/components/ui/AppBackground";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import ToastNotification from "@/components/wallet/ToastNotification";
 import CreatorProfilePanel from "@/components/launchpad/CreatorProfilePanel";
-import MobileBottomNav from "@/components/shell/MobileBottomNav";
+import AppShell from "@/components/shell/AppShell";
+import AccountSettings from "@/components/shell/AccountSettings";
+import { AccountTabs } from "@/components/shell/PlaceTabs";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { hrefForAppTab } from "@/lib/utils/wallet-persist";
 
@@ -36,6 +37,7 @@ export default function CreatorPageClient({ address }: { address: string }) {
 
   const guest = sessionBootstrapped ? !wallet : false;
   const openConnect = () => setShowModal(true);
+  const isOwn = wallet?.address?.toLowerCase() === address.toLowerCase();
 
   const handleTabChange = (next: AppTab) => {
     if (guest && next !== "launchpad" && next !== "swap" && next !== "lend") {
@@ -57,27 +59,28 @@ export default function CreatorPageClient({ address }: { address: string }) {
 
   return (
     <main className="relative min-h-screen font-sans text-[var(--ink)] overflow-x-clip">
-      <AppBackground />
-      <div className="relative z-10 w-full min-w-0">
-        <AppHeader
-          hasBottomNav
+      <div className="relative z-10 flex min-h-screen w-full min-w-0 flex-col">
+        <AppShell
           tab={tab}
           onTabChange={handleTabChange}
           guest={guest}
           onConnect={openConnect}
-          onDisconnect={handleDisconnect}
           walletAddress={wallet?.address}
-          siweAuthenticated={siweAuthenticated}
-          siweSigningIn={siweSigningIn}
-          onSiweSignIn={() => void handleSiweSignIn()}
-        />
-        <div className="app-container py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:py-8 lg:pb-8 w-full min-w-0">
-          <Link
-            href="/explore"
-            className="mb-6 inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-1.5 text-sm font-semibold text-[var(--brand-text)] transition hover:border-[var(--brand)]/50"
-          >
-            ← All tokens
-          </Link>
+          header={
+            <AppHeader
+              tab={tab}
+              guest={guest}
+              onConnect={openConnect}
+              onDisconnect={handleDisconnect}
+              walletAddress={wallet?.address}
+              siweAuthenticated={siweAuthenticated}
+              siweSigningIn={siweSigningIn}
+              onSiweSignIn={() => void handleSiweSignIn()}
+            />
+          }
+        >
+          <div className="w-full min-w-0 space-y-6">
+          {isOwn && <AccountTabs current="creator" creatorHref={`/creator/${address}`} />}
           {!sessionBootstrapped ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
@@ -94,10 +97,10 @@ export default function CreatorPageClient({ address }: { address: string }) {
               connType={connType}
             />
           )}
-        </div>
+          {isOwn && <AccountSettings />}
+          </div>
+        </AppShell>
       </div>
-
-      <MobileBottomNav tab={tab} onTabChange={handleTabChange} walletAddress={wallet?.address} />
 
       <ConnectWalletModal
         open={showModal}

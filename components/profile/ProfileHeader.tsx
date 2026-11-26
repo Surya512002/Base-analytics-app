@@ -242,7 +242,7 @@ export default function ProfileHeader({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
-                className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full font-black text-xs bg-[#0052FF] text-white hover:bg-[#0047e0] transition shadow-xs cursor-pointer"
+                className="pop-pill flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full font-black text-xs bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] transition shadow-xs cursor-pointer"
               >
                 <Edit3 size={14} />
                 <span>Edit profile</span>

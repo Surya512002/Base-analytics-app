@@ -11,11 +11,13 @@ const figtree = localFont({
   weight: "300 900",
 });
 
-const syne = localFont({
-  src: "../public/fonts/syne-latin.woff2",
-  variable: "--font-syne",
+// Headings: Archivo 700, semi-expanded (SIL Open Font License, from Google Fonts). One static
+// file covers every heading weight so the browser never fakes a bolder one.
+const archivo = localFont({
+  src: "../public/fonts/archivo-latin.woff2",
+  variable: "--font-archivo",
   display: "swap",
-  weight: "400 800",
+  weight: "400 900",
 });
 
 const APP_URL = getAppUrl();
@@ -78,7 +80,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${figtree.variable} ${syne.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${figtree.variable} ${archivo.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://auth.farcaster.xyz" />
         <script

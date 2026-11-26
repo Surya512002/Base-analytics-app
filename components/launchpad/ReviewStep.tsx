@@ -272,7 +272,7 @@ export default function ReviewStep({
           <button
             type="button"
             onClick={onRequestConnect}
-            className="w-full py-3.5 px-5 rounded-2xl bg-[#0052FF] text-white hover:bg-[#0047e0] font-bold text-sm shadow-sm transition active:scale-[0.98] cursor-pointer min-h-[48px] flex items-center justify-center"
+            className="w-full py-3.5 px-5 rounded-2xl bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] font-bold text-sm shadow-sm transition active:scale-[0.98] cursor-pointer min-h-[48px] flex items-center justify-center"
           >
             Connect Wallet to Launch
           </button>
@@ -283,7 +283,7 @@ export default function ReviewStep({
             onClick={onLaunch}
             className={`w-full py-3.5 px-5 rounded-2xl font-bold text-sm shadow-sm transition flex items-center justify-center gap-2 min-h-[48px] ${
               canLaunch
-                ? "bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] cursor-pointer"
+                ? "bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] active:scale-[0.98] cursor-pointer"
                 : "bg-[var(--surface-2)] text-[var(--ink-muted)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60"
             }`}
           >

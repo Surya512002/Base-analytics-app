@@ -42,9 +42,9 @@ export const CARD_THEME_OPTIONS: Array<{
   {
     id: "base-blue",
     label: "Base Blue",
-    gradient: "linear-gradient(135deg, #0052ff 0%, #002d9c 45%, #080c1d 100%)",
-    borderColor: "rgba(0, 82, 255, 0.45)",
-    accentColor: "#0052ff",
+    gradient: "linear-gradient(135deg, #5b2a86 0%, #3d1b5e 45%, #080c1d 100%)",
+    borderColor: "rgba(91, 42, 134, 0.45)",
+    accentColor: "#5b2a86",
   },
   {
     id: "midnight",
@@ -56,9 +56,9 @@ export const CARD_THEME_OPTIONS: Array<{
   {
     id: "stock",
     label: "Stock",
-    gradient: "linear-gradient(135deg, #071f3d 0%, #0a3366 45%, #09182b 100%)",
-    borderColor: "rgba(56, 189, 248, 0.4)",
-    accentColor: "#38bdf8",
+    gradient: "linear-gradient(135deg, #2a1646 0%, #2a1646 45%, #09182b 100%)",
+    borderColor: "rgba(176, 143, 224, 0.4)",
+    accentColor: "#b08fe0",
   },
   {
     id: "mint",
@@ -153,7 +153,7 @@ export const POPULAR_GIFT_VAULTS = [
 ] as const;
 
 export const VOUCHER_VIEW_TABS = [
-  ["create", "Create"],
-  ["redeem", "Claim"],
+  ["create", "Send"],
+  ["redeem", "Receive"],
   ["mine", "My gifts"],
 ] as const;

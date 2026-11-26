@@ -238,7 +238,7 @@ export default function MarketIntelligenceHub({
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]/70">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-[#0052FF]/10 text-[#0052FF] flex items-center justify-center border border-[#0052FF]/20 shadow-xs shrink-0">
+          <div className="w-9 h-9 rounded-2xl bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center border border-[var(--brand)]/20 shadow-xs shrink-0">
             <Compass size={18} />
           </div>
           <div>
@@ -264,7 +264,7 @@ export default function MarketIntelligenceHub({
             onClick={() => setActiveTab("nav")}
             className={`pop-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "nav"
-                ? "bg-[#0052FF] text-white shadow-xs"
+                ? "bg-[var(--brand)] text-white shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
@@ -284,7 +284,7 @@ export default function MarketIntelligenceHub({
             onClick={() => setActiveTab("smart_money")}
             className={`pop-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "smart_money"
-                ? "bg-[#0052FF] text-white shadow-xs"
+                ? "bg-[var(--brand)] text-white shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
@@ -304,7 +304,7 @@ export default function MarketIntelligenceHub({
             onClick={() => setActiveTab("alerts")}
             className={`pop-pill px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "alerts"
-                ? "bg-[#0052FF] text-white shadow-xs"
+                ? "bg-[var(--brand)] text-white shadow-xs"
                 : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
@@ -313,7 +313,7 @@ export default function MarketIntelligenceHub({
             {alerts.length > 0 && (
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                  activeTab === "alerts" ? "bg-white text-[#0052FF]" : "bg-[#0052FF] text-white"
+                  activeTab === "alerts" ? "bg-white text-[var(--brand)]" : "bg-[var(--brand)] text-white"
                 }`}
               >
                 {alerts.length}
@@ -340,7 +340,7 @@ export default function MarketIntelligenceHub({
                     onClick={() => setSelectedNavSymbol(stk.symbol)}
                     className={`pop-pill shrink-0 px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
                       isSelected
-                        ? "bg-[#0052FF] text-white shadow-xs"
+                        ? "bg-[var(--brand)] text-white shadow-xs"
                         : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     }`}
                   >
@@ -413,7 +413,7 @@ export default function MarketIntelligenceHub({
           {/* Footer Proof Links */}
           <div className="flex items-center justify-between pt-1 text-[11px] text-[var(--ink-muted)] border-t border-[var(--border-subtle)]/60">
             <span className="flex items-center gap-1">
-              <ShieldCheck size={12} className="text-[#0052FF]" />
+              <ShieldCheck size={12} className="text-[var(--brand)]" />
               <span>For information only. Check the issuer&apos;s terms before trading.</span>
             </span>
             <div className="flex items-center gap-3 font-semibold">
@@ -451,7 +451,7 @@ export default function MarketIntelligenceHub({
                     }}
                     className={`pop-pill shrink-0 px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? "bg-[#0052FF] text-white shadow-xs"
+                        ? "bg-[var(--brand)] text-white shadow-xs"
                         : "bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     }`}
                   >
@@ -470,7 +470,7 @@ export default function MarketIntelligenceHub({
                 className="pop-pill p-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition cursor-pointer"
                 title="Refresh feed"
               >
-                <RefreshCw size={13} className={isLoadingRadar ? "animate-spin text-[#0052FF]" : ""} />
+                <RefreshCw size={13} className={isLoadingRadar ? "animate-spin text-[var(--brand)]" : ""} />
               </button>
 
               <button
@@ -495,18 +495,18 @@ export default function MarketIntelligenceHub({
                 placeholder="0x... Base wallet address"
                 value={customWalletAddr}
                 onChange={(e) => setCustomWalletAddr(e.target.value)}
-                className="w-full sm:flex-1 px-3 py-1.5 text-xs rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-mono focus:outline-none focus:border-[#0052FF]"
+                className="w-full sm:flex-1 px-3 py-1.5 text-xs rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] font-mono focus:outline-none focus:border-[var(--brand)]"
               />
               <input
                 type="text"
                 placeholder="Label (optional)"
                 value={customWalletLabel}
                 onChange={(e) => setCustomWalletLabel(e.target.value)}
-                className="w-full sm:w-44 px-3 py-1.5 text-xs rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] focus:outline-none focus:border-[#0052FF]"
+                className="w-full sm:w-44 px-3 py-1.5 text-xs rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] focus:outline-none focus:border-[var(--brand)]"
               />
               <button
                 type="submit"
-                className="w-full sm:w-auto px-4 py-1.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold hover:opacity-95 transition cursor-pointer"
+                className="w-full sm:w-auto px-4 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold hover:opacity-95 transition cursor-pointer"
               >
                 Save
               </button>
@@ -526,7 +526,7 @@ export default function MarketIntelligenceHub({
               <button
                 type="button"
                 onClick={() => void loadSmartMoneyFeed(selectedWallet || undefined)}
-                className="px-3 py-1 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-xs font-bold hover:border-[#0052FF]"
+                className="px-3 py-1 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-xs font-bold hover:border-[var(--brand)]"
               >
                 Retry Feed
               </button>
@@ -549,7 +549,7 @@ export default function MarketIntelligenceHub({
                     href={`https://basescan.org/address/${selectedWallet}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#0052FF] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)] hover:underline"
                   >
                     <span>Inspect wallet on BaseScan</span>
                     <ExternalLink size={12} />
@@ -577,7 +577,7 @@ export default function MarketIntelligenceHub({
                     <button
                       type="button"
                       onClick={() => onTradeToken?.(evt.tokenAddress)}
-                      className="text-[11px] text-[#0052FF] font-bold hover:underline"
+                      className="text-[11px] text-[var(--brand)] font-bold hover:underline"
                     >
                       Swap →
                     </button>
@@ -609,7 +609,7 @@ export default function MarketIntelligenceHub({
             <button
               type="button"
               onClick={() => setShowAlertModal(true)}
-              className="pop-pill px-3 py-1.5 rounded-xl bg-[#0052FF] text-white text-xs font-bold flex items-center gap-1 hover:opacity-95 transition cursor-pointer shrink-0"
+              className="pop-pill px-3 py-1.5 rounded-xl bg-[var(--brand)] text-white text-xs font-bold flex items-center gap-1 hover:opacity-95 transition cursor-pointer shrink-0"
             >
               <Plus size={12} />
               <span>New Alert</span>
@@ -634,9 +634,9 @@ export default function MarketIntelligenceHub({
                         key={direction}
                         type="button"
                         onClick={() => handleQuickAddAlert({ type: "price", targetSymbol: activeStock.symbol, thresholdValue: level, direction })}
-                        className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[#0052FF] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        className="pop-pill px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--brand)] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                       >
-                        <Plus size={11} className="text-[#0052FF]" />
+                        <Plus size={11} className="text-[var(--brand)]" />
                         <span>{activeStock.symbol} {direction} ${level}</span>
                       </button>
                     );
@@ -653,7 +653,7 @@ export default function MarketIntelligenceHub({
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-[var(--ink)]">{alt.targetSymbol}</span>
-                      <span className="text-[11px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[#0052FF] border border-blue-500/20">
+                      <span className="text-[11px] px-1.5 py-0.2 rounded-full font-mono bg-blue-500/10 text-[var(--brand)] border border-blue-500/20">
                         {!isWatchable(alt) ? "never sent" : alt.triggered ? "reached" : "waiting"}
                       </span>
                     </div>
@@ -756,7 +756,7 @@ export default function MarketIntelligenceHub({
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-1.5 rounded-xl bg-[#0052FF] text-white font-bold cursor-pointer"
+                      className="px-4 py-1.5 rounded-xl bg-[var(--brand)] text-white font-bold cursor-pointer"
                     >
                       Save Alert
                     </button>

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import ActivePill from "@/components/ui/motion/ActivePill";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import ActivePlace from "@/components/shell/ActivePlace";
+import { PLACE_HREF, TOP_NAV } from "@/lib/nav/directory";
 import {
   RefreshCcw,
   ChevronDown,
@@ -14,22 +16,17 @@ import {
   ShieldCheck,
   Globe,
   ExternalLink,
-  Menu,
   Search,
-  X,
+  Wallet,
 } from "lucide-react";
-import MobileMenuSheet from "@/components/shell/MobileMenuSheet";
 import AppLogo from "@/components/ui/AppLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useI18n } from "@/lib/i18n/context";
 import type { AppTab } from "@/hooks/useWalletApp";
-import { AUTO_INVEST_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
-import { DROPS_CONTRACT } from "@/lib/drops/client";
 
 interface AppHeaderProps {
   tab: AppTab;
-  onTabChange: (tab: AppTab) => void;
   guest?: boolean;
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -39,26 +36,10 @@ interface AppHeaderProps {
   siweAuthenticated?: boolean;
   siweSigningIn?: boolean;
   onSiweSignIn?: () => void;
-  /** The page also shows the phone bottom bar, whose "More" opens the menu. */
-  hasBottomNav?: boolean;
-}
-
-const HEADER_NAV: { tab: AppTab; label: string; guestOk?: boolean }[] = [
-  { tab: "trade", label: "Trade", guestOk: true },
-  { tab: "swap", label: "Swap", guestOk: true },
-  { tab: "lend", label: "Lend & Stake", guestOk: true },
-  { tab: "basehub", label: "Vouchers", guestOk: true },
-];
-
-const navItemClass = "shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition touch-manipulation cursor-pointer";
-
-function navActive(itemTab: AppTab, active: AppTab): boolean {
-  return active === itemTab;
 }
 
 export default function AppHeader({
   tab,
-  onTabChange,
   guest,
   onConnect,
   onDisconnect,
@@ -68,82 +49,21 @@ export default function AppHeader({
   siweAuthenticated,
   siweSigningIn,
   onSiweSignIn,
-  hasBottomNav = false,
 }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const isProfile = Boolean(
-    pathname && (pathname.startsWith("/profile") || pathname.startsWith("/creator"))
-  );
-  const isLaunch = Boolean(
-    pathname && (pathname === "/launch" || pathname.startsWith("/launch"))
-  );
-
   const profileHref = walletAddress ? `/creator/${walletAddress}` : "/profile";
 
   const { t } = useI18n();
 
-  const getNavLabel = (navTab: AppTab, fallback: string) => {
-    switch (navTab) {
-      case "trade":
-        return t.nav.trade;
-      case "launchpad":
-        return t.nav.explore;
-      case "swap":
-        return t.nav.swap;
-      case "lend":
-        return t.nav.lend;
-      case "basehub":
-        return t.nav.vouchers;
-      default:
-        return fallback;
-    }
-  };
-
-  // Phone menu sheet + "floating pill" header once the page is scrolled (openlaunch-style)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // The header becomes a floating pill once the page is scrolled.
   const [scrolled, setScrolled] = useState(false);
-  // The bottom dock's "More" button opens this menu.
-  useEffect(() => {
-    const open = () => setMobileMenuOpen(true);
-    window.addEventListener("open-mobile-menu", open);
-    return () => window.removeEventListener("open-mobile-menu", open);
-  }, []);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-  const mobileActiveId = isProfile
-    ? "profile"
-    : isLaunch
-      ? "launch"
-      : tab === "launchpad"
-        ? pathname === "/"
-          ? "home"
-          : "explore"
-        : tab === "basehub"
-          ? "vouchers"
-          : tab;
-
-  // "More" menu (computer layout)
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [moreOpen]);
-
   // Account Menu dropdown state
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -171,124 +91,9 @@ export default function AppHeader({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const pickTab = (next: AppTab, guestOk?: boolean) => {
-    if (guest && !guestOk) {
-      onConnect?.();
-      return;
-    }
-    onTabChange(next);
-  };
-
-  const tabButton = (item: (typeof HEADER_NAV)[number], extraClass = "") => {
-    const active = !isProfile && !isLaunch && navActive(item.tab, tab);
-    return (
-      <button
-        key={item.label}
-        type="button"
-        onClick={() => pickTab(item.tab, item.guestOk)}
-        aria-current={active ? "page" : undefined}
-        className={`relative isolate shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors touch-manipulation cursor-pointer ${extraClass} ${
-          active ? "font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
-        }`}
-      >
-        {active && <ActivePill layoutId="header-nav-pill" className="bg-[var(--brand-soft)]" />}
-        {getNavLabel(item.tab, item.label)}
-      </button>
-    );
-  };
-  const plainLink = (href: string, label: string) => (
-    <Link href={href} className={`${navItemClass} text-[var(--muted)] hover:text-[var(--ink)]`}>
-      {label}
-    </Link>
-  );
-  const moreItem = "block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] cursor-pointer";
-  const moreActive = isProfile || isLaunch || tab === "drops";
-
-  // The home screen shares the "/" page with other tabs, so there the link must also switch tab.
-  const goHome = () => {
-    if (pathname === "/") pickTab("launchpad", true);
-  };
-  const placeLink = (href: string, label: string, active: boolean, onClick?: () => void, extraClass = "") => (
-    <Link
-      href={href}
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={`${navItemClass} ${extraClass} ${active ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
-    >
-      {label}
-    </Link>
-  );
-
-  const navLinks = (
-    <>
-      {placeLink("/", "Home", pathname === "/" && tab === "launchpad", goHome, "max-xl:hidden")}
-      {placeLink(STOCK_LIST_HREF, "Stocks", Boolean(pathname?.startsWith("/explore")))}
-      {HEADER_NAV.slice(0, 2).map((item) => tabButton(item, "max-xl:hidden"))}
-      {plainLink(AUTO_INVEST_HREF, "Auto-invest")}
-      {plainLink(MY_STOCKS_HREF, "My Stocks")}
-      {tabButton(HEADER_NAV[2])}
-      {HEADER_NAV.slice(3).map((item) => tabButton(item, "max-xl:hidden"))}
-    </>
-  );
-
-  // Outside the scrolling row, so its dropdown is not clipped.
-  const moreMenu = (
-    <div ref={moreRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="true"
-        aria-expanded={moreOpen}
-        onClick={() => setMoreOpen((v) => !v)}
-        className={`${navItemClass} inline-flex items-center gap-1 ${moreActive ? "bg-[var(--brand-soft)] font-semibold text-[var(--brand-dark)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
-      >
-        More <ChevronDown size={13} aria-hidden />
-      </button>
-      {moreOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-1.5 shadow-2xl">
-          {/* Below xl the bar has no room for these (the logo also goes home). */}
-          <Link href="/" className={`${moreItem} xl:hidden`} onClick={() => { setMoreOpen(false); goHome(); }}>
-            Home
-          </Link>
-          {[...HEADER_NAV.slice(0, 2), ...HEADER_NAV.slice(3)].map((item) => (
-            <button
-              key={item.tab}
-              type="button"
-              className={`${moreItem} xl:hidden`}
-              onClick={() => {
-                setMoreOpen(false);
-                pickTab(item.tab, item.guestOk);
-              }}
-            >
-              {getNavLabel(item.tab, item.label)}
-            </button>
-          ))}
-          <button
-            type="button"
-            className={moreItem}
-            onClick={() => {
-              setMoreOpen(false);
-              pickTab("drops", true);
-            }}
-          >
-            {DROPS_CONTRACT ? "Drops" : "Drops (soon)"}
-          </button>
-          <Link href="/launch" className={moreItem} onClick={() => setMoreOpen(false)} aria-current={isLaunch ? "page" : undefined}>
-            {t.nav.launch}
-          </Link>
-          <Link href={profileHref} className={moreItem} onClick={() => setMoreOpen(false)} aria-current={isProfile ? "page" : undefined}>
-            {t.nav.profile}
-          </Link>
-          <Link href="/help" className={moreItem} onClick={() => setMoreOpen(false)}>
-            Help
-          </Link>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <header
-      className={`sticky top-0 ${mobileMenuOpen ? "z-[70]" : "z-50"} w-full pt-[env(safe-area-inset-top,0px)] transition-colors duration-300 ${
+      className={`sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)] transition-colors duration-300 ${
         scrolled
           ? "border-b border-transparent max-lg:bg-transparent lg:border-[var(--border)] lg:bg-[var(--surface)]/90 lg:backdrop-blur-md"
           : "border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md"
@@ -304,55 +109,63 @@ export default function AppHeader({
           }`}
         >
           {/* Left: Brand Logo & Title */}
-          <Link href="/" onClick={goHome} className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
+          <Link href="/" className="group flex min-w-0 items-center gap-2.5 sm:shrink-0">
             <AppLogo size="sm" />
             <span className="font-display truncate text-base font-bold tracking-tight text-[var(--ink)] sm:text-xl">
               Base Analytics
             </span>
           </Link>
 
-          {/* Desktop Navigation Links (inline) */}
-          <div className="hidden lg:flex min-w-0 items-center gap-1 text-sm">
-            <nav aria-label="Main" className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
-              {navLinks}
-            </nav>
-            {moreMenu}
-          </div>
+          {/* Computer menu */}
+          <nav aria-label="Main" className="hidden min-w-0 flex-1 text-[15px] lg:block">
+            <ActivePlace tab={tab}>
+              {(place) => (
+                <ul className="flex items-center gap-1">
+                  {TOP_NAV.map((id) => (
+                    <li key={id}>
+                      <Link
+                        href={PLACE_HREF[id]}
+                        aria-current={place === id ? "page" : undefined}
+                        className={`block whitespace-nowrap rounded-[10px] px-3 py-2 font-semibold transition-colors ${
+                          place === id ? "bg-[var(--surface-2)] text-[var(--brand-text)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                        }`}
+                      >
+                        {t.nav[id]}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ActivePlace>
+          </nav>
 
           {/* Right: ONE Unified Account Area */}
           <div className="flex shrink-0 items-center gap-2">
-            {/* Phones: search, plus the menu on pages without the bottom bar (which has its own "More") */}
-            <div className="flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] lg:hidden">
-              <button
-                type="button"
-                aria-label="Search tokens and pages"
-                onClick={() => {
-                  // Pages inside the app shell have the command palette; others go to Explore search.
-                  if (document.querySelector("[data-command-palette-host]")) {
-                    window.dispatchEvent(new Event("open-command-palette"));
-                  } else {
-                    router.push("/explore");
-                  }
-                }}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--surface)]"
-              >
-                <Search size={17} />
-              </button>
-              {!hasBottomNav && (
-                <button
-                  type="button"
-                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                  aria-expanded={mobileMenuOpen}
-                  onClick={() => setMobileMenuOpen((v) => !v)}
-                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--surface)]"
-                >
-                  {mobileMenuOpen ? <X size={17} /> : <Menu size={17} />}
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              aria-label="Search tokens and pages"
+              onClick={() => {
+                // Pages inside the app shell have the search window; the rest go to the token search.
+                if (document.querySelector("[data-command-palette-host]")) {
+                  window.dispatchEvent(new Event("open-command-palette"));
+                } else {
+                  router.push("/explore");
+                }
+              }}
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[var(--edge)] text-[var(--ink)] transition hover:bg-[var(--surface-2)]"
+            >
+              <Search size={18} aria-hidden />
+            </button>
+            <Link
+              href={profileHref}
+              aria-label={t.nav.account}
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--edge)] text-[var(--ink)] transition hover:bg-[var(--surface-2)] lg:flex"
+            >
+              <Wallet size={18} aria-hidden />
+            </Link>
             {guest || !walletAddress ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="hidden items-center gap-2 lg:flex">
+                <div className="hidden items-center gap-2 xl:flex">
                   <LanguageSelector />
                   <ThemeToggle />
                 </div>
@@ -360,7 +173,7 @@ export default function AppHeader({
                   type="button"
                   onClick={onConnect}
                   data-connect
-                  className="tap-target btn-primary whitespace-nowrap px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  className="btn-primary min-h-11 whitespace-nowrap rounded-xl px-3.5 text-[13px] font-bold transition cursor-pointer sm:text-sm"
                 >
                   <span className="hidden sm:inline">{t.actions.connectWallet}</span>
                   <span className="sm:hidden">Connect</span>
@@ -500,18 +313,6 @@ export default function AppHeader({
           </div>
         </div>
       </div>
-
-      <MobileMenuSheet
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        activeId={mobileActiveId}
-        guest={Boolean(guest)}
-        walletAddress={walletAddress}
-        profileHref={profileHref}
-        onPickTab={pickTab}
-        onConnect={onConnect}
-        onDisconnect={onDisconnect}
-      />
 
       {/* Sync strip — below nav, never covers links */}
       {walletRefreshing && (

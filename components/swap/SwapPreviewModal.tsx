@@ -176,7 +176,7 @@ export default function SwapPreviewModal({
             type="button"
             onClick={onConfirm}
             disabled={isConfirming}
-            className="py-3 rounded-xl font-bold text-xs bg-[#0052FF] text-white hover:bg-[#0047e0] active:scale-[0.98] transition shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+            className="py-3 rounded-xl font-bold text-xs bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)] active:scale-[0.98] transition shadow-md cursor-pointer flex items-center justify-center gap-1.5"
           >
             <CheckCircle2 size={14} />
             <span>{isConfirming ? "Submitting…" : "Confirm & Sign"}</span>

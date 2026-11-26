@@ -167,7 +167,7 @@ export function ClaimedBurst({ amount, explorerTx }: { amount: string; explorerT
             key={i}
             aria-hidden
             className="absolute left-1/2 top-1/2 h-2 w-2 rounded-full"
-            style={{ background: ["#34d399", "#fde68a", "#60a5fa", "#f472b6"][i % 4] }}
+            style={{ background: ["#34d399", "#fde68a", "#c3a2f5", "#f472b6"][i % 4] }}
             initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
             animate={{ x: Math.cos((i / dots.length) * Math.PI * 2) * 140, y: Math.sin((i / dots.length) * Math.PI * 2) * 70, opacity: 0, scale: 0.4 }}
             transition={{ duration: 1.1, ease: "easeOut" }}

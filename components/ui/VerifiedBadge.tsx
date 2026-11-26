@@ -26,7 +26,7 @@ export default function VerifiedBadge({
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full bg-[#0052FF] text-white shrink-0 select-none shadow-xs transition-transform hover:scale-110 ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-[var(--brand)] text-white shrink-0 select-none shadow-xs transition-transform hover:scale-110 ${className}`}
       style={{
         width: size,
         height: size,

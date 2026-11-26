@@ -22,8 +22,7 @@ import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import Link from "next/link";
 import { LIMIT_ORDERS_HREF } from "@/lib/constants/destinations";
 import RecurringHub from "@/components/swap/orders/RecurringHub";
-
-type SwapSubTab = "market" | "recurring";
+import { TradeTabs } from "@/components/shell/PlaceTabs";
 
 export default function SwapTab({
   app,
@@ -37,7 +36,6 @@ export default function SwapTab({
   initialToken?: string | null;
 }) {
   const searchParams = useSearchParams();
-  const [activeSubTab, setActiveSubTab] = useState<SwapSubTab>("market");
 
   const [sidebarPick, setSidebarPick] = useState<SwapCounter | null>(null);
   const [fromPick, setFromPick] = useState<SwapCounter | null>(null);
@@ -61,11 +59,8 @@ export default function SwapTab({
     if (wantsOrders) router.replace(ordersToken ? `${LIMIT_ORDERS_HREF}&token=${encodeURIComponent(ordersToken)}` : LIMIT_ORDERS_HREF);
   }, [wantsOrders, ordersToken, router]);
 
-  useEffect(() => {
-    if (!isOrdersEnabled && activeSubTab !== "market") {
-      setActiveSubTab("market");
-    }
-  }, [isOrdersEnabled, activeSubTab]);
+  // The address decides which switch is open: /swap or /swap?mode=recurring.
+  const activeSubTab = isOrdersEnabled && searchParams?.get("mode") === "recurring" ? "recurring" : "market";
 
   const handleSwitchBase = useCallback(async () => {
     try {
@@ -165,12 +160,6 @@ export default function SwapTab({
     const sellParam = parsed.sell;
     const amountParam = parsed.amount;
 
-    // Check if subtab requested in url (e.g. ?mode=orders or ?tab=recurring)
-    const modeParam = searchParams?.get("mode");
-    if (modeParam === "recurring" || modeParam === "market") {
-      setActiveSubTab(modeParam);
-    }
-
     const ingestionKey = `${buyParam || ""}|${sellParam || ""}|${amountParam || ""}`;
     if (lastIngestedKeyRef.current === ingestionKey) {
       return;
@@ -220,53 +209,12 @@ export default function SwapTab({
 
   return (
     <div className={`w-full mx-auto space-y-3 pb-8 ${activeSubTab === "recurring" ? "max-w-[480px] lg:max-w-5xl" : "max-w-[480px]"}`}>
-      {/* Top Navigation Bar: Market | Orders | Recurring (Orders & Recurring gated by feature flag) */}
       {isOrdersEnabled && (
-        <div className="mx-auto flex w-full max-w-[480px] items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] p-1 shadow-xs">
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("market")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
-              activeSubTab === "market"
-                ? "pulse-tab-on"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <BarChart2 size={14} />
-            <span>Market</span>
-          </button>
-
-          <Link
-            href={LIMIT_ORDERS_HREF}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition text-[var(--ink-muted)] hover:text-[var(--ink)]"
-          >
-            <Layers size={14} />
-            <span>Limit orders</span>
-            {limitOrders.openOrders.length > 0 && (
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-[#0052FF] text-white">
-                {limitOrders.openOrders.length}
-              </span>
-            )}
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("recurring")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition ${
-              activeSubTab === "recurring"
-                ? "pulse-tab-on"
-                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <Repeat size={14} />
-            <span>Auto-invest</span>
-            {limitOrders.plans.length > 0 && (
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-cyan-600 text-white">
-                {limitOrders.plans.length}
-              </span>
-            )}
-          </button>
-        </div>
+        <TradeTabs
+          current={activeSubTab === "recurring" ? "auto-invest" : "swap"}
+          openOrders={limitOrders.openOrders.length}
+          plans={limitOrders.plans.length}
+        />
       )}
 
       {/* MARKET TAB: Exact original swap functionality */}

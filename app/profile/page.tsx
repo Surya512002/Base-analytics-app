@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import AppBackground from "@/components/ui/AppBackground";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import AppHeader from "@/components/wallet/AppHeader";
-import MobileBottomNav from "@/components/shell/MobileBottomNav";
+import AppShell from "@/components/shell/AppShell";
+import AccountSettings from "@/components/shell/AccountSettings";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { feeShareLabels } from "@/lib/launchpad/fee-split";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
@@ -65,21 +65,26 @@ export default function ProfilePage() {
 
   return (
     <main className="relative min-h-screen font-sans text-[var(--ink)] overflow-x-clip">
-      <AppBackground />
-      <div className="relative z-10 w-full min-w-0">
-        <AppHeader
-          hasBottomNav
+      <div className="relative z-10 flex min-h-screen w-full min-w-0 flex-col">
+        <AppShell
           tab={tab}
           onTabChange={handleTabChange}
           guest={guest}
           onConnect={() => setShowModal(true)}
-          onDisconnect={handleDisconnect}
-          walletAddress={wallet?.address}
-          siweAuthenticated={siweAuthenticated}
-          siweSigningIn={siweSigningIn}
-          onSiweSignIn={() => void handleSiweSignIn()}
-        />
-        <div className="app-container py-8 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:py-14 lg:pb-14 w-full min-w-0">
+          header={
+            <AppHeader
+              tab={tab}
+              guest={guest}
+              onConnect={() => setShowModal(true)}
+              onDisconnect={handleDisconnect}
+              walletAddress={wallet?.address}
+              siweAuthenticated={siweAuthenticated}
+              siweSigningIn={siweSigningIn}
+              onSiweSignIn={() => void handleSiweSignIn()}
+            />
+          }
+        >
+          <div className="w-full min-w-0 space-y-8">
           {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
@@ -88,7 +93,7 @@ export default function ProfilePage() {
               </p>
             </div>
           ) : (
-            <div className="mx-auto max-w-3xl">
+            <div className="mx-auto max-w-3xl space-y-3">
               <PageHero
                 eyebrow={totalUsersFormatted !== "0" ? `Creator profile · ${totalUsersFormatted} users on Base` : "Creator profile"}
                 title={
@@ -125,9 +130,10 @@ export default function ProfilePage() {
               </ol>
             </div>
           )}
-        </div>
+          <AccountSettings />
+          </div>
+        </AppShell>
       </div>
-      <MobileBottomNav tab={tab} onTabChange={handleTabChange} />
       <ConnectWalletModal
         open={showModal}
         loading={loading}
