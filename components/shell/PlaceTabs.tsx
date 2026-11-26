@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { CandlestickChart } from "lucide-react";
-import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
+import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_ORDERS_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
+import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 
 type Item = { id: string; label: string; href: string; badge?: number };
 
@@ -77,7 +78,7 @@ export function TradeTabs({
   );
 }
 
-export function AccountTabs({ current, creatorHref = "/profile" }: { current: "holdings" | "creator"; creatorHref?: string }) {
+export function AccountTabs({ current, creatorHref = "/profile" }: { current: "holdings" | "orders" | "creator"; creatorHref?: string }) {
   return (
     <div className="mx-auto w-full max-w-[480px]">
       <PlaceTabs
@@ -85,6 +86,7 @@ export function AccountTabs({ current, creatorHref = "/profile" }: { current: "h
         current={current}
         items={[
           { id: "holdings", label: "Holdings", href: MY_STOCKS_HREF },
+          ...(isLimitOrdersFeatureEnabled() ? [{ id: "orders", label: "Orders", href: MY_ORDERS_HREF }] : []),
           { id: "creator", label: "Creator", href: creatorHref },
         ]}
       />

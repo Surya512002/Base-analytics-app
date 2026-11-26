@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Wallet } from "lucide-react";
 import VoucherGiftHero from "@/components/voucher/VoucherGiftHero";
 import VoucherHowItWorks from "@/components/voucher/VoucherHowItWorks";
+import DropsLink from "@/components/voucher/DropsLink";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
 
 /** Vouchers before a wallet is connected: what it does, and the next step. */
@@ -39,6 +40,7 @@ export default function VoucherGuestView({ onConnect }: { onConnect: () => void 
       </section>
 
       <VoucherGiftHero view="create" onNavigate={(v) => (v === "redeem" && !hasGift ? router.push("/redeem") : onConnect())} />
+      {!hasGift && <DropsLink />}
       <VoucherHowItWorks />
     </div>
   );

@@ -90,4 +90,11 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
     await expect(page).toHaveURL(new RegExp(`/swap\\?mode=recurring&token=${nvda}`), { timeout: 20000 });
     await expect(page.getByRole("tab", { name: "One stock" })).toHaveAttribute("aria-selected", "true", { timeout: 15000 });
   });
+
+  test("Account has an Orders switch that asks to connect and offers new orders", async ({ page }) => {
+    await page.goto(`${BASE}/lend?view=orders`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await expect(page.getByRole("region", { name: "Orders and plans" })).toContainText(/Connect your wallet/i, { timeout: 20000 });
+    await expect(page.getByRole("link", { name: "New auto-invest plan" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Settings and help" })).toBeVisible();
+  });
 });

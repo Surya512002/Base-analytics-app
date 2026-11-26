@@ -6,6 +6,7 @@ import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
 import AppHeader from "@/components/wallet/AppHeader";
 import AppShell from "@/components/shell/AppShell";
 import AccountSettings from "@/components/shell/AccountSettings";
+import { AccountTabs } from "@/components/shell/PlaceTabs";
 import { useWalletApp, type AppTab } from "@/hooks/useWalletApp";
 import { feeShareLabels } from "@/lib/launchpad/fee-split";
 import { formatPlatformFeeLabel } from "@/lib/constants/launchpad";
@@ -85,6 +86,7 @@ export default function ProfilePage() {
           }
         >
           <div className="w-full min-w-0 space-y-8">
+          <AccountTabs current="creator" />
           {!sessionBootstrapped || wallet?.address || readPersistedWalletAddress() ? (
             <div className="mx-auto max-w-md text-center">
               <div className="h-12 animate-pulse rounded-2xl bg-[var(--surface-2)]" />

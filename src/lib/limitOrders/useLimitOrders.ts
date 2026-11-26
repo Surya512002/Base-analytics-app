@@ -116,6 +116,8 @@ export function useLimitOrders(app: WalletAppState) {
   const walletAddress = app.wallet?.address as Address | undefined;
 
   const [_loading, setLoading] = useState(false);
+  /** Whether this wallet's orders and plans have been read: an empty list means "none" only when "ok". */
+  const [ordersStatus, setOrdersStatus] = useState<"loading" | "ok" | "error">("loading");
   const [paused, setPaused] = useState(false);
   const [keeperFeeBps, setKeeperFeeBps] = useState<number>(DEFAULT_KEEPER_FEE_BPS);
   const [quoteBalance, setQuoteBalance] = useState<bigint>(0n);
@@ -444,12 +446,14 @@ export function useLimitOrders(app: WalletAppState) {
           } else {
             if (isMountedRef.current) setPlans([]);
           }
+          if (isMountedRef.current) setOrdersStatus("ok");
         } catch {
-          // ignore
+          // Keep what was read before; only a first read that fails shows as an error.
+          if (isMountedRef.current) setOrdersStatus((s) => (s === "ok" ? s : "error"));
         }
       }
     } catch {
-      // ignore
+      if (isMountedRef.current) setOrdersStatus((s) => (s === "ok" ? s : "error"));
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
@@ -457,6 +461,7 @@ export function useLimitOrders(app: WalletAppState) {
 
   // 3. Polling every 15 seconds while mounted
   useEffect(() => {
+    setOrdersStatus("loading");
     void loadData();
     const interval = setInterval(() => {
       void loadData();
@@ -988,6 +993,7 @@ export function useLimitOrders(app: WalletAppState) {
   );
 
   return {
+    ordersStatus,
     isEnabled: isLimitOrdersFeatureEnabled(),
     config,
     chainId,

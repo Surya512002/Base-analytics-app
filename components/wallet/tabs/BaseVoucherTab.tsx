@@ -5,6 +5,7 @@ import VoucherCampaignPanel from "@/components/voucher/VoucherCampaignPanel";
 import { parseCampaignLink } from "@/lib/voucher/campaign";
 import { AnimatePresence, motion } from "motion/react";
 import { Link2, Wallet } from "lucide-react";
+import DropsLink from "@/components/voucher/DropsLink";
 import VoucherGiftHero from "@/components/voucher/VoucherGiftHero";
 import VoucherSegmentTabs from "@/components/voucher/VoucherSegmentTabs";
 import VoucherCreateWizard, { type ShareMode } from "@/components/voucher/VoucherCreateWizard";
@@ -103,6 +104,7 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
       {view === "create" && (
+        <div className="space-y-4">
         <VoucherCreateWizard
           shared={shared}
           create={create}
@@ -115,6 +117,8 @@ export default function BaseVoucherTab({ app }: { app: WalletAppState }) {
             <VoucherCampaignPanel app={app} section="create" preset={preset} onCreated={() => setView("mine")} />
           )}
         />
+        <DropsLink />
+        </div>
       )}
 
       {view === "redeem" && (

@@ -42,6 +42,8 @@ import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { getStockQuotes, type StockQuote } from "@/lib/stocks/stock-prices";
 import StockPortfolio from "@/components/stocks/StockPortfolio";
+import AccountOrders from "@/components/swap/orders/AccountOrders";
+import AccountSettings from "@/components/shell/AccountSettings";
 import AutomationStrip from "@/components/stocks/AutomationStrip";
 import { isLimitOrdersFeatureEnabled } from "@/src/lib/limitOrders/featureFlag";
 import { useSearchParams } from "next/navigation";
@@ -54,7 +56,7 @@ interface LendingHubProps {
   initialStock?: string;
 }
 
-const LINKABLE_VIEWS = ["vaults", "finder", "compare", "stocks", "portfolio", "markets"] as const;
+const LINKABLE_VIEWS = ["vaults", "finder", "compare", "stocks", "portfolio", "orders", "markets"] as const;
 
 export default function LendingHub({
   app,
@@ -82,11 +84,12 @@ export default function LendingHub({
   useEffect(() => {
     const changed = lastViewParam.current !== viewParam;
     lastViewParam.current = viewParam;
-    if (!changed && viewParam !== "portfolio") return;
+    const onAccount = viewParam === "portfolio" || viewParam === "orders";
+    if (!changed && !onAccount) return;
     const view = LINKABLE_VIEWS.find((v) => v === viewParam) ?? "markets";
     setActiveTab(view);
     setSelectedStockSymbol(null);
-    if (view !== "portfolio") return;
+    if (!onAccount) return;
     // "instant" because the page-wide smooth scrolling gets cancelled while the page is still filling in.
     const t = setTimeout(() => document.getElementById("lending-view-tabs")?.scrollIntoView({ block: "start", behavior: "instant" }), 600);
     return () => clearTimeout(t);
@@ -934,6 +937,8 @@ export default function LendingHub({
     />
   );
 
+  const accountView = activeTab === "portfolio" || activeTab === "orders";
+
   return (
     <div className="space-y-6 pb-16 animate-meridian-rise">
       {/* 1. COMPACT HEADER WITH LIVE STATS & DISCLAIMER */}
@@ -944,7 +949,7 @@ export default function LendingHub({
       />
 
       {/* Positions go on top only when there is something to check; otherwise the markets come first. */}
-      {positionsFirst && activeTab !== "portfolio" && positionsPanel}
+      {positionsFirst && !accountView && positionsPanel}
 
       {/* 4. UNIFIED WORKSPACE NAVIGATION (Directly controlling showcase view below) */}
       <div id="lending-view-tabs" className="scroll-mt-20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
@@ -962,7 +967,9 @@ export default function LendingHub({
       {positionsFirst && activeTab === "portfolio" && positionsPanel}
 
       {/* 5. ACTIVE SHOWCASE VIEW */}
-      {activeTab === "portfolio" ? (
+      {activeTab === "orders" ? (
+        <AccountOrders app={app} onRequestConnect={onRequestConnect} />
+      ) : activeTab === "portfolio" ? (
         /* MY STOCKS: holdings as one portfolio, target mix, rebalance, earn per stock */
         <div className="space-y-4">
           {userAddress && isLimitOrdersFeatureEnabled() && <AutomationStrip app={app} />}
@@ -1095,7 +1102,7 @@ export default function LendingHub({
 
       {/* Top Yield Spotlight: Highlights top verified yield opportunity with zero calculation clutter */}
       {/* Live rates only: a headline rate from the built-in list would flash up and then vanish. */}
-      {hasLiveMarkets && (
+      {hasLiveMarkets && activeTab !== "orders" && (
         <TopYieldSpotlight
           markets={discoveredMarkets}
           stockRows={stockRows}
@@ -1106,7 +1113,9 @@ export default function LendingHub({
         />
       )}
 
-      {!positionsFirst && (isConnected || activeTab !== "portfolio") && positionsPanel}
+      {!positionsFirst && activeTab !== "orders" && (isConnected || activeTab !== "portfolio") && positionsPanel}
+
+      {accountView && <AccountSettings />}
 
       {/* Smart Deposit for pair vaults + "Get {stock}" first, all in-app */}
       <SmartVaultDrawer

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeftRight, Compass } from "lucide-react";
 import PlaceTabs, { AccountTabs } from "@/components/shell/PlaceTabs";
 
-export type LendingViewTab = "markets" | "stocks" | "portfolio" | "vaults" | "finder" | "compare";
+export type LendingViewTab = "markets" | "stocks" | "portfolio" | "orders" | "vaults" | "finder" | "compare";
 
 const COMPARE_VIEWS = [
   { id: "compare", label: "Protocols side by side", icon: ArrowLeftRight },
@@ -19,7 +19,7 @@ interface LendingViewTabsProps {
 }
 
 export default function LendingViewTabs({ value, onChange, vaultsCount }: LendingViewTabsProps) {
-  if (value === "portfolio") return <AccountTabs current="holdings" />;
+  if (value === "portfolio" || value === "orders") return <AccountTabs current={value === "orders" ? "orders" : "holdings"} />;
   const comparing = value === "compare" || value === "finder";
 
   return (

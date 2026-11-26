@@ -9,9 +9,9 @@ type Render = (place: PlaceId) => ReactNode;
 function FromQuery({ tab, children }: { tab?: string; children: Render }) {
   const path = usePathname() || "/";
   const view = useSearchParams()?.get("view");
-  // "My Stocks" lives on the lending page but belongs to Account.
-  const holdings = path === "/lend" && view === "portfolio";
-  return children(holdings ? "account" : placeFor(path, tab));
+  // Holdings and Orders live on the lending page but belong to Account.
+  const account = path === "/lend" && (view === "portfolio" || view === "orders");
+  return children(account ? "account" : placeFor(path, tab));
 }
 
 function FromPath({ tab, children }: { tab?: string; children: Render }) {

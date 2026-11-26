@@ -18,6 +18,7 @@ describe("directory", () => {
     expect(ids("borrow")).toContain("lend");
     expect(ids("recurring")).toContain("auto-invest");
     expect(ids("my stocks")).toContain("holdings");
+    expect(ids("my orders")).toContain("my-orders");
     expect(ids("dark mode")).toEqual(["settings"]);
     expect(ids("zzzz")).toEqual([]);
   });

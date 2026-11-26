@@ -2,7 +2,7 @@
  * Every place in the app, listed once. The menu, the Home list, search and the footer all read
  * this file, so a thing has the same name everywhere.
  */
-import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
+import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_ORDERS_HREF, MY_STOCKS_HREF, STOCK_LIST_HREF } from "@/lib/constants/destinations";
 import { DROPS_CONTRACT } from "@/lib/drops/client";
 
 export type PlaceId = "home" | "markets" | "trade" | "earn" | "gifts" | "launch" | "account";
@@ -76,6 +76,7 @@ export const GROUPS: Group[] = [
     title: "Account",
     entries: [
       { id: "holdings", title: "Holdings", note: "Your stocks and rebalancing", href: MY_STOCKS_HREF, words: "my stocks portfolio balance rebalance" },
+      { id: "my-orders", title: "Orders", note: "Open orders and auto-invest plans", href: MY_ORDERS_HREF, words: "my orders plans cancel history" },
       { id: "creator", title: "Creator earnings", note: "Your launches and what they earned", href: "/profile", words: "profile revenue fees vesting activity" },
       { id: "launch", title: "Launch a token", note: "Create one and earn on trades", href: "/launch", words: "create memecoin b20 launchpad" },
     ],
