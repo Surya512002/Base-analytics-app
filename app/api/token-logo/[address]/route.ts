@@ -8,7 +8,7 @@ import {
   getTokenizedStockByAddress,
   getTokenizedStockBySymbol,
 } from "@/lib/stocks/tokenized-stocks-registry";
-import { findVerifiedToken } from "@/lib/swap/verified-tokens";
+import { findVerifiedToken } from "@/lib/swap/token-catalog";
 
 export const dynamic = "force-dynamic";
 

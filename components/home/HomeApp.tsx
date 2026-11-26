@@ -7,7 +7,6 @@ import AppBackground from "@/components/ui/AppBackground";
 import PriceAlertWatcher from "@/components/alerts/PriceAlertWatcher";
 import AppHeader from "@/components/wallet/AppHeader";
 import ConnectWalletModal from "@/components/wallet/ConnectWalletModal";
-import LoadingScreen from "@/components/wallet/LoadingScreen";
 import OnboardingTour from "@/components/wallet/OnboardingTour";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import SimpleStart from "@/components/home/SimpleStart";
@@ -53,7 +52,7 @@ const LendingHub = dynamic(
 
 function TabSkeleton() {
   return (
-    <div className="space-y-4 animate-meridian-fade">
+    <div className="min-h-[100dvh] space-y-4 animate-meridian-fade" role="status" aria-label="Loading">
       <div className="h-32 skeleton-shimmer rounded-2xl border border-[var(--border-subtle)]" />
       <div className="grid grid-cols-2 gap-3">
         <div className="h-24 skeleton-shimmer rounded-xl border border-[var(--border-subtle)]" />
@@ -162,10 +161,12 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
     setLaunchBridge(bridge);
   }, []);
 
-  if (!ready || !sessionBootstrapped) return <LoadingScreen />;
+  // Until the saved session is read, the server HTML (header, nav, home or a skeleton) stays up.
+  // Screens that depend on the wallet mount only after that.
+  const booted = ready && sessionBootstrapped;
 
   return (
-    <main className="main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative">
+    <main className={`main-app-shell flex min-h-screen min-h-[100dvh] w-full min-w-0 flex-col text-[var(--foreground)] font-sans relative${booted ? "" : " app-booting"}`}>
       <AppBackground />
       <PriceAlertWatcher wallet={wallet?.address ?? null} onAlert={(msg) => setToast({ msg, hash: "" })} />
 
@@ -227,38 +228,44 @@ export default function HomeApp({ initialToken, forceTab, initialLaunchView }: H
         )}
 
         <div className="tab-content-enter w-full min-w-0">
-          {activeTab === "trade" && (
-            <TradeTab app={app} guestMode={guest} onRequestConnect={openConnect} />
-          )}
           {activeTab === "launchpad" && !forceTab && <SimpleStart />}
-          {activeTab === "launchpad" && forceTab && (
-            <LaunchpadTab
-              app={app}
-              guestMode={guest}
-              onRequestConnect={openConnect}
-              onShellBridge={handleShellBridge}
-              onNavigate={handleTabChange}
-              initialView={initialLaunchView}
-              isActive
-            />
+          {!booted ? (
+            forceTab && <TabSkeleton />
+          ) : (
+            <>
+              {activeTab === "trade" && (
+                <TradeTab app={app} guestMode={guest} onRequestConnect={openConnect} />
+              )}
+              {activeTab === "launchpad" && forceTab && (
+                <LaunchpadTab
+                  app={app}
+                  guestMode={guest}
+                  onRequestConnect={openConnect}
+                  onShellBridge={handleShellBridge}
+                  onNavigate={handleTabChange}
+                  initialView={initialLaunchView}
+                  isActive
+                />
+              )}
+              {activeTab === "swap" && (
+                <SwapTab
+                  app={app}
+                  guestMode={guest}
+                  onRequestConnect={openConnect}
+                  initialToken={initialToken}
+                />
+              )}
+              {activeTab === "lend" && (
+                <LendingHub
+                  app={app}
+                  guestMode={guest}
+                  onRequestConnect={openConnect}
+                />
+              )}
+              {activeTab === "basehub" && (guest ? <VoucherGuestView onConnect={openConnect} /> : <BaseVoucherTab app={app} />)}
+              {activeTab === "drops" && <DropsTab app={app} guestMode={guest} onRequestConnect={openConnect} />}
+            </>
           )}
-          {activeTab === "swap" && (
-            <SwapTab
-              app={app}
-              guestMode={guest}
-              onRequestConnect={openConnect}
-              initialToken={initialToken}
-            />
-          )}
-          {activeTab === "lend" && (
-            <LendingHub
-              app={app}
-              guestMode={guest}
-              onRequestConnect={openConnect}
-            />
-          )}
-          {activeTab === "basehub" && (guest ? <VoucherGuestView onConnect={openConnect} /> : <BaseVoucherTab app={app} />)}
-          {activeTab === "drops" && <DropsTab app={app} guestMode={guest} onRequestConnect={openConnect} />}
         </div>
 
         <AppFooterNav />

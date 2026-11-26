@@ -26,6 +26,7 @@ const B20_CREATED_ABI = [
 const LOOKBACK_BLOCKS = 40_000;
 const MAX_RECENT = 48;
 const CHUNK = 4_000;
+const PARALLEL_CHUNKS = 5;
 
 export type RecentB20Create = {
   address: string;
@@ -92,16 +93,24 @@ export async function fetchRecentB20Creates(
   const latest = await client.getBlockNumber();
   const start = latest > BigInt(lookbackBlocks) ? latest - BigInt(lookbackBlocks) : BigInt(0);
 
+  const starts: bigint[] = [];
+  for (let from = start; from <= latest; from += BigInt(CHUNK)) starts.push(from);
+
+  // A few ranges at a time: one by one took about 25 s; all at once trips public RPC rate limits.
   const logs: Log[] = [];
-  for (let from = start; from <= latest; from += BigInt(CHUNK)) {
-    const to = from + BigInt(CHUNK) - BigInt(1);
-    const chunkTo = to > latest ? latest : to;
-    try {
-      const chunk = await fetchLogsChunk(from, chunkTo);
-      logs.push(...chunk);
-    } catch (e) {
-      console.error("[b20-recent] getLogs chunk failed", from.toString(), e);
-    }
+  for (let i = 0; i < starts.length; i += PARALLEL_CHUNKS) {
+    const chunks = await Promise.all(
+      starts.slice(i, i + PARALLEL_CHUNKS).map(async (from) => {
+        const to = from + BigInt(CHUNK) - BigInt(1);
+        try {
+          return await fetchLogsChunk(from, to > latest ? latest : to);
+        } catch (e) {
+          console.error("[b20-recent] getLogs chunk failed", from.toString(), e);
+          return [];
+        }
+      })
+    );
+    logs.push(...chunks.flat());
   }
 
   const byAddr = new Map<string, Omit<RecentB20Create, "createdAt" | "creator">>();

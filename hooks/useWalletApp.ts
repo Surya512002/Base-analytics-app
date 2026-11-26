@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, createContext, useContext, createElement, type ReactNode } from "react";
-import sdk from "@farcaster/miniapp-sdk";
 import { connectAppWallet } from "@/lib/utils/mini-app-connect";
 import { getEip1193Provider } from "@/app/connection";
 import { fetchWalletAnalysis, fetchWalletAnalysisQuick, fetchWalletBootstrap, pollWalletHistorySync } from "@/lib/api/wallet-analysis-client";
@@ -209,13 +208,10 @@ function useWalletAppController() {
     let onPopState: (() => void) | undefined;
 
     if (typeof window !== "undefined") {
-      if (sdk?.actions?.ready) {
-        try {
-          sdk.actions.ready();
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      // Dismisses the mini-app splash screen. Loaded after first paint, not in the main bundle.
+      void import("@farcaster/miniapp-sdk")
+        .then(({ sdk }) => sdk?.actions?.ready())
+        .catch((e) => console.error(e));
       setReady(true);
       setTab(resolveInitialTab());
       ensureSessionStorageVersion();

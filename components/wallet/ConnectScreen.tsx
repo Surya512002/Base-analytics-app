@@ -86,7 +86,7 @@ export default function ConnectScreen({
         <section className="relative min-h-[70vh] min-h-[70dvh] overflow-hidden sm:min-h-[78vh]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/base-analytics-hero-lanes.png"
+            src="/brand/base-analytics-hero-lanes.webp"
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />

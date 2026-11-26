@@ -4,6 +4,9 @@ import { BUILDER_CODE } from "@/lib/constants/env";
 
 export const dynamic = "force-dynamic";
 
+// Long on purpose: a timed-out feed falls back to built-in figures, so only cut off real hangs.
+const FEED_TIMEOUT_MS = 25_000;
+
 type MorphoVaultItem = {
   address: string;
   name: string;
@@ -41,8 +44,8 @@ const BEEFY_STOCK_VAULT_IDS: Record<string, string> = {
 async function fetchLiveBeefyVaults(): Promise<Record<string, { apy: number; tvl: number }>> {
   try {
     const [apyRes, tvlRes] = await Promise.all([
-      fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 } }),
-      fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 } }),
+      fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 }, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) }),
+      fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 }, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) }),
     ]);
 
     if (!apyRes.ok || !tvlRes.ok) return {};
@@ -67,7 +70,7 @@ async function fetchLiveBeefyVaults(): Promise<Record<string, { apy: number; tvl
 
 async function fetchLiveAerodromeYields(): Promise<Record<string, { apy: number; tvl: number }>> {
   try {
-    const res = await fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 } });
+    const res = await fetch("https://yields.llama.fi/pools", { next: { revalidate: 120 }, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) });
     if (!res.ok) return {};
     const json = (await res.json()) as {
       data?: Array<{
@@ -132,6 +135,7 @@ async function fetchLiveMorphoVaults(): Promise<Record<string, { apy: number; tv
         }`,
       }),
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(FEED_TIMEOUT_MS),
     });
 
     if (!res.ok) return {};

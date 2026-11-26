@@ -1,5 +1,4 @@
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
-import { getVerifiedTokenLogo } from "@/lib/swap/verified-tokens";
 type TokenLike =
   | { kind: "eth" }
   | {
@@ -94,7 +93,7 @@ export const SELF_HOSTED_LOGOS = new Set<string>([
 
 export const ETH_LOGO_URL = "/tokens/0x0000000000000000000000000000000000000000.png";
 
-export function tokenLogoUrl(address: string, symbol?: string): string {
+export function tokenLogoUrl(address: string, symbol?: string, catalogLogo?: string | null): string {
   const key = address.trim().toLowerCase();
   if (key === "eth" || key === "0x0000000000000000000000000000000000000000") {
     return ETH_LOGO_URL;
@@ -103,8 +102,8 @@ export function tokenLogoUrl(address: string, symbol?: string): string {
     return `/tokens/${key}.png`;
   }
   if (KNOWN_LOGO[key]) return KNOWN_LOGO[key];
-  const verified = getVerifiedTokenLogo(key) || (symbol ? getVerifiedTokenLogo(symbol) : null);
-  if (verified) return verified;
+  if (catalogLogo) return catalogLogo;
+  // The proxy looks the token up in the full catalog on the server.
   return `/api/token-logo/${key}${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ""}`;
 }
 

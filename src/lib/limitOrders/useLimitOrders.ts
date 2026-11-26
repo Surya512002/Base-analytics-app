@@ -32,7 +32,7 @@ import {
   DEFAULT_MAX_DEVIATION_BPS,
 } from "@/src/config/limitOrders";
 import { isLimitOrdersFeatureEnabled } from "./featureFlag";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { createBasePublicClient, createBatchedBaseReadClient } from "@/lib/utils/base-rpc";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
 import { buildContractCall } from "@/lib/utils/tx";
 import type { WalletAppState } from "@/hooks/useWalletApp";
@@ -130,6 +130,8 @@ export function useLimitOrders(app: WalletAppState) {
   const [txSuccessHash, setTxSuccessHash] = useState<string | null>(null);
 
   const publicClient = useMemo(() => createBasePublicClient(), []);
+  // The panel reads several values per market; this sends them together. Orders still use publicClient.
+  const readClient = useMemo(() => createBatchedBaseReadClient(), []);
 
   // 1. Fetch region check
   useEffect(() => {
@@ -166,12 +168,12 @@ export function useLimitOrders(app: WalletAppState) {
       // Check contract paused & keeper fee
       try {
         const [isPaused, fee] = await Promise.all([
-          publicClient.readContract({
+          readClient.readContract({
             address: config.orderBook,
             abi: orderBookAbi,
             functionName: "paused",
           }),
-          publicClient.readContract({
+          readClient.readContract({
             address: config.orderBook,
             abi: orderBookAbi,
             functionName: "keeperFeeBps",
@@ -187,13 +189,13 @@ export function useLimitOrders(app: WalletAppState) {
       if (walletAddress && config.quoteToken.address) {
         try {
           const [bal, allow] = await Promise.all([
-            publicClient.readContract({
+            readClient.readContract({
               address: config.quoteToken.address,
               abi: ERC20_ABI,
               functionName: "balanceOf",
               args: [walletAddress],
             }),
-            publicClient.readContract({
+            readClient.readContract({
               address: config.quoteToken.address,
               abi: ERC20_ABI,
               functionName: "allowance",
@@ -225,7 +227,7 @@ export function useLimitOrders(app: WalletAppState) {
           let pendingRiskEta = 0;
 
           try {
-            const pr = (await publicClient.readContract({
+            const pr = (await readClient.readContract({
               address: config.orderBook,
               abi: orderBookAbi,
               functionName: "pendingRisk",
@@ -238,7 +240,7 @@ export function useLimitOrders(app: WalletAppState) {
 
           try {
             // Read market on-chain config
-            const marketInfo = await publicClient.readContract({
+            const marketInfo = await readClient.readContract({
               address: config.orderBook,
               abi: orderBookAbi,
               functionName: "markets",
@@ -277,7 +279,7 @@ export function useLimitOrders(app: WalletAppState) {
 
           try {
             // Read current price
-            const priceRes = await publicClient.readContract({
+            const priceRes = await readClient.readContract({
               address: config.orderBook,
               abi: orderBookAbi,
               functionName: "currentPrice",
@@ -295,13 +297,13 @@ export function useLimitOrders(app: WalletAppState) {
           if (walletAddress) {
             try {
               const [sBal, sAllow] = await Promise.all([
-                publicClient.readContract({
+                readClient.readContract({
                   address: m.stockToken,
                   abi: ERC20_ABI,
                   functionName: "balanceOf",
                   args: [walletAddress],
                 }),
-                publicClient.readContract({
+                readClient.readContract({
                   address: m.stockToken,
                   abi: ERC20_ABI,
                   functionName: "allowance",
@@ -336,13 +338,13 @@ export function useLimitOrders(app: WalletAppState) {
       if (walletAddress) {
         try {
           const [orderIds, planIds] = await Promise.all([
-            publicClient.readContract({
+            readClient.readContract({
               address: config.orderBook,
               abi: orderBookAbi,
               functionName: "ordersOf",
               args: [walletAddress],
             }),
-            publicClient.readContract({
+            readClient.readContract({
               address: config.orderBook,
               abi: orderBookAbi,
               functionName: "plansOf",
@@ -355,7 +357,7 @@ export function useLimitOrders(app: WalletAppState) {
             await Promise.all(
               orderIds.map(async (id) => {
                 try {
-                  const o = await publicClient.readContract({
+                  const o = await readClient.readContract({
                     address: config.orderBook,
                     abi: orderBookAbi,
                     functionName: "getOrder",
@@ -398,7 +400,7 @@ export function useLimitOrders(app: WalletAppState) {
             await Promise.all(
               planIds.map(async (id) => {
                 try {
-                  const p = await publicClient.readContract({
+                  const p = await readClient.readContract({
                     address: config.orderBook,
                     abi: orderBookAbi,
                     functionName: "getPlan",
@@ -408,7 +410,7 @@ export function useLimitOrders(app: WalletAppState) {
                     let isSell = false;
                     try {
                       isSell = Boolean(
-                        await publicClient.readContract({
+                        await readClient.readContract({
                           address: config.orderBook,
                           abi: orderBookAbi,
                           functionName: "isSellPlan",
@@ -451,7 +453,7 @@ export function useLimitOrders(app: WalletAppState) {
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
-  }, [config, publicClient, walletAddress]);
+  }, [config, readClient, walletAddress]);
 
   // 3. Polling every 15 seconds while mounted
   useEffect(() => {

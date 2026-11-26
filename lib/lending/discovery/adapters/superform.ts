@@ -16,6 +16,7 @@ export const superformAdapter: DiscoveryAdapter = {
       const response = await fetch("https://api.superform.xyz/v1/vaults?chainId=8453", {
         headers: { Accept: "application/json" },
         next: { revalidate: 300 },
+        signal: AbortSignal.timeout(10_000),
       }).catch(() => null);
 
       if (response && response.ok) {

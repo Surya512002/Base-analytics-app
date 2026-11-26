@@ -83,7 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://auth.farcaster.xyz" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var isDark=t!=="light";if(isDark){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("theme");var isDark=t!=="light";if(isDark){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}if(location.pathname==="/"&&/[?&](tab|card|cardId|voucher|c)=|#(.*&)?(id|card)=/.test(location.search+location.hash))document.documentElement.setAttribute("data-deeplink","");}catch(e){}})();`,
           }}
         />
       </head>

@@ -80,9 +80,11 @@ export const aaveAdapter: DiscoveryAdapter = {
     const markets: NormalizedMarket[] = [];
     const rpcUrl = process.env.BASE_RPC_URL || process.env.ANVIL_RPC_URL || "https://mainnet.base.org";
 
+    // Multicall: the reads for all reserves go out together instead of about 30 round trips.
     const client = createPublicClient({
       chain: base,
-      transport: http(rpcUrl),
+      batch: { multicall: true },
+      transport: http(rpcUrl, { timeout: 10_000 }),
     });
 
     try {
@@ -92,7 +94,7 @@ export const aaveAdapter: DiscoveryAdapter = {
         functionName: "getAllReservesTokens",
       })) as Array<{ symbol: string; tokenAddress: Address }>;
 
-      for (const res of reservesTokens) {
+      const found = await Promise.all(reservesTokens.map(async (res): Promise<NormalizedMarket | null> => {
         try {
           const tokenAddress = getAddress(res.tokenAddress);
           const [config, data] = await Promise.all([
@@ -147,7 +149,7 @@ export const aaveAdapter: DiscoveryAdapter = {
           const liquidityUsd = Math.round(availableAssets * priceUsd);
           const utilization = totalAssets > 0 ? (totalDebt / totalAssets) * 100 : 0;
 
-          markets.push({
+          return {
             protocol: "aave",
             protocolLabel: "Aave V3",
             marketId: `aave-v3-${tokenAddress.slice(0, 10)}`,
@@ -177,11 +179,13 @@ export const aaveAdapter: DiscoveryAdapter = {
             sourceLink: `https://app.aave.com/reserve-overview/?underlyingAsset=${tokenAddress}&marketName=proto_base_v3`,
             lastUpdated: new Date().toISOString(),
             status: config[9] ? "paused" : utilization >= 95 ? "cap_reached" : "active",
-          });
+          };
         } catch (resErr) {
           console.warn(`[Aave Discovery] Reserve ${res.symbol} read failed:`, resErr);
+          return null;
         }
-      }
+      }));
+      markets.push(...found.filter((m): m is NormalizedMarket => m !== null));
     } catch (err) {
       console.warn("[Aave Discovery] Failed to read Aave V3 reserves on Base:", err);
       throw err;

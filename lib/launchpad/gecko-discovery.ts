@@ -75,7 +75,7 @@ async function fetchGeckoPools(
     try {
       const r = await fetch(
         `https://api.geckoterminal.com/api/v2/networks/base/${path}?include=base_token&page=${page}`,
-        { cache: "no-store", headers: GECKO_HEADERS }
+        { cache: "no-store", headers: GECKO_HEADERS, signal: AbortSignal.timeout(6_000) }
       );
       if (!r.ok) break;
       pages.push((await r.json()) as GeckoResp);
@@ -131,8 +131,20 @@ function ingestGeckoPages(
   }
 }
 
-/** GeckoTerminal trending pools on Base — fills gaps DexScreener boosts miss. */
-export async function discoverGeckoTrendingBase(): Promise<{
+let inFlight: ReturnType<typeof loadGeckoTrendingBase> | null = null;
+
+/**
+ * GeckoTerminal trending pools on Base — fills gaps DexScreener boosts miss.
+ * Callers that overlap share one set of requests; nothing is kept once it finishes.
+ */
+export function discoverGeckoTrendingBase() {
+  inFlight ??= loadGeckoTrendingBase().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function loadGeckoTrendingBase(): Promise<{
   tokens: LaunchedToken[];
   markets: Record<string, TokenMarketSummary>;
 }> {

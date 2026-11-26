@@ -131,6 +131,7 @@ export const morphoAdapter: DiscoveryAdapter = {
           try {
             const resp = await fetch(MORPHO_GRAPHQL_ENDPOINT, {
               method: "POST",
+              signal: AbortSignal.timeout(10_000),
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 query: STOCK_MARKETS_QUERY,
@@ -161,6 +162,7 @@ export const morphoAdapter: DiscoveryAdapter = {
       try {
         const resp = await fetch(MORPHO_GRAPHQL_ENDPOINT, {
           method: "POST",
+          signal: AbortSignal.timeout(10_000),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             query: GENERAL_MARKETS_QUERY,

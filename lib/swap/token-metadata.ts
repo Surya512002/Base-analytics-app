@@ -8,14 +8,14 @@
 import { isAddress, getAddress } from "viem";
 import { COMMON_BASE_TOKENS, type CommonToken } from "@/lib/launchpad/common-tokens";
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
-import { commonTokenToCounter, enrichSwapCounter } from "@/lib/launchpad/token-logo";
+import { commonTokenToCounter, enrichSwapCounter, tokenLogoUrl } from "@/lib/launchpad/token-logo";
 import { ETH_COUNTER, type SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import { createPublicOnlyBaseClient } from "@/lib/utils/base-rpc";
 import {
   isVerifiedBaseToken,
-  findVerifiedToken,
   registerVerifiedLiquidityToken,
 } from "@/lib/swap/verified-tokens";
+import { loadTokenCatalog, type TokenCatalog } from "@/lib/swap/load-token-catalog";
 import { fetchDexScreenerBatch, pickBestPair } from "@/lib/launchpad/dexscreener";
 
 const ERC20_ABI = [
@@ -109,7 +109,14 @@ export async function resolveSwapToken(
   }
 
   // 3b. Check Comprehensive Verified Tokens Registry by Address OR Symbol
-  const verifiedMatch = findVerifiedToken(raw);
+  // Fail here rather than fall through: the on-chain path below guesses 18 decimals if a read fails.
+  let catalog: TokenCatalog;
+  try {
+    catalog = await loadTokenCatalog();
+  } catch {
+    return { counter: null, isUnverified: false, error: "Couldn't load the token list. Check your connection and try again." };
+  }
+  const verifiedMatch = catalog.findVerifiedToken(raw);
   if (verifiedMatch) {
     let isBlueCheck = isVerifiedBaseToken(verifiedMatch.address);
     let tokenLiquidity: number | undefined;
@@ -135,6 +142,7 @@ export async function resolveSwapToken(
       symbol: verifiedMatch.symbol,
       decimals: verifiedMatch.decimals,
       name: verifiedMatch.name,
+      imageUrl: tokenLogoUrl(verifiedMatch.address, undefined, verifiedMatch.logoURI),
       isVerified: isBlueCheck,
       isUnverified: !isBlueCheck,
       liquidityUsd: tokenLiquidity,

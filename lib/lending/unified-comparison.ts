@@ -20,6 +20,9 @@ import {
   type KindChip,
 } from "./market-classifier";
 
+// Long on purpose: a timed-out feed falls back to built-in figures, so only cut off real hangs.
+const FEED_TIMEOUT_MS = 25_000;
+
 async function getRedisCache<T>(key: string): Promise<T | null> {
   if (typeof window !== "undefined") return null;
   try {
@@ -358,9 +361,9 @@ export async function getLiveBeefyAndAeroRates(): Promise<LiveBeefyAndAeroRates>
   }
   try {
     const [beefyApyRes, beefyTvlRes, beefyLpsRes] = await Promise.all([
-      fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 } }).catch(() => null),
-      fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 } }).catch(() => null),
-      fetch("https://api.beefy.finance/lps", { next: { revalidate: 60 } }).catch(() => null),
+      fetch("https://api.beefy.finance/apy", { next: { revalidate: 60 }, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) }).catch(() => null),
+      fetch("https://api.beefy.finance/tvl", { next: { revalidate: 60 }, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) }).catch(() => null),
+      fetch("https://api.beefy.finance/lps", { next: { revalidate: 60 }, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) }).catch(() => null),
     ]);
 
     const lpPrices: Record<string, number> = {};

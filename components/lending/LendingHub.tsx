@@ -118,6 +118,8 @@ export default function LendingHub({
 
   // Discovered markets state from /api/markets, seeded with verified onchain baseline
   const [discoveredMarkets, setDiscoveredMarkets] = useState<import("@/lib/lending/discovery/types").NormalizedMarket[]>(() => getBaselineVerifiedMarkets());
+  // The list starts as built-in figures; true once the live ones have replaced them.
+  const [hasLiveMarkets, setHasLiveMarkets] = useState(false);
   const [protocolErrors, setProtocolErrors] = useState<Record<string, string>>({});
   const [isLoadingDiscovered, setIsLoadingDiscovered] = useState(false);
   const [showAllStocks, setShowAllStocks] = useState(false);
@@ -142,6 +144,7 @@ export default function LendingHub({
         const data = await res.json();
         if (data.ok && Array.isArray(data.markets) && data.markets.length > 0) {
           setDiscoveredMarkets(data.markets);
+          setHasLiveMarkets(true);
           if (data.protocolStatus && typeof data.protocolStatus === "object") {
             const errs: Record<string, string> = {};
             for (const [k, v] of Object.entries(data.protocolStatus as Record<string, { status?: string; error?: string }>)) {
@@ -1095,14 +1098,17 @@ export default function LendingHub({
       )}
 
       {/* Top Yield Spotlight: Highlights top verified yield opportunity with zero calculation clutter */}
-      <TopYieldSpotlight
-        markets={discoveredMarkets}
-        stockRows={stockRows}
-        onExploreVault={handleExploreYieldOption}
-        onSelectOption={(protocol) => {
-          handleExploreYieldOption({ protocol });
-        }}
-      />
+      {/* Live rates only: a headline rate from the built-in list would flash up and then vanish. */}
+      {hasLiveMarkets && (
+        <TopYieldSpotlight
+          markets={discoveredMarkets}
+          stockRows={stockRows}
+          onExploreVault={handleExploreYieldOption}
+          onSelectOption={(protocol) => {
+            handleExploreYieldOption({ protocol });
+          }}
+        />
+      )}
 
       {!positionsFirst && (isConnected || activeTab !== "portfolio") && positionsPanel}
 

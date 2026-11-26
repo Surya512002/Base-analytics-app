@@ -151,6 +151,9 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
+    // Files in public/ are otherwise re-checked on every visit. Logos change rarely, and a changed
+    // file shows up within a day.
+    const imageCache = [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }];
     return [
       {
         source: "/:path*",
@@ -189,6 +192,9 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      { source: "/tokens/:file*", headers: imageCache },
+      { source: "/brand/:file*", headers: imageCache },
+      { source: "/wallets/:file*", headers: imageCache },
     ];
   },
 };

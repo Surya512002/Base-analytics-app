@@ -650,7 +650,7 @@ export default function DocumentsClient() {
         <div className="brand-hero-wrap min-h-[220px] sm:min-h-[260px] rounded-2xl overflow-hidden relative shadow-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/base-analytics-hero-lanes.png"
+            src="/brand/base-analytics-hero-lanes.webp"
             alt="Base Terminal Hero"
             className="brand-hero-img"
           />

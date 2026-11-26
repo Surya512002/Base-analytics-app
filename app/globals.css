@@ -1541,10 +1541,16 @@ html.is-scrolling .prism-scene {
   min-width: 0;
 }
 
+/* Slides only: starting at opacity 0 would hide the server-rendered page on first paint. */
 @keyframes tabContentEnter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from { transform: translateY(8px); }
+  to { transform: none; }
 }
+
+/* Until the saved session is read: no Connect button that cannot work yet (or that a signed-in
+   user would see flash), and no home screen flashing up on a link that opens another screen. */
+.app-booting [data-connect] { visibility: hidden; }
+html[data-deeplink] .app-booting .tab-content-enter { visibility: hidden; }
 
 /* ── Podium 3D ── */
 .podium-3d {

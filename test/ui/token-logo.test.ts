@@ -8,7 +8,7 @@ import {
 } from "@/lib/utils/token-color";
 import { TOKENIZED_STOCKS_REGISTRY, getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import { SELF_HOSTED_LOGOS, tokenLogoUrl } from "@/lib/launchpad/token-logo";
-import { getVerifiedTokenLogo, findVerifiedToken } from "@/lib/swap/verified-tokens";
+import { getVerifiedTokenLogo, findVerifiedToken } from "@/lib/swap/token-catalog";
 
 describe("TokenLogo Fallback Chain & Deterministic Color Suite", () => {
   const ADDRESS_A = "0x833589fCD6eDb6E08f4c7C32D4f71bdA02913";

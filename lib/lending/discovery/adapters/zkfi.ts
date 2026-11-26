@@ -16,7 +16,7 @@ export const zkfiAdapter: DiscoveryAdapter = {
     try {
       // Query ZeroLend / zkFi Base endpoints with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
 
       const resp = await fetch("https://api.zerolend.xyz/markets?chainId=8453", {
         signal: controller.signal,

@@ -1,7 +1,8 @@
 /**
  * Verified Base Tokens Registry & Verification Engine
  *
- * Single source of truth for verified Base mainnet tokens matching Coinbase Wallet verification standards:
+ * Single source of truth for verified Base mainnet tokens matching Coinbase Wallet verification standards.
+ * The large 3,100+ token catalog lives in ./token-catalog (load it on demand in the browser).
  * - Official Coinbase Tokenized US Equities (RWAs) from TOKENIZED_STOCKS_REGISTRY
  * - Curated High-MarketCap Base Bluechips & Major Currencies (ETH, WETH, USDC, cbBTC, cbETH, AERO, DEGEN, BRETT, TOSHI, VIRTUAL, etc.)
  *
@@ -11,7 +12,6 @@
 import { TOKENIZED_STOCKS_REGISTRY } from "@/lib/stocks/tokenized-stocks-registry";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import type { UnifiedToken } from "@/lib/explore/explore-types";
-import verifiedTokensJson from "./verified-base-tokens.json";
 
 export interface VerifiedTokenDef {
   address: `0x${string}`;
@@ -21,9 +21,6 @@ export interface VerifiedTokenDef {
   category?: "crypto" | "stock" | "b20";
   logoURI?: string | null;
 }
-
-/** Comprehensive list of 3,100+ Base catalog tokens from CoinGecko, Superchain, & Coinbase (used for asset discovery/pricing) */
-export const ALL_VERIFIED_BASE_TOKENS: VerifiedTokenDef[] = verifiedTokensJson as VerifiedTokenDef[];
 
 export const AERO_BASE_ADDRESS = "0x940181a94A35A4569E4529A3CDfB74e38FD98631" as const;
 export const USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
@@ -94,76 +91,6 @@ export const BLUE_CHECK_VERIFIED_SYMBOL_SET = new Set<string>([
   ...TOKENIZED_STOCKS_REGISTRY.map((s) => s.symbol.toUpperCase()),
   ...VERIFIED_BASE_CRYPTO_TOKENS.map((t) => t.symbol.toUpperCase()),
 ]);
-
-// Fast O(1) indexed lookup maps for 3,100+ Base catalog tokens
-const VERIFIED_TOKENS_BY_ADDRESS = new Map<string, VerifiedTokenDef>();
-const VERIFIED_TOKENS_BY_SYMBOL = new Map<string, VerifiedTokenDef>();
-
-for (const t of ALL_VERIFIED_BASE_TOKENS) {
-  const addr = t.address.toLowerCase();
-  const sym = t.symbol.toLowerCase();
-  if (!VERIFIED_TOKENS_BY_ADDRESS.has(addr)) {
-    VERIFIED_TOKENS_BY_ADDRESS.set(addr, t);
-  }
-  if (!VERIFIED_TOKENS_BY_SYMBOL.has(sym)) {
-    VERIFIED_TOKENS_BY_SYMBOL.set(sym, t);
-  }
-}
-
-for (const t of VERIFIED_BASE_CRYPTO_TOKENS) {
-  const addr = t.address.toLowerCase();
-  const sym = t.symbol.toLowerCase();
-  const existing = VERIFIED_TOKENS_BY_ADDRESS.get(addr);
-  const merged: VerifiedTokenDef = {
-    ...t,
-    logoURI: t.logoURI || existing?.logoURI || null,
-  };
-  VERIFIED_TOKENS_BY_ADDRESS.set(addr, merged);
-  VERIFIED_TOKENS_BY_SYMBOL.set(sym, merged);
-}
-
-/**
- * Fast lookup for a catalog token by address or symbol
- */
-export function findVerifiedToken(addressOrSymbol: string): VerifiedTokenDef | undefined {
-  if (!addressOrSymbol) return undefined;
-  const raw = addressOrSymbol.trim().toLowerCase();
-  return VERIFIED_TOKENS_BY_ADDRESS.get(raw) || VERIFIED_TOKENS_BY_SYMBOL.get(raw);
-}
-
-/**
- * Direct logo URL resolver from verified 3,100+ Base token catalog
- */
-export function getVerifiedTokenLogo(addressOrSymbol?: string | null): string | null {
-  if (!addressOrSymbol) return null;
-  const found = findVerifiedToken(addressOrSymbol);
-  return found?.logoURI || null;
-}
-
-/**
- * Searches across all 3,100+ Base catalog tokens by symbol, name, or address
- */
-export function searchVerifiedTokens(query: string, limit = 50): VerifiedTokenDef[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  const results: VerifiedTokenDef[] = [];
-  const seen = new Set<string>();
-
-  for (const t of ALL_VERIFIED_BASE_TOKENS) {
-    const addr = t.address.toLowerCase();
-    if (seen.has(addr)) continue;
-    if (
-      t.symbol.toLowerCase().includes(q) ||
-      t.name.toLowerCase().includes(q) ||
-      addr === q
-    ) {
-      seen.add(addr);
-      results.push(t);
-      if (results.length >= limit) break;
-    }
-  }
-  return results;
-}
 
 /**
  * Minimum locked pool liquidity threshold ($100,000 USD)

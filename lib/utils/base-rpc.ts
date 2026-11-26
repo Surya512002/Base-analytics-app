@@ -81,6 +81,18 @@ export function createBasePublicClient() {
   });
 }
 
+/**
+ * For screens that read many values at once: reads made together go out as one Multicall3 call.
+ * (This is not JSON-RPC batching, which the public endpoint rejects.) Not for quotes or sending.
+ */
+export function createBatchedBaseReadClient() {
+  return createPublicClient({
+    chain: base,
+    batch: { multicall: true },
+    transport: createBaseHttpTransport(),
+  });
+}
+
 export function isRpcRateLimitError(err: unknown): boolean {
   return isRpcInfrastructureError(err);
 }

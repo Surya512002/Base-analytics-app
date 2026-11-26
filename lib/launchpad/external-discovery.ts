@@ -57,21 +57,23 @@ async function fetchBoostedAddresses(): Promise<string[]> {
   ];
   const addresses = new Set<string>();
 
-  for (const url of urls) {
-    try {
-      const r = await fetch(url, { cache: "no-store" });
-      if (!r.ok) continue;
-      const data = (await r.json()) as DexBoost[];
-      if (!Array.isArray(data)) continue;
-      for (const item of data) {
-        if ((item.chainId ?? "").toLowerCase() !== "base") continue;
-        const addr = item.tokenAddress?.trim().toLowerCase();
-        if (addr?.startsWith("0x") && addr.length === 42) addresses.add(addr);
+  await Promise.all(
+    urls.map(async (url) => {
+      try {
+        const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(6_000) });
+        if (!r.ok) return;
+        const data = (await r.json()) as DexBoost[];
+        if (!Array.isArray(data)) return;
+        for (const item of data) {
+          if ((item.chainId ?? "").toLowerCase() !== "base") continue;
+          const addr = item.tokenAddress?.trim().toLowerCase();
+          if (addr?.startsWith("0x") && addr.length === 42) addresses.add(addr);
+        }
+      } catch {
+        /* the other feeds still count */
       }
-    } catch {
-      /* try next feed */
-    }
-  }
+    })
+  );
 
   return [...addresses];
 }
@@ -84,7 +86,7 @@ async function fetchSearchAddresses(): Promise<string[]> {
       try {
         const r = await fetch(
           `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(q)}`,
-          { cache: "no-store" }
+          { cache: "no-store", signal: AbortSignal.timeout(6_000) }
         );
         if (!r.ok) return;
         const data = (await r.json()) as DexSearchResp;
