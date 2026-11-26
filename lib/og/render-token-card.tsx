@@ -1,4 +1,4 @@
-import type { OgCardData } from "./types";
+import { shortenAddress, type OgTokenCardData } from "./types";
 import {
   OgBackground,
   OgFooter,
@@ -6,13 +6,13 @@ import {
   OG_COLORS,
 } from "./brand-kit";
 
-export function renderOgTokenCard(data: OgCardData) {
-  const symbol = data.tokenSymbol ?? "TOKEN";
-  const name = data.tokenName ?? "Base Token";
-  const price = data.tokenPrice ?? "—";
-  const change = data.tokenChange24h ?? 0;
-  const mcap = data.tokenMcap ?? "—";
-  const up = change >= 0;
+export function renderOgTokenCard(data: OgTokenCardData) {
+  const { symbol, change24h: change } = data;
+  const name = [data.name, shortenAddress(data.address)].filter(Boolean).join("  ");
+  const price = data.price ?? "—";
+  const mcap = data.mcap ?? "—";
+  const up = (change ?? 0) >= 0;
+  const when = data.asOf ? `PRICE AT ${data.asOf.toISOString().slice(11, 16)} UTC` : "NO LIVE PRICE";
 
   return (
     <div
@@ -39,7 +39,7 @@ export function renderOgTokenCard(data: OgCardData) {
           gap: 22,
         }}
       >
-        <OgHeader label="LIVE MARKET" />
+        <OgHeader label={when} />
         <div style={{ display: "flex", flex: 1, gap: 34, minHeight: 0 }}>
           <div
             style={{
@@ -106,7 +106,7 @@ export function renderOgTokenCard(data: OgCardData) {
             }}
           >
             <span style={{ color: OG_COLORS.dim, fontSize: 11, fontWeight: 900 }}>
-              CURRENT PRICE
+              PRICE FROM DEXSCREENER
             </span>
             <span
               style={{
@@ -133,14 +133,13 @@ export function renderOgTokenCard(data: OgCardData) {
                 <span style={{ color: OG_COLORS.dim, fontSize: 10 }}>24H</span>
                 <span
                   style={{
-                    color: up ? OG_COLORS.green : "#FB7185",
+                    color: change === undefined ? OG_COLORS.muted : up ? OG_COLORS.green : "#FB7185",
                     fontSize: 27,
                     fontWeight: 950,
                     marginTop: 4,
                   }}
                 >
-                  {up ? "+" : ""}
-                  {change.toFixed(1)}%
+                  {change === undefined ? "—" : `${up ? "+" : ""}${change.toFixed(1)}%`}
                 </span>
               </div>
               <div

@@ -35,7 +35,6 @@ import CreatorProfileCard from "@/components/launchpad/CreatorProfileCard";
 import { buildExploreTokenPath } from "@/lib/utils/app-url";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import {
-  buildTokenSharePageUrl,
   buildTokenShareText,
   twitterShare,
   warpcast,
@@ -152,16 +151,6 @@ export default function TokenDetailPanel({
     typeof window !== "undefined"
       ? `${window.location.origin}${buildExploreTokenPath(token.address)}`
       : buildExploreTokenPath(token.address);
-
-  const tokenShareOgUrl = buildTokenSharePageUrl(token.symbol, token.name, {
-    price: priceUsd ? formatUsd(priceUsd) : undefined,
-    change24h: best?.priceChange?.h24,
-    mcap: mc
-      ? mc >= 1e6
-        ? `$${(mc / 1e6).toFixed(2)}M`
-        : `$${mc.toFixed(0)}`
-      : undefined,
-  });
 
   const tokenShareText = buildTokenShareText(token.symbol, token.name);
 
@@ -359,7 +348,7 @@ export default function TokenDetailPanel({
                     type="button"
                     onClick={() =>
                       window.open(
-                        warpcast(tokenShareText, tokenShareOgUrl),
+                        warpcast(tokenShareText, tokenSharePageUrl),
                         "_blank",
                         "noopener,noreferrer"
                       )
