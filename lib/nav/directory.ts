@@ -86,7 +86,7 @@ export const GROUPS: Group[] = [
     entries: [
       { id: "help", title: "Help", note: "How to buy, invest, earn, and what the risks are", href: "/help", words: "support how faq fees safety" },
       { id: "docs", title: "Documents and API", note: "Guides, contracts and developer tools", href: "/docs", words: "developer api mcp contracts compliance" },
-      { id: "risks", title: "Risks", note: "What can go wrong", href: "/risk-disclosure", words: "risk disclosure loss" },
+      { id: "risks", title: "Risk disclosure", note: "What can go wrong", href: "/risk-disclosure", words: "risk disclosure loss" },
       { id: "terms", title: "Terms", note: "Terms of service", href: "/terms", words: "legal terms" },
       { id: "privacy", title: "Privacy", note: "What we keep about you", href: "/privacy", words: "legal privacy data" },
       { id: "regions", title: "Restricted regions", note: "Where some features are unavailable", href: "/restricted-regions", words: "country legal geography blocked" },
