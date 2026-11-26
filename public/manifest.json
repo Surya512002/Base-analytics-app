@@ -1,7 +1,7 @@
 {
   "name": "Base Analytics — Onchain DeFi & Equities",
   "short_name": "Base Analytics",
-  "description": "Next-generation Base terminal for DEX swaps, tokenized equities, yield discovery, and onchain vouchers.",
+  "description": "Swaps, tokenized stocks, lending and gift vouchers on Base.",
   "icons": [
     {
       "src": "/icon.png",
@@ -15,8 +15,8 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#0052FF",
-  "background_color": "#0B0F19",
+  "theme_color": "#5B2A86",
+  "background_color": "#15101F",
   "display": "standalone",
   "orientation": "portrait-primary",
   "start_url": "/"

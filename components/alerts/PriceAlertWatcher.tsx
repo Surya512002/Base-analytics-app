@@ -31,7 +31,7 @@ export default function PriceAlertWatcher({ wallet, onAlert }: { wallet: string 
           onAlertRef.current(reason);
           if (alert.channel === "browser" && "Notification" in window && Notification.permission === "granted") {
             try {
-              new Notification("Price alert", { body: reason, icon: "/favicon.ico" });
+              new Notification("Price alert", { body: reason, icon: "/icon-192.png" });
             } catch {
               // Some phone browsers refuse page notifications; the in-app message above still shows.
             }

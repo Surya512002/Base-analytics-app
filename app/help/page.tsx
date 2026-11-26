@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { sectionShare } from "@/lib/constants/app-url";
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import AppFooterNav from "@/components/wallet/AppFooterNav";
 import { AUTO_INVEST_HREF, LIMIT_ORDERS_HREF, MY_STOCKS_HREF } from "@/lib/constants/destinations";
 
 export const metadata: Metadata = {
+  openGraph: { images: sectionShare("help").images },
+  twitter: sectionShare("help").twitter,
   title: "Help | Base Analytics",
   description: "How to buy tokenized stocks, invest automatically, place limit orders, borrow, and what the risks and fees are.",
 };

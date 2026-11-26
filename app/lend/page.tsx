@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAppUrl, appOgImage } from "@/lib/constants/app-url";
+import { getAppUrl, sectionShare } from "@/lib/constants/app-url";
 import HomeApp from "@/components/home/HomeApp";
 
 const appUrl = getAppUrl();
@@ -8,12 +8,13 @@ export const metadata: Metadata = {
   title: "Lend, Borrow & Stake on Base Network — Tokenized Stocks, Morpho & Aerodrome",
   description:
     "Borrow USDC against Coinbase B20 tokenized stocks (NVDAc, AAPLc, TSLAc, COINc) on Base mainnet. Earn high APY lending and staking across IPOR Fusion, Morpho Blue, Aerodrome gauges, and Aave v3 with Base Builder attribution.",
+  twitter: sectionShare("earn").twitter,
   openGraph: {
     title: "Lend, Borrow & Stake Stocks on Base · Base Analytics",
     description:
       "Deposit tokenized equities as collateral, borrow cash, and stake in Aerodrome gauges with verified Base Builder Code attribution.",
     url: `${appUrl}/lend`,
-    images: [{ url: appOgImage(), width: 1200, height: 630 }],
+    images: sectionShare("earn").images,
   },
   alternates: { canonical: `${appUrl}/lend` },
 };

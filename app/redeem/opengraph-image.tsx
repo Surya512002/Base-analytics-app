@@ -8,6 +8,7 @@ export const alt = "A gift is waiting for you on Base — see who sent it, then 
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
+/** The gift card, Engraved. */
 export default async function Image() {
   return new ImageResponse(renderGiftShareCard(null), { ...OG_SIZE, fonts: ogFonts() });
 }

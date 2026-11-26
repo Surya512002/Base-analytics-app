@@ -84,7 +84,7 @@ export default function LiquidationGuardBanner({
     try {
       new Notification("Your loan is close to liquidation", {
         body: `Health factor ${lowestHF!.toFixed(2)}. Repay or add collateral on the Earn page.`,
-        icon: "/favicon.ico",
+        icon: "/icon-192.png",
       });
       localStorage.setItem(key, String(now));
     } catch {
@@ -116,7 +116,7 @@ export default function LiquidationGuardBanner({
         localStorage.setItem("base_liquidation_alert_enabled", "true");
         new Notification("Base Analytics Liquidation Guard", {
           body: "Warnings are on. While the Earn page is open, we will tell you if your health factor falls below 1.25.",
-          icon: "/favicon.ico",
+          icon: "/icon-192.png",
         });
       }
     } catch {

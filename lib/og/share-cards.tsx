@@ -1,27 +1,15 @@
 /**
- * Link-preview images (X, Farcaster, Telegram, iMessage…), v3: the gift stage.
+ * Link-preview images (X, Farcaster, Telegram, iMessage…), v4: Engraved.
  *
- * The same blue dotted surface and open gift box as the app's claim screens, so a shared link
- * looks like the thing it opens. Rules: readable at X's ~500px preview width (nothing under
- * ~20px), one message per card, real data only — prices carry their timestamp, nothing is
- * invented when data is missing. Satori: flexbox only, every multi-child div has display:flex.
+ * Plum ink with the app's line rosette; gold only on gifts. Rules: readable at X's ~500px preview
+ * width (nothing under 20px), one message per card, real data only — prices carry their timestamp,
+ * nothing is invented when data is missing. Satori: flexbox only, every multi-child div has
+ * display:flex.
  */
 import type { ReactElement } from "react";
-import { OgLogo } from "./brand-kit";
-
-export const C = {
-  bg: "#050B17",
-  card: "rgba(18, 28, 52, 0.92)",
-  border: "rgba(255,255,255,0.10)",
-  blue: "#0052FF",
-  blueText: "#7AA5FF",
-  text: "#F8FAFC",
-  soft: "#C3CEDF",
-  muted: "#8E9BB3",
-  green: "#34D399",
-  red: "#F87171",
-  amber: "#FBBF24",
-} as const;
+import { BrandLogoMark } from "@/lib/brand/logo-mark";
+import { OG_ROSETTE } from "./rosette-data";
+import { OG_SECTIONS, type OgSection } from "./sections";
 
 const SITE = "baseanalytics.app";
 
@@ -32,7 +20,7 @@ const W = {
   muted: "rgba(255,255,255,0.70)",
   glass: "rgba(255,255,255,0.14)",
   glassBorder: "rgba(255,255,255,0.28)",
-  ink: "#0041CC",
+  ink: "#5B2A86",
   gold: "#FDE68A",
   up: "#86EFAC",
   down: "#FECACA",
@@ -40,8 +28,8 @@ const W = {
 
 const RIBBON = "linear-gradient(90deg, #FDE68A 0%, #F59E0B 50%, #FDE68A 100%)";
 
-/** The blue gradient stage with a dot grid, the same surface as the app's gift screens. */
-function Frame({ children }: { children: ReactElement | ReactElement[] }) {
+/** The plum surface with the rosette behind the content. */
+export function Frame({ children }: { children: ReactElement | ReactElement[] }) {
   return (
     <div
       style={{
@@ -50,48 +38,28 @@ function Frame({ children }: { children: ReactElement | ReactElement[] }) {
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        backgroundColor: "#0052FF",
-        backgroundImage: "linear-gradient(135deg, #3B74FF 0%, #0052FF 42%, #4F46E5 100%)",
+        backgroundColor: "#1A1030",
+        backgroundImage: "linear-gradient(135deg, #3A1D66 0%, #2A1650 45%, #1A1030 100%)",
         padding: "46px 56px",
         color: W.strong,
         fontFamily: "Figtree",
         fontWeight: 500,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: 1200,
-          height: 630,
-          display: "flex",
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.22) 1.5px, transparent 1.5px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: -220,
-          right: -160,
-          width: 620,
-          height: 620,
-          display: "flex",
-          borderRadius: 999,
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 68%)",
-        }}
-      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={OG_ROSETTE} width={760} height={760} alt="" style={{ position: "absolute", top: -200, right: -210, opacity: 0.4 }} />
       {children}
     </div>
   );
 }
 
-function Brand({ right }: { right?: string }) {
+export function Brand({ right }: { right?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <OgLogo size={56} />
+        <div style={{ display: "flex", borderRadius: 14, border: "2px solid rgba(255,255,255,0.35)" }}>
+          <BrandLogoMark size={56} />
+        </div>
         <div style={{ display: "flex", fontSize: 34, fontWeight: 800, letterSpacing: -0.5 }}>Base Analytics</div>
       </div>
       {right ? (
@@ -118,7 +86,7 @@ function Brand({ right }: { right?: string }) {
   );
 }
 
-function Footer({ left, cta }: { left: string; cta: string }) {
+export function Footer({ left, cta }: { left: string; cta: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
       <div style={{ display: "flex", fontSize: 24, color: W.muted, fontWeight: 700 }}>{left}</div>
@@ -175,10 +143,10 @@ function Sparkle({ x, y, size, color = "rgba(255,255,255,0.8)" }: { x: number; y
  */
 export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { label?: string; value?: string; dim?: boolean }) {
   const body = dim
-    ? "linear-gradient(160deg, #64748B 0%, #475569 50%, #1E293B 100%)"
-    : "linear-gradient(160deg, #2F6BFF 0%, #0052FF 45%, #1E3A8A 100%)";
-  const lid = dim ? "linear-gradient(160deg, #94A3B8 0%, #475569 100%)" : "linear-gradient(160deg, #5B8CFF 0%, #1D4ED8 100%)";
-  const card = dim ? "linear-gradient(135deg, #475569 0%, #334155 100%)" : "linear-gradient(135deg, #0052FF 0%, #6366F1 100%)";
+    ? "linear-gradient(160deg, #7D739E 0%, #514C6B 50%, #29213F 100%)"
+    : "linear-gradient(160deg, #9B6FD0 0%, #6F3A9E 45%, #3A1D66 100%)";
+  const lid = dim ? "linear-gradient(160deg, #9D97B3 0%, #514C6B 100%)" : "linear-gradient(160deg, #B48FE8 0%, #5B2A86 100%)";
+  const card = dim ? "linear-gradient(135deg, #514C6B 0%, #3B3555 100%)" : "linear-gradient(135deg, #5B2A86 0%, #8E5FC4 100%)";
   const valueSize = value.length > 14 ? 28 : value.length > 9 ? 36 : 44;
   return (
     <div style={{ position: "relative", width: 440, height: 440, display: "flex" }}>
@@ -220,7 +188,7 @@ export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { 
           transform: "rotate(-6deg)",
         }}
       >
-        <div style={{ display: "flex", fontSize: 18, fontWeight: 800, letterSpacing: 4 }}>{label}</div>
+        <div style={{ display: "flex", fontSize: 20, fontWeight: 800, letterSpacing: 4 }}>{label}</div>
         <div style={{ display: "flex", fontSize: valueSize, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{value}</div>
       </div>
 
@@ -235,7 +203,7 @@ export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { 
           display: "flex",
           borderRadius: 52,
           backgroundImage: body,
-          boxShadow: "0 30px 60px rgba(10,20,80,0.45)",
+          boxShadow: "0 30px 60px rgba(10,5,30,0.45)",
           overflow: "hidden",
         }}
       >
@@ -251,7 +219,7 @@ export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { 
             backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 100%)",
           }}
         />
-        <div style={{ position: "absolute", left: 30, top: 150, display: "flex", fontSize: 18, fontWeight: 800, letterSpacing: 4, color: "rgba(255,255,255,0.72)" }}>
+        <div style={{ position: "absolute", left: 30, top: 150, display: "flex", fontSize: 20, fontWeight: 800, letterSpacing: 4, color: "rgba(255,255,255,0.72)" }}>
           BASE
         </div>
       </div>
@@ -309,7 +277,7 @@ export function OgGiftBox({ label = "GIFT", value = "For you", dim = false }: { 
             display: "flex",
             borderRadius: 22,
             backgroundImage: lid,
-            boxShadow: "0 14px 30px rgba(10,20,80,0.35)",
+            boxShadow: "0 14px 30px rgba(10,5,30,0.35)",
             overflow: "hidden",
           }}
         >
@@ -339,7 +307,7 @@ export interface ShareStockRow {
   change24h: number;
 }
 
-const FEATURES = ["Explore", "Swap", "Borrow", "Gift"] as const;
+const FEATURES = ["Markets", "Trade", "Earn", "Gifts"] as const;
 
 export function renderHomeShareCard(input: { stocks: ShareStockRow[]; asOf: Date | null }): ReactElement {
   const rows = input.stocks.slice(0, 4);
@@ -388,7 +356,7 @@ export function renderHomeShareCard(input: { stocks: ShareStockRow[]; asOf: Date
                         <div style={{ display: "flex", fontSize: 20, color: W.soft }}>
                           ${r.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
-                        <div style={{ display: "flex", fontSize: 18, fontWeight: 800, color: up ? W.up : W.down }}>
+                        <div style={{ display: "flex", fontSize: 20, fontWeight: 800, color: up ? W.up : W.down }}>
                           {up ? "+" : ""}
                           {r.change24h.toFixed(1)}%
                         </div>
@@ -397,7 +365,7 @@ export function renderHomeShareCard(input: { stocks: ShareStockRow[]; asOf: Date
                   );
                 })}
               </div>
-              <div style={{ display: "flex", fontSize: 18, color: W.muted, marginTop: 8 }}>Prices as of {asOf}</div>
+              <div style={{ display: "flex", fontSize: 20, color: W.muted, marginTop: 8 }}>Prices as of {asOf}</div>
             </div>
           ) : (
             <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
@@ -407,11 +375,25 @@ export function renderHomeShareCard(input: { stocks: ShareStockRow[]; asOf: Date
             </div>
           )}
         </div>
-
-        <OgGiftBox />
       </div>
 
       <Footer left={SITE} cta="Open the app →" />
+    </Frame>
+  );
+}
+
+// ───────────────────────────── section cards ─────────────────────────────
+
+export function renderSectionCard(section: OgSection): ReactElement {
+  const [headline, note] = OG_SECTIONS[section];
+  return (
+    <Frame>
+      <Brand right="Built on Base" />
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", maxWidth: 860 }}>
+        <div style={{ display: "flex", fontSize: 88, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }}>{headline}</div>
+        <div style={{ display: "flex", fontSize: 36, color: W.soft, marginTop: 22, lineHeight: 1.3 }}>{note}</div>
+      </div>
+      <Footer left="Independent app. Not affiliated with Base or Coinbase." cta={SITE} />
     </Frame>
   );
 }
