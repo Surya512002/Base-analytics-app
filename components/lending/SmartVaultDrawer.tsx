@@ -532,7 +532,7 @@ function LpPanel({
     <>
       <Header
         title={`${target.stockSymbol}-USDC vault`}
-        subtitle={`${target.apy.toFixed(2)}% APY · ${target.venue} · auto-compounding`}
+        subtitle={`${target.apy > 0 ? `${target.apy.toFixed(2)}% APY` : "APY —"} · ${target.venue} · auto-compounding`}
         onClose={onClose}
       />
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
@@ -716,7 +716,7 @@ function LpPanel({
                           6
                         )} ${info.token1.symbol}`}
                       />
-                      <Row k="Yearly at today's APY" v={`≈ ${usd(((plan as ClmDepositPlan).expected.valueInToken0 * target.apy) / 100)}`} />
+                      <Row k="Yearly at today's APY" v={target.apy > 0 ? `≈ ${usd(((plan as ClmDepositPlan).expected.valueInToken0 * target.apy) / 100)}` : "—"} />
                     </>
                   ) : (
                     <>

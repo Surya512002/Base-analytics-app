@@ -45,31 +45,24 @@ export function withBuilderSuffix(data: Hex): Hex {
   return `${data}${getBuilderSuffix()}` as Hex;
 }
 
-/** Remove builder suffix for wallet_sendCalls (wallet applies dataSuffix capability). */
+/** Remove the builder suffix, for calls wrapped inside an outer call that carries it. */
 export function stripBuilderSuffix(data: Hex): Hex {
   if (!hasBuilderSuffix(data)) return data;
   const suffix = getBuilderSuffix();
   return (`0x${data.slice(2).slice(0, -suffix.length)}`) as Hex;
 }
 
-/** Strip calldata suffix before wallet_sendCalls when wallet appends via capability. */
+/**
+ * Calls for wallet_sendCalls keep the builder code in their calldata. The dataSuffix capability is
+ * also requested, but it is optional: a wallet that ignores it must still send the code.
+ */
 export function prepareCallsForWalletSendCalls(
   calls: ContractCall[]
 ): ContractCall[] {
-  const hasB20 = calls.some((c) => isB20PrecompileAddress(c.to));
-  if (hasB20) {
-    return calls.map((call) => {
-      if (isPreservedCalldataCall(call)) return call;
-      if (!hasBuilderSuffix(call.data)) {
-        return { ...call, data: withBuilderSuffix(call.data) };
-      }
-      return call;
-    });
-  }
   return calls.map((call) =>
     isPreservedCalldataCall(call)
       ? call
-      : { ...call, data: stripBuilderSuffix(call.data) }
+      : { ...call, data: withBuilderSuffix(call.data) }
   );
 }
 

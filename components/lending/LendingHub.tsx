@@ -23,7 +23,6 @@ import {
   fetchAllUserPositions,
   readBeefyPositions,
   readAavePositions,
-  readIporPositions,
   readAerodromeGaugePositions,
   type UserProtocolPosition,
 } from "@/lib/lending/user-positions";
@@ -561,8 +560,6 @@ export default function LendingHub({
         retryPositions = await readBeefyPositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("aave")) {
         retryPositions = await readAavePositions(userAddress as `0x${string}`);
-      } else if (protocol.toLowerCase().includes("ipor")) {
-        retryPositions = await readIporPositions(userAddress as `0x${string}`);
       } else if (protocol.toLowerCase().includes("aerodrome")) {
         retryPositions = await readAerodromeGaugePositions(userAddress as `0x${string}`);
       }
@@ -682,117 +679,12 @@ export default function LendingHub({
     setMarketModalAction(action);
   };
 
-  // Handle Explore Vault click from YieldCalculator
-  const handleExploreYieldOption = async (option: {
-    protocol: string;
-    stockSymbol?: string;
-    contractAddress?: string;
-    marketId?: string;
-  }) => {
-    const sym = option.stockSymbol || "NVDAc";
-    setSelectedStockSymbol(sym);
-
-    // 1. Direct match in BASE_LENDING_MARKETS (Beefy, Morpho, Moonwell, Aerodrome)
-    const matchedMarket =
-      BASE_LENDING_MARKETS.find(
-        (m) =>
-          (option.marketId && m.id === option.marketId) ||
-          (option.contractAddress &&
-            m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-          (m.protocol.toLowerCase() === option.protocol.toLowerCase() &&
-            (!option.stockSymbol || m.asset.symbol.toLowerCase().includes(sym.toLowerCase())))
-      ) ||
-      BASE_LENDING_MARKETS.find(
-        (m) => m.protocol.toLowerCase() === option.protocol.toLowerCase()
-      );
-
-    if (matchedMarket) {
-      const isStake =
-        matchedMarket.category === "stocks_stake" ||
-        matchedMarket.contractType === "aerodrome_gauge";
-      handleOpenMarketModal(matchedMarket, isStake ? "stake" : "supply");
-      return;
-    }
-
-    // 2. Aerodrome / Staking Gauge match in gaugeRows
-    const gaugeMatch = gaugeRows.find(
-      (g) =>
-        (option.marketId && g.id === option.marketId) ||
-        (option.contractAddress &&
-          g.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-        g.stockSymbol?.toLowerCase() === sym.toLowerCase()
-    );
-
-    if (gaugeMatch) {
-      setActiveTab("vaults");
-      const isBeefyGauge = gaugeMatch.rewardToken === "BEEFY" || gaugeMatch.id.includes("beefy");
-      const gaugeMarket: LendingMarket = {
-        id: gaugeMatch.id,
-        name: `${gaugeMatch.pairName} ${isBeefyGauge ? "Auto-Vault" : "Staking Gauge"}`,
-        protocol: isBeefyGauge ? "beefy" : "aerodrome",
-        protocolLabel: isBeefyGauge ? "Beefy Finance" : "Aerodrome Finance",
-        protocolBadge: isBeefyGauge ? "Auto-Compounder" : "Slipstream Gauge",
-        protocolAddress: gaugeMatch.contractAddress,
-        protocolUrl: isBeefyGauge
-          ? `https://app.beefy.com/vault/${gaugeMatch.id.replace(/^beefy-/, "")}`
-          : "https://aerodrome.finance/pools",
-        category: "stocks_stake",
-        asset: {
-          symbol: gaugeMatch.pairName,
-          name: gaugeMatch.pairName,
-          address: gaugeMatch.contractAddress,
-          decimals: 18,
-          isStock: true,
-        },
-        supplyApy: gaugeMatch.gaugeApr,
-        stakingApr: gaugeMatch.gaugeApr,
-        tvlUsd: gaugeMatch.tvlUsd,
-        oracle: isBeefyGauge ? "Beefy Onchain Vault" : "Aerodrome TWAP",
-        contractAddress: gaugeMatch.contractAddress,
-        contractType: isBeefyGauge ? "beefy_vault" : "aerodrome_gauge",
-        builderAttributed: true,
-        isStockFocus: true,
-      };
-      handleOpenMarketModal(gaugeMarket, isBeefyGauge ? "supply" : "stake");
-      return;
-    }
-
-    // 3. Try to load options for Level 3 drawer
-    try {
-      setActiveTab("stocks");
-      const res = await getUnifiedStockLendingComparison(sym, undefined, false, discoveredMarkets);
-      setComparison(res);
-
-      const matchedOption =
-        res.options.find(
-          (opt) =>
-            opt.protocol.toLowerCase().includes(option.protocol.toLowerCase()) ||
-            option.protocol.toLowerCase().includes(opt.protocol.toLowerCase())
-        ) ||
-        res.bestSupplyOption ||
-        res.options[0];
-
-      if (matchedOption) {
-        handleOpenStockDrawer(matchedOption, "supply");
-        return;
-      }
-    } catch (e) {
-      console.warn("Failed to load options for yield calculator selection:", e);
-    }
-
-    // 4. Default fallback: Search in BASE_LENDING_MARKETS
-    const fallbackMarket =
-      BASE_LENDING_MARKETS.find(
-        (m) =>
-          (option.marketId && m.id === option.marketId) ||
-          (option.contractAddress &&
-            m.contractAddress?.toLowerCase() === option.contractAddress.toLowerCase()) ||
-          m.protocol.toLowerCase() === option.protocol.toLowerCase()
-      ) || BASE_LENDING_MARKETS[0];
-
-    if (fallbackMarket) {
-      handleOpenMarketModal(fallbackMarket, "supply");
-    }
+  // Yield finder and spotlight → exactly the pool that was clicked, never a look-alike.
+  const handleExploreYieldOption = (option: { marketId?: string }) => {
+    const market = discoveredMarkets.find((m) => m.marketId === option.marketId);
+    if (!market) return;
+    setActiveTab("stocks");
+    handleExplorerAction(market, market.type === "borrow" ? "borrow" : "supply");
   };
 
   // Handle Gauge Claim directly
@@ -1044,17 +936,12 @@ export default function LendingHub({
           stockRows={stockRows}
           isConnected={isConnected}
           onRequestConnect={onRequestConnect}
-          onSelectPool={(pool) => {
-            handleExploreYieldOption({
-              protocol: pool.protocol,
-              marketId: pool.id,
-              stockSymbol: pool.assetSymbol,
-            });
-          }}
+          onSelectPool={(pool) => handleExploreYieldOption({ marketId: pool.id })}
         />
       ) : activeTab === "compare" ? (
         /* REAL MULTI-PROTOCOL TOKENIZED STOCKS COMPARISON TOOL */
         <ProtocolCompareHub
+          markets={hasLiveMarkets ? discoveredMarkets : []}
           onSelectStock={(symbol) => {
             setActiveTab("stocks");
             setSelectedStockSymbol(symbol);
@@ -1107,9 +994,6 @@ export default function LendingHub({
           markets={discoveredMarkets}
           stockRows={stockRows}
           onExploreVault={handleExploreYieldOption}
-          onSelectOption={(protocol) => {
-            handleExploreYieldOption({ protocol });
-          }}
         />
       )}
 

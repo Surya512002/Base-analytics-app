@@ -13,8 +13,7 @@ import {
   finalizeAppTransactionBatch,
   hasBuilderSuffix,
   isPreservedCalldataCall,
-  ZEROX_ALLOWANCE_HOLDER,
-} from "@/lib/utils/tx";
+  ZEROX_ALLOWANCE_HOLDER, prepareCallsForWalletSendCalls } from "@/lib/utils/tx";
 import { getSendCallsCapabilities } from "@/lib/utils/paymaster";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import { BUILDER_CODE } from "@/lib/constants/env";
@@ -61,6 +60,13 @@ describe("builder code on every transaction", () => {
         expect(caps.dataSuffix?.value.toLowerCase()).toContain(Buffer.from(BUILDER_CODE).toString("hex"));
       }
     }
+  });
+
+  it("keeps the code in the calldata of wallet_sendCalls batches, whatever the wallet does with the capability", () => {
+    const plain = { to: "0x4200000000000000000000000000000000000006" as const, data: "0xd0e30db0" as const };
+    const sent = prepareCallsForWalletSendCalls([plain, buildContractCall(plain.to, plain.data)]);
+    expect(sent.every((c) => hasBuilderSuffix(c.data))).toBe(true);
+    expect(sent[1]!.data).toBe(sent[0]!.data); // added once, not twice
   });
 
   it("nothing sends transactions outside the central sender (or without dataSuffix)", () => {

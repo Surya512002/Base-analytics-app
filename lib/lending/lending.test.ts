@@ -129,7 +129,7 @@ describe("Tokenized Stocks Registry & Base Markets", () => {
     const nvdaLend = stockMarkets.find((m) => m.id === "stock-lend-nvda");
     expect(nvdaLend).toBeDefined();
     expect(nvdaLend?.protocol).toBe("beefy");
-    expect(nvdaLend?.supplyApy).toBeGreaterThan(5);
+    expect(nvdaLend?.supplyApy).toBe(0); // rates come from live feeds only
 
     const msftVault = stockMarkets.find((m) => m.id === "beefy-msftc-usdc");
     expect(msftVault).toBeDefined();

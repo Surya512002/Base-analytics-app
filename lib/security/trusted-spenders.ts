@@ -51,11 +51,7 @@ const TRUSTED = new Set(
 );
 
 /** Core lending protocols where an "unlimited" approval is allowed if the user asks for it. */
-const UNLIMITED_OK = new Set(
-  [MORPHO_BLUE_BASE, AAVE_V3_POOL_BASE, ...BASE_LENDING_MARKETS.filter((m) => m.protocol !== "beefy").map((m) => m.contractAddress)].map(
-    (a) => a.toLowerCase()
-  )
-);
+const UNLIMITED_OK = new Set([MORPHO_BLUE_BASE, AAVE_V3_POOL_BASE].map((a) => a.toLowerCase()));
 
 export function isTrustedSpender(address: string | null | undefined): boolean {
   return Boolean(address && TRUSTED.has(address.toLowerCase()));

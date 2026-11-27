@@ -8,7 +8,6 @@ import type { NormalizedMarket } from "./discovery/types";
 import {
   AAVE_V3_POOL_BASE,
   USDC_BASE_ADDRESS,
-  IPOR_FUSION_FACTORY_BASE,
   ERC4626_VAULT_ABI,
 } from "./constants";
 import {
@@ -213,109 +212,6 @@ export async function readBeefyPositions(
   }
 }
 
-/**
- * 2. Read real IPOR Fusion stock carry trade vault positions on Base (app.ipor.io/stocks)
- * Strictly the 4 verified stocks: GOOGLc, NVDAc, AAPLc, METAc
- */
-export async function readIporPositions(
-  userAddress: `0x${string}`
-): Promise<UserProtocolPosition[]> {
-  const STOCK_PRICES = await liveStockPrices();
-  const client = createBasePublicClient();
-  const markets = [
-    {
-      vault: IPOR_FUSION_FACTORY_BASE,
-      symbol: "GOOGLc",
-      name: "IPOR Google Carry Trade",
-      decimals: 8,
-      priceUsd: STOCK_PRICES.GOOGLc,
-      supplyApy: 0,
-    },
-    {
-      vault: IPOR_FUSION_FACTORY_BASE,
-      symbol: "NVDAc",
-      name: "IPOR Nvidia Carry Trade",
-      decimals: 8,
-      priceUsd: STOCK_PRICES.NVDAc,
-      supplyApy: 0,
-    },
-    {
-      vault: IPOR_FUSION_FACTORY_BASE,
-      symbol: "AAPLc",
-      name: "IPOR Apple Carry Trade",
-      decimals: 8,
-      priceUsd: STOCK_PRICES.AAPLc,
-      supplyApy: 0,
-    },
-    {
-      vault: IPOR_FUSION_FACTORY_BASE,
-      symbol: "METAc",
-      name: "IPOR Meta Carry Trade",
-      decimals: 8,
-      priceUsd: STOCK_PRICES.METAc,
-      supplyApy: 0,
-    },
-  ];
-
-  const calls = markets.map((m) => ({
-    address: m.vault,
-    abi: ERC4626_VAULT_ABI,
-    functionName: "balanceOf" as const,
-    args: [userAddress],
-  }));
-
-  try {
-    const results = await client.multicall({
-      contracts: calls,
-      allowFailure: true,
-    });
-
-    const positions: UserProtocolPosition[] = [];
-
-    for (let i = 0; i < markets.length; i++) {
-      const m = markets[i]!;
-      const balRes = results[i] as any;
-      const sharesBal = (balRes?.status === "success" && balRes.result ? balRes.result : ZERO_BI) as bigint;
-      if (sharesBal === ZERO_BI) continue;
-
-      const suppliedNum = parseFloat(formatUnits(sharesBal, m.decimals)) || 0;
-      const suppliedUsd = suppliedNum * m.priceUsd;
-
-      positions.push({
-        id: `ipor-${m.symbol.toLowerCase()}`,
-        protocol: "ipor",
-        protocolName: "IPOR Fusion",
-        protocolBadge: "Stocks Plasma Vault",
-        marketId: `ipor-${m.symbol.toLowerCase()}-vault`,
-        marketName: m.name,
-        assetSymbol: m.symbol,
-        assetName: m.name,
-        assetAddress: m.vault,
-        type: "supplied",
-        suppliedAmount: suppliedNum,
-        borrowedAmount: 0,
-        suppliedFormatted: `${suppliedNum.toFixed(4)} ${m.symbol}`,
-        borrowedFormatted: "—",
-        suppliedUsd,
-        borrowedUsd: 0,
-        apy: m.supplyApy,
-        apr: 0,
-        healthFactor: null,
-        ltv: null,
-        liquidationPrice: null,
-        explorerUrl: `https://basescan.org/address/${m.vault}`,
-        contractAddress: m.vault,
-        canAdd: true,
-        canWithdraw: true,
-      });
-    }
-
-    return positions;
-  } catch {
-    return [];
-  }
-}
-
 const LP_TOKEN_VIEW_ABI = parseAbi(["function balanceOf(address account) external view returns (uint256)"]);
 
 const CLM_POSITION_STOCKS = [
@@ -421,7 +317,7 @@ export async function readAavePositions(userAddress: `0x${string}`): Promise<Use
 
 /**
  * Master Position Reader: Queries real positions across our 4 verified protocols:
- * Beefy Finance, Aerodrome, IPOR Fusion, Aave V4 and Morpho Blue (stock loans).
+ * Beefy Finance, Aerodrome, Aave V4 and Morpho Blue (stock loans).
  */
 export async function fetchAllUserPositions(
   userAddress: `0x${string}`,
@@ -474,10 +370,9 @@ export async function fetchAllUserPositions(
   const errors: Record<string, string> = {};
   const allPositions: UserProtocolPosition[] = [];
 
-  const [beefyRes, aeroRes, iporRes, aaveRes, morphoRes] = await Promise.allSettled([
+  const [beefyRes, aeroRes, aaveRes, morphoRes] = await Promise.allSettled([
     readBeefyPositions(userAddress),
     readAerodromeGaugePositions(userAddress),
-    readIporPositions(userAddress),
     readAavePositions(userAddress),
     readMorphoPositionRows(createBasePublicClient() as unknown as PublicClient, userAddress, morphoMarkets),
   ]);
@@ -492,12 +387,6 @@ export async function fetchAllUserPositions(
     allPositions.push(...aeroRes.value);
   } else {
     errors["Aerodrome"] = aeroRes.reason?.message || "Failed to query Aerodrome gauges";
-  }
-
-  if (iporRes.status === "fulfilled") {
-    allPositions.push(...iporRes.value);
-  } else {
-    errors["IPOR Fusion"] = iporRes.reason?.message || "Failed to query IPOR Fusion vaults";
   }
 
   if (aaveRes.status === "fulfilled") {

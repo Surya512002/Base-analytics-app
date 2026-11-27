@@ -572,7 +572,7 @@ export default function PayLinkPage() {
                   Lending &amp; Staking Terminal
                 </p>
                 <p className="text-[11px] text-[var(--ink-muted)] truncate">
-                  Compare Aave Pro, IPOR Fusion, Beefy &amp; Aerodrome
+                  Compare Aave V4, Morpho, Beefy &amp; Aerodrome
                 </p>
               </div>
               <ExternalLink size={12} className="text-[var(--ink-dim)] shrink-0" />
