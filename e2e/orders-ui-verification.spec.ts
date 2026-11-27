@@ -61,6 +61,10 @@ test.describe("Swap Tabs & Pro Orders Verification", () => {
       await noOverflow();
 
       await page.locator('.place-tabs a:has-text("Auto-invest")').click();
+      // Auto-invest opens on "Buy now"; the schedule forms are on the other switches.
+      await expect(page.getByRole("heading", { name: "Split your USDC across stocks" })).toBeVisible({ timeout: 10000 });
+      await noOverflow();
+      await page.getByRole("tab", { name: "One stock" }).click();
       const notLive = page.locator('[data-testid="mainnet-recurring-placeholder"]').or(page.getByText(/Recurring buys aren't live on Base mainnet yet/i));
       if (await notLive.first().isVisible({ timeout: 5000 }).catch(() => false)) {
         await expect(page.locator('button:has-text("Switch to Base Sepolia")').first()).toBeVisible();

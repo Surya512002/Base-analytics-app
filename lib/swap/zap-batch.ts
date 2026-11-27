@@ -5,8 +5,8 @@
  *
  * This wraps such a batch into one Beefy Zap Router order (the same audited router the
  * vault zaps use): at most one exact approval to its TokenManager, then a single atomic
- * transaction that runs the swap and the fee transfers. The swap's own minimum output and
- * recipient (the user) are unchanged; any unspent input comes back to the user.
+ * transaction that runs the swap (or a basket's several swaps) and the fee transfers. Each
+ * swap's own minimum output and recipient (the user) are unchanged; unspent input comes back.
  *
  * Deliberately narrow: only plain ERC-20 approve / transfer, native transfers and calls to
  * contracts the batch approved (the swap router) are accepted. Anything else returns null and
@@ -70,16 +70,19 @@ export function buildSwapZapOrder(user: Address, batch: ContractCall[]): { route
       route.push({ target: d.to, value: d.value, data: "0x", tokens: [] });
       addInput(NATIVE, d.value);
     } else {
-      // Only the contract the batch approved (the swap router), or a native-value swap.
+      // Only a contract the batch approved (a swap router), or a native-value swap.
       const approved = approvals.get(lc(d.to));
       if (!approved && d.value === BigInt(0)) return null;
       calls++;
       route.push({ target: d.to, value: d.value, data: d.data, tokens: approved ? [{ token: approved.token, index: -1 }] : [] });
-      if (approved) addInput(approved.token, approved.amount);
       if (d.value > BigInt(0)) addInput(NATIVE, d.value);
     }
   }
-  if (calls !== 1) return null; // exactly one swap
+  if (calls < 1) return null;
+  // Each approval is pulled from the user once, however many swaps share that router.
+  for (const [spender, a] of approvals) {
+    if (decoded.some((d) => d.kind === "call" && lc(d.to) === spender)) addInput(a.token, a.amount);
+  }
   // Route steps carry no builder suffix (the user's own call to the router does).
   for (const s of route) s.data = stripBuilderSuffix(s.data);
   void user;

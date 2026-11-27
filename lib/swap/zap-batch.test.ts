@@ -36,6 +36,12 @@ describe("buildSwapZapOrder", () => {
     expect(built!.route.every((s) => !hasBuilderSuffix(s.data))).toBe(true);
   });
 
+  it("takes a shared approval once when several swaps use the same router (a basket)", () => {
+    const built = buildSwapZapOrder(USER, [approve(USDC, ROUTER, BigInt(995)), buildContractCall(ROUTER, SWAP_DATA), buildContractCall(ROUTER, SWAP_DATA), transfer(USDC, TREASURY, BigInt(5))]);
+    expect(built!.inputs).toEqual([{ token: USDC, amount: BigInt(1000) }]);
+    expect(built!.route).toHaveLength(3);
+  });
+
   it("supports native ETH swaps with a native fee", () => {
     const built = buildSwapZapOrder(USER, [buildContractCall(ROUTER, SWAP_DATA, BigInt(990)), buildNativeTransferCall(TREASURY, BigInt(10))]);
     expect(built!.inputs).toEqual([{ token: "0x0000000000000000000000000000000000000000", amount: BigInt(1000) }]);
@@ -44,8 +50,6 @@ describe("buildSwapZapOrder", () => {
   it("refuses batches it doesn't understand", () => {
     // A call to a contract the batch never approved (and no ETH): not a swap we can vouch for.
     expect(buildSwapZapOrder(USER, [transfer(USDC, TREASURY, BigInt(1)), buildContractCall(ROUTER, SWAP_DATA)])).toBeNull();
-    // Two swaps.
-    expect(buildSwapZapOrder(USER, [approve(USDC, ROUTER, BigInt(1)), buildContractCall(ROUTER, SWAP_DATA), buildContractCall(ROUTER, SWAP_DATA)])).toBeNull();
     // Single call: nothing to save.
     expect(buildSwapZapOrder(USER, [buildContractCall(ROUTER, SWAP_DATA, BigInt(1))])).toBeNull();
   });

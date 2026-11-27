@@ -81,6 +81,8 @@ import { ERC20_ABI } from "@/lib/constants/contracts";
 import { B20_FACTORY_ADDRESS } from "@/lib/b20/constants";
 import { parseUnits, parseEther } from "viem";
 import { belowFloor } from "@/lib/swap/price-guard";
+import { buildBasketCalls, encodeTokenBuy } from "@/lib/swap/basket-buy";
+import { fetchBasketQuote } from "@/lib/swap/basket-quote";
 
 export function pushFeeSplitCalls(
   calls: ReturnType<typeof buildContractCall>[],
@@ -660,59 +662,17 @@ export function useAppTransactions({
               )
             );
           } else if (!isAggregator) {
-            const swapData =
-              swapDex === "aerodrome"
-                ? (payIsNative
-                    ? encodeAerodromeBuy({
-                        tokenOut: token,
-                        recipient,
-                        amountOutMinimum: minOut,
-                        stable: aeroStable,
-                        hops: aeroHops,
-                      })
-                    : encodeAerodromeTokensForTokens({
-                        tokenIn: payTokenAddr,
-                        tokenOut: token,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                        recipient,
-                        stable: aeroStable,
-                        hops: aeroHops,
-                      }))
+            const swapData = !payIsNative
+              ? encodeTokenBuy(quote, { tokenIn: payTokenAddr, tokenOut: token, recipient, amountIn: buySwapAmount })
+              : swapDex === "aerodrome"
+                ? encodeAerodromeBuy({ tokenOut: token, recipient, amountOutMinimum: minOut, stable: aeroStable, hops: aeroHops })
                 : swapDex === "slipstream" && slipPath
                   ? encodeSlipstreamPathSwap({ path: slipPath, recipient, amountIn: buySwapAmount, amountOutMinimum: minOut })
                 : swapDex === "slipstream"
-                  ? payIsNative
-                    ? encodeSlipstreamBuy({
-                        tokenOut: token,
-                        recipient,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                        tickSpacing: slipTick,
-                      })
-                    : encodeSlipstreamExactInput({
-                        tokenIn: payTokenAddr as `0x${string}`,
-                        tokenOut: token,
-                        recipient,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                        tickSpacing: slipTick,
-                      })
+                  ? encodeSlipstreamBuy({ tokenOut: token, recipient, amountIn: buySwapAmount, amountOutMinimum: minOut, tickSpacing: slipTick })
                   : uniPath
-                    ? encodeExactInputMultiHop({
-                        path: uniPath,
-                        recipient,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                      })
-                    : encodeExactInputSingle({
-                        tokenIn: (payAsset === "usdc" ? USDC_BASE : payAsset === "token" && args.payToken ? args.payToken : weth) as `0x${string}`,
-                        tokenOut: token,
-                        recipient,
-                        amountIn: buySwapAmount,
-                        amountOutMinimum: minOut,
-                        fee: uniFee,
-                      });
+                    ? encodeExactInputMultiHop({ path: uniPath, recipient, amountIn: buySwapAmount, amountOutMinimum: minOut })
+                    : encodeExactInputSingle({ tokenIn: weth, tokenOut: token, recipient, amountIn: buySwapAmount, amountOutMinimum: minOut, fee: uniFee });
             calls.push(buildContractCall(router, swapData, payIsNative ? buySwapAmount : BigInt(0)));
             if (!isAggregator && swapFee > BigInt(0)) {
               pushFeeSplitCalls(calls, swapFee, {
@@ -928,6 +888,97 @@ export function useAppTransactions({
     [connType, setConnType, showToast, wallet, setPointsRevision, setTxKeys, setSponsored]
   );
 
+  /**
+   * Buys several stocks with USDC in one step. Every stock is quoted again first; if any has no
+   * route or pays less than the person saw, nothing is sent.
+   */
+  const handleBasketBuy = useCallback(
+    async (args: {
+      legs: Array<{ symbol: string; token: string; decimals: number; usdc: string; floorOut: bigint }>;
+      slippageBps: number;
+    }): Promise<boolean> => {
+      if (!wallet || args.legs.length === 0) return false;
+      setSwapLoading(true);
+      try {
+        const activeConn = await resolveActiveConnType(connType, wallet.address);
+        if (activeConn && activeConn !== connType) {
+          setConnType(activeConn);
+          persistConnType(activeConn);
+        }
+        if (!activeConn) {
+          showToast("❌ Reconnect wallet to buy", "");
+          return false;
+        }
+        const buyer = wallet.address as `0x${string}`;
+        const legs = await Promise.all(
+          args.legs.map(async (leg) => ({
+            ...leg,
+            token: leg.token as `0x${string}`,
+            quote: await fetchBasketQuote({ token: leg.token, decimals: leg.decimals, usdc: leg.usdc, slippageBps: args.slippageBps, taker: buyer }),
+          }))
+        );
+        const moved = legs.find((l) => !l.quote.hasLiquidity || belowFloor(l.quote.amountOut, l.floorOut));
+        if (moved) {
+          showToast(`❌ ${moved.quote.hasLiquidity ? `${moved.symbol} moved more than your slippage allows` : moved.quote.error || `No route for ${moved.symbol}`}. Nothing was sent.`, "");
+          return false;
+        }
+
+        const batches = await walletBatchesCalls(activeConn);
+        const pub = createBasePublicClient();
+        const routers = [...new Set(legs.map((l) => l.quote.router?.toLowerCase()).filter(Boolean))] as `0x${string}`[];
+        // A browser wallet's order lists every approval itself, so existing allowances are ignored there.
+        const allowances = new Map<string, bigint>();
+        if (batches) {
+          for (const router of routers) {
+            allowances.set(router, await pub.readContract({ address: USDC_BASE as `0x${string}`, abi: ERC20_ABI, functionName: "allowance", args: [buyer, router] }) as bigint);
+          }
+        }
+        for (const router of routers) {
+          if (!(await routerHasCode(router))) {
+            showToast("❌ A swap router is unavailable on Base. Nothing was sent.", "");
+            return false;
+          }
+        }
+        const plan = buildBasketCalls(buyer, legs, allowances);
+        if (!plan.ok) {
+          showToast(`❌ ${plan.error}`, "");
+          return false;
+        }
+        const balance = await pub.readContract({ address: USDC_BASE as `0x${string}`, abi: ERC20_ABI, functionName: "balanceOf", args: [buyer] }) as bigint;
+        if (balance < plan.total) {
+          showToast("❌ Not enough USDC for this basket", "");
+          return false;
+        }
+
+        let toSend = plan.calls;
+        if (!batches && plan.calls.length > 1) {
+          // Never send a basket one stock at a time: it could stop half way.
+          const wrapped = await wrapSwapBatchForBrowserWallet(createBasePublicClient() as never, buyer, plan.calls).catch(() => null);
+          if (!wrapped) {
+            showToast("❌ Couldn't prepare a one-step order for this wallet. Nothing was sent.", "");
+            return false;
+          }
+          toSend = wrapped.calls;
+        }
+        const hash = await sendAppTransactions(activeConn, wallet.address, toSend, { atomicBatch: true });
+        if (setSponsored) setSponsored((s) => s + 1);
+        const nextKeys = bumpWeeklyTxKey(wallet.address, "swap");
+        setTxKeys((k) => ({ ...k, ...nextKeys }));
+        recordConfirmedInAppAction(wallet.address, "swap", nextKeys.swap ?? 0);
+        setPointsRevision((n) => n + 1);
+        showToast(`✅ Bought ${legs.length} stock${legs.length === 1 ? "" : "s"}`, hash);
+        return true;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message.split("\n")[0]! : "Purchase failed";
+        if (!msg.toLowerCase().includes("reject")) showToast(`❌ ${msg}`, "");
+        return false;
+      } finally {
+        setSwapLoading(false);
+      }
+    },
+    [connType, setConnType, showToast, wallet, setPointsRevision, setTxKeys, setSponsored]
+  );
+
   const handleSeedLiquidity = useCallback(
     async (args: {
       token: string;
@@ -1044,6 +1095,7 @@ export function useAppTransactions({
     b20Activated,
     handleLaunchB20,
     handleTokenSwap,
+    handleBasketBuy,
     handleSeedLiquidity,
     handleUnwrapWeth,
     resetTransactionsState,
