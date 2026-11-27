@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Star } from "lucide-react";
 import CandleChart, { type Candle } from "@/components/trade/CandleChart";
 import DexSwapCard from "@/components/swap/DexSwapCard";
+import ShareCount from "@/components/stocks/ShareCount";
 import type { SwapCounter } from "@/components/launchpad/TokenPickerDialog";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import { USDC_BASE } from "@/lib/launchpad/tokens-base";
@@ -89,6 +90,9 @@ function PriceChart({ item }: { item: MarketItem }) {
             <span className="font-display text-2xl font-bold tabular-nums text-[var(--ink)]">{priceText(item.priceUsd)}</span>
             <Change value={item.change24h} className="text-sm" />
           </p>
+          {item.kind === "stock" && (
+            <ShareCount token={item.address as `0x${string}`} tokens={1} prefix="1 token " className="block text-[13px] font-bold text-[var(--ink-muted)]" />
+          )}
         </div>
         <p className="text-right text-[13px] text-[var(--ink-muted)]">
           24h volume
