@@ -111,29 +111,12 @@ export async function resolveBasename(
   return onchain ?? blockscout;
 }
 
-/** Client-side resolve — uses app RPC fallbacks (not rate-limited public only). */
+/**
+ * Browser lookup: only the name the wallet's owner set as primary, read on-chain. The Blockscout
+ * backup is not used here: it matches any name pointing at the wallet, which a stranger can set.
+ */
 export async function resolveBasenameClient(
   address: string
 ): Promise<string | null> {
-  try {
-    const pub = createBasePublicClient();
-    const reverseNode = await pub.readContract({
-      address: BASE_REVERSE_REGISTRAR,
-      abi: REVERSE_REGISTRAR_ABI,
-      functionName: "node",
-      args: [address as `0x${string}`],
-    });
-    if (!reverseNode || reverseNode === `0x${"0".repeat(64)}`) {
-      return resolveBasenameBlockscout(address);
-    }
-    const name = await pub.readContract({
-      address: BASE_L2_RESOLVER,
-      abi: NAME_RESOLVER_ABI,
-      functionName: "name",
-      args: [reverseNode],
-    });
-    return normalizeName(name) ?? (await resolveBasenameBlockscout(address));
-  } catch {
-    return resolveBasenameBlockscout(address);
-  }
+  return resolveBasenameOnchain(address);
 }
