@@ -16,6 +16,7 @@ import {
   evaluateRegionCompliance,
   fetchRemoteKillSwitch,
 } from "@/src/config/compliance";
+import { requireSiweSession } from "@/lib/auth/siwe-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -114,7 +115,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST — preferred for UI; requires creator so secrets are saved by wallet address before deposit. */
+/** POST — preferred for UI; a signed-in creator also gets the codes saved to their wallet before the deposit. */
 export async function POST(req: Request) {
   if (!voucherContractReady()) {
     return NextResponse.json(
@@ -205,6 +206,7 @@ export async function POST(req: Request) {
       unlockTimestamp,
       expirationTimestamp,
       requiredSigner,
+      creatorSignedIn: (await requireSiweSession(creator)).ok,
     });
 
     return NextResponse.json(
