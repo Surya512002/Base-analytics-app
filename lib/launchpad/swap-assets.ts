@@ -28,8 +28,11 @@ export function resolveSwapLegs(params: {
   pageDecimals?: number;
   counterDecimals?: number;
 }): ResolvedSwapLegs | null {
-  const payAsset = params.payAsset ?? "eth";
-  const receiveAsset = params.receiveAsset ?? "eth";
+  // USDC picked from the token list arrives as "token"; it is the same USDC, with direct pools.
+  const named = (asset: SwapAsset | undefined, token: string | null | undefined): SwapAsset =>
+    asset === "token" && token?.toLowerCase() === USDC_BASE.toLowerCase() ? "usdc" : asset ?? "eth";
+  const payAsset = named(params.payAsset, params.payToken);
+  const receiveAsset = named(params.receiveAsset, params.receiveToken);
   const pageDec = params.pageDecimals && params.pageDecimals > 0 ? params.pageDecimals : 18;
   const counterDec = params.counterDecimals && params.counterDecimals > 0 ? params.counterDecimals : 18;
 

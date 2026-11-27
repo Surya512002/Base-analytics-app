@@ -13,7 +13,6 @@ import {
   normalizeBaseStock,
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
-import StockBaskets from "@/components/stocks/StockBaskets";
 import ExploreHero from "./ExploreHero";
 import LiveMarketMap from "./LiveMarketMap";
 import LatestTradeTicker from "./LatestTradeTicker";
@@ -398,7 +397,6 @@ export default function ExploreHub({
         {/* Tokens Table or Grid View */}
         {currentList === "stocks" ? (
           <div className="space-y-4">
-            <StockBaskets />
             <StockMarketsTable
               stocks={stockMarketsList}
               loading={stockMarketsLoading}

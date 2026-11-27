@@ -358,6 +358,7 @@ export default function SwapTab({
       {/* RECURRING TAB: Recurring buys (DCA) with optional price ceiling */}
       {isOrdersEnabled && activeSubTab === "recurring" && (
         <RecurringHub
+          app={app}
           initialPlan={searchParams?.get("plan") === "basket" ? "basket" : undefined}
           initialStock={searchParams?.get("token") ?? undefined}
           limitOrders={limitOrders}
