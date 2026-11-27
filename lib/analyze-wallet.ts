@@ -204,7 +204,7 @@ export async function analyzeWalletAddress(
   const addrLow = address.toLowerCase();
   const isQuick = options.fetchDepth === "quick";
 
-  const bnP = resolveBasename(address, { quick: isQuick });
+  const bnP = resolveBasename(address);
 
   const ethPriceP = fetchEthUsd();
 

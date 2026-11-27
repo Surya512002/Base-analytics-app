@@ -9,7 +9,7 @@ vi.mock("@/lib/utils/base-rpc", () => ({
 const WALLET = "0x1111111111111111111111111111111111111111";
 const NODE = `0x${"ab".repeat(32)}`;
 
-describe("wallet names shown in the browser", () => {
+describe("wallet names", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("shows the primary name the owner set on-chain", async () => {
@@ -21,11 +21,14 @@ describe("wallet names shown in the browser", () => {
   it("shows no name otherwise, and asks no outside service", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    const { resolveBasenameClient } = await import("@/lib/utils/resolve-basename");
-    readContract.mockResolvedValueOnce(NODE).mockResolvedValueOnce("");
-    expect(await resolveBasenameClient(WALLET)).toBeNull();
-    readContract.mockRejectedValueOnce(new Error("rpc down"));
-    expect(await resolveBasenameClient(WALLET)).toBeNull();
+    const { resolveBasename, resolveBasenameClient } = await import("@/lib/utils/resolve-basename");
+    // The server (gift claim pages, profiles) and the browser follow the same rule.
+    for (const lookup of [resolveBasename, resolveBasenameClient]) {
+      readContract.mockResolvedValueOnce(NODE).mockResolvedValueOnce("");
+      expect(await lookup(WALLET)).toBeNull();
+      readContract.mockRejectedValueOnce(new Error("rpc down"));
+      expect(await lookup(WALLET)).toBeNull();
+    }
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
