@@ -103,6 +103,8 @@ interface DexSwapCardProps {
   /** Set when the router is chosen outside the card (the Swap page's side panel). */
   dex?: LaunchDex;
   onActiveDexChange?: (venue: SwapVenue | null) => void;
+  /** Smaller amounts, for a narrow column beside a chart. */
+  compact?: boolean;
 }
 
 export default function DexSwapCard({
@@ -123,6 +125,7 @@ export default function DexSwapCard({
   initialAmount,
   dex: chosenDex,
   onActiveDexChange,
+  compact = false,
 }: DexSwapCardProps) {
   const { wallet, walletCore, swapLoading, handleTokenSwap } = app;
 
@@ -847,7 +850,7 @@ export default function DexSwapCard({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.0"
-              className="w-full min-w-0 bg-transparent text-3xl max-md:!text-3xl sm:text-4xl font-black font-mono tracking-tight text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none tabular-nums"
+              className={`w-full min-w-0 bg-transparent font-black font-mono tracking-tight text-[var(--ink)] placeholder:text-[var(--ink-dim)] outline-none tabular-nums ${compact ? "text-2xl max-md:!text-2xl" : "text-3xl max-md:!text-3xl sm:text-4xl"}`}
               aria-label="Sell Amount"
             />
 
@@ -926,7 +929,7 @@ export default function DexSwapCard({
               {quoteLoading ? (
                 <div className="h-8 w-32 bg-[var(--surface-3)] animate-pulse rounded-lg" />
               ) : (
-                <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-[var(--ink)] tabular-nums truncate">
+                <p className={`font-black font-mono tracking-tight text-[var(--ink)] tabular-nums truncate ${compact ? "text-2xl" : "text-3xl sm:text-4xl"}`}>
                   {quoteOut ?? "0.0"}
                 </p>
               )}
