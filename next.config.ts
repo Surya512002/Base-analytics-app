@@ -167,6 +167,11 @@ const nextConfig: NextConfig = {
               // eval is only for Next's hot reload in development; production code does not need it, and
               // leaving it out stops any injected script from running eval'd code.
               `script-src 'self' ${process.env.NODE_ENV === "production" ? "" : "'unsafe-eval' "}'unsafe-inline'`,
+              // Inline <script> stays allowed (Next.js needs it on prebuilt pages), but inline handlers
+              // such as onerror="…", the usual form of injected markup, never run.
+              "script-src-attr 'none'",
+              // Forms can only submit back to this app.
+              "form-action 'self'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com https://raw.githubusercontent.com https://*.githubusercontent.com https://basescan.org https://assets.coingecko.com https://coin-images.coingecko.com https://*.coingecko.com https://dd.dexscreener.com https://*.dexscreener.com https://cdn.dexscreener.com https://metadata.coinbase.com https://assets.parqet.com https://assets.geckoterminal.com https://www.google.com https://*.google.com https://tokens.1inch.io https://ipfs.io https://*.ipfs.dweb.link https://arweave.net https://assets.smold.app https://ethereum-optimism.github.io",
               "font-src 'self' data:",

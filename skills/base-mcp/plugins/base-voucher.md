@@ -196,10 +196,15 @@ For USDC, `calls` may contain **two** ordered steps: `approve` (USDC) then `crea
 ### Prepare redeem (Path 2)
 
 ```
-GET https://base-analytics-app.vercel.app/api/voucher/prepare-redeem?cardId=12-3&secret=ABCDE-FGHIJ-KLMNO-PQRST
+POST https://base-analytics-app.vercel.app/api/voucher/prepare-redeem
+Content-Type: application/json
+
+{ "cardId": "12-3", "secret": "ABCDE-FGHIJ-KLMNO-PQRST" }
 ```
 
-| Param | Required | Notes |
+Never put the card code in the web address: GET is refused.
+
+| Body field | Required | Notes |
 |-------|----------|-------|
 | `cardId` | yes | Format `batchId-cardIndex` (e.g. `12-3`) |
 | `secret` | yes | UniVoucher-style code `XXXXX-XXXXX-XXXXX-XXXXX` (case-insensitive) |
@@ -258,7 +263,7 @@ If `preview.alreadyRedeemed` is `true` or `valid` is `false`, stop — do not ca
 ### Redeem a card (HTTP fallback)
 
 ```
-1. GET /api/voucher/prepare-redeem?cardId=...&secret=...
+1. POST /api/voucher/prepare-redeem with JSON body { cardId, secret }
 2. send_calls after user confirms preview
 ```
 
