@@ -1,15 +1,8 @@
 import { formatUnits, parseAbi, type PublicClient } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { getStockPricesUsd } from "@/lib/stocks/stock-prices";
-import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import { readAaveV4PositionRows } from "./aave-v4/positions";
 import { readMorphoPositionRows } from "./morpho-positions";
 import type { NormalizedMarket } from "./discovery/types";
-import {
-  AAVE_V3_POOL_BASE,
-  USDC_BASE_ADDRESS,
-  ERC4626_VAULT_ABI,
-} from "./constants";
 import {
   VERIFIED_BEEFY_STOCK_DETAILS,
   VERIFIED_BEEFY_STOCK_VAULTS,
@@ -62,25 +55,6 @@ export interface PositionsFetchResult {
   errors: Record<string, string>;
   timestamp: number;
   isMockData: boolean;
-}
-
-// ABI for Aave V3 Pool user data
-const AAVE_POOL_ACCOUNT_ABI = parseAbi([
-  "function getUserAccountData(address user) external view returns (uint256 totalCollateralBase, uint256 totalDebtBase, uint256 availableBorrowsBase, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)",
-]);
-
-// Live stock prices (USD) from each stock's Base DEX pool. A stock without a price counts as 0,
-// so its USD value reads as unknown rather than a made-up number.
-const PRICED_STOCKS = ["GOOGLc", "NVDAc", "AAPLc", "METAc"] as const;
-async function liveStockPrices(): Promise<Record<string, number>> {
-  const addrs = PRICED_STOCKS.map((sym) => getBaseStockBySymbol(sym)?.address).filter((a): a is `0x${string}` => Boolean(a));
-  const px = await getStockPricesUsd(addrs).catch(() => new Map<string, number>());
-  const out: Record<string, number> = {};
-  for (const sym of PRICED_STOCKS) {
-    const a = getBaseStockBySymbol(sym)?.address.toLowerCase();
-    out[sym] = (a && px.get(a)) || 0;
-  }
-  return out;
 }
 
 /** Result of one multicall entry when `allowFailure: true`. */

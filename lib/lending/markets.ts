@@ -1,5 +1,4 @@
 import type { LendingMarket } from "./types";
-import { getAddress } from "viem";
 import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 
 function stockAddr(symbol: string): `0x${string}` {

@@ -7,7 +7,7 @@ import {
 } from "@/lib/utils/voucher";
 import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import AppLogo from "@/components/ui/AppLogo";
-import { Sparkles, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 function BaseNetworkBadge({ size = "sm" }: { size?: "sm" | "md" }) {
   const dim = size === "md" ? "w-5 h-5" : "w-4 h-4";
@@ -169,11 +169,6 @@ export default function VoucherGiftCard3D({
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em]">
               {isVault ? "Yield Vault Position" : isStock ? "RWA Equity Share" : "Gift Card"}
             </p>
-            {vaultInfo && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                <Sparkles size={10} /> +{vaultInfo.apy.toFixed(2)}% APY
-              </span>
-            )}
           </div>
 
           <div className="mb-5">

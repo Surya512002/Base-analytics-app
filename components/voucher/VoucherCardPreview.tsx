@@ -10,7 +10,7 @@ import {
 } from "@/lib/utils/voucher";
 import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
 import AppLogo from "@/components/ui/AppLogo";
-import { Sparkles, ShieldCheck, AlertCircle } from "lucide-react";
+import { ShieldCheck, AlertCircle } from "lucide-react";
 import type { CardTheme } from "./voucher-types";
 import { CARD_THEME_OPTIONS } from "./voucher-constants";
 
@@ -163,15 +163,6 @@ export default function VoucherCardPreview({
               </div>
             </div>
           </div>
-
-          {/* APY badge if vault */}
-          {vaultInfo && (
-            <div className="relative mb-3">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                <Sparkles size={11} /> +{vaultInfo.apy.toFixed(2)}% APY
-              </span>
-            </div>
-          )}
 
           {/* Main Amount (Tabular Numbers) */}
           <div className="relative my-3">

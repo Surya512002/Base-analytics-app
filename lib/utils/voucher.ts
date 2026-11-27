@@ -104,7 +104,6 @@ export interface VaultShareInfo {
   name: string;
   underlyingSymbol: string;
   address: `0x${string}`;
-  apy: number;
   protocol: string;
   icon: string;
   decimals: number;
@@ -116,7 +115,6 @@ export const YIELD_VAULT_SHARES: readonly VaultShareInfo[] = [
     name: "Beefy MSFTc-USDC Vault",
     underlyingSymbol: "MSFTc",
     address: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
-    apy: 32.14,
     protocol: "Beefy Finance",
     icon: "🥩",
     decimals: 18,
@@ -126,7 +124,6 @@ export const YIELD_VAULT_SHARES: readonly VaultShareInfo[] = [
     name: "Beefy TSLAc-USDC Vault",
     underlyingSymbol: "TSLAc",
     address: "0xD534d5fe383AE824333C9215DE93D8026eFEDEba",
-    apy: 54.13,
     protocol: "Beefy Finance",
     icon: "🥩",
     decimals: 18,
@@ -136,7 +133,6 @@ export const YIELD_VAULT_SHARES: readonly VaultShareInfo[] = [
     name: "Beefy MSTRc-USDC Vault",
     underlyingSymbol: "MSTRc",
     address: "0x005b8Aa7aB7bB665902d4E9509B9D4e9fB87BC2b",
-    apy: 48.65,
     protocol: "Beefy Finance",
     icon: "🥩",
     decimals: 18,
@@ -146,7 +142,6 @@ export const YIELD_VAULT_SHARES: readonly VaultShareInfo[] = [
     name: "Beefy SNDKc-USDC Vault",
     underlyingSymbol: "SNDKc",
     address: "0xf336516CDFA8546B92A399305817F525ACcf87f9",
-    apy: 38.20,
     protocol: "Beefy Finance",
     icon: "🥩",
     decimals: 18,
@@ -192,7 +187,7 @@ export function formatVoucherAmount(asset: VoucherAsset, wei: bigint): string {
     const vault = getVaultShareBySymbol(asset);
     const shares = formatUnits(wei, vault?.decimals ?? BASE_STOCK_DECIMALS);
     const cleanShares = parseFloat(shares).toString();
-    return `${cleanShares} ${asset} Vault Shares (${vault?.name ?? asset} · +${vault?.apy.toFixed(2)}% APY)`;
+    return `${cleanShares} ${asset} Vault Shares (${vault?.name ?? asset})`;
   }
   const stock = getBaseStockBySymbol(asset);
   const shares = formatUnits(wei, BASE_STOCK_DECIMALS);
@@ -552,7 +547,7 @@ export function formatCardShareText(
   const vault = isVault ? getVaultShareBySymbol(batch.asset) : null;
   const lines = [
     isVault
-      ? `📈 Yield-Bearing Stock Vault Gift Card — ${vault?.protocol ?? "Vault"} (+${vault?.apy ?? 0}% APY)`
+      ? `📈 Yield-Bearing Stock Vault Gift Card — ${vault?.protocol ?? "Vault"}`
       : isStock
         ? `📈 Base Stock Gift Voucher — ${batch.asset} Shares`
         : "🎁 Base Voucher — Crypto Gift Card",
@@ -576,9 +571,8 @@ export function formatBatchShareText(
 ): string {
   const isVault = isVaultShareAsset(batch.asset);
   const isStock = isStockAsset(batch.asset);
-  const vault = isVault ? getVaultShareBySymbol(batch.asset) : null;
   const header = isVault
-    ? `📈 Yield-Bearing Vault Batch #${batch.batchId} (${batch.cardCount} cards of ${batch.asset} · +${vault?.apy ?? 0}% APY)`
+    ? `📈 Yield-Bearing Vault Batch #${batch.batchId} (${batch.cardCount} cards of ${batch.asset})`
     : isStock
       ? `📈 Base Stock Gift Batch #${batch.batchId} (${batch.cardCount} cards of ${batch.asset})`
       : `🎁 Base Voucher Batch #${batch.batchId} (${batch.cardCount} cards)`;

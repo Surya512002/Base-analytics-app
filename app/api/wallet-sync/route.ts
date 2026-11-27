@@ -6,10 +6,6 @@ import {
   setCachedAnalyze,
   ANALYZE_CACHE_TTL_SECONDS,
 } from "@/lib/wallet/analyze-cache";
-import {
-  saveWalletHistory,
-  emptyHistoryState,
-} from "@/lib/wallet/history-store";
 import { runWalletSyncBurst } from "@/lib/wallet/sync-engine";
 import { buildWalletMetricsPatch } from "@/lib/wallet/metrics-patch";
 import { mergeWalletMetricsMax } from "@/lib/wallet/merge-metrics";
@@ -95,7 +91,6 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const address = searchParams.get("address")?.trim().toLowerCase();
-  const reset = searchParams.get("reset") === "1";
 
   if (!address || !address.startsWith("0x") || address.length !== 42) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
@@ -104,32 +99,28 @@ export async function GET(req: Request) {
   const handlerDeadline = Date.now() + HANDLER_BUDGET_MS;
 
   try {
-    if (reset) {
-      await saveWalletHistory(address, emptyHistoryState());
-    } else {
-      // Full history already synced and analyzed within the cache window (1h): serve it. Without
-      // this, every connect re-ran the complete analysis (~30–45s of function time per call).
-      const fresh = await getCachedAnalyze(address).catch(() => null);
-      if (fresh?.wallet && fresh.historyComplete === true) {
-        return NextResponse.json({
-          ...fresh,
-          cached: true,
-          historyComplete: true,
-          partial: false,
-          sync: {
-            complete: true,
-            uniqueDays: fresh.wallet.uniqueDays,
-            uniqueHashes: fresh.wallet.txCount,
-          },
-        });
-      }
+    // Full history already synced and analyzed within the cache window (1h): serve it. Without
+    // this, every connect re-ran the complete analysis (~30–45s of function time per call).
+    const fresh = await getCachedAnalyze(address).catch(() => null);
+    if (fresh?.wallet && fresh.historyComplete === true) {
+      return NextResponse.json({
+        ...fresh,
+        cached: true,
+        historyComplete: true,
+        partial: false,
+        sync: {
+          complete: true,
+          uniqueDays: fresh.wallet.uniqueDays,
+          uniqueHashes: fresh.wallet.txCount,
+        },
+      });
     }
 
     const syncBudget = Math.min(
       52_000,
       Math.max(12_000, handlerDeadline - Date.now() - 35_000)
     );
-    if (!reset && (await isSyncStalled(address))) {
+    if (await isSyncStalled(address)) {
       return NextResponse.json({ historyComplete: false, partial: true, stalled: true, sync: { complete: false, transferLegs: 0, uniqueDays: 0 } });
     }
 
