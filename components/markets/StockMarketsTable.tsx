@@ -122,7 +122,7 @@ export default function StockMarketsTable({
             All Tokenized Stocks
           </h3>
           <p className="text-xs text-[var(--ink-muted)]">
-            24/7 liquid U.S. equities on Base backed 1:1 in regulated custody
+            24/7 liquid U.S. equities on Base backed by shares in regulated custody
           </p>
         </div>
 

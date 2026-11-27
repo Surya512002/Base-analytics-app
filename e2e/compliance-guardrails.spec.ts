@@ -68,6 +68,26 @@ test.describe("Compliance Guardrails & Exit-Only Safeguards E2E Suite", () => {
       await expect(page.locator("body")).not.toContainText(/Tokenized stock features are not available in your region/i);
     });
 
+    test("restricted user (US) cannot quote a stock trade in either direction", async ({ request }) => {
+      const quote = (country: string, params: Record<string, string>) =>
+        request.get(`${BASE}/api/launchpad/quote?${new URLSearchParams({ amount: "1", ...params })}`, {
+          headers: { "x-mock-country": country },
+        });
+
+      const trades: Record<string, string>[] = [
+        { token: MSFTC, direction: "buy" },
+        { token: MSFTC, direction: "sell" },
+        // The stock hidden on the other side of the swap
+        { token: USDC, direction: "buy", payAsset: "token", payToken: MSFTC },
+        { token: USDC, direction: "sell", receiveAsset: "token", receiveToken: MSFTC },
+      ];
+      for (const params of trades) {
+        const res = await quote("US", params);
+        expect(res.status(), JSON.stringify(params)).toBe(403);
+        expect((await res.json()).isRestricted).toBe(true);
+      }
+    });
+
     test("restricted user on Explore stock card sees Swap button disabled", async ({ page }) => {
       await page.setExtraHTTPHeaders({
         "x-mock-country": "US",

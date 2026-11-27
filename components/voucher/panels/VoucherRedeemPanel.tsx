@@ -9,7 +9,10 @@ import {
 import VoucherRedeemStatusBanner from "@/components/voucher/VoucherRedeemStatusBanner";
 import { PersonalGiftSender, useSenderIdentity } from "@/components/voucher/SenderPreview";
 import GiftClaimStage, { shareGiftOnX } from "@/components/voucher/GiftClaimStage";
-import { formatVoucherAmount } from "@/lib/utils/voucher";
+import { formatVoucherAmount, isVaultShareAsset } from "@/lib/utils/voucher";
+import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
+import ShareCount from "@/components/stocks/ShareCount";
+import { formatUnits } from "viem";
 import type { RedeemPreview, RedeemSuccess } from "@/components/voucher/voucher-types";
 import { parseCurrentUrlClaim } from "@/lib/voucher/claim-link-parser";
 import type { useVoucherTab } from "@/hooks/useVoucherTab";
@@ -253,7 +256,9 @@ function PersonalClaim({
   onSwapAsset?: () => void;
 }) {
   const sender = useSenderIdentity(preview.creator);
-  const amountLabel = `${formatVoucherAmount(preview.asset, preview.amountPerCard)} ${preview.asset}`;
+  // The formatted amount already names the asset.
+  const amountLabel = formatVoucherAmount(preview.asset, preview.amountPerCard);
+  const stock = isVaultShareAsset(preview.asset) ? null : getBaseStockBySymbol(preview.asset);
   const total = preview.cardCount;
   const left = total != null && preview.redeemedCount != null ? Math.max(0, total - preview.redeemedCount) : undefined;
   return (
@@ -276,6 +281,9 @@ function PersonalClaim({
         onCreateOwn={onCreateOwn}
         onSwap={onSwapAsset}
       />
+      {stock && (
+        <ShareCount token={stock.address} tokens={Number(formatUnits(preview.amountPerCard, stock.decimals))} className="block text-center text-xs font-bold text-[var(--ink-muted)]" />
+      )}
       {preview.creator && <PersonalGiftSender creator={preview.creator} />}
     </div>
   );

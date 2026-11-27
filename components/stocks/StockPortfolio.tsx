@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, PieChart, Plus, RefreshCw, Scale, Trash2, TrendingUp, Wallet } from "lucide-react";
 import { useWalletHoldings } from "@/hooks/useWalletHoldings";
+import ShareCount from "@/components/stocks/ShareCount";
 import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
 import { buildSwapLink } from "@/lib/swap/swap-link";
 import { USDC_BASE } from "@/lib/utils/voucher";
@@ -273,6 +274,7 @@ export default function StockPortfolio({
                   <span className="min-w-[88px]">
                     <span className="block text-sm font-black text-[var(--ink)]">{a.symbol}</span>
                     <span className="block text-[11px] text-[var(--ink-muted)]">{usd(a.valueUsd)}</span>
+                    <ShareCount token={h.address} tokens={h.balance} className="block text-[11px] text-[var(--ink-muted)]" />
                     {returns[a.symbol]?.[30] != null && (
                       <span className={`block text-[11px] font-bold ${(returns[a.symbol]![30] as number) >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500"}`}>30d {signedPct(returns[a.symbol]![30] as number)}</span>
                     )}

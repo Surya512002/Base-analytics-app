@@ -2,7 +2,7 @@
  * Base Network Tokenized Stocks
  *
  * Sourced directly from single source of truth: `lib/stocks/tokenized-stocks-registry.ts`
- * Backed 1:1 by real stock shares held in custody (Coinbase/Alpaca, Regulation S).
+ * Backed by real stock shares held in custody (Coinbase/Alpaca, Regulation S).
  * Addresses are native Base B20 precompiles (0xb200000000000000000000...).
  * Prices sourced directly from on-chain Chainlink 24/5 equity feeds on Base.
  */

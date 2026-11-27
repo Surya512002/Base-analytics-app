@@ -9,6 +9,7 @@ import {
   getVaultShareBySymbol,
 } from "@/lib/utils/voucher";
 import { getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
+import ShareCount from "@/components/stocks/ShareCount";
 import AppLogo from "@/components/ui/AppLogo";
 import { ShieldCheck, AlertCircle } from "lucide-react";
 import type { CardTheme } from "./voucher-types";
@@ -71,7 +72,7 @@ export default function VoucherCardPreview({
       : isVault
         ? `1.0 ${asset} Vault Share`
         : isStock
-          ? `1.0 ${asset} Share`
+          ? `1.0 ${asset} Token`
           : "$10 USDC";
 
   const amountMain = isStock
@@ -143,7 +144,7 @@ export default function VoucherCardPreview({
           <div className="relative flex items-start justify-between gap-3 mb-4">
             <div className="min-w-0">
               <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300/80">
-                {isVault ? "Yield Vault Position" : isStock ? "RWA Equity Share" : "Onchain Gift Card"}
+                {isVault ? "Yield Vault Position" : isStock ? "Tokenized Stock" : "Onchain Gift Card"}
               </span>
               <p className="text-sm font-black text-white truncate mt-0.5">
                 {isVault
@@ -171,12 +172,15 @@ export default function VoucherCardPreview({
                 {amountMain}
               </span>
               {isStock && (
-                <span className="text-sm font-bold text-slate-200">Share</span>
+                <span className="text-sm font-bold text-slate-200">{isVault ? "Share" : "Token"}</span>
               )}
             </div>
             <p className="text-xs sm:text-sm font-bold text-slate-200 mt-1 truncate">
               {amountUnit}
             </p>
+            {stockInfo && amount ? (
+              <ShareCount token={stockInfo.address} tokens={Number(amountMain)} className="mt-0.5 block text-[11px] font-bold text-slate-300" />
+            ) : null}
           </div>
 
           {/* Card Message */}

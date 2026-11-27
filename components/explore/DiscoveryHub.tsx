@@ -126,7 +126,7 @@ export default function DiscoveryHub({
     },
     stocks: {
       title: "Tokenized US Stocks",
-      description: "Coinbase B20 equities backed 1:1 by custodial shares on Base.",
+      description: "Coinbase B20 equities backed by shares held in custody on Base.",
       tokens: stockTokens,
       badge: `${stockTokens.length} stocks`,
     },

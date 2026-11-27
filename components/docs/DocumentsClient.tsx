@@ -493,7 +493,7 @@ const FAQ_ITEMS = [
   {
     category: "Tokenized Equities & Trading",
     q: "How do Coinbase Tokenized Stocks work on Base?",
-    a: "Coinbase Tokenized Stocks (e.g. NVDAc, AAPLc, TSLAc, COINc, GOOGLc, MSFTc, AMZNc) are 1:1 backed ERC-20 representations of public equities traded 24/7 on Base mainnet. Our terminal fetches real-time reference prices, calculates NAV differentials, and provides smart routing across DEX pools.",
+    a: "Coinbase Tokenized Stocks (e.g. NVDAc, AAPLc, TSLAc, COINc, GOOGLc, MSFTc, AMZNc) are share-backed ERC-20 representations of public equities (one token is not always one share) traded 24/7 on Base mainnet. Our terminal fetches real-time reference prices, calculates NAV differentials, and provides smart routing across DEX pools.",
   },
   {
     category: "Tokenized Equities & Trading",
@@ -543,12 +543,12 @@ const FAQ_ITEMS = [
   {
     category: "Compliance & Product Safeguards",
     q: "Why do I see 'Tokenized stock features are not available in your region'?",
-    a: "Under our product compliance guardrails, visitor country is detected server-side at Vercel's edge network via x-vercel-ip-country headers. Users in restricted jurisdictions (such as the United States and sanctioned regions pending legal review) operate under Exit-Only Mode. In this mode, new entries (buying stocks, borrowing, launches, stock voucher creation) are disabled to safeguard the platform.",
+    a: "Under our product compliance guardrails, visitor country is detected server-side at Vercel's edge network via x-vercel-ip-country headers. Users in restricted jurisdictions (such as the United States and sanctioned regions pending legal review) operate under Exit-Only Mode. In this mode, stock trades (buying and selling) and new entries (borrowing, launches, stock voucher creation) are disabled to safeguard the platform.",
   },
   {
     category: "Compliance & Product Safeguards",
-    q: "Can I still withdraw my collateral or sell my stocks if my region is restricted?",
-    a: "Yes, absolutely. The Exit-Only Guarantee ensures that product safeguards never lock or trap user funds. You can always withdraw deposited collateral, repay outstanding debt, unstake maturing assets, sell existing tokenized stock holdings into USDC or ETH, and claim/redeem valid crypto gift vouchers.",
+    q: "Can I still withdraw my money if my region is restricted?",
+    a: "Yes. The Exit-Only Guarantee keeps withdrawals open: you can withdraw deposited collateral, repay outstanding debt, unstake maturing assets, and claim or redeem valid crypto gift vouchers. Buying and selling tokenized stocks is not available in restricted regions. Your tokens stay in your own wallet.",
   },
   {
     category: "Compliance & Product Safeguards",
@@ -772,7 +772,7 @@ export default function DocumentsClient() {
                   </h3>
                 </div>
                 <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
-                  24/7 equities on Base (NVDAc, AAPLc, TSLAc, COINc, GOOGLc, MSFTc, AMZNc). 1:1 backing,
+                  24/7 equities on Base (NVDAc, AAPLc, TSLAc, COINc, GOOGLc, MSFTc, AMZNc). share backing,
                   live reference pricing feeds, interactive charts, and instant in-app swap routing.
                 </p>
                 <Link href="/explore" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-text)] group-hover:translate-x-0.5 transition">
@@ -880,7 +880,7 @@ export default function DocumentsClient() {
                   </h3>
                 </div>
                 <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
-                  Configurable product guardrails: Edge geo-gating, Exit-Only guarantee (user funds are never blocked),
+                  Configurable product guardrails: Edge geo-gating, Exit-Only guarantee (withdrawals and repayments stay open),
                   first-use risk modal, remote kill switch, and trademark collision protection.
                 </p>
                 <a
@@ -1283,9 +1283,9 @@ export default function DocumentsClient() {
                     The Exit-Only Guarantee
                   </span>
                   <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
-                    Product safeguards <strong>never block users from accessing their own funds</strong>. Users in restricted
-                    regions or under safety pauses can always withdraw collateral, repay loans, unstake assets, sell stock tokens
-                    into USDC/ETH, and redeem existing gift vouchers.
+                    Users in restricted regions or under safety pauses can always <strong>withdraw collateral</strong>, repay
+                    loans, unstake assets and redeem existing gift vouchers. A safety pause still allows selling stock tokens; a
+                    restricted region allows no stock trades.
                   </p>
                 </div>
 

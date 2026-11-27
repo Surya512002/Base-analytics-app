@@ -36,7 +36,7 @@ export interface ComplianceConfig {
    * TODO: Legal counsel to provide confirmed list of restricted and sanctioned jurisdictions.
    */
   defaultRestrictedRegions: readonly string[];
-  /** Mode assigned to restricted regions ("exit-only" allows withdrawing/repaying/redeeming/selling) */
+  /** Mode assigned to restricted regions ("exit-only" allows withdrawing/repaying/redeeming, never trading) */
   restrictedRegionMode: ComplianceRegionMode;
   /** Per-feature restricted region overrides */
   featureRestrictedRegions: Record<ComplianceFeatureKey, readonly string[]>;
@@ -184,6 +184,8 @@ export function evaluateRegionCompliance(
   reason: string | null;
   canEnter: boolean;
   canExit: boolean;
+  /** Restricted or unverified location: no stock trade in either direction. A pause or feature flag alone leaves this false. */
+  locationBlocked: boolean;
 } {
   const base = getComplianceConfig();
   const config: ComplianceConfig = {
@@ -207,6 +209,12 @@ export function evaluateRegionCompliance(
     },
   };
 
+  const country = countryCode?.trim().toUpperCase();
+  const restrictedList = feature
+    ? config.featureRestrictedRegions[feature] || config.defaultRestrictedRegions
+    : config.defaultRestrictedRegions;
+  const locationBlocked = config.restrictedRegionMode !== "full" && (!country || restrictedList.includes(country));
+
   // 1. Global Kill Switch check
   if (config.globalKillSwitch) {
     return {
@@ -215,6 +223,7 @@ export function evaluateRegionCompliance(
       reason: "Tokenized stock features are temporarily paused for maintenance.",
       canEnter: false,
       canExit: true, // Always permit exit
+      locationBlocked,
     };
   }
 
@@ -226,11 +235,11 @@ export function evaluateRegionCompliance(
       reason: `The ${feature} feature is currently disabled by administrative policy.`,
       canEnter: false,
       canExit: true,
+      locationBlocked,
     };
   }
 
   // 3. Country evaluation
-  const country = countryCode?.trim().toUpperCase();
   if (!country) {
     // If country is unknown, apply safe exit-only mode fallback (protects user funds while disabling new entries)
     return {
@@ -239,12 +248,9 @@ export function evaluateRegionCompliance(
       reason: "Location could not be verified. Safe exit-only mode is active.",
       canEnter: false,
       canExit: true,
+      locationBlocked,
     };
   }
-
-  const restrictedList = feature
-    ? config.featureRestrictedRegions[feature] || config.defaultRestrictedRegions
-    : config.defaultRestrictedRegions;
 
   const isRestricted = restrictedList.includes(country);
 
@@ -256,6 +262,7 @@ export function evaluateRegionCompliance(
       reason: "Tokenized stock features are not available in your region.",
       canEnter: mode === "full",
       canExit: mode === "exit-only" || mode === "full",
+      locationBlocked,
     };
   }
 
@@ -265,5 +272,6 @@ export function evaluateRegionCompliance(
     reason: null,
     canEnter: true,
     canExit: true,
+    locationBlocked,
   };
 }

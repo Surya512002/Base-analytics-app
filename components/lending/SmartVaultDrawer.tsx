@@ -419,7 +419,9 @@ function LpPanel({
   // The CLM refuses deposits AND withdrawals while it isn't calm (NotCalm), so pause both.
   const depositPaused = calm === false;
 
-  const [tab, setTab] = useState<"deposit" | "withdraw">(target.initialTab ?? "deposit");
+  const [pickedTab, setTab] = useState<"deposit" | "withdraw">(target.initialTab ?? "deposit");
+  // Where stocks are restricted you can still take your money out, just without deposits or swaps.
+  const tab = blocked ? "withdraw" : pickedTab;
   const [pay, setPay] = useState<PayAsset>("token0");
   const [amount, setAmount] = useState("");
   const [pctOut, setPctOut] = useState(100);
@@ -431,7 +433,8 @@ function LpPanel({
     if (source === "clm" && bal.clmShares === BigInt(0) && bal.vaultShares > BigInt(0)) setSource("vault");
   }, [bal, source]);
   const sourceShares = !bal ? BigInt(0) : source === "clm" ? bal.clmShares : bal.vaultShares;
-  const [toUsdc, setToUsdc] = useState(true);
+  const [wantUsdc, setToUsdc] = useState(true);
+  const toUsdc = wantUsdc && !blocked;
   const [plan, setPlan] = useState<ClmDepositPlan | ClmWithdrawPlan | null>(null);
   const [planErr, setPlanErr] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
@@ -536,13 +539,20 @@ function LpPanel({
         onClose={onClose}
       />
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        <div className="flex items-start gap-2 rounded-2xl bg-[var(--brand-soft)] p-3 text-xs text-[var(--brand-text)]">
-          <Sparkles size={14} className="mt-0.5 shrink-0" />
-          <span>
-            You don&apos;t need both tokens. Pay with USDC, {target.stockSymbol} or ETH and we swap only the missing part,
-            add the liquidity and stake it, all in one go.
-          </span>
-        </div>
+        {blocked ? (
+          <p className="rounded-xl bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+            Stock vault deposits and swaps aren&apos;t available in your region. You can still withdraw what you already
+            have, and you receive both tokens.
+          </p>
+        ) : (
+          <div className="flex items-start gap-2 rounded-2xl bg-[var(--brand-soft)] p-3 text-xs text-[var(--brand-text)]">
+            <Sparkles size={14} className="mt-0.5 shrink-0" />
+            <span>
+              You don&apos;t need both tokens. Pay with USDC, {target.stockSymbol} or ETH and we swap only the missing part,
+              add the liquidity and stake it, all in one go.
+            </span>
+          </div>
+        )}
         {target.note && (
           <p className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-2)] p-3 text-[11px] leading-relaxed text-[var(--ink-muted)]">
             {target.note}
@@ -562,8 +572,8 @@ function LpPanel({
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1">
-              {(["deposit", "withdraw"] as const).map((t) => (
+            <div className={`grid gap-1 rounded-xl bg-[var(--surface-2)] p-1 ${blocked ? "grid-cols-1" : "grid-cols-2"}`}>
+              {(blocked ? (["withdraw"] as const) : (["deposit", "withdraw"] as const)).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -681,10 +691,12 @@ function LpPanel({
                         </button>
                       ))}
                     </div>
-                    <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--ink)]">
-                      <input type="checkbox" checked={toUsdc} onChange={(e) => setToUsdc(e.target.checked)} />
-                      <ArrowDownUp size={12} /> Receive everything as {info.token0.symbol}
-                    </label>
+                    {!blocked && (
+                      <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--ink)]">
+                        <input type="checkbox" checked={toUsdc} onChange={(e) => setToUsdc(e.target.checked)} />
+                        <ArrowDownUp size={12} /> Receive everything as {info.token0.symbol}
+                      </label>
+                    )}
                   </>
                 )}
               </>
@@ -747,8 +759,8 @@ function LpPanel({
         )}
       </div>
       <div className="space-y-2 border-t border-[var(--border-subtle)] p-4">
-        <Gate userAddress={userAddress} onRequestConnect={onRequestConnect} blocked={blocked} />
-        {userAddress && !blocked && info && (
+        <Gate userAddress={userAddress} onRequestConnect={onRequestConnect} blocked={false} />
+        {userAddress && info && (
           <ActionButton
             label={
               phase === "simulating"

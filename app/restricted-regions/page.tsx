@@ -54,11 +54,10 @@ export default function RestrictedRegionsPage() {
           <ul className="text-xs text-[var(--ink)] space-y-1.5 list-disc pl-5">
             <li>You can always <strong>withdraw</strong> deposited collateral or supply from lending protocols.</li>
             <li>You can always <strong>repay</strong> existing borrows and close positions.</li>
-            <li>You can always <strong>sell</strong> tokenized stock holdings back to USDC or ETH on decentralized venues.</li>
             <li>You can always <strong>claim and redeem</strong> existing crypto gift vouchers.</li>
           </ul>
           <p className="text-[11px] text-[var(--ink-dim)] italic pt-1">
-            We only restrict new inflows, new borrows, new purchases, and creating new stock-backed products.
+            Restricted and unverified locations cannot buy or sell tokenized stocks here. We also restrict new deposits, new borrows and creating new stock-backed products. A temporary safety pause stops new purchases but not sales.
           </p>
         </div>
 

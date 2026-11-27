@@ -142,14 +142,16 @@ export async function GET(req: Request) {
 
   try {
     const tokenAddr = token as Address;
-    const isStock = isActiveStockAddress(tokenAddr) || Boolean(getTokenizedStockByAddress(tokenAddr));
+    const isStockAddress = (a: string | null) => Boolean(a && (isActiveStockAddress(a) || getTokenizedStockByAddress(a)));
+    const isStock = isStockAddress(tokenAddr);
 
-    if (isStock) {
+    // A stock can sit on either side of the swap, so check every token in the request.
+    if ([tokenAddr, payToken, receiveToken].some(isStockAddress)) {
       const country = trustedCountryFromHeaders(req.headers);
       const compliance = evaluateRegionCompliance(country, "stocks.swap");
 
-      // In exit-only or blocked mode, buying is rejected. Exiting (selling) is allowed.
-      if (direction === "buy" && !compliance.canEnter) {
+      // A restricted location may not trade stocks at all. A pause stops new buys but still lets people sell.
+      if (!compliance.canEnter && (direction === "buy" || compliance.locationBlocked)) {
         return NextResponse.json(
           {
             hasLiquidity: false,

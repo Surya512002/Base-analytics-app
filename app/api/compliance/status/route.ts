@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     mode: evaluation.mode,
     canEnter: evaluation.canEnter,
     canExit: evaluation.canExit,
+    locationBlocked: evaluation.locationBlocked,
     globalKillSwitch: config.globalKillSwitch,
     features: config.features,
     notice:

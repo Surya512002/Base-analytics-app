@@ -15,7 +15,8 @@ import {
 import { formatUnits, parseEther, parseEventLogs, parseUnits } from "viem";
 import SectionCard from "@/components/ui/SectionCard";
 import ActivePill from "@/components/ui/motion/ActivePill";
-import { BASE_STOCK_DECIMALS } from "@/lib/stocks/base-stocks";
+import { BASE_STOCK_DECIMALS, getBaseStockBySymbol } from "@/lib/stocks/base-stocks";
+import ShareCount from "@/components/stocks/ShareCount";
 import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
 import { APP_URL_WEB, CAMPAIGN_CONTRACT } from "@/lib/constants/env";
 import { contractForCampaignId } from "@/lib/voucher/campaign-contracts";
@@ -1024,6 +1025,14 @@ function ClaimCampaign({
                   : undefined
               }
             />
+
+            {view.asset.kind === "stock" && view.asset.recognised && (
+              <ShareCount
+                token={getBaseStockBySymbol(view.asset.symbol)?.address}
+                tokens={Number(formatUnits(BigInt(view.perClaim), view.asset.decimals))}
+                className="block text-center text-xs font-bold text-[var(--ink-muted)]"
+              />
+            )}
 
             <SenderIdentity sender={view.sender} />
 

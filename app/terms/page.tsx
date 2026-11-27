@@ -92,7 +92,7 @@ export default function TermsPage() {
           <section className="space-y-2 p-6 rounded-3xl bg-[var(--surface)] border border-[var(--border-subtle)]">
             <h2 className="text-base font-bold text-[var(--ink)]">5. Exit-Only Protocol Guarantee</h2>
             <p>
-              In the event of regulatory changes or regional restriction triggers, the interface maintains an exit-only posture ensuring users retain the technical ability to withdraw assets, repay borrow positions, unstake, and sell holdings to exit positions.
+              In the event of regulatory changes or regional restriction triggers, the interface maintains an exit-only posture ensuring users retain the technical ability to withdraw assets, repay borrow positions and unstake. Trading tokenized stocks through the interface, including selling, is not available in restricted or unverified locations.
             </p>
           </section>
         </div>

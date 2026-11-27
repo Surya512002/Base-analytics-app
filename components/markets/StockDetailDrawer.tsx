@@ -83,7 +83,7 @@ export default function StockDetailDrawer({
                     {stock.underlyingTicker}
                   </span>
                   <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    1:1 Backed
+                    Share-backed
                   </span>
                 </div>
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">{stock.name}</p>
