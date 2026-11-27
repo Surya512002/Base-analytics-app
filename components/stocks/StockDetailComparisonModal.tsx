@@ -29,6 +29,7 @@ import { parseUnits, formatUnits, parseAbi } from "viem";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { simulateCallsBeforeExecution } from "@/lib/utils/tx-simulation";
 import { formatTokenAmount } from "@/lib/launchpad/format";
+import ShareCount from "@/components/stocks/ShareCount";
 import { USDC_BASE } from "@/lib/constants/contracts";
 import { ERC20_ABI } from "@/lib/lending/constants";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -885,6 +886,7 @@ export default function StockDetailComparisonModal({
                           >
                             {formatTokenAmount(stockBalance, stock.decimals)} {stock.symbol}
                           </button>
+                          <ShareCount token={stock.address} tokens={stockBalance} className="text-[var(--ink-muted)]" />
                         </div>
                       )
                     ) : (
@@ -1062,7 +1064,7 @@ export default function StockDetailComparisonModal({
         {/* Footer Disclaimers */}
         <div className="border-t border-[var(--border-subtle)] pt-3 text-[11px] text-[var(--ink-muted)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shrink-0">
           <p>
-            Base Builder Attribution enabled. Tokenized US equities custody verified 1:1 on Base mainnet.
+            Base Builder Attribution enabled. Tokenized US equities on Base mainnet.
           </p>
           <span className="font-mono text-[11px] text-[var(--ink-dim)]">Base Chain ID: 8453</span>
         </div>

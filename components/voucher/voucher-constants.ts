@@ -15,11 +15,11 @@ export const ETH_PRESETS = [
 ] as const;
 
 export const STOCK_PRESETS = [
-  { label: "0.1 share", total: "0.1", cards: "1" },
-  { label: "0.5 share", total: "0.5", cards: "1" },
-  { label: "1 share", total: "1", cards: "1" },
-  { label: "2 shares", total: "2", cards: "2" },
-  { label: "5 shares", total: "5", cards: "5" },
+  { label: "0.1 token", total: "0.1", cards: "1" },
+  { label: "0.5 token", total: "0.5", cards: "1" },
+  { label: "1 token", total: "1", cards: "1" },
+  { label: "2 tokens", total: "2", cards: "2" },
+  { label: "5 tokens", total: "5", cards: "5" },
 ] as const;
 
 export const VAULT_PRESETS = [

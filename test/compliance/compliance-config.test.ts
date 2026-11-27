@@ -43,8 +43,17 @@ describe("Central Compliance Configuration Suite", () => {
       expect(result.isRestricted).toBe(true);
       expect(result.mode).toBe("exit-only");
       expect(result.canEnter).toBe(false); // Entry/buy blocked
-      expect(result.canExit).toBe(true);   // Exit/sell/withdraw ALWAYS allowed!
+      expect(result.canExit).toBe(true);   // Withdraw and repay stay open
+      expect(result.locationBlocked).toBe(true); // but no stock trade either way
     }
+  });
+
+  it("blocks trading by location, not by a safety pause", () => {
+    const paused = { globalKillSwitch: true };
+    expect(evaluateRegionCompliance("DE", "stocks.swap").locationBlocked).toBe(false);
+    expect(evaluateRegionCompliance(null, "stocks.swap").locationBlocked).toBe(true);
+    expect(evaluateRegionCompliance("DE", "stocks.swap", paused).locationBlocked).toBe(false);
+    expect(evaluateRegionCompliance("US", "stocks.swap", paused).locationBlocked).toBe(true);
   });
 
   it("handles case-insensitivity and whitespace in country codes", () => {

@@ -26,7 +26,7 @@ import {
 } from "@/lib/launchpad/dex";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { formatSubscriptPrice, formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
+import { formatSubscriptPrice, formatUsd, formatTokenAmount, tokenUnits } from "@/lib/launchpad/format";
 import TokenLogo from "@/components/ui/TokenLogo";
 import {
   computeSwapUsd,
@@ -169,6 +169,7 @@ export default function TokenSwapPanel({
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  const [quoteOutUnits, setQuoteOutUnits] = useState(0);
   const shownQuote = useRef<ShownQuote | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
   const [hasLiquidity, setHasLiquidity] = useState<boolean | null>(null);
@@ -470,6 +471,7 @@ export default function TokenSwapPanel({
         : null;
       if (q.hasLiquidity && q.amountOut) {
         setQuoteOut(formatQuoteOut(q.amountOut, outDec));
+        setQuoteOutUnits(tokenUnits(q.amountOut, outDec));
         setMinReceive(
           q.amountOutMinimum ? formatQuoteOut(q.amountOutMinimum, outDec) : null
         );
@@ -498,7 +500,7 @@ export default function TokenSwapPanel({
   ]);
 
   const payAmountNum = parseFloat(amount);
-  const quoteOutNum = quoteOut != null ? parseFloat(quoteOut) : null;
+  const quoteOutNum = quoteOut != null ? quoteOutUnits : null;
 
   const { payUsd, receiveUsd } = useMemo(
     () =>

@@ -135,7 +135,7 @@ export function normalizeBaseStock(
     decimals: stock.decimals,
     type: "stock",
     imageUrl: stock.logo || `/tokens/${stock.address.toLowerCase()}.png`,
-    description: `Tokenized ${stock.name} US equity on Base backed 1:1 by custody shares.`,
+    description: `Tokenized ${stock.name} US equity on Base backed by shares held in custody.`,
     createdAt: (stock.addedAt && Date.parse(stock.addedAt)) || 0,
     creator: "0xb200000000000000000000000000000000000000",
     isVerified: true,

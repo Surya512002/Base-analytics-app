@@ -78,6 +78,11 @@ export function formatTokenAmount(
   return s === "0" ? "<0.00000001" : s;
 }
 
+/** The number behind a quoted amount. Never parse formatTokenAmount's text: "1,234.50" and "12.50K" read back wrong. */
+export function tokenUnits(amount: bigint | string, decimals: number): number {
+  return typeof amount === "bigint" || /^\d+$/.test(amount) ? Number(formatUnits(BigInt(amount), decimals)) : Number(amount);
+}
+
 export function formatUsd(n: number | undefined | null): string {
   if (n === undefined || n === null || !Number.isFinite(n)) return "—";
   if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;

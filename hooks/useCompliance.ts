@@ -11,6 +11,8 @@ export interface ComplianceStatusState {
   mode: "full" | "exit-only" | "blocked";
   canEnter: boolean;
   canExit: boolean;
+  /** No stock trade in either direction from this location. */
+  locationBlocked: boolean;
   globalKillSwitch: boolean;
   features: {
     "stocks.swap": boolean;
@@ -29,6 +31,7 @@ const DEFAULT_STATE: ComplianceStatusState = {
   mode: "full",
   canEnter: true,
   canExit: true,
+  locationBlocked: false,
   globalKillSwitch: false,
   features: {
     "stocks.swap": true,

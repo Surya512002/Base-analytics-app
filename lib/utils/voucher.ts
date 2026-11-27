@@ -192,7 +192,7 @@ export function formatVoucherAmount(asset: VoucherAsset, wei: bigint): string {
   const stock = getBaseStockBySymbol(asset);
   const shares = formatUnits(wei, BASE_STOCK_DECIMALS);
   const cleanShares = parseFloat(shares).toString();
-  return `${cleanShares} ${asset} Share${cleanShares !== "1" ? "s" : ""}${stock ? ` (${stock.name})` : ""}`;
+  return `${cleanShares} ${asset} token${cleanShares !== "1" ? "s" : ""}${stock ? ` (${stock.name})` : ""}`;
 }
 
 export function assetToToken(asset: VoucherAsset): `0x${string}` {
@@ -549,7 +549,7 @@ export function formatCardShareText(
     isVault
       ? `📈 Yield-Bearing Stock Vault Gift Card — ${vault?.protocol ?? "Vault"}`
       : isStock
-        ? `📈 Base Stock Gift Voucher — ${batch.asset} Shares`
+        ? `📈 Base Stock Gift Voucher — ${batch.asset} tokens`
         : "🎁 Base Voucher — Crypto Gift Card",
     "",
     `Card ID: ${card.cardId}`,

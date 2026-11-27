@@ -22,7 +22,8 @@ import { captureTokenReferrerFromUrl, readTokenReferrer } from "@/lib/utils/refe
 import { dexLabel, type SwapVenue } from "@/lib/launchpad/dex";
 import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { formatUsd, formatTokenAmount } from "@/lib/launchpad/format";
+import { formatUsd, formatTokenAmount, tokenUnits } from "@/lib/launchpad/format";
+import ShareCount from "@/components/stocks/ShareCount";
 import { computeSwapUsd } from "@/lib/launchpad/swap-display";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import { DEFAULT_STOCK_COMPLIANCE } from "@/lib/stocks/compliance";
@@ -51,7 +52,7 @@ import TokenSelectorModal from "./TokenSelectorModal";
 import type { TokenHolding } from "@/hooks/useWalletHoldings";
 import { useCompliance } from "@/hooks/useCompliance";
 import StockRiskModal from "@/components/compliance/StockRiskModal";
-import { getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
+import { getTokenizedStockByAddress, getTokenizedStockBySymbol } from "@/lib/stocks/tokenized-stocks-registry";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
@@ -149,6 +150,7 @@ export default function DexSwapCard({
   // Quote State
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteOut, setQuoteOut] = useState<string | null>(null);
+  const [quoteOutUnits, setQuoteOutUnits] = useState(0);
   // The minimum behind the numbers on screen, so the send cannot be worse than what was reviewed.
   const shownQuote = useRef<ShownQuote | null>(null);
   const [minReceive, setMinReceive] = useState<string | null>(null);
@@ -465,6 +467,7 @@ export default function DexSwapCard({
           : null;
         if (q.hasLiquidity && q.amountOut) {
           setQuoteOut(formatTokenAmount(q.amountOut, outDec));
+          setQuoteOutUnits(tokenUnits(q.amountOut, outDec));
           setMinReceive(
             q.amountOutMinimum ? formatTokenAmount(q.amountOutMinimum, outDec) : null
           );
@@ -542,7 +545,7 @@ export default function DexSwapCard({
   };
 
   const payAmountNum = parseFloat(amount);
-  const quoteOutNum = quoteOut != null ? parseFloat(quoteOut) : null;
+  const quoteOutNum = quoteOut != null ? quoteOutUnits : null;
 
   const { payUsd, receiveUsd } = useMemo(
     () =>
@@ -611,8 +614,12 @@ export default function DexSwapCard({
   const isStockSell = isStockToken(from);
   const isStockInvolved = isStockBuy || isStockSell;
   const isStockSwapDisabled = !compliance.status.features["stocks.swap"];
-  const isStockBuyRestricted =
-    isStockBuy && (isStockSwapDisabled || (compliance.isRestricted && !compliance.canEnter));
+  // A restricted location blocks both directions; a pause or switched-off feature only blocks buying.
+  // By address, so a token whose name merely ends in "c" can still be sold.
+  const isListedStock = [from, to].some((c) => c?.kind === "token" && Boolean(getTokenizedStockByAddress(c.address)));
+  const isStockTradeRestricted =
+    (isListedStock && compliance.status.locationBlocked) ||
+    (isStockBuy && (isStockSwapDisabled || (compliance.isRestricted && !compliance.canEnter)));
 
   // Primary Action Button Label & State
   const buttonState = useMemo(() => {
@@ -625,7 +632,7 @@ export default function DexSwapCard({
     if (!route) {
       return { label: "Select different tokens", disabled: true, action: "same_tokens" };
     }
-    if (isStockBuyRestricted) {
+    if (isStockTradeRestricted) {
       if (isStockSwapDisabled) {
         return { label: "Stock Swaps Temporarily Disabled", disabled: true, action: "swap_disabled" };
       }
@@ -670,7 +677,7 @@ export default function DexSwapCard({
     wallet,
     to,
     route,
-    isStockBuyRestricted,
+    isStockTradeRestricted,
     isStockSwapDisabled,
     stockTradability,
     stockHasNoPool,
@@ -893,6 +900,7 @@ export default function DexSwapCard({
             {from.kind === "token" && from.symbol.endsWith("c") && (
               <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">
                 Coinbase B20 Equity
+                <ShareCount token={from.address as `0x${string}`} tokens={payAmountNum} className="before:content-['_·_']" />
               </span>
             )}
           </div>
@@ -981,6 +989,7 @@ export default function DexSwapCard({
               {to && to.kind === "token" && to.symbol.endsWith("c") && (
                 <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">
                   Coinbase B20 Equity{stockTradability?.status === "tradable" ? " · Tradable" : ""}
+                  <ShareCount token={to.address as `0x${string}`} tokens={quoteLoading ? 0 : (quoteOutNum ?? 0)} className="before:content-['_·_']" />
                 </span>
               )}
             </div>
@@ -1270,8 +1279,8 @@ export default function DexSwapCard({
           </div>
         )}
 
-        {/* Compliance Warning for Stock Buys */}
-        {isStockBuyRestricted && (
+        {/* Compliance Warning for Stock Trades */}
+        {isStockTradeRestricted && (
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 space-y-1">
             <div className="flex items-center gap-2 font-bold">
               <AlertTriangle size={14} className="text-amber-500 shrink-0" />
@@ -1280,7 +1289,7 @@ export default function DexSwapCard({
             <p className="text-[11px] text-amber-700 dark:text-amber-400">
               {isStockSwapDisabled
                 ? "Tokenized stock swaps are temporarily paused via safety kill switch."
-                : "Exit-only mode is active: buying tokenized stocks is unavailable in your region, but you can sell existing tokenized stock holdings."}
+                : "Buying and selling tokenized stocks isn't available in your region. Your tokens stay in your own wallet."}
             </p>
           </div>
         )}

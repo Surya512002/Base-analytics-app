@@ -462,7 +462,7 @@ export default function TokenSelectorModal({
                 <span>
                   {isStockSwapDisabled
                     ? "Tokenized stock swaps are temporarily paused."
-                    : "Tokenized stock features are not available in your region. You can still select holdings to sell (Exit-Only Mode)."}
+                    : "Tokenized stock features are not available in your region. Buying and selling stocks is off."}
                 </span>
               </div>
             )}

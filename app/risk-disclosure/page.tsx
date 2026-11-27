@@ -49,7 +49,7 @@ export default function RiskDisclosurePage() {
               <h2>1. Tokenized Stocks (B20) &amp; Market Disconnect Risk</h2>
             </div>
             <p>
-              Tokenized stocks on Base are B20 precompile wrapper tokens backed 1:1 by equity shares held by the issuer (e.g. Coinbase Custody). Key risks include:
+              Tokenized stocks on Base are B20 precompile wrapper tokens backed by equity shares held by the issuer (e.g. Coinbase Custody). One token is not always one share: dividends and stock splits change the number of shares behind it. Key risks include:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-xs text-[var(--ink)]">
               <li>
