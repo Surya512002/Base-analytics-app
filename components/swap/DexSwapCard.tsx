@@ -182,7 +182,8 @@ export default function DexSwapCard({
 
   // Ref to prevent circular state ping-pong between parent and child
   const lastBuyPropRef = useRef<SwapCounter | null>(currentBuyToken ?? null);
-  const lastFromPropRef = useRef<SwapCounter | null>(prefillFromCounter ?? null);
+  // Starts empty so a token given on the first render (the Sell side of Markets) is applied too.
+  const lastFromPropRef = useRef<SwapCounter | null>(null);
 
   // Sync with external buy token pick (e.g. from Popular chips, URL params, or prefill)
   useEffect(() => {
