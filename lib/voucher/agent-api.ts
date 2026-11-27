@@ -77,6 +77,8 @@ export interface PrepareCreateInput {
   unlockTimestamp?: number;
   expirationTimestamp?: number;
   requiredSigner?: `0x${string}`;
+  /** Set only after a wallet sign-in session for `creator` was checked. */
+  creatorSignedIn?: boolean;
 }
 
 export interface PrepareCreateResult {
@@ -281,9 +283,10 @@ export async function prepareCreateBatch(
   }
 
 
-  // Server-first: persist secrets by wallet address BEFORE user signs deposit (Base App / web / Farcaster).
+  // Save the codes before the deposit is signed, but only for a signed-in creator: anyone can name
+  // any wallet here, and a save would overwrite that wallet's codes for the next batch.
   let credentialsSaved = false;
-  if (creator) {
+  if (creator && input.creatorSignedIn) {
     const stored: StoredVoucherBatch = {
       batchId: expectedBatchId,
       asset,

@@ -251,11 +251,6 @@ export default function VoucherAssetPickerModal({
                             {item.category}
                           </span>
                         )}
-                        {"apy" in item && typeof item.apy === "number" && (
-                          <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                            +{item.apy.toFixed(2)}% APY
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-[var(--ink-muted)] truncate mt-0.5">
                         {item.name}

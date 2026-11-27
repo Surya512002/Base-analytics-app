@@ -23,5 +23,5 @@ This matrix documents the functional, automated test, and audit status of all ma
 | **Stocks** | Stock NAV Tracker & Market Hours | **Working** | `test/stocks/nav-tracker.test.ts`, `e2e/core-flows.spec.ts` | 24/5 official custodian NAV vs 24/7 DEX AMM spread, market hours indicator, custody attestations. |
 | **Alerts** | Smarter Alerts & Webhooks | **Working** | `test/alerts/smarter-alerts.test.ts`, `e2e/core-flows.spec.ts` | Multi-trigger monitoring: whale swaps (> $25k), yield spikes (> 5%), liquidity drops (> 15%), and webhooks. |
 | **Launchpad** | Launch Readiness Simulator | **Working** | `test/launchpad/readiness-simulator.test.ts` | 4-pillar pre-flight scoring (liquidity, LP lock, anti-snipe, supply) with fair launch recommendations. |
-| **MCP Server** | Extended Read-Only Tools | **Working** | `test/mcp/tools.test.ts`, `app/api/mcp/route.ts` | Exposes `token_xray`, `swap_preview`, `yield_finder`, and `liquidation_status` JSON-RPC tools. |
+| **MCP Server** | Extended Read-Only Tools | **Working** | `test/mcp/tools.test.ts`, `app/api/mcp/route.ts` | Exposes the gift-card tools and `liquidation_status`. |
 | **Vouchers** | Gift Capsules & Interactive 3D Unwrap | **Working** | `test/voucher/gift-capsules.test.ts`, `components/wallet/VoucherRedeemReveal.tsx` | 3D gift unwrap animation, secret message verification, and Warpcast/X social share cards. |

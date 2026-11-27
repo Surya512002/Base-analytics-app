@@ -1,6 +1,7 @@
+import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
 import { describe, expect, it } from "vitest";
 import { encodeFunctionData, erc20Abi, maxUint256, parseAbi } from "viem";
-import { assertTrustedApprovals, isTrustedSpender } from "@/lib/security/trusted-spenders";
+import { assertTrustedApprovals, isTrustedSpender, isUnlimitedApprovalAllowed } from "@/lib/security/trusted-spenders";
 import { isTrustedSwapTarget } from "@/lib/launchpad/router-guard";
 import { SWAP_ROUTER_02 } from "@/lib/launchpad/uniswap";
 import { ZEROX_ALLOWANCE_HOLDER } from "@/lib/utils/tx";
@@ -30,6 +31,8 @@ describe("approval guard", () => {
   it("allows unlimited approval only for core lending, never for a vault or router", () => {
     expect(() => assertTrustedApprovals([approve(MORPHO_BLUE_BASE, maxUint256)])).not.toThrow();
     expect(() => assertTrustedApprovals([approve(BEEFY_VAULT, maxUint256)])).toThrow(/unlimited/);
+    // No catalogue entry earns it either: pool and vault contracts only ever get exact amounts.
+    for (const m of BASE_LENDING_MARKETS) expect(isUnlimitedApprovalAllowed(m.contractAddress), m.id).toBe(false);
     expect(() => assertTrustedApprovals([approve(SWAP_ROUTER_02, maxUint256)])).toThrow(/unlimited/);
   });
 

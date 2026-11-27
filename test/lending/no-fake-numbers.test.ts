@@ -2,22 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   VERIFIED_BEEFY_STOCK_DETAILS,
   VERIFIED_AERODROME_STOCK_POOLS,
-  VERIFIED_IPOR_STOCK_VAULTS,
   fetchUserStockPortfolioSummary,
 } from "@/lib/lending/unified-comparison";
 import { BASE_LENDING_MARKETS } from "@/lib/lending/markets";
+import { isTrustedSpender } from "@/lib/security/trusted-spenders";
 
 describe("Strict Production Truth: No Fake/Hardcoded Yield or Holdings Numbers", () => {
-  it("verifies BASE_LENDING_MARKETS does not contain legacy fake rates (290.2% or 54.13%)", () => {
-    const hasFake290 = BASE_LENDING_MARKETS.some(
-      (m) => m.supplyApy === 290.2 || m.stakingApr === 290.2
-    );
-    expect(hasFake290).toBe(false);
+  it("verifies BASE_LENDING_MARKETS holds no built-in rates or sizes", () => {
+    for (const m of BASE_LENDING_MARKETS) {
+      expect([m.supplyApy, m.stakingApr ?? 0, m.borrowApr ?? 0, m.tvlUsd], m.id).toEqual([0, 0, 0, 0]);
+    }
+  });
 
-    const hasFake54 = BASE_LENDING_MARKETS.some(
-      (m) => m.supplyApy === 54.13 || m.stakingApr === 54.13
-    );
-    expect(hasFake54).toBe(false);
+  it("lists no IPOR factory or other contract the app cannot deposit into", () => {
+    expect(new Set(BASE_LENDING_MARKETS.map((m) => m.protocol))).toEqual(new Set(["beefy", "aerodrome"]));
+    expect(isTrustedSpender("0x1455717668fA96534f675856347A973fA907e922")).toBe(false);
   });
 
   it("verifies VERIFIED_BEEFY_STOCK_DETAILS does not contain hardcoded fake APYs or TVLs", () => {
@@ -42,19 +41,6 @@ describe("Strict Production Truth: No Fake/Hardcoded Yield or Holdings Numbers",
       expect(
         details.tvlUsd ?? 0,
         `Aerodrome pool for ${sym} must not have hardcoded mock TVL`
-      ).toBe(0);
-    }
-  });
-
-  it("verifies VERIFIED_IPOR_STOCK_VAULTS does not contain hardcoded fake APYs or TVLs", () => {
-    for (const [sym, details] of Object.entries(VERIFIED_IPOR_STOCK_VAULTS)) {
-      expect(
-        details.apy ?? 0,
-        `IPOR vault for ${sym} must not have hardcoded mock APY`
-      ).toBe(0);
-      expect(
-        details.tvlUsd ?? 0,
-        `IPOR vault for ${sym} must not have hardcoded mock TVL`
       ).toBe(0);
     }
   });

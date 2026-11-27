@@ -366,11 +366,6 @@ export default function VoucherCreateWizard({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-black text-sm text-[var(--ink)]">{asset}</span>
-                      {vaultInfo && (
-                        <span className="text-[11px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                          +{vaultInfo.apy}% APY
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-[var(--ink-muted)]">
                       {isStock ? stockInfo?.name : isVault ? vaultInfo?.name : "Base Network Native"}

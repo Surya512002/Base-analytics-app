@@ -27,7 +27,6 @@ import { computeSwapUsd } from "@/lib/launchpad/swap-display";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import { DEFAULT_STOCK_COMPLIANCE } from "@/lib/stocks/compliance";
 import { fetchTokenPairs } from "@/lib/api/launchpad-token-client";
-import TokenXRayBadge from "@/components/launchpad/TokenXRayBadge";
 import SwapPreviewModal from "@/components/swap/SwapPreviewModal";
 import {
   CounterAvatar,
@@ -979,14 +978,6 @@ export default function DexSwapCard({
               )}
             </span>
             <div className="flex items-center gap-2">
-              {to && to.kind === "token" && (
-                <TokenXRayBadge
-                  address={to.address}
-                  symbol={to.symbol}
-                  isVerified={isVerifiedBaseToken(to)}
-                  compact
-                />
-              )}
               {to && to.kind === "token" && to.symbol.endsWith("c") && (
                 <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">
                   Coinbase B20 Equity{stockTradability?.status === "tradable" ? " · Tradable" : ""}

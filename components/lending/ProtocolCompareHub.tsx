@@ -10,8 +10,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { BASE_STOCKS, areStockSymbolsEquivalent } from "@/lib/stocks/base-stocks";
-import { AAVE_EQUITIES_SUPPORTED_STOCKS } from "@/lib/lending/unified-comparison";
-import { getBaselineVerifiedMarkets } from "@/lib/lending/discovery/baseline";
+import type { NormalizedMarket } from "@/lib/lending/discovery/types";
+import { AAVE_V4_LINK, AAVE_V4_SPOKE } from "@/lib/lending/aave-v4/constants";
 
 export interface ProtocolDetail {
   id: string;
@@ -23,7 +23,6 @@ export interface ProtocolDetail {
   badgeColor: string;
   stocksSupported: boolean;
   stockInstruments: string;
-  typicalApy: string;
   canBorrowUsdc: boolean;
   liquidationRisk: string;
   verifiedContract: string;
@@ -44,7 +43,6 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     badgeColor: "emerald",
     stocksSupported: true,
     stockInstruments: "Aerodrome LP Auto-Compounding Vaults (ERC-4626)",
-    typicalApy: "25% – 290% APY",
     canBorrowUsdc: false,
     liquidationRisk: "None (100% Equity LP yield compounding)",
     verifiedContract: "0x8061731243c1aeFCD50fDD4f69A7618Cdfb3EdD5",
@@ -64,8 +62,7 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     statusLabel: "Live on Base (DEX & Gauges)",
     badgeColor: "emerald",
     stocksSupported: true,
-    stockInstruments: "Slipstream & Basic Liquidity Pools + veAERO Gauges",
-    typicalApy: "15% – 60% APR",
+    stockInstruments: "Slipstream & Basic Liquidity Pools + Gauges",
     canBorrowUsdc: false,
     liquidationRisk: "Impermanent loss only (No debt liquidation)",
     verifiedContract: "0x16613524e02ad97eDfeF371bC883F2F5d6C480A5",
@@ -77,46 +74,22 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
       "Aerodrome is the primary venue where tokenized stocks can be traded and staked on Base. Concentrated liquidity pairs allow users to earn swap fees plus gauge rewards.",
   },
   {
-    id: "ipor",
-    name: "IPOR Fusion (Stocks)",
-    tagline: "Institutional Onchain Vault & Stock Yield Infrastructure",
-    category: "Isolated Lending",
-    status: "live_stocks",
-    statusLabel: "Live on Base (Stocks Yield & Lending)",
-    badgeColor: "emerald",
-    stocksSupported: true,
-    stockInstruments: "Tokenized Stock Plasma Vaults & Carry Trades (ERC-4626)",
-    typicalApy: "8% – 16% APY",
-    canBorrowUsdc: true,
-    liquidationRisk: "Standard modular liquidation if LTV > 75%–80%",
-    verifiedContract: "0x1455717668fA96534f675856347A973fA907e922",
-    appUrl: "https://app.ipor.io/stocks",
-    docsUrl: "https://docs.ipor.io",
-    description:
-      "IPOR Fusion is an institutional-grade onchain asset management and modular vault framework powering tokenized stock lending and automated carry trade strategies on Base.",
-    realityNote:
-      "IPOR Fusion features dedicated tokenized equity yield and carry trade strategies (NVDAc, AAPLc, MSFTc, TSLAc) on Base at app.ipor.io/stocks. Users earn stock yields through automated ERC-4626 Plasma Vaults.",
-  },
-  {
     id: "aave",
-    name: "Aave Pro (Equities Hub)",
-    tagline: "Institutional Equities Collateral & USDC Borrowing Hub",
+    name: "Aave V4 (Equities Hub)",
+    tagline: "Borrow USDC against tokenized stocks",
     category: "Pooled Lending",
     status: "live_stocks",
-    statusLabel: "Live on Base (7 Supported Stocks)",
+    statusLabel: "Live on Base (Stock collateral)",
     badgeColor: "emerald",
     stocksSupported: true,
-    stockInstruments: "7 Equities Collateral (NVDAc, AAPLc, MSFTc, TSLAc, AMZNc, GOOGLc, METAc)",
-    typicalApy: "4.60% Supply APY · 3.45% Borrow APR",
+    stockInstruments: "Stock collateral for USDC loans",
     canBorrowUsdc: true,
-    liquidationRisk: "Standard pooled liquidation if LTV > 75%–80%",
-    verifiedContract: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
-    appUrl: "https://pro.aave.com/explore/borrow",
+    liquidationRisk: "Your collateral can be sold if the stock falls too far",
+    verifiedContract: AAVE_V4_SPOKE,
+    appUrl: AAVE_V4_LINK,
     docsUrl: "https://docs.aave.com",
-    description:
-      "Aave Pro features dedicated equity collateral borrow markets on Base, enabling holders of Magnificent 7 tokenized equities to supply collateral and borrow USDC.",
-    realityNote:
-      "Live on Base: Aave Pro (pro.aave.com/explore/borrow) natively supports 7 tokenized stocks (NVDAc, AAPLc, MSFTc, TSLAc, AMZNc, GOOGLc, METAc) as borrowing collateral for USDC with 75% Max LTV.",
+    description: "Aave V4 on Base accepts selected tokenized stocks as collateral for USDC loans.",
+    realityNote: "The rates and limits in the comparison above are read from Base.",
   },
   {
     id: "euler",
@@ -128,7 +101,6 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     badgeColor: "slate",
     stocksSupported: false,
     stockInstruments: "Modular Vaults (Crypto/LRT)",
-    typicalApy: "N/A for Stocks",
     canBorrowUsdc: false,
     liquidationRisk: "Modular vault risk curve",
     verifiedContract: "",
@@ -149,7 +121,6 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     badgeColor: "slate",
     stocksSupported: false,
     stockInstruments: "PT/YT Markets (eETH, ezETH)",
-    typicalApy: "N/A for Stocks",
     canBorrowUsdc: false,
     liquidationRisk: "Maturity-based yield decay",
     verifiedContract: "0x0000000000000000000000000000000000000000",
@@ -170,7 +141,6 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
     badgeColor: "slate",
     stocksSupported: false,
     stockInstruments: "Omni-Vaults (Crypto Stablecoins)",
-    typicalApy: "N/A for Stocks (8%–10% on USDC)",
     canBorrowUsdc: false,
     liquidationRisk: "Underlying protocol risk pass-through",
     verifiedContract: "",
@@ -184,11 +154,14 @@ export const PROTOCOL_REALITY_REGISTRY: ProtocolDetail[] = [
 ];
 
 interface ProtocolCompareHubProps {
+  /** Live markets only; empty while they load, so no rate is ever made up. */
+  markets: NormalizedMarket[];
   onSelectStock?: (symbol: string) => void;
   onRequestConnect?: () => void;
 }
 
 export default function ProtocolCompareHub({
+  markets,
   onSelectStock,
   onRequestConnect: _onRequestConnect,
 }: ProtocolCompareHubProps) {
@@ -197,7 +170,6 @@ export default function ProtocolCompareHub({
   const [faqOpen, setFaqOpen] = useState<Record<string, boolean>>({
     whyDiff: true,
     whereYield: false,
-    howIpor: false,
   });
 
   const selectedStock = useMemo(() => {
@@ -215,107 +187,45 @@ export default function ProtocolCompareHub({
 
   // Derived stock yields across protocols
   const stockYieldMatrix = useMemo(() => {
-    const baselineMarkets = getBaselineVerifiedMarkets();
     const sym = selectedStock.symbol;
-
-    const matching = baselineMarkets.filter(
+    const matching = markets.filter(
       (m) =>
         areStockSymbolsEquivalent(m.supplyAsset.symbol, sym) ||
         (m.collateralAsset && areStockSymbolsEquivalent(m.collateralAsset.symbol, sym))
     );
-
-    const beefyMkt = matching.find((m) => m.protocol === "beefy");
-    const aeroMkt = matching.find((m) => m.protocol === "aerodrome");
-    const iporMkt = matching.find((m) => m.protocol === "ipor");
-    const aaveMkt = matching.find((m) => m.protocol === "aave");
-
-    const isAaveSupported = sym === "SPCXc" || Boolean(aaveMkt) || AAVE_EQUITIES_SUPPORTED_STOCKS.has(sym);
-    const isIporSupported = Boolean(iporMkt);
-
-    const beefyApy = beefyMkt?.supplyApy ?? 0;
-    const aeroApy = aeroMkt?.supplyApy ?? 0;
-    const iporApy = iporMkt?.supplyApy ?? 0;
-    const iporBorrow = iporMkt?.borrowApr ?? null;
-
     const formatTvl = (tvl?: number) => {
       if (!tvl || tvl <= 0) return "—";
       if (tvl >= 1e6) return `$${(tvl / 1e6).toFixed(1)}M`;
       if (tvl >= 1e3) return `$${(tvl / 1e3).toFixed(0)}K`;
       return `$${tvl.toFixed(0)}`;
     };
+    const deepest = (protocol: string) =>
+      matching.filter((m) => m.protocol === protocol).sort((a, b) => b.tvlUsd - a.tvlUsd)[0];
 
-    const matrix = [
-      {
-        protocolId: "beefy",
-        name: "Beefy Finance",
-        type: "Auto-Compounding Vault",
-        status: beefyMkt ? "live" : "unsupported",
-        statusBadge: beefyMkt ? "🟢 Live on Base" : "⚪ No Vault",
-        badgeColor: beefyMkt ? "emerald" : "slate",
-        yieldRate: beefyApy > 0 ? `${beefyApy.toFixed(2)}% APY` : beefyMkt ? "0.00% APY" : "—",
-        yieldType: "Auto-Compounded LP Yield",
-        canBorrow: "No (Yield only)",
-        tvl: formatTvl(beefyMkt?.tvlUsd),
-        actionText: "Deposit in Beefy Vault",
-        actionUrl: `https://app.beefy.com/vault/aero-cow-base-${selectedStock.symbol.toLowerCase()}-usdc`,
-        contractAddress: (beefyMkt?.contractAddress || "0xD317fDf7e7E3BA9dc9A73CAe2E54732646866025") as string,
-        riskScore: "Low (No Debt)",
-      },
-      {
-        protocolId: "aerodrome",
-        name: "Aerodrome Finance",
-        type: "DEX Gauge & Staking",
-        status: aeroMkt ? "live" : "unsupported",
-        statusBadge: aeroMkt ? "🟢 Live on Base" : "⚪ No Pool",
-        badgeColor: aeroMkt ? "emerald" : "slate",
-        yieldRate: aeroApy > 0 ? `${aeroApy.toFixed(2)}% APR` : aeroMkt ? "0.00% APR" : "—",
-        yieldType: "AERO Emissions + Swap Fees",
-        canBorrow: "No (LP Staking)",
-        tvl: formatTvl(aeroMkt?.tvlUsd),
-        actionText: "Stake on Aerodrome",
-        actionUrl: "https://aerodrome.finance/pools",
-        contractAddress: (aeroMkt?.contractAddress || "0xA282064541Bb45Caa046fB9f21a240671aBB7f46") as string,
-        riskScore: "Low (DEX LP)",
-      },
-      {
-        protocolId: "aave",
-        name: "Aave Pro",
-        type: "Equities Collateral Lending Hub",
-        status: isAaveSupported ? "live" : "crypto_only",
-        statusBadge: isAaveSupported ? "🟢 Live on Base" : "⚪ Unsupported",
-        badgeColor: isAaveSupported ? "emerald" : "slate",
-        yieldRate: isAaveSupported ? "Collateral Only" : "Not Supported",
-        yieldType: isAaveSupported ? "USDC Borrowing against Collateral" : "Equities Collateral Only",
-        canBorrow: isAaveSupported ? "Yes (Max LTV 75%)" : "No",
-        tvl: "—",
-        actionText: isAaveSupported ? "Borrow on Aave Pro" : "Visit Aave Pro",
-        actionUrl: "https://pro.aave.com/explore/borrow",
-        contractAddress: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
-        riskScore: isAaveSupported ? "Low (Aave Pool)" : "N/A",
-      },
-    ];
-
-    if (isIporSupported && iporMkt) {
-      matrix.push({
-        protocolId: "ipor",
-        name: "IPOR Fusion",
-        type: "Stock Yield & Carry Trade",
-        status: "live",
-        statusBadge: "🟢 Live on Base",
-        badgeColor: "emerald",
-        yieldRate: iporBorrow !== null ? `${iporApy.toFixed(2)}% APY · ${iporBorrow.toFixed(2)}% Borrow` : `${iporApy.toFixed(2)}% APY`,
-        yieldType: "Automated Stock Carry Yield",
-        canBorrow: "Yes (Borrow USDC)",
-        tvl: formatTvl(iporMkt.tvlUsd),
-        actionText: "Deposit on IPOR Stocks",
-        actionUrl: "https://app.ipor.io/stocks",
-        contractAddress: "0x1455717668fA96534f675856347A973fA907e922",
-        riskScore: "Low (Plasma Vault)",
-      });
-    }
-
-    return matrix;
-  }, [selectedStock]);
+    return [
+      { id: "beefy", name: "Beefy Finance", type: "Auto-Compounding Vault", unit: "APY", source: "Auto-Compounded LP Yield", url: "https://app.beefy.com" },
+      { id: "aerodrome", name: "Aerodrome Finance", type: "DEX Gauge & Staking", unit: "APR", source: "AERO Emissions + Swap Fees", url: "https://aerodrome.finance/pools" },
+      { id: "aave_v4", name: "Aave V4", type: "Stock Collateral Lending", unit: "borrow", source: "USDC loan against the stock", url: AAVE_V4_LINK },
+      { id: "morpho", name: "Morpho Blue", type: "Isolated Lending", unit: "borrow", source: "USDC loan against the stock", url: "https://app.morpho.org/base" },
+    ].map((p) => {
+      const m = deepest(p.id);
+      const rate = p.unit === "borrow" ? m?.borrowApr : m?.supplyApy;
+      return {
+        protocolId: p.id,
+        name: p.name,
+        type: p.type,
+        status: m ? "live" : "unsupported",
+        statusBadge: m ? "🟢 Live on Base" : "⚪ No market",
+        badgeColor: m ? "emerald" : "slate",
+        yieldRate: rate && rate > 0 ? `${rate.toFixed(2)}% ${p.unit === "borrow" ? "borrow APR" : p.unit}` : "—",
+        yieldType: p.source,
+        canBorrow: p.unit !== "borrow" || !m ? "No" : `Yes${m.maxLtv ? ` (Max LTV ${m.maxLtv}%)` : ""}`,
+        tvl: formatTvl(m?.tvlUsd),
+        actionText: `Open ${p.name}`,
+        actionUrl: m?.sourceLink || p.url,
+      };
+    });
+  }, [selectedStock, markets]);
 
   const toggleFaq = (key: string) => {
     setFaqOpen((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -335,28 +245,10 @@ export default function ProtocolCompareHub({
               Compare Tokenized Stocks Across Base Protocols
             </h2>
             <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
-              Verified real-time directory and side-by-side comparison. Distinguishes <strong>live onchain vaults &amp; credit hubs (Aave Pro, IPOR Fusion, Beefy &amp; Aerodrome)</strong> from permissionless primitives (Morpho) and crypto-only pooled markets.
+              Side-by-side comparison with live figures from Base. Separates <strong>stock markets (Aave V4, Morpho, Beefy &amp; Aerodrome)</strong> from crypto-only protocols.
             </p>
           </div>
 
-          {/* Quick Stats Pill Grid */}
-          <div className="grid grid-cols-3 gap-2 shrink-0">
-            <div className="p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-center">
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 block">LIVE STOCKS</span>
-              <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">4 Protocols</span>
-              <span className="text-[11px] text-[var(--ink-dim)] block">Aave, IPOR, Beefy, Aero</span>
-            </div>
-            <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-center">
-              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 block">PRIMITIVE</span>
-              <span className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">Morpho</span>
-              <span className="text-[11px] text-[var(--ink-dim)] block">Factory Live</span>
-            </div>
-            <div className="p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] text-center">
-              <span className="text-[11px] font-bold text-[var(--ink-muted)] block">CRYPTO ONLY</span>
-              <span className="text-base font-black text-[var(--ink)] font-mono">3 Protocols</span>
-              <span className="text-[11px] text-[var(--ink-dim)] block">Euler, Pendle, Superform</span>
-            </div>
-          </div>
         </div>
 
         {/* Status Callout Explaining Differences */}
@@ -367,7 +259,7 @@ export default function ProtocolCompareHub({
               Where can I lend or stake tokenized stocks on Base?
             </p>
             <p className="text-[var(--ink-muted)] leading-relaxed">
-              <strong>Aave Pro</strong> (<code>pro.aave.com/explore/borrow</code>) supports 7 major tokenized equities as borrow collateral for USDC. <strong>IPOR Fusion</strong> (<code>app.ipor.io/stocks</code>) provides automated tokenized stock yield &amp; carry trade Plasma Vaults. <strong>Aerodrome DEX gauges</strong> and <strong>Beefy Finance auto-compounders</strong> provide deep liquidity yield for stock/USDC LP pairs.
+              <strong>Aave V4</strong> and <strong>Morpho</strong> lend USDC against selected stocks. <strong>Aerodrome gauges</strong> and <strong>Beefy auto-compounders</strong> pay yield on stock/USDC pool deposits.
             </p>
           </div>
         </div>
@@ -442,7 +334,7 @@ export default function ProtocolCompareHub({
 
                 <div className="mt-3 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[var(--ink-muted)]">Live Yield:</span>
+                    <span className="text-[var(--ink-muted)]">Live rate:</span>
                     <span
                       className={`font-mono font-black ${
                         item.status === "live"
@@ -494,10 +386,10 @@ export default function ProtocolCompareHub({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-black text-[var(--ink)]">
-              All 8 Base DeFi Protocols Status Registry
+              Base protocols
             </h3>
             <p className="text-xs text-[var(--ink-muted)]">
-              Independent audit of every major lending, yield, and liquidity protocol on Base mainnet.
+              Which lending, yield and liquidity protocols on Base handle tokenized stocks.
             </p>
           </div>
 
@@ -534,7 +426,6 @@ export default function ProtocolCompareHub({
                 <th className="py-2.5 px-3">Type</th>
                 <th className="py-2.5 px-3">Base Mainnet Status</th>
                 <th className="py-2.5 px-3">Tokenized Stocks Support</th>
-                <th className="py-2.5 px-3">Yield Range</th>
                 <th className="py-2.5 px-3 text-right">App &amp; Contracts</th>
               </tr>
             </thead>
@@ -567,9 +458,6 @@ export default function ProtocolCompareHub({
                   </td>
                   <td className="py-3 px-3">
                     <span className="text-xs text-[var(--ink)]">{p.stockInstruments}</span>
-                  </td>
-                  <td className="py-3 px-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {p.typicalApy}
                   </td>
                   <td className="py-3 px-3 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -605,16 +493,16 @@ export default function ProtocolCompareHub({
             onClick={() => toggleFaq("whyDiff")}
             className="w-full p-3.5 bg-[var(--surface-2)] flex items-center justify-between text-left text-xs font-bold text-[var(--ink)] cursor-pointer"
           >
-            <span>How does Aave Pro support tokenized stock collateral?</span>
+            <span>How does borrowing against a stock work?</span>
             {faqOpen.whyDiff ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
           {faqOpen.whyDiff && (
             <div className="p-3.5 text-xs text-[var(--ink-muted)] space-y-2 bg-[var(--surface)] border-t border-[var(--border-subtle)] leading-relaxed">
               <p>
-                <strong>Aave Pro</strong> (<code>pro.aave.com/explore/borrow</code>) features institutional cross-collateral money markets on Base supporting 8 tokenized stocks: <strong>NVDAc, AAPLc, MSFTc, TSLAc, AMZNc, GOOGLc, METAc, and SPCXc (SpaceX)</strong>.
+                You supply a stock as collateral on <strong>Aave V4</strong> or <strong>Morpho</strong> and borrow USDC against it. Each market sets its own limit and rate.
               </p>
               <p>
-                Verified holders can supply any of these 8 equities as borrowing collateral to draw USDC liquidity at 75% Max LTV and ~80% Liquidation Threshold with real-time Chainlink equity oracle price feeds and Base Builder attribution.
+                If the stock&apos;s price falls past the market&apos;s limit, your collateral can be sold to repay the loan. Borrow well below the maximum.
               </p>
             </div>
           )}
@@ -637,7 +525,7 @@ export default function ProtocolCompareHub({
               </p>
               <ul className="list-disc list-inside space-y-1">
                 <li>
-                  <strong>Beefy Finance (&quot;beedy&quot;):</strong> Auto-compounding vaults on Base that hold Aerodrome LP tokens (e.g. MSFTc-USDC, TSLAc-USDC, MSTRc-USDC). Beefy automatically harvests trading fees and AERO emissions and compounds them back into your position for up to 50%+ APY.
+                  <strong>Beefy Finance:</strong> Auto-compounding vaults on Base that hold Aerodrome LP tokens (e.g. MSFTc-USDC, TSLAc-USDC, MSTRc-USDC). Beefy automatically harvests trading fees and AERO emissions and compounds them back into your position. The rate changes daily and the deposit can lose value as prices move.
                 </li>
                 <li>
                   <strong>Aerodrome Finance:</strong> Base&apos;s leading DEX. Users deposit stock tokens paired with USDC into Slipstream concentrated liquidity pools and stake their LP tokens in gauges to earn $AERO emission rewards.
@@ -647,27 +535,6 @@ export default function ProtocolCompareHub({
           )}
         </div>
 
-        {/* Q3 */}
-        <div className="border border-[var(--border-subtle)] rounded-xl overflow-hidden">
-          <button
-            type="button"
-            onClick={() => toggleFaq("howIpor")}
-            className="w-full p-3.5 bg-[var(--surface-2)] flex items-center justify-between text-left text-xs font-bold text-[var(--ink)] cursor-pointer"
-          >
-            <span>How does IPOR Fusion work for tokenized stocks?</span>
-            {faqOpen.howIpor ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          {faqOpen.howIpor && (
-            <div className="p-3.5 text-xs text-[var(--ink-muted)] space-y-2 bg-[var(--surface)] border-t border-[var(--border-subtle)] leading-relaxed">
-              <p>
-                <strong>IPOR Fusion</strong> (<code>app.ipor.io/stocks</code>) hosts automated on-chain Plasma Vaults and yield loop strategies built specifically for Coinbase tokenized equities on Base.
-              </p>
-              <p>
-                Holders of NVDAc, AAPLc, MSFTc, and TSLAc can deposit into automated vaults that optimize yield and carry trade spread without exposing the position to naked liquidation risk.
-              </p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

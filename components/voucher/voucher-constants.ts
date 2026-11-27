@@ -121,37 +121,6 @@ export const POPULAR_GIFT_STOCKS = [
   { symbol: "SPCXc", name: "SpaceX", icon: "🚀" },
 ] as const;
 
-export const POPULAR_GIFT_VAULTS = [
-  {
-    symbol: "mvNVDAc",
-    name: "Morpho NVDA Yield Vault",
-    apy: 8.45,
-    protocol: "Morpho Blue",
-    icon: "⚡",
-  },
-  {
-    symbol: "mvAAPLc",
-    name: "Morpho Apple Yield Vault",
-    apy: 6.50,
-    protocol: "Morpho Midnight",
-    icon: "🍏",
-  },
-  {
-    symbol: "sfNVDAc",
-    name: "SuperStocks NVDA Carry Vault",
-    apy: 13.85,
-    protocol: "Superform",
-    icon: "🔮",
-  },
-  {
-    symbol: "mvCOINc",
-    name: "Morpho Coinbase Yield Vault",
-    apy: 9.15,
-    protocol: "Morpho Blue",
-    icon: "🪙",
-  },
-] as const;
-
 export const VOUCHER_VIEW_TABS = [
   ["create", "Send"],
   ["redeem", "Receive"],

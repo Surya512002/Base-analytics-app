@@ -129,7 +129,7 @@ describe("Tokenized Stocks Registry & Base Markets", () => {
     const nvdaLend = stockMarkets.find((m) => m.id === "stock-lend-nvda");
     expect(nvdaLend).toBeDefined();
     expect(nvdaLend?.protocol).toBe("beefy");
-    expect(nvdaLend?.supplyApy).toBeGreaterThan(5);
+    expect(nvdaLend?.supplyApy).toBe(0); // rates come from live feeds only
 
     const msftVault = stockMarkets.find((m) => m.id === "beefy-msftc-usdc");
     expect(msftVault).toBeDefined();
@@ -287,13 +287,12 @@ describe("Stocks & Yield-Bearing Vault Shares in Vouchers", () => {
     // Metadata resolution
     const vault = getVaultShareBySymbol("bvMSFTc");
     expect(vault).toBeDefined();
-    expect(vault?.apy).toBeGreaterThan(5);
     expect(vault?.underlyingSymbol).toBe("MSFTc");
 
-    // Formatting with compounding yield badge (5 NVDAc shares = 500_000_000 raw)
+    // Formatting shows no built-in yield figure (5 NVDAc shares = 500_000_000 raw)
     const formatted = formatVoucherAmount("bvMSFTc", BigInt("5000000000000000000"));
     expect(formatted).toContain("5 bvMSFTc");
-    expect(formatted).toContain("APY");
+    expect(formatted).not.toContain("APY");
 
     // Asset to token and token to asset two-way mapping
     const tokenAddr = assetToToken("bvMSFTc");

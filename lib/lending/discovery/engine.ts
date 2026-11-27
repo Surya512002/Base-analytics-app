@@ -234,8 +234,8 @@ export async function runMarketDiscovery(
         }
       }
 
-      // Safety Gate 3: Caps nearly reached or paused
-      if (mkt.utilization >= DISCOVERY_SAFETY_CONFIG.CAP_WARNING_THRESHOLD_PCT) {
+      // Safety Gate 3: Caps nearly reached or paused. Vaults report 100% (all deposits are at work), which is not a cap.
+      if (mkt.type !== "stake" && mkt.utilization >= DISCOVERY_SAFETY_CONFIG.CAP_WARNING_THRESHOLD_PCT) {
         mkt.status = "cap_reached";
         if (!mkt.riskFlags.includes("CAP_NEARLY_REACHED")) {
           mkt.riskFlags.push("CAP_NEARLY_REACHED");

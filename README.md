@@ -127,11 +127,7 @@ claude mcp add --transport http base-analytics https://baseanalytics.app/api/mcp
 
 | Tool | What it does |
 | :--- | :--- |
-| `token_xray` | Safety score (0–100) and risk checks for a Base token |
-| `swap_preview` | Quote, route, fees and price impact for a swap |
-| `yield_finder` | Best verified yields for an asset |
-| `liquidation_status` | Health factor and liquidation risk for a wallet |
-| `wallet_dna` | Wallet profile and activity summary |
+| `liquidation_status` | Liquidation distance and the repay or deposit needed, from numbers you give it |
 | `voucher_prepare_create` / `voucher_prepare_redeem` | Unsigned gift-card create / claim calldata |
 | `voucher_lookup_batch` / `voucher_list_by_creator` | Live gift-card batch status |
 

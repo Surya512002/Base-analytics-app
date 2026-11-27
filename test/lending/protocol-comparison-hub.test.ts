@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { runMarketDiscovery } from "@/lib/lending/discovery/engine";
 import { PROTOCOL_REALITY_REGISTRY } from "@/components/lending/ProtocolCompareHub";
 import {
   getUnifiedStockLendingComparison,
@@ -6,12 +7,12 @@ import {
 
 describe("Protocol Comparison Hub & Real DeFi Verification", () => {
   it("verifies reality registry audits major Base protocols without uncurated primitives", () => {
-    expect(PROTOCOL_REALITY_REGISTRY.length).toBe(7);
+    expect(PROTOCOL_REALITY_REGISTRY.length).toBe(6);
 
     const protocolIds = PROTOCOL_REALITY_REGISTRY.map((p) => p.id);
     expect(protocolIds).toContain("beefy");
     expect(protocolIds).toContain("aerodrome");
-    expect(protocolIds).toContain("ipor");
+    expect(protocolIds).not.toContain("ipor");
     expect(protocolIds).toContain("aave");
     expect(protocolIds).toContain("euler");
     expect(protocolIds).toContain("pendle");
@@ -36,17 +37,12 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aero.category).toBe("DEX & Gauges");
   });
 
-  it("verifies pooled protocols (Aave Pro) and IPOR Fusion stock support", () => {
+  it("lists Aave V4 for stock collateral", () => {
     const aave = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "aave")!;
-    const ipor = PROTOCOL_REALITY_REGISTRY.find((p) => p.id === "ipor")!;
 
     expect(aave.status).toBe("live_stocks");
     expect(aave.stocksSupported).toBe(true);
-    expect(aave.appUrl).toBe("https://pro.aave.com/explore/borrow");
-
-    expect(ipor.status).toBe("live_stocks");
-    expect(ipor.stocksSupported).toBe(true);
-    expect(ipor.appUrl).toBe("https://app.ipor.io/stocks");
+    expect(aave.appUrl).toContain("https://pro.aave.com/");
   });
 
   it("verifies unified comparison includes verified protocols for supported stock (NVDAc)", async () => {
@@ -78,6 +74,13 @@ describe("Protocol Comparison Hub & Real DeFi Verification", () => {
     expect(aeroOpt.supplyApy).toBeGreaterThanOrEqual(0);
     expect(aeroOpt.contractAddress).toBe("0xA282064541Bb45Caa046fB9f21a240671aBB7f46");
   }, 35000);
+
+  it("keeps pool vaults open although they report 100% utilisation", async () => {
+    const { markets } = await runMarketDiscovery(8453);
+    const vaults = markets.filter((m) => m.type === "stake");
+    expect(vaults.length).toBeGreaterThan(0);
+    expect(vaults.filter((m) => m.status === "cap_reached")).toEqual([]);
+  }, 45000);
 
   it("verifies unwhitelisted stocks with zero protocol pools return 0 options without mock fallbacks", async () => {
     const comp = await getUnifiedStockLendingComparison("COINc", undefined, true);

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   B20_LAUNCH_NOTIFICATION,
@@ -24,7 +25,9 @@ function readAdminSecret(req: Request): string | null {
 function assertAdmin(req: Request): boolean {
   const expected = process.env.BASE_NOTIFICATIONS_ADMIN_SECRET?.trim();
   if (!expected) return false;
-  return readAdminSecret(req) === expected;
+  const given = Buffer.from(readAdminSecret(req) ?? "");
+  const want = Buffer.from(expected);
+  return given.length === want.length && timingSafeEqual(given, want);
 }
 
 /** Admin-only Base App notification sender. */

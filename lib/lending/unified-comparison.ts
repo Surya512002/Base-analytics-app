@@ -1,9 +1,6 @@
 import type { PublicClient } from "viem";
 import { getStockPricesUsd } from "@/lib/stocks/stock-prices";
-import {
-  USDC_BASE_ADDRESS,
-  IPOR_FUSION_FACTORY_BASE,
-} from "./constants";
+import { USDC_BASE_ADDRESS } from "./constants";
 import type { MorphoMarketParams, UserStockPortfolioSummary } from "./types";
 export type { UserStockPortfolioPosition, UserStockPortfolioSummary } from "./types";
 import {
@@ -95,23 +92,9 @@ export interface StockLendingComparison {
   lastUpdated: number;
 }
 
-
-
 /** In-memory cache for fast comparison tab transitions */
 const comparisonCache = new Map<string, { data: StockLendingComparison; timestamp: number }>();
 const CACHE_TTL_MS = 15_000; // 15 seconds near real-time cache
-
-/** Known verified tokenized stocks supported as collateral on Aave Pro (pro.aave.com/explore/borrow) */
-export const AAVE_EQUITIES_SUPPORTED_STOCKS = new Set([
-  "NVDAc",
-  "AAPLc",
-  "MSFTc",
-  "TSLAc",
-  "AMZNc",
-  "GOOGLc",
-  "METAc",
-  "SPCXc",
-]);
 
 /** Canonical protocol addresses for Base mainnet equities */
 /** Known verified Beefy vault addresses for tokenized equities on Base */
@@ -404,57 +387,6 @@ export async function getLiveBeefyAndAeroRates(): Promise<LiveBeefyAndAeroRates>
     return { beefy: {}, aerodrome: {}, lpPrices: {} };
   }
 }
-
-export interface VerifiedIporStockVault {
-  vaultAddress: `0x${string}`;
-  stockAddress: `0x${string}`;
-  vaultName: string;
-  apy: number;
-  borrowApr?: number;
-  tvlUsd: number;
-}
-
-export const VERIFIED_IPOR_STOCK_VAULTS: Record<string, VerifiedIporStockVault> = {
-  NVDAc: {
-    vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb20000000000000000000078ee7ce2fe4908108c",
-    vaultName: "IPOR Nvidia Carry Trade",
-    apy: 0,
-    tvlUsd: 0,
-  },
-  AAPLc: {
-    vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb200000000000000000000c2e324d24d7eecd1fb",
-    vaultName: "IPOR Apple Carry Trade",
-    apy: 0,
-    tvlUsd: 0,
-  },
-  GOOGLc: {
-    vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb2000000000000000000002d0ba3164cc74f58b7",
-    vaultName: "IPOR Google Carry Trade",
-    apy: 0,
-    tvlUsd: 0,
-  },
-  GOOGc: {
-    vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb2000000000000000000002d0ba3164cc74f58b7",
-    vaultName: "IPOR Google Carry Trade",
-    apy: 0,
-    tvlUsd: 0,
-  },
-  METAc: {
-    vaultAddress: IPOR_FUSION_FACTORY_BASE,
-    stockAddress: "0xb2000000000000000000008bc8786b856e61707c",
-    vaultName: "IPOR Meta Carry Trade",
-    apy: 0,
-    tvlUsd: 0,
-  },
-};
-
-
-
-
 
 /**
  * Generate side-by-side verified lending and borrowing options for any tokenized stock.

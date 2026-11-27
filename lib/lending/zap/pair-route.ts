@@ -82,7 +82,7 @@ export function resolvePairVault(
     return {
       vault: fallback.contractAddress as Address,
       stockSymbol,
-      apy: fallback.supplyApy ?? 0,
+      apy: discovered.find((m) => same(m.contractAddress, fallback.contractAddress))?.supplyApy ?? 0,
       sourceLink: fallback.protocolUrl,
       viaStockVault: true,
     };

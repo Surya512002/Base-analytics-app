@@ -308,7 +308,7 @@ export default function AssetDetailView({
         <div>
           <h2 className="text-base font-black text-[var(--ink)]">Available Protocol Markets</h2>
           <p className="text-xs text-[var(--ink-muted)]">
-            Compare verified Base mainnet contracts across Beefy, Aerodrome, Aave Pro, and IPOR Fusion
+            Compare Base mainnet markets across Beefy, Aerodrome, Aave V4 and Morpho
           </p>
         </div>
 
