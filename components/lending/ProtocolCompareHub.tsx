@@ -334,7 +334,7 @@ export default function ProtocolCompareHub({
 
                 <div className="mt-3 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[var(--ink-muted)]">Live Yield:</span>
+                    <span className="text-[var(--ink-muted)]">Live rate:</span>
                     <span
                       className={`font-mono font-black ${
                         item.status === "live"

@@ -4,10 +4,10 @@ import {
   fetchAllUserPositions,
 } from "./user-positions";
 
-// Mock createBasePublicClient to simulate Base mainnet RPC responses
+// Mock createBatchedBaseReadClient to simulate Base mainnet RPC responses
 vi.mock("@/lib/utils/base-rpc", () => {
   return {
-    createBasePublicClient: vi.fn(() => ({
+    createBatchedBaseReadClient: vi.fn(() => ({
       multicall: vi.fn(async () => []),
       readContract: vi.fn(async () => [
         BigInt(0),

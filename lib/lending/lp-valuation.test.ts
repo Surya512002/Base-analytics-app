@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const multicall = vi.fn();
 vi.mock("@/lib/utils/base-rpc", () => ({
-  createBasePublicClient: vi.fn(() => ({ multicall })),
+  createBatchedBaseReadClient: vi.fn(() => ({ multicall })),
 }));
 
 const liveRates = vi.fn();

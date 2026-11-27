@@ -21,7 +21,8 @@ type Props = {
 
 /** Auto-invest: buy a basket now, repeat a basket on a schedule, or repeat one stock. */
 export default function RecurringHub(props: Props) {
-  const [mode, setMode] = useState<"now" | "single" | "basket">(props.initialPlan ? "now" : "single");
+  // "Buy now" works for everyone; "One stock" opens only from a link naming that stock.
+  const [mode, setMode] = useState<"now" | "single" | "basket">(props.initialStock && !props.initialPlan ? "single" : "now");
   useEffect(() => {
     if (props.initialPlan) setMode("now");
     else if (props.initialStock) setMode("single");

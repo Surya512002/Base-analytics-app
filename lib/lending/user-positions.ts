@@ -1,5 +1,5 @@
 import { formatUnits, parseAbi, type PublicClient } from "viem";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { createBatchedBaseReadClient } from "@/lib/utils/base-rpc";
 import { readAaveV4PositionRows } from "./aave-v4/positions";
 import { readMorphoPositionRows } from "./morpho-positions";
 import type { NormalizedMarket } from "./discovery/types";
@@ -113,7 +113,7 @@ const BEEFY_POSITION_STOCKS = ["NVDAc", "AAPLc", "MSFTc", "TSLAc", "AMZNc", "MET
 export async function readBeefyPositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
-  const client = createBasePublicClient();
+  const client = createBatchedBaseReadClient();
   const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
   const vaultEntries = BEEFY_POSITION_STOCKS.flatMap((symbol) => {
     const vaultAddress = VERIFIED_BEEFY_STOCK_VAULTS[symbol];
@@ -207,7 +207,7 @@ const CLM_POSITION_STOCKS = [
 export async function readAerodromeGaugePositions(
   userAddress: `0x${string}`
 ): Promise<UserProtocolPosition[]> {
-  const client = createBasePublicClient();
+  const client = createBatchedBaseReadClient();
   const liveRates = await getLiveBeefyAndAeroRates().catch(() => null);
   const lpMarkets = CLM_POSITION_STOCKS.flatMap(({ id, symbol }) => {
     const lpAddress = VERIFIED_BEEFY_STOCK_DETAILS[symbol]?.wantTokenAddress;
@@ -286,7 +286,7 @@ export async function readAerodromeGaugePositions(
  * Replaces the old Aave V3 read, which never held stocks and so always came back empty.
  */
 export async function readAavePositions(userAddress: `0x${string}`): Promise<UserProtocolPosition[]> {
-  return readAaveV4PositionRows(createBasePublicClient() as unknown as PublicClient, userAddress);
+  return readAaveV4PositionRows(createBatchedBaseReadClient() as unknown as PublicClient, userAddress);
 }
 
 /**
@@ -348,7 +348,7 @@ export async function fetchAllUserPositions(
     readBeefyPositions(userAddress),
     readAerodromeGaugePositions(userAddress),
     readAavePositions(userAddress),
-    readMorphoPositionRows(createBasePublicClient() as unknown as PublicClient, userAddress, morphoMarkets),
+    readMorphoPositionRows(createBatchedBaseReadClient() as unknown as PublicClient, userAddress, morphoMarkets),
   ]);
 
   if (beefyRes.status === "fulfilled") {

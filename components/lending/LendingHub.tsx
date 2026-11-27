@@ -38,7 +38,7 @@ import ActionDrawer, { type DrawerActionTab } from "./ActionDrawer";
 import LendingActionModal from "./LendingActionModal";
 import { buildAttributedGaugeClaimCall } from "@/lib/lending/builder-attribution";
 import { sendAppTransactions } from "@/lib/utils/send-app-tx";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
+import { createBatchedBaseReadClient } from "@/lib/utils/base-rpc";
 import { getStockQuotes, type StockQuote } from "@/lib/stocks/stock-prices";
 import StockPortfolio from "@/components/stocks/StockPortfolio";
 import AccountOrders from "@/components/swap/orders/AccountOrders";
@@ -235,7 +235,7 @@ export default function LendingHub({
 
     async function fetchBalances() {
       try {
-        const pub = createBasePublicClient();
+        const pub = createBatchedBaseReadClient();
         const user = userAddress as `0x${string}`;
 
         // Canonical stocks to query balances
