@@ -454,6 +454,7 @@ export default function StockDetailComparisonModal({
                   {stock.address.slice(0, 8)}...{stock.address.slice(-6)}
                 </span>
               </p>
+              <ShareCount token={stock.address} tokens={1} prefix="1 token " className="mt-0.5 block text-xs font-bold text-[var(--ink)]" />
             </div>
           </div>
 

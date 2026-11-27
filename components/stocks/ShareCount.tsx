@@ -23,7 +23,7 @@ function readMultiplier(token: `0x${string}`): Promise<bigint> {
  * The real share count behind an amount of stock tokens, read from the token itself.
  * Renders nothing until the read succeeds, so a failed read never shows an assumed number.
  */
-export default function ShareCount({ token, tokens, className }: { token?: `0x${string}`; tokens: number; className?: string }) {
+export default function ShareCount({ token, tokens, prefix, className }: { token?: `0x${string}`; tokens: number; prefix?: string; className?: string }) {
   const [read, setRead] = useState<{ token: string; multiplier: bigint } | null>(null);
   const wanted = tokens > 0 ? token : undefined;
 
@@ -39,5 +39,10 @@ export default function ShareCount({ token, tokens, className }: { token?: `0x${
   }, [wanted]);
 
   const label = wanted && read?.token === wanted ? shareCountLabel(tokens, read.multiplier) : null;
-  return label ? <span className={className}>{label}</span> : null;
+  return label ? (
+    <span className={className}>
+      {prefix}
+      {label}
+    </span>
+  ) : null;
 }

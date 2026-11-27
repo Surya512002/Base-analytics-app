@@ -17,6 +17,7 @@ import type { StockMarketItem } from "@/lib/markets/types";
 import { OFFICIAL_TRADE_VENUES } from "@/lib/markets/types";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
 import BodyPortal from "@/components/ui/BodyPortal";
+import ShareCount from "@/components/stocks/ShareCount";
 import { automateLink, canAutomateStock } from "@/src/lib/limitOrders/automate";
 
 interface StockDetailDrawerProps {
@@ -87,6 +88,7 @@ export default function StockDetailDrawer({
                   </span>
                 </div>
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">{stock.name}</p>
+                <ShareCount token={stock.address as `0x${string}`} tokens={1} prefix="1 token " className="mt-0.5 block text-xs font-bold text-[var(--ink)]" />
               </div>
             </div>
 
