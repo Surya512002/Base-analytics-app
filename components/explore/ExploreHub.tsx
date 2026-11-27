@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import dynamic from "next/dynamic";
+import { ChevronDown, Flame, TrendingDown, TrendingUp } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import type { WalletAppState } from "@/hooks/useWalletApp";
 import type { LaunchedToken } from "@/lib/launchpad/types";
@@ -13,7 +14,6 @@ import {
   normalizeBaseStock,
 } from "@/lib/explore/explore-config";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
-import ExploreHero from "./ExploreHero";
 import LiveMarketMap from "./LiveMarketMap";
 import LatestTradeTicker from "./LatestTradeTicker";
 import DiscoveryHub from "./DiscoveryHub";
@@ -24,7 +24,11 @@ import TokenTable from "./TokenTable";
 import TokenQuickView from "./TokenQuickView";
 import MarketIntelligenceHub from "./MarketIntelligenceHub";
 import BlurFade from "@/components/ui/motion/BlurFade";
-import StockTickerTape from "@/components/markets/StockTickerTape";
+import MarketHighlights from "@/components/markets/terminal/MarketHighlights";
+import StockHeatmap from "@/components/markets/terminal/StockHeatmap";
+import { MoverList } from "@/components/markets/terminal/MarketBits";
+import { useMarketBoard } from "@/hooks/useMarketBoard";
+import { mostTradedItems, topGainers, topLosers } from "@/lib/markets/board";
 import MoversSignalsStrip from "@/components/markets/MoversSignalsStrip";
 import LaunchSpotlightStrip from "./LaunchSpotlightStrip";
 import StockMarketsTable from "@/components/markets/StockMarketsTable";
@@ -36,6 +40,11 @@ import {
   toggleTokenWatch,
 } from "@/lib/utils/token-watchlist";
 import { useTokenHoldings } from "@/hooks/useTokenHoldings";
+
+// The chart and order form load only on this screen, so Launch (which shares this file) stays light.
+const MarketTerminal = dynamic(() => import("@/components/markets/terminal/MarketTerminal"), {
+  loading: () => <div id="terminal" role="status" aria-label="Loading the terminal" className="h-[460px] skeleton-shimmer rounded-3xl border border-[var(--border-subtle)]" />,
+});
 
 interface ExploreHubProps {
   app: WalletAppState;
@@ -64,8 +73,8 @@ export default function ExploreHub({
   syncing: _syncing = false,
   onTradeToken,
   onRequestCreateToken,
-  guestMode: _guestMode = false,
-  onRequestConnect: _onRequestConnect,
+  guestMode = false,
+  onRequestConnect,
   onRefreshData: _onRefreshData,
 }: ExploreHubProps) {
   const { wallet } = app;
@@ -99,8 +108,41 @@ export default function ExploreHub({
   const [selectedQuickViewToken, setSelectedQuickViewToken] = useState<UnifiedToken | null>(null);
   const [selectedStockForDrawer, setSelectedStockForDrawer] = useState<StockMarketItem | null>(null);
 
+  // The terminal: one selected market, set by tapping it anywhere on the page or by ?pick=0x… links.
+  const board = useMarketBoard();
+  const searchParams = useSearchParams();
+  const pickParam = searchParams?.get("pick")?.toLowerCase() ?? null;
+  const [picked, setPicked] = useState<string | null>(pickParam);
+  const selected = useMemo(
+    () =>
+      board.items.find((i) => i.address.toLowerCase() === picked) ??
+      mostTradedItems(board.items.filter((i) => i.kind === "stock"), 1)[0] ??
+      null,
+    [board.items, picked]
+  );
+  const pickMarket = useCallback((address: string) => {
+    setPicked(address.toLowerCase());
+    document.getElementById("terminal")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+  // Arriving from a Home highlight: bring the terminal into view once it has its market.
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (arrived.current || !pickParam || board.items.length === 0) return;
+    arrived.current = true;
+    // After the router has finished its own scrolling and the sections above have their height.
+    setTimeout(() => pickMarket(pickParam), 600);
+  }, [pickParam, board.items.length, pickMarket]);
+  const counts = useMemo(
+    () => ({
+      stocks: board.items.filter((i) => i.kind === "stock").length,
+      tokens: board.items.filter((i) => i.kind === "token").length,
+      launched: board.items.filter((i) => i.kind === "launched").length,
+    }),
+    [board.items]
+  );
+
   // The three switches arrive in the address: ?list=stocks, ?list=watch, or neither for all tokens.
-  const listParam = useSearchParams()?.get("list");
+  const listParam = searchParams?.get("list");
   const [filters, setFilters] = useState<ExploreFiltersState>({
     catalogTab: listParam === "stocks" ? "stocks" : "all",
     sort: "trending",
@@ -205,14 +247,6 @@ export default function ExploreHub({
   }, [allUnifiedTokens]);
 
   // 2. DISCOVERY ROW DATASETS
-  // 2a. Spotlight Tokens: Top 10 by Volume (5 visible at once, swipe for the rest)
-  const spotlightTokens = useMemo(() => {
-    return [...allUnifiedTokens]
-      .filter((t) => t.hasPool && t.volume24h > 0)
-      .sort((a, b) => b.volume24h - a.volume24h)
-      .slice(0, 10);
-  }, [allUnifiedTokens]);
-
   // 2b. Trending (Top by volume / liquidity)
   const trendingTokens = useMemo(() => {
     return [...allUnifiedTokens]
@@ -342,29 +376,51 @@ export default function ExploreHub({
 
   return (
     <div className="space-y-8 pb-16 animate-meridian-rise">
-      {/* 1. COMPACT HERO WITH INTEGRATED ⌘K SEARCH & TOP-3 SPOTLIGHT CAROUSEL */}
-      <ExploreHero
-        spotlightTokens={spotlightTokens}
-        onOpenToken={(t) => setSelectedQuickViewToken(t)}
-        onBrowseTokens={handleScrollToExplorer}
-        onLaunchToken={onRequestCreateToken}
-        searchQuery={filters.searchQuery}
-        onSearchChange={(q) => setFilters((prev) => ({ ...prev, searchQuery: q }))}
-        onOpenCommandPalette={() => {
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new Event("open-command-palette"));
-          }
-        }}
-      />
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+          <h2 className="font-display text-3xl font-bold text-[var(--ink)]">Markets</h2>
+          {board.items.length > 0 && (
+            <p className="text-[13px] text-[var(--ink-muted)]">
+              {counts.stocks} stocks and {counts.tokens} tokens{counts.launched > 0 ? `, plus ${counts.launched} launched here` : ""}.
+            </p>
+          )}
+        </div>
+        <MarketHighlights items={board.items} loading={board.loading} onPick={pickMarket} />
+        <StockHeatmap items={board.items} loading={board.loading} onPick={pickMarket} />
+        <MarketTerminal
+          items={board.items}
+          loading={board.loading}
+          selected={selected}
+          onSelect={pickMarket}
+          watchlist={watchlist}
+          onToggleWatch={handleToggleWatchByAddress}
+          app={app}
+          guestMode={guestMode}
+          onRequestConnect={onRequestConnect}
+        />
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <MoverList title="Top gainers" icon={<TrendingUp size={18} />} items={topGainers(board.items, 5)} onPick={pickMarket} />
+          <MoverList title="Top losers" icon={<TrendingDown size={18} />} items={topLosers(board.items, 5)} onPick={pickMarket} />
+          <MoverList title="Most traded" icon={<Flame size={18} />} items={mostTradedItems(board.items, 5)} onPick={pickMarket} />
+        </div>
+      </div>
 
-      {/* 1.4 LIVE STOCK TICKER TAPE (real prices from the stock markets feed) */}
-      <StockTickerTape stocks={stockMarketsList} onSelect={(stock) => setSelectedStockForDrawer(stock)} />
+      {/* Tokens launched through Base Analytics, newest first */}
+      <BlurFade>
+        <LaunchSpotlightStrip
+          tokens={tokens}
+          unifiedByAddress={unifiedByAddress}
+          onOpen={(t) => setSelectedQuickViewToken(t)}
+          onTrade={handleTrade}
+          onLaunch={onRequestCreateToken}
+        />
+      </BlurFade>
 
       {/* 4. MAIN EXPLORER SECTION */}
       <div ref={explorerRef} className="space-y-4 pt-2 scroll-mt-20">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black text-[var(--ink)] tracking-tight">
-            Token Explorer
+            Full lists
           </h2>
           <span className="text-xs font-mono font-bold text-[var(--ink-muted)]">
             {filteredTokens.length === 0 && (initialLoading || stockMarketsLoading) ? "Loading…" : `${filteredTokens.length} tokens`}
@@ -383,6 +439,17 @@ export default function ExploreHub({
             ]}
           />
         </div>
+
+        {currentList !== "stocks" && (
+          <input
+            type="search"
+            value={filters.searchQuery}
+            onChange={(e) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
+            placeholder="Search name, symbol or 0x address"
+            aria-label="Search the token list"
+            className="min-h-11 w-full rounded-2xl border border-[var(--edge)] bg-[var(--surface)] px-4 text-sm text-[var(--ink)] outline-none focus:border-[var(--brand)] sm:max-w-[480px]"
+          />
+        )}
 
         {/* Sorting and filter chips for the token lists; the stock table sorts itself. */}
         {currentList !== "stocks" && (
@@ -478,17 +545,6 @@ export default function ExploreHub({
           Token data is informational. Always check liquidity and contract details before trading. Not financial advice.
         </p>
       </div>
-
-      {/* 1.7 LAUNCH SPOTLIGHT: tokens launched through Base Analytics, newest first */}
-      <BlurFade>
-        <LaunchSpotlightStrip
-          tokens={tokens}
-          unifiedByAddress={unifiedByAddress}
-          onOpen={(t) => setSelectedQuickViewToken(t)}
-          onTrade={handleTrade}
-          onLaunch={onRequestCreateToken}
-        />
-      </BlurFade>
 
       {/* More market panels: trending rows, live map, signals and alerts */}
       <div className="space-y-8">

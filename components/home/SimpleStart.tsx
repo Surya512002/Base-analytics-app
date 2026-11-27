@@ -29,6 +29,8 @@ import {
 import TokenLogo from "@/components/ui/TokenLogo";
 import SafetyNote from "@/components/ui/SafetyNote";
 import { useStockMarkets } from "@/hooks/useMarketsData";
+import MarketHighlights from "@/components/markets/terminal/MarketHighlights";
+import { useMarketBoard } from "@/hooks/useMarketBoard";
 import { STOCK_LIST_HREF } from "@/lib/constants/destinations";
 import { mostTraded } from "@/lib/markets/most-traded";
 import { ENTRIES, GROUPS } from "@/lib/nav/directory";
@@ -87,6 +89,7 @@ export default function SimpleStart() {
   const popular = mostTraded(stocks, 6);
   const auto = entry("auto-invest");
   const lend = entry("lend");
+  const board = useMarketBoard();
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 pb-8">
@@ -125,6 +128,16 @@ export default function SimpleStart() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section aria-labelledby="market-highlights" className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="market-highlights" className="text-[17px] font-bold text-[var(--ink)]">Market highlights</h2>
+          <Link href="/explore" className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[var(--brand)] px-4 text-[13px] font-bold text-white">
+            Open Markets <ArrowUpRight size={15} aria-hidden />
+          </Link>
+        </div>
+        <MarketHighlights items={board.items} loading={board.loading} />
       </section>
 
       <nav aria-label="Start here" className="grid grid-cols-2 gap-3 lg:grid-cols-6">

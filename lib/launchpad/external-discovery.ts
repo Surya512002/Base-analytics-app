@@ -105,16 +105,21 @@ async function fetchSearchAddresses(): Promise<string[]> {
   return [...addresses];
 }
 
-function pairToExternalToken(
+export function pairToExternalToken(
   address: string,
   pair: DexScreenerPair | null,
   market: TokenMarketSummary
 ): LaunchedToken | null {
   if (!market.hasPool || (market.liquidityUsd ?? 0) < MIN_LIQUIDITY_USD) return null;
 
-  const name = pair?.baseToken?.name?.trim() || "Base Token";
-  const symbol = pair?.baseToken?.symbol?.trim().toUpperCase() || "TOKEN";
-  const meta = pair?.info;
+  // A token can be either side of its deepest pool: take the name from its own side, never the other.
+  const isBase = pair?.baseToken?.address?.toLowerCase() === address.toLowerCase();
+  const own = isBase ? pair?.baseToken : pair?.quoteToken?.address?.toLowerCase() === address.toLowerCase() ? pair.quoteToken : null;
+  if (!own?.symbol) return null;
+  const name = own.name?.trim() || "Base Token";
+  const symbol = own.symbol.trim().toUpperCase();
+  // Pool artwork and links describe the base token.
+  const meta = isBase ? pair?.info : undefined;
 
   return {
     address: address.toLowerCase(),
