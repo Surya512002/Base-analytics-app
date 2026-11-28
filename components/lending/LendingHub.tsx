@@ -351,7 +351,7 @@ export default function LendingHub({
       return {
         symbol: stk.symbol,
         name: stk.name,
-        category: stk.category ?? "tech",
+        category: stk.category ?? "other",
         address: stk.address,
         priceUsd,
         priceChange24h: quote?.change24h ?? undefined,

@@ -29,6 +29,8 @@ export interface TokenizedStockEntry {
 
 Every consumer in the application (Explore, Lend & Stake, Launchpad Quote Picker, Vouchers, and Swap token pickers) imports directly from this master registry. Hardcoded counts (e.g. `"32"`) have been removed; categories and counts are derived dynamically via `getStockCategoryCounts()`.
 
+Categories are never guessed. Coinbase's list has no sector or instrument-type field, so a stock with no reliable one is `"Other"`, which the app does not label or offer as a filter. `"ETF/Index"` requires "ETF" in the issuer's own name.
+
 ---
 
 ## 2. Synchronization & Adding New Stocks

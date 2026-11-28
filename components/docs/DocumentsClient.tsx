@@ -66,7 +66,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     description:
       "Fetches real-time prices, 24h trading volume, NAV, and reference market data for Coinbase tokenized equities on Base (NVDAc, AAPLc, TSLAc, COINc, GOOGLc, MSFTc, AMZNc).",
     params: [
-      { name: "category", type: "string", required: false, description: "Filter category (e.g. 'all', 'tech', 'etf')" },
+      { name: "category", type: "string", required: false, description: "Filter category (e.g. 'all', 'crypto-related', 'other')" },
       { name: "query", type: "string", required: false, description: "Case-insensitive ticker or symbol search" },
       { name: "sort", type: "string", required: false, description: "Sort by 'volume' | 'gainers' | 'mcap' | 'nav'" },
       { name: "limit", type: "number", required: false, description: "Items per page (default: 100)" },
@@ -86,7 +86,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
             change24h: 3.42,
             volume24hUsd: 1850000,
             mcapUsd: 42000000,
-            category: "tech",
+            category: "other",
           },
         ],
         total: 24,

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { NormalizedMarket } from "@/lib/lending/discovery/types";
 import type { AssetMarketRow } from "@/lib/lending/asset-row";
+import { knownCategories } from "@/lib/stocks/tokenized-stocks-registry";
 import type { SmartVaultTarget } from "@/components/lending/SmartVaultDrawer";
 import {
   borrowCapacity,
@@ -62,7 +63,6 @@ const usd = (n: number) => {
   return `$${n.toFixed(0)}`;
 };
 const pct = (n?: number | null) => (n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(n >= 100 ? 0 : 2)}%`);
-const SECTORS = ["tech", "crypto-related", "finance", "consumer", "healthcare"];
 const priceLine = (row?: AssetMarketRow) =>
   [row?.priceUsd != null ? `$${row.priceUsd.toFixed(2)}` : null, (row?.walletBalance ?? 0) > 0 ? `you hold ${row!.walletBalance!.toFixed(3)}` : null]
     .filter(Boolean)
@@ -125,6 +125,7 @@ export default function StockMarketsExplorer({
   const [compareOpen, setCompareOpen] = useState(false);
   const [sector, setSector] = useState("all");
   const [onlyHoldings, setOnlyHoldings] = useState(false);
+  const sectors = useMemo(() => knownCategories(rows.map((r) => r.category.toLowerCase())), [rows]);
   const rowByAddress = useMemo(() => new Map(rows.map((r) => [r.address.toLowerCase(), r])), [rows]);
 
   const allGroups = useMemo(() => groupMarketsByStock(markets, showSmall ? 0 : 1000), [markets, showSmall]);
@@ -304,17 +305,19 @@ export default function StockMarketsExplorer({
               {v}
             </button>
           ))}
-          <select
-            value={sector}
-            onChange={(e) => setSector(e.target.value)}
-            aria-label="Sector"
-            className="ml-auto min-h-[32px] cursor-pointer rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2.5 text-[11px] font-bold capitalize text-[var(--ink)]"
-          >
-            <option value="all">All sectors</option>
-            {SECTORS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+          {sectors.length > 0 && (
+            <select
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              aria-label="Sector"
+              className="ml-auto min-h-[32px] cursor-pointer rounded-full border border-[var(--border-subtle)] bg-[var(--surface-2)] px-2.5 text-[11px] font-bold capitalize text-[var(--ink)]"
+            >
+              <option value="all">All sectors</option>
+              {sectors.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          )}
           {[
             { label: "Show all stocks", checked: showAllStocks, set: onToggleShowAllStocks, show: true },
             { label: "Holdings only", checked: onlyHoldings, set: setOnlyHoldings, show: isConnected },

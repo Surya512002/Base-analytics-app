@@ -63,31 +63,26 @@ async function main() {
       address: "0x34346747A9b0a1d4D3F841315b947c6172f32f3A", // dShare AAPL
       issuer: "Dinari",
       expectedTicker: "AAPL",
-      category: "Tech",
     },
     {
       address: "0x5395638102A06be40B13F108C9d3088b64E526a0", // dShare NVDA
       issuer: "Dinari",
       expectedTicker: "NVDA",
-      category: "Tech",
     },
     {
       address: "0x122C99320e6f6634DffF9Ea0aE121C43D2111e73", // dShare TSLA
       issuer: "Dinari",
       expectedTicker: "TSLA",
-      category: "Consumer",
     },
     {
       address: "0x23a6F34C81146740B72589e63402325f317d6928", // dShare GOOGL
       issuer: "Dinari",
       expectedTicker: "GOOGL",
-      category: "Tech",
     },
     {
       address: "0x98165C711718a9E66F42031b96b9b672778a484b", // dShare MSFT
       issuer: "Dinari",
       expectedTicker: "MSFT",
-      category: "Tech",
     },
   ];
 
@@ -122,7 +117,7 @@ async function main() {
         underlyingTicker: item.expectedTicker || String(symbol).replace(/c$|^d/, ""),
         address: checksummed,
         decimals: Number(decimals),
-        category: item.category || "Other",
+        category: "Other", // no source gives a sector; never guess one
         issuer: item.issuer || "Other",
         status: "pending",
         discoveredAt: new Date().toISOString(),

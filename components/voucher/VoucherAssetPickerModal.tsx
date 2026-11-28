@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Search, X, Sparkles, TrendingUp, Check, AlertTriangle } from "lucide-react";
 import { type BaseStock } from "@/lib/stocks/base-stocks";
 import { BASE_VERIFIED_STOCKS } from "@/lib/stocks/base-verified";
+import { hasCategory, knownCategories } from "@/lib/stocks/tokenized-stocks-registry";
 import { YIELD_VAULT_SHARES, type VaultShareInfo } from "@/lib/utils/voucher";
 import type { VoucherAsset } from "@/lib/utils/voucher";
 import TokenLogo from "@/components/ui/TokenLogo";
@@ -18,6 +19,8 @@ interface VoucherAssetPickerModalProps {
   onSelect: (symbol: VoucherAsset) => void;
   userBalances?: Record<string, number>;
 }
+
+const STOCK_SECTORS = knownCategories(BASE_VERIFIED_STOCKS.map((s) => s.category));
 
 export default function VoucherAssetPickerModal({
   open,
@@ -156,21 +159,14 @@ export default function VoucherAssetPickerModal({
           </div>
 
           {/* Quick filter chips for Stocks */}
-          {category === "stock" && (
+          {category === "stock" && STOCK_SECTORS.length > 0 && (
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
-              {[
-                { id: "all", label: "All Stocks" },
-                { id: "tech", label: "Tech" },
-                { id: "crypto", label: "Crypto" },
-                { id: "finance", label: "Finance" },
-                { id: "consumer", label: "Consumer" },
-                { id: "aerospace", label: "Aerospace" },
-              ].map((chip) => (
+              {[{ id: "all", label: "All Stocks" }, ...STOCK_SECTORS.map((id) => ({ id, label: id }))].map((chip) => (
                 <button
                   key={chip.id}
                   type="button"
                   onClick={() => setFilterTag(chip.id)}
-                  className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition ${
+                  className={`px-2.5 py-1 rounded-lg font-bold capitalize shrink-0 transition ${
                     filterTag === chip.id
                       ? "bg-[var(--brand)] text-white"
                       : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
@@ -246,7 +242,7 @@ export default function VoucherAssetPickerModal({
                         <span className="font-black text-sm text-[var(--ink)]">
                           {item.symbol}
                         </span>
-                        {"category" in item && item.category && (
+                        {"category" in item && hasCategory(item.category) && (
                           <span className="text-[11px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-muted)]">
                             {item.category}
                           </span>
