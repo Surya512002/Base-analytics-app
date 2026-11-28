@@ -366,7 +366,7 @@ export default function StockMarketsExplorer({
                       </span>
                       <span className="block truncate text-[11px] text-[var(--ink-muted)]">{g.name}</span>
                       {priceLine(rowByAddress.get(g.address.toLowerCase())) && (
-                        <span className="block truncate font-mono text-[11px] text-[var(--ink)]">{priceLine(rowByAddress.get(g.address.toLowerCase()))}</span>
+                        <span className="block break-words font-mono text-[11px] text-[var(--ink)]">{priceLine(rowByAddress.get(g.address.toLowerCase()))}</span>
                       )}
                       <span className="mt-1 flex flex-wrap gap-1">
                         {rowByAddress.get(g.address.toLowerCase())?.isNew && (

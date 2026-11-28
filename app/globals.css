@@ -2445,11 +2445,11 @@ button.swap-token-pill:hover {
   color: var(--ink-dim);
 }
 
+/* An amount is never cut off: a long one wraps. */
 .swap-amount-display {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .swap-usd-hint {

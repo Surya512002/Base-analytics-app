@@ -9,6 +9,7 @@ import { base } from "viem/chains";
 import { BEEFY_VAULT_ABI, planClmDeposit, planClmWithdraw, readClmCalm, readClmVault, type ClmVault } from "@/lib/lending/zap/clm-zap";
 import { finalizeAppTransactionBatch, hasBuilderSuffix } from "@/lib/utils/tx";
 import { planGetToken } from "@/lib/lending/zap/get-token";
+import { planClmWithdrawZap } from "@/lib/lending/zap/zap-router";
 import { erc20Abi } from "viem";
 
 const RPC = process.env.ZAP_RPC_URL || "https://base-rpc.publicnode.com";
@@ -16,6 +17,18 @@ const client = createPublicClient({ chain: base, transport: http(RPC, { timeout:
 const WALLET = (process.env.CHECKUP_WALLET || "0xbCDDd1bc8F3c0c24BEDEE41720287ff50a7B7148") as Address;
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 const AMDC_VAULT = "0xf258dcE970F53CAC991311156958102676dCb339" as Address; // Beefy aero-cow USDC/AMDc
+
+/** State override giving the wallet `amount` of an upgradeable ERC-20, whichever slot its balances use. */
+async function shareOverride(token: Address, amount: bigint) {
+  const slots = [BigInt(0), BigInt(51), BigInt(101), BigInt("0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00")];
+  for (const slot of slots) {
+    const key = keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [WALLET, slot]));
+    const override = { address: token, stateDiff: [{ slot: key, value: pad(toHex(amount)) }] };
+    const read = await client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [WALLET], stateOverride: [override] });
+    if (read === amount) return override;
+  }
+  throw new Error("balance slot not found");
+}
 
 /** Beefy CLMs refuse deposits while the pool is off its 2-min TWAP; wait like the UI does. */
 async function waitForCalm(info: ClmVault) {
@@ -68,6 +81,29 @@ describe("Lend: Smart Deposit into a Beefy CLM pair vault (real Base)", { timeou
     const wplan = await planClmWithdraw({ client, info, user: WALLET, vaultShares, toToken0: true });
     expect(wplan.calls.length).toBeGreaterThanOrEqual(2);
     expect(wplan.expected.clmShares).toBeGreaterThan(BigInt(0));
+  });
+
+  it("withdraw where stock swaps are restricted: both tokens come out, no swap", async () => {
+    const info = await readClmVault(client, AMDC_VAULT);
+    await waitForCalm(info);
+    // A fresh deposit is locked for longer than a simulation can skip, so the wallet is handed shares.
+    const vaultShares = (await client.readContract({ address: AMDC_VAULT, abi: erc20Abi, functionName: "totalSupply" })) / BigInt(1000);
+    expect(vaultShares).toBeGreaterThan(BigInt(0));
+    const held = await shareOverride(AMDC_VAULT, vaultShares);
+    const stockBalance = { to: info.token1.address, abi: erc20Abi, functionName: "balanceOf", args: [WALLET] } as const;
+
+    for (const plan of [
+      await planClmWithdrawZap({ client, info, user: WALLET, vaultShares, toToken0: false }),
+      await planClmWithdraw({ client, info, user: WALLET, vaultShares, toToken0: false }),
+    ]) {
+      expect(plan.steps.map((x) => x.kind)).not.toContain("swap");
+      const calls = finalizeAppTransactionBatch(plan.calls).map((c) => ({ to: c.to, data: c.data, value: c.value }));
+      const sim = await client.simulateCalls({ account: WALLET, calls: [stockBalance, ...calls, stockBalance], stateOverrides: [held] });
+      sim.results.forEach((r, i) => expect(r.status, `step ${i}: ${String((r as { error?: Error }).error?.message ?? "").slice(0, 300)}`).toBe("success"));
+      const before = sim.results[0].result as unknown as bigint;
+      const after = sim.results[sim.results.length - 1].result as unknown as bigint;
+      expect(after).toBeGreaterThan(before);
+    }
   });
 
   it("pay with ETH: ETH → USDC → (stock if needed) → vault, all steps succeed", async () => {

@@ -938,7 +938,8 @@ export default function DexSwapCard({
               {quoteLoading ? (
                 <div className="h-8 w-32 bg-[var(--surface-3)] animate-pulse rounded-lg" />
               ) : (
-                <p className={`font-black font-mono tracking-tight text-[var(--ink)] tabular-nums truncate ${compact ? "text-2xl" : "text-3xl sm:text-4xl"}`}>
+                // Never cut an amount off: a long one gets smaller on phones, and wraps if it must.
+                <p className={`break-all font-black font-mono leading-tight tracking-tight text-[var(--ink)] tabular-nums ${(quoteOut?.length ?? 0) > 7 ? (compact ? "text-xl" : "text-xl sm:text-4xl") : compact ? "text-2xl" : "text-3xl sm:text-4xl"}`}>
                   {quoteOut ?? "0.0"}
                 </p>
               )}
