@@ -21,6 +21,16 @@ describe("Stock NAV Tracker Math & Market Hours", () => {
     expect(status.statusText).toContain("Weekend");
   });
 
+  it("is closed on exchange holidays and after an early close", () => {
+    // Thanksgiving, a Thursday, 11:00 AM ET
+    expect(getEquityMarketStatus(new Date("2026-11-26T16:00:00Z")).statusText).toContain("Holiday");
+    // The day after, 12:30 PM ET then 1:30 PM ET
+    expect(getEquityMarketStatus(new Date("2026-11-27T17:30:00Z")).isOpen).toBe(true);
+    expect(getEquityMarketStatus(new Date("2026-11-27T18:30:00Z")).isOpen).toBe(false);
+    // An ordinary Friday at 1:30 PM ET
+    expect(getEquityMarketStatus(new Date("2026-12-04T18:30:00Z")).isOpen).toBe(true);
+  });
+
   it("computes par status when spread is within 0.5%", () => {
     const comparison = computeNavSpread({
       symbol: "NVDAc",
