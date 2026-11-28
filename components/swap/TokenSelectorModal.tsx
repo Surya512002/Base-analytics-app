@@ -25,19 +25,12 @@ import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import { isVerifiedBaseToken } from "@/lib/swap/verified-tokens";
 import { loadTokenCatalog, peekTokenCatalog } from "@/lib/swap/load-token-catalog";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import { knownCategories } from "@/lib/stocks/tokenized-stocks-registry";
+
+const STOCK_CATEGORIES = ["All", ...knownCategories(COMMON_STOCK_TOKENS.map((t) => t.stockCategory))];
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const RECENT_STORAGE_KEY = "base_swap_recent_tokens_v2";
-
-const STOCK_CATEGORIES = [
-  "All",
-  "Tech",
-  "Finance",
-  "Consumer",
-  "Crypto-related",
-  "Healthcare",
-  "Energy",
-] as const;
 
 type PickerTab = "crypto" | "stocks" | "holdings";
 
@@ -436,7 +429,7 @@ export default function TokenSelectorModal({
             </div>
 
             {/* Category Chips for Stocks */}
-            {activeTab === "stocks" && (
+            {activeTab === "stocks" && STOCK_CATEGORIES.length > 1 && (
               <div className="flex items-center gap-1.5 px-5 py-2 overflow-x-auto no-scrollbar border-b border-[var(--border-subtle)] bg-[var(--surface-2)]/50">
                 {STOCK_CATEGORIES.map((cat) => (
                   <button

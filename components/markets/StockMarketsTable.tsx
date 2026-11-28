@@ -14,6 +14,7 @@ import {
 import type { StockMarketItem } from "@/lib/markets/types";
 import { computeTradeSafety } from "@/lib/markets/price-impact-service";
 import TokenLogo from "@/components/ui/TokenLogo";
+import { knownCategories } from "@/lib/stocks/tokenized-stocks-registry";
 
 interface StockMarketsTableProps {
   stocks: StockMarketItem[];
@@ -48,11 +49,7 @@ export default function StockMarketsTable({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const categories = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of stocks) {
-      if (s.category) set.add(s.category.toLowerCase());
-    }
-    return ["all", ...Array.from(set)];
+    return ["all", ...knownCategories(stocks.map((s) => s.category.toLowerCase()))];
   }, [stocks]);
 
   const handleSort = (col: SortColumn) => {
@@ -143,7 +140,7 @@ export default function StockMarketsTable({
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-            {categories.slice(0, 5).map((cat) => (
+            {categories.length > 1 && categories.slice(0, 5).map((cat) => (
               <button
                 key={cat}
                 type="button"

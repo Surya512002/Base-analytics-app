@@ -16,6 +16,8 @@ import {
 import {
   type TokenizedStockEntry,
   type StockCategory,
+  hasCategory,
+  knownCategories,
 } from "@/lib/stocks/tokenized-stocks-registry";
 import type { BaseStock } from "@/lib/stocks/base-stocks";
 import { getVerifiedTokenizedStocks } from "@/lib/stocks/base-verified";
@@ -137,10 +139,10 @@ export default function StockQuotePicker({
     return { eligible: true };
   };
 
-  // Only categories that actually contain a verified stock (no empty tabs).
+  // Only known categories that contain a verified stock (no empty tabs).
   const categoryTabs: Array<StockCategory | "All"> = [
     "All",
-    ...Array.from(new Set(getVerifiedTokenizedStocks().map((s) => s.category))),
+    ...knownCategories(getVerifiedTokenizedStocks().map((s) => s.category)),
   ];
 
   const filteredStocks = useMemo(() => {
@@ -241,9 +243,11 @@ export default function StockQuotePicker({
                 <span className="font-mono font-bold text-xs text-[var(--ink)]">
                   {stock.symbol}
                 </span>
-                <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
-                  {stock.category}
-                </span>
+                {hasCategory(stock.category) && (
+                  <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--border-subtle)]">
+                    {stock.category}
+                  </span>
+                )}
                 <span className="text-[11px] font-semibold text-[var(--ink-dim)] hidden min-[360px]:inline">
                   {stock.issuer}
                 </span>
@@ -373,9 +377,11 @@ export default function StockQuotePicker({
                 <span className="font-mono font-black text-sm text-[var(--ink)]">
                   {selectedStock.symbol}
                 </span>
-                <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
-                  {selectedStock.category}
-                </span>
+                {hasCategory(selectedStock.category) && (
+                  <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--brand-text)] border border-[var(--border-subtle)]">
+                    {selectedStock.category}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[var(--ink-muted)] truncate">
                 {selectedStock.name}
@@ -447,7 +453,7 @@ export default function StockQuotePicker({
 
               {/* Category Filter Chips */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 -my-1 touch-scroll-x">
-                {categoryTabs.map((cat) => (
+                {categoryTabs.length > 1 && categoryTabs.map((cat) => (
                   <button
                     key={cat}
                     type="button"
@@ -508,7 +514,7 @@ export default function StockQuotePicker({
 
           {/* Category Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 -my-1">
-            {categoryTabs.map((cat) => (
+            {categoryTabs.length > 1 && categoryTabs.map((cat) => (
               <button
                 key={cat}
                 type="button"

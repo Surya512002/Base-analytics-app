@@ -43,11 +43,8 @@ export default function GaugesTable({
   onClaim,
 }: GaugesTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [protocolFilter, setProtocolFilter] = useState<"all" | "beefy" | "aerodrome">("all");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
-
-  const categories = ["all", "tech", "crypto", "finance", "consumer", "healthcare"];
 
   const filteredGauges = useMemo(() => {
     let result = [...gauges];
@@ -69,12 +66,8 @@ export default function GaugesTable({
       );
     }
 
-    if (selectedCategory !== "all") {
-      result = result.filter((g) => g.category.toLowerCase() === selectedCategory.toLowerCase());
-    }
-
     return result;
-  }, [gauges, protocolFilter, searchQuery, selectedCategory]);
+  }, [gauges, protocolFilter, searchQuery]);
 
   const formatCompactUsd = (val: number): string => {
     if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
@@ -163,27 +156,6 @@ export default function GaugesTable({
               <span>Aerodrome Gauges</span>
               <span className="text-[11px] bg-black/25 px-1 py-0.2 rounded font-mono">AERO</span>
             </button>
-          </div>
-
-          {/* Category Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition whitespace-nowrap cursor-pointer ${
-                    isSelected
-                      ? "bg-[var(--brand)] text-white hover:opacity-90 shadow-xs"
-                      : "bg-[var(--surface-2)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--border-subtle)]"
-                  }`}
-                >
-                  {cat === "all" ? "All" : cat}
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>

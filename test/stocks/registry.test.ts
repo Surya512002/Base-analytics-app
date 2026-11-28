@@ -6,6 +6,7 @@ import {
   getTokenizedStockByAddress,
   getTokenizedStockBySymbol,
   getStockCategoryCounts,
+  knownCategories,
   isNewStock,
 } from "@/lib/stocks/tokenized-stocks-registry";
 import { BASE_STOCKS } from "@/lib/stocks/base-stocks";
@@ -98,6 +99,19 @@ describe("Single Source of Truth Tokenized Stock Registry (Base Mainnet)", () =>
         `Stock ${stock.symbol} (${stock.address}) is missing from TOKENIZED_STOCKS_REGISTRY`
       ).toBeDefined();
     }
+  });
+
+  it("shows ETF/Index only for funds the issuer names as an ETF", () => {
+    const funds = TOKENIZED_STOCKS_REGISTRY.filter((e) => e.category === "ETF/Index");
+    expect(funds.length).toBeGreaterThan(0);
+    expect(funds.filter((e) => !/\bETF\b/.test(e.name)).map((e) => e.symbol)).toEqual([]);
+    for (const symbol of ["NVDAc", "GOOGLc", "AAPLc", "MSFTc", "SNDKc"]) {
+      expect(getTokenizedStockBySymbol(symbol)?.category).toBe("Other");
+    }
+  });
+
+  it("never offers or labels the unknown category", () => {
+    expect(knownCategories(["Other", "other", undefined, "Finance", "Finance"])).toEqual(["Finance"]);
   });
 
   it("verifies dynamic category counts match active registry entries without hardcoding", () => {

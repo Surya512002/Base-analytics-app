@@ -21,7 +21,7 @@ export const StockMarketItemSchema = z.object({
   priceImpact10k: z.number().nullable(),
   usedAsCollateral: z.number().nullable(),
   appVolumes: z.record(z.string(), z.number()).default({}),
-  category: z.string().default("tech"),
+  category: z.string().default("other"),
   prospectusUrl: z.string().optional(),
   priceWeek: z.array(PricePointSchema).default([]),
   status: z.enum(["active", "paused", "deprecated", "pending"]).default("active"),

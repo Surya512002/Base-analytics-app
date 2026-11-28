@@ -58,7 +58,7 @@ describe("Markets Data Normalization & Schema Validation", () => {
 
     const parsed = StockMarketItemSchema.parse(minimalStock);
     expect(parsed.decimals).toBe(8);
-    expect(parsed.category).toBe("tech");
+    expect(parsed.category).toBe("other");
     expect(parsed.status).toBe("active");
     expect(parsed.priceWeek).toEqual([]);
     expect(parsed.appVolumes).toEqual({});
