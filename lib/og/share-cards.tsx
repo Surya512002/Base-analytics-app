@@ -394,6 +394,42 @@ export function renderSectionCard(section: OgSection): ReactElement {
   );
 }
 
+// ───────────────────────────── shared stock index ─────────────────────────────
+
+/** Someone's index: the stocks, their weights and rules. No prices, so the card can't go stale. */
+export function renderIndexCard(index: { weights: Record<string, number>; rules: { maxPct: number; cashPct: number } }): ReactElement {
+  const rows = Object.entries(index.weights);
+  const widest = Math.max(...rows.map(([, pct]) => pct));
+  const columns = rows.length > 5 ? [rows.slice(0, Math.ceil(rows.length / 2)), rows.slice(Math.ceil(rows.length / 2))] : [rows];
+  return (
+    <Frame>
+      <Brand right="Built on Base" />
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+        <div style={{ display: "flex", fontSize: 58, fontWeight: 800, letterSpacing: -1.5 }}>A stock index on Base</div>
+        <div style={{ display: "flex", fontSize: 28, color: W.soft, marginTop: 6 }}>
+          {`${rows.length} stocks · at least ${index.rules.cashPct}% cash · no company above ${index.rules.maxPct}%`}
+        </div>
+        <div style={{ display: "flex", gap: 40, marginTop: 28 }}>
+          {columns.map((column, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", flex: 1, gap: 12 }}>
+              {column.map(([symbol, pct]) => (
+                <div key={symbol} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ display: "flex", width: 150, fontSize: 28, fontWeight: 800 }}>{symbol}</div>
+                  <div style={{ display: "flex", flex: 1, height: 16, borderRadius: 999, backgroundColor: W.glass }}>
+                    <div style={{ display: "flex", width: `${(pct / widest) * 100}%`, height: 16, borderRadius: 999, backgroundColor: W.gold }} />
+                  </div>
+                  <div style={{ display: "flex", width: 110, justifyContent: "flex-end", fontSize: 28, fontWeight: 800 }}>{`${pct}%`}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <Footer left="Weights set by the person who shared it. Not advice." cta="Copy this index →" />
+    </Frame>
+  );
+}
+
 // ───────────────────────────── gift / claim card ─────────────────────────────
 
 export interface GiftShareData {
