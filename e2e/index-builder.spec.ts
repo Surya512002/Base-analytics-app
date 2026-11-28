@@ -6,6 +6,11 @@ test.describe("Build your own index", () => {
   test.beforeEach(async ({ page }) => {
     // Only the app's own API gets the test country; on every request the header breaks chain reads.
     await page.route("**/api/**", (r) => r.continue({ headers: { ...r.request().headers(), "x-mock-country": "DE" } }));
+    // Auto-invest, where the index lives, is part of the orders feature. Ask the Trade page, not the
+    // index itself, so a broken index fails instead of being skipped.
+    await page.goto(`${BASE}/trade`, { waitUntil: "domcontentloaded" });
+    const enabled = await page.locator('.place-tabs a:has-text("Auto-invest")').waitFor({ timeout: 10_000 }).then(() => true, () => false);
+    test.skip(!enabled, "Orders feature flag is off in this build");
   });
 
   test("warns about a breached limit and fits the weights back to the rules", async ({ page }) => {
