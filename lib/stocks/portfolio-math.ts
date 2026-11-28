@@ -114,6 +114,8 @@ export interface RebalanceOptions {
   minTradeUsd?: number;
   /** USDC the user is adding on top of selling overweight stocks. */
   extraCashUsd?: number;
+  /** Stocks to trade even inside the band (for example, ones over an index's limit). */
+  force?: readonly string[];
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -135,7 +137,7 @@ export function planRebalance(holdings: StockHolding[], targets: Targets, opts: 
   const buys: TradeLeg[] = [];
   for (const r of rows) {
     const delta = r.targetUsd - r.currentUsd; // positive = buy
-    if (Math.abs(r.driftPts) < band && !(cash > 0 && delta > 0)) continue;
+    if (Math.abs(r.driftPts) < band && !opts.force?.includes(r.symbol) && !(cash > 0 && delta > 0)) continue;
     if (Math.abs(delta) < minTrade) continue;
     if (delta < 0) sells.push({ symbol: r.symbol, usd: round2(Math.min(-delta, r.currentUsd)) });
     else buys.push({ symbol: r.symbol, usd: round2(delta) });

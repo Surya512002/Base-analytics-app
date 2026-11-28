@@ -359,7 +359,7 @@ export default function SwapTab({
       {isOrdersEnabled && activeSubTab === "recurring" && (
         <RecurringHub
           app={app}
-          initialPlan={searchParams?.get("plan") === "basket" ? "basket" : undefined}
+          initialPlan={["basket", "index"].includes(searchParams?.get("plan") ?? "") ? (searchParams!.get("plan") as "basket" | "index") : undefined}
           initialStock={searchParams?.get("token") ?? undefined}
           limitOrders={limitOrders}
           onConnectWallet={onRequestConnect}

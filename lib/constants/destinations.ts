@@ -1,5 +1,6 @@
 /** The two everyday places that sit inside another page, so every menu links to them the same way. */
 export const AUTO_INVEST_HREF = "/swap?mode=recurring&plan=basket";
+export const INDEX_HREF = "/swap?mode=recurring&plan=index";
 export const MY_STOCKS_HREF = "/lend?view=portfolio";
 export const MY_ORDERS_HREF = "/lend?view=orders";
 export const LIMIT_ORDERS_HREF = "/trade?ticket=orders";

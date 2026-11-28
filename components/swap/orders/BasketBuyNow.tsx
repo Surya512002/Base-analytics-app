@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits, type Address } from "viem";
+import { formatUnits } from "viem";
 import { AlertTriangle, CalendarClock, Check, Loader2, Plus, ShoppingBasket, X } from "lucide-react";
 import TokenLogo from "@/components/ui/TokenLogo";
 import StockRiskModal from "@/components/compliance/StockRiskModal";
@@ -11,18 +11,11 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import { basketLegs, BASKETS, MIN_PER_LEG } from "@/components/stocks/basket-math";
 import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
 import { equalTargets, mixReturnPct } from "@/lib/stocks/portfolio-math";
-import { computeTradeSafety } from "@/lib/markets/price-impact-service";
-import { fetchBasketQuote } from "@/lib/swap/basket-quote";
-import { USDC_BASE } from "@/lib/launchpad/tokens-base";
-import { createBasePublicClient } from "@/lib/utils/base-rpc";
-import { ERC20_ABI } from "@/lib/constants/contracts";
-import type { SwapQuoteResponse } from "@/lib/api/launchpad-client";
+import { STOCK_DECIMALS, useBasketQuotes, useUsdcBalance } from "@/hooks/useBasketQuotes";
 
 export const MAX_BUY_STOCKS = 10;
-const STOCK_DECIMALS = 8;
 const AMOUNTS = [10, 25, 50, 100];
 const SLIPPAGES = [0.5, 1, 3];
-const REFRESH_MS = 30_000;
 
 const STOCKS = new Map(BASE_OFFICIAL_STOCKS.map((s) => [s.symbol, s]));
 const PRESETS = BASKETS.map((b) => ({ ...b, symbols: b.symbols.filter((s) => STOCKS.has(s)) })).filter((b) => b.symbols.length >= 2);
@@ -42,9 +35,7 @@ export default function BasketBuyNow({ app, onConnectWallet, onRepeat }: { app: 
   const [symbols, setSymbols] = useState<string[]>(PRESETS[0]?.symbols ?? []);
   const [total, setTotal] = useState("25");
   const [slippage, setSlippage] = useState(0.5);
-  const [quotes, setQuotes] = useState<{ key: string; bySymbol: Record<string, SwapQuoteResponse> }>({ key: "", bySymbol: {} });
   const [accepted, setAccepted] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
   const [bought, setBought] = useState(0);
   const [tick, setTick] = useState(0);
   const compliance = useCompliance();
@@ -59,43 +50,9 @@ export default function BasketBuyNow({ app, onConnectWallet, onRepeat }: { app: 
         : { items: [], error: `Use at least $${MIN_PER_LEG}.` };
     return basketLegs(symbols, totalNum);
   }, [symbols, totalNum]);
-  const key = `${split.items.map((l) => `${l.symbol}:${l.amount}`).join(",")}|${slippage}`;
-
-  useEffect(() => {
-    setAccepted(false);
-    if (split.items.length === 0) return;
-    let alive = true;
-    const load = async () => {
-      const results = await Promise.all(
-        split.items.map(async (l) => {
-          const s = STOCKS.get(l.symbol)!;
-          return [l.symbol, await fetchBasketQuote({ token: s.address, decimals: STOCK_DECIMALS, usdc: l.amount, slippageBps: slippage * 100 })] as const;
-        })
-      );
-      if (alive) setQuotes({ key, bySymbol: Object.fromEntries(results) });
-    };
-    const first = setTimeout(() => void load(), 500);
-    const again = setInterval(() => void load(), REFRESH_MS);
-    return () => {
-      alive = false;
-      clearTimeout(first);
-      clearInterval(again);
-    };
-    // `key` covers the stocks, amounts and slippage.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, tick]);
-
-  useEffect(() => {
-    if (!wallet) return setBalance(null);
-    let alive = true;
-    createBasePublicClient()
-      .readContract({ address: USDC_BASE as Address, abi: ERC20_ABI, functionName: "balanceOf", args: [wallet as Address] })
-      .then((v) => alive && setBalance(Number(formatUnits(v as bigint, 6))))
-      .catch(() => alive && setBalance(null));
-    return () => {
-      alive = false;
-    };
-  }, [wallet, bought]);
+  const { rows, quoting, noRoute, failed, critical, risky, key } = useBasketQuotes(split.items, slippage, tick);
+  useEffect(() => setAccepted(false), [key]);
+  const balance = useUsdcBalance(wallet, bought);
 
   const returns = useStockReturns(symbols);
   const history = useMemo(() => {
@@ -104,24 +61,16 @@ export default function BasketBuyNow({ app, onConnectWallet, onRepeat }: { app: 
     return ([30, 90] as const).map((d) => ({ d, ...mixReturnPct(targets, Object.fromEntries(Object.entries(returns).map(([k, v]) => [k, v?.[d]]))) }));
   }, [symbols, returns]);
 
-  const fresh = quotes.key === key;
-  const rows = split.items.map((l) => {
-    const q = fresh ? quotes.bySymbol[l.symbol] : undefined;
-    const impact = q?.hasLiquidity && q.priceImpactBps != null ? computeTradeSafety(q.priceImpactBps / 100) : null;
-    return { ...l, q, impact };
-  });
-  const noRoute = rows.filter((r) => r.q && !r.q.hasLiquidity);
-  const critical = rows.filter((r) => r.impact?.tier === "critical");
-  const risky = rows.filter((r) => r.impact?.tier === "high");
-  const quoting = split.items.length > 0 && !fresh;
   const short = balance !== null && totalNum > balance;
 
   const blocked = split.error
     ? split.error
     : quoting
       ? "Getting prices…"
-      : noRoute.length
-        ? `Remove ${noRoute.map((r) => r.symbol).join(", ")} to continue`
+      : failed.length
+        ? "Couldn't get prices. Retrying…"
+        : noRoute.length
+          ? `Remove ${noRoute.map((r) => r.symbol).join(", ")} to continue`
         : critical.length
           ? `Price impact too high on ${critical.map((r) => r.symbol).join(", ")}`
           : short
@@ -255,7 +204,7 @@ export default function BasketBuyNow({ app, onConnectWallet, onRepeat }: { app: 
                   {!r.q ? (
                     <Loader2 size={16} aria-label="Getting price" className="animate-spin text-[var(--brand-text)]" />
                   ) : !r.q.hasLiquidity ? (
-                    <span className="font-bold text-[var(--danger-text)]">No route</span>
+                    <span className="font-bold text-[var(--danger-text)]">{r.q.failed ? "No price yet" : "No route"}</span>
                   ) : (
                     <>
                       <span className="block text-[15px] font-bold text-[var(--ink)]">≈ {Number(formatUnits(BigInt(r.q.amountOut), STOCK_DECIMALS)).toLocaleString("en-US", { maximumSignificantDigits: 5 })}</span>
