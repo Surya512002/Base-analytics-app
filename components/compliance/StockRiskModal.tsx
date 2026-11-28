@@ -42,16 +42,22 @@ export default function StockRiskModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
-      <div className="w-full max-w-lg rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 shadow-2xl space-y-5 animate-meridian-scale text-[var(--ink)]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-[var(--overlay)] backdrop-blur-md animate-meridian-fade">
+      {/* Never taller than the screen: the notice scrolls, the tick box and buttons stay in view. */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stock-risk-title"
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col gap-3 rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-4 sm:gap-5 sm:p-6 shadow-2xl animate-meridian-scale text-[var(--ink)]"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-3 sm:pb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <AlertTriangle size={18} />
             </div>
             <div>
-              <h3 className="font-display font-black text-lg tracking-tight text-[var(--ink)]">
+              <h3 id="stock-risk-title" className="font-display font-black text-base sm:text-lg tracking-tight text-[var(--ink)]">
                 Tokenized Stocks Risk Notice
               </h3>
               <p className="text-xs text-[var(--ink-muted)]">
@@ -63,34 +69,29 @@ export default function StockRiskModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition cursor-pointer"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition cursor-pointer"
             title="Close dialog"
+            aria-label="Close dialog"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Risk Points */}
-        <div className="space-y-3 text-xs text-[var(--ink-muted)] leading-relaxed">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain text-xs text-[var(--ink-muted)] leading-relaxed">
           <div className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-subtle)] space-y-2">
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-[var(--ink)] shrink-0">1. Equity Volatility &amp; Loss:</span>
-              <span>
-                Tokenized stock prices reflect underlying equity movements and can be volatile. You may lose some or all deposited funds.
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-[var(--ink)] shrink-0">2. Market Hours vs. AMM:</span>
-              <span>
-                US equity exchanges trade 24/5; AMM liquidity pools operate 24/7 on Base. Off-market trades rely on live pool liquidity and oracle feeds may freeze or reflect wider spreads outside market hours.
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-[var(--ink)] shrink-0">3. Issuer &amp; Geographic Terms:</span>
-              <span>
-                Tokenized stocks are backed and minted under the issuer&apos;s regulatory terms. Product access is subject to jurisdiction and may be restricted in your region.
-              </span>
-            </div>
+            <p>
+              <span className="font-bold text-[var(--ink)]">1. Equity Volatility &amp; Loss:</span>{" "}
+              Tokenized stock prices reflect underlying equity movements and can be volatile. You may lose some or all deposited funds.
+            </p>
+            <p>
+              <span className="font-bold text-[var(--ink)]">2. Market Hours vs. AMM:</span>{" "}
+              US equity exchanges trade 24/5; AMM liquidity pools operate 24/7 on Base. Off-market trades rely on live pool liquidity and oracle feeds may freeze or reflect wider spreads outside market hours.
+            </p>
+            <p>
+              <span className="font-bold text-[var(--ink)]">3. Issuer &amp; Geographic Terms:</span>{" "}
+              Tokenized stocks are backed and minted under the issuer&apos;s regulatory terms. Product access is subject to jurisdiction and may be restricted in your region.
+            </p>
           </div>
 
           {/* Links Row */}
@@ -129,7 +130,7 @@ export default function StockRiskModal({
         </div>
 
         {/* Checkbox Acknowledgment */}
-        <div className="pt-2">
+        <div className="shrink-0">
           <label className="flex items-start gap-3 p-3.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] hover:bg-[var(--surface-2)] transition cursor-pointer select-none">
             <input
               type="checkbox"
@@ -144,11 +145,11 @@ export default function StockRiskModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex shrink-0 items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--ink)] transition"
+            className="min-h-11 flex-1 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-subtle)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--ink)] transition"
           >
             Cancel
           </button>
@@ -156,7 +157,7 @@ export default function StockRiskModal({
             type="button"
             disabled={!confirmed}
             onClick={onAcknowledge}
-            className="flex-1 btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 flex-1 btn-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ShieldCheck size={14} />
             <span>Acknowledge &amp; Continue</span>

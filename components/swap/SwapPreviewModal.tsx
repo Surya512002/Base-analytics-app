@@ -51,7 +51,7 @@ export default function SwapPreviewModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150 text-left"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-3)] p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl animate-in zoom-in-95 duration-150 text-left"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
