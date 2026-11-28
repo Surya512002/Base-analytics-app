@@ -3,7 +3,8 @@ import { homeShareImage } from "@/lib/og/home-share";
 import { renderOgTokenCard } from "@/lib/og/render-token-card";
 import { tokenCardData } from "@/lib/og/token-card-data";
 import { OG_SIZE } from "@/lib/og/types";
-import { renderSectionCard } from "@/lib/og/share-cards";
+import { renderIndexCard, renderSectionCard } from "@/lib/og/share-cards";
+import { decodeIndex } from "@/lib/stocks/index-link";
 import { isOgSection } from "@/lib/og/sections";
 import { ogFonts } from "@/lib/og/og-fonts";
 
@@ -13,8 +14,8 @@ export const runtime = "nodejs";
 const CACHE = "public, max-age=60, s-maxage=300, stale-while-revalidate=600";
 
 /**
- * GET /api/og?v=token&addr=0x… draws a token card from live data and ?v=<section> that section's
- * fixed image. Every other request, including old links that carried their own numbers, gets the
+ * GET /api/og?v=token&addr=0x… draws a token card from live data, ?v=<section> that section's
+ * fixed image, and ?v=index&mix=… a shared stock index (official stocks and numbers only). Every other request, including old links that carried their own numbers, gets the
  * home image.
  */
 export async function GET(request: Request) {
@@ -22,6 +23,14 @@ export async function GET(request: Request) {
   const section = params.get("v");
   if (isOgSection(section)) {
     return new ImageResponse(renderSectionCard(section), {
+      ...OG_SIZE,
+      fonts: ogFonts(),
+      headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400" },
+    });
+  }
+  const shared = section === "index" ? decodeIndex(params) : null;
+  if (shared) {
+    return new ImageResponse(renderIndexCard(shared), {
       ...OG_SIZE,
       fonts: ogFonts(),
       headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400" },

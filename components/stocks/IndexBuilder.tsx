@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
-import { AlertTriangle, Check, Info, Layers, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, Check, Copy, Info, Layers, Loader2, Plus, Share2, X } from "lucide-react";
 import TokenLogo from "@/components/ui/TokenLogo";
 import StockRiskModal from "@/components/compliance/StockRiskModal";
 import ShareCount from "@/components/stocks/ShareCount";
@@ -14,6 +14,8 @@ import type { WalletAppState } from "@/hooks/useWalletApp";
 import { MY_STOCKS_HREF } from "@/lib/constants/destinations";
 import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
 import { COINBASE_LIQUID_STOCKS } from "@/lib/stocks/live-stocks.generated";
+import { decodeIndex, encodeIndex, type SharedIndex } from "@/lib/stocks/index-link";
+import { twitterShare, warpcast } from "@/lib/utils/share";
 import {
   DEFAULT_INDEX_RULES,
   MAX_INDEX_STOCKS,
@@ -50,8 +52,9 @@ const decimal = (v: string) => v.replace(/[^\d.]/g, "").replace(/(\..*?)\./g, "$
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const num = (v: string) => (v.trim() === "" ? Number.NaN : Number(v));
 
-const startingStocks = (startId: string, excluded: Set<string>) =>
-  pickStocks((STARTS.find((s) => s.id === startId) ?? STARTS[0]!).symbols, excluded, startId === "deepest" ? DEEPEST_COUNT : MAX_INDEX_STOCKS);
+const startingStocks = (starts: typeof STARTS, startId: string, excluded: Set<string>) =>
+  pickStocks((starts.find((s) => s.id === startId) ?? starts[0]!).symbols, excluded, startId === "deepest" ? DEEPEST_COUNT : MAX_INDEX_STOCKS);
+const asTyped = (weights: Record<string, number>) => Object.fromEntries(Object.entries(weights).map(([s, n]) => [s, String(n)]));
 const excludedBy = (themes: string[], removed: string[]) =>
   new Set([...removed, ...THEMES.filter((t) => themes.includes(t.id)).flatMap((t) => t.symbols)]);
 
@@ -65,7 +68,10 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
   const [start, setStart] = useState("deepest");
   const [leftOutThemes, setLeftOutThemes] = useState<string[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
-  const [symbols, setSymbols] = useState<string[]>(() => startingStocks("deepest", new Set()));
+  const [symbols, setSymbols] = useState<string[]>(() => startingStocks(STARTS, "deepest", new Set()));
+  /** The index this visit was opened with, from someone's link. */
+  const [shared, setShared] = useState<SharedIndex | null>(null);
+  const [copied, setCopied] = useState(false);
   /** Weights the person typed; null means "split evenly within my rules". */
   const [custom, setCustom] = useState<Record<string, string> | null>(null);
   const [maxPct, setMaxPct] = useState(String(DEFAULT_INDEX_RULES.maxPct));
@@ -98,6 +104,19 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
     setReviewing(false);
   }, [key]);
 
+  // A "copy this index" link fills in the mix; nothing is saved or bought until the visitor says so.
+  useEffect(() => {
+    const opened = decodeIndex(new URLSearchParams(window.location.search));
+    if (!opened) return;
+    setShared(opened);
+    setStart("shared");
+    setSymbols(Object.keys(opened.weights));
+    setCustom(asTyped(opened.weights));
+    setMaxPct(String(opened.rules.maxPct));
+    setCashPct(String(opened.rules.cashPct));
+  }, []);
+  const starts = shared ? [{ id: "shared", title: "Shared mix", symbols: Object.keys(shared.weights) }, ...STARTS] : STARTS;
+
   const issues: IndexIssue[] = useMemo(() => {
     if (!rulesUsable) return [{ id: "rules", level: "block", text: "Set a company limit from 1% to 100% and cash from 0% to 99%." }];
     return checkIndex({ weights, rules, totalUsd: totalNum, unavailable: noRoute.map((r) => r.symbol) });
@@ -116,8 +135,8 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
     setStart(nextStart);
     setLeftOutThemes(themes);
     setRemoved(gone);
-    setSymbols(startingStocks(nextStart, excludedBy(themes, gone)));
-    setCustom(null);
+    setSymbols(startingStocks(starts, nextStart, excludedBy(themes, gone)));
+    setCustom(nextStart === "shared" && shared ? asTyped(shared.weights) : null);
     setDone(null);
   };
   const remove = (symbol: string) => {
@@ -135,7 +154,7 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
     setCustom((c) => ({ ...(c ?? Object.fromEntries(symbols.map((s) => [s, String(weights[s] ?? 0)]))), [symbol]: decimal(value) }));
     setDone(null);
   };
-  const fit = () => setCustom(Object.fromEntries(Object.entries(fitWeights(weights, rules)).map(([s, n]) => [s, String(n)])));
+  const fit = () => setCustom(asTyped(fitWeights(weights, rules)));
 
   /** Remember the mix and its limits so Holdings can rebalance against them. */
   const save = (owner: string) => {
@@ -174,6 +193,15 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
   // A mix can be saved without buying, as long as the mix itself obeys the rules.
   const savable = issues.every((i) => i.level !== "block" || i.id === "amount" || i.id.startsWith("unavailable-"));
   const rowBySymbol = new Map(rows.map((r) => [r.symbol, r]));
+  const shareUrl = () => `${window.location.origin}/copy-index?${encodeIndex({ weights, rules })}`;
+  const shareText = "My stock index on Base. Copy it and change what you like.";
+  const copyLink = () =>
+    void navigator.clipboard?.writeText(shareUrl()).then(
+      () => setCopied(true),
+      () => app.showToast("Couldn't copy the link. Try the share buttons instead.", "")
+    );
+  const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
+  useEffect(() => setCopied(false), [weights, rules]);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
@@ -182,9 +210,15 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
           <Layers size={20} aria-hidden className="text-[var(--brand-text)]" /> Build your own index
         </h2>
 
+        {shared && (
+          <p role="status" className="rounded-2xl border border-[var(--brand)] bg-[var(--brand-soft)] p-3 text-[13px] font-bold text-[var(--ink)]">
+            You opened a shared index. Change anything you like; nothing is saved or bought until you say so.
+          </p>
+        )}
+
         <p className="text-sm font-bold text-[var(--ink)]">Start with</p>
         <div role="group" aria-label="Start with" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {STARTS.map((s) => (
+          {starts.map((s) => (
             <button key={s.id} type="button" aria-pressed={start === s.id} onClick={() => choose(s.id, leftOutThemes, removed)} className={chip(start === s.id)}>
               {s.title}
             </button>
@@ -402,6 +436,22 @@ export default function IndexBuilder({ app, onConnectWallet }: { app: WalletAppS
               </Link>
             </span>
           </p>
+        )}
+        {savable && (
+          <div role="group" aria-label="Share this index" className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--ink)]">
+              <Share2 size={15} aria-hidden /> Share
+            </span>
+            <button type="button" onClick={copyLink} className={`${outline} inline-flex items-center gap-1.5`}>
+              {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />} {copied ? "Link copied" : "Copy link"}
+            </button>
+            <button type="button" onClick={() => open(twitterShare(shareText, shareUrl()))} className={outline}>
+              Post on X
+            </button>
+            <button type="button" onClick={() => open(warpcast(shareText, shareUrl()))} className={outline}>
+              Farcaster
+            </button>
+          </div>
         )}
         <p className="text-[13px] text-[var(--ink-muted)]">
           Some stocks aren&apos;t available in every region. Your index is saved in this browser only. Not investment advice.
