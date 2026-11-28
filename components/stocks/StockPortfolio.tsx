@@ -329,8 +329,8 @@ export default function StockPortfolio({
       )}
 
       <div className="space-y-3 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-black text-[var(--ink)]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 whitespace-nowrap text-sm font-black text-[var(--ink)]">
             <Scale size={15} /> Target mix
           </h3>
           {!editing && (

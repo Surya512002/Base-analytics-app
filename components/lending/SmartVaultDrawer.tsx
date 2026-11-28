@@ -91,6 +91,8 @@ const safeParse = (v: string, d: number) => {
 const errText = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);
   if (/user rejected|denied|rejected the request/i.test(m)) return "You cancelled in your wallet.";
+  // The vault's ActionLocked error: a new deposit can't be withdrawn straight away.
+  if (/ActionLocked|0x1cb0146c/.test(m)) return "The vault is still holding a recent deposit, so it can't be withdrawn yet. Try again later.";
   return m.split("\n")[0].slice(0, 180);
 };
 
