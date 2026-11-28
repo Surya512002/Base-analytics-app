@@ -21,9 +21,17 @@ export interface StockNavComparison {
   explorerUrl: string;
 }
 
+// shortcut: NYSE's published calendar for 2026 and 2027; add later years before 2028 (nyse.com/markets/hours-calendars).
+const HOLIDAYS = new Set([
+  "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25", "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+  "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31", "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24",
+]);
+/** Days the market shuts at 1:00 PM. */
+const EARLY_CLOSES = new Set(["2026-11-27", "2026-12-24", "2027-11-26"]);
+
 /**
  * Checks whether US equity markets (NYSE / NASDAQ) are currently in standard trading hours
- * (Monday - Friday, 9:30 AM - 4:00 PM US Eastern Time).
+ * (Monday - Friday, 9:30 AM - 4:00 PM US Eastern Time, less exchange holidays and early closes).
  */
 export function getEquityMarketStatus(now: Date = new Date()): {
   isOpen: boolean;
@@ -52,15 +60,26 @@ export function getEquityMarketStatus(now: Date = new Date()): {
       };
     }
 
-    const timeInMinutes = hour * 60 + minute;
+    // en-CA writes dates as YYYY-MM-DD.
+    const date = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(now);
+    if (HOLIDAYS.has(date)) {
+      return {
+        isOpen: false,
+        statusText: "Market Closed (Holiday)",
+        nextSessionText: "Opens Next Session 9:30 AM ET",
+      };
+    }
+
+    const timeInMinutes = (hour % 24) * 60 + minute;
     const openTime = 9 * 60 + 30; // 9:30 AM
-    const closeTime = 16 * 60; // 4:00 PM
+    const early = EARLY_CLOSES.has(date);
+    const closeTime = (early ? 13 : 16) * 60;
 
     if (timeInMinutes >= openTime && timeInMinutes < closeTime) {
       return {
         isOpen: true,
         statusText: "Market Open (Regular Hours)",
-        nextSessionText: "Closes 4:00 PM ET",
+        nextSessionText: early ? "Closes early, 1:00 PM ET" : "Closes 4:00 PM ET",
       };
     }
 

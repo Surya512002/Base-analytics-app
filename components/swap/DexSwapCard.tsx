@@ -24,6 +24,7 @@ import { fetchErc20Decimals } from "@/lib/launchpad/erc20-meta";
 import { createBasePublicClient } from "@/lib/utils/base-rpc";
 import { formatUsd, formatTokenAmount, tokenUnits } from "@/lib/launchpad/format";
 import ShareCount from "@/components/stocks/ShareCount";
+import StockMarketCheck from "@/components/stocks/StockMarketCheck";
 import { computeSwapUsd } from "@/lib/launchpad/swap-display";
 import { getStockTradability } from "@/lib/stocks/stock-tradability";
 import { DEFAULT_STOCK_COMPLIANCE } from "@/lib/stocks/compliance";
@@ -616,9 +617,9 @@ export default function DexSwapCard({
   const isStockSwapDisabled = !compliance.status.features["stocks.swap"];
   // A restricted location blocks both directions; a pause or switched-off feature only blocks buying.
   // By address, so a token whose name merely ends in "c" can still be sold.
-  const isListedStock = [from, to].some((c) => c?.kind === "token" && Boolean(getTokenizedStockByAddress(c.address)));
+  const listedStock = [to, from].find((c) => c?.kind === "token" && Boolean(getTokenizedStockByAddress(c.address)));
   const isStockTradeRestricted =
-    (isListedStock && compliance.status.locationBlocked) ||
+    (Boolean(listedStock) && compliance.status.locationBlocked) ||
     (isStockBuy && (isStockSwapDisabled || (compliance.isRestricted && !compliance.canEnter)));
 
   // Primary Action Button Label & State
@@ -1265,6 +1266,10 @@ export default function DexSwapCard({
               Earn
             </button>
           </div>
+        )}
+
+        {listedStock?.kind === "token" && !isStockTradeRestricted && (
+          <StockMarketCheck key={listedStock.address} token={listedStock.address} symbol={listedStock.symbol} decimals={listedStock.decimals} />
         )}
 
         {stockTradability && stockTradability.status === "restricted" && (

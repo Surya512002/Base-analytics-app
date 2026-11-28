@@ -1,4 +1,5 @@
 import type { LaunchTokenType } from "@/lib/launchpad/types";
+import { getEquityMarketStatus } from "@/lib/stocks/nav-tracker";
 
 export interface LockDurationOption {
   days: number;
@@ -39,32 +40,9 @@ export function formatReadablePrice(priceStr: string): string {
   return `$${num.toFixed(9).replace(/0+$/, "")}`;
 }
 
-/** Check if US equity markets / Chainlink 24/5 feeds are currently active */
+/** Whether the US stock market is in regular hours right now. */
 export function isUSMarketOpenNow(): boolean {
-  try {
-    const now = new Date();
-    // Format to US Eastern Time (ET)
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
-      weekday: "short",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: false,
-    });
-    const parts = formatter.formatToParts(now);
-    const day = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
-    const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "12", 10);
-    const minute = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
-
-    const isWeekend = day === "Sat" || day === "Sun";
-    if (isWeekend) return false;
-
-    // Standard market hours: 9:30 AM to 4:00 PM ET
-    const totalMinutes = hour * 60 + minute;
-    return totalMinutes >= 9 * 60 + 30 && totalMinutes <= 16 * 60;
-  } catch {
-    return true; // Fallback to open
-  }
+  return getEquityMarketStatus().isOpen;
 }
 
 /** Local storage draft key */
