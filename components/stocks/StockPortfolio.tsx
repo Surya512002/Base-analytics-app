@@ -9,6 +9,8 @@ import { BASE_OFFICIAL_STOCKS } from "@/lib/stocks/base-verified";
 import { buildSwapLink } from "@/lib/swap/swap-link";
 import { USDC_BASE } from "@/lib/utils/voucher";
 import { BASKETS } from "./basket-math";
+import { INDEX_HREF } from "@/lib/constants/destinations";
+import { limitBreaches, parseRules, rulesKey, targetsKey, type IndexRules } from "@/lib/stocks/index-builder";
 import {
   MAX_TARGET_STOCKS,
   allocation,
@@ -45,11 +47,18 @@ const BUY_HEADROOM = 0.99;
 
 const usd = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pct = (n: number) => `${n.toFixed(1)}%`;
-const storeKey = (wallet: string) => `stock_portfolio_targets_v1_${wallet.toLowerCase()}`;
+
+function readRules(wallet: string): IndexRules | null {
+  try {
+    return parseRules(localStorage.getItem(rulesKey(wallet)));
+  } catch {
+    return null;
+  }
+}
 
 function readTargets(wallet: string): Targets | null {
   try {
-    const raw = JSON.parse(localStorage.getItem(storeKey(wallet)) ?? "null") as Targets | null;
+    const raw = JSON.parse(localStorage.getItem(targetsKey(wallet)) ?? "null") as Targets | null;
     if (!raw || typeof raw !== "object") return null;
     const clean: Targets = {};
     for (const [k, v] of Object.entries(raw)) if (typeof v === "number" && BASE_OFFICIAL_STOCKS.some((s) => s.symbol === k)) clean[k] = v;
@@ -100,6 +109,8 @@ export default function StockPortfolio({
   const alloc = useMemo(() => allocation(held.map((h) => ({ symbol: h.symbol, valueUsd: h.valueUsd }))), [held]);
 
   const [targets, setTargets] = useState<Targets | null>(null);
+  /** Limits saved with an index from the builder; null for a hand-made mix. */
+  const [rules, setRules] = useState<IndexRules | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
   const [cash, setCash] = useState("");
@@ -109,6 +120,7 @@ export default function StockPortfolio({
   useEffect(() => {
     if (!walletAddress) return;
     setTargets(readTargets(walletAddress));
+    setRules(readRules(walletAddress));
   }, [walletAddress]);
 
   const draftTargets: Targets = useMemo(() => {
@@ -126,7 +138,7 @@ export default function StockPortfolio({
   const save = () => {
     if (!walletAddress || validateTargets(draftTargets) !== null) return;
     try {
-      localStorage.setItem(storeKey(walletAddress), JSON.stringify(draftTargets));
+      localStorage.setItem(targetsKey(walletAddress), JSON.stringify(draftTargets));
     } catch {
       /* private mode: still works for this visit */
     }
@@ -136,19 +148,27 @@ export default function StockPortfolio({
   const clear = () => {
     if (walletAddress) {
       try {
-        localStorage.removeItem(storeKey(walletAddress));
+        localStorage.removeItem(targetsKey(walletAddress));
+        localStorage.removeItem(rulesKey(walletAddress));
       } catch {
         /* ignore */
       }
     }
     setTargets(null);
+    setRules(null);
     setEditing(false);
   };
 
   const extraCash = Math.max(0, Number(cash) || 0);
   const holdingsForMath = useMemo(() => held.map((h) => ({ symbol: h.symbol, valueUsd: h.valueUsd })), [held]);
-  const driftView = useMemo(() => (targets ? drift(holdingsForMath, targets, extraCash) : null), [targets, holdingsForMath, extraCash]);
-  const plan = useMemo(() => (targets ? planRebalance(holdingsForMath, targets, { extraCashUsd: extraCash }) : null), [targets, holdingsForMath, extraCash]);
+  // An index keeps its cash share out of any USDC added to it.
+  const investCash = rules ? (extraCash * (100 - rules.cashPct)) / 100 : extraCash;
+  const breaches = useMemo(() => (rules && targets ? limitBreaches(holdingsForMath, targets, rules) : []), [rules, targets, holdingsForMath]);
+  const driftView = useMemo(() => (targets ? drift(holdingsForMath, targets, investCash) : null), [targets, holdingsForMath, investCash]);
+  const plan = useMemo(
+    () => (targets ? planRebalance(holdingsForMath, targets, { extraCashUsd: investCash, force: breaches.map((b) => b.symbol) }) : null),
+    [targets, holdingsForMath, investCash, breaches]
+  );
 
   const [confirming, setConfirming] = useState(false);
   const [run, setRun] = useState<{ index: number; total: number; label: string } | null>(null);
@@ -314,6 +334,11 @@ export default function StockPortfolio({
             <Scale size={15} /> Target mix
           </h3>
           {!editing && (
+            <Link href={INDEX_HREF} className="ml-auto inline-flex min-h-[34px] items-center rounded-full bg-[var(--brand)] px-3 text-xs font-bold text-white">
+              Build an index
+            </Link>
+          )}
+          {!editing && (
             <button type="button" onClick={() => startEdit()} className="min-h-[34px] rounded-full border border-[var(--border-subtle)] px-3 text-xs font-bold text-[var(--ink-soft)]">
               {targets ? "Edit" : "Set a target"}
             </button>
@@ -392,6 +417,7 @@ export default function StockPortfolio({
             {Object.entries(targets)
               .map(([s, p]) => `${s} ${p}%`)
               .join(" · ")}
+            {rules && ` · These are shares of the stock part; your index also keeps ${pct(rules.cashPct)} as cash, and no company above ${rules.maxPct}%.`}
           </p>
         ) : (
           <p className="text-xs text-[var(--ink-muted)]">Pick the share you want in each stock. We show how far you have drifted and the trades that bring you back.</p>
@@ -426,7 +452,25 @@ export default function StockPortfolio({
               />
             </label>
           </div>
-          {plan.balanced ? (
+          {breaches.length > 0 && rules && (
+            <ul role="alert" className="space-y-1 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-[var(--ink)]">
+              {breaches.map((b) => (
+                <li key={b.symbol}>
+                  {b.symbol} is now {pct(b.nowPct)} of your index, above your {rules.maxPct}% limit.
+                </li>
+              ))}
+            </ul>
+          )}
+          {rules && extraCash > 0 && (
+            <p className="text-[11px] text-[var(--ink-muted)]">
+              Your index keeps {pct(rules.cashPct)} as cash, so {usd(investCash)} of the added USDC is invested.
+            </p>
+          )}
+          {plan.totalUsd <= 0 ? (
+            <p className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--ink-muted)]">
+              {holdings.loading ? "Reading your wallet…" : "You don't hold any of these stocks yet. Add USDC above to see what to buy."}
+            </p>
+          ) : plan.balanced ? (
             <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               You are within 3 points of your target. Nothing to do.
             </p>

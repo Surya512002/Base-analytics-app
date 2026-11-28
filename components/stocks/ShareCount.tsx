@@ -30,11 +30,18 @@ export default function ShareCount({ token, tokens, prefix, className }: { token
   useEffect(() => {
     if (!wanted) return;
     let live = true;
-    readMultiplier(wanted)
-      .then((multiplier) => live && setRead({ token: wanted, multiplier }))
-      .catch(() => {});
+    let timer: number | undefined;
+    // A busy public endpoint can refuse a read, so try a few more times before giving up.
+    const attempt = (retries: number) =>
+      readMultiplier(wanted)
+        .then((multiplier) => live && setRead({ token: wanted, multiplier }))
+        .catch(() => {
+          if (live && retries > 0) timer = window.setTimeout(() => attempt(retries - 1), 5000);
+        });
+    void attempt(3);
     return () => {
       live = false;
+      window.clearTimeout(timer);
     };
   }, [wanted]);
 

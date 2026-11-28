@@ -78,6 +78,8 @@ export type SwapQuoteResponse = {
   amountOut: string;
   amountOutMinimum: string;
   hasLiquidity: boolean;
+  /** The price could not be read (network or server), as opposed to there being no route. */
+  failed?: boolean;
   tokenIn: string;
   tokenOut: string;
   payAsset?: SwapAsset;
@@ -168,6 +170,7 @@ export async function fetchSwapQuote(params: {
         tokenIn: "",
         tokenOut: "",
         error: "Quote failed",
+        failed: true,
       };
     }
     return r.json();
@@ -180,6 +183,7 @@ export async function fetchSwapQuote(params: {
       tokenIn: "",
       tokenOut: "",
       error: "Network error — check connection and retry",
+      failed: true,
     };
   }
 }
